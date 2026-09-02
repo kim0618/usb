@@ -11,7 +11,7 @@ from app.core.config import get_settings
 
 
 @dataclass(frozen=True)
-class MarketSession:
+class TradingSessionWindow:
     session_date: date
     market_open: datetime
     market_close: datetime
@@ -35,17 +35,20 @@ class MarketCalendar:
     def is_holiday(self, day: date) -> bool:
         return day.weekday() < 5 and not self.is_trading_day(day)
 
-    def session(self, day: date) -> MarketSession | None:
+    def session(self, day: date) -> TradingSessionWindow | None:
         label = self._label(day)
         if not self._calendar.is_session(label):
             return None
         market_open = self._calendar.session_open(label).to_pydatetime().astimezone(self.timezone)
         market_close = self._calendar.session_close(label).to_pydatetime().astimezone(self.timezone)
-        return MarketSession(
+        market_close_ny = self._calendar.session_close(label).to_pydatetime().astimezone(
+            ZoneInfo("America/New_York")
+        )
+        return TradingSessionWindow(
             session_date=day,
             market_open=market_open,
             market_close=market_close,
-            is_early_close=market_close.timetz().replace(tzinfo=None) < time(16, 0),
+            is_early_close=market_close_ny.timetz().replace(tzinfo=None) < time(16, 0),
         )
 
     def regular_market_open(self, day: date) -> datetime | None:
@@ -60,3 +63,15 @@ class MarketCalendar:
         session = self.session(day)
         return bool(session and session.is_early_close)
 
+    def next_trading_day(self, day: date) -> date:
+        """Return the next XNYS session, skipping weekends and holidays."""
+        label = self._calendar.date_to_session(self._label(day), direction="next")
+        if label.date() == day:
+            label = self._calendar.next_session(label)
+        return label.date()
+
+    def holding_day_number(self, entry_day: date, current_day: date) -> int:
+        if current_day < entry_day or not self.is_trading_day(entry_day) or not self.is_trading_day(current_day):
+            raise ValueError("holding dates must be ordered XNYS sessions")
+        sessions = self._calendar.sessions_in_range(self._label(entry_day), self._label(current_day))
+        return len(sessions)

@@ -41,3 +41,8 @@ def test_session_datetimes_are_timezone_aware() -> None:
     assert summer.market_open.tzinfo is not None
     assert winter.market_open.utcoffset() != summer.market_open.utcoffset()
 
+
+def test_display_timezone_does_not_change_early_close_truth() -> None:
+    day = date(2024, 11, 29)
+    assert MarketCalendar("America/New_York").is_early_close(day)
+    assert MarketCalendar("Asia/Seoul").is_early_close(day)

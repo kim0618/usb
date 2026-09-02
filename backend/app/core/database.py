@@ -1,6 +1,6 @@
 """SQLAlchemy engine, session, and declarative base foundation."""
 
-from collections.abc import Generator
+from collections.abc import AsyncGenerator
 from pathlib import Path
 
 from sqlalchemy import Engine, create_engine, event
@@ -45,9 +45,8 @@ engine = create_db_engine(settings.resolved_database_url)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
 
 
-def get_db() -> Generator[Session, None, None]:
+async def get_db() -> AsyncGenerator[Session, None]:
     """Yield one SQLAlchemy session and always close it afterwards."""
 
     with SessionLocal() as session:
         yield session
-

@@ -12,3 +12,6 @@ class ConfigurationError(USBError):
 class DataError(USBError):
     """Raised when required data is missing, invalid, or inconsistent."""
 
+
+class ResearchError(USBError):
+    """Raised when GPT research input or workflow state is invalid."""

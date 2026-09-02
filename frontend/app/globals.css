@@ -1,0 +1,21 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: dark; }
+* { scrollbar-color: #334155 #0b111b; }
+body { @apply bg-ink text-slate-100 antialiased; }
+button, a, input, textarea, select { @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-ink; }
+.panel { @apply rounded-xl border border-line bg-panel shadow-sm; }
+.label { @apply text-[11px] font-semibold uppercase tracking-[0.13em] text-muted; }
+.table-wrap { @apply overflow-x-auto rounded-xl border border-line bg-panel; }
+table { @apply w-full border-collapse text-sm; }
+th { @apply border-b border-line bg-slate-900/70 px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted; }
+td { @apply border-b border-line/60 px-4 py-3 text-slate-300; }
+tr:last-child td { @apply border-b-0; }
+tbody tr { @apply transition-colors hover:bg-slate-800/35; }
+.input { @apply w-full rounded-lg border border-line bg-slate-950 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600; }
+.btn { @apply inline-flex items-center justify-center rounded-lg border border-line px-3.5 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40; }
+.btn-primary { @apply btn border-cyan-500/40 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20; }
+.btn-danger { @apply btn border-red-500/40 bg-red-500/10 text-red-300 hover:bg-red-500/20; }
+.btn-muted { @apply btn bg-slate-900 text-slate-300 hover:bg-slate-800; }

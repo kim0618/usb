@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///data/runtime/usb.sqlite3"
     data_dir: Path = Path("data")
     market_timezone: str = "America/New_York"
+    cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
 
     @field_validator("log_level")
     @classmethod
@@ -59,10 +60,14 @@ class Settings(BaseSettings):
             return self.database_url
         return f"{prefix}{(PROJECT_ROOT / raw_path).resolve()}"
 
+    @property
+    def allowed_cors_origins(self) -> list[str]:
+        """Return explicit origins only; wildcard credentials are never enabled."""
+        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
 
 @lru_cache
 def get_settings() -> Settings:
     """Return the process-wide immutable-by-convention settings instance."""
 
     return Settings()
-

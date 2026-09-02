@@ -5,6 +5,7 @@ from sqlalchemy import engine_from_config, pool
 
 from app.core.config import get_settings
 from app.core.database import Base
+import app.models  # noqa: F401  # Register ORM metadata for autogenerate.
 
 
 config = context.config
@@ -42,4 +43,3 @@ if context.is_offline_mode():
     run_migrations_offline()
 else:
     run_migrations_online()
-
