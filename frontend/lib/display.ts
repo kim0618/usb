@@ -1,0 +1,59 @@
+const display = (value: string | null | undefined, labels: Readonly<Record<string, string>>, empty = "—") => {
+  if (value == null || value === "") return empty;
+  return labels[value] ?? value;
+};
+
+export const formatDecisionStatus = (value?: string | null) => display(value, {
+  APPROVE: "승인", REJECT: "거절", UNDECIDED: "미결정",
+}, "미결정");
+
+export const formatOrderSide = (value?: string | null) => display(value, { BUY: "매수", SELL: "매도" });
+export const formatOrderStatus = (value?: string | null) => display(value, {
+  PENDING: "주문 대기", PARTIALLY_FILLED: "부분 체결", FILLED: "체결 완료",
+  CANCELLED: "주문 취소", REJECTED: "주문 거절",
+});
+export const formatMarketSession = (value?: string | null) => display(value, {
+  PREMARKET: "프리마켓", REGULAR: "정규장", POSTMARKET: "애프터마켓",
+});
+export const formatRuntimeMode = (value?: string | null) => display(value, {
+  NORMAL: "정상", SAFE_MODE: "안전 모드", HALTED: "중지",
+});
+export const formatRuntimeHealth = (healthy: boolean) => healthy ? "정상" : "확인 필요";
+export const formatSeverity = (value?: string | null) => display(value, {
+  WARNING: "경고", ERROR: "오류", CRITICAL: "심각",
+});
+export const formatResolved = (resolved: boolean) => resolved ? "해결됨" : "미해결";
+export const formatBrokerMode = (value?: string | null) => display(value, {
+  SIMULATION: "가상 매매", PAPER: "모의투자", LIVE: "실전투자",
+});
+export const formatCapability = (enabled: boolean) => enabled ? "사용 가능" : "미지원";
+export const formatConnection = (value?: string | null) => display(value, { "NOT CONNECTED": "미연결" });
+
+export const formatStrategyPhase = (value?: string | null) => display(value, {
+  RESEARCH_READY: "분석 준비", HUMAN_REJECTED: "투자 거절", HUMAN_APPROVED: "투자 승인",
+  PREMARKET_REJECTED: "프리마켓 탈락", PREMARKET_PASSED: "프리마켓 통과",
+  OPENING_RANGE_BUILDING: "시초 범위 형성", WAITING_ENTRY: "진입 대기",
+  ENTRY_SIGNALLED: "진입 신호", POSITION_OPEN: "보유 중", PYRAMID_ADDED: "추가매수 완료",
+  OVERNIGHT_REVIEW: "익일 보유 검토", OVERNIGHT_HELD: "익일 보유", DAY2_ACTIVE: "2일차 보유",
+  EXIT_SIGNALLED: "청산 신호", EXITED: "청산 완료", NO_TRADE: "미진입",
+});
+
+export const formatShadowStatus = (value?: string | null) => display(value, {
+  NO_TRADE: "미진입", OPEN: "보유 중", CLOSED: "청산 완료", UNFILLED: "미체결", REJECTED: "진입 거절",
+});
+
+export const formatTradeStatus = (value?: string | null) => display(value, {
+  OPEN: "보유 중", CLOSED: "청산 완료",
+});
+
+const failureCodeDescriptions: Readonly<Record<string, string>> = {
+  MARKET_DATA_STALE: "시세 데이터 지연", MARKET_DATA_UNAVAILABLE: "시세 데이터 수신 불가",
+  MARKET_DATA_INVALID: "시세 데이터 오류", EXECUTION_UNAVAILABLE: "주문 실행 불가",
+  EXECUTION_REJECTED: "주문 실행 거절", EXECUTION_TIMEOUT: "주문 실행 시간 초과",
+  POSITION_MISMATCH: "포지션 불일치", ORDER_MISMATCH: "주문 불일치",
+  STRATEGY_STATE_MISMATCH: "전략 상태 불일치", DATABASE_ERROR: "데이터베이스 오류",
+  RUNTIME_INVARIANT_VIOLATION: "운영 불변조건 위반", HEARTBEAT_MISSED: "Heartbeat 신호 누락",
+  STARTUP_RECONCILIATION_FAILED: "시작 시 상태 대조 실패", MANUAL_SAFE_MODE: "수동 안전 모드 전환",
+  MANUAL_HALT: "수동 중지", KILL_SWITCH_ACTIVATED: "비상 중지 실행",
+};
+export const formatFailureCodeDescription = (value?: string | null) => value ? failureCodeDescriptions[value] ?? "" : "";

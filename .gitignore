@@ -6,6 +6,12 @@ __pycache__/
 *.sqlite
 *.sqlite3
 *.db
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite3-wal
+*.sqlite3-shm
+*.db-wal
+*.db-shm
 data/runtime/*
 !data/runtime/.gitkeep
 logs/*
