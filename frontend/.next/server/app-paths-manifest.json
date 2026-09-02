@@ -1,9 +1,0 @@
-{
-  "/page": "app/page.js",
-  "/candidates/page": "app/candidates/page.js",
-  "/research/page": "app/research/page.js",
-  "/trading/page": "app/trading/page.js",
-  "/shadow/page": "app/shadow/page.js",
-  "/settings/page": "app/settings/page.js",
-  "/runtime/page": "app/runtime/page.js"
-}
