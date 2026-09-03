@@ -1,13 +1,32 @@
 "use client";
-import { useState } from "react";
-import { api } from "@/lib/api";
-import { decimal } from "@/lib/format";
-import { useApi } from "@/hooks/use-api";
-import { EmptyState, ErrorState, LoadingState, PageHeader, StatusBadge } from "@/components/ui";
-import { formatShadowStatus } from "@/lib/display";
 
-const descriptions:Record<string,string>={A:"당일 청산 · ATR 1.5",B:"Day2 허용 · ATR 1.0",C:"Day2 허용 · ATR 1.5",D:"Day2 허용 · ATR 2.0",E:"당일 청산 · 구조 손절"};
-export default function ShadowPage(){const [variant,setVariant]=useState("");const [symbol,setSymbol]=useState("");const [status,setStatus]=useState("");const summary=useApi(api.shadow);const replay=useApi(api.replay);const query=new URLSearchParams(Object.entries({variant,symbol,status}).filter(([,v])=>v)).toString();const trades=useApi(()=>api.shadowTrades(query?`?${query}`:""));if(summary.loading)return <LoadingState/>;if(!summary.data)return <ErrorState message={summary.error||"전략 성과 요약 조회 실패"} retry={summary.refresh}/>;return <><PageHeader title="전략 성과" description="Shadow A–E 전략 결과를 비교하여 전략별 성과 차이를 확인합니다." actions={<StatusBadge value={replay.data?.available?"Synthetic Replay":"SIMULATION"}/>} />
-<div className="mb-6 rounded-xl border border-amber-800/70 bg-amber-950/30 p-4"><p className="font-semibold text-amber-200">Synthetic Replay 결과</p><p className="mt-1 text-sm text-amber-100/70">아래 결과는 시스템 구현과 전략 경로 검증을 위한 가상 데이터 결과이며 실제 수익성을 의미하지 않습니다.</p></div>
-<section className="mb-8 grid gap-4 md:grid-cols-2 xl:grid-cols-5">{summary.data.variants.map(v=><div className={`panel p-5 ${v.control?"border-cyan-600/60":""}`} key={v.variant}><div className="flex items-start justify-between"><div><span className="text-2xl font-bold">{v.variant}</span><p className="mt-1 text-xs text-muted">{descriptions[v.variant]}</p></div>{v.control&&<span className="text-xs font-semibold text-cyan-300">기준 전략 · CONTROL</span>}</div><dl className="mt-5 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">{[["매매",v.trades],["미진입",v.no_trade],["승 / 패",`${v.wins} / ${v.losses}`],["순 R",decimal(v.net_r,"R")],["평균 R",decimal(v.avg_net_r,"R")],["비용",decimal(v.total_cost)],["모호 봉",v.ambiguity],["익일 보유",v.overnight],["추가매수",v.pyramid??"—"]].map(([label,value])=><div key={label}><dt className="text-xs text-muted">{label}</dt><dd className="mt-1 font-semibold text-slate-200">{value}</dd></div>)}</dl></div>)}</section>
-<section><div className="mb-3 flex flex-col gap-3 md:flex-row md:items-end md:justify-between"><h2 className="font-semibold">전략별 매매 결과</h2><div className="flex flex-wrap gap-2"><select aria-label="전략" className="input w-32" value={variant} onChange={e=>setVariant(e.target.value)}><option value="">전체 전략</option>{["A","B","C","D","E"].map(v=><option key={v} value={v}>{formatShadowStatus(v)}</option>)}</select><input aria-label="종목" className="input w-32" placeholder="종목" value={symbol} onChange={e=>setSymbol(e.target.value.toUpperCase())}/><select aria-label="상태" className="input w-36" value={status} onChange={e=>setStatus(e.target.value)}><option value="">전체 상태</option>{["CLOSED","OPEN","NO_TRADE","UNFILLED","REJECTED"].map(v=><option key={v} value={v}>{formatShadowStatus(v)}</option>)}</select><button className="btn-muted" onClick={()=>void trades.refresh()}>적용</button></div></div>{trades.data?.length?<div className="table-wrap"><table><thead><tr><th>종목</th><th>전략</th><th>상태</th><th>Net PnL</th><th>Net R</th><th>비용</th><th>모호 봉</th><th>보유 기간</th></tr></thead><tbody>{trades.data.map(t=><tr key={t.id}><td className="font-bold">{t.symbol}</td><td>{t.variant}{t.control&&" · CONTROL"}</td><td><StatusBadge value={t.status} label={formatShadowStatus(t.status)}/></td><td>{decimal(t.net_pnl)}</td><td>{decimal(t.net_r,"R")}</td><td>{decimal(t.total_cost)}</td><td>{t.ambiguous_count}</td><td>{t.holding_duration}일</td></tr>)}</tbody></table></div>:<EmptyState title="전략별 매매 결과가 없습니다."/>}</section></>}
+import { useEffect, useState } from "react";
+import { ErrorState, LoadingState, PageHeader } from "@/components/ui";
+import { StrategyComparison } from "@/components/shadow-performance";
+import { api } from "@/lib/api";
+import { periodRange, type PerformancePeriod } from "@/lib/shadow-performance";
+import type { ShadowSummary } from "@/types/api";
+
+export default function ShadowPage() {
+  const [period, setPeriod] = useState<PerformancePeriod>("30d");
+  const [summary, setSummary] = useState<ShadowSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [requestKey, setRequestKey] = useState(0);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true); setError(null);
+    api.shadow(periodRange(period)).then(data => { if (active) setSummary(data); }).catch(() => { if (active) setError("전략 성과 요약 조회 실패"); }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [period, requestKey]);
+
+  if (loading && !summary) return <LoadingState />;
+  if (!summary) return <ErrorState message={error || "전략 성과 요약 조회 실패"} retry={() => setRequestKey(value => value + 1)} />;
+
+  return <>
+    <PageHeader title="전략 성과" />
+    {error && summary && <p className="mb-3 text-right text-xs text-danger" role="alert">{error}</p>}
+    <StrategyComparison variants={summary.variants} period={period} loading={loading} onPeriodChange={setPeriod} />
+  </>;
+}

@@ -2,20 +2,128 @@
 @tailwind components;
 @tailwind utilities;
 
-:root { color-scheme: dark; }
-* { scrollbar-color: #334155 #0b111b; }
-body { @apply bg-ink text-slate-100 antialiased; }
-button, a, input, textarea, select { @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-ink; }
-.panel { @apply rounded-xl border border-line bg-panel shadow-sm; }
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #000000;
+  --sidebar: #050505;
+  --header: #050505;
+  --surface-1: #0a0a0a;
+  --surface-2: #111111;
+  --surface-hover: #151515;
+  --border: #242424;
+  --border-subtle: #181818;
+  --row-border: #1f1f1f;
+  --trading-table-header: #111111;
+  --trading-table-hover: #101010;
+  --text-primary: #f5f5f5;
+  --text-secondary: #b0b0b8;
+  --text-muted: #85858f;
+  --primary: #2563eb;
+  --primary-hover: #3b82f6;
+  --primary-soft: rgba(37, 99, 235, 0.12);
+  --primary-contrast: #ffffff;
+  --success: #22c55e;
+  --success-soft: rgba(34, 197, 94, 0.12);
+  --warning: #f59e0b;
+  --warning-soft: rgba(245, 158, 11, 0.12);
+  --danger: #ef4444;
+  --danger-soft: rgba(239, 68, 68, 0.12);
+  --card-primary: rgba(59, 130, 246, 0.84);
+  --card-blue: rgba(59, 130, 246, 0.42);
+  --card-indigo: rgba(99, 102, 241, 0.46);
+  --card-gold: rgba(202, 138, 4, 0.41);
+  --card-green: rgba(34, 197, 94, 0.46);
+  --card-bluegreen: rgba(34, 197, 140, 0.36);
+  --panel-shadow: none;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --background: #f7f8fa;
+  --sidebar: #ffffff;
+  --header: #ffffff;
+  --surface-1: #ffffff;
+  --surface-2: #f8fafc;
+  --surface-hover: #eff6ff;
+  --border: #e5e7eb;
+  --border-subtle: #eef0f3;
+  --row-border: #e5e7eb;
+  --trading-table-header: #f8fafc;
+  --trading-table-hover: #f8fafc;
+  --text-primary: #111827;
+  --text-secondary: #64748b;
+  --text-muted: #7c899c;
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-soft: #eff6ff;
+  --primary-contrast: #ffffff;
+  --success: #16a34a;
+  --success-soft: #f0fdf4;
+  --warning: #f59e0b;
+  --warning-soft: #fffbeb;
+  --danger: #ef4444;
+  --danger-soft: #fef2f2;
+  --card-primary: rgba(37, 99, 235, 0.68);
+  --card-blue: rgba(37, 99, 235, 0.34);
+  --card-indigo: rgba(79, 70, 229, 0.36);
+  --card-gold: rgba(180, 120, 12, 0.34);
+  --card-green: rgba(22, 163, 74, 0.36);
+  --card-bluegreen: rgba(22, 163, 104, 0.29);
+  --panel-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+* { scrollbar-color: var(--border) var(--background); }
+body { @apply bg-background text-foreground antialiased; }
+button, a, input, textarea, select { @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background; }
+.panel { @apply rounded-xl border border-line bg-surface shadow-panel; }
 .label { @apply text-[11px] font-semibold uppercase tracking-[0.13em] text-muted; }
-.table-wrap { @apply overflow-x-auto rounded-xl border border-line bg-panel; }
+.table-wrap { @apply overflow-x-auto rounded-xl border border-line bg-surface shadow-panel; }
 table { @apply w-full border-collapse text-sm; }
-th { @apply border-b border-line bg-slate-900/70 px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted; }
-td { @apply border-b border-line/60 px-4 py-3 text-slate-300; }
+th { @apply border-b border-line bg-surface-alt px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-foreground-secondary; }
+td { @apply border-b border-line-row px-4 py-3 text-foreground-secondary; }
 tr:last-child td { @apply border-b-0; }
-tbody tr { @apply transition-colors hover:bg-slate-800/35; }
-.input { @apply w-full rounded-lg border border-line bg-slate-950 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600; }
+tbody tr { @apply transition-colors hover:bg-surface-hover; }
+.input { @apply w-full rounded-lg border border-line bg-surface-alt px-3 py-2 text-sm text-foreground placeholder:text-muted; }
 .btn { @apply inline-flex items-center justify-center rounded-lg border border-line px-3.5 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40; }
-.btn-primary { @apply btn border-cyan-500/40 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20; }
-.btn-danger { @apply btn border-red-500/40 bg-red-500/10 text-red-300 hover:bg-red-500/20; }
-.btn-muted { @apply btn bg-slate-900 text-slate-300 hover:bg-slate-800; }
+.btn-compact { @apply inline-flex h-8 items-center justify-center rounded-md border border-line bg-surface-alt px-3 text-xs font-semibold text-foreground-secondary transition-colors hover:bg-surface-hover hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40; }
+.btn-compact-active { @apply border-primary bg-primary-soft text-primary hover:border-primary-hover hover:bg-primary-soft hover:text-primary; }
+.btn-action { @apply btn border-primary bg-surface text-primary hover:border-primary-hover hover:bg-primary-soft hover:text-primary-hover; }
+.btn-action-compact { @apply inline-flex h-8 items-center justify-center rounded-md border border-primary bg-surface px-3 text-xs font-semibold text-primary transition-colors hover:border-primary-hover hover:bg-primary-soft hover:text-primary-hover disabled:cursor-not-allowed disabled:opacity-40; }
+.btn-action-primary { @apply inline-flex h-9 items-center justify-center rounded-lg border border-primary bg-primary px-3.5 text-sm font-semibold text-primary-contrast transition-colors hover:border-primary-hover hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-40; }
+.btn-action-secondary { @apply inline-flex h-9 items-center justify-center rounded-lg border border-primary bg-surface px-3.5 text-sm font-semibold text-primary transition-colors hover:border-primary-hover hover:bg-primary-soft hover:text-primary-hover disabled:cursor-not-allowed disabled:opacity-40; }
+.btn-action-secondary-compact { @apply inline-flex h-8 items-center justify-center rounded-md border border-primary bg-surface px-3 text-xs font-semibold text-primary transition-colors hover:border-primary-hover hover:bg-primary-soft hover:text-primary-hover disabled:cursor-not-allowed disabled:opacity-40; }
+.btn-primary { @apply btn border-primary bg-primary text-primary-contrast hover:border-primary-hover hover:bg-primary-hover; }
+.btn-danger { @apply btn border-danger bg-danger text-primary-contrast hover:opacity-90; }
+.btn-success-soft { @apply btn border-success bg-success-soft text-success hover:opacity-80; }
+.btn-danger-soft { @apply btn border-danger bg-danger-soft text-danger hover:opacity-80; }
+.btn-muted { @apply btn bg-surface-alt text-foreground-secondary hover:bg-surface-hover hover:text-foreground; }
+.tone-success { @apply border-success bg-success-soft text-success; }
+.tone-warning { @apply border-warning bg-warning-soft text-warning; }
+.tone-danger { @apply border-danger bg-danger-soft text-danger; }
+.tone-neutral { @apply border-line bg-surface-alt text-foreground-secondary; }
+.tone-info { @apply border-primary bg-primary-soft text-primary; }
+.tone-indigo { border-color: var(--card-indigo); background: color-mix(in srgb, var(--card-indigo) 20%, transparent); color: color-mix(in srgb, #818cf8 82%, var(--text-primary)); }
+.metric-card { border-color: color-mix(in srgb, var(--border) 72%, var(--metric-accent)); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--metric-accent) 55%, transparent); }
+.metric-card-primary { --metric-accent: var(--card-primary); border-color: color-mix(in srgb, var(--border) 42%, var(--metric-accent)); background: color-mix(in srgb, var(--surface-1) 96%, var(--primary)); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--metric-accent) 78%, transparent), inset 0 0 18px color-mix(in srgb, var(--primary) 4%, transparent); }
+.metric-card-blue { --metric-accent: var(--card-blue); }
+.metric-card-indigo { --metric-accent: var(--card-indigo); }
+.metric-card-gold { --metric-accent: var(--card-gold); }
+.metric-card-green { --metric-accent: var(--card-green); }
+.metric-card-bluegreen { --metric-accent: var(--card-bluegreen); }
+.metric-card-icon { color: color-mix(in srgb, var(--metric-accent) 88%, var(--text-secondary)); background: color-mix(in srgb, var(--metric-accent) 22%, transparent); opacity: .76; }
+.metric-card-primary .metric-card-icon { opacity: .88; }
+.metric-card-primary .metric-card-value { font-weight: 750; }
+.trading-screen .metric-card-icon { color: color-mix(in srgb, var(--metric-accent) 92%, var(--text-secondary)); opacity: .86; }
+.trading-screen .metric-card-primary .metric-card-icon { opacity: .98; }
+.trading-screen .metric-card-helper { @apply text-[13px] leading-5; }
+.trading-positions-table thead th { background: var(--trading-table-header); @apply border-line text-xs font-semibold normal-case tracking-normal; }
+.trading-positions-table tbody tr:hover { background: var(--trading-table-hover); }
+.pnl-metric { @apply flex min-h-24 flex-col justify-center p-4; }
+.pnl-metric:nth-child(even) { @apply border-l border-line-subtle; }
+.pnl-metric:nth-child(n+3) { @apply border-t border-line-subtle; }
+.pnl-metric-net > p:last-child { font-weight: 700; }
+@media (min-width: 640px) {
+  .pnl-metric + .pnl-metric { @apply border-l border-line-subtle; }
+  .pnl-metric:nth-child(n+3) { border-top: 0; }
+}

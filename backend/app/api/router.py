@@ -114,7 +114,15 @@ async def research_latest(db: DB, scanner_run_id: int | None = None) -> dict[str
     stmt = select(GPTAnalysis).where(GPTAnalysis.status == "IMPORTED")
     if scanner_run_id is not None: stmt = stmt.where(GPTAnalysis.scanner_run_id == scanner_run_id)
     row = require(db.scalar(stmt.order_by(GPTAnalysis.analysis_at.desc(), GPTAnalysis.id.desc()).limit(1)), "Research analysis not found")
-    return query_service(db).analysis(row)
+    result = query_service(db).analysis(row)
+    settings = get_settings()
+    if ui_review_mock_active(settings):
+        # The seed dataset is a deterministic historical fixture (trading_date 2025-10-31); the frontend's
+        # "진입 대기" list only shows when research.trading_date matches today, so mirror /market/status's
+        # own now.date() here to make review data pass that same freshness check.
+        tz = ZoneInfo(settings.market_timezone)
+        result["analysis"]["trading_date"] = datetime.now(timezone.utc).astimezone(tz).date()
+    return result
 
 
 @router.get("/research/{analysis_id}/candidates/{symbol}", tags=["Research"])
@@ -142,9 +150,44 @@ def strategy_dict(row: StrategyStateRecord) -> dict[str, Any]:
             "add_count": row.add_count, "holding_day": row.holding_day, "overnight": row.overnight}
 
 
+def ui_review_mock_active(settings: Settings) -> bool:
+    """Gate for every UI-review-only mock below: only a local ui_review sqlite file in
+    development/test, mirroring seed_ui.py's own safety check. Never reachable from a real DB."""
+    if settings.app_env.strip().lower() not in {"development", "test"}:
+        return False
+    return "ui_review" in settings.resolved_database_url.lower()
+
+
+def ui_review_mock_account() -> dict[str, Any] | None:
+    """Synthetic account/positions for browser UI review only. SimBroker state is process-local
+    and never persisted, so this fills the gap the same way seed_ui.py fills the DB. Uses symbols
+    the seed left UNDECIDED (S11, S14) so the seeded APPROVE symbols (S04, S09) stay free to show
+    up in the "진입 대기" waiting-to-enter list instead of looking already-entered."""
+    settings = get_settings()
+    if not ui_review_mock_active(settings):
+        return None
+    return {
+        "account": {"currency": "USD", "equity": "55628.00", "cash": "42000.00", "invested_notional": "13596.00",
+                     "unrealized_pnl": "32.00", "realized_pnl": "145.30", "today_pnl": "177.30"},
+        "open_positions": [
+            {"symbol": "S11", "currency": "USD", "invested_notional": "6276.00", "quantity": "120",
+             "average_price": "52.30", "mark_price": "54.10", "market_value": "6492.00",
+             "unrealized_pnl": "216.00", "return_pct": "3.44", "active_stop": "50.80", "phase": "POSITION_OPEN"},
+            {"symbol": "S14", "currency": "USD", "invested_notional": "7320.00", "quantity": "80",
+             "average_price": "91.50", "mark_price": "89.20", "market_value": "7136.00",
+             "unrealized_pnl": "-184.00", "return_pct": "-2.51", "active_stop": "88.00", "phase": "PYRAMID_ADDED"},
+        ],
+        "open_orders": [],
+    }
+
+
 @router.get("/trading", tags=["Trading"])
 async def trading(db: DB) -> dict[str, Any]:
     states = list(db.scalars(select(StrategyStateRecord).order_by(StrategyStateRecord.updated_at.desc(), StrategyStateRecord.id.desc())))
+    mock = ui_review_mock_account()
+    if mock is not None:
+        return {"broker_mode": "SIMULATION", "availability": "SIMULATED_UI_REVIEW", **mock,
+                "strategy_states": [strategy_dict(row) for row in states]}
     return {"broker_mode": "SIMULATION", "availability": "NO_ACTIVE_SIM_BROKER", "account": None,
             "open_positions": [], "open_orders": [], "strategy_states": [strategy_dict(row) for row in states]}
 
@@ -201,9 +244,35 @@ async def shadow_trades(db: DB, variant: str | None = None, symbol: str | None =
     return [shadow_dict(row) for row in rows]
 
 
+def shadow_performance_date(
+    row: ShadowTradeRecord, trading_dates: dict[int, date], market_timezone: str
+) -> date | None:
+    """Return the date on which a shadow path contributes to performance."""
+    if row.status == "CLOSED":
+        return None if row.exit_at is None else row.exit_at.astimezone(ZoneInfo(market_timezone)).date()
+    return trading_dates.get(row.scanner_run_id) if row.scanner_run_id is not None else None
+
+
 @router.get("/shadow/summary", tags=["Shadow"])
-async def shadow_summary(db: DB) -> dict[str, Any]:
+async def shadow_summary(
+    db: DB, start_date: date | None = None, end_date: date | None = None
+) -> dict[str, Any]:
+    if start_date is not None and end_date is not None and start_date > end_date:
+        raise ValueError("start_date must be on or before end_date")
     rows = list(db.scalars(select(ShadowTradeRecord).order_by(ShadowTradeRecord.variant, ShadowTradeRecord.id)))
+    if start_date is not None or end_date is not None:
+        run_ids = {row.scanner_run_id for row in rows if row.scanner_run_id is not None}
+        trading_dates = {
+            run.id: run.trading_date
+            for run in db.scalars(select(ScannerRun).where(ScannerRun.id.in_(run_ids)))
+        } if run_ids else {}
+        market_timezone = get_settings().market_timezone
+        rows = [
+            row for row in rows
+            if (performance_date := shadow_performance_date(row, trading_dates, market_timezone)) is not None
+            and (start_date is None or performance_date >= start_date)
+            and (end_date is None or performance_date <= end_date)
+        ]
     variants = []
     for variant in "ABCDE":
         items = [r for r in rows if r.variant == variant]; closed = [r for r in items if r.status == "CLOSED"]

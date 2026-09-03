@@ -7,7 +7,7 @@ development/test 전용 synthetic dataset이다. 실제 시장 데이터, 계좌
 수익성 자료가 아니다. Quant 공식, Research/Evidence 규칙, 승인 제한, Strategy/Risk 규칙과
 Backend API 계약은 변경하지 않는다. 외부 API와 GPT 호출도 없다.
 
-같은 source revision과 설정에서 실행하면 Scanner, TOP8, GPT 순위와 Evidence, Human 결정,
+같은 source revision과 설정에서 실행하면 Scanner, TOP8, GPT 순위와 Evidence,
 주문·체결, Shadow A–E, Runtime 장애 예시가 동일하게 생성된다. audit ID를 공유하는 것이
 아니라 사용자가 보는 business 결과를 재현한다.
 
@@ -78,8 +78,9 @@ Reset이 필요하면 각 PC가 자기 전용 DB에 `--reset`을 실행한다.
 ## 데이터 범위와 제약
 
 - Scanner는 기존 SyntheticReplayDataset과 QuantScanner를 사용해 Candidate Pool 및 TOP8을 계산한다.
-- Research는 Stage 4 JSON Schema와 import/evidence service를 통과하며 HumanDecisionService로 정확히
-  두 종목만 승인한다.
+- Research는 Stage 4 JSON Schema와 import/evidence service를 통과해 8종목 분석을 만들지만
+  HumanDecision은 생성하지 않는다. GPT Analysis와 HumanDecision은 별도 계층이며, 사용자가 UI에서
+  직접 채택 또는 거절하기 전의 기본 Seed 상태는 `APPROVE 0 / REJECT 0 / Undecided 8`이다.
 - Orders/Fills는 synthetic Sim execution review record이며 BUY/SELL과 여러 실제 enum 상태를 포함한다.
 - Shadow A–E는 기존 ReplaySmokeRunner의 Strategy/Risk/SimBroker 결과를 사용한다. 실제 수익성 의미는 없다.
 - Runtime은 NORMAL이며 fixed heartbeat/data/execution/reconciliation timestamp와 resolved/unresolved

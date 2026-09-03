@@ -83,6 +83,11 @@ return, or proof of strategy edge.
 - Runtime truth is persisted `RuntimeState` and failure history. Health and mode
   are separate; SAFE_MODE/HALTED survive restart and reconciliation cannot
   silently normalize HALTED.
+- Stage 9.15 simplifies only the System frontend: Runtime emphasizes health,
+  unresolved failures, compact component status, operations and emergency control;
+  Settings emphasizes connection/environment state and hides detailed versions by
+  default. Runtime counts, resolved history, raw failure metadata, capability data,
+  security policy and all API contracts remain frozen and retained.
 - API routers are HTTP adapters over existing services/repositories. The
   Frontend uses Backend API data as its only source of truth and sends raw English
   mutation enums such as `APPROVE` and `REJECT`.
@@ -157,6 +162,54 @@ rules, broker-native stop support, session support, and liquidation semantics.
 - Actual historical provider and any strategy performance conclusion
 
 Future product and strategy ideas remain in `docs/V2_BACKLOG.md`.
+
+Stage 9.10 is a Frontend navigation presentation refinement: the Sidebar uses
+four trading-first work areas and `/` redirects to `/trading`. The frozen
+business behavior and Backend `/api/v1` contract, including the Dashboard API,
+remain unchanged.
+
+Stage 9.11 is a Frontend Trading UX refinement that makes Portfolio and Account
+the primary presentation while preserving unavailable broker truth explicitly.
+Quant, Risk, Strategy, Execution semantics and the frozen Backend contract remain unchanged.
+
+Stage 9.12 is a Frontend Analysis UX refinement: Candidates is Quant-first and
+Research is GPT-result-first when an imported analysis exists. Metric units,
+conditional columns, compact metadata, and import visibility are display-only;
+quant_v0, prompt/schema, evidence_v0, Human Approval, and `/api/v1` remain frozen.
+
+Stage 9.13 is a frontend-only Research detail refinement. The comparison table
+opens a Candidate Detail Drawer backed by the existing Candidate Detail API and
+the referenced ScannerRun snapshot. It adds no frontend inference and changes no
+Research schema, prompt, evidence formula, approval rule, Backend API, or database.
+
+Stage 9.13.1 is a Frontend Human Decision UX refinement. Research Table actions
+open detail only; final decisions are made in the Drawer and displayed as 채택,
+거절, or 미결정. Backend `APPROVE`/`REJECT`, the maximum-two rule, and the
+meaning that APPROVE is eligibility rather than BUY remain unchanged.
+
+Stage 9.14 is a Frontend Strategy Performance comparison refinement. It replaces
+five repeated Shadow cards with a compact C control summary, an A–E comparison
+table, and the existing filtered trade detail. The current API supports only an
+all-time summary, so the UI labels that range honestly and does not invent a
+period selector. Synthetic results remain validation-only. Backend business
+logic/API, variant configuration, Shadow execution semantics, and persistence
+remain frozen.
+
+Stage 9.14.1 is a frontend-only Strategy Performance simplification. The primary
+`/shadow` UI contains only the A–E aggregate comparison table, with C marked as
+control and R values rounded to two decimals for display. Individual Shadow
+trade records, Synthetic Replay data, filters, and their existing Backend APIs
+remain retained but are not exposed on this primary screen. Period filtering is
+deferred until the summary API supports ranges. No Backend, persistence,
+strategy, Shadow, Replay, Risk, or Execution semantics changed.
+
+Stage 9.14.2 adds backward-compatible optional period filtering to
+`GET /api/v1/shadow/summary`. Calls without parameters retain the all-time response;
+inclusive `start_date`/`end_date` bounds only restrict the input dataset. Closed trades
+use the `exit_at` date in America/New_York and non-closed paths use scanner trading date,
+without changing aggregate fields or A–E/control semantics. The `/shadow` UI offers
+recent 7 days, recent 30 days (default), and all-time selection. No schema, migration,
+strategy parameter, execution behavior, or performance metric changed.
 
 ## Scope confirmation
 

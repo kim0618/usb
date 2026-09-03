@@ -26,7 +26,7 @@ export function SectionTabs({ label, tabs }: { label: string; tabs: SectionTab[]
   const pathname = usePathname();
 
   return (
-    <nav aria-label={label} className="mb-5 flex gap-1 overflow-x-auto border-b border-line">
+    <nav aria-label={label} className="mb-5 flex gap-2 overflow-x-auto border-b border-line pb-3">
       {tabs.map(tab => {
         const active = isRouteActive(pathname, tab.href);
         return (
@@ -34,7 +34,7 @@ export function SectionTabs({ label, tabs }: { label: string; tabs: SectionTab[]
             key={tab.href}
             href={tab.href}
             aria-current={active ? "page" : undefined}
-            className={`shrink-0 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 ${active ? "border-cyan-400 text-cyan-300" : "border-transparent text-slate-400 hover:border-slate-600 hover:text-white"}`}
+            className={`inline-flex h-9 shrink-0 items-center justify-center rounded-lg border px-3.5 text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-primary ${active ? "border-primary bg-primary-soft text-primary" : "border-line bg-surface text-foreground-secondary hover:border-primary hover:bg-primary-soft hover:text-primary"}`}
           >
             {tab.label}
           </Link>

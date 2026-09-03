@@ -11,8 +11,9 @@ from app.core.config import Settings
 from app.core.database import Base, create_db_engine, get_db
 from app.dev.seed_ui import seed_database, validate_target
 from app.main import create_app
-from app.models.execution import ShadowTradeRecord
+from app.models.execution import ExecutionFillRecord, ExecutionOrderRecord, ShadowTradeRecord
 from app.models.research import GPTCandidateAnalysis, GPTSource, HumanDecisionRecord
+from app.models.runtime import RuntimeFailureRecord
 from app.models.scanner import ScannerCandidate, ScannerRun
 
 
@@ -42,12 +43,20 @@ def _snapshot(path: Path) -> dict:  # type: ignore[type-arg]
                      r.unknown_fields_json) for r in research_rows]
         decisions = sorted((r.symbol, r.decision) for r in db.scalars(select(HumanDecisionRecord)))
         sources = sorted((r.source_type, r.source_domain, r.claim) for r in db.scalars(select(GPTSource)))
+        orders = [(r.id, r.symbol, r.side, str(r.requested_quantity), str(r.filled_quantity),
+                   r.status, str(r.reference_price)) for r in db.scalars(
+            select(ExecutionOrderRecord).order_by(ExecutionOrderRecord.id))]
+        fills = [(r.id, r.order_id, str(r.quantity), str(r.fill_price), str(r.total_cost))
+                 for r in db.scalars(select(ExecutionFillRecord).order_by(ExecutionFillRecord.id))]
         shadow = [(r.symbol, r.variant, r.status, str(r.net_pnl), str(r.net_r),
                    r.ambiguous_bar_count, r.holding_days) for r in db.scalars(
             select(ShadowTradeRecord).order_by(ShadowTradeRecord.id))]
+        failures = [(r.failure_code, r.severity, r.component, r.resolved)
+                    for r in db.scalars(select(RuntimeFailureRecord).order_by(RuntimeFailureRecord.id))]
     engine.dispose()
     return {"scanner": scanner, "research": research, "decisions": decisions,
-            "sources": sources, "shadow": shadow}
+            "sources": sources, "orders": orders, "fills": fills, "shadow": shadow,
+            "failures": failures}
 
 
 def test_dedicated_target_and_environment_guards(tmp_path: Path) -> None:
@@ -65,7 +74,7 @@ def test_seed_populates_required_coverage_and_second_run_is_safe(tmp_path: Path)
     first = _seed(target)
     second = seed_database(_settings(target), run_migrations=False)
     assert (first.candidate_pool, first.top8, first.research) == (21, 8, 8)
-    assert (first.approve, first.reject, first.undecided) == (2, 2, 4)
+    assert (first.approve, first.reject, first.undecided) == (0, 0, 8)
     assert first.sources >= 8
     assert first.orders >= 6 and first.fills >= 4 and first.trades >= 6
     assert first.shadow_variants == 5 and first.failures == 4
@@ -81,7 +90,7 @@ def test_seed_is_deterministic_and_varied(tmp_path: Path) -> None:
     snapshot = _snapshot(left)
     assert any(row[1] != row[2] for row in snapshot["research"])
     assert len({row[3] for row in snapshot["research"]}) >= 3
-    assert {row[1] for row in snapshot["decisions"]} == {"APPROVE", "REJECT"}
+    assert snapshot["decisions"] == []
     assert {row[0] for row in snapshot["sources"]} >= {"IR", "NEWS", "OTHER"}
 
 
@@ -101,12 +110,15 @@ async def test_seeded_api_responses_are_non_empty(tmp_path: Path) -> None:
     paths = ("/api/v1/dashboard", "/api/v1/scanner/latest", "/api/v1/research/latest",
              "/api/v1/trading", "/api/v1/trading/orders", "/api/v1/trading/fills",
              "/api/v1/trading/trades", "/api/v1/shadow/summary", "/api/v1/shadow/trades",
-             "/api/v1/runtime", "/api/v1/runtime/failures", "/api/v1/settings")
+             "/api/v1/runtime", "/api/v1/runtime/failures", "/api/v1/settings",
+             "/api/v1/capabilities")
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
         responses = {path: await client.get(path) for path in paths}
     assert all(response.status_code == 200 for response in responses.values())
     assert len(responses["/api/v1/scanner/latest"].json()["top8"]) == 8
-    assert len(responses["/api/v1/research/latest"].json()["candidates"]) == 8
+    research_candidates = responses["/api/v1/research/latest"].json()["candidates"]
+    assert len(research_candidates) == 8
+    assert all(item["human_decision"] is None for item in research_candidates)
     assert len(responses["/api/v1/trading/orders"].json()) == summary.orders
     assert len(responses["/api/v1/trading/fills"].json()) == summary.fills
     assert responses["/api/v1/trading/trades"].json()
@@ -115,7 +127,7 @@ async def test_seeded_api_responses_are_non_empty(tmp_path: Path) -> None:
     assert len(responses["/api/v1/runtime/failures"].json()) == summary.failures
     dashboard = responses["/api/v1/dashboard"].json()
     assert dashboard["scanner"]["top8_count"] == 8
-    assert dashboard["research"]["approved_count"] == 2
+    assert dashboard["research"]["approved_count"] == 0
     assert dashboard["shadow"]["recent_result_count"] > 0
     assert dashboard["runtime"]["last_failure"] is not None
     assert responses["/api/v1/trading"].json()["open_positions"] == []
@@ -124,5 +136,5 @@ async def test_seeded_api_responses_are_non_empty(tmp_path: Path) -> None:
 
 def test_runtime_artifacts_are_git_ignored() -> None:
     patterns = (Path(__file__).parents[2] / ".gitignore").read_text(encoding="utf-8")
-    for expected in ("*.sqlite", "*.sqlite3", "data/runtime/*", "logs/*"):
+    for expected in ("*.sqlite", "*.sqlite3", "*-wal", "*-shm", "data/runtime/*", "logs/*"):
         assert expected in patterns

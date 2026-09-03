@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 import app.models  # noqa: F401
 from app.core.database import Base, create_db_engine
 from app.core.exceptions import ResearchError
-from app.models.research import GPTAnalysis
+from app.models.research import GPTAnalysis, HumanDecisionRecord
 from app.models.scanner import ScannerCandidate
 from app.repositories.research import ResearchRepository
 from app.repositories.scanner import ScannerCandidateData, ScannerSnapshotRepository
@@ -95,6 +95,7 @@ def test_atomic_import_validation_duplicate_latest_and_quant_immutable(db: Sessi
     raw = json.dumps(payload(run.id))
     first = service.import_json(raw)
     assert len(repository.get_candidates(first.id)) == 3
+    assert db.scalar(select(func.count()).select_from(HumanDecisionRecord)) == 0
     after = [(c.id, c.rank, c.score, c.score_components_json, c.is_top8) for c in scanner.get_top8(run.id)]
     assert before == after
     with pytest.raises(ResearchError):

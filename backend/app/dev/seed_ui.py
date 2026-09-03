@@ -27,10 +27,9 @@ from app.monitoring.service import RuntimeHealthService
 from app.replay_smoke import ReplaySmokeRunner, SyntheticReplayDataset
 from app.repositories.research import ResearchRepository
 from app.repositories.scanner import ScannerSnapshotRepository
-from app.research.domain import HumanDecision
 from app.research.versions import GPT_SCHEMA_VERSION, TOP8_PROMPT_VERSION
 from app.scanner.scanner import QuantScanner
-from app.services.research import GPTImportService, HumanDecisionService
+from app.services.research import GPTImportService
 from app.services.scanner import ScannerService
 
 
@@ -38,6 +37,7 @@ DEFAULT_DB_PATH = PROJECT_ROOT / "data/runtime/usb_ui_review.sqlite3"
 DEFAULT_DATABASE_URL = f"sqlite:///{DEFAULT_DB_PATH}"
 SEED_PROVIDER = "USB_UI_REVIEW_SEED"
 SEED_TIME = datetime(2025, 11, 28, 21, 30, tzinfo=timezone.utc)
+SHADOW_REVIEW_END_DATE = date(2026, 9, 3)
 ALLOWED_ENVIRONMENTS = frozenset({"development", "test"})
 
 
@@ -137,15 +137,9 @@ def _seed_scanner_and_research(session: Session) -> None:
     ).run(dataset.universe, trading_date=trading_date, scan_as_of=scan_as_of + timedelta(minutes=2))
     assert result.candidate_count >= 20 and len(result.top8) == 8
     payload = _research_payload(run_id, trading_date, [item.symbol for item in result.top8])
-    analysis = GPTImportService(
+    GPTImportService(
         ResearchRepository(session), ScannerSnapshotRepository(session), clock=lambda: SEED_TIME
     ).import_json(json.dumps(payload, sort_keys=True, separators=(",", ":")))
-    decision_service = HumanDecisionService(ResearchRepository(session), clock=lambda: SEED_TIME)
-    symbols = [item.symbol for item in result.top8]
-    for symbol in symbols[:2]:
-        decision_service.decide(analysis.id, symbol, HumanDecision.APPROVE, note="UI review approval")
-    for symbol in symbols[2:4]:
-        decision_service.decide(analysis.id, symbol, HumanDecision.REJECT, note="UI review rejection")
 
 
 def _research_payload(run_id: int, trading_date: date, symbols: list[str]) -> dict[str, Any]:
@@ -210,12 +204,26 @@ def _seed_execution(session: Session) -> None:
 
 def _seed_shadow(session: Session) -> None:
     replay = ReplaySmokeRunner(SyntheticReplayDataset.build(trading_day_count=3)).run()
+    source_dates = sorted({item.trading_date for item in replay.shadow_results})
+    review_dates = (SHADOW_REVIEW_END_DATE - timedelta(days=40), SHADOW_REVIEW_END_DATE - timedelta(days=20), SHADOW_REVIEW_END_DATE - timedelta(days=5))
+    run_by_source_date: dict[date, ScannerRun] = {}
+    for index, (source_date, review_date) in enumerate(zip(source_dates, review_dates, strict=True)):
+        run = ScannerRun(
+            trading_date=review_date, started_at=SEED_TIME - timedelta(days=100, minutes=index),
+            completed_at=SEED_TIME - timedelta(days=100, minutes=index), status="COMPLETED",
+            provider="USB_UI_REVIEW_SHADOW_PERIOD", score_version="quant_v0",
+        )
+        session.add(run)
+        run_by_source_date[source_date] = run
+    session.flush()
     for index, item in enumerate(replay.shadow_results):
-        entry_at = datetime.combine(item.trading_date, datetime.min.time(), tzinfo=timezone.utc) + timedelta(hours=15)
+        review_date = run_by_source_date[item.trading_date].trading_date
+        entry_at = datetime.combine(review_date, datetime.min.time(), tzinfo=timezone.utc) + timedelta(hours=16)
         closed = item.status == "CLOSED"
         session.add(ShadowTradeRecord(
             id=f"UI-SHADOW-{index:04d}", symbol=item.symbol, variant=item.variant,
             variant_version=replay.shadow_variant_version, is_control=item.variant == "C",
+            scanner_run_id=run_by_source_date[item.trading_date].id,
             initial_planned_risk=Decimal("100"), entry_at=entry_at if closed else None,
             exit_at=entry_at + timedelta(minutes=item.holding_minutes) if closed else None,
             average_entry_price=Decimal("50") if closed else None,

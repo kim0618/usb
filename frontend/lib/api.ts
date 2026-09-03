@@ -21,6 +21,7 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
 export const api = {
   dashboard: () => apiFetch<Dashboard>("/api/v1/dashboard"),
   scanner: () => apiFetch<ScannerSnapshot>("/api/v1/scanner/latest"),
+  scannerRun: (id: number) => apiFetch<ScannerSnapshot>(`/api/v1/scanner/runs/${id}`),
   prompt: (symbol?: string) => apiFetch<{ prompt: string; prompt_version: string }>(`/api/v1/research/prompt${symbol ? `/${encodeURIComponent(symbol)}` : ""}`),
   research: () => apiFetch<ResearchAnalysis>("/api/v1/research/latest"),
   researchDetail: (id: number, symbol: string) => apiFetch<ResearchDetail>(`/api/v1/research/${id}/candidates/${encodeURIComponent(symbol)}`),
@@ -30,7 +31,10 @@ export const api = {
   orders: () => apiFetch<Order[]>("/api/v1/trading/orders"),
   fills: () => apiFetch<Fill[]>("/api/v1/trading/fills"),
   trades: () => apiFetch<Trade[]>("/api/v1/trading/trades"),
-  shadow: () => apiFetch<ShadowSummary>("/api/v1/shadow/summary"),
+  shadow: (range?: { startDate: string; endDate: string }) => {
+    const query = range ? `?start_date=${encodeURIComponent(range.startDate)}&end_date=${encodeURIComponent(range.endDate)}` : "";
+    return apiFetch<ShadowSummary>(`/api/v1/shadow/summary${query}`);
+  },
   shadowTrades: (query = "") => apiFetch<Trade[]>(`/api/v1/shadow/trades${query}`),
   replay: () => apiFetch<ReplayReport>("/api/v1/replay-smoke/latest"),
   runtime: () => apiFetch<RuntimeStatus>("/api/v1/runtime"),

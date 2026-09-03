@@ -1,4 +1,13 @@
 .env
+.env.*
+!.env.example
+!**/.env.example
+*app*key*.txt
+*app*secret*.txt
+*App*Key*.txt
+*App*Secret*.txt
+kiwoom*key*.txt
+kiwoom*secret*.txt
 .venv/
 venv/
 __pycache__/
@@ -12,6 +21,8 @@ __pycache__/
 *.sqlite3-shm
 *.db-wal
 *.db-shm
+*-wal
+*-shm
 data/runtime/*
 !data/runtime/.gitkeep
 logs/*

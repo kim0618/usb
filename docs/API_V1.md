@@ -62,7 +62,7 @@ non-empty and bounded. Failure resolution alone never restores NORMAL.
 | GET | `/api/v1/trading/orders` | Persisted execution orders |
 | GET | `/api/v1/trading/fills` | Persisted fills and costs |
 | GET | `/api/v1/trading/trades` | Persisted simulation/shadow trades |
-| GET | `/api/v1/shadow/summary` | Deterministic A–E summary; C control |
+| GET | `/api/v1/shadow/summary` | Deterministic A–E summary; C control; optional inclusive period |
 | GET | `/api/v1/shadow/trades` | Filtered shadow results |
 | GET | `/api/v1/replay-smoke/latest` | Bounded runtime report summary |
 | GET | `/api/v1/runtime` | Persisted runtime health/status |
@@ -99,6 +99,20 @@ Runtime mutation and kill switch:
 ```json
 {"confirm":true,"reason":"manual emergency stop"}
 ```
+
+Shadow summary is backward-compatible: without query parameters it returns the existing
+all-time response unchanged. `start_date` and `end_date` are optional ISO `YYYY-MM-DD`
+inclusive bounds. Closed performance uses the `exit_at` date in `America/New_York`;
+non-closed paths such as `NO_TRADE` use their `ScannerRun.trading_date`, keeping
+`candidate_paths` and `no_trade` on the same period grain. Undated legacy paths cannot be
+assigned to a bounded period and are excluded only when a period parameter is present.
+
+```text
+GET /api/v1/shadow/summary?start_date=2026-08-05&end_date=2026-09-03
+```
+
+An inverted range returns the common `400 INVALID_REQUEST` contract. Invalid date syntax
+returns `422 REQUEST_VALIDATION_ERROR`.
 
 ## Frontend connection
 

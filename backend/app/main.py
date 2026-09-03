@@ -24,6 +24,9 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     logger.info("Application starting")
+    if settings.market_data_provider == "kiwoom":
+        logger.warning("KIWOOM: %s MARKET DATA / ORDERING DISABLED", settings.kiwoom_env.upper())
+        logger.warning("BROKER: SIMULATION")
     yield
     logger.info("Application stopping")
 
@@ -58,7 +61,7 @@ def create_app() -> FastAPI:
 
     @application.exception_handler(ValueError)
     async def conflict_handler(_request: Request, exc: ValueError) -> JSONResponse:
-        message = str(exc); status = 400 if "confirmation" in message else 409
+        message = str(exc); status = 400 if "confirmation" in message or "must be on or before" in message else 409
         return error_response(status, "INVALID_REQUEST" if status == 400 else "STATE_CONFLICT", message)
 
     @application.exception_handler(USBError)
