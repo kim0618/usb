@@ -13,7 +13,7 @@ class SymbolMetadata(BaseModel):
 
     symbol: str
     company_name: str | None = None
-    market_cap: float
+    market_cap: float | None
     exchange: str
     active: bool = True
     observed_at: datetime
@@ -29,7 +29,9 @@ class SymbolMetadata(BaseModel):
 
     @field_validator("market_cap")
     @classmethod
-    def validate_market_cap(cls, value: float) -> float:
+    def validate_market_cap(cls, value: float | None) -> float | None:
+        if value is None:
+            return None
         if not isfinite(value) or value < 0:
             raise ValueError("market_cap must be finite and non-negative")
         return value
@@ -73,4 +75,3 @@ class FakeSymbolMetadataProvider(SymbolMetadataProvider):
             for symbol in sorted(wanted)
             if symbol in self._metadata and self._metadata[symbol].available_at <= as_of
         }
-

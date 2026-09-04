@@ -13,6 +13,13 @@ export function StatusBadge({ value, label, showRaw = false, tone }: { value: st
   return <span title={label && label !== value ? value : undefined} className={`inline-flex whitespace-nowrap rounded-full border px-2.5 py-1 text-[11px] font-bold tracking-wide tone-${tone ?? inferredTone}`}>{label ?? value}{showRaw && label && label !== value && <small className="ml-1.5 font-mono font-normal opacity-70">{value}</small>}</span>;
 }
 
+export function InfoTooltip({ label, text }: { label: string; text: string }) {
+  return <span className="group relative inline-flex align-middle">
+    <button type="button" className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold normal-case tracking-normal text-muted transition-colors hover:text-primary focus-visible:text-primary" aria-label={`${label} 설명`} aria-describedby={`tooltip-${label}`}>i</button>
+    <span id={`tooltip-${label}`} role="tooltip" className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 hidden w-64 -translate-x-1/2 rounded-lg border border-line bg-surface px-3 py-2 text-left text-xs font-normal normal-case leading-5 tracking-normal text-foreground-secondary shadow-panel group-hover:block group-focus-within:block">{text}</span>
+  </span>;
+}
+
 export function ConvertedKrw({ amount, signed = false }: { amount?: number | string | null; signed?: boolean }) {
   if (amount == null) return null;
   return <span className="money-converted block text-xs font-medium text-muted">환산 약 {signed ? formatSignedKrw(amount) : formatKrw(amount)}</span>;

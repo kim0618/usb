@@ -9,6 +9,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
+DEFAULT_DATABASE_URL = "sqlite:///data/runtime/usb.sqlite3"
+REAL_MARKET_DATABASE_URL = "sqlite:///data/runtime/usb_real_market_review.sqlite3"
 
 
 class Settings(BaseSettings):
@@ -24,7 +26,8 @@ class Settings(BaseSettings):
     app_env: str = "development"
     app_name: str = "usb"
     log_level: str = "INFO"
-    database_url: str = "sqlite:///data/runtime/usb.sqlite3"
+    runtime_profile: str = "default"
+    database_url: str = DEFAULT_DATABASE_URL
     data_dir: Path = Path("data")
     market_timezone: str = "America/New_York"
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
@@ -38,6 +41,8 @@ class Settings(BaseSettings):
     kiwoom_timeout_seconds: float = 10.0
     kiwoom_max_retries: int = 2
     run_kiwoom_live_smoke: bool = False
+    run_kiwoom_real_scanner: bool = False
+    run_real_market_simulation: bool = False
 
     @field_validator("log_level")
     @classmethod
@@ -62,6 +67,14 @@ class Settings(BaseSettings):
         normalized = value.strip().lower()
         if normalized not in {"fake", "replay", "kiwoom"}:
             raise ValueError("MARKET_DATA_PROVIDER must be fake, replay, or kiwoom")
+        return normalized
+
+    @field_validator("runtime_profile")
+    @classmethod
+    def validate_runtime_profile(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        if normalized not in {"default", "real_market_operator"}:
+            raise ValueError("RUNTIME_PROFILE must be default or real_market_operator")
         return normalized
 
     @field_validator("broker_provider")
@@ -100,6 +113,8 @@ class Settings(BaseSettings):
         if self.market_data_provider == "kiwoom":
             if self.broker_provider != "simulation" or self.kiwoom_mode != "market_data_only":
                 raise ValueError("Kiwoom market data requires simulation broker and MARKET_DATA_ONLY")
+        if self.runtime_profile == "real_market_operator" and self.market_data_provider != "kiwoom":
+            raise ValueError("real_market_operator requires MARKET_DATA_PROVIDER=kiwoom")
         return self
 
     @property
@@ -121,12 +136,17 @@ class Settings(BaseSettings):
 
     @property
     def resolved_database_url(self) -> str:
+        database_url = (
+            REAL_MARKET_DATABASE_URL
+            if self.runtime_profile == "real_market_operator"
+            else self.database_url
+        )
         prefix = "sqlite:///"
-        if not self.database_url.startswith(prefix):
-            return self.database_url
-        raw_path = self.database_url.removeprefix(prefix)
+        if not database_url.startswith(prefix):
+            return database_url
+        raw_path = database_url.removeprefix(prefix)
         if raw_path == ":memory:" or Path(raw_path).is_absolute():
-            return self.database_url
+            return database_url
         return f"{prefix}{(PROJECT_ROOT / raw_path).resolve()}"
 
     @property

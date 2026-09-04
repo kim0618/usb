@@ -138,6 +138,8 @@ class QuantScanner:
             return None, ExclusionReason.BENCHMARK_SYMBOL
         if not metadata.active:
             return None, ExclusionReason.INACTIVE
+        if metadata.market_cap is None:
+            return None, ExclusionReason.MISSING_MARKET_CAP
         if metadata.market_cap < self.config.minimum_market_cap:
             return None, ExclusionReason.MARKET_CAP_TOO_LOW
         if len(bars) < self.config.required_history or bars[-1].trading_date != trading_date:
@@ -210,6 +212,12 @@ class QuantScanner:
         results: list[RankedCandidate] = []
         for index, (item, normalized_metrics, contributions, score) in enumerate(scored, start=1):
             latest = item.bars[-1]
+            prior = item.bars[-2] if len(item.bars) >= 2 else None
+            previous_return_pct = (
+                None
+                if prior is None or prior.close == 0
+                else (latest.close - prior.close) / prior.close
+            )
             results.append(
                 RankedCandidate(
                     rank=index,
@@ -221,6 +229,12 @@ class QuantScanner:
                     market_cap=item.metadata.market_cap,
                     latest_close=latest.close,
                     latest_volume=latest.volume,
+                    company_name=item.metadata.company_name,
+                    exchange=item.metadata.exchange,
+                    previous_open=latest.open,
+                    previous_high=latest.high,
+                    previous_low=latest.low,
+                    previous_return_pct=previous_return_pct,
                     average_dollar_volume=item.raw.average_dollar_volume,
                     observed_at=item.observed_at,
                     available_at=item.available_at,

@@ -1,7 +1,8 @@
 """FastAPI V1 router. Domain rules remain in existing services."""
 
-from datetime import date, datetime, timezone
+from datetime import date, datetime, time, timezone
 from decimal import Decimal
+from functools import lru_cache
 from typing import Annotated, Any
 from zoneinfo import ZoneInfo
 
@@ -15,6 +16,7 @@ from app.core.config import Settings, get_settings
 from app.core.database import get_db
 from app.core.exceptions import ResearchError
 from app.market.calendar import MarketCalendar
+from app.market.factory import build_kiwoom_provider
 from app.models.execution import ExecutionFillRecord, ExecutionOrderRecord, ShadowTradeRecord
 from app.models.research import GPTAnalysis, GPTCandidateAnalysis, GPTSource, HumanDecisionRecord
 from app.models.runtime import RuntimeFailureRecord
@@ -26,8 +28,10 @@ from app.repositories.research import ResearchRepository
 from app.repositories.scanner import ScannerSnapshotRepository
 from app.research.prompt import ResearchPromptService
 from app.research.versions import DETAIL_PROMPT_VERSION, EVIDENCE_VERSION, GPT_SCHEMA_VERSION, TOP8_PROMPT_VERSION
+from app.research.adoption import ADOPTION_FILTER_VERSION
 from app.scanner.config import ScannerConfig
 from app.services.research import GPTImportService, HumanDecisionService
+from app.services.market_context import MarketContextService
 from app.risk.config import RiskConfig
 from app.execution.config import ExecutionConfig
 from app.strategy.config import SHADOW_VARIANT_VERSION, STRATEGY_VERSION
@@ -48,17 +52,31 @@ def require(value: Any, message: str = "Resource not found") -> Any:
 
 @router.get("/market/status", tags=["Market"])
 async def market_status() -> dict[str, Any]:
-    settings = get_settings(); tz = ZoneInfo(settings.market_timezone); now = datetime.now(timezone.utc).astimezone(tz)
+    return display_market_status(datetime.now(timezone.utc), get_settings())
+
+
+def display_market_status(as_of: datetime, settings: Settings) -> dict[str, Any]:
+    if as_of.tzinfo is None or as_of.utcoffset() is None:
+        raise ValueError("as_of must be timezone-aware")
+    tz = ZoneInfo(settings.market_timezone); now = as_of.astimezone(tz)
     calendar = MarketCalendar(settings.market_timezone); window = calendar.session(now.date())
-    if window is None: session = "CLOSED"
+    if window is None or now.timetz().replace(tzinfo=None) < time(4) or now.timetz().replace(tzinfo=None) >= time(20):
+        session = "CLOSED"
     elif now < window.market_open: session = "PREMARKET"
-    elif now <= window.market_close: session = "REGULAR"
+    elif now < window.market_close: session = "REGULAR"
     else: session = "POSTMARKET"
     return {"current_time": now, "market_timezone": settings.market_timezone, "trading_date": now.date(),
             "session": session, "is_trading_day": window is not None,
             "open_at": None if window is None else window.market_open,
             "close_at": None if window is None else window.market_close,
             "early_close": False if window is None else window.is_early_close}
+
+
+@lru_cache(maxsize=1)
+def market_context_service() -> MarketContextService:
+    settings = get_settings()
+    provider = build_kiwoom_provider(settings) if settings.market_data_provider == "kiwoom" else None
+    return MarketContextService(provider, clock=lambda: datetime.now(timezone.utc))
 
 
 @router.get("/scanner/latest", tags=["Scanner"])
@@ -125,12 +143,25 @@ async def research_latest(db: DB, scanner_run_id: int | None = None) -> dict[str
     return result
 
 
+@router.get("/research/adoption", tags=["Research"])
+async def research_adoption(db: DB, scanner_run_id: int | None = None) -> dict[str, Any]:
+    stmt = select(GPTAnalysis).where(GPTAnalysis.status == "IMPORTED")
+    if scanner_run_id is not None:
+        stmt = stmt.where(GPTAnalysis.scanner_run_id == scanner_run_id)
+    row = require(db.scalar(stmt.order_by(GPTAnalysis.analysis_at.desc(), GPTAnalysis.id.desc()).limit(1)), "Research analysis not found")
+    return query_service(db).adoption(row)
+
+
 @router.get("/research/{analysis_id}/candidates/{symbol}", tags=["Research"])
 async def research_candidate(analysis_id: int, symbol: str, db: DB) -> dict[str, Any]:
+    analysis = require(db.get(GPTAnalysis, analysis_id), "Research analysis not found")
     row = require(db.scalar(select(GPTCandidateAnalysis).where(GPTCandidateAnalysis.gpt_analysis_id == analysis_id, GPTCandidateAnalysis.symbol == symbol.upper())), "Research candidate not found")
     decision = db.scalar(select(HumanDecisionRecord).where(HumanDecisionRecord.gpt_analysis_id == analysis_id, HumanDecisionRecord.symbol == row.symbol))
     sources = list(db.scalars(select(GPTSource).where(GPTSource.gpt_candidate_analysis_id == row.id).order_by(GPTSource.id)))
     result = query_service(db).research_candidate(row, decision)
+    result.update(market_context_service().compose(
+        row.symbol, result.get("previous_close"), trading_date=analysis.trading_date,
+    ))
     result["sources"] = [{"claim": s.claim, "title": s.title, "url": s.url, "source_type": s.source_type,
                           "domain": s.source_domain, "published_at": s.published_at} for s in sources]
     return result
@@ -359,6 +390,7 @@ async def settings_api() -> dict[str, Any]:
             "evidence_version": EVIDENCE_VERSION, "risk_version": RiskConfig().version,
             "execution_version": ExecutionConfig().version, "strategy_version": STRATEGY_VERSION,
             "shadow_variant_version": SHADOW_VARIANT_VERSION, "operations_version": OPERATIONS_VERSION,
+            "adoption_filter_version": ADOPTION_FILTER_VERSION,
             "broker_mode": "SIMULATION"}
 
 

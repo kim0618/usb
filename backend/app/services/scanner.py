@@ -39,9 +39,21 @@ class ScannerService:
             session.commit()
         started_at = self.clock()
         result = self.scanner.scan(universe, trading_date=trading_date, scan_as_of=scan_as_of)
+        return self.persist_result(result, started_at=started_at)
+
+    def persist_result(
+        self, result: ScannerResult, *, started_at: datetime | None = None
+    ) -> tuple[int, ScannerResult]:
+        """Persist an already-fetched immutable snapshot without another provider call."""
+        session = self.repository.session
+        if session.in_transaction():
+            if session.new or session.dirty or session.deleted:
+                raise RuntimeError("ScannerService requires a clean Session before taking transaction ownership")
+            session.commit()
+        started_at = started_at or self.clock()
         try:
             run = self.repository.create_run(
-                trading_date=trading_date,
+                trading_date=result.trading_date,
                 started_at=started_at,
                 provider=self.provider_name,
                 score_version=result.score_version,

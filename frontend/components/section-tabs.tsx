@@ -11,6 +11,7 @@ export type SectionTab = {
 export const analysisTabs: SectionTab[] = [
   { href: "/candidates", label: "후보 종목" },
   { href: "/research", label: "GPT 분석" },
+  { href: "/adoption", label: "채택 후보" },
 ];
 
 export const systemTabs: SectionTab[] = [

@@ -41,4 +41,6 @@ frontend/build/
 *~
 
 frontend/.next/
+frontend/.next-dev/
+frontend/.next-build/
 frontend/tsconfig.tsbuildinfo

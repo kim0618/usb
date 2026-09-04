@@ -96,6 +96,25 @@ def test_ranking_tie_is_symbol_ascending_and_deterministic() -> None:
     ]
 
 
+def test_market_context_metadata_and_daily_snapshot_are_preserved() -> None:
+    bars = history("AAA", base_close=100.0, latest_close=105.0, latest_volume=456_789)
+    market, reference = scanner_providers(["AAA"], bars_by_symbol={"AAA": bars})
+    result = QuantScanner(market, reference).scan(
+        ["AAA"], trading_date=TRADING_DATE, scan_as_of=SCAN_AS_OF
+    )
+    candidate = result.candidates[0]
+    parts = candidate.score_components()
+    assert parts["company_name"] == "AAA Corp"
+    assert parts["exchange"] == "NASDAQ"
+    assert parts["previous_open"] == 105.0
+    assert parts["previous_high"] == 106.0
+    assert parts["previous_low"] == 104.0
+    assert parts["latest_close"] == 105.0
+    assert parts["latest_volume"] == 456_789
+    assert parts["previous_return_pct"] == pytest.approx(0.05)
+    assert result.trading_date == TRADING_DATE
+
+
 @pytest.mark.parametrize("size, expected_top", [(7, 7), (8, 8), (9, 8)])
 def test_top8_cardinality(size: int, expected_top: int) -> None:
     symbols = [f"S{index:03d}" for index in range(size)]

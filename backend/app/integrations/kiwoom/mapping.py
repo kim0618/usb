@@ -3,14 +3,12 @@
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal, InvalidOperation
 from typing import Any
-from zoneinfo import ZoneInfo
-
 from app.core.exceptions import MarketDataError
+from app.integrations.kiwoom.timestamps import ET, minute_timestamp
 from app.market.domain import DailyBar, MarketSession, MinuteBar
 from app.market.reference import SymbolMetadata
 from app.market.symbols import normalize_symbol
 
-ET = ZoneInfo("America/New_York")
 EXCHANGES = {"ND": "NASDAQ", "NY": "NYSE", "NA": "AMEX"}
 
 
@@ -45,8 +43,7 @@ def map_daily_bar(symbol: str, row: dict[str, Any], received_at: datetime) -> Da
 
 
 def map_minute_bar(symbol: str, row: dict[str, Any], received_at: datetime) -> MinuteBar:
-    raw_time = str(row["cntr_tm"]).strip().replace(":", "")[:6].zfill(6)
-    timestamp = datetime.strptime(f"{row['bus_dt']}{raw_time}", "%Y%m%d%H%M%S").replace(tzinfo=ET)
+    timestamp = minute_timestamp(row)
     observed_at = timestamp + timedelta(minutes=1)
     if observed_at > received_at.astimezone(ET):
         raise MarketDataError("FUTURE_DATA", "Incomplete or future minute bar was excluded")
@@ -70,10 +67,11 @@ def map_minute_bar(symbol: str, row: dict[str, Any], received_at: datetime) -> M
 
 def map_metadata(symbol: str, quote: dict[str, Any], received_at: datetime) -> SymbolMetadata:
     exchange = canonical_exchange(quote.get("stex_tp"))
+    raw_market_cap = quote.get("mac")
     return SymbolMetadata(
         symbol=normalize_symbol(symbol),
         company_name=quote.get("stk_enm") or quote.get("stk_nm"),
-        market_cap=float(number(quote.get("mac", 0), "mac")),
+        market_cap=None if raw_market_cap in (None, "") else float(number(raw_market_cap, "mac")),
         exchange=exchange,
         active=str(quote.get("trd_susp_tp", "N")).strip().upper() not in {"Y", "1"},
         observed_at=received_at,

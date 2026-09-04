@@ -19,8 +19,14 @@ export const formatOrderStatus = (value?: string | null) => display(value, {
   CANCELLED: "주문 취소", REJECTED: "주문 거절",
 });
 export const formatMarketSession = (value?: string | null) => display(value, {
-  PREMARKET: "프리마켓", REGULAR: "정규장", POSTMARKET: "애프터마켓",
+  PREMARKET: "프리마켓", REGULAR: "정규장", POSTMARKET: "애프터마켓", CLOSED: "거래 종료",
 });
+/** Backend missing-reason codes for extended-hours quotes; no price is ever synthesized. */
+export const formatQuoteMissingReason = (value?: string | null) => display(value, {
+  NOT_FETCHED: "데이터 없음", NOT_AVAILABLE_FROM_PROVIDER: "데이터 없음",
+  INSUFFICIENT_HISTORY: "데이터 없음", OUTSIDE_SESSION: "데이터 없음",
+  PROVIDER_ERROR: "제공자 오류",
+}, "데이터 없음");
 export const formatRuntimeMode = (value?: string | null) => display(value, {
   NORMAL: "정상", SAFE_MODE: "안전 모드", HALTED: "중지",
 });
@@ -46,6 +52,89 @@ export const formatStrategyPhase = (value?: string | null) => display(value, {
 
 export type SemanticTone = "info" | "success" | "warning" | "danger" | "indigo" | "neutral";
 export type StrategyStatusDisplay = { label: string; tone: SemanticTone };
+
+/** Display-only bands for the frozen quant_v0 score; never persisted or sent to the Backend. */
+export const quantScoreLabel = (value: number): string => {
+  if (value >= 0.6) return "강함";
+  if (value >= 0.25) return "양호";
+  if (value >= -0.1) return "보통";
+  if (value >= -0.5) return "약함";
+  return "매우 약함";
+};
+
+export const quantScoreTone = (value: number): SemanticTone => {
+  if (value >= 0.25) return "info";
+  if (value >= -0.1) return "neutral";
+  return "danger";
+};
+
+/** Display-only activity bands for raw relative volume (RVOL). */
+export const rvolLabel = (value: number): string => {
+  if (value >= 2) return "매우 활발";
+  if (value >= 1.5) return "활발";
+  if (value >= 1) return "보통";
+  return "낮음";
+};
+
+export const rvolTone = (value: number): SemanticTone => value >= 1.5 ? "success" : "neutral";
+
+export const signedMetricTone = (value: number): SemanticTone => value > 0 ? "success" : value < 0 ? "danger" : "neutral";
+
+const researchStrengthLabel = (value: number): string => {
+  if (value >= 90) return "매우 강함";
+  if (value >= 75) return "강함";
+  if (value >= 60) return "양호";
+  if (value >= 40) return "보통";
+  return "약함";
+};
+
+const researchStrengthTone = (value: number): SemanticTone => {
+  if (value >= 75) return "success";
+  if (value >= 60) return "info";
+  if (value >= 40) return "neutral";
+  return "danger";
+};
+
+/** Display-only bands for frozen Research scores; raw values and scoring remain untouched. */
+export const researchCatalystLabel = researchStrengthLabel;
+export const researchCatalystTone = researchStrengthTone;
+export const researchMomentumLabel = researchStrengthLabel;
+export const researchMomentumTone = researchStrengthTone;
+
+/** Backend contract: risk_score is a safety score; higher always means safer. */
+export const researchRiskLabel = (value: number): string => {
+  if (value >= 70) return "매우 안전";
+  if (value >= 50) return "안전";
+  if (value >= 30) return "보통";
+  return "위험";
+};
+export const researchRiskTone = (value: number): SemanticTone => {
+  if (value >= 70) return "success";
+  if (value >= 50) return "info";
+  if (value >= 30) return "neutral";
+  return "danger";
+};
+
+export const researchOverallLabel = (value: number): string => {
+  if (value >= 90) return "최상";
+  if (value >= 80) return "매우 좋음";
+  if (value >= 70) return "좋음";
+  if (value >= 60) return "보통";
+  return "낮음";
+};
+export const researchOverallTone = (value: number): SemanticTone => {
+  if (value >= 80) return "success";
+  if (value >= 70) return "info";
+  if (value >= 60) return "neutral";
+  return "danger";
+};
+
+export const evidenceScoreLabel = (value: number): string => value >= 70 ? "높음" : value >= 40 ? "보통" : "낮음";
+export const evidenceScoreTone = (value: number): SemanticTone => value >= 70 ? "success" : value >= 40 ? "neutral" : "warning";
+
+export const fundamentalLabel = researchStrengthLabel;
+/** Fundamental strength is supporting context, so positive bands stay visually restrained. */
+export const fundamentalTone = (value: number): SemanticTone => value < 40 ? "danger" : value >= 60 ? "info" : "neutral";
 
 const strategyStatusTones: Readonly<Record<string, SemanticTone>> = {
   WAITING_ENTRY: "success",

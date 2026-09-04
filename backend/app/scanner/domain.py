@@ -11,6 +11,7 @@ class ExclusionReason(StrEnum):
     INACTIVE = "INACTIVE"
     PRICE_TOO_LOW = "PRICE_TOO_LOW"
     MARKET_CAP_TOO_LOW = "MARKET_CAP_TOO_LOW"
+    MISSING_MARKET_CAP = "MISSING_MARKET_CAP"
     LOW_LIQUIDITY = "LOW_LIQUIDITY"
     INSUFFICIENT_HISTORY = "INSUFFICIENT_HISTORY"
     INVALID_MARKET_DATA = "INVALID_MARKET_DATA"
@@ -44,6 +45,12 @@ class RankedCandidate:
     market_cap: float
     latest_close: float
     latest_volume: int
+    company_name: str | None
+    exchange: str | None
+    previous_open: float | None
+    previous_high: float | None
+    previous_low: float | None
+    previous_return_pct: float | None
     average_dollar_volume: float
     observed_at: datetime
     available_at: datetime
@@ -64,6 +71,12 @@ class RankedCandidate:
             "market_cap": self.market_cap,
             "latest_close": self.latest_close,
             "latest_volume": self.latest_volume,
+            "company_name": self.company_name,
+            "exchange": self.exchange,
+            "previous_open": self.previous_open,
+            "previous_high": self.previous_high,
+            "previous_low": self.previous_low,
+            "previous_return_pct": self.previous_return_pct,
         }
 
 

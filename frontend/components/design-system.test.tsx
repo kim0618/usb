@@ -48,11 +48,12 @@ describe("Stage 9.16 semantic design system", () => {
   it("uses semantic action hierarchy across analysis screens", () => {
     const candidates = source("app/candidates/page.tsx");
     const research = source("app/research/page.tsx");
+    const adoption = source("app/adoption/page.tsx");
     const decisions = source("components/research-decision.tsx");
     expect(candidates).toContain('className="btn-action-secondary"');
     expect(candidates).toContain('className="btn-action-primary"');
     expect(research).toContain('className="btn-action-primary"');
-    expect(research).toContain('className="btn-action-secondary-compact whitespace-nowrap"');
+    expect(adoption).toContain('className="btn-action-secondary-compact whitespace-nowrap"');
     expect(decisions).toContain('className="btn-success-soft"');
     expect(decisions).toContain('className="btn-danger-soft"');
   });
@@ -81,6 +82,7 @@ describe("Stage 9.16 semantic design system", () => {
     const trading = source("app/trading/page.tsx");
     const candidates = source("app/candidates/page.tsx");
     const research = source("app/research/page.tsx");
+    const adoption = source("app/adoption/page.tsx");
     expect(trading).toContain('className="btn-action-secondary-compact">분석 보기');
     expect(trading).toContain("btn-compact-active");
     expect(candidates).toContain('className="btn-action-primary" disabled={busy}');
@@ -88,7 +90,7 @@ describe("Stage 9.16 semantic design system", () => {
     expect(candidates).toContain('className="btn-action-secondary">GPT 분석 열기');
     expect(candidates).not.toContain("GPT 분석 열기 →");
     expect(research).toContain('className="btn-action-primary"');
-    expect(research).toContain('className="btn-action-secondary-compact whitespace-nowrap"');
+    expect(adoption).toContain('className="btn-action-secondary-compact whitespace-nowrap"');
   });
 
   it("contains no legacy cyan or teal application classes", () => {

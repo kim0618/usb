@@ -4,6 +4,10 @@ import {
   formatOrderSide, formatOrderStatus, formatResolved, formatRuntimeHealth,
   formatRuntimeMode, formatSeverity, formatShadowStatus, formatStrategyPhase, formatTradeStatus,
   formatConnection, formatFailureCodeDescription, strategyStatusDisplay,
+  quantScoreLabel, quantScoreTone, rvolLabel, rvolTone, signedMetricTone,
+  evidenceScoreLabel, evidenceScoreTone, fundamentalLabel, fundamentalTone,
+  researchCatalystLabel, researchCatalystTone, researchMomentumLabel, researchMomentumTone,
+  researchOverallLabel, researchOverallTone, researchRiskLabel, researchRiskTone,
 } from "./display";
 
 describe("Korean display mappers", () => {
@@ -18,7 +22,7 @@ describe("Korean display mappers", () => {
       .toEqual(["주문 대기", "부분 체결", "체결 완료", "주문 취소", "주문 거절"]);
   });
   it("maps market sessions, runtime mode, health, and severity", () => {
-    expect(["PREMARKET", "REGULAR", "POSTMARKET"].map(formatMarketSession)).toEqual(["프리마켓", "정규장", "애프터마켓"]);
+    expect(["PREMARKET", "REGULAR", "POSTMARKET", "CLOSED"].map(formatMarketSession)).toEqual(["프리마켓", "정규장", "애프터마켓", "거래 종료"]);
     expect(["NORMAL", "SAFE_MODE", "HALTED"].map(formatRuntimeMode)).toEqual(["정상", "안전 모드", "중지"]);
     expect([formatRuntimeHealth(true), formatRuntimeHealth(false)]).toEqual(["정상", "확인 필요"]);
     expect(["WARNING", "ERROR", "CRITICAL"].map(formatSeverity)).toEqual(["경고", "오류", "심각"]);
@@ -53,5 +57,44 @@ describe("Korean display mappers", () => {
     codes.forEach(code => expect(formatFailureCodeDescription(code)).not.toBe(code));
     expect(formatFailureCodeDescription("FUTURE_FAILURE")).toBe("FUTURE_FAILURE");
     expect([formatConnection("CONNECTED"), formatConnection("NOT CONNECTED")]).toEqual(["연결됨", "미연결"]);
+  });
+});
+
+describe("research display-only semantics", () => {
+  it("maps catalyst and momentum at every boundary", () => {
+    expect([90, 75, 60, 40, 39].map(researchCatalystLabel)).toEqual(["매우 강함", "강함", "양호", "보통", "약함"]);
+    expect([90, 75, 60, 40, 39].map(researchMomentumLabel)).toEqual(["매우 강함", "강함", "양호", "보통", "약함"]);
+    expect([90, 75, 60, 40, 39].map(researchCatalystTone)).toEqual(["success", "success", "info", "neutral", "danger"]);
+    expect([90, 75, 60, 40, 39].map(researchMomentumTone)).toEqual(["success", "success", "info", "neutral", "danger"]);
+  });
+
+  it("makes higher risk progressively more cautionary", () => {
+    expect([29, 30, 49, 50, 69, 70].map(researchRiskLabel)).toEqual(["위험", "보통", "보통", "안전", "안전", "매우 안전"]);
+    expect([29, 30, 49, 50, 69, 70].map(researchRiskTone)).toEqual(["danger", "neutral", "neutral", "info", "info", "success"]);
+  });
+
+  it("maps overall, evidence, and restrained fundamental context", () => {
+    expect([90, 80, 70, 60, 59].map(researchOverallLabel)).toEqual(["최상", "매우 좋음", "좋음", "보통", "낮음"]);
+    expect([90, 80, 70, 60, 59].map(researchOverallTone)).toEqual(["success", "success", "info", "neutral", "danger"]);
+    expect([70, 40, 39].map(evidenceScoreLabel)).toEqual(["높음", "보통", "낮음"]);
+    expect([70, 40, 39].map(evidenceScoreTone)).toEqual(["success", "neutral", "warning"]);
+    expect([90, 75, 60, 40, 39].map(fundamentalLabel)).toEqual(["매우 강함", "강함", "양호", "보통", "약함"]);
+    expect([90, 60, 40, 39].map(fundamentalTone)).toEqual(["info", "info", "neutral", "danger"]);
+  });
+});
+
+describe("candidate display-only semantics", () => {
+  it("maps quant scores at every deterministic boundary", () => {
+    expect([0.6, 0.25, -0.1, -0.5, -0.51].map(quantScoreLabel)).toEqual(["강함", "양호", "보통", "약함", "매우 약함"]);
+    expect([0.6, 0.25, -0.1, -0.5].map(quantScoreTone)).toEqual(["info", "info", "neutral", "danger"]);
+  });
+
+  it("maps raw RVOL without changing its value", () => {
+    expect([2, 1.5, 1, 0.99].map(rvolLabel)).toEqual(["매우 활발", "활발", "보통", "낮음"]);
+    expect([2, 1.5, 1, 0.99].map(rvolTone)).toEqual(["success", "success", "neutral", "neutral"]);
+  });
+
+  it("maps signed metrics to semantic tones", () => {
+    expect([signedMetricTone(0.01), signedMetricTone(0), signedMetricTone(-0.01)]).toEqual(["success", "neutral", "danger"]);
   });
 });

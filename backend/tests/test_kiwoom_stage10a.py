@@ -10,6 +10,7 @@ from app.core.config import Settings
 from app.core.exceptions import MarketDataError
 from app.integrations.kiwoom.auth import KiwoomAuthClient
 from app.integrations.kiwoom.client import KiwoomMarketDataClient
+import app.integrations.kiwoom.client as kiwoom_client_module
 from app.integrations.kiwoom.rate_limit import KiwoomRateLimits, RequestRateLimiter
 from app.market.kiwoom import KiwoomMarketDataProvider
 from app.market.provider import MarketDataProvider
@@ -82,10 +83,13 @@ def test_read_only_allowlist_blocks_every_order_path_before_http() -> None:
         http_calls += 1
         return httpx.Response(500)
     http = httpx.Client(transport=httpx.MockTransport(handler))
+    instance = client(http)
     with pytest.raises(MarketDataError) as error:
-        client(http).request("ust20000", "/api/us/ordr", {})
+        instance.request("ust20000", "/api/us/ordr", {})
     assert error.value.code == "ENDPOINT_BLOCKED" and http_calls == 0
-    assert not hasattr(client(http), "submit_order")
+    assert instance.order_request_count == 0
+    assert instance.request_counts == {}
+    assert not hasattr(instance, "submit_order")
 
 
 def test_quote_unknown_fields_and_error_normalization() -> None:
@@ -174,3 +178,69 @@ def test_rate_limiter_is_shared_and_waits() -> None:
     limiter = RequestRateLimiter(2, clock=lambda: current[0], sleeper=sleep)
     limiter.acquire(); limiter.acquire(); limiter.acquire()
     assert sleeps == [0.5, 0.5]
+
+
+def minute_row(day: str, timestamp: str, price: str = "100") -> dict[str, str]:
+    return {"bus_dt": day, "cntr_tm": timestamp, "open_pric": price,
+            "high_pric": price, "low_pric": price, "cur_prc": price, "trde_qty": "10"}
+
+
+def test_minute_history_continues_until_exact_aware_start_boundary() -> None:
+    chart_calls = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal chart_calls
+        if request.url.path == "/oauth2/token":
+            return httpx.Response(200, json={"token": "t", "expires_dt": "20990101000000", "return_code": 0})
+        chart_calls += 1
+        row = minute_row("20260904", "190000") if chart_calls == 1 else minute_row("20260903", "040000")
+        return httpx.Response(200, headers={"cont-yn": "Y", "next-key": str(chart_calls)},
+                              json={"result_list": [row], "return_code": 0})
+
+    instance = client(httpx.Client(transport=httpx.MockTransport(handler)))
+    start = datetime(2026, 9, 3, 4, tzinfo=ZoneInfo("America/New_York"))
+    result = instance.minute_chart("TSLA", "ND", start)
+    assert result.pages_used == 2 and result.target_reached
+    assert result.continuation_remaining and chart_calls == 2
+    with pytest.raises(ValueError, match="timezone-aware"):
+        instance.minute_chart("TSLA", "ND", datetime(2026, 9, 3, 4))
+
+
+def test_minute_history_stops_when_continuation_ends_before_target() -> None:
+    chart_calls = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal chart_calls
+        if request.url.path == "/oauth2/token":
+            return httpx.Response(200, json={"token": "t", "expires_dt": "20990101000000", "return_code": 0})
+        chart_calls += 1
+        return httpx.Response(200, json={"result_list": [minute_row("20260904", "190000")], "return_code": 0})
+
+    result = client(httpx.Client(transport=httpx.MockTransport(handler))).minute_chart(
+        "TSLA", "ND", datetime(2026, 9, 3, 4, tzinfo=ZoneInfo("America/New_York")),
+    )
+    assert result.pages_used == 1 and not result.target_reached
+    assert not result.continuation_remaining and chart_calls == 1
+
+
+def test_minute_history_hard_cap_is_explicit_insufficient_history(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(kiwoom_client_module, "MAX_MINUTE_HISTORY_PAGES", 2)
+    chart_calls = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal chart_calls
+        if request.url.path == "/oauth2/token":
+            return httpx.Response(200, json={"token": "t", "expires_dt": "20990101000000", "return_code": 0})
+        chart_calls += 1
+        return httpx.Response(200, headers={"cont-yn": "Y", "next-key": str(chart_calls)},
+                              json={"result_list": [minute_row("20260904", "190000")], "return_code": 0})
+
+    instance = client(httpx.Client(transport=httpx.MockTransport(handler)))
+    with pytest.raises(MarketDataError) as error:
+        KiwoomMarketDataProvider(instance, clock=lambda: datetime(2026, 9, 5, tzinfo=timezone.utc)).get_minute_bars(
+            ["TSLA"], start=datetime(2026, 9, 3, 4, tzinfo=ZoneInfo("America/New_York")),
+        )
+    assert error.value.code == "INSUFFICIENT_HISTORY" and chart_calls == 2
+    assert instance.last_minute_collection is not None
+    assert instance.last_minute_collection.pages_used == 2
+    assert instance.last_minute_collection.continuation_remaining

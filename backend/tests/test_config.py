@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from app.core.config import Settings
+from app.core.config import PROJECT_ROOT, Settings
 
 
 def test_config_defaults() -> None:
@@ -27,3 +27,21 @@ def test_config_rejects_unknown_timezone() -> None:
     with pytest.raises(ValidationError):
         Settings(_env_file=None, market_timezone="Not/A_Timezone")
 
+
+def test_real_market_operator_profile_selects_review_database() -> None:
+    settings = Settings(
+        _env_file=None,
+        runtime_profile="real_market_operator",
+        market_data_provider="kiwoom",
+        broker_provider="simulation",
+        kiwoom_mode="market_data_only",
+    )
+
+    assert settings.resolved_database_url == (
+        f"sqlite:///{PROJECT_ROOT / 'data/runtime/usb_real_market_review.sqlite3'}"
+    )
+
+
+def test_real_market_operator_profile_requires_kiwoom_market_data() -> None:
+    with pytest.raises(ValidationError, match="real_market_operator requires"):
+        Settings(_env_file=None, runtime_profile="real_market_operator")

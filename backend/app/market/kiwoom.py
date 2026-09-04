@@ -22,10 +22,21 @@ class KiwoomMarketDataProvider(MarketDataProvider, SymbolMetadataProvider):
         clock: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
     ) -> None:
         self.client = client
-        self._exchanges = {normalize_symbol(k): v.strip().upper() for k, v in (exchanges or {}).items()}
+        self._exchanges = {"SPY": "NY", **{normalize_symbol(k): v.strip().upper() for k, v in (exchanges or {}).items()}}
         self._default_exchange = default_exchange.strip().upper()
         self._clock = clock
         self._metadata_cache: dict[tuple[str, str], SymbolMetadata] = {}
+        self._mapping_issues: dict[str, int] = {}
+        self._provider_failures: dict[str, str] = {}
+        self._daily_cache: dict[tuple[str, str, date | None, date | None], tuple[DailyBar, ...]] = {}
+
+    @property
+    def mapping_issues(self) -> dict[str, int]:
+        return dict(self._mapping_issues)
+
+    @property
+    def provider_failures(self) -> dict[str, str]:
+        return dict(self._provider_failures)
 
     def _exchange(self, symbol: str) -> str:
         exchange = self._exchanges.get(symbol, self._default_exchange)
@@ -40,18 +51,34 @@ class KiwoomMarketDataProvider(MarketDataProvider, SymbolMetadataProvider):
         bars: list[DailyBar] = []
         for raw_symbol in sorted(set(symbols)):
             symbol = normalize_symbol(raw_symbol)
-            rows = self.client.daily_chart(
-                symbol, self._exchange(symbol), None if start is None else start.strftime("%Y%m%d")
-            )
+            exchange = self._exchange(symbol)
+            cache_key = (symbol, exchange, start, end)
+            cached = self._daily_cache.get(cache_key)
+            if cached is not None:
+                bars.extend(cached)
+                continue
+            symbol_bars: list[DailyBar] = []
+            try:
+                rows = self.client.daily_chart(
+                    symbol, exchange, None if start is None else start.strftime("%Y%m%d")
+                )
+            except MarketDataError as exc:
+                if symbol == "SPY":
+                    raise
+                self._provider_failures[symbol] = exc.code
+                continue
             for row in rows:
                 try:
                     bar = map_daily_bar(symbol, row, received_at)
-                except MarketDataError as exc:
-                    if exc.code == "FUTURE_DATA":
+                except (MarketDataError, ValueError) as exc:
+                    if isinstance(exc, MarketDataError) and exc.code == "FUTURE_DATA":
                         continue
-                    raise
+                    self._mapping_issues[symbol] = self._mapping_issues.get(symbol, 0) + 1
+                    continue
                 if (start is None or bar.trading_date >= start) and (end is None or bar.trading_date <= end):
-                    bars.append(bar)
+                    symbol_bars.append(bar)
+            self._daily_cache[cache_key] = tuple(symbol_bars)
+            bars.extend(symbol_bars)
         return sorted(bars, key=lambda bar: (bar.trading_date, bar.symbol))
 
     def get_minute_bars(
@@ -65,10 +92,8 @@ class KiwoomMarketDataProvider(MarketDataProvider, SymbolMetadataProvider):
         bars: list[MinuteBar] = []
         for raw_symbol in sorted(set(symbols)):
             symbol = normalize_symbol(raw_symbol)
-            rows = self.client.minute_chart(
-                symbol, self._exchange(symbol), None if start is None else start.astimezone(timezone.utc).strftime("%Y%m%d")
-            )
-            for row in rows:
+            history = self.client.minute_chart(symbol, self._exchange(symbol), start)
+            for row in history.rows:
                 try:
                     bar = map_minute_bar(symbol, row, received_at)
                 except MarketDataError as exc:

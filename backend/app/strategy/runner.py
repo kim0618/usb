@@ -24,6 +24,7 @@ from app.services.risk import RiskService
 from app.services.strategy import StrategyLifecycleService
 from app.strategy.domain import DecisionType, StrategyDecision, TradingEligibility
 from app.strategy.lifecycle import StrategyBook, StrategyPhase, StrategyState
+from app.strategy.session_policy import SessionPolicy
 
 
 @dataclass(frozen=True)
@@ -43,6 +44,7 @@ class StrategyLifecycleRunner:
         self.execution = ExecutionService(broker)
         self.risk = risk_engine or RiskEngine()
         self.calendar = calendar or MarketCalendar()
+        self.session_policy = SessionPolicy(self.calendar)
         self.actual_risk_service = actual_risk_service
         self._shadow_risk: dict[tuple[object, str], DailyTradingState] = {}
 
@@ -58,6 +60,8 @@ class StrategyLifecycleRunner:
                       account: AccountSnapshot, portfolio: PortfolioSnapshot,
                       market_bars: tuple[MinuteBar, ...], instrument_currency: Currency,
                       created_at: datetime, actual_risk_state: DailyTradingState | None = None) -> LifecycleExecution:
+        if not self.session_policy.permissions_at(decision.market_as_of).new_entry:
+            return LifecycleExecution(state, None, None)
         eligibility = TradingEligibility(False if state.book is StrategyBook.SHADOW else True,
                                          book=state.book.value)
         if state.book is StrategyBook.ACTUAL and self.actual_risk_service is not None:
@@ -77,7 +81,8 @@ class StrategyLifecycleRunner:
             )
         if not evaluation.approved or evaluation.order_intent is None:
             return LifecycleExecution(state, evaluation, None)
-        order = self.execution.execute(evaluation.order_intent, market_bars)
+        fill_bars = self.session_policy.regular_fill_bars(market_bars, as_of=decision.market_as_of)
+        order = self.execution.execute(evaluation.order_intent, fill_bars)
         filled = self.broker.get_fills(order.id)
         if not filled:
             return LifecycleExecution(state, evaluation, order)
@@ -97,6 +102,8 @@ class StrategyLifecycleRunner:
                     account: AccountSnapshot, portfolio: PortfolioSnapshot,
                     requested_notional: Decimal, market_bars: tuple[MinuteBar, ...],
                     created_at: datetime, actual_risk_state: DailyTradingState | None = None) -> LifecycleExecution:
+        if not self.session_policy.permissions_at(decision.market_as_of).pyramid:
+            return LifecycleExecution(state, None, None)
         eligibility = TradingEligibility(False if state.book is StrategyBook.SHADOW else True,
                                          book=state.book.value)
         if state.book is StrategyBook.ACTUAL and self.actual_risk_service is not None:
@@ -114,7 +121,8 @@ class StrategyLifecycleRunner:
             )
         if not evaluation.approved or evaluation.order_intent is None:
             return LifecycleExecution(state, evaluation, None)
-        order = self.execution.execute(evaluation.order_intent, market_bars)
+        fill_bars = self.session_policy.regular_fill_bars(market_bars, as_of=decision.market_as_of)
+        order = self.execution.execute(evaluation.order_intent, fill_bars)
         fills = self.broker.get_fills(order.id)
         if not fills:
             return LifecycleExecution(state, evaluation, order)

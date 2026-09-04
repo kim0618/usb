@@ -44,7 +44,7 @@ Trading table은 body surface와 구분되는 neutral header surface, 읽기 쉬
 
 ## Analysis Navigation
 
-- 후보 종목과 GPT 분석은 같은 shared compact navigation tab을 사용한다.
+- 후보 종목, GPT 분석, 채택 후보는 같은 shared compact navigation tab을 사용한다.
 - Active tab은 soft blue background, blue border/text로 표시하고 inactive tab은 neutral surface와 secondary text를 사용한다.
 - 탭은 36px 높이와 button system의 radius/weight를 공유하되 CTA보다 낮은 시각적 위계를 유지한다.
 - Candidates에서는 프롬프트 복사가 Primary, 미리보기와 GPT 분석 이동이 Secondary다.
@@ -80,6 +80,19 @@ Backend의 raw strategy state는 변경하지 않고 공통 display mapper가 �
 | Unknown | raw value | Neutral |
 
 ## Currency Presentation
+
+채택 후보 Human Review는 기존 `table-wrap`, compact `StatusBadge`, Drawer,
+blue action, green approve, red reject를 재사용한다. 채택 후보는 success,
+검토 필요는 warning, 제외는 danger-subtle 의미이며 순위 상승/하락/유지는
+success/warning/neutral로 표시한다. 순위 열과 Drawer 헤더 순위는 기존 rank
+tone인 primary blue(`text-primary`)를 재사용하며 새 색상을 추가하지 않는다.
+순위 header는 한 줄로 유지하기 위해 `whitespace-nowrap`을 사용한다. `risk_score`
+label은 `안전도`이고 높을수록 안전하다. 단기 가격 상태는 `판단 요약`과
+동일한 `border-line` compact grid를 사용하고 양수·음수 tone은 Candidates와
+같은 `signedMetricTone` / `rvolTone` helper를 재사용한다. 좁은 화면에서는
+표를 수평 스크롤하고 핵심 강점·핵심 주의 열만 `lg` 미만에서 감추며 Drawer는
+전체 폭과 sticky 최종 결정 footer를 유지한다. 별도 색상 token이나 tab
+system은 추가하지 않는다.
 
 - USD는 미국주식 계좌와 거래가격의 primary source currency다.
 - KRW는 환산값임을 알 수 있도록 `환산 약`을 붙인 secondary display이며 primary USD보다 작은 muted text를 사용한다.

@@ -24,6 +24,7 @@ Sidebar는 사용자의 일일 운영 흐름에 따라 다음 4개 상위 메뉴
 종목 분석
   - 후보 종목
   - GPT 분석
+  - 채택 후보
 전략 성과
 시스템
   - 시스템 상태
@@ -38,7 +39,8 @@ Sidebar 단순화는 업무 route 통합이 아니다. 6개 content page와 `/` 
 |---|---|---|---|
 | `/` | - | Redirect | `/trading`으로 server-side 이동 |
 | `/candidates` | 종목 분석 | 후보 종목 | TOP8, Quant 상세, GPT 프롬프트 미리보기/복사 |
-| `/research` | 종목 분석 | GPT 분석 | 결과 입력·비교, 상세 확인, APPROVE/REJECT |
+| `/research` | 종목 분석 | GPT 분석 | 결과 입력 및 분석 결과 비교(읽기 전용) |
+| `/adoption` | 종목 분석 | 채택 후보 | deterministic 분류, Human Review, APPROVE/REJECT |
 | `/trading` | 트레이딩 | 매매 현황 | 계좌 요약, 현재 포지션, 진입 대기, 통합 매매 내역 |
 | `/shadow` | 전략 성과 | 전략 성과 | 7일·30일·전체 Shadow A–E aggregate 성과 비교, C 기준 전략 |
 | `/runtime` | 시스템 | 시스템 상태 | 현재 상태, 미해결 장애, 운영·비상 제어 |
@@ -46,17 +48,19 @@ Sidebar 단순화는 업무 route 통합이 아니다. 6개 content page와 `/` 
 
 ## 운영 흐름
 
-후보 종목에서 프롬프트 복사 → ChatGPT 분석 → 반환 JSON 붙여넣기 → 상세 확인 → 채택/거절 순서로 진행한다. GPT API 자동 호출은 없다. Evidence는 출처 품질과 핵심 주장 근거 범위 기반 점수이며 사실일 확률로 해석하지 않는다. 최대 2개 채택 제한과 충돌 처리는 Backend 응답을 따른다.
+후보 종목에서 프롬프트 복사 → ChatGPT 분석 → 반환 JSON 붙여넣기 → 채택 후보 상세 확인 → 채택/거절 순서로 진행한다. GPT API 자동 호출은 없다. Evidence는 출처 품질과 핵심 주장 근거 범위 기반 점수이며 사실일 확률로 해석하지 않는다. 최대 2개 채택 제한과 충돌 처리는 Backend 응답을 따른다.
 
 분석 화면은 역할을 분리한다. Candidates는 Quant-first 화면으로 Quant 순위·점수, RVOL, 상대강도, 거래대금, 모멘텀과 workflow 상태를 보여준다. 큰 요약 카드 대신 거래일, 완료 시각, 전체 후보, TOP 수, Quant 버전을 compact metadata로 표시한다. RVOL은 배수, 수익률 비율은 백분율, 거래대금은 compact USD로 표시하지만 raw 값이나 계산은 변경하지 않는다. TOP 후보 전체에 회사명이 없으면 정보 가치가 없는 회사 열만 숨긴다.
 
-Prompt 생성·미리보기·복사는 Candidates 화면의 책임이다. Research는 GPT 결과 입력 → 결과 비교 → 상세 확인 → 채택/거절만 담당하며 Prompt copy 기능을 제공하지 않는다. Research는 GPT-first 화면으로 GPT/Quant 순위, GPT 평가, Evidence와 Human 결정을 비교한다. Table은 후보 간 비교, 상세 접근, 현재 최종 결정 상태만 담당하며 직접 decision mutation을 제공하지 않는다. Symbol 또는 `상세보기`를 누르면 오른쪽 Candidate Detail Drawer가 열리고, 최종 Human decision은 Drawer의 선택 상태가 명확한 `채택 / 거절` control에서만 변경한다. 최신 분석이 있으면 결과 table을 먼저 표시하고 JSON textarea는 `분석 결과 입력` 동작으로만 펼친다. 분석이 없을 때만 import 영역을 기본 표시한다.
+Prompt 생성·미리보기·복사는 Candidates 화면의 책임이다. Research는 GPT 결과 입력과 결과 비교만 담당하는 GPT-first 읽기 전용 화면이다. 상세와 HumanDecision은 `/adoption`의 Human Review Drawer에서만 제공한다. 최신 분석이 있으면 결과 table을 먼저 표시하고 JSON textarea는 `분석 결과 입력` 동작으로만 펼친다. 분석이 없을 때만 import 영역을 기본 표시한다.
+
+`risk_score`는 Backend 계약대로 높을수록 안전하며 UI label은 `안전도`다. 70 이상 매우 안전, 50 이상 안전, 30 이상 보통, 30 미만 위험으로 표시한다. Adoption은 채택 후보와 검토 필요를 기본 표시하고 제외 종목은 toggle로 접근한다. 후보 수는 제한하지 않으며 최종 APPROVE만 분석당 최대 2개다.
 
 HumanDecision 표시 용어는 `APPROVE = 채택`, `REJECT = 거절`, decision 없음은 `미결정`이다. 이는 Frontend label이며 Backend enum과 API payload는 계속 `APPROVE / REJECT`를 사용한다. 채택은 즉시 매수가 아니라 오늘 자동매매 감시 대상으로 허용한다는 의미이고, 실제 주문은 Premarket, Opening, Strategy, Risk 조건을 추가로 통과해야 한다.
 
-Table은 후보 간 Quant/GPT 점수 비교 화면이고, Candidate Detail Drawer는 시장 맥락, Research 근거, Human 최종 판단 화면이다. Quant/GPT 점수 grid는 의도적으로 Drawer에서 반복하지 않으며 Quant/GPT 순위만 compact하게 유지한다. Drawer는 회사 정보 → 최근 주가 흐름 → 주요 재료 → 위험 → 근거 → 전략 참고 → 확인되지 않은 항목 → 최종 결정 순서로 표시한다.
+Table은 후보 간 Quant/GPT 비교 화면이고, 채택 후보 Drawer는 최종 Human Review 화면이다. Table 컬럼은 순위 → 상태 → 종목 → Quant → GPT → 순위 변화 → 핵심 강점 → 핵심 주의 → 상세 → 최종 결정이며, Drawer는 헤더(순위·종목·회사명·분류·Quant → GPT·순위 변화) → 회사 설명 → 판단 요약 → 단기 가격 상태 → 채택 이유 → 순위 변화 이유 → 위험 / 주의 → 최종 결정 순서로 표시한다. 순위는 Backend가 계산한 `recommendation_rank`를 그대로 `#1` 형태로 렌더링하며 Frontend는 순서를 다시 만들지 않고 index로 번호를 생성하지도 않는다. Backend 값이 없으면 `-`로 표시한다. Drawer 헤더는 `순위 #1` 형태를 사용한다. 순위 #1은 검토 우선순위일 뿐 자동 채택이 아니다. 핵심 강점·핵심 주의 열은 최대 2개만 표시하고 남은 개수는 `· 외 n건`으로 명시한다. 근거 자료, 무효화 조건, 미확인 raw 목록은 최종 판단 화면에서 표시하지 않으며 Backend Research 계약과 저장 데이터는 그대로 유지한다.
 
-Drawer의 GPT narrative와 Sources는 Candidate Detail API에서 조회하고, Quant 지표와 현재 제공되는 회사명/시가총액은 해당 분석이 참조하는 동일 ScannerRun snapshot에서 조회한다. 최근 주가 흐름은 같은 snapshot의 기준 거래일, 최신 일봉 종가·거래량, 이미 계산되어 저장된 RVOL만 표시한다. Frozen API가 제공하지 않는 일간 등락률·고가/저가·Premarket·Postmarket 값은 Frontend에서 계산하거나 GPT narrative에서 추출하지 않고 `데이터 미제공`으로 표시한다. Frontend는 점수로 설명을 생성하거나 누락된 회사·업종·재료·위험 정보를 추론하지 않는다. 계약에 없는 다른 값은 숨기거나 `정보 없음`으로 표시한다. Drawer와 Table의 결정은 같은 Backend endpoint를 사용하며 성공 후 Backend를 다시 조회한다.
+Drawer의 GPT narrative와 시장 맥락은 Candidate Detail API에서 조회한다. 회사명·거래소와 일간 O/H/L/C·등락률·거래량·RVOL은 해당 분석이 참조하는 동일 ScannerRun snapshot의 backend 계산값을 표시한다. Premarket/Postmarket은 backend가 동일한 미국 trading date에서 조합한 최신 관측값만 표시하며, 현재 세션과 무관하게 실제 bar가 없으면 `데이터 없음`, provider 실패면 `제공자 오류`로 표시한다. 단기 가격 상태는 전일 종가·고가·등락, 거래량 강도(RVOL), 시장 대비, 최근 흐름과 Pre/Post market만 표시한다. authoritative live quote가 없으므로 `현재가` 항목 자체를 만들지 않으며 ScannerRun snapshot의 종가를 현재가로 표시하지 않는다. Frontend는 금융값을 계산하거나 GPT narrative에서 metadata를 추출하지 않는다. 업종은 현재 Kiwoom contract에서 확인되지 않아 `정보 없음`으로 표시하며, 시가총액 raw 값은 통화 단위를 추측하지 않고 `단위 확인 중`을 명시한다. 사용자 timestamp는 KST가 primary이고 trading date는 XNYS/ET date를 그대로 유지한다. Drawer와 Table의 결정은 같은 Backend endpoint를 사용하며 성공 후 Backend를 다시 조회한다.
 
 ## Trading account와 portfolio
 
@@ -127,3 +131,12 @@ npm run typecheck
 npm test
 npm run build
 ```
+## Stage 10B-3.3 display note
+
+Research Detail shows the latest available premarket and postmarket observation
+for the selected US trading date, including when the current market badge is
+`CLOSED`. Missing provider coverage renders `데이터 없음`; prices and returns
+are never synthesized in the frontend. Header, analysis, Evidence
+`published_at`, and extended-session observations use the shared KST-primary
+formatter, with ET retained only as optional secondary context. The raw US
+`trading_date` remains unconverted.

@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.core.database import Base, create_db_engine, get_db
 from app.main import create_app
 from app.models.execution import ExecutionFillRecord, ExecutionOrderRecord, ShadowTradeRecord
+from app.models.research import GPTAnalysis, GPTCandidateAnalysis, HumanDecisionRecord
 from app.models.scanner import ScannerCandidate, ScannerRun
 
 
@@ -65,6 +66,41 @@ async def test_missing_resources_use_common_error(api) -> None:  # type: ignore[
     response = await get(api[0], "/api/v1/scanner/latest")
     assert response.status_code == 404
     assert response.json()["error"]["code"] == "RESOURCE_NOT_FOUND"
+
+
+@pytest.mark.asyncio
+async def test_adoption_endpoint_is_versioned_and_read_only(api) -> None:  # type: ignore[no-untyped-def]
+    app, sessions = api; now = datetime(2026, 9, 1, 20, tzinfo=timezone.utc)
+    with sessions() as db:
+        run = ScannerRun(trading_date=date(2026, 9, 1), started_at=now, completed_at=now,
+            status="COMPLETED", provider="FAKE", score_version="quant_v0", universe_count=1,
+            excluded_count=0, candidate_count=1, top8_count=1)
+        db.add(run); db.flush()
+        quant = ScannerCandidate(scanner_run_id=run.id, symbol="AAA", rank=1, is_top8=True, score=1.0,
+            score_components_json={"company_name": "AAA Inc", "raw": {"rvol": 1.6, "relative_strength": .02}}, observed_at=now, available_at=now)
+        db.add(quant); db.flush()
+        analysis = GPTAnalysis(scanner_run_id=run.id, trading_date=run.trading_date, provider="OpenAI", model="test",
+            prompt_version="top8_research_v0", schema_version="gpt_research_v0", evidence_version="evidence_v0",
+            analysis_at=now, imported_at=now, status="IMPORTED", raw_json="{}", payload_hash="a" * 64)
+        db.add(analysis); db.flush()
+        db.add(GPTCandidateAnalysis(gpt_analysis_id=analysis.id, scanner_candidate_id=quant.id, symbol="AAA", gpt_rank=1,
+            overall_score=80, catalyst_score=90, fundamental_score=95, momentum_score=80, risk_score=70,
+            evidence_confidence=60, catalyst_duration="ONE_TO_TWO_DAYS", stop_profile="NORMAL", trailing_profile="WIDE",
+            overnight_suitability="MEDIUM", company_summary="company", catalyst_summary="catalyst", risk_summary="risk",
+            invalidation_summary="invalidate", unknown_fields_json=[]))
+        db.commit()
+    response = await get(app, "/api/v1/research/adoption")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["filter_version"] == "adoption_filter_v0"
+    assert payload["counts"] == {"adoption_candidate": 1, "review_required": 0, "excluded": 0}
+    assert payload["items"][0]["classification"] == "ADOPTION_CANDIDATE"
+    assert payload["items"][0]["recommendation_rank"] == 1
+    assert payload["items"][0]["company_summary"] == "company"
+    assert (payload["items"][0]["previous_close"], payload["items"][0]["rvol"]) == (None, 1.6)
+    assert (payload["items"][0]["relative_strength"], payload["items"][0]["momentum"]) == (.02, None)
+    with sessions() as db:
+        assert db.query(HumanDecisionRecord).count() == 0
 
 
 @pytest.mark.asyncio

@@ -104,6 +104,11 @@ tbody tr { @apply transition-colors hover:bg-surface-hover; }
 .tone-neutral { @apply border-line bg-surface-alt text-foreground-secondary; }
 .tone-info { @apply border-primary bg-primary-soft text-primary; }
 .tone-indigo { border-color: var(--card-indigo); background: color-mix(in srgb, var(--card-indigo) 20%, transparent); color: color-mix(in srgb, #818cf8 82%, var(--text-primary)); }
+.tone-text-success { @apply text-success; }
+.tone-text-danger { @apply text-danger; }
+.tone-text-info { @apply text-primary; }
+.tone-text-warning { @apply text-warning; }
+.tone-text-neutral { @apply text-foreground-secondary; }
 .metric-card { border-color: color-mix(in srgb, var(--border) 72%, var(--metric-accent)); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--metric-accent) 55%, transparent); }
 .metric-card-primary { --metric-accent: var(--card-primary); border-color: color-mix(in srgb, var(--border) 42%, var(--metric-accent)); background: color-mix(in srgb, var(--surface-1) 96%, var(--primary)); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--metric-accent) 78%, transparent), inset 0 0 18px color-mix(in srgb, var(--primary) 4%, transparent); }
 .metric-card-blue { --metric-accent: var(--card-blue); }

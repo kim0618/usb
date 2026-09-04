@@ -212,6 +212,46 @@ absent from the endpoint allowlist.
 
 ## Live Smoke
 
+### Live Smoke Result
+
+| Item | Result | Notes |
+| --- | --- | --- |
+| Date/environment | 2026-09-04 / real endpoint | Local credentials configured; values not recorded |
+| Symbol | AAPL / ND | Live request completed |
+| OAuth | PASS | Expiry parsed and in-memory token reuse confirmed |
+| Metadata | PASS/PARTIAL | Identity fields present; market-cap field absent, so unit remains unconfirmed |
+| Quote | PASS | Live canonical mapping passed |
+| Daily | PASS | First page returned 100 rows; 200 unique dates sampled across two pages; continuation observed |
+| Minute | PARTIAL | Request completed but no canonical minute bar was produced at smoke time |
+| WebSocket | NOT RUN | Optional implementation remains deferred |
+| Order requests | 0 | Order endpoint is absent from the allowlist |
+
+Result: **LIVE SMOKE: PASS WITH OPTIONAL CAPABILITIES PARTIAL**. Required OAuth,
+quote, and daily checks passed against the real endpoint. Minute remains partial
+and WebSocket remains optional/not run.
+
+The smoke now reports credential presence without values, enforces the
+market-data-only/simulation configuration, verifies OAuth cache reuse, samples
+metadata and quote, samples at most one daily continuation page, maps actual
+daily/minute rows, compares the observed daily depth with Scanner's required
+21 bars, and asserts that the instrumented order-request count is zero.
+
+### Confirmed Fields
+
+The live response confirmed symbol/company/exchange identity mapping, quote
+canonical mapping, daily OHLCV mapping, at least 21 trading bars in one call,
+and working daily continuation. Fixture-backed contract tests continue to
+confirm aware timestamps, OHLCV mapping, exchange mapping, metadata caching,
+continuation headers, and read-only endpoint rejection.
+
+### Remaining Ambiguities
+
+- `mac` market-cap unit in the real response.
+- Whether `upd_stkpc_tp=1` fully matches USB adjusted-price requirements.
+- Direct session indicator and extended-hours completeness.
+- Trusted USD/KRW source; account-specific `base_exrt` is not approved as a
+  market FX source.
+
 Run only with manually supplied environment variables:
 
 ```bash
@@ -237,3 +277,67 @@ access. WebSocket smoke remains deferred.
   models.
 - Account/portfolio audit smoke (Stage 10B), paper broker, and any live broker.
 - UI capability truth remains unchanged until a real smoke succeeds.
+
+## Stage 10B-1 Update — Real Market Scanner
+
+Stage 10B-1 is implemented and documented in `REAL_MARKET_SCANNER.md`.
+Kiwoom's official `usa20540` transaction-amount rank is now a bounded
+acquisition pre-filter and `usa20550` supplies direct `mac` values; neither
+changes Quant V0 eligibility or scoring. `usa10099`, `usa20530`, `usa20540`,
+and `usa20550` are read-only allowlisted capabilities. Missing market cap is
+explicit rather than silently mapped to zero.
+
+A live 10-symbol run for 2026-09-03 ET produced 8 eligible candidates and the
+deterministic TOP8 TSLA, SPCX, META, AVGO, NVDA, MU, AAPL, MSFT. It persisted
+to the separate real-market review DB and generated the existing research
+prompt. Order requests remained zero. Scanner readiness is **READY for bounded
+development runs / PARTIAL for production**: Kiwoom's public example labels
+`mac` but does not explicitly state its currency/unit, adjusted-price semantics
+remain unconfirmed, and durable cross-process historical caching is absent.
+# Stage 10B-2 Status
+
+- Market Data: **READY for bounded development**
+- Execution: **SIMULATION ONLY**
+- Live/Paper Broker: **NOT IMPLEMENTED**
+- Real-market simulation requires both explicit opt-ins plus the immutable
+  `kiwoom/simulation/market_data_only` provider gate.
+- Kiwoom account endpoints are not used and Kiwoom order requests must remain
+  zero.
+- Stage 10B-3 readiness reads the persisted real ScannerRun and manual
+  research/decision records before provider construction. Execution remains
+  Simulation only; zero approvals is a no-op and cannot select automatically.
+
+# Stage 10B-3.2 Capability Verification
+
+One bounded AAPL read-only check on 2026-09-04 used only already-allowlisted
+market-data TRs under `kiwoom / simulation / market_data_only`.
+
+- `usa10100`: company name and exchange present; no industry/sector candidate
+  field found. Industry therefore remains unavailable and no second source was
+  introduced.
+- `usa06011`: 1,000 canonical ET-aware OHLCV rows mapped; all observed rows
+  classified POSTMARKET. Postmarket minute capability is confirmed for this
+  sample; premarket coverage remains unconfirmed.
+- Credentials, token values, and raw payloads were not printed or persisted.
+- Kiwoom order requests: 0. Account mutations: 0.
+
+## Stage 10B-3.4 minute-history pagination
+
+The generic `_collect(max_pages=10)` contract was too shallow for historical
+minute context and could turn an unreached requested date into a false empty
+result after provider-side filtering. `usa06011` now has a target-aware bounded
+collector: it follows continuation until the oldest canonical ET timestamp is
+at or before the aware requested start, or until continuation ends. A separate
+`MAX_MINUTE_HISTORY_PAGES = 50` cap prevents unbounded history walks.
+
+If that cap is reached while continuation remains and the target is unreached,
+the client raises normalized `INSUFFICIENT_HISTORY`. The market-context layer
+preserves this reason separately from actual provider no-data and general
+provider errors.
+
+Bounded read-only verification for TSLA and target date 2026-09-03 used 12
+pages and reached the 04:00 ET start boundary with continuation remaining. The
+canonical requested window still contained zero bars, so no postmarket price
+or return could be produced for this sample. ScannerRun 2's same-day regular
+close remains available as `latest_close = 370.51`. No raw payload, credential,
+or token was printed; order requests remained zero.

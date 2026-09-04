@@ -15,6 +15,7 @@ export function formatDecimalString(value: string): string {
 }
 export const score = (value: number | null | undefined) => value == null ? "-" : value.toFixed(2);
 export const etTime = (value: string | null | undefined) => value ? new Intl.DateTimeFormat("ko-KR", { timeZone: "America/New_York", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(value)) + " ET" : "-";
+export const kstTime = (value: string | null | undefined) => value ? new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(value)) + " KST" : "-";
 export const multiple = (value: number | null | undefined) => value == null ? "-" : `${value.toFixed(2)}x`;
 export const signedPercent = (value: number | null | undefined) => {
   if (value == null) return "-";
@@ -24,6 +25,7 @@ export const signedPercent = (value: number | null | undefined) => {
 export const compactUsd = (value: number | null | undefined) => value == null ? "-" : new Intl.NumberFormat("en-US", {
   style: "currency", currency: "USD", notation: "compact", maximumFractionDigits: 1,
 }).format(value);
+export const unconfirmedMarketCap = (value: number | null | undefined) => value == null ? "정보 없음" : `${new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(value)} · 단위 확인 중`;
 
 type MoneyInput = number | string | null | undefined;
 const numericMoney = (value: MoneyInput) => value == null || value === "" || !Number.isFinite(Number(value)) ? null : Number(value);

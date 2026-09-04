@@ -55,6 +55,7 @@ non-empty and bounded. Failure resolution alone never restores NORMAL.
 | GET | `/api/v1/research/prompt/{symbol}` | Stock detail prompt |
 | POST | `/api/v1/research/import` | Atomic raw GPT JSON import |
 | GET | `/api/v1/research/latest` | Latest imported analysis |
+| GET | `/api/v1/research/adoption` | Latest analysis classified by read-only `adoption_filter_v0` |
 | GET | `/api/v1/research/{analysis_id}/candidates/{symbol}` | Candidate, evidence, decision, Quant reference |
 | PUT | `/api/v1/research/{analysis_id}/decisions/{symbol}` | APPROVE/REJECT through existing service |
 | GET | `/api/v1/trading` | Simulation availability and strategy states |
@@ -75,6 +76,16 @@ non-empty and bounded. Failure resolution alone never restores NORMAL.
 | POST | `/api/v1/runtime/kill-switch` | Confirmed halt; liquidation only when broker runtime exists |
 | GET | `/api/v1/settings` | Version/environment allowlist |
 | GET | `/api/v1/capabilities` | Actual implemented adapter capabilities |
+
+The adoption response contains its version, analysis/run identifiers, trading
+date, three-way counts, and persisted score/rank inputs with deterministic
+classification, rank delta, strengths, warnings, explanation, and existing
+human decision. Items also carry `recommendation_rank`, a deterministic
+1..N human-review order over persisted truth only (classification group, then
+GPT rank, then Quant rank, then symbol), plus the ScannerRun snapshot values
+(`previous_*`, `rvol`, `relative_strength`, `momentum`) the review screen shows.
+Items are returned already ordered by `recommendation_rank`; it is a review
+order, never a decision. It performs no write and no GPT call.
 
 ## Important requests
 
