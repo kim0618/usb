@@ -5,7 +5,7 @@ import { useState } from "react";
 import { EmptyState, ErrorState, LoadingState, MetricCard, StatusBadge } from "@/components/ui";
 import { useApi } from "@/hooks/use-api";
 import { api } from "@/lib/api";
-import { formatOrderSide, formatOrderStatus, strategyStatusDisplay, formatTradeStatus } from "@/lib/display";
+import { formatExecutionBroker, formatOrderRejectionReason, formatOrderSide, formatOrderStatus, strategyStatusDisplay, formatTradeStatus } from "@/lib/display";
 import { currency, decimal, etTime, signedDecimal } from "@/lib/format";
 import { composeTradingHistory, historySideLabel, tradingHistoryEventLabel, type TradingHistoryEventType, type TradingHistoryRow } from "@/lib/trading-history";
 import type { TradingAccount, TradingPosition } from "@/types/api";
@@ -72,13 +72,13 @@ export default function TradingPage() {
 function HistoryRows({ row, expanded, onToggle }: { row: TradingHistoryRow; expanded: boolean; onToggle: () => void }) {
   const resultTone = row.eventType === "TRADE" ? pnlTone(row.rawSource.net_pnl) : "";
   return <>
-    <tr className={historyRowTone(row)}><td>{etTime(row.timestamp)}</td><td><button type="button" className="font-bold text-foreground underline-offset-4 hover:underline focus:underline" aria-expanded={expanded} aria-controls={`${row.id}-detail`} onClick={onToggle}>{row.symbol}<span className="sr-only"> 상세 {expanded ? "접기" : "보기"}</span></button></td><td><StatusBadge value={row.eventType} label={tradingHistoryEventLabel[row.eventType]}/></td><td>{historySideLabel(row)}</td><td>{decimal(row.quantity)}</td><td>{decimal(row.price)}</td><td className={resultTone}>{row.eventType === "ORDER" ? <StatusBadge value={row.status} label={formatOrderStatus(row.status)}/> : row.result}</td></tr>
+    <tr className={historyRowTone(row)}><td>{etTime(row.timestamp)}</td><td><button type="button" className="font-bold text-foreground underline-offset-4 hover:underline focus:underline" aria-expanded={expanded} aria-controls={`${row.id}-detail`} onClick={onToggle}>{row.symbol}<span className="sr-only"> 상세 {expanded ? "접기" : "보기"}</span></button></td><td><StatusBadge value={row.eventType} label={tradingHistoryEventLabel[row.eventType]}/></td><td>{historySideLabel(row)}</td><td>{decimal(row.quantity)}</td><td>{decimal(row.price)}</td><td className={resultTone}>{row.eventType === "ORDER" ? <div><StatusBadge value={row.status} label={formatOrderStatus(row.status)}/>{row.rawSource.rejection_reason && <p className="mt-1 text-xs text-muted">{formatOrderRejectionReason(row.rawSource.rejection_reason)}</p>}</div> : row.result}</td></tr>
     {expanded && <tr id={`${row.id}-detail`}><td colSpan={7} className="bg-surface-alt p-4"><HistoryDetail row={row}/></td></tr>}
   </>;
 }
 
 function HistoryDetail({ row }: { row: TradingHistoryRow }) {
-  if (row.eventType === "ORDER") { const order = row.rawSource; return <DetailList items={[["Order ID", order.order_id], ["주문 수량", decimal(order.requested_quantity)], ["체결 수량", decimal(order.filled_quantity)], ["기준가", decimal(order.reference_price)], ["방향", formatOrderSide(order.side)], ["상태", formatOrderStatus(order.status)], ["주문 시각", etTime(order.submitted_at)], ["완료 시각", etTime(order.completed_at)]]}/>; }
+  if (row.eventType === "ORDER") { const order = row.rawSource; return <DetailList items={[["Order ID", order.order_id], ["Provider", formatExecutionBroker(order.broker_type)], ["주문 수량", decimal(order.requested_quantity)], ["체결 수량", decimal(order.filled_quantity)], ["기준가", decimal(order.reference_price)], ["방향", formatOrderSide(order.side)], ["상태", formatOrderStatus(order.status)], ["거절 사유", formatOrderRejectionReason(order.rejection_reason)], ["주문 시각", etTime(order.submitted_at)], ["완료 시각", etTime(order.completed_at)]]}/>; }
   if (row.eventType === "FILL") { const fill = row.rawSource; return <DetailList items={[["Fill ID", fill.fill_id], ["Order ID", fill.order_id], ["체결가", decimal(fill.fill_price)], ["체결 수량", decimal(fill.quantity)], ["Spread", decimal(fill.spread_cost)], ["Slippage", decimal(fill.slippage_cost)], ["수수료", decimal(fill.commission)], ["FX 비용", decimal(fill.fx_cost)], ["총비용", decimal(fill.total_cost)], ["체결 시각", etTime(fill.filled_at)]]}/>; }
   const trade = row.rawSource; return <DetailList items={[["Trade ID", trade.id], ["진입가", decimal(trade.entry)], ["청산가", decimal(trade.exit)], ["Gross PnL", signedDecimal(trade.gross_pnl)], ["Net PnL", signedDecimal(trade.net_pnl)], ["Gross R", signedDecimal(trade.gross_r, "R")], ["Net R", signedDecimal(trade.net_r, "R")], ["비용", decimal(trade.total_cost)], ["보유 기간", `${trade.holding_duration}일`], ["청산 사유", trade.exit_reason || "-"], ["상태", formatTradeStatus(trade.status)]]}/>;
 }

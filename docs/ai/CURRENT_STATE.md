@@ -12,6 +12,21 @@ Companion documents:
   Ownership, Operator DB Protection, and the Sandbox Process Rule
   (2026-09-04).
 
+Latest operator validation (2026-09-05, Stage 10B-8.3):
+
+- The controlled path reached Strategy `ENTER`, Risk `APPROVE`, and SimBroker
+  submission for the approved TSLA candidate. The persisted simulation order
+  `SIM-00000001` was rejected with `NO_NEXT_BAR`; no fill or position was
+  created.
+- The order projection now exposes `broker_type` and nullable
+  `rejection_reason`. The Trading UI renders `Simulation (SIM)`, the existing
+  rejected status, and the localized no-next-bar reason.
+- Runtime safety remains unchanged: Kiwoom is market-data-only and ordering is
+  disabled; execution uses the simulation broker. SimBroker state is still
+  process-local and is not rehydrated from persisted orders after a restart.
+- Older runtime/database counts below are audit snapshots from their stated
+  dates, not the latest operator-state totals.
+
 ---
 
 ## Project Goal

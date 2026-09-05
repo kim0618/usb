@@ -110,10 +110,25 @@ async def test_decimal_execution_serialization(api) -> None:  # type: ignore[no-
         db.add(ExecutionOrderRecord(id="O1", broker_type="SIM", symbol="AAA", side="BUY",
             requested_quantity=Decimal("2.0000"), filled_quantity=Decimal("2.0000"), status="FILLED",
             reference_price=Decimal("10.2500"), submitted_at=now, completed_at=now, execution_version="execution_v0")); db.flush()
+        db.add(ExecutionOrderRecord(id="O2", broker_type="SIM", symbol="TSLA", side="BUY",
+            requested_quantity=Decimal("166.6667"), filled_quantity=Decimal("0"), status="REJECTED",
+            rejection_reason="NO_NEXT_BAR", reference_price=Decimal("102"), submitted_at=now,
+            completed_at=None, execution_version="execution_v0")); db.flush()
         db.add(ExecutionFillRecord(id="F1", order_id="O1", quantity=Decimal("2.0000"), raw_market_price=Decimal("10"),
             fill_price=Decimal("10.2500"), spread_cost=Decimal("0.1"), slippage_cost=Decimal("0.1"),
             commission=Decimal("0.1"), fx_cost=Decimal("0"), total_cost=Decimal("0.3"), filled_at=now)); db.commit()
-    assert (await get(app, "/api/v1/trading/orders")).json()[0]["reference_price"] == "10.2500"
+    orders = {item["order_id"]: item for item in (await get(app, "/api/v1/trading/orders")).json()}
+    assert orders["O1"] == {
+        "order_id": "O1", "broker_type": "SIM", "symbol": "AAA", "side": "BUY",
+        "requested_quantity": "2.0000", "filled_quantity": "2.0000", "status": "FILLED",
+        "rejection_reason": None, "reference_price": "10.2500",
+        "submitted_at": "2026-09-01T20:00:00Z", "completed_at": "2026-09-01T20:00:00Z",
+        "execution_version": "execution_v0",
+    }
+    assert orders["O2"]["broker_type"] == "SIM"
+    assert orders["O2"]["status"] == "REJECTED"
+    assert orders["O2"]["rejection_reason"] == "NO_NEXT_BAR"
+    assert orders["O2"]["filled_quantity"] == "0"
     assert (await get(app, "/api/v1/trading/fills")).json()[0]["total_cost"] == "0.3"
 
 

@@ -18,6 +18,12 @@ export const formatOrderStatus = (value?: string | null) => display(value, {
   PENDING: "주문 대기", PARTIALLY_FILLED: "부분 체결", FILLED: "체결 완료",
   CANCELLED: "주문 취소", REJECTED: "주문 거절",
 });
+export const formatExecutionBroker = (value?: string | null) => display(value, {
+  SIM: "Simulation (SIM)",
+});
+export const formatOrderRejectionReason = (value?: string | null) => display(value, {
+  NO_NEXT_BAR: "다음 체결 가능 시세 없음",
+});
 export const formatMarketSession = (value?: string | null) => display(value, {
   PREMARKET: "프리마켓", REGULAR: "정규장", POSTMARKET: "애프터마켓", CLOSED: "거래 종료",
 });

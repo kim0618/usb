@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   formatBrokerMode, formatCapability, formatDecisionStatus, formatMarketSession,
-  formatOrderSide, formatOrderStatus, formatResolved, formatRuntimeHealth,
+  formatExecutionBroker, formatOrderRejectionReason, formatOrderSide, formatOrderStatus, formatResolved, formatRuntimeHealth,
   formatRuntimeMode, formatSeverity, formatShadowStatus, formatStrategyPhase, formatTradeStatus,
   formatConnection, formatFailureCodeDescription, strategyStatusDisplay,
   quantScoreLabel, quantScoreTone, rvolLabel, rvolTone, signedMetricTone,
@@ -20,6 +20,12 @@ describe("Korean display mappers", () => {
     expect([formatOrderSide("BUY"), formatOrderSide("SELL")]).toEqual(["매수", "매도"]);
     expect(["PENDING", "PARTIALLY_FILLED", "FILLED", "CANCELLED", "REJECTED"].map(formatOrderStatus))
       .toEqual(["주문 대기", "부분 체결", "체결 완료", "주문 취소", "주문 거절"]);
+  });
+  it("maps execution provider and rejection reason with raw fallbacks", () => {
+    expect(formatExecutionBroker("SIM")).toBe("Simulation (SIM)");
+    expect(formatOrderRejectionReason("NO_NEXT_BAR")).toBe("다음 체결 가능 시세 없음");
+    expect(formatOrderRejectionReason("UNKNOWN_REASON")).toBe("UNKNOWN_REASON");
+    expect(formatOrderRejectionReason(null)).toBe("-");
   });
   it("maps market sessions, runtime mode, health, and severity", () => {
     expect(["PREMARKET", "REGULAR", "POSTMARKET", "CLOSED"].map(formatMarketSession)).toEqual(["프리마켓", "정규장", "애프터마켓", "거래 종료"]);

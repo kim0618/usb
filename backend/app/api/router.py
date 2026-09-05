@@ -235,8 +235,9 @@ async def orders(db: DB, status: str | None = None, symbol: str | None = None, l
     if status: stmt = stmt.where(ExecutionOrderRecord.status == status.upper())
     if symbol: stmt = stmt.where(ExecutionOrderRecord.symbol == symbol.upper())
     rows = db.scalars(stmt.order_by(ExecutionOrderRecord.submitted_at.desc(), ExecutionOrderRecord.id.desc()).limit(limit))
-    return [{"order_id": r.id, "symbol": r.symbol, "side": r.side, "requested_quantity": str(r.requested_quantity),
-             "filled_quantity": str(r.filled_quantity), "status": r.status, "reference_price": str(r.reference_price),
+    return [{"order_id": r.id, "broker_type": r.broker_type, "symbol": r.symbol, "side": r.side,
+             "requested_quantity": str(r.requested_quantity), "filled_quantity": str(r.filled_quantity),
+             "status": r.status, "rejection_reason": r.rejection_reason, "reference_price": str(r.reference_price),
              "submitted_at": r.submitted_at, "completed_at": r.completed_at, "execution_version": r.execution_version} for r in rows]
 
 

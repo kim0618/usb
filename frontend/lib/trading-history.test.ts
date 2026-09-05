@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { composeTradingHistory, historySideLabel, tradingHistoryEventLabel } from "./trading-history";
 import type { Fill, Order, Trade } from "@/types/api";
 
-const order = (overrides: Partial<Order> = {}): Order => ({ order_id: "O1", symbol: "S04", side: "BUY", requested_quantity: "120", filled_quantity: "120", status: "FILLED", reference_price: "58.10", submitted_at: "2026-09-03T14:57:00Z", completed_at: "2026-09-03T14:58:00Z", execution_version: "v1", ...overrides });
+const order = (overrides: Partial<Order> = {}): Order => ({ order_id: "O1", broker_type: "SIM", symbol: "S04", side: "BUY", requested_quantity: "120", filled_quantity: "120", status: "FILLED", rejection_reason: null, reference_price: "58.10", submitted_at: "2026-09-03T14:57:00Z", completed_at: "2026-09-03T14:58:00Z", execution_version: "v1", ...overrides });
 const fill = (overrides: Partial<Fill> = {}): Fill => ({ fill_id: "F1", order_id: "O1", symbol: "S04", fill_price: "58.20", quantity: "120", spread_cost: "1", slippage_cost: "2", commission: "3", fx_cost: "0", total_cost: "6", filled_at: "2026-09-03T14:58:00Z", ...overrides });
 const trade = (overrides: Partial<Trade> = {}): Trade => ({ id: "T1", symbol: "S04", variant: "C", control: true, status: "CLOSED", entry: "56.40", exit: "58.20", gross_pnl: "222", net_pnl: "216", gross_r: "1.40", net_r: "1.34", total_cost: "6", exit_reason: "TRAILING_STOP", holding_duration: 1, ambiguous_count: 0, source: "SIMULATION", ...overrides });
 
