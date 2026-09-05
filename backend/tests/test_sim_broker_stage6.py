@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 import app.models  # noqa: F401
 from app.broker.domain import OrderStatus, RejectionReason, TradeStatus, execution_gap_bps
-from app.broker.sim import SimBroker
+from app.broker.sim import SimBroker, generate_execution_scope
 from app.core.database import Base, create_db_engine
 from app.execution.config import ExecutionConfig
 from app.execution.domain import IntentType, OrderIntent, OrderSide
@@ -107,6 +107,67 @@ def test_ambiguity_determinism_reset_and_gap_helper() -> None:
     assert execution_gap_bps(Decimal("101"), Decimal("100")) == Decimal("100")
     first.reset()
     assert first.cash == Decimal("10000") and not first.get_fills()
+
+
+def test_legacy_ids_remain_deterministic_across_brokers() -> None:
+    first, second = SimBroker("10000"), SimBroker("10000")
+    for broker in (first, second):
+        order = broker.submit_order(intent(), [bar(1, 100)])
+        assert order.id == "SIM-00000001"
+        assert broker.get_fills(order.id)[0].fill_id == "FILL-00000002"
+
+
+def test_scoped_ids_are_unique_ordered_and_reset_safe() -> None:
+    first, second = SimBroker("10000", execution_scope="scope-a"), SimBroker("10000", execution_scope="scope-b")
+    first_order = first.submit_order(intent(), [bar(1, 100)])
+    second_order = second.submit_order(intent(), [bar(1, 100)])
+    assert first_order.id == "SIM-scope-a-00000001"
+    assert first.get_fills(first_order.id)[0].fill_id == "FILL-scope-a-00000002"
+    assert second_order.id == "SIM-scope-b-00000001"
+    assert second.get_fills(second_order.id)[0].fill_id == "FILL-scope-b-00000002"
+    first.reset()
+    reset_order = first.submit_order(intent(), [bar(1, 100)])
+    assert reset_order.id == "SIM-scope-a-00000003"
+    assert first.get_fills(reset_order.id)[0].fill_id == "FILL-scope-a-00000004"
+
+
+def test_generated_execution_scopes_are_safe_and_unique() -> None:
+    first, second = generate_execution_scope(), generate_execution_scope()
+    assert first != second
+    for scope in (first, second):
+        order = SimBroker("10000", execution_scope=scope).submit_order(intent(), [bar(1, 100)])
+        assert order.id.startswith(f"SIM-{scope}-") and order.id.endswith("-00000001")
+        assert len(order.id) <= 96
+        assert not any(character.isspace() or character in "/\\?#" for character in order.id)
+
+
+def test_scoped_brokers_persist_to_the_same_database(tmp_path) -> None:
+    engine = create_db_engine(f"sqlite:///{tmp_path / 'scoped.sqlite3'}")
+    Base.metadata.create_all(engine)
+    with Session(engine) as session:
+        for scope in ("scope-a", "scope-b"):
+            broker = SimBroker("10000", execution_scope=scope)
+            order = broker.submit_order(intent(), [bar(1, 100)])
+            ExecutionRepository(session).persist_execution(order, broker.get_fills(order.id))
+        orders = tuple(session.scalars(select(ExecutionOrderRecord).order_by(ExecutionOrderRecord.id)))
+        fills = tuple(session.scalars(select(ExecutionFillRecord).order_by(ExecutionFillRecord.id)))
+        assert [order.id for order in orders] == ["SIM-scope-a-00000001", "SIM-scope-b-00000001"]
+        assert [fill.order_id for fill in fills] == ["SIM-scope-a-00000001", "SIM-scope-b-00000001"]
+    engine.dispose()
+
+
+def test_legacy_and_scoped_execution_history_coexist(tmp_path) -> None:
+    engine = create_db_engine(f"sqlite:///{tmp_path / 'mixed.sqlite3'}")
+    Base.metadata.create_all(engine)
+    with Session(engine) as session:
+        for broker in (SimBroker("10000"), SimBroker("10000", execution_scope="scope-a")):
+            order = broker.submit_order(intent(), [bar(1, 100)])
+            ExecutionRepository(session).persist_execution(order, broker.get_fills(order.id))
+        orders = set(session.scalars(select(ExecutionOrderRecord.id)))
+        fills = tuple(session.scalars(select(ExecutionFillRecord)))
+        assert orders == {"SIM-00000001", "SIM-scope-a-00000001"}
+        assert {fill.order_id for fill in fills} == orders
+    engine.dispose()
 
 
 def test_shadow_top8_fanout_control_no_trade_and_freeze_guard() -> None:

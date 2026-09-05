@@ -1,9 +1,10 @@
 """Deterministic next-bar long-only SimBroker."""
 
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from math import isfinite
+from uuid import uuid4
 
 from app.broker.contract import Broker
 from app.broker.domain import (
@@ -17,14 +18,21 @@ from app.market.symbols import normalize_symbol
 from app.risk.domain import Currency, decimal_from
 
 
+def generate_execution_scope() -> str:
+    """Return a compact, process-independent namespace for durable IDs."""
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    return f"{timestamp}-{uuid4().hex[:6]}"
+
+
 class SimBroker(Broker):
     def __init__(self, starting_cash: Decimal | str, currency: Currency = Currency.USD,
-                 config: ExecutionConfig | None = None) -> None:
+                 config: ExecutionConfig | None = None, execution_scope: str | None = None) -> None:
         self.config = config or ExecutionConfig()
         self.starting_cash = decimal_from(starting_cash)
         if self.starting_cash < 0:
             raise ValueError("starting cash cannot be negative")
         self.currency = Currency(currency)
+        self.execution_scope = execution_scope
         self.cash = self.starting_cash
         self._orders: dict[str, SimOrder] = {}
         self._fills: list[SimFill] = []
@@ -116,11 +124,17 @@ class SimBroker(Broker):
 
     def reset(self) -> None:
         self.cash = self.starting_cash
-        self._orders.clear(); self._fills.clear(); self._positions.clear(); self._trades.clear(); self._sequence = 0
+        self._orders.clear(); self._fills.clear(); self._positions.clear(); self._trades.clear()
+        if self.execution_scope is None:
+            self._sequence = 0
+
+    def _scoped_id(self, prefix: str) -> str:
+        scope = f"-{self.execution_scope}" if self.execution_scope is not None else ""
+        return f"{prefix}{scope}-{self._sequence:08d}"
 
     def _new_order(self, intent: OrderIntent) -> SimOrder:
         self._sequence += 1
-        order_id = f"SIM-{self._sequence:08d}"
+        order_id = self._scoped_id("SIM")
         order = SimOrder(order_id, intent.symbol, intent.side, intent.quantity, intent.reference_price,
                          intent.created_at, intent.market_as_of, intent.intent_type.value,
                          intent.strategy_version, self.config.version)
@@ -142,7 +156,7 @@ class SimBroker(Broker):
         commission = raw * quantity * self.config.commission_bps / bps
         fx = raw * quantity * self.config.fx_cost_bps / bps
         self._sequence += 1
-        return SimFill(f"FILL-{self._sequence:08d}", order.id, order.symbol, order.side, quantity,
+        return SimFill(self._scoped_id("FILL"), order.id, order.symbol, order.side, quantity,
                        raw, fill_price, spread, slippage, commission, fx,
                        spread + slippage + commission + fx, bar.timestamp, bar.session)
 
