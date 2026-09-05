@@ -71,4 +71,4 @@ class ShadowTradeRecord(Base):
     no_trade_reason: Mapped[str | None] = mapped_column(String(64))
     exit_reason: Mapped[str | None] = mapped_column(String(64))
     gate_reached: Mapped[str | None] = mapped_column(String(32))
-    holding_days: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    holding_days: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)

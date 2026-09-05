@@ -12,20 +12,23 @@ Companion documents:
   Ownership, Operator DB Protection, and the Sandbox Process Rule
   (2026-09-04).
 
-Latest operator validation (2026-09-05, Stage 10B-8.3):
+Latest operator validation (2026-09-05, Stage 10B-9):
 
-- The controlled path reached Strategy `ENTER`, Risk `APPROVE`, and SimBroker
-  submission for the approved TSLA candidate. The persisted simulation order
-  `SIM-00000001` was rejected with `NO_NEXT_BAR`; no fill or position was
-  created.
-- The order projection now exposes `broker_type` and nullable
-  `rejection_reason`. The Trading UI renders `Simulation (SIM)`, the existing
-  rejected status, and the localized no-next-bar reason.
-- Runtime safety remains unchanged: Kiwoom is market-data-only and ordering is
-  disabled; execution uses the simulation broker. SimBroker state is still
-  process-local and is not rehydrated from persisted orders after a restart.
-- Older runtime/database counts below are audit snapshots from their stated
-  dates, not the latest operator-state totals.
+- Stage 10B-8.5 added opt-in scoped Simulation order/fill IDs while preserving
+  legacy IDs and the existing schema. Commit `01f6bb6` (`simulation 주문 식별자
+  충돌 방지`) prevents new broker instances from colliding with persisted
+  history when the generated execution scope is used.
+- The controlled path used the persisted TSLA `APPROVE`, reached Strategy
+  `ENTER` and Risk `APPROVE`, and submitted one scoped SimBroker order. The
+  09:46 ET eligible next bar fully filled it at `102.153`; the fill and order
+  were persisted without changing the historical `SIM-00000001` rejection.
+- The runner-authoritative position held
+  `166.6666666666666666666666667` TSLA at average entry `102.153`, with cash
+  `82957.50` and initial net PnL `-42.50`. Kiwoom order requests remained zero.
+- Orders and fills are durable history. SimBroker cash, positions, open orders,
+  trades, and PnL remain process-local and are not rehydrated by the Backend.
+  Older runtime/database counts below are historical snapshots from their
+  stated dates, not the latest operator-state totals.
 
 ---
 
@@ -58,6 +61,23 @@ Kiwoom Paper/Live execution is a future stage. It does not exist in the code.
 ---
 
 ## Current Stage
+
+`Stage 10B-9 - Simulation Fill to Position Controlled Smoke / Passed`
+
+- Persisted HumanDecision: TSLA `APPROVE`; Strategy `ENTER`; Risk `APPROVE`.
+- Scoped order `SIM-20260905T145420Z-bdd295-00000001` completed `FILLED` with
+  scoped fill `FILL-20260905T145420Z-bdd295-00000002` at the first eligible
+  next-bar open plus Execution V0 costs.
+- One process-local TSLA position was created and its quantity, average entry,
+  cash, and initial trade cost were verified. Position/account projection from
+  the separate Backend process was explicitly deferred.
+- The scoped ID did not collide; exactly one order and one fill were added. The
+  full Risk quantity matched, costs were spread `17`, slippage `8.50`,
+  commission `17`, and FX `0`, and the historical rejected order was preserved.
+- No Strategy, Risk, Execution, schema, migration, API, frontend, HumanDecision,
+  or Kiwoom ordering contract changed during the smoke.
+
+Previous stage:
 
 `Stage 10B-4.2 - Adoption Rank / Market State Runtime Fix / Implemented`
 
@@ -292,6 +312,16 @@ Note that the checked-in `.env` also carries live Kiwoom credentials and
 
 ## Runtime / DB
 
+Current operator snapshot (verified read-only on 2026-09-06):
+
+- HumanDecision: 1 (`TSLA = APPROVE`); Strategy states: 0; daily Risk states: 0.
+- Execution orders: 2; execution fills: 1.
+- Historical `SIM-00000001` remains `REJECTED / NO_NEXT_BAR / filled 0`.
+- Scoped `SIM-20260905T145420Z-bdd295-00000001` is `FILLED` and is linked to
+  `FILL-20260905T145420Z-bdd295-00000002`.
+- SQLite `quick_check` is `ok`. The older table below is the original
+  2026-09-04 audit snapshot and is retained as history.
+
 Three SQLite files exist under `data/runtime/` (all git-ignored). Read-only
 inspection on 2026-09-04:
 
@@ -315,10 +345,16 @@ candidates, 800 shadow paths, 570 trades, 0 invariant violations, determinism
 and order-independence both true. It is explicitly labelled implementation
 validation only, not profitability evidence.
 
-**SimBroker state is process-local and in-memory.** `backend/app/broker/sim.py`
-keeps cash, orders, fills, positions, and trades in plain dictionaries with no
-persistence and no rehydration path. A separate API process therefore cannot see
-an account created by a CLI run. `GET /api/v1/trading` correctly answers
+**SimBroker authoritative state is process-local and in-memory.**
+`backend/app/broker/sim.py` keeps cash, orders, fills, positions, and trades in
+memory. Persisted records include ScannerRun/ScannerCandidate, GPT research,
+HumanDecision, and immutable `execution_orders`/`execution_fills` history.
+`ExecutionRepository` writes the execution history copies,
+but positions, cash, open-order state, trades, and PnL have no persistence or
+rehydration path. DB execution history alone therefore cannot authoritatively
+reconstruct current account state. A separate API process cannot see an account
+or position created by a controlled runner. It can query persisted order/fill
+history, while `GET /api/v1/trading` correctly answers
 `broker_mode: SIMULATION`, `availability: NO_ACTIVE_SIM_BROKER` with an empty
 account, except for one narrowly gated UI-review fixture (see below).
 `backend/tests/test_real_market_simulation_stage10b2.py::test_sim_broker_is_process_local`
@@ -446,20 +482,15 @@ Ordered by how much they block the next operator cycle.
 
 ## Immediate Next Work
 
-1. **Real Market Review DB runtime alignment.** Decide and implement how the API
-   process and the real scanner share one database (point `DATABASE_URL` at the
-   review DB for operator sessions, or promote the review DB to a
-   migration-managed runtime DB). Requires deciding whether the review DB gets
-   an Alembic stamp. This unblocks everything else.
-2. **Actual research import + human decision operator smoke.** With the UI on
-   the real run: copy the `top8_research_v0` prompt in `/candidates`, paste the
-   ChatGPT JSON into `/research`, approve 0-2 symbols, then re-run
-   `run_real_market_simulation --check-ready` and expect `Operator ready: YES`.
-   This is human-owned work; no agent may generate the research or the decision.
-3. **Durable simulation account / position persistence contract.** Design a
-   typed broker snapshot (cash, positions, average cost, open trades) with a
-   migration, so `/api/v1/trading` can report a real simulated account across
-   processes and restarts. Not a singleton hack.
-4. **Stage 10C continuous operator cycle.** Repeat scan -> research -> decision
-   -> REGULAR-session simulated execution on consecutive sessions, with the
-   Shadow source column added first so results stay separable.
+1. **Durable simulation account / position persistence design.** Define the
+   authoritative snapshot/event contract for cash, positions, average cost,
+   open trades, and PnL across processes and restarts. Include an explicit
+   migration-adoption plan for the real review DB before any schema change; do
+   not use a process singleton as a substitute for durability.
+2. **Backend broker ownership and rehydration.** Only after the persistence
+   contract is fixed, define which runtime composes and restores the active
+   SimBroker account.
+3. **Position/account API and UI projection.** Project the rehydrated source of
+   truth rather than inferring holdings from execution history.
+4. **Lifecycle continuation.** Validate mark-to-market before adding exit,
+   trailing, or pyramid smokes.

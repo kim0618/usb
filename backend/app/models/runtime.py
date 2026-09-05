@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, CheckConstraint, Integer, String, Text
+from sqlalchemy import Boolean, CheckConstraint, Integer, String, Text, false
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -37,7 +37,7 @@ class RuntimeFailureRecord(Base):
     message: Mapped[str] = mapped_column(Text, nullable=False)
     occurred_at: Mapped[datetime] = mapped_column(UTCDateTime(), nullable=False, index=True)
     market_as_of: Mapped[datetime | None] = mapped_column(UTCDateTime())
-    metadata_json: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
-    resolved: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, index=True)
+    metadata_json: Mapped[str] = mapped_column(Text, nullable=False, default="{}", server_default="{}")
+    resolved: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default=false(), index=True)
     resolved_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utc_now, nullable=False)
