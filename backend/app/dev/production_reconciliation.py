@@ -103,14 +103,33 @@ def load_manifest(path: Path | None) -> dict:
         raise core.GuardError('INVALID_AUTHORIZATION_MANIFEST') from error
 
 
+def procfs_lists_every_process() -> bool:
+    """Reject a procfs that can hide PIDs, so an empty scan cannot mean "hidden".
+
+    hidepid=2 removes other users' /proc/<pid> directories from the listing, which
+    would silently shrink the scan instead of raising. https://docs.kernel.org/filesystems/proc.html
+    """
+    for line in (PROC_ROOT / 'mounts').read_text().splitlines():
+        fields = line.split()
+        if len(fields) >= 4 and fields[1] == '/proc' and fields[2] == 'proc':
+            return not any(option.startswith('hidepid=') and option[len('hidepid='):] not in ('0', 'off')
+                           for option in fields[3].split(','))
+    return False  # No procfs mount entry: enumeration cannot be trusted.
+
+
 def runtime_status() -> dict:
-    """Read Linux listener/process truth; never output process command lines."""
+    """Read Linux listener/process truth; never output process command lines.
+
+    Only this process's own namespace links are read. PID 1's link adds nothing -
+    being in the initial PID namespace already makes /proc enumeration host-wide -
+    and it is root-owned, so requiring it would fail closed for every non-root
+    operator on an ordinary host.
+    """
     try:
         visible = all(str((PROC_ROOT / relative).readlink()) == expected for relative, expected in [
-            ('1/ns/pid', f'pid:[{INITIAL_PID_NAMESPACE}]'),
             ('self/ns/pid', f'pid:[{INITIAL_PID_NAMESPACE}]'),
             ('self/ns/net', f'net:[{INITIAL_NET_NAMESPACE}]'),
-        ])
+        ]) and procfs_lists_every_process()
         listening = False
         for name in ['tcp', 'tcp6']:
             for line in (PROC_ROOT / 'net' / name).read_text().splitlines()[1:]:

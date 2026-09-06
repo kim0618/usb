@@ -270,35 +270,133 @@ def test_parser_preflight_and_apply_exclusion(authorized, monkeypatch, capsys):
     assert error.value.code == 2
 
 
+PORT_8000_LINE = '0: 0100007F:1F40 00000000:0000 0A 0:0 0:0 0 1000 0 1\n'
+
+
+def fake_proc(root, *, pid_ns=None, net_ns=None, port_8000=False, process=None,
+              options='rw,nosuid,nodev,noexec,noatime'):
+    """Build a /proc tree the runtime checker can read, defaulting to a quiet host."""
+    (root / '1').mkdir()
+    (root / '1/cmdline').write_bytes(b'/sbin/init\0')
+    (root / 'self/ns').mkdir(parents=True)
+    (root / 'self/ns/pid').symlink_to(f'pid:[{pid_ns or prod.INITIAL_PID_NAMESPACE}]')
+    (root / 'self/ns/net').symlink_to(f'net:[{net_ns or prod.INITIAL_NET_NAMESPACE}]')
+    (root / 'mounts').write_text(f'proc /proc proc {options} 0 0\n')
+    (root / 'net').mkdir()
+    (root / 'net/tcp').write_text('header\n' + (PORT_8000_LINE if port_8000 else ''))
+    (root / 'net/tcp6').write_text('header\n')
+    if process is not None:
+        (root / '123').mkdir()
+        (root / '123/cmdline').write_bytes(process)
+    return root
+
+
 @pytest.mark.parametrize('kind,active,visible', [
     ('stopped', False, True), ('port', True, True), ('uvicorn', True, True),
     ('gunicorn', True, True), ('frontend', False, True), ('container', False, False),
-    ('systemd_container', False, False), ('network_namespace', False, False),
+    ('network_namespace', False, False),
 ])
 def test_linux_runtime_checker(tmp_path, monkeypatch, kind, active, visible):
-    (tmp_path / '1').mkdir()
-    (tmp_path / '1/comm').write_text('codex' if kind == 'container' else 'systemd')
-    (tmp_path / '1/cmdline').write_bytes(b'/sbin/init\0')
-    (tmp_path / '1/ns').mkdir()
-    (tmp_path / 'self/ns').mkdir(parents=True)
-    pid_namespace = 999 if kind in {'container', 'systemd_container'} else prod.INITIAL_PID_NAMESPACE
-    net_namespace = 999 if kind == 'network_namespace' else prod.INITIAL_NET_NAMESPACE
-    (tmp_path / '1/ns/pid').symlink_to(f'pid:[{pid_namespace}]')
-    (tmp_path / 'self/ns/pid').symlink_to(f'pid:[{pid_namespace}]')
-    (tmp_path / 'self/ns/net').symlink_to(f'net:[{net_namespace}]')
-    (tmp_path / 'net').mkdir()
-    line = '0: 0100007F:1F40 00000000:0000 0A 0:0 0:0 0 1000 0 1\n' if kind == 'port' else ''
-    (tmp_path / 'net/tcp').write_text('header\n' + line)
-    (tmp_path / 'net/tcp6').write_text('header\n')
-    if kind in {'uvicorn', 'gunicorn', 'frontend'}:
-        (tmp_path / '123').mkdir()
-        cmd = {'uvicorn': b'python\0-m\0uvicorn\0app.main:app\0',
-               'gunicorn': b'gunicorn\0app.main:app\0', 'frontend': b'node\0vite\0'}[kind]
-        (tmp_path / '123/cmdline').write_bytes(cmd)
-    monkeypatch.setattr(prod, 'PROC_ROOT', tmp_path)
+    process = {'uvicorn': b'python\0-m\0uvicorn\0app.main:app\0',
+               'gunicorn': b'gunicorn\0app.main:app\0', 'frontend': b'node\0vite\0'}.get(kind)
+    root = fake_proc(tmp_path, pid_ns=999 if kind == 'container' else None,
+                     net_ns=999 if kind == 'network_namespace' else None,
+                     port_8000=kind == 'port', process=process)
+    monkeypatch.setattr(prod, 'PROC_ROOT', root)
     result = prod.runtime_status()
     assert bool(result['listener_8000'] or result['backend_pids']) == active
     assert result['host_visibility'] == visible
+
+
+def test_pid1_namespace_link_is_not_read(tmp_path, monkeypatch):
+    """PID 1 is root-owned, so requiring its link fails closed for a non-root operator.
+
+    Being in the initial PID namespace already makes /proc enumeration host-wide.
+    """
+    root = fake_proc(tmp_path)
+    (root / '1/ns').mkdir()
+    (root / '1/ns/pid').symlink_to('pid:[999]')  # Deliberately not the initial namespace.
+    (root / '1/ns').chmod(0o000)  # And unreadable, exactly as on a real host.
+    monkeypatch.setattr(prod, 'PROC_ROOT', root)
+    try:
+        assert prod.runtime_status()['host_visibility'] is True
+    finally:
+        (root / '1/ns').chmod(0o755)
+
+
+@pytest.mark.parametrize('link', ['self/ns/pid', 'self/ns/net'])
+@pytest.mark.parametrize('failure', ['missing', 'not_a_symlink', 'unreadable_parent'])
+def test_namespace_read_failure_fails_closed(tmp_path, monkeypatch, link, failure):
+    if failure == 'unreadable_parent' and os.geteuid() == 0:
+        pytest.skip('root bypasses directory permissions')
+    root = fake_proc(tmp_path)
+    if failure == 'unreadable_parent':
+        (root / 'self/ns').chmod(0o000)
+    else:
+        (root / link).unlink()
+        if failure == 'not_a_symlink':
+            (root / link).mkdir()
+    monkeypatch.setattr(prod, 'PROC_ROOT', root)
+    try:
+        with pytest.raises(core.GuardError, match='RUNTIME_VISIBILITY_UNVERIFIED'):
+            prod.runtime_status()
+    finally:
+        (root / 'self/ns').chmod(0o755)
+
+
+@pytest.mark.parametrize('link,target', [
+    ('self/ns/pid', 'pid:[]'), ('self/ns/pid', 'pid:[abc]'),
+    ('self/ns/pid', f'net:[{prod.INITIAL_NET_NAMESPACE}]'), ('self/ns/net', 'net:[abc]'),
+    ('self/ns/net', f'pid:[{prod.INITIAL_PID_NAMESPACE}]'),
+])
+def test_malformed_namespace_is_not_visible(tmp_path, monkeypatch, link, target):
+    root = fake_proc(tmp_path)
+    (root / link).unlink()
+    (root / link).symlink_to(target)
+    monkeypatch.setattr(prod, 'PROC_ROOT', root)
+    assert prod.runtime_status()['host_visibility'] is False
+    with pytest.raises(core.GuardError, match='RUNTIME_VISIBILITY_UNVERIFIED'):
+        prod.require_backend_stopped({})
+
+
+@pytest.mark.parametrize('options,trusted', [
+    ('rw,nosuid,nodev,noexec,noatime', True), ('rw,hidepid=0', True), ('rw,hidepid=off', True),
+    ('rw,hidepid=1', False), ('rw,hidepid=2', False), ('rw,hidepid=invisible', False),
+])
+def test_hidepid_procfs_is_not_trusted(tmp_path, monkeypatch, options, trusted):
+    """An empty scan under hidepid would mean "hidden", not "no backend"."""
+    monkeypatch.setattr(prod, 'PROC_ROOT', fake_proc(tmp_path, options=options))
+    assert prod.runtime_status()['host_visibility'] is trusted
+
+
+@pytest.mark.parametrize('mounts', ['', 'sysfs /sys sysfs rw 0 0\n', 'proc /proc proc\n'])
+def test_unidentifiable_procfs_mount_fails_closed(tmp_path, monkeypatch, mounts):
+    root = fake_proc(tmp_path)
+    (root / 'mounts').write_text(mounts)
+    monkeypatch.setattr(prod, 'PROC_ROOT', root)
+    assert prod.runtime_status()['host_visibility'] is False
+
+
+def test_missing_mounts_fails_closed(tmp_path, monkeypatch):
+    root = fake_proc(tmp_path)
+    (root / 'mounts').unlink()
+    monkeypatch.setattr(prod, 'PROC_ROOT', root)
+    with pytest.raises(core.GuardError, match='RUNTIME_VISIBILITY_UNVERIFIED'):
+        prod.runtime_status()
+
+
+def test_unreadable_process_entry_fails_closed(tmp_path, monkeypatch):
+    """A process the scan cannot read must not be silently counted as absent."""
+    if os.geteuid() == 0:
+        pytest.skip('root bypasses file permissions')
+    root = fake_proc(tmp_path, process=b'python\0-m\0uvicorn\0app.main:app\0')
+    (root / '123/cmdline').chmod(0o000)
+    monkeypatch.setattr(prod, 'PROC_ROOT', root)
+    try:
+        with pytest.raises(core.GuardError, match='RUNTIME_VISIBILITY_UNVERIFIED'):
+            prod.runtime_status()
+    finally:
+        (root / '123/cmdline').chmod(0o644)
 
 
 def test_missing_proc_is_not_assumed_stopped(tmp_path, monkeypatch):
