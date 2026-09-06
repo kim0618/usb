@@ -6,95 +6,19 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-import re
 
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import Connection, Engine, create_engine, inspect, text
+from sqlalchemy import Connection, Engine, create_engine, text
 from sqlalchemy.orm import Session
 from pytest import MonkeyPatch
 
 import app.models  # noqa: F401  # Register every application table.
 from app.core.config import PROJECT_ROOT, get_settings
 from app.core.database import Base
+from app.dev.schema_fingerprint import schema_fingerprint as _schema_fingerprint
 from app.models.execution import ShadowTradeRecord
 from app.models.runtime import RuntimeFailureRecord
-
-
-def _normalize_default(value: str | None) -> str | None:
-    if value is None:
-        return None
-    normalized = value.strip()
-    while normalized.startswith("(") and normalized.endswith(")"):
-        normalized = normalized[1:-1].strip()
-    if normalized.casefold() == "false":
-        return "0"
-    if normalized in {"'0'", '"0"'}:
-        return "0"
-    if normalized in {"'{}'", '"{}"'}:
-        return "{}"
-    return normalized
-
-
-def _normalize_sql(value: str) -> str:
-    return re.sub(r"\s+", " ", value.strip()).casefold()
-
-
-def _schema_fingerprint(engine: Engine) -> dict[str, object]:
-    inspector = inspect(engine)
-    tables = sorted(name for name in inspector.get_table_names() if name != "alembic_version")
-    return {
-        "tables": tables,
-        "columns": {
-            table: {
-                column["name"]: (
-                    str(column["type"]).casefold(),
-                    column["nullable"],
-                    _normalize_default(column["default"]),
-                    bool(column.get("primary_key")),
-                )
-                for column in inspector.get_columns(table)
-            }
-            for table in tables
-        },
-        "primary_keys": {
-            table: tuple(sorted(inspector.get_pk_constraint(table).get("constrained_columns") or ()))
-            for table in tables
-        },
-        "foreign_keys": {
-            table: sorted(
-                (
-                    tuple(foreign_key["constrained_columns"]),
-                    foreign_key["referred_table"],
-                    tuple(foreign_key["referred_columns"]),
-                    tuple(sorted((foreign_key.get("options") or {}).items())),
-                )
-                for foreign_key in inspector.get_foreign_keys(table)
-            )
-            for table in tables
-        },
-        "unique_constraints": {
-            table: sorted(
-                tuple(sorted(constraint["column_names"]))
-                for constraint in inspector.get_unique_constraints(table)
-            )
-            for table in tables
-        },
-        "indexes": {
-            table: sorted(
-                (index["name"], tuple(index["column_names"]), index["unique"])
-                for index in inspector.get_indexes(table)
-            )
-            for table in tables
-        },
-        "check_constraints": {
-            table: sorted(
-                (constraint["name"], _normalize_sql(constraint["sqltext"]))
-                for constraint in inspector.get_check_constraints(table)
-            )
-            for table in tables
-        },
-    }
 
 
 def _runtime_failure_values() -> dict[str, object]:
