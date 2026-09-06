@@ -1,4 +1,4 @@
-"""Keep declarative metadata aligned with the immutable Alembic 0008 schema."""
+"""Keep declarative metadata aligned with the Alembic head schema."""
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ from pathlib import Path
 
 from alembic import command
 from alembic.config import Config
+from alembic.script import ScriptDirectory
 from sqlalchemy import Connection, Engine, create_engine, text
 from sqlalchemy.orm import Session
 from pytest import MonkeyPatch
@@ -80,7 +81,7 @@ def _assert_omitted_server_defaults(connection: Connection) -> None:
 @contextmanager
 def _isolated_schema_engines(tmp_path: Path, monkeypatch: MonkeyPatch) -> Iterator[tuple[Engine, Engine]]:
     create_all_path = tmp_path / "create-all.sqlite3"
-    migration_path = tmp_path / "migration-0008.sqlite3"
+    migration_path = tmp_path / "migration-head.sqlite3"
     assert create_all_path.parent == tmp_path and migration_path.parent == tmp_path
 
     create_all_engine = create_engine(f"sqlite:///{create_all_path}")
@@ -90,7 +91,7 @@ def _isolated_schema_engines(tmp_path: Path, monkeypatch: MonkeyPatch) -> Iterat
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{migration_path}")
     get_settings.cache_clear()
     config = Config(PROJECT_ROOT / "alembic.ini")
-    command.upgrade(config, "20260901_0008")
+    command.upgrade(config, "head")
     migration_engine = create_engine(f"sqlite:///{migration_path}")
     try:
         yield create_all_engine, migration_engine
@@ -100,7 +101,7 @@ def _isolated_schema_engines(tmp_path: Path, monkeypatch: MonkeyPatch) -> Iterat
         get_settings.cache_clear()
 
 
-def test_create_all_schema_matches_alembic_0008(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
+def test_create_all_schema_matches_alembic_head(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
     with _isolated_schema_engines(tmp_path, monkeypatch) as (create_all_engine, migration_engine):
         assert _schema_fingerprint(create_all_engine) == _schema_fingerprint(migration_engine)
         with create_all_engine.begin() as connection:
@@ -126,3 +127,8 @@ def test_orm_python_defaults_are_preserved(tmp_path: Path) -> None:
             assert shadow.holding_days == 0
     finally:
         engine.dispose()
+
+
+def test_migration_chain_has_a_single_head() -> None:
+    heads = ScriptDirectory.from_config(Config(PROJECT_ROOT / "alembic.ini")).get_heads()
+    assert len(heads) == 1
