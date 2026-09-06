@@ -179,7 +179,10 @@ def test_wrong_target_before_any_connection(legacy, tmp_path, monkeypatch, alias
     assert legacy.read_bytes() == raw
 
 
-def test_actual_operator_guard_without_opening(monkeypatch):
+def test_official_operator_guard_without_opening(monkeypatch, tmp_path):
+    operator = tmp_path / 'official.sqlite3'
+    operator.touch()
+    monkeypatch.setattr(tool, 'OPERATOR', operator)
     monkeypatch.setattr(tool, 'connect', lambda *a, **k: pytest.fail('operator must not open'))
     with pytest.raises(tool.GuardError, match='PRODUCTION_TARGET_FORBIDDEN'):
         tool.reconcile(tool.OPERATOR, apply=True)

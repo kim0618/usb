@@ -2,7 +2,7 @@
 
 Usage: python -m app.dev.reconcile_schema /tmp/.../operator-clone.sqlite3 [--apply]
 The reference is always built from immutable migrations, never supplied by callers.
-Production apply is deliberately unavailable in this stage. Run with exclusive
+Production apply requires the separate authorization/preflight contract. Run with exclusive
 ownership of the clone directory; concurrent path replacement is not supported.
 """
 from __future__ import annotations
@@ -269,6 +269,40 @@ def rebuild(connection: sqlite3.Connection, reference: sqlite3.Connection, table
         connection.execute(sql)
 
 
+def check_preconditions(connection: sqlite3.Connection, desired: dict, report: dict) -> dict:
+    report['integrity_before'] = integrity(connection)
+    report['alembic_version_exists'] = versioned(connection)
+    require(not report['alembic_version_exists'], 'ALREADY_VERSIONED_OR_UNEXPECTED_DB')
+    current = fingerprint(connection)
+    report['fingerprint_before'] = digest(current)
+    report['fingerprint_reference'] = digest(desired)
+    require(not any(t + '__reconcile_new' in current['tables'] for t in AFFECTED),
+            'REPLACEMENT_TABLE_EXISTS')
+    require(current == expected_pre(desired), 'PRECONDITION_SCHEMA_MISMATCH')
+    report['known_missing_defaults'] = MISSING_DEFAULTS
+    before = row_state(connection)
+    report['business_before'] = before
+    require(all(before['counts'][t] == 0 for t in AFFECTED), 'AFFECTED_TABLE_NOT_EMPTY')
+    # DROP with FK ON cannot cause incoming CASCADE/SET NULL writes.
+    require(not any(fk[1] in AFFECTED for fks in current['foreign_keys'].values()
+                    for fk in fks), 'INCOMING_FK_UNSUPPORTED')
+    return before
+
+
+def apply_reconciliation(connection: sqlite3.Connection, reference: sqlite3.Connection,
+                         before: dict, desired: dict, report: dict) -> None:
+    """Caller owns BEGIN IMMEDIATE and commits only after every check succeeds."""
+    for table in AFFECTED:
+        rebuild(connection, reference, table)
+    after = fingerprint(connection)
+    require(after == desired, 'RECONCILIATION_FINGERPRINT_MISMATCH')
+    require(not versioned(connection), 'UNEXPECTED_VERSION_CREATED')
+    require(row_state(connection) == before, 'BUSINESS_STATE_CHANGED')
+    report['fingerprint_after'] = digest(after)
+    report['application_schema_differences_after'] = 0
+    report['integrity_after'] = integrity(connection)
+
+
 def reconcile(target: Path, *, apply: bool = False) -> dict:
     report = {'target': str(target.resolve()), 'mode': 'apply' if apply else 'dry-run',
               'file_exists': target.is_file(), 'affected_tables': AFFECTED}
@@ -282,32 +316,9 @@ def reconcile(target: Path, *, apply: bool = False) -> dict:
             with connect(target, write=apply) as connection:
                 connection.execute('BEGIN IMMEDIATE' if apply else 'BEGIN')
                 try:
-                    report['integrity_before'] = integrity(connection)
-                    report['alembic_version_exists'] = versioned(connection)
-                    require(not report['alembic_version_exists'], 'ALREADY_VERSIONED_OR_UNEXPECTED_DB')
-                    current = fingerprint(connection)
-                    report['fingerprint_before'] = digest(current)
-                    report['fingerprint_reference'] = digest(desired)
-                    require(not any(t + '__reconcile_new' in current['tables'] for t in AFFECTED),
-                            'REPLACEMENT_TABLE_EXISTS')
-                    require(current == expected_pre(desired), 'PRECONDITION_SCHEMA_MISMATCH')
-                    report['known_missing_defaults'] = MISSING_DEFAULTS
-                    before = row_state(connection)
-                    report['business_before'] = before
-                    require(all(before['counts'][t] == 0 for t in AFFECTED), 'AFFECTED_TABLE_NOT_EMPTY')
-                    # DROP with FK ON cannot cause incoming CASCADE/SET NULL writes.
-                    require(not any(fk[1] in AFFECTED for fks in current['foreign_keys'].values()
-                                    for fk in fks), 'INCOMING_FK_UNSUPPORTED')
+                    before = check_preconditions(connection, desired, report)
                     if apply:
-                        for table in AFFECTED:
-                            rebuild(connection, reference, table)
-                        after = fingerprint(connection)
-                        require(after == desired, 'RECONCILIATION_FINGERPRINT_MISMATCH')
-                        require(not versioned(connection), 'UNEXPECTED_VERSION_CREATED')
-                        require(row_state(connection) == before, 'BUSINESS_STATE_CHANGED')
-                        report['fingerprint_after'] = digest(after)
-                        report['application_schema_differences_after'] = 0
-                        report['integrity_after'] = integrity(connection)
+                        apply_reconciliation(connection, reference, before, desired, report)
                         connection.commit()
                     else:
                         connection.rollback()
@@ -323,10 +334,24 @@ def reconcile(target: Path, *, apply: bool = False) -> dict:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('target', type=Path)
-    parser.add_argument('--apply', action='store_true')
+    modes = parser.add_mutually_exclusive_group()
+    modes.add_argument('--apply', action='store_true')
+    modes.add_argument('--preflight-production', action='store_true')
+    parser.add_argument('--allow-production-target', action='store_true')
+    parser.add_argument('--authorization-manifest', type=Path)
+    parser.add_argument('--confirm')
     args = parser.parse_args()
     try:
-        report = reconcile(args.target, apply=args.apply)
+        production_requested = (args.preflight_production or args.allow_production_target
+                                or args.authorization_manifest is not None or args.confirm is not None)
+        if production_requested:
+            from app.dev.production_reconciliation import production_reconcile
+            report = production_reconcile(
+                args.target, apply=args.apply, preflight=args.preflight_production,
+                allow_production=args.allow_production_target,
+                manifest_path=args.authorization_manifest, confirmation=args.confirm)
+        else:
+            report = reconcile(args.target, apply=args.apply)
     except GuardError as error:
         print(json.dumps(error.report, sort_keys=True))
         return 2
@@ -338,4 +363,7 @@ def main() -> int:
 
 
 if __name__ == '__main__':
-    raise SystemExit(main())
+    # Use the canonical module so the production module shares this GuardError
+    # class even when Python starts us as __main__ via -m.
+    from app.dev.reconcile_schema import main as entrypoint
+    raise SystemExit(entrypoint())
