@@ -1,6 +1,7 @@
 """Deterministic next-bar long-only SimBroker."""
 
 from collections.abc import Sequence
+from copy import deepcopy
 from datetime import datetime, timezone
 from decimal import Decimal
 from math import isfinite
@@ -121,6 +122,23 @@ class SimBroker(Broker):
                 raise ValueError("mark prices must be positive")
             value += position.quantity * mark
         return SimAccount(self.cash, self.cash + value, self.currency, as_of)
+
+    def state_snapshot(self) -> dict[str, object]:
+        """Copy business state so a failed durable write can be undone.
+
+        The ID sequence is deliberately excluded: rewinding it would let a retry
+        reuse an order/fill ID that a previous attempt may already have emitted.
+        """
+        return {"cash": self.cash, "orders": deepcopy(self._orders), "fills": list(self._fills),
+                "positions": deepcopy(self._positions), "trades": deepcopy(self._trades)}
+
+    def restore_state(self, snapshot: dict[str, object]) -> None:
+        """Return to a snapshot; _sequence keeps moving forward, so IDs stay unique."""
+        self.cash = snapshot["cash"]
+        self._orders = deepcopy(snapshot["orders"])
+        self._fills = list(snapshot["fills"])
+        self._positions = deepcopy(snapshot["positions"])
+        self._trades = deepcopy(snapshot["trades"])
 
     def reset(self) -> None:
         self.cash = self.starting_cash

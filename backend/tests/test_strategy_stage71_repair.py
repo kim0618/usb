@@ -231,6 +231,7 @@ def test_t13_ambiguity_reaches_shadow_trade_record(tmp_path):
     with Session(db) as session:
         ExecutionRepository(session).persist_execution(order, broker.get_fills(order.id), trade,
             ShadowResult("ABC", ShadowVariant.C, status=ShadowStatus.CLOSED, holding_days=2))
+        session.commit()  # The repository flushes; the caller owns the transaction.
     with Session(db) as session:
         row = session.scalar(select(ShadowTradeRecord))
         assert row.ambiguous_bar_count == 2
