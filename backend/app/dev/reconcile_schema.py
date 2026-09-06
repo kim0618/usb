@@ -338,17 +338,22 @@ def main() -> int:
     modes.add_argument('--apply', action='store_true')
     modes.add_argument('--preflight-production', action='store_true')
     parser.add_argument('--allow-production-target', action='store_true')
+    parser.add_argument('--maintenance-window-confirmed', action='store_true',
+                        help='Confirm backend and all other operator DB writers are stopped '
+                             'for the controlled maintenance window')
     parser.add_argument('--authorization-manifest', type=Path)
     parser.add_argument('--confirm')
     args = parser.parse_args()
     try:
         production_requested = (args.preflight_production or args.allow_production_target
+                                or args.maintenance_window_confirmed
                                 or args.authorization_manifest is not None or args.confirm is not None)
         if production_requested:
             from app.dev.production_reconciliation import production_reconcile
             report = production_reconcile(
                 args.target, apply=args.apply, preflight=args.preflight_production,
                 allow_production=args.allow_production_target,
+                maintenance_window_confirmed=args.maintenance_window_confirmed,
                 manifest_path=args.authorization_manifest, confirmation=args.confirm)
         else:
             report = reconcile(args.target, apply=args.apply)

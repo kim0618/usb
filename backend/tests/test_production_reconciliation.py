@@ -41,13 +41,14 @@ def authorized(legacy, tmp_path, monkeypatch):
     monkeypatch.setattr(prod, 'settings_truth', lambda: ('real_market_operator', legacy))
     monkeypatch.setattr(prod, 'git_truth', lambda: ('a' * 40, True))
     monkeypatch.setattr(prod, 'runtime_status', lambda: {
-        'listener_8000': False, 'backend_pids': [], 'host_visibility': True})
+        'listener_8000': False})
     return legacy, path, manifest
 
 
 def run(authorized, *, apply=False, **overrides):
     target, path, _ = authorized
     kwargs = dict(apply=apply, preflight=not apply, allow_production=True,
+                  maintenance_window_confirmed=True,
                   manifest_path=path, confirmation=prod.CONFIRMATION if apply else None)
     kwargs.update(overrides)
     return prod.production_reconcile(target, **kwargs)
@@ -135,16 +136,12 @@ def test_manifest_tampering_rejected(authorized, mutation, code, apply):
 
 @pytest.mark.parametrize('kind,code', [
     ('dirty', 'DIRTY_WORKING_TREE'), ('backend_port', 'BACKEND_ACTIVE'),
-    ('backend_process', 'BACKEND_ACTIVE'), ('visibility', 'RUNTIME_VISIBILITY_UNVERIFIED'),
     ('profile', 'RUNTIME_PROFILE_MISMATCH'), ('profile_path', 'RUNTIME_PROFILE_MISMATCH'),
 ])
 def test_environment_guards(authorized, monkeypatch, kind, code):
     if kind == 'dirty': monkeypatch.setattr(prod, 'git_truth', lambda: ('a' * 40, False))
-    if kind.startswith('backend') or kind == 'visibility':
-        monkeypatch.setattr(prod, 'runtime_status', lambda: {
-            'listener_8000': kind == 'backend_port',
-            'backend_pids': [123] if kind == 'backend_process' else [],
-            'host_visibility': kind != 'visibility'})
+    if kind == 'backend_port':
+        monkeypatch.setattr(prod, 'runtime_status', lambda: {'listener_8000': True})
     if kind.startswith('profile'):
         monkeypatch.setattr(prod, 'settings_truth', lambda: (
             'default' if kind == 'profile' else 'real_market_operator',
@@ -199,7 +196,8 @@ def test_exact_official_path(authorized, kind):
     if kind == 'symlink': requested.symlink_to(target)
     if kind == 'hardlink': requested.hardlink_to(target)
     with pytest.raises(core.GuardError, match='WRONG_OPERATOR_PATH'):
-        prod.production_reconcile(requested, preflight=True, allow_production=True, manifest_path=manifest_path)
+        prod.production_reconcile(requested, preflight=True, allow_production=True,
+                                  maintenance_window_confirmed=True, manifest_path=manifest_path)
 
 
 def test_preflight_pass_is_not_reused_by_apply(authorized):
@@ -262,7 +260,8 @@ def test_preflight_wal_preserves_data_with_only_shm_reader_marks(authorized):
 
 def test_parser_preflight_and_apply_exclusion(authorized, monkeypatch, capsys):
     monkeypatch.setattr('sys.argv', ['reconcile_schema', str(authorized[0]), '--preflight-production',
-                                  '--allow-production-target', '--authorization-manifest', str(authorized[1])])
+                                  '--allow-production-target', '--maintenance-window-confirmed',
+                                  '--authorization-manifest', str(authorized[1])])
     assert core.main() == 0
     assert json.loads(capsys.readouterr().out)['status'].endswith('PREFLIGHT_PASS')
     monkeypatch.setattr('sys.argv', ['reconcile_schema', str(authorized[0]), '--preflight-production', '--apply'])
@@ -273,136 +272,74 @@ def test_parser_preflight_and_apply_exclusion(authorized, monkeypatch, capsys):
 PORT_8000_LINE = '0: 0100007F:1F40 00000000:0000 0A 0:0 0:0 0 1000 0 1\n'
 
 
-def fake_proc(root, *, pid_ns=None, net_ns=None, port_8000=False, process=None,
-              options='rw,nosuid,nodev,noexec,noatime'):
-    """Build a /proc tree the runtime checker can read, defaulting to a quiet host."""
-    (root / '1').mkdir()
-    (root / '1/cmdline').write_bytes(b'/sbin/init\0')
-    (root / 'self/ns').mkdir(parents=True)
-    (root / 'self/ns/pid').symlink_to(f'pid:[{pid_ns or prod.INITIAL_PID_NAMESPACE}]')
-    (root / 'self/ns/net').symlink_to(f'net:[{net_ns or prod.INITIAL_NET_NAMESPACE}]')
-    (root / 'mounts').write_text(f'proc /proc proc {options} 0 0\n')
-    (root / 'net').mkdir()
-    (root / 'net/tcp').write_text('header\n' + (PORT_8000_LINE if port_8000 else ''))
-    (root / 'net/tcp6').write_text('header\n')
-    if process is not None:
-        (root / '123').mkdir()
-        (root / '123/cmdline').write_bytes(process)
-    return root
-
-
-@pytest.mark.parametrize('kind,active,visible', [
-    ('stopped', False, True), ('port', True, True), ('uvicorn', True, True),
-    ('gunicorn', True, True), ('frontend', False, True), ('container', False, False),
-    ('network_namespace', False, False),
+@pytest.mark.parametrize('table,port,active', [
+    ('tcp', 8000, True), ('tcp6', 8000, True),
+    ('tcp', 3000, False), ('tcp6', 3000, False), ('tcp', None, False),
 ])
-def test_linux_runtime_checker(tmp_path, monkeypatch, kind, active, visible):
-    process = {'uvicorn': b'python\0-m\0uvicorn\0app.main:app\0',
-               'gunicorn': b'gunicorn\0app.main:app\0', 'frontend': b'node\0vite\0'}.get(kind)
-    root = fake_proc(tmp_path, pid_ns=999 if kind == 'container' else None,
-                     net_ns=999 if kind == 'network_namespace' else None,
-                     port_8000=kind == 'port', process=process)
-    monkeypatch.setattr(prod, 'PROC_ROOT', root)
-    result = prod.runtime_status()
-    assert bool(result['listener_8000'] or result['backend_pids']) == active
-    assert result['host_visibility'] == visible
-
-
-def test_pid1_namespace_link_is_not_read(tmp_path, monkeypatch):
-    """PID 1 is root-owned, so requiring its link fails closed for a non-root operator.
-
-    Being in the initial PID namespace already makes /proc enumeration host-wide.
-    """
-    root = fake_proc(tmp_path)
-    (root / '1/ns').mkdir()
-    (root / '1/ns/pid').symlink_to('pid:[999]')  # Deliberately not the initial namespace.
-    (root / '1/ns').chmod(0o000)  # And unreadable, exactly as on a real host.
-    monkeypatch.setattr(prod, 'PROC_ROOT', root)
-    try:
-        assert prod.runtime_status()['host_visibility'] is True
-    finally:
-        (root / '1/ns').chmod(0o755)
-
-
-@pytest.mark.parametrize('link', ['self/ns/pid', 'self/ns/net'])
-@pytest.mark.parametrize('failure', ['missing', 'not_a_symlink', 'unreadable_parent'])
-def test_namespace_read_failure_fails_closed(tmp_path, monkeypatch, link, failure):
-    if failure == 'unreadable_parent' and os.geteuid() == 0:
-        pytest.skip('root bypasses directory permissions')
-    root = fake_proc(tmp_path)
-    if failure == 'unreadable_parent':
-        (root / 'self/ns').chmod(0o000)
+def test_listener_without_process_visibility(tmp_path, monkeypatch, table, port, active):
+    # Namespace links, mounts and PID directories are absent and not required.
+    (tmp_path / 'net').mkdir()
+    for name in ['tcp', 'tcp6']:
+        line = PORT_8000_LINE.replace('1F40', f'{port:04X}') if port and name == table else ''
+        (tmp_path / 'net' / name).write_text('header\n' + line)
+    monkeypatch.setattr(prod, 'PROC_ROOT', tmp_path)
+    assert prod.runtime_status() == {'listener_8000': active}
+    if active:
+        with pytest.raises(core.GuardError, match='BACKEND_ACTIVE'):
+            prod.require_backend_stopped({})
     else:
-        (root / link).unlink()
-        if failure == 'not_a_symlink':
-            (root / link).mkdir()
-    monkeypatch.setattr(prod, 'PROC_ROOT', root)
-    try:
-        with pytest.raises(core.GuardError, match='RUNTIME_VISIBILITY_UNVERIFIED'):
-            prod.runtime_status()
-    finally:
-        (root / 'self/ns').chmod(0o755)
+        assert prod.require_backend_stopped({}) == {'listener_8000': False}
 
 
-@pytest.mark.parametrize('link,target', [
-    ('self/ns/pid', 'pid:[]'), ('self/ns/pid', 'pid:[abc]'),
-    ('self/ns/pid', f'net:[{prod.INITIAL_NET_NAMESPACE}]'), ('self/ns/net', 'net:[abc]'),
-    ('self/ns/net', f'pid:[{prod.INITIAL_PID_NAMESPACE}]'),
-])
-def test_malformed_namespace_is_not_visible(tmp_path, monkeypatch, link, target):
-    root = fake_proc(tmp_path)
-    (root / link).unlink()
-    (root / link).symlink_to(target)
-    monkeypatch.setattr(prod, 'PROC_ROOT', root)
-    assert prod.runtime_status()['host_visibility'] is False
+@pytest.mark.parametrize('failure', ['missing', 'malformed'])
+def test_listener_observation_failure_fails_closed(tmp_path, monkeypatch, failure):
+    (tmp_path / 'net').mkdir()
+    (tmp_path / 'net/tcp').write_text('header\n')
+    if failure == 'malformed':
+        (tmp_path / 'net/tcp6').write_text('header\ninvalid\n')
+    monkeypatch.setattr(prod, 'PROC_ROOT', tmp_path)
     with pytest.raises(core.GuardError, match='RUNTIME_VISIBILITY_UNVERIFIED'):
         prod.require_backend_stopped({})
 
 
-@pytest.mark.parametrize('options,trusted', [
-    ('rw,nosuid,nodev,noexec,noatime', True), ('rw,hidepid=0', True), ('rw,hidepid=off', True),
-    ('rw,hidepid=1', False), ('rw,hidepid=2', False), ('rw,hidepid=invisible', False),
-])
-def test_hidepid_procfs_is_not_trusted(tmp_path, monkeypatch, options, trusted):
-    """An empty scan under hidepid would mean "hidden", not "no backend"."""
-    monkeypatch.setattr(prod, 'PROC_ROOT', fake_proc(tmp_path, options=options))
-    assert prod.runtime_status()['host_visibility'] is trusted
+@pytest.mark.parametrize('apply', [False, True])
+def test_maintenance_acknowledgement_required(authorized, monkeypatch, apply):
+    raw = authorized[0].read_bytes()
+    monkeypatch.setattr(prod, 'authorized_connection',
+                        lambda *a, **k: pytest.fail('must reject before connection'))
+    with pytest.raises(core.GuardError, match='MAINTENANCE_WINDOW_CONFIRMATION_REQUIRED'):
+        run(authorized, apply=apply, maintenance_window_confirmed=False)
+    assert authorized[0].read_bytes() == raw
 
 
-@pytest.mark.parametrize('mounts', ['', 'sysfs /sys sysfs rw 0 0\n', 'proc /proc proc\n'])
-def test_unidentifiable_procfs_mount_fails_closed(tmp_path, monkeypatch, mounts):
-    root = fake_proc(tmp_path)
-    (root / 'mounts').write_text(mounts)
-    monkeypatch.setattr(prod, 'PROC_ROOT', root)
-    assert prod.runtime_status()['host_visibility'] is False
+def test_lock_failure_has_no_mutation(authorized, monkeypatch):
+    target = authorized[0]
+    before, raw = state(target), target.read_bytes()
+    monkeypatch.setattr(core, 'apply_reconciliation',
+                        lambda *a, **k: pytest.fail('must not rebuild without lock'))
+    with sqlite3.connect(target) as writer:
+        writer.execute('BEGIN IMMEDIATE')
+        with pytest.raises(core.GuardError, match='PRODUCTION_PREFLIGHT_IO_FAILED') as error:
+            run(authorized, apply=True)
+        assert isinstance(error.value.__cause__, sqlite3.OperationalError)
+        assert 'locked' in str(error.value.__cause__)
+        writer.rollback()
+    assert state(target) == before and target.read_bytes() == raw
 
 
-def test_missing_mounts_fails_closed(tmp_path, monkeypatch):
-    root = fake_proc(tmp_path)
-    (root / 'mounts').unlink()
-    monkeypatch.setattr(prod, 'PROC_ROOT', root)
-    with pytest.raises(core.GuardError, match='RUNTIME_VISIBILITY_UNVERIFIED'):
-        prod.runtime_status()
+def test_production_postcondition_failure_rolls_back(authorized, monkeypatch):
+    before, raw = state(authorized[0]), authorized[0].read_bytes()
+    original = core.rebuild
 
+    def broken(connection, reference, table):
+        original(connection, reference, table)
+        if table == 'shadow_trades':
+            connection.execute('DROP INDEX ix_shadow_trades_symbol')
 
-def test_unreadable_process_entry_fails_closed(tmp_path, monkeypatch):
-    """A process the scan cannot read must not be silently counted as absent."""
-    if os.geteuid() == 0:
-        pytest.skip('root bypasses file permissions')
-    root = fake_proc(tmp_path, process=b'python\0-m\0uvicorn\0app.main:app\0')
-    (root / '123/cmdline').chmod(0o000)
-    monkeypatch.setattr(prod, 'PROC_ROOT', root)
-    try:
-        with pytest.raises(core.GuardError, match='RUNTIME_VISIBILITY_UNVERIFIED'):
-            prod.runtime_status()
-    finally:
-        (root / '123/cmdline').chmod(0o644)
-
-
-def test_missing_proc_is_not_assumed_stopped(tmp_path, monkeypatch):
-    monkeypatch.setattr(prod, 'PROC_ROOT', tmp_path)
-    with pytest.raises(core.GuardError, match='RUNTIME_VISIBILITY_UNVERIFIED'):
-        prod.runtime_status()
+    monkeypatch.setattr(core, 'rebuild', broken)
+    with pytest.raises(core.GuardError, match='RECONCILIATION_FINGERPRINT_MISMATCH'):
+        run(authorized, apply=True)
+    assert state(authorized[0]) == before and authorized[0].read_bytes() == raw
 
 
 @pytest.mark.parametrize('kind', ['duplicate', 'unknown', 'missing', 'malformed', 'short_revision'])
@@ -468,7 +405,7 @@ def test_environment_and_backup_are_rechecked_under_lock(authorized, monkeypatch
         if write:
             if kind == 'backend':
                 monkeypatch.setattr(prod, 'runtime_status', lambda: {
-                    'listener_8000': True, 'backend_pids': [], 'host_visibility': True})
+                    'listener_8000': True})
             if kind == 'git': monkeypatch.setattr(prod, 'git_truth', lambda: ('a' * 40, False))
             if kind == 'backup':
                 with sqlite3.connect(authorized[2]['backup_path']) as backup:
@@ -494,3 +431,29 @@ def test_module_cli_guard_failure_is_structured_json(tmp_path):
     assert result.returncode == 2
     assert json.loads(result.stdout)['status'] == 'PRODUCTION_AUTHORIZATION_REQUIRED'
     assert result.stderr == ''
+
+
+@pytest.mark.parametrize('apply', [False, True])
+@pytest.mark.parametrize('acknowledged', [False, True])
+def test_cli_maintenance_contract(authorized, monkeypatch, capsys, apply, acknowledged):
+    argv = ['reconcile_schema', str(authorized[0]),
+            '--apply' if apply else '--preflight-production',
+            '--allow-production-target', '--authorization-manifest', str(authorized[1])]
+    if apply:
+        argv += ['--confirm', prod.CONFIRMATION]
+    if acknowledged:
+        argv += ['--maintenance-window-confirmed']
+    monkeypatch.setattr('sys.argv', argv)
+    assert core.main() == (0 if acknowledged else 2)
+    status = json.loads(capsys.readouterr().out)['status']
+    assert status == (('PRODUCTION_RECONCILIATION_APPLIED' if apply
+                       else 'PRODUCTION_RECONCILIATION_PREFLIGHT_PASS') if acknowledged
+                      else 'MAINTENANCE_WINDOW_CONFIRMATION_REQUIRED')
+
+
+def test_maintenance_flag_alone_cannot_route_to_temp_reconciliation(authorized, monkeypatch, capsys):
+    monkeypatch.setattr('sys.argv', ['reconcile_schema', str(authorized[0]),
+                                  '--maintenance-window-confirmed'])
+    monkeypatch.setattr(core, 'reconcile', lambda *a, **k: pytest.fail('production routing required'))
+    assert core.main() == 2
+    assert json.loads(capsys.readouterr().out)['status'] == 'PRODUCTION_AUTHORIZATION_REQUIRED'

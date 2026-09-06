@@ -5,8 +5,10 @@ source business state, historical IDs and a separately created standalone backup
 It is an operator instruction, not a credential/signature. Keep it and the backup
 outside the repository in a private directory. Stop all writers before backup,
 preflight and immediate apply; keep them stopped through post-apply inspection.
-Runtime visibility must cover the host. Containers without host PID visibility
-fail closed. Process checks cannot stop a writer from starting later; SQLite's
+Explicit maintenance acknowledgement and a clear port 8000 are required.
+Host namespace/process visibility is not proven. An unmanaged writer without
+port 8000 can start after acknowledgement: an operational risk proposed only
+for this one-off adoption tool, not general migration policy. SQLite's
 BEGIN IMMEDIATE protects DB revalidation/rebuild, not filesystem path replacement.
 Exclusive directory ownership and no other writer are operational requirements.
 """
@@ -34,10 +36,6 @@ FIELDS = {'database_path', 'expected_git_revision', 'expected_row_hash', 'backup
           'expected_backup_sha256', 'expected_counts', 'expected_revision_state',
           'historical_orders', 'historical_fills'}
 PROC_ROOT = Path('/proc')
-# Linux initial namespace inode IDs (include/uapi/linux/nsfs.h).
-# https://github.com/torvalds/linux/blob/master/include/uapi/linux/nsfs.h
-INITIAL_PID_NAMESPACE = 0xEFFFFFFC
-INITIAL_NET_NAMESPACE = 0xEFFFFFF9
 
 
 def regular_path(path: Path, code: str) -> Path:
@@ -103,53 +101,20 @@ def load_manifest(path: Path | None) -> dict:
         raise core.GuardError('INVALID_AUTHORIZATION_MANIFEST') from error
 
 
-def procfs_lists_every_process() -> bool:
-    """Reject a procfs that can hide PIDs, so an empty scan cannot mean "hidden".
-
-    hidepid=2 removes other users' /proc/<pid> directories from the listing, which
-    would silently shrink the scan instead of raising. https://docs.kernel.org/filesystems/proc.html
-    """
-    for line in (PROC_ROOT / 'mounts').read_text().splitlines():
-        fields = line.split()
-        if len(fields) >= 4 and fields[1] == '/proc' and fields[2] == 'proc':
-            return not any(option.startswith('hidepid=') and option[len('hidepid='):] not in ('0', 'off')
-                           for option in fields[3].split(','))
-    return False  # No procfs mount entry: enumeration cannot be trusted.
-
-
 def runtime_status() -> dict:
-    """Read Linux listener/process truth; never output process command lines.
+    """Observe IPv4/IPv6 listeners in this maintenance process's network context.
 
-    Only this process's own namespace links are read. PID 1's link adds nothing -
-    being in the initial PID namespace already makes /proc enumeration host-wide -
-    and it is root-owned, so requiring it would fail closed for every non-root
-    operator on an ordinary host.
+    TCP tables do not prove host visibility or absence of every DB writer.
+    No namespace links, process listings or procfs mount options are inspected.
     """
     try:
-        visible = all(str((PROC_ROOT / relative).readlink()) == expected for relative, expected in [
-            ('self/ns/pid', f'pid:[{INITIAL_PID_NAMESPACE}]'),
-            ('self/ns/net', f'net:[{INITIAL_NET_NAMESPACE}]'),
-        ]) and procfs_lists_every_process()
         listening = False
         for name in ['tcp', 'tcp6']:
             for line in (PROC_ROOT / 'net' / name).read_text().splitlines()[1:]:
                 fields = line.split()
                 if fields[3] == '0A' and int(fields[1].split(':')[1], 16) == 8000:
                     listening = True
-        pids = []
-        for directory in PROC_ROOT.iterdir():
-            if not directory.name.isdigit():
-                continue
-            try:
-                args = (directory / 'cmdline').read_bytes().split(b'\0')
-            except FileNotFoundError:
-                continue  # Process exited during observation.
-            # Conservative: any uvicorn process, or gunicorn serving USB's app.
-            words = [a.decode(errors='replace') for a in args]
-            if any(Path(w).name in {'uvicorn', 'uvicorn.exe'} for w in words) or (
-                    any('gunicorn' in w for w in words) and any('app.main' in w for w in words)):
-                pids.append(int(directory.name))
-        return {'listener_8000': listening, 'backend_pids': sorted(pids), 'host_visibility': visible}
+        return {'listener_8000': listening}
     except (OSError, ValueError, IndexError) as error:
         raise core.GuardError('RUNTIME_VISIBILITY_UNVERIFIED') from error
 
@@ -157,8 +122,7 @@ def runtime_status() -> dict:
 def require_backend_stopped(report: dict) -> dict:
     status = runtime_status()
     report['runtime'] = status
-    core.require(not status['listener_8000'] and not status['backend_pids'], 'BACKEND_ACTIVE')
-    core.require(status['host_visibility'], 'RUNTIME_VISIBILITY_UNVERIFIED')
+    core.require(not status['listener_8000'], 'BACKEND_ACTIVE')
     return status
 
 
@@ -239,7 +203,7 @@ def authorized_connection(target: Path, *, write: bool) -> Iterator[sqlite3.Conn
     target = regular_path(target, 'WRONG_OPERATOR_PATH')
     core.require(target == core.OPERATOR.resolve(), 'WRONG_OPERATOR_PATH')
     connection = sqlite3.connect(target.as_uri() + ('?mode=rw' if write else '?mode=ro'),
-                                 uri=True, isolation_level=None, timeout=5)
+                                 uri=True, isolation_level=None, timeout=0)
     try:
         connection.execute('PRAGMA foreign_keys=ON')
         if not write:
@@ -251,11 +215,14 @@ def authorized_connection(target: Path, *, write: bool) -> Iterator[sqlite3.Conn
 
 def production_reconcile(target: Path, *, apply: bool = False, preflight: bool = False,
                          allow_production: bool = False, manifest_path: Path | None = None,
-                         confirmation: str | None = None) -> dict:
+                         confirmation: str | None = None,
+                         maintenance_window_confirmed: bool = False) -> dict:
     report = {'target': str(target), 'mode': 'production-apply' if apply else 'production-preflight'}
     try:
         core.require(allow_production, 'PRODUCTION_AUTHORIZATION_REQUIRED')
         core.require(apply != preflight, 'EXPLICIT_PRODUCTION_MODE_REQUIRED')
+        core.require(maintenance_window_confirmed, 'MAINTENANCE_WINDOW_CONFIRMATION_REQUIRED')
+        report['maintenance_window_confirmed'] = True
         if apply:
             core.require(confirmation == CONFIRMATION, 'CONFIRMATION_REQUIRED')
         manifest = load_manifest(manifest_path)
