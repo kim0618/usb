@@ -14,6 +14,7 @@ from app.api.router import router as api_router
 from app.core.config import get_settings
 from app.core.exceptions import ResearchError, USBError
 from app.core.logging import configure_logging
+from app.services.simulation_runtime import clear_active_sim_broker
 
 
 settings = get_settings()
@@ -27,8 +28,11 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     if settings.market_data_provider == "kiwoom":
         logger.warning("KIWOOM: %s MARKET DATA / ORDERING DISABLED", settings.kiwoom_env.upper())
         logger.warning("BROKER: SIMULATION")
-    yield
-    logger.info("Application stopping")
+    try:
+        yield
+    finally:
+        clear_active_sim_broker()
+        logger.info("Application stopping")
 
 
 def error_response(status: int, code: str, message: str, details: object | None = None) -> JSONResponse:

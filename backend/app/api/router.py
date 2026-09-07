@@ -10,6 +10,8 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.api.simulation import broker_projection, position_projection
+from app.services.simulation_runtime import get_active_sim_broker
 from app.api.schemas import HumanDecisionRequest, KillSwitchRequest, ReasonRequest, RecoveryRequest, ResearchImportRequest
 from app.api.service import APIQueryService, decimal_string
 from app.core.config import Settings, get_settings
@@ -215,6 +217,10 @@ def ui_review_mock_account() -> dict[str, Any] | None:
 @router.get("/trading", tags=["Trading"])
 async def trading(db: DB) -> dict[str, Any]:
     states = list(db.scalars(select(StrategyStateRecord).order_by(StrategyStateRecord.updated_at.desc(), StrategyStateRecord.id.desc())))
+    broker = get_active_sim_broker()
+    if broker is not None:
+        return {"broker_mode": "SIMULATION", "availability": "AVAILABLE", **broker_projection(broker),
+                "strategy_states": [strategy_dict(row) for row in states]}
     mock = ui_review_mock_account()
     if mock is not None:
         return {"broker_mode": "SIMULATION", "availability": "SIMULATED_UI_REVIEW", **mock,
@@ -225,6 +231,9 @@ async def trading(db: DB) -> dict[str, Any]:
 
 @router.get("/trading/positions/{symbol}", tags=["Trading"])
 async def position(symbol: str, db: DB) -> dict[str, Any]:
+    broker = get_active_sim_broker()
+    if broker is not None:
+        return position_projection(broker, require(broker.get_position(symbol), "Active position is unavailable"))
     row = db.scalar(select(StrategyStateRecord).where(StrategyStateRecord.symbol == symbol.upper(), StrategyStateRecord.book == "ACTUAL").order_by(StrategyStateRecord.updated_at.desc()).limit(1))
     return strategy_dict(require(row, "Active position is unavailable"))
 
