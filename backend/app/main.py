@@ -16,6 +16,9 @@ from app.core.exceptions import ResearchError, USBError
 from app.core.logging import configure_logging
 from app.execution.config import ExecutionConfig
 from app.market import factory as market_factory
+from app.services.end_of_day_runtime import (
+    start_end_of_day_runtime, stop_end_of_day_runtime,
+)
 from app.services.position_management_runtime import (
     start_position_management_runtime, stop_position_management_runtime,
 )
@@ -52,17 +55,27 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
                 lambda: market_factory.build_kiwoom_provider(current),
             )
             start_position_management_runtime(runtime, provider_factory)
+            # The closing review is a second cadence over the same broker, not a
+            # second control loop: it starts after the minute driver so a process
+            # that cannot manage a stop never begins deciding overnight carries.
+            start_end_of_day_runtime(runtime, provider_factory)
         yield
     finally:
         # Ownership is released without saving; every durable figure was already
         # committed by the execution transaction that produced it. It is released
         # whatever the cadence owner did, because a task that failed to stop
         # cleanly must not leave the process holding a broker nobody can replace.
+        # Stopped in the order that keeps the narrower owner alive longest: the
+        # closing review may have signalled an exit the minute driver still has to
+        # retry, so it is the one asked to stop first.
         try:
-            await stop_position_management_runtime()
+            await stop_end_of_day_runtime()
         finally:
-            clear_active_sim_broker()
-            logger.info("Application stopping")
+            try:
+                await stop_position_management_runtime()
+            finally:
+                clear_active_sim_broker()
+                logger.info("Application stopping")
 
 
 def error_response(status: int, code: str, message: str, details: object | None = None) -> JSONResponse:

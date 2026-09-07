@@ -271,7 +271,14 @@ class StrategyLifecycleRunner:
     def apply_overnight_risk(self, *, state: StrategyState, decision: StrategyDecision,
                              account: AccountSnapshot, portfolio: PortfolioSnapshot,
                              position: PositionSnapshot, market_bars: tuple[MinuteBar, ...],
-                             created_at: datetime) -> LifecycleExecution:
+                             created_at: datetime,
+                             on_state: Callable[[Session, StrategyState], None] | None = None) -> LifecycleExecution:
+        """Size a carry the risk engine has to approve; it holds, trims, or leaves.
+
+        ``on_state`` joins the phase a reduction produces - OVERNIGHT_HELD, or the
+        still-pending review a rejection leaves - to the fill's own transaction, so
+        a sold quantity and the state that describes it can never disagree.
+        """
         review = state if state.phase is StrategyPhase.OVERNIGHT_REVIEW else state.transition(StrategyPhase.OVERNIGHT_REVIEW)
         outcome = self.risk.evaluate_overnight_notional(
             account=account, portfolio=portfolio,
@@ -281,17 +288,34 @@ class StrategyLifecycleRunner:
         if outcome.action is OvernightAction.EXIT_ALL:
             exit_decision = replace(decision, decision=DecisionType.EXIT)
             return self.execute_exit(state=review, decision=exit_decision, position=position,
-                                     market_bars=market_bars, created_at=created_at)
+                                     market_bars=market_bars, created_at=created_at, on_state=on_state)
         reduction_quantity = outcome.reduce_notional / position.current_price
         exit_decision = replace(decision, decision=DecisionType.EXIT, reason_code="OVERNIGHT_REDUCTION")
         intent = self.risk.build_exit_intent(decision=exit_decision, position=position,
                                              quantity=reduction_quantity, created_at=created_at)
-        order = self._submit(intent, market_bars, created_at=created_at)
+        # A reduction is a sell like every other sell this runner submits, so it
+        # settles inside the signal's own regular session. Handing the broker the
+        # raw tape would let an overnight trim fill on a premarket or postmarket
+        # print that no other exit is allowed to use.
+        fill_bars = self.session_policy.regular_fill_bars(market_bars, as_of=exit_decision.market_as_of)
+        settled: list[StrategyState] = []
+        order = self._submit(intent, fill_bars, created_at=created_at,
+                             on_persist=self._settler(review, self._reduction_state, settled, on_state))
+        return LifecycleExecution(settled[0] if settled else self._reduction_state(review, order),
+                                  None, order)
+
+    def _reduction_state(self, state: StrategyState, order: SimOrder) -> StrategyState:
+        """A filled reduction closes the review; an unfilled one leaves it pending.
+
+        The review phase is the whole retry contract: it says the carry was already
+        decided and only its size is still settling, so a later bar re-sizes the
+        same reduction instead of reviewing the position a second time.
+        """
         fills = self.broker.get_fills(order.id)
         if not fills:
-            return LifecycleExecution(review, None, order)
-        return LifecycleExecution(review.transition(StrategyPhase.OVERNIGHT_HELD, overnight=True,
-                                  last_market_as_of=fills[-1].filled_at), None, order)
+            return state
+        return state.transition(StrategyPhase.OVERNIGHT_HELD, overnight=True,
+                                last_market_as_of=fills[-1].filled_at)
 
     def activate_day2(self, state: StrategyState, *, as_of: datetime) -> StrategyState:
         if state.entry_trading_date is None:

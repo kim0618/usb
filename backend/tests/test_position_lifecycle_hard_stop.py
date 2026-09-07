@@ -606,6 +606,7 @@ def open_session(monkeypatch):
     lifespan test asserts nothing on a holiday and reaches the network on a
     trading afternoon. Fixing the clock is what makes the assertion honest.
     """
+    import app.services.end_of_day_runtime as eod_module
     import app.services.position_management_runtime as owner_module
     now = datetime.now(timezone.utc)
 
@@ -615,6 +616,11 @@ def open_session(monkeypatch):
                                         now + timedelta(hours=1), False)
 
     monkeypatch.setattr(owner_module, "MarketCalendar", AlwaysOpen)
+    # The closing-review owner starts beside the minute driver, so it is pinned to
+    # the same window. Its review moment then sits an hour ahead of this clock,
+    # which keeps these assertions about the minute driver alone - and keeps them
+    # from depending on whether the suite happens to run near a real XNYS close.
+    monkeypatch.setattr(eod_module, "MarketCalendar", AlwaysOpen)
 
 
 @pytest.mark.asyncio
