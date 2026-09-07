@@ -85,14 +85,15 @@ def load_manifest(path: Path | None) -> dict:
                      'INVALID_AUTHORIZATION_MANIFEST')
         core.require(manifest['expected_revision_state'] == PRE_STATE, 'INVALID_REVISION_STATE')
         orders, fills = manifest['historical_orders'], manifest['historical_fills']
+        # Exact durable snapshots may be empty; no sample history/status is required.
+        # validate_business compares every contract field against the source by ID.
         core.require(isinstance(orders, list) and len(orders) == counts['execution_orders']
-                     and len(orders) >= 2 and all(isinstance(r, list) and len(r) == 3
+                     and all(isinstance(r, list) and len(r) == 3
                      and all(isinstance(v, str) for v in r[:2]) and (r[2] is None or isinstance(r[2], str))
                      for r in orders), 'INVALID_HISTORICAL_EVIDENCE')
-        core.require({'REJECTED', 'FILLED'} <= {r[1] for r in orders}
-                     and len({r[0] for r in orders}) == len(orders), 'INVALID_HISTORICAL_EVIDENCE')
+        core.require(len({r[0] for r in orders}) == len(orders), 'INVALID_HISTORICAL_EVIDENCE')
         core.require(isinstance(fills, list) and len(fills) == counts['execution_fills']
-                     and len(fills) >= 1 and all(isinstance(r, list) and len(r) == 2
+                     and all(isinstance(r, list) and len(r) == 2
                      and all(isinstance(v, str) for v in r) for r in fills), 'INVALID_HISTORICAL_EVIDENCE')
         core.require(len({r[0] for r in fills}) == len(fills)
                      and all(r[1] in {o[0] for o in orders} for r in fills), 'INVALID_HISTORICAL_EVIDENCE')

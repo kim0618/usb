@@ -15,13 +15,24 @@ from tests.test_schema_reconciliation import legacy, reference, state  # noqa: F
 
 
 @pytest.fixture
-def authorized(legacy, tmp_path, monkeypatch):
+def authorized(legacy, tmp_path, monkeypatch, request):
     with sqlite3.connect(legacy) as connection:
+        connection.execute('PRAGMA foreign_keys=ON')
         connection.execute("INSERT INTO execution_orders "
                            "(id,broker_type,symbol,side,requested_quantity,filled_quantity,status,"
                            "rejection_reason,reference_price,submitted_at,execution_version) "
                            "VALUES ('rejected-order','SIM','TEST','BUY','1','0','REJECTED',"
                            "'NO_NEXT_BAR','10','2026-09-06','v1')")
+        history = getattr(request, 'param', 'existing')
+        if history in {'empty', 'single'}:
+            connection.execute('DELETE FROM execution_fills')
+            connection.execute('DELETE FROM execution_orders')
+            if history == 'single':
+                connection.execute("INSERT INTO execution_orders "
+                                   "(id,broker_type,symbol,side,requested_quantity,filled_quantity,status,"
+                                   "reference_price,submitted_at,execution_version) "
+                                   "VALUES ('pending-order','SIM','TEST','BUY','1','0','PENDING',"
+                                   "'10','2026-09-06','v1')")
     backup = tmp_path / 'backup.sqlite3'
     with core.connect(legacy) as source, sqlite3.connect(backup) as destination:
         source.backup(destination)
@@ -56,6 +67,104 @@ def run(authorized, *, apply=False, **overrides):
 
 def persist(authorized):
     authorized[1].write_text(json.dumps(authorized[2]))
+
+
+@pytest.mark.parametrize('authorized', ['empty', 'single', 'existing'], indirect=True)
+def test_exact_history_preflight_read_only(authorized, monkeypatch):
+    manifest = authorized[2]
+    assert len(manifest) == 9
+    assert len(manifest['historical_orders']) == manifest['expected_counts']['execution_orders']
+    assert len(manifest['historical_fills']) == manifest['expected_counts']['execution_fills']
+    # Exercise canonical ordering, including the existing REJECTED/FILLED shape.
+    manifest['historical_orders'].reverse()
+    manifest['historical_fills'].reverse()
+    persist(authorized)
+    test_preflight_read_only_without_confirmation(authorized, monkeypatch)
+
+
+@pytest.mark.parametrize('authorized', ['single', 'empty'], indirect=True)
+def test_missing_or_extra_order_rejected(authorized):
+    manifest = authorized[2]
+    manifest['historical_orders'] = ([] if manifest['historical_orders'] else
+                                     [['fake-order', 'PENDING', None]])
+    # Make the manifest internally consistent; actual source counts must still reject it.
+    manifest['expected_counts']['execution_orders'] = len(manifest['historical_orders'])
+    persist(authorized)
+    before = state(authorized[0])
+    with pytest.raises(core.GuardError, match='^CRITICAL_COUNT_MISMATCH$'):
+        run(authorized)
+    assert state(authorized[0]) == before
+
+
+@pytest.mark.parametrize('field,value', [(0, 'fake-order'), (1, 'PENDING'), (2, 'CHANGED')])
+def test_order_contract_field_mutation_rejected(authorized, field, value):
+    # Mutate the unfilled order so the manifest remains referentially valid.
+    order = next(r for r in authorized[2]['historical_orders'] if r[0] == 'rejected-order')
+    order[field] = value
+    persist(authorized)
+    with pytest.raises(core.GuardError, match='^HISTORICAL_EVIDENCE_MISMATCH$'):
+        run(authorized)
+
+
+@pytest.mark.parametrize('mutation,code', [
+    ('missing', 'CRITICAL_COUNT_MISMATCH'), ('extra', 'CRITICAL_COUNT_MISMATCH'),
+    ('id', 'HISTORICAL_EVIDENCE_MISMATCH'),
+    ('other_parent', 'HISTORICAL_EVIDENCE_MISMATCH'),
+    ('missing_parent', 'INVALID_HISTORICAL_EVIDENCE'),
+])
+def test_fill_history_tampering_rejected(authorized, mutation, code):
+    manifest = authorized[2]
+    fills = manifest['historical_fills']
+    if mutation == 'missing': fills.clear()
+    if mutation == 'extra': fills.append(['fake-fill', fills[0][1]])
+    if mutation == 'id': fills[0][0] = 'fake-fill'
+    if mutation == 'other_parent': fills[0][1] = 'rejected-order'
+    if mutation == 'missing_parent': fills[0][1] = 'missing-order'
+    manifest['expected_counts']['execution_fills'] = len(fills)
+    persist(authorized)
+    before = state(authorized[0])
+    with pytest.raises(core.GuardError, match=f'^{code}$'):
+        run(authorized)
+    assert state(authorized[0]) == before
+
+
+@pytest.mark.parametrize('authorized', ['empty', 'existing'], indirect=True)
+@pytest.mark.parametrize('table', ['execution_orders', 'execution_fills'])
+def test_history_count_cross_check_rejected(authorized, table):
+    authorized[2]['expected_counts'][table] += 1
+    persist(authorized)
+    with pytest.raises(core.GuardError, match='^INVALID_HISTORICAL_EVIDENCE$'):
+        prod.load_manifest(authorized[1])
+
+
+@pytest.mark.parametrize('history', ['historical_orders', 'historical_fills'])
+def test_duplicate_history_ids_rejected(authorized, history):
+    manifest = authorized[2]
+    manifest[history].append(manifest[history][0].copy())
+    table = 'execution_orders' if history == 'historical_orders' else 'execution_fills'
+    manifest['expected_counts'][table] += 1
+    persist(authorized)
+    with pytest.raises(core.GuardError, match='^INVALID_HISTORICAL_EVIDENCE$'):
+        prod.load_manifest(authorized[1])
+
+
+def test_stale_history_rejected_even_with_current_hash(authorized):
+    with sqlite3.connect(authorized[0]) as connection:
+        connection.execute("UPDATE execution_orders SET rejection_reason='CHANGED' "
+                           "WHERE id='rejected-order'")
+        authorized[2]['expected_row_hash'] = core.row_state(connection)['row_hash']
+    persist(authorized)
+    with pytest.raises(core.GuardError, match='^HISTORICAL_EVIDENCE_MISMATCH$'):
+        run(authorized)
+
+
+def test_actual_orphan_fill_rejected(authorized):
+    with sqlite3.connect(authorized[0]) as connection:
+        connection.execute("UPDATE execution_fills SET order_id='missing-order'")
+    before = authorized[0].read_bytes()
+    with pytest.raises(core.GuardError, match='^INTEGRITY_FAILED$'):
+        run(authorized)
+    assert authorized[0].read_bytes() == before
 
 
 def test_preflight_read_only_without_confirmation(authorized, monkeypatch):
