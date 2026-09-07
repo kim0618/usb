@@ -7,7 +7,8 @@ row; this module never re-derives a fill price or a PnL, because a test that
 recomputes the formula only proves the formula equals itself.
 """
 
-from datetime import date, datetime, timedelta
+import asyncio
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
@@ -19,6 +20,10 @@ from app.broker.domain import OrderStatus, RejectionReason, TradeStatus
 from app.core import database
 from app.core.config import get_settings
 from app.execution.config import ExecutionConfig
+from app.integrations.kiwoom.client import KiwoomMarketDataClient
+from app.main import create_app
+from app.market import factory as market_factory
+from app.market.calendar import MarketCalendar, TradingSessionWindow
 from app.market.domain import MarketSession, MinuteBar
 from app.models.execution import ExecutionFillRecord, ExecutionOrderRecord
 from app.models.simulation import SimulationPositionRecord, SimulationTradeRecord
@@ -27,6 +32,9 @@ from app.repositories.strategy import StrategyStateRepository
 from app.risk.domain import AccountSnapshot, Currency, DailyTradingState, PortfolioSnapshot
 from app.services.position_lifecycle import (
     ACTUAL_VARIANT, PositionAction, PositionLifecycleService, strategy_state_sink,
+)
+from app.services.position_management_runtime import (
+    PositionManagementRuntime, get_position_management_runtime,
 )
 from app.services.simulation_runtime import (
     activate_operator_simulation_runtime, clear_active_sim_broker, get_active_sim_broker,
@@ -547,3 +555,128 @@ def test_durable_state_persistence_requires_a_durable_runtime(factory) -> None:
     runner = StrategyLifecycleRunner(SimBroker(CASH))
     with pytest.raises(RuntimeError, match="durable runtime"):
         runner._submit(object(), (), created_at=SIGNAL_AT, on_persist=lambda session, order: None)
+
+
+@pytest.mark.asyncio
+async def test_background_owner_automatically_retries_and_closes(factory) -> None:
+    """No direct lifecycle call: cadence ticks carry the durable position to exit."""
+    runtime = activate()
+    enter(runtime, factory)
+    submissions = count_submissions(runtime.broker)
+
+    class SequencedProvider:
+        bars = session_bars(
+            bar(STOP_BAR_AT, open_=100.0, high=100.2, low=98.9, close=99.2),
+        )
+
+        def get_minute_bars(self, symbols, start=None, end=None, session=None):
+            return [item for item in self.bars if end is None or item.timestamp <= end]
+
+    provider = SequencedProvider()
+    owner = PositionManagementRuntime(runtime, lambda: provider, clock=lambda: STOP_AS_OF)
+
+    first = await owner.run_once(as_of=STOP_AS_OF)
+    assert first[0].action is PositionAction.EXIT_UNFILLED
+    assert first[0].order.rejection_reason is RejectionReason.NO_NEXT_BAR
+    assert stored_state(factory).phase is StrategyPhase.EXIT_SIGNALLED
+    assert runtime.broker.get_position(SYMBOL) is not None
+
+    provider.bars += (bar(EXIT_FILL_AT, open_=EXIT_OPEN, high=99.0, low=98.5, close=98.9),)
+    second = await owner.run_once(as_of=EXIT_FILL_AT + timedelta(minutes=1))
+    assert second[0].action is PositionAction.EXIT_FILLED
+    # The retry kept the 10:01 signal time, so the first bar after it settles the
+    # exit; a re-dated signal would have skipped past this bar entirely.
+    assert second[0].order.filled_at == EXIT_FILL_AT
+    assert runtime.broker.get_position(SYMBOL) is None
+    assert stored_state(factory).phase is StrategyPhase.EXITED
+    assert len(submissions) == 2  # one rejected SELL, one filled SELL
+    with factory() as session:
+        assert counts(session) == {"orders": 3, "fills": 2, "positions": 0, "trades": 1}
+
+    # Repeated ticks discover no position and cannot duplicate the sell.
+    assert await owner.run_once(as_of=EXIT_FILL_AT + timedelta(minutes=2)) == ()
+    assert len(submissions) == 2
+
+
+@pytest.fixture
+def open_session(monkeypatch):
+    """Open the cadence gate for the owner alone; every other caller keeps XNYS.
+
+    The startup cadence only ticks inside a regular session, so without this a
+    lifespan test asserts nothing on a holiday and reaches the network on a
+    trading afternoon. Fixing the clock is what makes the assertion honest.
+    """
+    import app.services.position_management_runtime as owner_module
+    now = datetime.now(timezone.utc)
+
+    class AlwaysOpen(MarketCalendar):
+        def session(self, day):
+            return TradingSessionWindow(day, now - timedelta(hours=1),
+                                        now + timedelta(hours=1), False)
+
+    monkeypatch.setattr(owner_module, "MarketCalendar", AlwaysOpen)
+
+
+@pytest.mark.asyncio
+async def test_startup_cadence_acquires_only_through_the_configured_factory(
+    factory, monkeypatch, open_session,
+) -> None:
+    """Startup cadence reaches market data only through the composition seam.
+
+    A name imported into the app module would bypass the seam the rest of the
+    suite patches, which is how an unattended tick reaches the real Kiwoom host
+    with the operator's own credentials during a live session.
+    """
+    runtime = activate()
+    enter(runtime, factory)
+    clear_active_sim_broker()
+    with factory() as session:
+        before = counts(session)
+
+    built: list[object] = []
+    requested: list[str] = []
+
+    class NoBars:
+        def get_minute_bars(self, symbols, start=None, end=None, session=None):
+            requested.append(symbols[0])
+            return []
+
+    monkeypatch.setattr(market_factory, "build_kiwoom_provider",
+                        lambda *a, **k: built.append(NoBars()) or built[-1])
+    monkeypatch.setattr(KiwoomMarketDataClient, "request",
+                        lambda *a, **k: pytest.fail("cadence reached the real Kiwoom client"))
+    app = create_app()
+    async with app.router.lifespan_context(app):
+        broker = get_active_sim_broker()
+        assert broker is not None and broker.get_position(SYMBOL) is not None
+        for _ in range(20):
+            await asyncio.sleep(0)
+        assert built and requested == [SYMBOL]
+    # A tick that acquired nothing evaluates nothing and moves nothing.
+    assert len(built) == 1
+    with factory() as session:
+        assert counts(session) == before
+    assert stored_state(factory).phase is StrategyPhase.POSITION_OPEN
+
+
+@pytest.mark.asyncio
+async def test_shutdown_releases_the_broker_even_when_the_owner_dies(
+    factory, monkeypatch, open_session,
+) -> None:
+    """A cadence task that died is reported, but it never keeps broker ownership."""
+    runtime = activate()
+    enter(runtime, factory)
+    clear_active_sim_broker()
+
+    class OwnerDied(BaseException):
+        """Escapes the owner's own Exception handling, as a hard failure would."""
+
+    monkeypatch.setattr(market_factory, "build_kiwoom_provider",
+                        lambda *a, **k: (_ for _ in ()).throw(OwnerDied()))
+    app = create_app()
+    with pytest.raises(OwnerDied):
+        async with app.router.lifespan_context(app):
+            for _ in range(20):
+                await asyncio.sleep(0)
+    assert get_active_sim_broker() is None
+    assert get_position_management_runtime() is None

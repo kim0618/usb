@@ -262,8 +262,10 @@ def counts(session: Session) -> dict[str, int]:
         ("decisions", HumanDecisionRecord))}
 
 
-def app_with(factory):
-    app = create_app()
+def app_with(factory, provider=None):
+    app = create_app(position_market_data_provider_factory=(
+        None if provider is None else lambda: provider
+    ))
 
     async def override():
         with factory() as session:
@@ -408,7 +410,7 @@ async def test_end_to_end_real_market_simulation_smoke(operator, provider) -> No
         assert decisions[0].decision == "APPROVE"
 
     # 3. Trading morning: the app's own startup owns the rehydrated broker.
-    app = app_with(factory)
+    app = app_with(factory, provider)
     async with app.router.lifespan_context(app):
         runtime = get_active_runtime()
         assert runtime is not None and runtime.durable and runtime.account_id == account_id
@@ -503,7 +505,7 @@ async def test_end_to_end_real_market_simulation_smoke(operator, provider) -> No
     assert get_active_sim_broker() is None
 
     # 8. Restart: a fresh broker rebuilt from the same database, replaying nothing.
-    restarted = app_with(factory)
+    restarted = app_with(factory, provider)
     async with restarted.router.lifespan_context(restarted):
         runtime = get_active_runtime()
         assert runtime is not None and runtime.broker.execution_scope != first_scope
@@ -540,7 +542,7 @@ async def test_no_next_bar_persists_a_rejection_and_moves_nothing(operator, prov
     run_id, top8 = run_scanner(provider, factory)
     analysis_id = import_research(factory, run_id, top8)
     approve(factory, analysis_id)
-    app = app_with(factory)
+    app = app_with(factory, provider)
     async with app.router.lifespan_context(app):
         _, evaluated, _ = signal(provider, factory, analysis_id)
         assert evaluated.decision.decision is DecisionType.ENTER

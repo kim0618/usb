@@ -107,7 +107,8 @@ class PositionLifecycleService:
         return self.runtime.broker
 
     def evaluate(self, bars_by_symbol: Mapping[str, Sequence[MinuteBar]], *,
-                 as_of: datetime) -> tuple[PositionOutcome, ...]:
+                 as_of: datetime,
+                 symbols: frozenset[str] | None = None) -> tuple[PositionOutcome, ...]:
         """Evaluate every open position the active broker holds.
 
         The broker is the authority on what is open: reading holdings from the
@@ -116,9 +117,12 @@ class PositionLifecycleService:
         """
         if as_of.tzinfo is None or as_of.utcoffset() is None:
             raise ValueError("as_of must be timezone-aware")
-        return tuple(self._evaluate_one(position, tuple(bars_by_symbol.get(position.symbol, ())),
-                                        as_of=as_of)
-                     for position in self.broker.get_positions())
+        return tuple(
+            self._evaluate_one(position, tuple(bars_by_symbol.get(position.symbol, ())),
+                               as_of=as_of)
+            for position in self.broker.get_positions()
+            if symbols is None or position.symbol in symbols
+        )
 
     def _evaluate_one(self, position: SimPosition, bars: tuple[MinuteBar, ...], *,
                       as_of: datetime) -> PositionOutcome:

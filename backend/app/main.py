@@ -1,7 +1,7 @@
 """Minimal FastAPI application entry point."""
 
 from contextlib import asynccontextmanager
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 import logging
 
 from fastapi import FastAPI
@@ -15,6 +15,10 @@ from app.core.config import get_settings
 from app.core.exceptions import ResearchError, USBError
 from app.core.logging import configure_logging
 from app.execution.config import ExecutionConfig
+from app.market import factory as market_factory
+from app.services.position_management_runtime import (
+    start_position_management_runtime, stop_position_management_runtime,
+)
 from app.services.simulation_runtime import (
     activate_operator_simulation_runtime, clear_active_sim_broker,
 )
@@ -36,14 +40,29 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         logger.warning("BROKER: SIMULATION")
     # Config is injected, never read back from the database: persisted state carries
     # figures, not the execution assumptions that produced them.
-    activate_operator_simulation_runtime(current, config=ExecutionConfig())
+    runtime = activate_operator_simulation_runtime(current, config=ExecutionConfig())
     try:
+        if runtime is not None:
+            # Provider construction is lazy inside the owner: an empty book performs
+            # neither Kiwoom authentication nor minute-bar requests. The factory is
+            # reached through its module, not through a name bound here, so the
+            # composition seam the suite already patches covers this call site too.
+            provider_factory = getattr(
+                _app.state, "position_market_data_provider_factory",
+                lambda: market_factory.build_kiwoom_provider(current),
+            )
+            start_position_management_runtime(runtime, provider_factory)
         yield
     finally:
         # Ownership is released without saving; every durable figure was already
-        # committed by the execution transaction that produced it.
-        clear_active_sim_broker()
-        logger.info("Application stopping")
+        # committed by the execution transaction that produced it. It is released
+        # whatever the cadence owner did, because a task that failed to stop
+        # cleanly must not leave the process holding a broker nobody can replace.
+        try:
+            await stop_position_management_runtime()
+        finally:
+            clear_active_sim_broker()
+            logger.info("Application stopping")
 
 
 def error_response(status: int, code: str, message: str, details: object | None = None) -> JSONResponse:
@@ -53,8 +72,10 @@ def error_response(status: int, code: str, message: str, details: object | None 
     return JSONResponse(status_code=status, content={"error": error})
 
 
-def create_app() -> FastAPI:
+def create_app(*, position_market_data_provider_factory: Callable | None = None) -> FastAPI:
     application = FastAPI(title=settings.app_name, version="1.0", lifespan=lifespan)
+    if position_market_data_provider_factory is not None:
+        application.state.position_market_data_provider_factory = position_market_data_provider_factory
     application.add_middleware(CORSMiddleware, allow_origins=settings.allowed_cors_origins,
                                allow_credentials=True, allow_methods=["GET", "POST", "PUT"],
                                allow_headers=["Content-Type", "X-Request-ID"])
