@@ -5,7 +5,7 @@ the simulation broker's cash, position, and trade. SimBroker mutates process-loc
 state before persistence runs, so a durable failure rolls both layers back.
 """
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from datetime import datetime
 
 from sqlalchemy.orm import Session
@@ -37,12 +37,19 @@ class ExecutionService:
     def execute_and_persist(self, intent: OrderIntent, market_bars: Sequence[MinuteBar], *,
                             updated_at: datetime, shadow: ShadowResult | None = None,
                             scanner_run_id: int | None = None, scanner_candidate_id: int | None = None,
-                            gpt_analysis_id: int | None = None) -> SimOrder:
+                            gpt_analysis_id: int | None = None,
+                            on_persist: Callable[[Session, SimOrder], None] | None = None) -> SimOrder:
         """Execute and durably record in one transaction, or leave nothing moved.
 
         A rejected order still commits its execution history; only a settled order
         touches simulation state. The account row must already exist - this never
         creates one, because opening an account is an explicit operator action.
+
+        ``on_persist`` runs on this session just before the commit, so a caller's
+        own row - the strategy phase a fill produces, say - lands in the same
+        transaction as the fill. It is called for rejections too, since a rejected
+        order is durable history the caller may need to reflect. Raising from it
+        rolls the whole execution back, broker memory included.
         """
         if self.session is None or self.account_id is None:
             raise ValueError("durable execution requires a session and an account")
@@ -59,6 +66,8 @@ class ExecutionService:
                 gpt_analysis_id=gpt_analysis_id)
             if order.status in SETTLED:
                 self._persist_broker_state(intent.symbol, expected_version, updated_at)
+            if on_persist is not None:
+                on_persist(self.session, order)
             self.session.commit()
             return order
         except BaseException:

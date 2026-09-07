@@ -5,9 +5,12 @@ It owns signal-to-fill reconciliation while Strategy, Risk, and Broker remain
 separate sources of truth.
 """
 
+from collections.abc import Callable
 from dataclasses import dataclass, replace
 from datetime import datetime
 from decimal import Decimal
+
+from sqlalchemy.orm import Session
 
 from app.broker.domain import OrderStatus, SimOrder
 from app.broker.sim import SimBroker
@@ -63,20 +66,28 @@ class StrategyLifecycleRunner:
             raise RuntimeError("no active simulation runtime")
         return cls(runtime.broker, runtime=runtime, **kwargs)
 
-    def _submit(self, intent, market_bars, *, created_at: datetime) -> SimOrder:
+    def _submit(self, intent, market_bars, *, created_at: datetime,
+                on_persist: Callable[[Session, SimOrder], None] | None = None) -> SimOrder:
         """The single broker submission behind one lifecycle execution event.
 
         Every execution path funnels through here so the broker is asked to fill
         exactly once. A durable runtime records that same submission inside the
         execution service's own transaction; a runner without a durable account
         (shadow variants, replay smoke) executes without persistence as before.
+
+        ``on_persist`` joins the caller's own write to that transaction. Without a
+        durable runtime there is no transaction to join, so asking for one is an
+        error rather than a silently dropped write.
         """
         runtime = self.runtime
         if runtime is None or not runtime.durable:
+            if on_persist is not None:
+                raise RuntimeError("durable state persistence requires a durable runtime")
             return self.execution.execute(intent, market_bars)
         with runtime.session_factory() as session:
             durable = ExecutionService(self.broker, session, account_id=runtime.account_id)
-            return durable.execute_and_persist(intent, market_bars, updated_at=created_at)
+            return durable.execute_and_persist(intent, market_bars, updated_at=created_at,
+                                               on_persist=on_persist)
 
     def risk_state(self, state: StrategyState, actual_state: DailyTradingState | None = None) -> DailyTradingState:
         if state.book is StrategyBook.ACTUAL:
@@ -89,7 +100,8 @@ class StrategyLifecycleRunner:
     def execute_entry(self, *, state: StrategyState, decision: StrategyDecision,
                       account: AccountSnapshot, portfolio: PortfolioSnapshot,
                       market_bars: tuple[MinuteBar, ...], instrument_currency: Currency,
-                      created_at: datetime, actual_risk_state: DailyTradingState | None = None) -> LifecycleExecution:
+                      created_at: datetime, actual_risk_state: DailyTradingState | None = None,
+                      on_state: Callable[[Session, StrategyState], None] | None = None) -> LifecycleExecution:
         if not self.session_policy.permissions_at(decision.market_as_of).new_entry:
             return LifecycleExecution(state, None, None)
         eligibility = TradingEligibility(False if state.book is StrategyBook.SHADOW else True,
@@ -112,14 +124,13 @@ class StrategyLifecycleRunner:
         if not evaluation.approved or evaluation.order_intent is None:
             return LifecycleExecution(state, evaluation, None)
         fill_bars = self.session_policy.regular_fill_bars(market_bars, as_of=decision.market_as_of)
-        order = self._submit(evaluation.order_intent, fill_bars, created_at=created_at)
+        settled: list[StrategyState] = []
+        order = self._submit(evaluation.order_intent, fill_bars, created_at=created_at,
+                             on_persist=self._settler(state, self._entry_state, settled, on_state))
         filled = self.broker.get_fills(order.id)
         if not filled:
             return LifecycleExecution(state, evaluation, order)
-        position = self.broker.get_position(state.symbol)
-        assert position is not None
-        next_state = StrategyLifecycleService.mark_entry_filled(
-            state, fill_price=position.average_price, market_as_of=filled[-1].filled_at)
+        next_state = settled[0] if settled else self._entry_state(state, order)
         if state.book is StrategyBook.SHADOW and evaluation.metrics is not None:
             self._shadow_risk[(state.trading_date, state.variant)] = DailyTradingState(
                 state.trading_date, daily.attempted_symbols | {state.symbol},
@@ -166,20 +177,58 @@ class StrategyLifecycleRunner:
 
     def execute_exit(self, *, state: StrategyState, decision: StrategyDecision,
                      position: PositionSnapshot, market_bars: tuple[MinuteBar, ...],
-                     created_at: datetime, quantity: Decimal | None = None) -> LifecycleExecution:
+                     created_at: datetime, quantity: Decimal | None = None,
+                     on_state: Callable[[Session, StrategyState], None] | None = None) -> LifecycleExecution:
         if state.phase is not StrategyPhase.EXIT_SIGNALLED:
             state = state.transition(StrategyPhase.EXIT_SIGNALLED)
         intent = self.risk.build_exit_intent(decision=decision, position=position,
                                              created_at=created_at, quantity=quantity)
-        order = self._submit(intent, market_bars, created_at=created_at)
+        # An exit fills in the same regular session an entry would, so a stop does
+        # not settle on a thin premarket or postmarket print.
+        fill_bars = self.session_policy.regular_fill_bars(market_bars, as_of=decision.market_as_of)
+        settled: list[StrategyState] = []
+        order = self._submit(intent, fill_bars, created_at=created_at,
+                             on_persist=self._settler(state, self._exit_state, settled, on_state))
+        if not self.broker.get_fills(order.id):
+            return LifecycleExecution(state, None, order)
+        return LifecycleExecution(settled[0] if settled else self._exit_state(state, order), None, order)
+
+    def _settler(self, state: StrategyState, resolve, settled: list[StrategyState],
+                 on_state: Callable[[Session, StrategyState], None] | None):
+        """Commit the phase a fill produces with the fill itself.
+
+        Without this the two would be separate transactions, and a crash between
+        them would leave a sold position still recorded as open.
+        """
+        if on_state is None:
+            return None
+
+        def persist(session: Session, order: SimOrder) -> None:
+            resolved = resolve(state, order)
+            settled.append(resolved)
+            on_state(session, resolved)
+
+        return persist
+
+    def _entry_state(self, state: StrategyState, order: SimOrder) -> StrategyState:
         fills = self.broker.get_fills(order.id)
         if not fills:
-            return LifecycleExecution(state, None, order)
+            return state
+        position = self.broker.get_position(state.symbol)
+        assert position is not None
+        return StrategyLifecycleService.mark_entry_filled(
+            state, fill_price=position.average_price, market_as_of=fills[-1].filled_at)
+
+    def _exit_state(self, state: StrategyState, order: SimOrder) -> StrategyState:
+        fills = self.broker.get_fills(order.id)
+        if not fills:
+            # A rejected exit stays signalled: the position is still open and the
+            # next bar must be allowed to retry it.
+            return state
         broker_position = self.broker.get_position(state.symbol)
         remaining = Decimal("0") if broker_position is None else broker_position.quantity
-        next_state = StrategyLifecycleService.mark_exit_filled(
+        return StrategyLifecycleService.mark_exit_filled(
             state, market_as_of=fills[-1].filled_at, remaining_quantity=remaining)
-        return LifecycleExecution(next_state, None, order)
 
     def apply_overnight_risk(self, *, state: StrategyState, decision: StrategyDecision,
                              account: AccountSnapshot, portfolio: PortfolioSnapshot,

@@ -6,7 +6,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.strategy import StrategyStateRecord
-from app.strategy.lifecycle import StrategyBook, StrategyState
+from app.strategy.lifecycle import StrategyBook, StrategyPhase, StrategyState
+
+# Phases that still hold, or are still settling, a broker position.
+OPEN_PHASES = tuple(phase.value for phase in (
+    StrategyPhase.POSITION_OPEN, StrategyPhase.PYRAMID_ADDED, StrategyPhase.EXIT_SIGNALLED,
+    StrategyPhase.OVERNIGHT_REVIEW, StrategyPhase.OVERNIGHT_HELD, StrategyPhase.DAY2_ACTIVE))
 
 
 class StrategyStateRepository:
@@ -21,6 +26,24 @@ class StrategyStateRepository:
             StrategyStateRecord.symbol == symbol.upper(), StrategyStateRecord.trading_date == trading_date,
             StrategyStateRecord.book == book.value, StrategyStateRecord.variant == variant))
         return None if row is None else self._domain(row)
+
+    def list_open(self, symbol: str, *, book: StrategyBook = StrategyBook.ACTUAL,
+                  variant: str = "ACTUAL") -> tuple[StrategyState, ...]:
+        """Every unfinished state for a symbol, newest first.
+
+        A position carries no trading date of its own, so the driver finds its
+        state by symbol. More than one row coming back is a contradiction the
+        caller must refuse rather than silently resolve.
+        """
+        book = StrategyBook(book)
+        variant = "ACTUAL" if book is StrategyBook.ACTUAL else variant.upper()
+        rows = self.session.scalars(select(StrategyStateRecord).where(
+            StrategyStateRecord.symbol == symbol.upper(),
+            StrategyStateRecord.book == book.value,
+            StrategyStateRecord.variant == variant,
+            StrategyStateRecord.phase.in_(OPEN_PHASES),
+        ).order_by(StrategyStateRecord.trading_date.desc(), StrategyStateRecord.id.desc()))
+        return tuple(self._domain(row) for row in rows)
 
     def save(self, state: StrategyState, *, updated_at: datetime) -> StrategyStateRecord:
         row = self.session.scalar(select(StrategyStateRecord).where(

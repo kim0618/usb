@@ -62,6 +62,18 @@ class PremarketContext:
         return self.premarket_volume / self.historical_average_daily_volume
 
 
+def stop_reason(state: StrategyState) -> StrategyReason:
+    """Name a stop exit: a stop that has been raised reports as trailing.
+
+    Shared so a retry of an already-signalled exit cannot label itself
+    differently from the evaluation that signalled it.
+    """
+    if state.active_stop is None or state.initial_stop is None:
+        raise ValueError("a stop reason requires both stops")
+    return (StrategyReason.TRAILING_STOP if state.active_stop > state.initial_stop
+            else StrategyReason.INITIAL_STOP)
+
+
 @dataclass(frozen=True)
 class GateResult:
     passed: bool
@@ -189,7 +201,7 @@ class StrategyV0Engine:
         # high can raise the trailing stop.  The raised stop starts next bar.
         stop_hit = Decimal(str(current_bar.low)) <= previous_active_stop
         if stop_hit:
-            reason = StrategyReason.TRAILING_STOP if previous_active_stop > state.initial_stop else StrategyReason.INITIAL_STOP
+            reason = stop_reason(state)
             signalled = replace(state, last_market_as_of=as_of).transition(StrategyPhase.EXIT_SIGNALLED)
             return BarEvaluation(signalled, self._decision(signalled, DecisionType.EXIT, reason, as_of,
                                  {"active_stop": str(previous_active_stop)}), atr=atr, ambiguous=False)
