@@ -14,7 +14,10 @@ from app.api.router import router as api_router
 from app.core.config import get_settings
 from app.core.exceptions import ResearchError, USBError
 from app.core.logging import configure_logging
-from app.services.simulation_runtime import clear_active_sim_broker
+from app.execution.config import ExecutionConfig
+from app.services.simulation_runtime import (
+    activate_operator_simulation_runtime, clear_active_sim_broker,
+)
 
 
 settings = get_settings()
@@ -25,12 +28,20 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     logger.info("Application starting")
-    if settings.market_data_provider == "kiwoom":
-        logger.warning("KIWOOM: %s MARKET DATA / ORDERING DISABLED", settings.kiwoom_env.upper())
+    # Read at startup rather than reusing the import-time instance so the process
+    # activates against the profile it was actually launched with.
+    current = get_settings()
+    if current.market_data_provider == "kiwoom":
+        logger.warning("KIWOOM: %s MARKET DATA / ORDERING DISABLED", current.kiwoom_env.upper())
         logger.warning("BROKER: SIMULATION")
+    # Config is injected, never read back from the database: persisted state carries
+    # figures, not the execution assumptions that produced them.
+    activate_operator_simulation_runtime(current, config=ExecutionConfig())
     try:
         yield
     finally:
+        # Ownership is released without saving; every durable figure was already
+        # committed by the execution transaction that produced it.
         clear_active_sim_broker()
         logger.info("Application stopping")
 

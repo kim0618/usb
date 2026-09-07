@@ -21,6 +21,7 @@ from app.risk.domain import (
 from app.risk.engine import RiskEngine
 from app.services.execution import ExecutionService
 from app.services.risk import RiskService
+from app.services.simulation_runtime import SimulationRuntimeContext, get_active_runtime
 from app.services.strategy import StrategyLifecycleService
 from app.strategy.domain import DecisionType, StrategyDecision, TradingEligibility
 from app.strategy.lifecycle import StrategyBook, StrategyPhase, StrategyState
@@ -39,14 +40,43 @@ class StrategyLifecycleRunner:
 
     def __init__(self, broker: SimBroker, *, risk_engine: RiskEngine | None = None,
                  calendar: MarketCalendar | None = None,
-                 actual_risk_service: RiskService | None = None) -> None:
+                 actual_risk_service: RiskService | None = None,
+                 runtime: SimulationRuntimeContext | None = None) -> None:
+        if runtime is not None and runtime.broker is not broker:
+            # A runner executing against a broker the runtime does not own would
+            # persist one broker's figures under another broker's account.
+            raise ValueError("runtime context owns a different broker")
         self.broker = broker
+        self.runtime = runtime
         self.execution = ExecutionService(broker)
         self.risk = risk_engine or RiskEngine()
         self.calendar = calendar or MarketCalendar()
         self.session_policy = SessionPolicy(self.calendar)
         self.actual_risk_service = actual_risk_service
         self._shadow_risk: dict[tuple[object, str], DailyTradingState] = {}
+
+    @classmethod
+    def for_active_runtime(cls, **kwargs) -> "StrategyLifecycleRunner":
+        """Bind to the broker this process already activated, never a new one."""
+        runtime = get_active_runtime()
+        if runtime is None:
+            raise RuntimeError("no active simulation runtime")
+        return cls(runtime.broker, runtime=runtime, **kwargs)
+
+    def _submit(self, intent, market_bars, *, created_at: datetime) -> SimOrder:
+        """The single broker submission behind one lifecycle execution event.
+
+        Every execution path funnels through here so the broker is asked to fill
+        exactly once. A durable runtime records that same submission inside the
+        execution service's own transaction; a runner without a durable account
+        (shadow variants, replay smoke) executes without persistence as before.
+        """
+        runtime = self.runtime
+        if runtime is None or not runtime.durable:
+            return self.execution.execute(intent, market_bars)
+        with runtime.session_factory() as session:
+            durable = ExecutionService(self.broker, session, account_id=runtime.account_id)
+            return durable.execute_and_persist(intent, market_bars, updated_at=created_at)
 
     def risk_state(self, state: StrategyState, actual_state: DailyTradingState | None = None) -> DailyTradingState:
         if state.book is StrategyBook.ACTUAL:
@@ -82,7 +112,7 @@ class StrategyLifecycleRunner:
         if not evaluation.approved or evaluation.order_intent is None:
             return LifecycleExecution(state, evaluation, None)
         fill_bars = self.session_policy.regular_fill_bars(market_bars, as_of=decision.market_as_of)
-        order = self.execution.execute(evaluation.order_intent, fill_bars)
+        order = self._submit(evaluation.order_intent, fill_bars, created_at=created_at)
         filled = self.broker.get_fills(order.id)
         if not filled:
             return LifecycleExecution(state, evaluation, order)
@@ -122,7 +152,7 @@ class StrategyLifecycleRunner:
         if not evaluation.approved or evaluation.order_intent is None:
             return LifecycleExecution(state, evaluation, None)
         fill_bars = self.session_policy.regular_fill_bars(market_bars, as_of=decision.market_as_of)
-        order = self.execution.execute(evaluation.order_intent, fill_bars)
+        order = self._submit(evaluation.order_intent, fill_bars, created_at=created_at)
         fills = self.broker.get_fills(order.id)
         if not fills:
             return LifecycleExecution(state, evaluation, order)
@@ -141,7 +171,7 @@ class StrategyLifecycleRunner:
             state = state.transition(StrategyPhase.EXIT_SIGNALLED)
         intent = self.risk.build_exit_intent(decision=decision, position=position,
                                              created_at=created_at, quantity=quantity)
-        order = self.execution.execute(intent, market_bars)
+        order = self._submit(intent, market_bars, created_at=created_at)
         fills = self.broker.get_fills(order.id)
         if not fills:
             return LifecycleExecution(state, None, order)
@@ -169,7 +199,7 @@ class StrategyLifecycleRunner:
         exit_decision = replace(decision, decision=DecisionType.EXIT, reason_code="OVERNIGHT_REDUCTION")
         intent = self.risk.build_exit_intent(decision=exit_decision, position=position,
                                              quantity=reduction_quantity, created_at=created_at)
-        order = self.execution.execute(intent, market_bars)
+        order = self._submit(intent, market_bars, created_at=created_at)
         fills = self.broker.get_fills(order.id)
         if not fills:
             return LifecycleExecution(review, None, order)
