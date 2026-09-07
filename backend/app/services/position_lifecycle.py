@@ -6,9 +6,13 @@ What was missing was something to call them once a bar completes, so this is a
 driver rather than a second copy of any of that logic - no stop is re-tested and
 no price is recomputed here.
 
-Scope is deliberately one lifecycle: an open position hits its stop and is closed
-in full. A pyramid signal is reported and left unexecuted, and the overnight and
-closing-review paths stay where they are, because each needs its own contract.
+Scope is two lifecycles: an open position hits its stop and is closed in full,
+and a confirmed pyramid signal is bought once. The overnight and closing-review
+paths stay where they are, because each needs its own contract.
+
+The add is sized by RiskEngine alone. This driver supplies the account, the
+portfolio, and the trade's original planned risk - all read from the broker and
+the durable state - and never proposes a quantity of its own.
 
 Single process by construction. The runtime holder is process-local, so two
 processes running this would each see the same open position and each sell it;
@@ -16,7 +20,7 @@ the runtime this binds to is the one the backend activated at startup.
 """
 
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from decimal import Decimal
 from enum import StrEnum
@@ -27,13 +31,16 @@ from sqlalchemy.orm import Session
 from app.broker.domain import SimOrder, SimPosition
 from app.market.calendar import MarketCalendar
 from app.market.domain import MinuteBar
+from app.repositories.risk import DailyRiskRepository
 from app.repositories.strategy import StrategyStateRepository
-from app.risk.domain import Currency, PositionSnapshot
+from app.risk.domain import (
+    AccountSnapshot, Currency, DailyTradingState, PortfolioSnapshot, PositionSnapshot,
+)
 from app.risk.engine import RiskEngine
 from app.services.simulation_runtime import SimulationRuntimeContext
 from app.strategy.config import VARIANT_CONFIGS, VariantConfig
 from app.strategy.domain import DecisionType, StrategyDecision
-from app.strategy.engine import StrategyV0Engine, stop_reason
+from app.strategy.engine import StrategyReason, StrategyV0Engine, stop_reason
 from app.strategy.indicators import available_regular_bars
 from app.strategy.lifecycle import StrategyPhase, StrategyState
 from app.strategy.runner import StrategyLifecycleRunner
@@ -68,7 +75,8 @@ class PositionAction(StrEnum):
     HOLD = "HOLD"
     EXIT_FILLED = "EXIT_FILLED"
     EXIT_UNFILLED = "EXIT_UNFILLED"
-    ADD_DEFERRED = "ADD_DEFERRED"
+    ADD_FILLED = "ADD_FILLED"
+    ADD_UNFILLED = "ADD_UNFILLED"
     SKIPPED = "SKIPPED"
 
 
@@ -85,6 +93,10 @@ class PositionOutcome:
     @property
     def exited(self) -> bool:
         return self.action is PositionAction.EXIT_FILLED
+
+    @property
+    def added(self) -> bool:
+        return self.action is PositionAction.ADD_FILLED
 
 
 class PositionLifecycleService:
@@ -117,15 +129,31 @@ class PositionLifecycleService:
         """
         if as_of.tzinfo is None or as_of.utcoffset() is None:
             raise ValueError("as_of must be timezone-aware")
+        marks = self._marks(bars_by_symbol, as_of=as_of)
         return tuple(
             self._evaluate_one(position, tuple(bars_by_symbol.get(position.symbol, ())),
-                               as_of=as_of)
+                               as_of=as_of, marks=marks)
             for position in self.broker.get_positions()
             if symbols is None or position.symbol in symbols
         )
 
+    def _marks(self, bars_by_symbol: Mapping[str, Sequence[MinuteBar]], *,
+               as_of: datetime) -> dict[str, Decimal]:
+        """Last completed regular close per symbol; nothing is marked without one.
+
+        Equity drives every risk cap an add is measured against, so a mark has to
+        come from a bar the market actually printed. A position with no completed
+        bar is simply absent here, and the add path refuses rather than guessing.
+        """
+        marks: dict[str, Decimal] = {}
+        for symbol, bars in bars_by_symbol.items():
+            visible = available_regular_bars(tuple(bars), as_of)
+            if visible:
+                marks[symbol] = Decimal(str(visible[-1].close))
+        return marks
+
     def _evaluate_one(self, position: SimPosition, bars: tuple[MinuteBar, ...], *,
-                      as_of: datetime) -> PositionOutcome:
+                      as_of: datetime, marks: Mapping[str, Decimal]) -> PositionOutcome:
         symbol = position.symbol
         with self.runtime.session_factory() as session:
             states = StrategyStateRepository(session).list_open(symbol)
@@ -164,16 +192,108 @@ class PositionLifecycleService:
             current_price=Decimal(str(visible[-1].close)), average_price=position.average_price,
             variant=self.variant)
         if evaluated.decision.decision is DecisionType.EXIT:
+            # The stop outranks the add: a bar that breaches leaves rather than buys.
             return self._exit(evaluated.state, position, bars, as_of=as_of,
                               reason=evaluated.decision.reason_code)
-        self._save(evaluated.state, updated_at=as_of)
         if evaluated.decision.decision is DecisionType.ADD:
-            # The durable add path exists; deciding how much to add is a separate
-            # contract, so the signal is surfaced instead of being dropped.
-            return PositionOutcome(symbol, PositionAction.ADD_DEFERRED,
-                                   evaluated.decision.reason_code, evaluated.state)
+            return self._add(evaluated.state, position, bars, as_of=as_of, marks=marks,
+                             market_as_of=evaluated.decision.market_as_of,
+                             reason=evaluated.decision.reason_code)
+        if _add_outstanding(state):
+            # The signal was issued on an earlier bar and never bought. It is not
+            # re-decided - the engine issues an add once - so the retry carries the
+            # confirmation that produced it, and the signal's own time with it.
+            # Re-dating the retry to now would push the next-bar rule past every
+            # bar that has completed since, and the add could never settle. The
+            # trailing figures this bar produced are kept; only the marker holds.
+            signalled_at = state.last_market_as_of or as_of
+            return self._add(replace(evaluated.state, last_market_as_of=signalled_at),
+                             position, bars, as_of=as_of, marks=marks,
+                             market_as_of=signalled_at,
+                             reason=StrategyReason.PYRAMID_CONFIRMATION.value)
+        self._save(evaluated.state, updated_at=as_of)
         return PositionOutcome(symbol, PositionAction.HOLD, evaluated.decision.reason_code,
                                evaluated.state)
+
+    def _add(self, state: StrategyState, position: SimPosition, bars: tuple[MinuteBar, ...], *,
+             as_of: datetime, marks: Mapping[str, Decimal], market_as_of: datetime,
+             reason: str) -> PositionOutcome:
+        """Buy one pyramid add through the durable execution transaction.
+
+        Every figure handed to the risk engine is somebody else's truth: quantity
+        and average price are the broker's, the stops are the strategy state's,
+        and the risk budget is the trade's own planned initial risk - which the
+        broker never rewrites on an add, so one R stays one R for the trade's life.
+        """
+        trade = self.broker.get_trade(state.symbol)
+        if trade is None:
+            return self._unfilled(state, "no open trade", as_of)
+        missing = [item.symbol for item in self.broker.get_positions() if item.symbol not in marks]
+        if missing:
+            return self._unfilled(state, f"unmarked positions: {','.join(sorted(missing))}", as_of)
+        account_state = self.broker.account_snapshot(dict(marks), as_of)
+        account = AccountSnapshot(account_state.equity, account_state.cash,
+                                  Currency(self.broker.currency), as_of)
+        decision = StrategyDecision(state.symbol, DecisionType.ADD, reason, market_as_of,
+                                    strategy_version=state.strategy_version)
+        result = self.runner.execute_add(
+            state=state, decision=decision, account=account,
+            portfolio=self._portfolio(state, position, marks, as_of=as_of),
+            planned_initial_risk=trade.planned_initial_risk, market_bars=bars,
+            created_at=as_of, actual_risk_state=self._daily_risk(state.trading_date),
+            on_state=strategy_state_sink(as_of))
+        if result.order is None:
+            # Nothing was submitted, so nothing joined a transaction; the signal
+            # still has to be durable or the retry would have nothing to read.
+            rejected = (result.risk.rejection_reason.value if result.risk is not None
+                        and result.risk.rejection_reason is not None else "pyramid not permitted")
+            return self._unfilled(result.state, rejected, as_of)
+        if not self.broker.get_fills(result.order.id):
+            logger.warning("ADD UNFILLED: %s %s", state.symbol, result.order.rejection_reason)
+            return PositionOutcome(state.symbol, PositionAction.ADD_UNFILLED,
+                                   str(result.order.rejection_reason), result.state, result.order)
+        logger.info("ADD FILLED: %s %s qty=%s", state.symbol, reason, result.order.filled_quantity)
+        return PositionOutcome(state.symbol, PositionAction.ADD_FILLED, reason,
+                               result.state, result.order)
+
+    def _portfolio(self, state: StrategyState, position: SimPosition,
+                   marks: Mapping[str, Decimal], *, as_of: datetime) -> PortfolioSnapshot:
+        """Book exposure split by whether a symbol has already pyramided.
+
+        Schema 0009 records no base/pyramid split of a position's cost basis, so a
+        symbol that has added counts its whole basis against the pyramid reserve.
+        That can only under-approve, never over-approve, and it is not applied to
+        the symbol being evaluated - reaching here at all requires add_count 0.
+        """
+        added = self._added_symbols()
+        base = sum((item.cost_basis for item in self.broker.get_positions()
+                    if item.symbol not in added), Decimal("0"))
+        pyramid = sum((item.cost_basis for item in self.broker.get_positions()
+                       if item.symbol in added), Decimal("0"))
+        snapshot = PositionSnapshot(
+            state.symbol, position.quantity, position.average_price, marks[state.symbol],
+            Currency(self.broker.currency), initial_stop=state.initial_stop,
+            active_stop=state.active_stop, add_count=state.add_count,
+            base_notional_account_ccy=position.cost_basis, overnight=state.overnight)
+        return PortfolioSnapshot((snapshot,), base, pyramid, as_of)
+
+    def _added_symbols(self) -> frozenset[str]:
+        with self.runtime.session_factory() as session:
+            repository = StrategyStateRepository(session)
+            return frozenset(
+                item.symbol for item in self.broker.get_positions()
+                if any(open_state.add_count >= 1
+                       for open_state in repository.list_open(item.symbol)))
+
+    def _daily_risk(self, trading_date) -> DailyTradingState:  # type: ignore[no-untyped-def]
+        """Read the day's reservations; this path commits none of its own."""
+        with self.runtime.session_factory() as session:
+            return DailyRiskRepository(session).load(trading_date)
+
+    def _unfilled(self, state: StrategyState, reason: str, as_of: datetime) -> PositionOutcome:
+        self._save(state, updated_at=as_of)
+        logger.warning("ADD UNFILLED: %s (%s)", state.symbol, reason)
+        return PositionOutcome(state.symbol, PositionAction.ADD_UNFILLED, reason, state)
 
     def _exit(self, state: StrategyState, position: SimPosition, bars: tuple[MinuteBar, ...], *,
               as_of: datetime, reason: str) -> PositionOutcome:
@@ -222,3 +342,14 @@ class PositionLifecycleService:
     def _skip(symbol: str, reason: str) -> PositionOutcome:
         logger.info("POSITION SKIPPED: %s (%s)", symbol, reason)
         return PositionOutcome(symbol, PositionAction.SKIPPED, reason)
+
+
+def _add_outstanding(state: StrategyState) -> bool:
+    """An add that was signalled and never bought, expressed in existing fields.
+
+    ``add_signal_issued`` without ``add_count`` is the whole retry contract: the
+    engine issues one confirmation and will not issue another, and a fill is the
+    only thing that moves the count. No new column carries this.
+    """
+    return (state.phase is StrategyPhase.POSITION_OPEN
+            and state.add_signal_issued and state.add_count == 0)

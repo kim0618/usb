@@ -141,39 +141,69 @@ class StrategyLifecycleRunner:
 
     def execute_add(self, *, state: StrategyState, decision: StrategyDecision,
                     account: AccountSnapshot, portfolio: PortfolioSnapshot,
-                    requested_notional: Decimal, market_bars: tuple[MinuteBar, ...],
-                    created_at: datetime, actual_risk_state: DailyTradingState | None = None) -> LifecycleExecution:
+                    planned_initial_risk: Decimal, market_bars: tuple[MinuteBar, ...],
+                    created_at: datetime, requested_notional: Decimal | None = None,
+                    actual_risk_state: DailyTradingState | None = None,
+                    on_state: Callable[[Session, StrategyState], None] | None = None) -> LifecycleExecution:
+        """Submit one pyramid add; RiskEngine, not this runner, decides its size.
+
+        ``requested_notional`` stays optional because there is no second opinion
+        to offer: with nothing requested the risk engine sizes the add from the
+        stop-risk budget it already owns.
+
+        ``on_state`` joins the add's state - add_count and the PYRAMID_ADDED
+        phase - to the fill's own transaction, so the two can never disagree.
+        """
         if not self.session_policy.permissions_at(decision.market_as_of).pyramid:
             return LifecycleExecution(state, None, None)
         eligibility = TradingEligibility(False if state.book is StrategyBook.SHADOW else True,
                                          book=state.book.value)
+        reserved = False
         if state.book is StrategyBook.ACTUAL and self.actual_risk_service is not None:
             evaluation = self.actual_risk_service.reserve_pyramid_add(
                 trading_date=state.trading_date, decision=decision, eligibility=eligibility,
-                account=account, portfolio=portfolio,
+                account=account, portfolio=portfolio, planned_initial_risk=planned_initial_risk,
                 requested_notional_account_ccy=requested_notional, created_at=created_at)
+            reserved = evaluation.approved
             daily = actual_risk_state or DailyTradingState(state.trading_date)
         else:
             daily = self.risk_state(state, actual_risk_state)
             evaluation = self.risk.evaluate_pyramid_add(
                 decision=decision, eligibility=eligibility, account=account, portfolio=portfolio,
-                daily_state=daily, requested_notional_account_ccy=requested_notional,
-                created_at=created_at,
+                daily_state=daily, planned_initial_risk=planned_initial_risk,
+                requested_notional_account_ccy=requested_notional, created_at=created_at,
             )
         if not evaluation.approved or evaluation.order_intent is None:
             return LifecycleExecution(state, evaluation, None)
         fill_bars = self.session_policy.regular_fill_bars(market_bars, as_of=decision.market_as_of)
-        order = self._submit(evaluation.order_intent, fill_bars, created_at=created_at)
+        settled: list[StrategyState] = []
+        try:
+            order = self._submit(evaluation.order_intent, fill_bars, created_at=created_at,
+                                 on_persist=self._settler(state, self._add_state, settled, on_state))
+        except BaseException:
+            self._release(reserved, state, evaluation, created_at)
+            raise
         fills = self.broker.get_fills(order.id)
         if not fills:
+            # The signal itself is not spent by a rejection: the state returned is
+            # the one that came in, so add_count and the phase are untouched.
+            self._release(reserved, state, evaluation, created_at)
             return LifecycleExecution(state, evaluation, order)
-        next_state = StrategyLifecycleService.mark_add_filled(state, market_as_of=fills[-1].filled_at)
+        next_state = settled[0] if settled else self._add_state(state, order)
         if state.book is StrategyBook.SHADOW and evaluation.metrics is not None:
             self._shadow_risk[(state.trading_date, state.variant)] = replace(
                 daily, pyramid_notional_reserved=daily.pyramid_notional_reserved
                 + evaluation.metrics.final_notional_account_ccy,
                 add_counts={**daily.add_counts, state.symbol: 1})
         return LifecycleExecution(next_state, evaluation, order)
+
+    def _release(self, reserved: bool, state: StrategyState, evaluation: RiskEvaluation,
+                 created_at: datetime) -> None:
+        if not reserved or self.actual_risk_service is None or evaluation.metrics is None:
+            return
+        self.actual_risk_service.release_pyramid_add(
+            trading_date=state.trading_date, symbol=state.symbol,
+            amount=evaluation.metrics.final_notional_account_ccy, updated_at=created_at)
 
     def execute_exit(self, *, state: StrategyState, decision: StrategyDecision,
                      position: PositionSnapshot, market_bars: tuple[MinuteBar, ...],
@@ -218,6 +248,14 @@ class StrategyLifecycleRunner:
         assert position is not None
         return StrategyLifecycleService.mark_entry_filled(
             state, fill_price=position.average_price, market_as_of=fills[-1].filled_at)
+
+    def _add_state(self, state: StrategyState, order: SimOrder) -> StrategyState:
+        fills = self.broker.get_fills(order.id)
+        if not fills:
+            # A rejected add leaves the signal standing and the count at zero, so
+            # a later bar can retry the same add without it counting twice.
+            return state
+        return StrategyLifecycleService.mark_add_filled(state, market_as_of=fills[-1].filled_at)
 
     def _exit_state(self, state: StrategyState, order: SimOrder) -> StrategyState:
         fills = self.broker.get_fills(order.id)

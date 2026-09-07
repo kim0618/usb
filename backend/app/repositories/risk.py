@@ -46,12 +46,34 @@ class DailyRiskRepository:
         return row
 
     def reserve_add(self, trading_date: date, symbol: str, amount: Decimal, *, updated_at: datetime) -> None:
+        row = self._require(trading_date, symbol)
+        row.pyramid_notional_reserved += amount
+        row.add_count += 1
+        row.updated_at = updated_at
+        self.session.flush()
+
+    def release_add(self, trading_date: date, symbol: str, amount: Decimal, *, updated_at: datetime) -> None:
+        """Undo one reservation whose add never filled.
+
+        A reservation is taken before the broker is asked, so an add that is
+        approved and then rejected would otherwise hold the symbol's only add
+        forever: ``add_counts`` alone would reject every later attempt with
+        PYRAMID_LIMIT even though nothing was ever bought.
+        """
+        row = self._require(trading_date, symbol)
+        if row.add_count <= 0:
+            raise ValueError("no pyramid reservation to release")
+        row.pyramid_notional_reserved -= amount
+        row.add_count -= 1
+        if row.pyramid_notional_reserved < 0:
+            raise ValueError("pyramid reservation release exceeds the reserved amount")
+        row.updated_at = updated_at
+        self.session.flush()
+
+    def _require(self, trading_date: date, symbol: str) -> DailySymbolState:
         row = self.session.scalar(select(DailySymbolState).where(
             DailySymbolState.trading_date == trading_date, DailySymbolState.symbol == symbol
         ))
         if row is None:
             raise LookupError("base entry reservation does not exist")
-        row.pyramid_notional_reserved += amount
-        row.add_count += 1
-        row.updated_at = updated_at
-        self.session.flush()
+        return row

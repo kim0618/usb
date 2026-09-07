@@ -62,9 +62,11 @@ class RiskService:
     def reserve_pyramid_add(
         self, *, trading_date: date, decision: StrategyDecision,
         eligibility: TradingEligibility, account: AccountSnapshot,
-        portfolio: PortfolioSnapshot, requested_notional_account_ccy: Decimal,
-        created_at: datetime, fx_rate: FxRate | None = None,
+        portfolio: PortfolioSnapshot, planned_initial_risk: Decimal,
+        created_at: datetime, requested_notional_account_ccy: Decimal | None = None,
+        fx_rate: FxRate | None = None,
     ) -> RiskEvaluation:
+        """Reserve an approved add. The caller must release it if no fill follows."""
         session = self.repository.session
         if session.in_transaction():
             if session.new or session.dirty or session.deleted:
@@ -75,6 +77,7 @@ class RiskService:
             evaluation = self.engine.evaluate_pyramid_add(
                 decision=decision, eligibility=eligibility, account=account,
                 portfolio=portfolio, daily_state=state,
+                planned_initial_risk=planned_initial_risk,
                 requested_notional_account_ccy=requested_notional_account_ccy,
                 created_at=created_at, fx_rate=fx_rate,
             )
@@ -88,6 +91,23 @@ class RiskService:
             )
             session.commit()
             return evaluation
+        except Exception:
+            session.rollback()
+            raise
+
+    def release_pyramid_add(self, *, trading_date: date, symbol: str, amount: Decimal,
+                            updated_at: datetime) -> None:
+        """Give a reservation back when the add it was taken for did not fill.
+
+        Reservation and execution are separate commits here, so this cannot be
+        atomic with the broker; it exists so an ordinary rejection does not leave
+        the symbol permanently at its pyramid limit. The durable driver avoids
+        the split entirely by reserving nothing until a fill lands.
+        """
+        session = self.repository.session
+        try:
+            self.repository.release_add(trading_date, symbol, amount, updated_at=updated_at)
+            session.commit()
         except Exception:
             session.rollback()
             raise

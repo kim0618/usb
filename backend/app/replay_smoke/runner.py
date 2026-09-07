@@ -150,13 +150,19 @@ class ReplaySmokeRunner:
         pyramid = pattern == 5
         if pyramid:
             price = position.average_price + Decimal("3")
+            # A confirmed add follows a +1R move, so the trailing stop has reached
+            # breakeven by then; the risk engine sizes the add against that stop.
             snapshot = PositionSnapshot(symbol, position.quantity, position.average_price, price,
                 Currency.USD, initial_stop=state.initial_stop,
+                active_stop=position.average_price,
                 base_notional_account_ccy=position.cost_basis)
             add = StrategyDecision(symbol, DecisionType.ADD, "PYRAMID_CONFIRMATION",
                                    trigger.available_at + timedelta(minutes=5), STRATEGY_VERSION)
+            trade = broker.get_trade(symbol)
+            assert trade is not None
             added = lifecycle.execute_add(state=state, decision=add, account=account,
                 portfolio=PortfolioSnapshot((snapshot,), position.cost_basis, Decimal("0"), add.market_as_of),
+                planned_initial_risk=trade.planned_initial_risk,
                 requested_notional=self.starting_capital * Decimal("0.10"),
                 market_bars=(self._bar(symbol, add.market_as_of + timedelta(minutes=1), float(price)),),
                 created_at=add.market_as_of)

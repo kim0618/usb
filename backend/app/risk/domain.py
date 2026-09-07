@@ -63,17 +63,27 @@ class PositionSnapshot:
     base_notional_account_ccy: Decimal = Decimal("0")
     pyramid_notional_account_ccy: Decimal = Decimal("0")
     overnight: bool = False
+    # The stop currently enforced on this position. A trailed stop is what an
+    # add is actually protected by, so pyramid risk is measured against this and
+    # falls back to the initial stop only while nothing has raised it.
+    active_stop: Decimal | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "symbol", normalize_symbol(self.symbol))
         for name in ("quantity", "average_price", "current_price", "base_notional_account_ccy", "pyramid_notional_account_ccy"):
             object.__setattr__(self, name, decimal_from(getattr(self, name)))
-        if self.initial_stop is not None:
-            object.__setattr__(self, "initial_stop", decimal_from(self.initial_stop))
+        for name in ("initial_stop", "active_stop"):
+            if getattr(self, name) is not None:
+                object.__setattr__(self, name, decimal_from(getattr(self, name)))
         if self.quantity < 0 or self.average_price <= 0 or self.current_price <= 0 or self.add_count < 0:
             raise ValueError("invalid position state")
         if self.base_notional_account_ccy < 0 or self.pyramid_notional_account_ccy < 0:
             raise ValueError("position exposure cannot be negative")
+
+    @property
+    def effective_stop(self) -> Decimal | None:
+        """The stop an incremental buy would be exposed to, or None if unknown."""
+        return self.active_stop if self.active_stop is not None else self.initial_stop
 
 
 @dataclass(frozen=True)
@@ -138,6 +148,7 @@ class RiskRejectionReason(StrEnum):
     INVALID_ACCOUNT_STATE = "INVALID_ACCOUNT_STATE"
     INVALID_PORTFOLIO_STATE = "INVALID_PORTFOLIO_STATE"
     PYRAMID_LIMIT = "PYRAMID_LIMIT"
+    PYRAMID_RISK_BUDGET_EXHAUSTED = "PYRAMID_RISK_BUDGET_EXHAUSTED"
     POSITION_NOT_PROFITABLE = "POSITION_NOT_PROFITABLE"
     POSITION_NOT_FOUND = "POSITION_NOT_FOUND"
     OVERNIGHT_POSITION_LIMIT = "OVERNIGHT_POSITION_LIMIT"
@@ -155,6 +166,12 @@ class RiskMetrics:
     base_capacity_remaining: Decimal
     pyramid_capacity_remaining: Decimal
     symbol_capacity_remaining: Decimal
+    # Pyramid-only stop-risk authority. A base entry has no position behind it,
+    # so these stay at zero there rather than being given an invented meaning.
+    risk_budget: Decimal = Decimal("0")
+    current_stop_risk: Decimal = Decimal("0")
+    post_add_stop_risk: Decimal = Decimal("0")
+    risk_capped_notional_account_ccy: Decimal = Decimal("0")
 
 
 @dataclass(frozen=True)

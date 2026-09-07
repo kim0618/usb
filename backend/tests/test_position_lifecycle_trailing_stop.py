@@ -91,7 +91,7 @@ def trailing_tape(*, high: Decimal = ACTIVATION_PRICE,
 def activate_trailing(runtime, factory):
     driver = PositionLifecycleService(runtime)
     outcome = driver.evaluate({SYMBOL: trailing_tape()}, as_of=ACTIVATION_AS_OF)[0]
-    assert outcome.action in {PositionAction.HOLD, PositionAction.ADD_DEFERRED}
+    assert outcome.action in {PositionAction.HOLD, PositionAction.ADD_UNFILLED}
     state = stored_state(factory)
     assert state.highest_price_since_entry == ACTIVATION_PRICE
     assert state.active_stop > INITIAL_STOP
@@ -167,7 +167,7 @@ async def test_runtime_tick_automatically_persists_the_trailing_update(factory) 
 
     owner = PositionManagementRuntime(runtime, Provider)
     outcomes = await owner.run_once(as_of=ACTIVATION_AS_OF)
-    assert outcomes[0].action in {PositionAction.HOLD, PositionAction.ADD_DEFERRED}
+    assert outcomes[0].action in {PositionAction.HOLD, PositionAction.ADD_UNFILLED}
     state = stored_state(factory)
     assert state.highest_price_since_entry == ACTIVATION_PRICE
     assert state.active_stop > INITIAL_STOP

@@ -84,7 +84,7 @@ def test_t4_t6_safe_mode_blocks_enter_add_and_allows_exit() -> None:
     add = StrategyDecision("AAA", DecisionType.ADD, "ADD", NOW)
     denied_add = engine.evaluate_pyramid_add(decision=add, eligibility=TradingEligibility(True, True),
         account=account, portfolio=portfolio, daily_state=DailyTradingState(date(2026, 9, 1)),
-        requested_notional_account_ccy="100", created_at=NOW)
+        planned_initial_risk="500", requested_notional_account_ccy="100", created_at=NOW)
     assert denied_add.rejection_reason is RiskRejectionReason.SAFE_MODE
     exit_decision = StrategyDecision("AAA", DecisionType.EXIT, "STOP", NOW)
     assert engine.build_exit_intent(decision=exit_decision, position=position,

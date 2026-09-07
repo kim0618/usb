@@ -123,10 +123,25 @@ class RiskEngine:
         account: AccountSnapshot,
         portfolio: PortfolioSnapshot,
         daily_state: DailyTradingState,
-        requested_notional_account_ccy: Decimal | str,
+        planned_initial_risk: Decimal | str,
         created_at: datetime,
+        requested_notional_account_ccy: Decimal | str | None = None,
         fx_rate: FxRate | None = None,
     ) -> RiskEvaluation:
+        """Size a pyramid add. Risk, not the strategy, decides how much is bought.
+
+        A notional cap alone cannot approve an add. The incremental buy is first
+        limited so that the position's total stop risk after it - the existing
+        leg measured to the stop currently enforced, plus the new leg measured to
+        that same stop - stays within the trade's original planned risk. Price
+        appreciation and a raised stop are what create the room to add; nothing
+        else does. The notional caps that already existed then apply on top, and
+        the smallest of them wins.
+
+        ``requested_notional_account_ccy`` is optional: with nothing requested the
+        engine sizes to its own risk cap, which is why no caller has to invent a
+        number. A caller that does request one can only ask for less.
+        """
         if decision.decision is not DecisionType.ADD:
             return _reject(RiskRejectionReason.NOT_ENTER_DECISION)
         if eligibility.safe_mode:
@@ -141,37 +156,60 @@ class RiskEngine:
             return _reject(RiskRejectionReason.PYRAMID_LIMIT)
         if position.current_price <= position.average_price:
             return _reject(RiskRejectionReason.POSITION_NOT_PROFITABLE)
-        requested = decimal_from(requested_notional_account_ccy)
+        multiplier = self._account_currency_multiplier(position.instrument_currency, account.currency, fx_rate)
+        if multiplier is None:
+            return _reject(RiskRejectionReason.CURRENCY_MISMATCH)
+        if multiplier <= 0:
+            return _reject(RiskRejectionReason.INVALID_FX_RATE)
+        stop = position.effective_stop
+        if stop is None or stop <= 0 or stop >= position.current_price:
+            # Without a stop below the add price the incremental downside is not
+            # defined, and an add sized against an undefined risk is not sized.
+            return _reject(RiskRejectionReason.INVALID_STOP_PRICE)
+
+        budget = decimal_from(planned_initial_risk)
+        if budget <= 0:
+            return _reject(RiskRejectionReason.PYRAMID_RISK_BUDGET_EXHAUSTED)
+        per_share_add_risk = (position.current_price - stop) * multiplier
+        current_stop_risk = position.quantity * (position.average_price - stop) * multiplier
+        risk_headroom = budget - current_stop_risk
+        if risk_headroom <= 0:
+            return _reject(RiskRejectionReason.PYRAMID_RISK_BUDGET_EXHAUSTED)
+        risk_capped_notional = (risk_headroom / per_share_add_risk) * position.current_price * multiplier
+
+        requested = (risk_capped_notional if requested_notional_account_ccy is None
+                     else decimal_from(requested_notional_account_ccy))
         reserve_remaining = (
             account.equity * self.config.pyramid_reserve_pct
             - portfolio.pyramid_exposure_used - daily_state.pyramid_notional_reserved
         )
         if requested <= 0 or reserve_remaining <= 0:
             return _reject(RiskRejectionReason.PYRAMID_RESERVE_EXHAUSTED)
-        multiplier = self._account_currency_multiplier(position.instrument_currency, account.currency, fx_rate)
-        if multiplier is None:
-            return _reject(RiskRejectionReason.CURRENCY_MISMATCH)
         symbol_used = position.base_notional_account_ccy + position.pyramid_notional_account_ccy
         symbol_remaining = account.equity * self.config.max_symbol_exposure_pct - symbol_used
-        final_account_notional = min(requested, reserve_remaining, symbol_remaining, account.cash)
+        final_account_notional = min(requested, risk_capped_notional, reserve_remaining,
+                                     symbol_remaining, account.cash)
         if final_account_notional <= 0:
             return _reject(RiskRejectionReason.PYRAMID_RESERVE_EXHAUSTED)
         quantity = final_account_notional / (position.current_price * multiplier)
-        stop = position.initial_stop or position.average_price
+        planned_risk = quantity * per_share_add_risk
         intent = OrderIntent(
             symbol=decision.symbol, side=OrderSide.BUY, intent_type=IntentType.PYRAMID_ADD,
             quantity=quantity, reference_price=position.current_price,
             notional=quantity * position.current_price, account_notional=final_account_notional,
             account_currency=account.currency.value, instrument_currency=position.instrument_currency.value,
-            strategy_version=decision.strategy_version, risk_amount=Decimal("0"), initial_stop=stop,
+            strategy_version=decision.strategy_version, risk_amount=planned_risk, initial_stop=stop,
             market_as_of=decision.market_as_of, created_at=created_at, reason=decision.reason_code,
         )
         metrics = RiskMetrics(
-            one_r=self.one_r(account), planned_risk=Decimal("0"), per_share_risk=Decimal("0"),
+            one_r=self.one_r(account), planned_risk=planned_risk, per_share_risk=per_share_add_risk,
             requested_quantity=requested / (position.current_price * multiplier), final_quantity=quantity,
             requested_notional_account_ccy=requested, final_notional_account_ccy=final_account_notional,
             base_capacity_remaining=account.equity * self.config.base_capacity_pct - portfolio.base_exposure_used - daily_state.base_notional_reserved,
             pyramid_capacity_remaining=reserve_remaining, symbol_capacity_remaining=symbol_remaining,
+            risk_budget=budget, current_stop_risk=current_stop_risk,
+            post_add_stop_risk=current_stop_risk + planned_risk,
+            risk_capped_notional_account_ccy=risk_capped_notional,
         )
         return RiskEvaluation(True, intent, metrics)
 

@@ -139,18 +139,24 @@ def test_daily_attempt_symbol_and_planned_risk_guards() -> None:
 
 
 def test_pyramid_is_winner_only_once_and_reserve_limited() -> None:
-    losing = PositionSnapshot("AAA", Decimal("10"), Decimal("100"), Decimal("99"), Currency.USD)
+    # The stop-risk budget is deliberately slack here so the reserve stays the
+    # binding cap; the budget itself is exercised in the pyramid contract module.
+    losing = PositionSnapshot("AAA", Decimal("10"), Decimal("100"), Decimal("99"), Currency.USD,
+                              initial_stop=Decimal("98"))
     kwargs = dict(
         decision=decision(kind=DecisionType.ADD), eligibility=TradingEligibility(True),
         account=account(), daily_state=DailyTradingState(DAY), created_at=NOW,
+        planned_initial_risk=Decimal("5000"),
         requested_notional_account_ccy=Decimal("30000"),
     )
     engine = RiskEngine()
     assert engine.evaluate_pyramid_add(portfolio=portfolio(losing), **kwargs).rejection_reason is RiskRejectionReason.POSITION_NOT_PROFITABLE
-    winner = PositionSnapshot("AAA", Decimal("10"), Decimal("100"), Decimal("110"), Currency.USD)
+    winner = PositionSnapshot("AAA", Decimal("10"), Decimal("100"), Decimal("110"), Currency.USD,
+                              initial_stop=Decimal("98"))
     approved = engine.evaluate_pyramid_add(portfolio=portfolio(winner), **kwargs)
     assert approved.order_intent and approved.order_intent.account_notional == Decimal("20000.00")
-    added = PositionSnapshot("AAA", Decimal("10"), Decimal("100"), Decimal("110"), Currency.USD, add_count=1)
+    added = PositionSnapshot("AAA", Decimal("10"), Decimal("100"), Decimal("110"), Currency.USD,
+                             initial_stop=Decimal("98"), add_count=1)
     assert engine.evaluate_pyramid_add(portfolio=portfolio(added), **kwargs).rejection_reason is RiskRejectionReason.PYRAMID_LIMIT
 
 

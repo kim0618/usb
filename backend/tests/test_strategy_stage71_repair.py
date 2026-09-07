@@ -162,18 +162,23 @@ def test_t6_t11_shadow_risk_is_local_and_add_count_changes_only_on_fill():
     actual = DailyTradingState(DAY)
     assert not actual.attempted_symbols
     position = broker.get_position("ABC")
+    # An add is only ever approved inside the trade's own stop-risk budget, so the
+    # raised stop the pyramid trigger implies is part of the position snapshot.
     snapshot = PositionSnapshot("ABC", position.quantity, position.average_price, Decimal("105"),
-        Currency.USD, initial_stop=Decimal("99"), base_notional_account_ccy=position.cost_basis)
+        Currency.USD, initial_stop=Decimal("99"), active_stop=Decimal("103"),
+        base_notional_account_ccy=position.cost_basis)
     portfolio = PortfolioSnapshot((snapshot,), position.cost_basis, Decimal("0"), OPEN)
     add_decision = StrategyDecision("ABC", DecisionType.ADD, "ADD", OPEN + timedelta(minutes=20),
                                     strategy_version="strategy_v0")
     unfilled = runner.execute_add(state=entered.state, decision=add_decision, account=account,
-        portfolio=portfolio, requested_notional=Decimal("1000"), market_bars=(),
+        portfolio=portfolio, planned_initial_risk=broker.get_trade("ABC").planned_initial_risk,
+        requested_notional=Decimal("1000"), market_bars=(),
         created_at=add_decision.market_as_of)
     assert unfilled.state.add_count == 0
     addbar = make_bar(22, price=105)
     filled = runner.execute_add(state=unfilled.state, decision=add_decision, account=account,
-        portfolio=portfolio, requested_notional=Decimal("1000"), market_bars=(addbar,),
+        portfolio=portfolio, planned_initial_risk=broker.get_trade("ABC").planned_initial_risk,
+        requested_notional=Decimal("1000"), market_bars=(addbar,),
         created_at=add_decision.market_as_of)
     assert filled.state.add_count == 1 and filled.state.phase is StrategyPhase.PYRAMID_ADDED
 
