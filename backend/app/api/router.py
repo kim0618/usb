@@ -11,7 +11,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.simulation import broker_projection, position_projection
-from app.services.simulation_runtime import get_active_sim_broker
+from app.services.simulation_runtime import get_active_runtime, get_active_sim_broker
 from app.api.schemas import HumanDecisionRequest, KillSwitchRequest, ReasonRequest, RecoveryRequest, ResearchImportRequest
 from app.api.service import APIQueryService, decimal_string
 from app.core.config import Settings, get_settings
@@ -28,6 +28,7 @@ from app.monitoring.domain import FailureCode, MismatchType, ReconciliationMisma
 from app.monitoring.service import RuntimeHealthService
 from app.repositories.research import ResearchRepository
 from app.repositories.scanner import ScannerSnapshotRepository
+from app.repositories.simulation import SimulationStateRepository
 from app.research.prompt import ResearchPromptService
 from app.research.versions import DETAIL_PROMPT_VERSION, EVIDENCE_VERSION, GPT_SCHEMA_VERSION, TOP8_PROMPT_VERSION
 from app.research.adoption import ADOPTION_FILTER_VERSION
@@ -229,6 +230,28 @@ async def trading(db: DB) -> dict[str, Any]:
             "open_positions": [], "open_orders": [], "strategy_states": [strategy_dict(row) for row in states]}
 
 
+@router.get("/trading/daily-performance", tags=["Trading"])
+async def daily_performance(db: DB, limit: Annotated[int, Query(ge=1, le=500)] = 100) -> list[dict[str, Any]]:
+    """Recent-first actual simulation account closing-equity history."""
+    runtime = get_active_runtime()
+    if runtime is None or runtime.account_id is None:
+        return []
+    repository = SimulationStateRepository(db)
+    account = repository.get_account_by_id(runtime.account_id)
+    if account is None:
+        return []
+    return [{
+        "trading_date": row.trading_date,
+        "opening_equity": str(row.opening_equity),
+        "closing_equity": str(row.closing_equity),
+        "cash": str(row.cash),
+        "position_market_value": str(row.position_market_value),
+        "daily_pnl": str(row.daily_pnl),
+        "daily_return": str(row.daily_return),
+        "cumulative_pnl": str(row.closing_equity - account.initial_cash),
+    } for row in repository.list_daily_performance(runtime.account_id, limit=limit)]
+
+
 @router.get("/trading/positions/{symbol}", tags=["Trading"])
 async def position(symbol: str, db: DB) -> dict[str, Any]:
     broker = get_active_sim_broker()
@@ -414,6 +437,8 @@ async def capabilities() -> dict[str, Any]:
 @router.get("/dashboard", tags=["Dashboard"])
 async def dashboard(db: DB) -> dict[str, Any]:
     now = datetime.now(timezone.utc); market = await market_status(); service = query_service(db); run = service.latest_run(); rt = service.runtime(now)
+    simulation_runtime = get_active_runtime()
+    simulation_account = None if simulation_runtime is None or simulation_runtime.account_id is None else SimulationStateRepository(db).get_account_by_id(simulation_runtime.account_id)
     analysis = db.scalar(select(GPTAnalysis).where(GPTAnalysis.status == "IMPORTED").order_by(GPTAnalysis.analysis_at.desc(), GPTAnalysis.id.desc()).limit(1))
     approved = 0 if analysis is None else int(db.scalar(select(func.count()).select_from(HumanDecisionRecord).where(HumanDecisionRecord.gpt_analysis_id == analysis.id, HumanDecisionRecord.decision == "APPROVE")) or 0)
     shadow_count = int(db.scalar(select(func.count()).select_from(ShadowTradeRecord)) or 0)
@@ -425,5 +450,6 @@ async def dashboard(db: DB) -> dict[str, Any]:
             "completed_at": None if run is None else run.completed_at, "candidate_count": 0 if run is None else run.candidate_count,
             "top8_count": 0 if run is None else run.top8_count},
             "research": {"latest_analysis_id": None if analysis is None else analysis.id, "analysis_at": None if analysis is None else analysis.analysis_at, "approved_count": approved},
-            "trading": {"broker_mode": "SIMULATION", "open_positions_count": rt["open_positions_count"], "open_orders_count": rt["open_orders_count"]},
+            "trading": {"broker_mode": "SIMULATION", "open_positions_count": rt["open_positions_count"], "open_orders_count": rt["open_orders_count"],
+            "paper_started_at": None if simulation_account is None else simulation_account.created_at},
             "shadow": {"recent_result_count": shadow_count}}

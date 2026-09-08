@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { useState } from "react";
 import { EmptyState, ErrorState, LoadingState, MetricCard, StatusBadge } from "@/components/ui";
+import { DailyPerformanceTable, PreviousSessionPerformance } from "@/components/daily-performance";
 import { useApi } from "@/hooks/use-api";
 import { api } from "@/lib/api";
 import { formatExecutionBroker, formatOrderRejectionReason, formatOrderSide, formatOrderStatus, strategyStatusDisplay, formatTradeStatus } from "@/lib/display";
-import { currency, decimal, etTime, signedDecimal } from "@/lib/format";
+import { currency, decimal, etTime, formatKrw, formatSignedKrw, signedDecimal, usdToDisplayKrw } from "@/lib/format";
 import { composeTradingHistory, historySideLabel, tradingHistoryEventLabel, type TradingHistoryEventType, type TradingHistoryRow } from "@/lib/trading-history";
 import type { TradingAccount, TradingPosition } from "@/types/api";
 
@@ -15,6 +16,13 @@ const positionValue = (position: TradingPosition, field: keyof TradingPosition) 
 const pnlTone = (value?: string | null) => {
   const numericValue = value == null ? Number.NaN : Number(value);
   return numericValue < 0 ? "text-danger" : numericValue > 0 ? "text-success" : "text-foreground-secondary";
+};
+const accountCardValue = (account: TradingAccount | null, field: keyof TradingAccount, signed = false) => {
+  const value = account?.[field] as string | null | undefined;
+  const krw = usdToDisplayKrw(value);
+  const secondary = signed ? formatSignedKrw(krw) : formatKrw(krw);
+  if (!signed) return <>{accountValue(account, field)}<span className="mt-1 block text-sm font-medium text-muted">{secondary}</span></>;
+  return <span className={pnlTone(value)}>{value == null ? "-" : signedDecimal(value, account?.currency === "USD" ? " USD" : "")}<span className="mt-1 block text-sm font-medium">{secondary}</span></span>;
 };
 const isOpenOrder = (status: string) => status === "PENDING" || status === "PARTIALLY_FILLED";
 const historyFilters: Array<{ value: TradingHistoryEventType; label: string }> = [{ value: "TRADE", label: "청산" }, { value: "ORDER", label: "주문" }, { value: "FILL", label: "체결" }];
@@ -32,8 +40,10 @@ const SummaryIcon = ({ type }: { type: "wallet" | "layers" | "cash" | "trend" | 
 export default function TradingPage() {
   const [historyFilter, setHistoryFilter] = useState<TradingHistoryEventType>("TRADE");
   const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
   const overview = useApi(api.trading, 10000); const dashboard = useApi(api.dashboard, 20000); const research = useApi(api.research, 20000);
   const orders = useApi(api.orders, 10000); const fills = useApi(api.fills, 10000); const trades = useApi(api.trades, 10000);
+  const dailyPerformance = useApi(api.dailyPerformance, 20000);
   if (overview.loading) return <LoadingState/>;
   if (!overview.data) return <ErrorState message={overview.error || "매매 상태 조회 실패"} retry={overview.refresh}/>;
 
@@ -47,24 +57,23 @@ export default function TradingPage() {
 
   return <div className="trading-screen">
     <section aria-label="계좌 요약" className="mb-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-      <MetricCard accent="primary" icon={<SummaryIcon type="wallet"/>} label={`총 자산${account?.currency ? ` (${account.currency})` : ""}`} meta="계좌" detail="Broker account 기준" value={accountValue(account, "equity")}/>
-      <MetricCard accent="indigo" icon={<SummaryIcon type="layers"/>} label="투자 중" meta="포지션" detail="보유 종목 기준" value={accountValue(account, "invested_notional")}/>
-      <MetricCard accent="gold" icon={<SummaryIcon type="cash"/>} label="보유 현금" meta="주문 가능" detail="Broker 주문 가능 기준" value={accountValue(account, "cash")}/>
-      <MetricCard accent="green" icon={<SummaryIcon type="trend"/>} label="평가 손익" meta="평가" detail="실시간 평가 기준" value={<span className={pnlTone(account?.unrealized_pnl)}>{account?.unrealized_pnl == null ? "-" : signedDecimal(account.unrealized_pnl, account.currency === "KRW" ? "원" : account.currency === "USD" ? " USD" : "")}</span>}/>
-      <MetricCard accent="bluegreen" icon={<SummaryIcon type="pulse"/>} label="오늘 손익" meta="금일" detail="당일 체결 기준" value={<span className={pnlTone(account?.today_pnl)}>{account?.today_pnl == null ? "-" : signedDecimal(account.today_pnl, account.currency === "KRW" ? "원" : account.currency === "USD" ? " USD" : "")}</span>}/>
+      <MetricCard accent="primary" icon={<SummaryIcon type="wallet"/>} label={`총 자산${account?.currency ? ` (${account.currency})` : ""}`} meta="계좌" value={accountCardValue(account, "equity")}/>
+      <MetricCard accent="indigo" icon={<SummaryIcon type="layers"/>} label="투자 중" meta="포지션" value={accountCardValue(account, "invested_notional")}/>
+      <MetricCard accent="gold" icon={<SummaryIcon type="cash"/>} label="보유 현금" meta="주문 가능" value={accountCardValue(account, "cash")}/>
+      <MetricCard accent="green" icon={<SummaryIcon type="trend"/>} label="평가 손익" meta="평가" value={accountCardValue(account, "unrealized_pnl", true)}/>
+      <MetricCard accent="bluegreen" icon={<SummaryIcon type="pulse"/>} label="직전 거래일 손익" meta="완료 세션" value={<PreviousSessionPerformance row={dailyPerformance.data?.[0]}/>}/>
     </section>
-    {o.availability === "NO_ACTIVE_SIM_BROKER" && <div className="mb-4 rounded-lg border border-line bg-surface-alt px-4 py-2.5 text-xs text-muted"><span className="font-medium text-foreground-secondary">활성 Simulation Broker 없음</span><span className="ml-2">계좌와 현재 포지션 truth는 연결 후 표시되며, 저장된 주문·체결·매매 기록은 계속 제공합니다.</span></div>}
+    {o.availability === "NO_ACTIVE_SIM_BROKER" && <div className="mb-4 rounded-lg border border-line bg-surface-alt px-4 py-2.5 text-xs text-muted"><span className="font-medium text-foreground-secondary">가상매매 계좌 연결 대기 중</span><span className="ml-2">연결 후 실시간 자산 및 포지션이 표시됩니다.</span></div>}
 
     <section className="mb-7"><div className="mb-3"><h2 className="font-semibold">현재 보유 종목</h2></div>{o.open_positions.length ? <div className="table-wrap"><table className="trading-positions-table"><thead><tr><th>종목</th><th>투자금</th><th>보유 수량</th><th>평균단가</th><th>현재가</th><th>평가금액</th><th>손익</th><th>수익률</th><th>현재 Stop</th><th>전략 상태</th></tr></thead><tbody>{o.open_positions.map(position => { const status = position.phase ? strategyStatusDisplay(position.phase) : null; return <tr key={position.symbol}><td className="font-bold text-foreground">{position.symbol}</td><td>{positionValue(position, "invested_notional")}</td><td>{decimal(position.quantity)}</td><td>{positionValue(position, "average_price")}</td><td>{positionValue(position, "mark_price")}</td><td>{positionValue(position, "market_value")}</td><td className={pnlTone(position.unrealized_pnl)}>{signedDecimal(position.unrealized_pnl)}</td><td className={pnlTone(position.return_pct)}>{signedDecimal(position.return_pct, "%")}</td><td>{positionValue(position, "active_stop")}</td><td>{status ? <StatusBadge value={position.phase!} label={status.label} tone={status.tone}/> : "-"}</td></tr>; })}</tbody></table></div> : <EmptyState title="보유 중인 포지션이 없습니다." description={o.availability === "NO_ACTIVE_SIM_BROKER" ? "활성 브로커 연결 전에는 현재 포지션을 확인할 수 없습니다." : undefined}/>}</section>
 
     <div className="mb-7 grid items-stretch gap-5 xl:grid-cols-2">
-      <section className="flex flex-col"><h2 className="mb-3 font-semibold">오늘 손익 상세</h2><div className="panel pnl-metric-grid grid flex-1 grid-cols-2 sm:grid-cols-4">{[["실현 손익", account?.realized_pnl], ["평가 손익", account?.unrealized_pnl], ["비용", null], ["순손익", account?.today_pnl]].map(([label, value]) => <div className={`pnl-metric ${label === "순손익" ? "pnl-metric-net" : ""}`} key={label}><p className="label">{label}</p><p className={`mt-2 text-lg font-semibold ${pnlTone(value)}`}>{signedDecimal(value)}</p></div>)}</div></section>
       <section className="flex flex-col"><div className="mb-3 flex items-center justify-between"><h2 className="font-semibold">진입 대기</h2><Link href="/research" className="btn-action-secondary-compact">분석 보기</Link></div>{waiting.length ? <div className="grid flex-1 auto-rows-fr gap-3 sm:grid-cols-2">{waiting.map(candidate => <div className="panel flex items-center justify-between p-4" key={candidate.symbol}><div><p className="text-lg font-bold text-foreground">{candidate.symbol}</p></div><StatusBadge value="APPROVE" label="진입 대기"/></div>)}</div> : <EmptyState title={waitingLoading ? "진입 대기 종목을 확인하고 있습니다." : "승인 후 아직 진입하지 않은 종목이 없습니다."}/>}</section>
+      <section className="flex flex-col"><h2 className="mb-3 font-semibold">현재 세션 손익 상세</h2><div className="panel pnl-metric-grid grid flex-1 grid-cols-2 sm:grid-cols-4">{[["실현 손익", account?.realized_pnl], ["평가 손익", account?.unrealized_pnl], ["비용", null], ["순손익", account?.today_pnl]].map(([label, value]) => <div className={`pnl-metric ${label === "순손익" ? "pnl-metric-net" : ""}`} key={label}><p className="label">{label}</p><p className={`mt-2 text-lg font-semibold ${label === "비용" ? "text-foreground-secondary" : pnlTone(value)}`}>{signedDecimal(value)}</p></div>)}</div></section>
     </div>
 
-    <section aria-labelledby="trading-history-title">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-3"><h2 id="trading-history-title" className="font-semibold">매매 내역</h2>{pendingOrders > 0 && <span className="rounded-full border border-warning bg-warning-soft px-3 py-1 text-xs text-warning">미체결 주문 {pendingOrders}건</span>}</div><div className="flex flex-wrap gap-1" aria-label="매매 내역 필터">{historyFilters.map(filter => <button key={filter.value} type="button" aria-pressed={historyFilter === filter.value} onClick={() => { setHistoryFilter(filter.value); setExpandedHistoryId(null); }} className={`btn-compact ${historyFilter === filter.value ? "btn-compact-active" : ""}`}>{filter.label}</button>)}</div></div>
-      {visibleHistory.length ? <div className="table-wrap"><table><thead><tr><th>시각</th><th>종목</th><th>구분</th><th>방향</th><th>수량</th><th>가격</th><th>상태 / 결과</th></tr></thead><tbody>{visibleHistory.map(row => <HistoryRows key={row.id} row={row} expanded={expandedHistoryId === row.id} onToggle={() => setExpandedHistoryId(current => current === row.id ? null : row.id)}/>)}</tbody></table></div> : <EmptyState title={historyEmptyLabel[historyFilter]}/>}
+    <section aria-labelledby="daily-performance-title"><div className="mb-3 flex flex-wrap items-center justify-between gap-3"><h2 id="daily-performance-title" className="font-semibold">일별 손익</h2><div className="flex items-center gap-2">{pendingOrders > 0 && <span className="rounded-full border border-warning bg-warning-soft px-3 py-1 text-xs text-warning">미체결 주문 {pendingOrders}건</span>}<button type="button" className="btn-action-secondary-compact" aria-expanded={showHistory} aria-controls="trading-history-detail" onClick={() => setShowHistory(value => !value)}>{showHistory ? "거래 내역 닫기" : "거래 내역 보기"}</button></div></div><DailyPerformanceTable rows={dailyPerformance.data} loading={dailyPerformance.loading}/>
+      {showHistory && <div id="trading-history-detail" className="mt-5"><div className="mb-3 flex flex-wrap justify-end gap-1" aria-label="매매 내역 필터">{historyFilters.map(filter => <button key={filter.value} type="button" aria-pressed={historyFilter === filter.value} onClick={() => { setHistoryFilter(filter.value); setExpandedHistoryId(null); }} className={`btn-compact ${historyFilter === filter.value ? "btn-compact-active" : ""}`}>{filter.label}</button>)}</div>{visibleHistory.length ? <div className="table-wrap"><table><thead><tr><th>시각</th><th>종목</th><th>구분</th><th>방향</th><th>수량</th><th>가격</th><th>상태 / 결과</th></tr></thead><tbody>{visibleHistory.map(row => <HistoryRows key={row.id} row={row} expanded={expandedHistoryId === row.id} onToggle={() => setExpandedHistoryId(current => current === row.id ? null : row.id)}/>)}</tbody></table></div> : <EmptyState title={historyEmptyLabel[historyFilter]}/>}</div>}
     </section>
   </div>;
 }

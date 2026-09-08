@@ -1,4 +1,4 @@
-"""Migration 0009 schema contract for the durable simulation broker tables."""
+"""Migration head schema contract for durable simulation/accounting tables."""
 
 from __future__ import annotations
 
@@ -19,8 +19,8 @@ from app.core.database import Base
 from app.dev.schema_fingerprint import schema_fingerprint
 from app.models.simulation import SimulationAccountRecord, SimulationTradeRecord
 
-REVISION = "20260906_0009"
-SIMULATION_TABLES = ("simulation_accounts", "simulation_positions", "simulation_trades")
+REVISION = "20260908_0010"
+SIMULATION_TABLES = ("simulation_accounts", "simulation_positions", "simulation_trades", "account_daily_performance")
 OPEN_INDEX = "uq_simulation_trades_open_symbol"
 # SimBroker fractional sizing produces repeating decimals that must survive exactly.
 EXACT_QUANTITY = Decimal("166.6666666666666666666666667")
@@ -63,18 +63,18 @@ def _open_index_sql(engine: Engine) -> str | None:
 
 def test_migration_adds_exactly_the_simulation_tables(migrated: Engine) -> None:
     tables = {name for name in inspect(migrated).get_table_names() if name != "alembic_version"}
-    assert len(tables) == 16  # 13 before 0009.
+    assert len(tables) == 17  # 13 before 0009, plus three broker tables and daily performance.
     assert set(SIMULATION_TABLES) <= tables
 
 
-def test_alembic_current_is_0009(migrated: Engine) -> None:
+def test_alembic_current_is_0010(migrated: Engine) -> None:
     with migrated.connect() as connection:
         assert connection.execute(text("SELECT version_num FROM alembic_version")).scalars().all() == [REVISION]
         assert connection.execute(text("PRAGMA quick_check")).scalars().all() == ["ok"]
         assert connection.execute(text("PRAGMA foreign_key_check")).fetchall() == []
 
 
-def test_create_all_matches_migration_0009(created: Engine, migrated: Engine) -> None:
+def test_create_all_matches_migration_head(created: Engine, migrated: Engine) -> None:
     assert schema_fingerprint(created) == schema_fingerprint(migrated)
 
 
@@ -91,6 +91,12 @@ def test_migration_creates_no_business_rows(migrated: Engine) -> None:
     with migrated.connect() as connection:
         for table in SIMULATION_TABLES:
             assert connection.execute(text(f"SELECT count(*) FROM {table}")).scalar() == 0
+
+
+def test_daily_performance_is_unique_per_account_and_trading_date(migrated: Engine) -> None:
+    constraint = next(item for item in inspect(migrated).get_unique_constraints("account_daily_performance")
+                      if item["name"] == "uq_account_daily_performance_account_date")
+    assert constraint["column_names"] == ["account_id", "trading_date"]
 
 
 def test_downgrade_and_reupgrade_restores_the_schema(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:

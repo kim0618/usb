@@ -1,4 +1,4 @@
-import type { AdoptionResponse, Capabilities, Dashboard, Failure, Fill, Order, ReplayReport, ResearchAnalysis, ResearchDetail, RuntimeStatus, ScannerSnapshot, Settings, ShadowSummary, Trade, TradingOverview } from "@/types/api";
+import type { AdoptionResponse, Capabilities, DailyPerformance, Dashboard, Failure, Fill, Order, ReplayReport, ResearchAnalysis, ResearchDetail, RuntimeStatus, ScannerSnapshot, Settings, ShadowSummary, Trade, TradingOverview } from "@/types/api";
 
 export const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
 
@@ -29,6 +29,7 @@ export const api = {
   importResearch: (raw_json: string) => apiFetch<{ analysis_id: number; candidate_count: number }>("/api/v1/research/import", { method: "POST", body: JSON.stringify({ raw_json }) }),
   decide: (id: number, symbol: string, decision: "APPROVE" | "REJECT", note?: string) => apiFetch<{ approved_count: number }>(`/api/v1/research/${id}/decisions/${encodeURIComponent(symbol)}`, { method: "PUT", body: JSON.stringify({ decision, note: note || null }) }),
   trading: () => apiFetch<TradingOverview>("/api/v1/trading"),
+  dailyPerformance: () => apiFetch<DailyPerformance[]>("/api/v1/trading/daily-performance"),
   orders: () => apiFetch<Order[]>("/api/v1/trading/orders"),
   fills: () => apiFetch<Fill[]>("/api/v1/trading/fills"),
   trades: () => apiFetch<Trade[]>("/api/v1/trading/trades"),

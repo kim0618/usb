@@ -2,6 +2,7 @@
 
 from datetime import date, datetime, timezone
 from decimal import Decimal
+from types import SimpleNamespace
 
 import httpx
 import pytest
@@ -12,6 +13,7 @@ from app.main import create_app
 from app.models.execution import ExecutionFillRecord, ExecutionOrderRecord, ShadowTradeRecord
 from app.models.research import GPTAnalysis, GPTCandidateAnalysis, HumanDecisionRecord
 from app.models.scanner import ScannerCandidate, ScannerRun
+from app.models.simulation import SimulationAccountRecord
 
 
 @pytest.fixture
@@ -40,6 +42,24 @@ async def test_fresh_database_control_plane_is_null_safe(api) -> None:  # type: 
     dashboard = (await get(app, "/api/v1/dashboard")).json()
     assert dashboard["scanner"]["latest_run_id"] is None
     assert dashboard["trading"]["broker_mode"] == "SIMULATION"
+    assert dashboard["trading"]["paper_started_at"] is None
+
+
+@pytest.mark.asyncio
+async def test_dashboard_projects_active_paper_account_created_at_with_timezone(api, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    app, sessions = api
+    created_at = datetime(2026, 9, 8, 9, 0, tzinfo=timezone.utc)
+    with sessions() as db:
+        account = SimulationAccountRecord(
+            broker_type="SIM", account_key="operator", base_currency="USD",
+            initial_cash=Decimal("7428.92"), cash=Decimal("7428.92"),
+            created_at=created_at, updated_at=created_at,
+        )
+        db.add(account); db.commit(); account_id = account.id
+    monkeypatch.setattr("app.api.router.get_active_runtime", lambda: SimpleNamespace(account_id=account_id))
+
+    trading = (await get(app, "/api/v1/dashboard")).json()["trading"]
+    assert trading["paper_started_at"] == "2026-09-08T09:00:00Z"
 
 
 @pytest.mark.asyncio

@@ -42,7 +42,7 @@ export const formatSeverity = (value?: string | null) => display(value, {
 });
 export const formatResolved = (resolved: boolean) => resolved ? "해결됨" : "미해결";
 export const formatBrokerMode = (value?: string | null) => display(value, {
-  SIMULATION: "가상 매매", PAPER: "모의투자", LIVE: "실전투자",
+  SIMULATION: "가상매매", PAPER: "모의투자", LIVE: "실전투자",
 });
 export const formatCapability = (enabled: boolean) => enabled ? "사용 가능" : "미지원";
 export const formatConnection = (value?: string | null) => display(value, { CONNECTED: "연결됨", "NOT CONNECTED": "미연결" });

@@ -49,15 +49,15 @@ export default function CandidatesPage() {
   }
 
   if (scan.loading) return <><AnalysisTabs/><LoadingState/></>;
-  if (!scan.data) return <><AnalysisTabs/><PageHeader title="오늘의 후보 종목" description="정량 분석 결과 중 상위 8개 종목입니다."/>{scan.error?.toLowerCase().includes("completed scanner run") ? <EmptyState title="아직 완료된 종목 분석이 없습니다." description="Scanner 분석이 완료되면 오늘의 TOP8 후보 종목이 여기에 표시됩니다."/> : <ErrorState message={scan.error || "Scanner 조회 실패"} retry={scan.refresh}/>}</>;
+  if (!scan.data) return <><AnalysisTabs/><PageHeader title="후보 종목" description="정량 분석을 통과한 종목 중 최대 8개를 표시합니다."/>{scan.error?.toLowerCase().includes("completed scanner run") ? <EmptyState title="아직 완료된 종목 분석이 없습니다." description="Scanner 분석이 완료되면 최대 8개의 후보 종목이 여기에 표시됩니다."/> : <ErrorState message={scan.error || "Scanner 조회 실패"} retry={scan.refresh}/>}</>;
 
   const s = scan.data;
   const showCompany = s.top8.some(candidate => Boolean(candidate.company_name?.trim()));
   return <>
     <AnalysisTabs/>
-    <PageHeader title="오늘의 후보 종목" description="정량 분석 결과 중 상위 8개 종목입니다." actions={<><button className="btn-action-secondary" disabled={busy} onClick={() => void loadPrompt(true)}>미리보기</button><button className="btn-action-primary" disabled={busy} onClick={() => void loadPrompt(false)}>GPT 프롬프트 복사</button></>}/>
-    <p className="mb-5 flex flex-wrap gap-x-2 gap-y-1 text-xs text-muted"><span>기준 거래일 {s.run.trading_date}</span><span aria-hidden="true">·</span><span>분석 완료 {etTime(s.run.completed_at)}</span><span aria-hidden="true">·</span><span>전체 후보 {s.run.candidate_count}개</span><span aria-hidden="true">·</span><span>TOP{s.run.top8_count}</span><span aria-hidden="true">·</span><span>{s.run.score_version}</span></p>
-    {s.top8.length ? <div className="table-wrap"><table><thead><tr>
+    <PageHeader title="후보 종목" description="정량 분석을 통과한 종목 중 최대 8개를 표시합니다." actions={<><button className="btn-action-secondary" disabled={busy} onClick={() => void loadPrompt(true)}>미리보기</button><button className="btn-action-primary" disabled={busy} onClick={() => void loadPrompt(false)}>GPT 프롬프트 복사</button></>}/>
+    <p className="mb-4 flex flex-wrap gap-x-2 gap-y-1 rounded-lg border border-line bg-surface-alt px-3 py-2 text-xs text-muted"><span>기준 거래일 {s.run.trading_date}</span><span aria-hidden="true">·</span><span>분석 완료 {etTime(s.run.completed_at)}</span><span aria-hidden="true">·</span><span>현재 후보 {s.run.candidate_count}개 / 전체 유니버스 {s.run.universe_count}개</span><span aria-hidden="true">·</span><span>표시 {s.run.top8_count}개</span><span aria-hidden="true">·</span><span>{s.run.score_version}</span></p>
+    {s.top8.length ? <div className="table-wrap"><table className="analysis-table analysis-table-candidates"><thead><tr>
       <th>순위</th><th>종목</th>{showCompany && <th>회사명</th>}
       <th>최근 흐름<InfoTooltip label="최근 흐름" text={COLUMN_HELP.momentum}/></th>
       <th>거래량 강도<InfoTooltip label="거래량 강도" text={COLUMN_HELP.rvol}/></th>

@@ -5,10 +5,10 @@ authority for the broker's current cash, holdings, and trade lifecycle so a rest
 can rehydrate them. Equity is deliberately absent: it needs external mark prices.
 """
 
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import ForeignKey, Index, Integer, String, UniqueConstraint, text
+from sqlalchemy import Date, ForeignKey, Index, Integer, String, UniqueConstraint, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -83,5 +83,27 @@ class SimulationTradeRecord(Base):
     ambiguous_bar_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
     exit_reason: Mapped[str | None] = mapped_column(String(64))
     status: Mapped[str] = mapped_column(String(16), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), nullable=False)
+
+
+class AccountDailyPerformanceRecord(Base):
+    """Immutable-by-day actual-book closing equity accounting."""
+
+    __tablename__ = "account_daily_performance"
+    __table_args__ = (
+        UniqueConstraint("account_id", "trading_date", name="uq_account_daily_performance_account_date"),
+    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    account_id: Mapped[int] = mapped_column(
+        ForeignKey("simulation_accounts.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    trading_date: Mapped[date] = mapped_column(Date(), nullable=False, index=True)
+    opening_equity: Mapped[Decimal] = mapped_column(DecimalString(), nullable=False)
+    closing_equity: Mapped[Decimal] = mapped_column(DecimalString(), nullable=False)
+    cash: Mapped[Decimal] = mapped_column(DecimalString(), nullable=False)
+    position_market_value: Mapped[Decimal] = mapped_column(DecimalString(), nullable=False)
+    daily_pnl: Mapped[Decimal] = mapped_column(DecimalString(), nullable=False)
+    daily_return: Mapped[Decimal] = mapped_column(DecimalString(), nullable=False)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), nullable=False)

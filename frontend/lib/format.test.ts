@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compactUsd, currency, decimal, etTime, formatDecimalString, formatKrw, formatSignedKrw, formatSignedUsd, formatUsd, kstTime, multiple, signedDecimal, signedPercent, unconfirmedMarketCap } from "./format";
+import { compactUsd, currency, decimal, etTime, formatDecimalString, formatKrw, formatSignedKrw, formatSignedUsd, formatUsd, kstDate, kstTime, multiple, signedDecimal, signedPercent, tradingDate, unconfirmedMarketCap, usdToDisplayKrw } from "./format";
 
 describe("financial display formatting", () => {
   it("preserves string input while formatting for display", () => { expect(formatDecimalString("10250.5500")).toBe("10,250.55"); expect(decimal("1.4238", "R")).toBe("1.4238R"); });
@@ -12,6 +12,14 @@ describe("financial display formatting", () => {
     expect(formatSignedKrw(43800)).toBe("+₩43,800");
     expect(formatSignedKrw(-43800)).toBe("-₩43,800");
     expect(formatSignedUsd(32)).toBe("+$32.00");
+  });
+  it("converts USD with the Paper Day-0 KRW display rate", () => {
+    expect(formatKrw(usdToDisplayKrw("7428.92"))).toBe("₩10,000,000");
+    expect(formatKrw(usdToDisplayKrw("0"))).toBe("₩0");
+    expect(formatSignedKrw(usdToDisplayKrw("10"))).toMatch(/^\+₩/);
+    expect(formatSignedKrw(usdToDisplayKrw("-10"))).toMatch(/^-₩/);
+    expect(formatSignedKrw(usdToDisplayKrw("0"))).toBe("+₩0");
+    expect(formatKrw(usdToDisplayKrw(null))).toBe("-");
   });
   it("formats Quant ratios without changing their raw semantics", () => {
     expect(multiple(1.48)).toBe("1.48x");
@@ -27,5 +35,15 @@ describe("financial display formatting", () => {
     expect(etTime(instant)).toContain("9월 3일");
     expect(unconfirmedMarketCap(5_535_047_000)).toBe("5.5B · 단위 확인 중");
     expect(unconfirmedMarketCap(5_535_047_000)).not.toContain("$");
+  });
+  it("formats the authoritative XNYS trading date without converting it through KST", () => {
+    expect(tradingDate("2026-09-04")).toBe("09/04 (금)");
+    expect(tradingDate(null)).toBe("-");
+    expect(tradingDate("invalid")).toBe("-");
+  });
+  it("renders the paper account instant as a KST calendar date", () => {
+    expect(kstDate("2026-09-07T16:30:00Z")).toBe("09/08");
+    expect(kstDate(null)).toBe("-");
+    expect(kstDate("invalid")).toBe("-");
   });
 });

@@ -5,7 +5,7 @@ arrives from SimBroker and is written verbatim so persistence can never disagree
 with the running broker.
 """
 
-from datetime import datetime
+from datetime import date, datetime
 
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from app.broker.domain import SimPosition, TradeResult, TradeStatus
 from app.market.symbols import normalize_symbol
 from app.models.simulation import (
-    SimulationAccountRecord, SimulationPositionRecord, SimulationTradeRecord,
+    AccountDailyPerformanceRecord, SimulationAccountRecord, SimulationPositionRecord, SimulationTradeRecord,
 )
 
 TRADE_STATE = ("entry_time", "exit_time", "initial_quantity", "total_quantity",
@@ -69,6 +69,39 @@ class SimulationStateRepository:
             # staged on other objects, which autoflush=False leaves pending.
             self.session.expire(cached)
         return expected_state_version + 1
+
+    # Daily account performance -----------------------------------------
+
+    def get_daily_performance(self, account_id: int, trading_date: date) -> AccountDailyPerformanceRecord | None:
+        return self.session.scalar(select(AccountDailyPerformanceRecord).where(
+            AccountDailyPerformanceRecord.account_id == account_id,
+            AccountDailyPerformanceRecord.trading_date == trading_date))
+
+    def latest_daily_performance_before(self, account_id: int, trading_date: date) -> AccountDailyPerformanceRecord | None:
+        return self.session.scalar(select(AccountDailyPerformanceRecord).where(
+            AccountDailyPerformanceRecord.account_id == account_id,
+            AccountDailyPerformanceRecord.trading_date < trading_date
+        ).order_by(AccountDailyPerformanceRecord.trading_date.desc()).limit(1))
+
+    def list_daily_performance(self, account_id: int, *, limit: int = 100) -> tuple[AccountDailyPerformanceRecord, ...]:
+        rows = self.session.scalars(select(AccountDailyPerformanceRecord).where(
+            AccountDailyPerformanceRecord.account_id == account_id
+        ).order_by(AccountDailyPerformanceRecord.trading_date.desc()).limit(limit))
+        return tuple(rows)
+
+    def add_daily_performance(self, *, account_id: int, trading_date: date,
+                              opening_equity, closing_equity, cash,
+                              position_market_value, daily_pnl, daily_return,
+                              recorded_at: datetime) -> AccountDailyPerformanceRecord:
+        row = AccountDailyPerformanceRecord(
+            account_id=account_id, trading_date=trading_date,
+            opening_equity=opening_equity, closing_equity=closing_equity,
+            cash=cash, position_market_value=position_market_value,
+            daily_pnl=daily_pnl, daily_return=daily_return,
+            created_at=recorded_at, updated_at=recorded_at)
+        self.session.add(row)
+        self.session.flush()
+        return row
 
     # Position ------------------------------------------------------------
 

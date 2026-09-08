@@ -26,7 +26,7 @@ from app.integrations.kiwoom.client import KiwoomMarketDataClient
 from app.market.calendar import MarketCalendar
 from app.market.domain import MarketSession, MinuteBar
 from app.models.execution import ExecutionOrderRecord
-from app.models.simulation import SimulationPositionRecord, SimulationTradeRecord
+from app.models.simulation import AccountDailyPerformanceRecord, SimulationPositionRecord, SimulationTradeRecord
 from app.repositories.simulation import SimulationStateRepository
 from app.repositories.strategy import StrategyStateRepository
 from app.risk.config import RiskConfig
@@ -937,15 +937,18 @@ async def test_the_owner_reviews_at_the_review_moment_and_only_once(factory) -> 
 
 
 @pytest.mark.asyncio
-async def test_the_owner_does_nothing_once_the_exchange_has_closed(factory) -> None:
+async def test_the_owner_records_daily_performance_once_the_exchange_has_closed(factory) -> None:
     runtime = activate()
     enter(runtime, factory)
     carriable(factory)
     provider = Tape({SYMBOL: eod_tape()})
     assert await owner(runtime, provider).run_once(
         as_of=MARKET_CLOSE + timedelta(minutes=1)) == ()
-    assert provider.calls == []
+    assert provider.calls == [SYMBOL]
     assert stored_state(factory).phase is StrategyPhase.POSITION_OPEN
+    with factory() as session:
+        snapshot = session.scalar(select(AccountDailyPerformanceRecord))
+        assert snapshot is not None and snapshot.trading_date == date(2026, 7, 2)
 
 
 @pytest.mark.asyncio

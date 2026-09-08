@@ -70,6 +70,13 @@ class MarketCalendar:
             label = self._calendar.next_session(label)
         return label.date()
 
+    def previous_trading_day(self, day: date) -> date:
+        """Return the XNYS session immediately before ``day``."""
+        label = self._calendar.date_to_session(self._label(day), direction="previous")
+        if label.date() == day:
+            label = self._calendar.previous_session(label)
+        return label.date()
+
     def holding_day_number(self, entry_day: date, current_day: date) -> int:
         if current_day < entry_day or not self.is_trading_day(entry_day) or not self.is_trading_day(current_day):
             raise ValueError("holding dates must be ordered XNYS sessions")

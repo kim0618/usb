@@ -74,6 +74,8 @@ describe("Stage 9.13.3 analysis workflow policy", () => {
     ["순위", "종목", "회사명", "종합 점수", "거래량 강도", "시장 대비", "거래 규모", "최근 흐름", "분석 상태"].forEach(label => expect(candidates).toContain(label));
     ["multiple(candidate.raw_metrics.rvol)", "signedPercent(candidate.raw_metrics.relative_strength)", "compactUsd(candidate.raw_metrics.dollar_volume)", "signedPercent(candidate.raw_metrics.momentum)"].forEach(call => expect(candidates).toContain(call));
     expect(candidates).toContain("기준 거래일");
+    expect(candidates).toContain("정량 분석을 통과한 종목 중 최대 8개를 표시합니다.");
+    expect(candidates).toContain("현재 후보 {s.run.candidate_count}개 / 전체 유니버스 {s.run.universe_count}개");
     expect(candidates).toContain("const showCompany = s.top8.some");
     expect(candidates).not.toContain('<MetricCard label="거래일"');
     expect(candidates).not.toContain("<th>GPT 순위</th>");

@@ -17,13 +17,15 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Callable
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
+from decimal import Decimal
 import logging
 
 from app.market.calendar import MarketCalendar
 from app.market.domain import MarketSession, MinuteBar
 from app.market.provider import MarketDataProvider
 from app.services.end_of_day_lifecycle import EndOfDayLifecycleService, EndOfDayOutcome
+from app.services.daily_performance import DailyPerformanceService, DailyPerformanceUnavailable
 from app.services.simulation_runtime import SimulationRuntimeContext
 
 logger = logging.getLogger(__name__)
@@ -43,6 +45,7 @@ class EndOfDayPositionRuntime:
         clock: Clock = lambda: datetime.now(timezone.utc),
         calendar: MarketCalendar | None = None,
         lifecycle: EndOfDayLifecycleService | None = None,
+        daily_performance: DailyPerformanceService | None = None,
     ) -> None:
         self.runtime = runtime
         self._provider_factory = provider_factory
@@ -50,6 +53,7 @@ class EndOfDayPositionRuntime:
         self._clock = clock
         self._calendar = calendar or MarketCalendar()
         self._lifecycle = lifecycle or EndOfDayLifecycleService(runtime, calendar=self._calendar)
+        self._daily_performance = daily_performance or DailyPerformanceService(runtime, calendar=self._calendar)
         self._run_lock = asyncio.Lock()
         self._stop = asyncio.Event()
 
@@ -65,13 +69,16 @@ class EndOfDayPositionRuntime:
             now = as_of or self._clock()
             if now.tzinfo is None or now.utcoffset() is None:
                 raise ValueError("end-of-day clock must be timezone-aware")
-            if not self.runtime.broker.get_positions():
-                return ()
             local_now = now.astimezone(self._calendar.timezone)
             session = self._calendar.session(local_now.date())
-            if session is None or not (session.market_open <= now <= session.market_close):
-                # Weekends, holidays, and every hour outside the session: no review
-                # time exists, so nothing is reviewed and no day is advanced.
+            if session is None or now < session.market_open:
+                # Weekends, holidays, and pre-open time have no EOD work.
+                return ()
+            if now > session.market_close:
+                await self._record_daily_performance(session.market_open, session.market_close,
+                                                     session.session_date, now)
+                return ()
+            if not self.runtime.broker.get_positions():
                 return ()
             outcomes = list(self._lifecycle.activate_day2(as_of=now))
             review_at = self._lifecycle.review_at(session.session_date)
@@ -82,6 +89,42 @@ class EndOfDayPositionRuntime:
                 logger.info("EOD OUTCOME: %s %s (%s)", outcome.symbol,
                             outcome.action.value, outcome.reason)
             return tuple(outcomes)
+
+    async def _record_daily_performance(self, market_open: datetime, market_close: datetime,
+                                        trading_date: date, now: datetime) -> None:
+        """Record post-close equity only when every actual position has a valid mark."""
+        if self._daily_performance.has_snapshot(trading_date):
+            return
+        positions = self.runtime.broker.get_positions()
+        marks = {}
+        if positions:
+            if self._provider is None:
+                self._provider = self._provider_factory()
+            for position in positions:
+                try:
+                    bars = self._provider.get_minute_bars(
+                        [position.symbol], market_open, market_close, MarketSession.REGULAR,
+                    )
+                except Exception:
+                    logger.exception("DAILY PERFORMANCE MARKET DATA FAILED: %s", position.symbol)
+                    return
+                valid = [
+                    bar for bar in bars
+                    if bar.symbol == position.symbol and bar.session is MarketSession.REGULAR
+                    and market_open <= bar.timestamp < market_close and bar.available_at <= now
+                ]
+                if not valid:
+                    logger.warning("DAILY PERFORMANCE MARK UNAVAILABLE: %s", position.symbol)
+                    return
+                marks[position.symbol] = Decimal(str(max(valid, key=lambda bar: bar.timestamp).close))
+        try:
+            result = self._daily_performance.record(trading_date, marks, as_of=now)
+        except DailyPerformanceUnavailable as error:
+            logger.warning("DAILY PERFORMANCE DEFERRED: %s", error)
+            return
+        if result.created:
+            logger.info("DAILY PERFORMANCE RECORDED: %s equity=%s",
+                        trading_date, result.snapshot.closing_equity)
 
     async def _review(self, market_open: datetime, now: datetime) -> tuple[EndOfDayOutcome, ...]:
         # Construction stays lazy so an empty account performs no Kiwoom auth or

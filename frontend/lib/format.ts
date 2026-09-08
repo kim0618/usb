@@ -16,6 +16,17 @@ export function formatDecimalString(value: string): string {
 export const score = (value: number | null | undefined) => value == null ? "-" : value.toFixed(2);
 export const etTime = (value: string | null | undefined) => value ? new Intl.DateTimeFormat("ko-KR", { timeZone: "America/New_York", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(value)) + " ET" : "-";
 export const kstTime = (value: string | null | undefined) => value ? new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(value)) + " KST" : "-";
+export const kstDate = (value: string | null | undefined) => value && !Number.isNaN(new Date(value).getTime()) ? new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "2-digit", day: "2-digit" }).format(new Date(value)).replace(/\.\s*/g, "/").replace(/\/$/, "") : "-";
+export const tradingDate = (value: string | null | undefined) => {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return "-";
+  const date = new Date(`${value}T12:00:00Z`);
+  if (Number.isNaN(date.getTime())) return "-";
+  const formatted = new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "UTC", month: "2-digit", day: "2-digit", weekday: "short",
+  }).formatToParts(date);
+  const part = (type: Intl.DateTimeFormatPartTypes) => formatted.find(item => item.type === type)?.value;
+  return `${part("month")}/${part("day")} (${part("weekday")})`;
+};
 export const multiple = (value: number | null | undefined) => value == null ? "-" : `${value.toFixed(2)}x`;
 export const signedPercent = (value: number | null | undefined) => {
   if (value == null) return "-";
@@ -29,6 +40,11 @@ export const unconfirmedMarketCap = (value: number | null | undefined) => value 
 
 type MoneyInput = number | string | null | undefined;
 const numericMoney = (value: MoneyInput) => value == null || value === "" || !Number.isFinite(Number(value)) ? null : Number(value);
+export const KRW_DISPLAY_RATE = 10_000_000 / 7_428.92;
+export const usdToDisplayKrw = (value: MoneyInput) => {
+  const amount = numericMoney(value);
+  return amount == null ? null : Math.round(amount * KRW_DISPLAY_RATE);
+};
 export const formatUsd = (value: MoneyInput) => {
   const amount = numericMoney(value);
   return amount == null ? "-" : new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 4 }).format(amount);
@@ -40,7 +56,7 @@ export const formatKrw = (value: MoneyInput) => {
 const signedMoney = (value: MoneyInput, formatter: (amount: number) => string) => {
   const amount = numericMoney(value);
   if (amount == null) return "-";
-  return `${amount > 0 ? "+" : ""}${formatter(amount)}`;
+  return `${amount >= 0 ? "+" : ""}${formatter(amount)}`;
 };
 export const formatSignedUsd = (value: MoneyInput) => signedMoney(value, amount => formatUsd(amount));
 export const formatSignedKrw = (value: MoneyInput) => signedMoney(value, amount => formatKrw(amount));

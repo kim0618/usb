@@ -107,9 +107,59 @@ describe("Stage 9.10 navigation", () => {
 
   it("renders the portfolio-centered Korean trading hierarchy", () => {
     const trading = source("app/trading/page.tsx");
-    ["계좌 요약", "총 자산", "투자 중", "보유 현금", "평가 손익", "오늘 손익", "현재 보유 종목", "진입 대기"].forEach(label => expect(trading).toContain(label));
+    ["계좌 요약", "총 자산", "투자 중", "보유 현금", "평가 손익", "직전 거래일 손익", "현재 보유 종목", "진입 대기"].forEach(label => expect(trading).toContain(label));
     ["오늘의 운영 요약", "미국 시장", "오늘 승인 종목", "매매 현황", "시스템 보기 →"].forEach(label => expect(trading).not.toContain(label));
     expect(trading).toContain('human_decision?.decision === "APPROVE"');
     expect(trading).toContain(".slice(0, 2)");
+  });
+
+  it("moves broker mode to the header and removes the sidebar runtime footer", () => {
+    const shell = source("components/app-shell.tsx");
+    expect(shell).not.toContain("Backend 연결");
+    expect(shell).not.toContain('className="absolute bottom-0');
+    expect(shell).toContain("state.data.trading.broker_mode");
+    expect(shell).toContain("formatBrokerMode(state.data.trading.broker_mode)");
+  });
+
+  it("renders calendar-authoritative market sessions with explicit active and closed states", () => {
+    const shell = source("components/app-shell.tsx");
+    expect(shell).toContain("marketSessionSchedule(market.trading_date, market.market_open, market.market_close)");
+    expect(shell).toContain("market?.is_trading_day && market.session === session.key");
+    expect(shell).toContain("· 현재");
+    expect(shell).toContain('market && !market.is_trading_day ? "휴장" : formatMarketSession');
+  });
+
+  it("uses one ordered operations row on desktop and allows responsive wrapping below it", () => {
+    const shell = source("components/app-shell.tsx");
+    expect(shell).toContain('sticky top-0 z-30 border-b border-line bg-header');
+    expect(shell).toContain('xl:flex-nowrap');
+    expect(shell).not.toContain('border-t border-line');
+    expect(shell).toContain('grid w-full shrink-0 grid-cols-3 gap-1.5 sm:flex sm:w-auto');
+    expect(shell).toContain('aria-label="미국 시장 세션"');
+    expect(shell).toContain("state.data?.trading.broker_mode");
+    expect(shell.indexOf("현재시각 :")).toBeLessThan(shell.indexOf("기준거래일 :"));
+    expect(shell.indexOf("기준거래일 :")).toBeLessThan(shell.indexOf("가상매매 시작 :"));
+    expect(shell.indexOf("가상매매 시작 :")).toBeLessThan(shell.indexOf('aria-label="미국 시장 세션"'));
+  });
+
+  it("renders authoritative trading and paper dates with graceful null handling", () => {
+    const shell = source("components/app-shell.tsx");
+    expect(shell).toContain("const contextTradingDate = state.data?.scanner.trading_date");
+    expect(shell).toContain("현재시각 :");
+    expect(shell).toContain("기준거래일 :");
+    expect(shell).toContain("tradingDate(contextTradingDate)");
+    expect(shell).toContain("const paperStartedAt = state.data?.trading.paper_started_at");
+    expect(shell).toContain("paperStartedAt &&");
+    expect(shell).toContain("가상매매 시작 :");
+    expect(shell).toContain("kstDate(paperStartedAt)");
+    expect(shell).not.toContain("Paper 시작");
+    expect(shell).not.toContain("2026-09-08");
+  });
+
+  it("removes the product copy from the operations header without changing sidebar branding", () => {
+    const shell = source("components/app-shell.tsx");
+    expect(shell).not.toContain("미국주식 트레이딩 시스템");
+    expect(shell).toContain('aria-label="USB Trading System"');
+    expect(shell).toContain('tracking-[0.12em] text-foreground">USB</span>');
   });
 });

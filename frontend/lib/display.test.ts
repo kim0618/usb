@@ -35,7 +35,7 @@ describe("Korean display mappers", () => {
   });
   it("maps resolved, broker, capability, strategy, and shadow values", () => {
     expect([formatResolved(true), formatResolved(false)]).toEqual(["해결됨", "미해결"]);
-    expect(["SIMULATION", "PAPER", "LIVE"].map(formatBrokerMode)).toEqual(["가상 매매", "모의투자", "실전투자"]);
+    expect(["SIMULATION", "PAPER", "LIVE"].map(formatBrokerMode)).toEqual(["가상매매", "모의투자", "실전투자"]);
     expect([formatCapability(true), formatCapability(false)]).toEqual(["사용 가능", "미지원"]);
     expect(formatStrategyPhase("POSITION_OPEN")).toBe("보유 중");
     expect(formatStrategyPhase("EXIT_SIGNALLED")).toBe("청산 신호");
