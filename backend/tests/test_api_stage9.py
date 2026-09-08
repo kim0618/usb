@@ -89,7 +89,7 @@ async def test_missing_resources_use_common_error(api) -> None:  # type: ignore[
 
 
 @pytest.mark.asyncio
-async def test_adoption_endpoint_is_versioned_and_read_only(api) -> None:  # type: ignore[no-untyped-def]
+async def test_adoption_endpoint_is_versioned_and_read_only(api, monkeypatch) -> None:  # type: ignore[no-untyped-def]
     app, sessions = api; now = datetime(2026, 9, 1, 20, tzinfo=timezone.utc)
     with sessions() as db:
         run = ScannerRun(trading_date=date(2026, 9, 1), started_at=now, completed_at=now,
@@ -119,6 +119,13 @@ async def test_adoption_endpoint_is_versioned_and_read_only(api) -> None:  # typ
     assert payload["items"][0]["company_summary"] == "company"
     assert (payload["items"][0]["previous_close"], payload["items"][0]["rvol"]) == (None, 1.6)
     assert (payload["items"][0]["relative_strength"], payload["items"][0]["momentum"]) == (.02, None)
+    monkeypatch.setattr("app.market.factory.build_kiwoom_provider", lambda *_args, **_kwargs: pytest.fail(
+        "persisted research detail must not construct an external provider"
+    ))
+    detail = (await get(app, f"/api/v1/research/{payload['analysis_id']}/candidates/AAA")).json()
+    assert detail["company_summary"] == "company"
+    assert detail["premarket"] == {"price": None, "return_pct": None, "observed_at": None, "reason": "NOT_FETCHED"}
+    assert detail["postmarket"] == detail["premarket"]
     with sessions() as db:
         assert db.query(HumanDecisionRecord).count() == 0
 

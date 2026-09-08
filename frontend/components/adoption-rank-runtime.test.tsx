@@ -122,6 +122,15 @@ describe("Stage 10B-4.2 adoption rank runtime", () => {
     expect(within(momentum).getByText("+16.0%")).toHaveClass("tone-text-success");
   });
 
+  it("opens the drawer shell immediately and issues one detail request per click", async () => {
+    detailApi.mockReturnValue(new Promise(() => undefined));
+    await renderTable();
+    await click(within(bodyRows()[0]).getByRole("button", { name: "상세보기" }));
+    expect(screen.getByRole("dialog", { name: "TSLA · 채택 검토" })).toBeInTheDocument();
+    expect(detailApi).toHaveBeenCalledTimes(1);
+    expect(detailApi).toHaveBeenCalledWith(7, "TSLA");
+  });
+
   it("keeps the drawer rank aligned with the backend rank for every symbol", async () => {
     detailApi.mockImplementation(async (_id: number, symbol: string) => detail(symbol));
     await renderTable();

@@ -59,6 +59,10 @@ def test_prompt_latest_deterministic_and_detail(db: Session) -> None:
     first = service.generate_top_candidates(DAY)
     assert first == service.generate_top_candidates(DAY)
     assert f"scanner_run_id: {latest.id}" in first and "latest_close" in first
+    assert "Write every human-readable natural-language output in Korean" in first
+    assert all(field in first for field in (
+        "company_summary", "catalyst_summary", "risk_summary", "invalidation_summary",
+    ))
     detail = service.generate_detail(latest, scanner.get_top8(latest.id)[0])
     assert "stock_detail_research_v0" in detail
 

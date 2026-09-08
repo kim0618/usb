@@ -2,7 +2,6 @@
 
 from datetime import date, datetime, time, timezone
 from decimal import Decimal
-from functools import lru_cache
 from typing import Annotated, Any
 from zoneinfo import ZoneInfo
 
@@ -18,7 +17,6 @@ from app.core.config import Settings, get_settings
 from app.core.database import get_db
 from app.core.exceptions import ResearchError
 from app.market.calendar import MarketCalendar
-from app.market.factory import build_kiwoom_provider
 from app.models.execution import ExecutionFillRecord, ExecutionOrderRecord, ShadowTradeRecord
 from app.models.research import GPTAnalysis, GPTCandidateAnalysis, GPTSource, HumanDecisionRecord
 from app.models.runtime import RuntimeFailureRecord
@@ -34,7 +32,6 @@ from app.research.versions import DETAIL_PROMPT_VERSION, EVIDENCE_VERSION, GPT_S
 from app.research.adoption import ADOPTION_FILTER_VERSION
 from app.scanner.config import ScannerConfig
 from app.services.research import GPTImportService, HumanDecisionService
-from app.services.market_context import MarketContextService
 from app.risk.config import RiskConfig
 from app.execution.config import ExecutionConfig
 from app.strategy.config import SHADOW_VARIANT_VERSION, STRATEGY_VERSION
@@ -73,13 +70,6 @@ def display_market_status(as_of: datetime, settings: Settings) -> dict[str, Any]
             "open_at": None if window is None else window.market_open,
             "close_at": None if window is None else window.market_close,
             "early_close": False if window is None else window.is_early_close}
-
-
-@lru_cache(maxsize=1)
-def market_context_service() -> MarketContextService:
-    settings = get_settings()
-    provider = build_kiwoom_provider(settings) if settings.market_data_provider == "kiwoom" else None
-    return MarketContextService(provider, clock=lambda: datetime.now(timezone.utc))
 
 
 @router.get("/scanner/latest", tags=["Scanner"])
@@ -162,9 +152,12 @@ async def research_candidate(analysis_id: int, symbol: str, db: DB) -> dict[str,
     decision = db.scalar(select(HumanDecisionRecord).where(HumanDecisionRecord.gpt_analysis_id == analysis_id, HumanDecisionRecord.symbol == row.symbol))
     sources = list(db.scalars(select(GPTSource).where(GPTSource.gpt_candidate_analysis_id == row.id).order_by(GPTSource.id)))
     result = query_service(db).research_candidate(row, decision)
-    result.update(market_context_service().compose(
-        row.symbol, result.get("previous_close"), trading_date=analysis.trading_date,
-    ))
+    # Detail is a persisted-analysis read path. Extended quotes are intentionally
+    # unavailable here rather than triggering Kiwoom or another external fetch.
+    unavailable_quote = {"price": None, "return_pct": None, "observed_at": None, "reason": "NOT_FETCHED"}
+    result.update({"premarket": unavailable_quote, "postmarket": unavailable_quote,
+                   "market_cap_reason": "UNIT_UNCONFIRMED",
+                   "industry_reason": "NOT_AVAILABLE_FROM_PROVIDER"})
     result["sources"] = [{"claim": s.claim, "title": s.title, "url": s.url, "source_type": s.source_type,
                           "domain": s.source_domain, "published_at": s.published_at} for s in sources]
     return result
