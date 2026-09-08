@@ -56,6 +56,17 @@ export const formatStrategyPhase = (value?: string | null) => display(value, {
   EXIT_SIGNALLED: "청산 신호", EXITED: "청산 완료", NO_TRADE: "미진입",
 });
 
+/** StrategyReason codes the premarket gate can record. Raw enums never reach the screen. */
+export const formatStrategyPhaseReason = (value?: string | null) => display(value, {
+  HUMAN_NOT_APPROVED: "사람 승인 없음",
+  INVALID_PREMARKET_DATA: "프리마켓 데이터 부족/이상",
+  RESEARCH_BLOCKED: "리서치 차단",
+  NEGATIVE_CATALYST: "신규 악재 발생",
+  GAP_TOO_LOW: "갭 상승폭 기준 미달",
+  GAP_TOO_HIGH: "갭 상승폭 과다",
+  LOW_PREMARKET_VOLUME: "프리마켓 거래량 부족",
+}, "상세 사유 기록 없음");
+
 export type SemanticTone = "info" | "success" | "warning" | "danger" | "indigo" | "neutral";
 export type StrategyStatusDisplay = { label: string; tone: SemanticTone };
 

@@ -172,7 +172,8 @@ async def decide(analysis_id: int, symbol: str, body: HumanDecisionRequest, db: 
 
 def strategy_dict(row: StrategyStateRecord) -> dict[str, Any]:
     return {"symbol": row.symbol, "trading_date": row.trading_date, "book": row.book, "variant": row.variant,
-            "phase": row.phase, "entry_price": decimal_string(row.entry_price), "initial_stop": decimal_string(row.initial_stop),
+            "phase": row.phase, "phase_reason": row.phase_reason,
+            "entry_price": decimal_string(row.entry_price), "initial_stop": decimal_string(row.initial_stop),
             "active_stop": decimal_string(row.active_stop), "highest_price": decimal_string(row.highest_price),
             "add_count": row.add_count, "holding_day": row.holding_day, "overnight": row.overnight}
 

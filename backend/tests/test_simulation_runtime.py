@@ -20,7 +20,7 @@ from app.services.simulation_runtime import (
 from backend.tests.test_sim_broker_rehydration import (
     CASH, START, bar, intent, opened, position, seeded, snapshot, trade,
 )
-from backend.tests.test_simulation_persistence_schema import _migrated_engine
+from backend.tests.test_simulation_persistence_schema import REVISION, _migrated_engine
 
 
 @pytest.fixture(autouse=True)
@@ -32,7 +32,7 @@ def ownership():
 
 @pytest.fixture
 def engine(tmp_path, monkeypatch):
-    db = _migrated_engine(tmp_path / "runtime.sqlite3", monkeypatch, "20260906_0009")
+    db = _migrated_engine(tmp_path / "runtime.sqlite3", monkeypatch, REVISION)
     try:
         yield db
     finally:
@@ -175,8 +175,15 @@ async def test_api_projection_history_and_shutdown(engine):
 
 
 @pytest.mark.asyncio
-async def test_default_startup_on_isolated_0008_never_queries_simulation(tmp_path, monkeypatch):
-    db = _migrated_engine(tmp_path / "operator-boundary.sqlite3", monkeypatch, "20260901_0008")
+async def test_default_startup_never_queries_simulation(tmp_path, monkeypatch):
+    """The default profile activates no broker and touches no simulation table.
+
+    This pinned 20260901_0008 so the simulation tables were absent rather than merely
+    unused. The application only runs against its own head schema -- an ORM select
+    names every mapped column -- so the boundary is now asserted at head, where those
+    tables exist and are still never reached.
+    """
+    db = _migrated_engine(tmp_path / "operator-boundary.sqlite3", monkeypatch, REVISION)
     app = create_app()
     statements = []
     event.listen(db, "before_cursor_execute", lambda c, u, sql, p, x, m: statements.append(sql))
@@ -192,7 +199,7 @@ async def test_default_startup_on_isolated_0008_never_queries_simulation(tmp_pat
         assert get_active_sim_broker() is None
         assert all("simulation_" not in sql.lower() for sql in statements)
         with db.connect() as conn:
-            assert conn.execute(text("SELECT version_num FROM alembic_version")).scalar() == "20260901_0008"
+            assert conn.execute(text("SELECT version_num FROM alembic_version")).scalar() == REVISION
     finally:
         db.dispose()
         get_settings.cache_clear()

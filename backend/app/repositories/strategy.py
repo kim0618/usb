@@ -58,6 +58,7 @@ class StrategyStateRepository:
             self.session.add(row)
         values = {
             "scanner_candidate_id": state.scanner_candidate_id, "phase": state.phase.value,
+            "phase_reason": state.phase_reason,
             "entry_trading_date": state.entry_trading_date, "entry_price": state.entry_price,
             "initial_stop": state.initial_stop, "active_stop": state.active_stop,
             "highest_price": state.highest_price_since_entry, "add_count": state.add_count,
@@ -76,6 +77,7 @@ class StrategyStateRepository:
         return StrategyState(symbol=row.symbol, trading_date=row.trading_date,
             book=row.book, variant=row.variant,
             scanner_candidate_id=row.scanner_candidate_id, phase=row.phase,
+            phase_reason=row.phase_reason,
             entry_trading_date=row.entry_trading_date, entry_price=row.entry_price,
             initial_stop=row.initial_stop, active_stop=row.active_stop,
             highest_price_since_entry=row.highest_price, add_count=row.add_count,

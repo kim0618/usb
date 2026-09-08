@@ -6,10 +6,10 @@ import { EmptyState, ErrorState, LoadingState, MetricCard, StatusBadge } from "@
 import { DailyPerformanceTable, PreviousSessionPerformance } from "@/components/daily-performance";
 import { useApi } from "@/hooks/use-api";
 import { api } from "@/lib/api";
-import { formatExecutionBroker, formatOrderRejectionReason, formatOrderSide, formatOrderStatus, strategyStatusDisplay, formatTradeStatus } from "@/lib/display";
+import { formatExecutionBroker, formatOrderRejectionReason, formatOrderSide, formatOrderStatus, formatStrategyPhase, formatStrategyPhaseReason, strategyStatusDisplay, formatTradeStatus } from "@/lib/display";
 import { currency, decimal, etTime, formatKrw, formatSignedKrw, signedDecimal, tradingDate, usdToDisplayKrw } from "@/lib/format";
 import { composeTradingHistory, historySideLabel, tradingHistoryEventLabel, type TradingHistoryEventType, type TradingHistoryRow } from "@/lib/trading-history";
-import type { TradingAccount, TradingPosition } from "@/types/api";
+import type { StrategyState, TradingAccount, TradingPosition } from "@/types/api";
 
 const accountValue = (account: TradingAccount | null, field: keyof TradingAccount) => currency(account?.[field] as string | null | undefined, account?.currency);
 const positionValue = (position: TradingPosition, field: keyof TradingPosition) => currency(position[field] as string | null | undefined, position.currency);
@@ -51,7 +51,12 @@ export default function TradingPage() {
   // Scanner/GPT stamp trading_date with the last COMPLETED session, so an entry session consumes
   // its predecessor's analysis. A same-date match with the current session is never freshness.
   const analysisTradingDate = research.data?.analysis.trading_date ?? null;
-  const waiting = (research.data?.candidates || []).filter(candidate => candidate.human_decision?.decision === "APPROVE" && !openSymbols.has(candidate.symbol)).slice(0, 2);
+  // Entry status is read from persisted StrategyState only; premarket conditions are never
+  // recomputed here, so displaying this list costs no provider or Kiwoom call.
+  const entrySessionDate = dashboard.data?.market.trading_date ?? null;
+  const stateFor = (symbol: string) => o.strategy_states.find(state => state.symbol === symbol && state.trading_date === entrySessionDate) ?? null;
+  const waiting = (research.data?.candidates || []).filter(candidate => candidate.human_decision?.decision === "APPROVE" && !openSymbols.has(candidate.symbol)).slice(0, 2)
+    .map(candidate => ({ symbol: candidate.symbol, state: stateFor(candidate.symbol) }));
   const waitingLoading = dashboard.loading || research.loading;
   const pendingOrders = orders.data?.filter(order => isOpenOrder(order.status)).length || 0;
   const history = composeTradingHistory(orders.data || [], fills.data || [], trades.data || []);
@@ -70,13 +75,24 @@ export default function TradingPage() {
     <section className="mb-7"><div className="mb-3"><h2 className="font-semibold">현재 보유 종목</h2></div>{o.open_positions.length ? <div className="table-wrap"><table className="trading-positions-table"><thead><tr><th>종목</th><th>투자금</th><th>보유 수량</th><th>평균단가</th><th>현재가</th><th>평가금액</th><th>손익</th><th>수익률</th><th>현재 Stop</th><th>전략 상태</th></tr></thead><tbody>{o.open_positions.map(position => { const status = position.phase ? strategyStatusDisplay(position.phase) : null; return <tr key={position.symbol}><td className="font-bold text-foreground">{position.symbol}</td><td>{positionValue(position, "invested_notional")}</td><td>{decimal(position.quantity)}</td><td>{positionValue(position, "average_price")}</td><td>{positionValue(position, "mark_price")}</td><td>{positionValue(position, "market_value")}</td><td className={pnlTone(position.unrealized_pnl)}>{signedDecimal(position.unrealized_pnl)}</td><td className={pnlTone(position.return_pct)}>{signedDecimal(position.return_pct, "%")}</td><td>{positionValue(position, "active_stop")}</td><td>{status ? <StatusBadge value={position.phase!} label={status.label} tone={status.tone}/> : "-"}</td></tr>; })}</tbody></table></div> : <EmptyState title="보유 중인 포지션이 없습니다." description={o.availability === "NO_ACTIVE_SIM_BROKER" ? "활성 브로커 연결 전에는 현재 포지션을 확인할 수 없습니다." : undefined}/>}</section>
 
     <div className="mb-7 grid items-stretch gap-5 xl:grid-cols-2">
-      <section className="flex flex-col"><div className="mb-3 flex items-center justify-between gap-3"><div className="flex flex-wrap items-baseline gap-x-2 gap-y-1"><h2 className="font-semibold">진입 대기</h2>{analysisTradingDate && <span className="text-xs text-muted">{tradingDate(analysisTradingDate)} 분석 기준</span>}</div><Link href="/research" className="btn-action-secondary-compact">분석 보기</Link></div>{waiting.length ? <div className="grid flex-1 auto-rows-fr gap-3 sm:grid-cols-2">{waiting.map(candidate => <div className="panel flex flex-col items-start justify-center gap-2 p-4" key={candidate.symbol}><p className="text-lg font-bold text-foreground">{candidate.symbol}</p><StatusBadge value="APPROVE" label="승인 · 정규장 진입 평가 대기"/></div>)}</div> : <EmptyState title={waitingLoading ? "진입 대기 종목을 확인하고 있습니다." : "승인 후 아직 진입하지 않은 종목이 없습니다."}/>}</section>
+      <section className="flex flex-col"><div className="mb-3 flex items-center justify-between gap-3"><div className="flex flex-wrap items-baseline gap-x-2 gap-y-1"><h2 className="font-semibold">진입 평가</h2>{analysisTradingDate && <span className="text-xs text-muted">{tradingDate(analysisTradingDate)} 분석 기준</span>}</div><Link href="/research" className="btn-action-secondary-compact">분석 보기</Link></div>{waiting.length ? <div className="grid flex-1 auto-rows-fr gap-3 sm:grid-cols-2">{waiting.map(entry => <EntryStatusCard key={entry.symbol} symbol={entry.symbol} state={entry.state}/>)}</div> : <EmptyState title={waitingLoading ? "진입 대기 종목을 확인하고 있습니다." : "승인 후 아직 진입하지 않은 종목이 없습니다."}/>}</section>
       <section className="flex flex-col"><h2 className="mb-3 font-semibold">현재 세션 손익 상세</h2><div className="panel pnl-metric-grid grid flex-1 grid-cols-2 sm:grid-cols-4">{[["실현 손익", account?.realized_pnl], ["평가 손익", account?.unrealized_pnl], ["비용", null], ["순손익", account?.today_pnl]].map(([label, value]) => <div className={`pnl-metric ${label === "순손익" ? "pnl-metric-net" : ""}`} key={label}><p className="label">{label}</p><p className={`mt-2 text-lg font-semibold ${label === "비용" ? "text-foreground-secondary" : pnlTone(value)}`}>{signedDecimal(value)}</p></div>)}</div></section>
     </div>
 
     <section aria-labelledby="daily-performance-title"><div className="mb-3 flex flex-wrap items-center justify-between gap-3"><h2 id="daily-performance-title" className="font-semibold">일별 손익</h2><div className="flex items-center gap-2">{pendingOrders > 0 && <span className="rounded-full border border-warning bg-warning-soft px-3 py-1 text-xs text-warning">미체결 주문 {pendingOrders}건</span>}<button type="button" className="btn-action-secondary-compact" aria-expanded={showHistory} aria-controls="trading-history-detail" onClick={() => setShowHistory(value => !value)}>{showHistory ? "거래 내역 닫기" : "거래 내역 보기"}</button></div></div><DailyPerformanceTable rows={dailyPerformance.data} loading={dailyPerformance.loading}/>
       {showHistory && <div id="trading-history-detail" className="mt-5"><div className="mb-3 flex flex-wrap justify-end gap-1" aria-label="매매 내역 필터">{historyFilters.map(filter => <button key={filter.value} type="button" aria-pressed={historyFilter === filter.value} onClick={() => { setHistoryFilter(filter.value); setExpandedHistoryId(null); }} className={`btn-compact ${historyFilter === filter.value ? "btn-compact-active" : ""}`}>{filter.label}</button>)}</div>{visibleHistory.length ? <div className="table-wrap"><table><thead><tr><th>시각</th><th>종목</th><th>구분</th><th>방향</th><th>수량</th><th>가격</th><th>상태 / 결과</th></tr></thead><tbody>{visibleHistory.map(row => <HistoryRows key={row.id} row={row} expanded={expandedHistoryId === row.id} onToggle={() => setExpandedHistoryId(current => current === row.id ? null : row.id)}/>)}</tbody></table></div> : <EmptyState title={historyEmptyLabel[historyFilter]}/>}</div>}
     </section>
+  </div>;
+}
+
+/** Approved-symbol entry status, read only from persisted StrategyState. */
+function EntryStatusCard({ symbol, state }: { symbol: string; state: StrategyState | null }) {
+  const rejected = state?.phase === "PREMARKET_REJECTED";
+  return <div className="panel flex flex-col items-start justify-center gap-2 p-4">
+    <p className="text-lg font-bold text-foreground">{symbol}</p>
+    {!state && <StatusBadge value="APPROVE" label="승인 · 정규장 진입 평가 대기"/>}
+    {rejected && <><StatusBadge value="REJECTED" label="진입 제외 · 프리마켓 조건 미충족"/><p className="text-xs text-muted">사유: {formatStrategyPhaseReason(state.phase_reason)}</p></>}
+    {state && !rejected && <StatusBadge value={state.phase} label={formatStrategyPhase(state.phase)}/>}
   </div>;
 }
 

@@ -19,7 +19,7 @@ from app.core.database import Base
 from app.dev.schema_fingerprint import schema_fingerprint
 from app.models.simulation import SimulationAccountRecord, SimulationTradeRecord
 
-REVISION = "20260908_0010"
+REVISION = "20260908_0011"
 SIMULATION_TABLES = ("simulation_accounts", "simulation_positions", "simulation_trades", "account_daily_performance")
 OPEN_INDEX = "uq_simulation_trades_open_symbol"
 # SimBroker fractional sizing produces repeating decimals that must survive exactly.
@@ -67,7 +67,7 @@ def test_migration_adds_exactly_the_simulation_tables(migrated: Engine) -> None:
     assert set(SIMULATION_TABLES) <= tables
 
 
-def test_alembic_current_is_0010(migrated: Engine) -> None:
+def test_alembic_current_is_0011(migrated: Engine) -> None:
     with migrated.connect() as connection:
         assert connection.execute(text("SELECT version_num FROM alembic_version")).scalars().all() == [REVISION]
         assert connection.execute(text("PRAGMA quick_check")).scalars().all() == ["ok"]

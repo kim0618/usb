@@ -23,6 +23,7 @@ class StrategyStateRecord(Base):
     book: Mapped[str] = mapped_column(String(16), nullable=False, default="ACTUAL")
     variant: Mapped[str] = mapped_column(String(16), nullable=False, default="ACTUAL")
     phase: Mapped[str] = mapped_column(String(32), nullable=False)
+    phase_reason: Mapped[str | None] = mapped_column(String(32))
     entry_trading_date: Mapped[date | None] = mapped_column(Date)
     entry_price: Mapped[Decimal | None] = mapped_column(DecimalString())
     initial_stop: Mapped[Decimal | None] = mapped_column(DecimalString())

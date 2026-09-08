@@ -73,6 +73,9 @@ class StrategyState:
     symbol: str
     trading_date: date
     phase: StrategyPhase = StrategyPhase.RESEARCH_READY
+    # The code that explains `phase`, carrying a StrategyReason value. It is not typed
+    # as that enum because the engine defining it already imports this module.
+    phase_reason: str | None = None
     scanner_candidate_id: int | None = None
     book: StrategyBook = StrategyBook.ACTUAL
     variant: str = "ACTUAL"
@@ -112,9 +115,14 @@ class StrategyState:
             raise ValueError("last_market_as_of must be timezone-aware")
         if self.add_count < 0 or self.holding_day_number < 0:
             raise ValueError("strategy counters cannot be negative")
+        if self.phase_reason is not None:
+            object.__setattr__(self, "phase_reason", str(self.phase_reason))
 
     def transition(self, phase: StrategyPhase, **changes: object) -> "StrategyState":
         phase = StrategyPhase(phase)
         if phase not in _TRANSITIONS.get(self.phase, set()):
             raise ValueError(f"invalid strategy transition: {self.phase} -> {phase}")
+        # A reason explains the phase it was recorded with, so it never survives into
+        # the next one unless that transition states its own.
+        changes.setdefault("phase_reason", None)
         return replace(self, phase=phase, **changes)

@@ -43,7 +43,9 @@ class StrategyLifecycleService:
     @staticmethod
     def apply_premarket_gate(state: StrategyState, gate: GateResult) -> StrategyState:
         phase = StrategyPhase.PREMARKET_PASSED if gate.passed else StrategyPhase.PREMARKET_REJECTED
-        passed = state.transition(phase)
+        # A rejection is terminal, so the reason it carries is the only record of why
+        # this symbol never reached an entry decision.
+        passed = state.transition(phase, phase_reason=None if gate.passed else gate.reason.value)
         return passed.transition(StrategyPhase.OPENING_RANGE_BUILDING) if gate.passed else passed
 
     @staticmethod

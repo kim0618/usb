@@ -63,7 +63,7 @@ const overview = (openSymbols: string[] = []): TradingOverview => ({
 });
 
 const waitingSection = async () => {
-  const heading = await screen.findByRole("heading", { name: "진입 대기" });
+  const heading = await screen.findByRole("heading", { name: "진입 평가" });
   return heading.closest("section") as HTMLElement;
 };
 
