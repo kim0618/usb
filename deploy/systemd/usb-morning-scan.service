@@ -1,0 +1,17 @@
+[Unit]
+Description=USB morning Scanner and research prompt preparation
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/root/usb
+EnvironmentFile=/root/usb/.env
+Environment=PYTHONPATH=/root/usb/backend
+Environment=RUN_KIWOOM_REAL_SCANNER=1
+ExecStart=/root/usb/.venv/bin/python -m app.dev.run_morning_scanner --limit 10
+TimeoutStartSec=30min
+
+# This unit only acquires market data and writes Scanner snapshots. It never restarts
+# itself and the application safety gate requires simulation/market_data_only.

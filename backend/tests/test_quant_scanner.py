@@ -170,6 +170,24 @@ def test_middle_missing_trading_day_is_excluded_even_with_21_bars() -> None:
     assert result.excluded[0].reason is ExclusionReason.MISALIGNED_HISTORY
 
 
+def test_latest_bar_missing_is_distinguished_from_short_history() -> None:
+    stale = history("STALE", count=22)[:-1]
+    short = history("SHORT", count=20)
+    market, reference = scanner_providers(
+        ["GOOD", "STALE", "SHORT"],
+        bars_by_symbol={"STALE": stale, "SHORT": short},
+    )
+    result = QuantScanner(market, reference).scan(
+        ["GOOD", "STALE", "SHORT"],
+        trading_date=TRADING_DATE,
+        scan_as_of=SCAN_AS_OF,
+    )
+    reasons = {item.symbol: item.reason for item in result.excluded}
+    assert reasons["STALE"] is ExclusionReason.INSUFFICIENT_HISTORY
+    assert reasons["SHORT"] is ExclusionReason.INSUFFICIENT_HISTORY
+    assert result.latest_bar_missing_symbols == ("STALE",)
+
+
 def test_duplicate_daily_bar_uses_latest_pit_correction_without_shifting_windows() -> None:
     original = history("AAA")
     duplicate = original[-6]

@@ -1,0 +1,12 @@
+[Unit]
+Description=Run USB morning Scanner after the latest XNYS close
+
+[Timer]
+OnCalendar=*-*-* 07:00:00 Asia/Seoul
+Persistent=true
+AccuracySec=1min
+RandomizedDelaySec=0
+Unit=usb-morning-scan.service
+
+[Install]
+WantedBy=timers.target

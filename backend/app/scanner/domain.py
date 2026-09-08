@@ -94,6 +94,7 @@ class ScannerResult:
     universe_count: int
     candidates: tuple[RankedCandidate, ...]
     excluded: tuple[ExcludedSymbol, ...]
+    latest_bar_missing_symbols: tuple[str, ...] = ()
 
     @property
     def top8(self) -> tuple[RankedCandidate, ...]:

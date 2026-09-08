@@ -107,7 +107,11 @@ class ScannerSnapshotRepository:
         return list(self.session.scalars(statement))
 
     def get_latest_completed_run(
-        self, trading_date: date, *, score_version: str | None = None
+        self,
+        trading_date: date,
+        *,
+        score_version: str | None = None,
+        provider: str | None = None,
     ) -> ScannerRun | None:
         statement = select(ScannerRun).where(
             ScannerRun.trading_date == trading_date,
@@ -116,5 +120,7 @@ class ScannerSnapshotRepository:
         )
         if score_version is not None:
             statement = statement.where(ScannerRun.score_version == score_version)
+        if provider is not None:
+            statement = statement.where(ScannerRun.provider == provider)
         statement = statement.order_by(ScannerRun.completed_at.desc(), ScannerRun.id.desc()).limit(1)
         return self.session.scalar(statement)

@@ -71,9 +71,11 @@ class QuantScanner:
 
         eligible: list[_EligibleCandidate] = []
         excluded: list[ExcludedSymbol] = []
+        latest_bar_missing_symbols: list[str] = []
         for symbol in symbols:
+            symbol_bars = bars_by_symbol.get(symbol, ())
             candidate, reason = self._evaluate_symbol(
-                symbol, metadata.get(symbol), bars_by_symbol.get(symbol, ()), benchmark, trading_date
+                symbol, metadata.get(symbol), symbol_bars, benchmark, trading_date
             )
             if candidate is not None:
                 eligible.append(candidate)
@@ -81,6 +83,12 @@ class QuantScanner:
                 if reason is None:
                     raise AssertionError("Excluded scanner symbol requires a reason")
                 excluded.append(ExcludedSymbol(symbol=symbol, reason=reason))
+                if (
+                    reason is ExclusionReason.INSUFFICIENT_HISTORY
+                    and len(symbol_bars) >= self.config.required_history
+                    and symbol_bars[-1].trading_date != trading_date
+                ):
+                    latest_bar_missing_symbols.append(symbol)
 
         ranked = self._normalize_and_rank(eligible)
         return ScannerResult(
@@ -90,6 +98,7 @@ class QuantScanner:
             universe_count=len(symbols),
             candidates=tuple(ranked),
             excluded=tuple(excluded),
+            latest_bar_missing_symbols=tuple(latest_bar_missing_symbols),
         )
 
     @staticmethod
