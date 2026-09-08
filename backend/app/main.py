@@ -19,6 +19,9 @@ from app.market import factory as market_factory
 from app.services.end_of_day_runtime import (
     start_end_of_day_runtime, stop_end_of_day_runtime,
 )
+from app.services.entry_management_runtime import (
+    start_entry_management_runtime, stop_entry_management_runtime,
+)
 from app.services.position_management_runtime import (
     start_position_management_runtime, stop_position_management_runtime,
 )
@@ -54,6 +57,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
                 _app.state, "position_market_data_provider_factory",
                 lambda: market_factory.build_kiwoom_provider(current),
             )
+            start_entry_management_runtime(runtime, provider_factory)
             start_position_management_runtime(runtime, provider_factory)
             # The closing review is a second cadence over the same broker, not a
             # second control loop: it starts after the minute driver so a process
@@ -65,17 +69,20 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         # committed by the execution transaction that produced it. It is released
         # whatever the cadence owner did, because a task that failed to stop
         # cleanly must not leave the process holding a broker nobody can replace.
-        # Stopped in the order that keeps the narrower owner alive longest: the
-        # closing review may have signalled an exit the minute driver still has to
-        # retry, so it is the one asked to stop first.
+        # Stop discovery first so shutdown cannot open a new position after its
+        # management owners have gone away. Existing-position owners then drain
+        # before broker ownership is released.
         try:
-            await stop_end_of_day_runtime()
+            await stop_entry_management_runtime()
         finally:
             try:
-                await stop_position_management_runtime()
+                await stop_end_of_day_runtime()
             finally:
-                clear_active_sim_broker()
-                logger.info("Application stopping")
+                try:
+                    await stop_position_management_runtime()
+                finally:
+                    clear_active_sim_broker()
+                    logger.info("Application stopping")
 
 
 def error_response(status: int, code: str, message: str, details: object | None = None) -> JSONResponse:

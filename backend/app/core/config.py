@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     runtime_profile: str = "default"
     database_url: str = DEFAULT_DATABASE_URL
+    paper_database_url: str | None = None
     data_dir: Path = Path("data")
     market_timezone: str = "America/New_York"
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
@@ -137,7 +138,7 @@ class Settings(BaseSettings):
     @property
     def resolved_database_url(self) -> str:
         database_url = (
-            REAL_MARKET_DATABASE_URL
+            self.paper_database_url or REAL_MARKET_DATABASE_URL
             if self.runtime_profile == "real_market_operator"
             else self.database_url
         )

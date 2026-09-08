@@ -55,3 +55,22 @@ curl http://127.0.0.1:8000/health
 ```
 
 Details live in `docs/BACKEND_DEVELOPMENT.md` and `docs/FRONTEND_V1.md`.
+
+## Paper account bootstrap
+
+The Paper forward-test principal is a fixed snapshot: KRW 10,000,000 converted
+once to USD 7,428.92. It is not recalculated with later FX rates. After migrating
+a fresh, explicitly selected Cloud Paper database, initialize it once with:
+
+```bash
+RUNTIME_PROFILE=real_market_operator \
+MARKET_DATA_PROVIDER=kiwoom \
+BROKER_PROVIDER=simulation \
+KIWOOM_MODE=market_data_only \
+PAPER_DATABASE_URL=sqlite:////absolute/path/to/cloud-paper.sqlite3 \
+PYTHONPATH=backend .venv/bin/python -m app.dev.bootstrap_paper_account
+```
+
+The command never runs during API startup, refuses the protected local operator
+database, and will not overwrite an account whose values differ from the exact
+`SIM/operator/USD/7428.92` bootstrap contract.

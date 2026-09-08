@@ -13,6 +13,14 @@ def test_config_defaults() -> None:
     assert settings.market_timezone == "America/New_York"
     assert settings.resolved_database_url.startswith("sqlite:////")
     assert settings.resolved_data_dir.is_absolute()
+    assert settings.paper_database_url is None
+
+
+def test_operator_profile_can_select_explicit_paper_database(tmp_path: Path) -> None:
+    url = f"sqlite:///{tmp_path / 'cloud-paper.sqlite3'}"
+    settings = Settings(_env_file=None, runtime_profile="real_market_operator",
+                        market_data_provider="kiwoom", paper_database_url=url)
+    assert settings.resolved_database_url == url
 
 
 def test_config_loads_environment(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
