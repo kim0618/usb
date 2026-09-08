@@ -81,12 +81,25 @@ class EntryLifecycleService:
             calendar=self.calendar,
         )
 
-    def approved_candidates(self, trading_date: date) -> tuple[ApprovedCandidate, ...]:
-        """Use the newest completed run as one chain; never combine latest rows."""
+    def analysis_session_date(self, entry_session_date: date) -> date:
+        """Scanner/GPT `trading_date` is the last completed XNYS session at analysis time,
+        so the analysis an entry session consumes is the one stamped with its predecessor."""
+        return self.calendar.previous_trading_day(entry_session_date)
+
+    def approved_candidates_for_entry_session(self, entry_session_date: date
+                                              ) -> tuple[ApprovedCandidate, ...]:
+        """Exact predecessor match only; an older session's analysis is never a fallback."""
+        return self.approved_candidates(self.analysis_session_date(entry_session_date))
+
+    def approved_candidates(self, analysis_session_date: date) -> tuple[ApprovedCandidate, ...]:
+        """Use the newest completed run as one chain; never combine latest rows.
+
+        ``analysis_session_date`` is the Scanner/GPT ``trading_date``, not the entry session.
+        """
         with self.runtime.session_factory() as session:
             run = session.scalar(
                 select(ScannerRun).where(
-                    ScannerRun.trading_date == trading_date,
+                    ScannerRun.trading_date == analysis_session_date,
                     ScannerRun.status == "COMPLETED",
                 ).order_by(ScannerRun.completed_at.desc(), ScannerRun.id.desc()).limit(1)
             )
@@ -95,7 +108,7 @@ class EntryLifecycleService:
             analysis = session.scalar(
                 select(GPTAnalysis).where(
                     GPTAnalysis.scanner_run_id == run.id,
-                    GPTAnalysis.trading_date == trading_date,
+                    GPTAnalysis.trading_date == analysis_session_date,
                     GPTAnalysis.status == "IMPORTED",
                 ).order_by(GPTAnalysis.analysis_at.desc(), GPTAnalysis.id.desc()).limit(1)
             )
@@ -290,8 +303,11 @@ class EntryManagementRuntime:
             window = self._calendar.session(local.date())
             if window is None or not (window.market_open < now <= window.market_close):
                 return ()
-            candidates = self._lifecycle.approved_candidates(local.date())
+            entry_session_date = local.date()
+            candidates = self._lifecycle.approved_candidates_for_entry_session(entry_session_date)
             if not candidates:
+                logger.debug("ENTRY: no approved candidate for entry session %s (analysis session %s)",
+                             entry_session_date, self._calendar.previous_trading_day(entry_session_date))
                 return ()
             if self._provider is None:
                 self._provider = self._provider_factory()

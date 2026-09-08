@@ -7,7 +7,7 @@ import { DailyPerformanceTable, PreviousSessionPerformance } from "@/components/
 import { useApi } from "@/hooks/use-api";
 import { api } from "@/lib/api";
 import { formatExecutionBroker, formatOrderRejectionReason, formatOrderSide, formatOrderStatus, strategyStatusDisplay, formatTradeStatus } from "@/lib/display";
-import { currency, decimal, etTime, formatKrw, formatSignedKrw, signedDecimal, usdToDisplayKrw } from "@/lib/format";
+import { currency, decimal, etTime, formatKrw, formatSignedKrw, signedDecimal, tradingDate, usdToDisplayKrw } from "@/lib/format";
 import { composeTradingHistory, historySideLabel, tradingHistoryEventLabel, type TradingHistoryEventType, type TradingHistoryRow } from "@/lib/trading-history";
 import type { TradingAccount, TradingPosition } from "@/types/api";
 
@@ -48,8 +48,10 @@ export default function TradingPage() {
   if (!overview.data) return <ErrorState message={overview.error || "매매 상태 조회 실패"} retry={overview.refresh}/>;
 
   const o = overview.data; const account = o.account; const openSymbols = new Set(o.open_positions.map(position => position.symbol));
-  const researchIsToday = !!dashboard.data && research.data?.analysis.trading_date === dashboard.data.market.trading_date;
-  const waiting = researchIsToday ? research.data!.candidates.filter(candidate => candidate.human_decision?.decision === "APPROVE" && !openSymbols.has(candidate.symbol)).slice(0, 2) : [];
+  // Scanner/GPT stamp trading_date with the last COMPLETED session, so an entry session consumes
+  // its predecessor's analysis. A same-date match with the current session is never freshness.
+  const analysisTradingDate = research.data?.analysis.trading_date ?? null;
+  const waiting = (research.data?.candidates || []).filter(candidate => candidate.human_decision?.decision === "APPROVE" && !openSymbols.has(candidate.symbol)).slice(0, 2);
   const waitingLoading = dashboard.loading || research.loading;
   const pendingOrders = orders.data?.filter(order => isOpenOrder(order.status)).length || 0;
   const history = composeTradingHistory(orders.data || [], fills.data || [], trades.data || []);
@@ -68,7 +70,7 @@ export default function TradingPage() {
     <section className="mb-7"><div className="mb-3"><h2 className="font-semibold">현재 보유 종목</h2></div>{o.open_positions.length ? <div className="table-wrap"><table className="trading-positions-table"><thead><tr><th>종목</th><th>투자금</th><th>보유 수량</th><th>평균단가</th><th>현재가</th><th>평가금액</th><th>손익</th><th>수익률</th><th>현재 Stop</th><th>전략 상태</th></tr></thead><tbody>{o.open_positions.map(position => { const status = position.phase ? strategyStatusDisplay(position.phase) : null; return <tr key={position.symbol}><td className="font-bold text-foreground">{position.symbol}</td><td>{positionValue(position, "invested_notional")}</td><td>{decimal(position.quantity)}</td><td>{positionValue(position, "average_price")}</td><td>{positionValue(position, "mark_price")}</td><td>{positionValue(position, "market_value")}</td><td className={pnlTone(position.unrealized_pnl)}>{signedDecimal(position.unrealized_pnl)}</td><td className={pnlTone(position.return_pct)}>{signedDecimal(position.return_pct, "%")}</td><td>{positionValue(position, "active_stop")}</td><td>{status ? <StatusBadge value={position.phase!} label={status.label} tone={status.tone}/> : "-"}</td></tr>; })}</tbody></table></div> : <EmptyState title="보유 중인 포지션이 없습니다." description={o.availability === "NO_ACTIVE_SIM_BROKER" ? "활성 브로커 연결 전에는 현재 포지션을 확인할 수 없습니다." : undefined}/>}</section>
 
     <div className="mb-7 grid items-stretch gap-5 xl:grid-cols-2">
-      <section className="flex flex-col"><div className="mb-3 flex items-center justify-between"><h2 className="font-semibold">진입 대기</h2><Link href="/research" className="btn-action-secondary-compact">분석 보기</Link></div>{waiting.length ? <div className="grid flex-1 auto-rows-fr gap-3 sm:grid-cols-2">{waiting.map(candidate => <div className="panel flex items-center justify-between p-4" key={candidate.symbol}><div><p className="text-lg font-bold text-foreground">{candidate.symbol}</p></div><StatusBadge value="APPROVE" label="진입 대기"/></div>)}</div> : <EmptyState title={waitingLoading ? "진입 대기 종목을 확인하고 있습니다." : "승인 후 아직 진입하지 않은 종목이 없습니다."}/>}</section>
+      <section className="flex flex-col"><div className="mb-3 flex items-center justify-between gap-3"><div className="flex flex-wrap items-baseline gap-x-2 gap-y-1"><h2 className="font-semibold">진입 대기</h2>{analysisTradingDate && <span className="text-xs text-muted">{tradingDate(analysisTradingDate)} 분석 기준</span>}</div><Link href="/research" className="btn-action-secondary-compact">분석 보기</Link></div>{waiting.length ? <div className="grid flex-1 auto-rows-fr gap-3 sm:grid-cols-2">{waiting.map(candidate => <div className="panel flex flex-col items-start justify-center gap-2 p-4" key={candidate.symbol}><p className="text-lg font-bold text-foreground">{candidate.symbol}</p><StatusBadge value="APPROVE" label="승인 · 정규장 진입 평가 대기"/></div>)}</div> : <EmptyState title={waitingLoading ? "진입 대기 종목을 확인하고 있습니다." : "승인 후 아직 진입하지 않은 종목이 없습니다."}/>}</section>
       <section className="flex flex-col"><h2 className="mb-3 font-semibold">현재 세션 손익 상세</h2><div className="panel pnl-metric-grid grid flex-1 grid-cols-2 sm:grid-cols-4">{[["실현 손익", account?.realized_pnl], ["평가 손익", account?.unrealized_pnl], ["비용", null], ["순손익", account?.today_pnl]].map(([label, value]) => <div className={`pnl-metric ${label === "순손익" ? "pnl-metric-net" : ""}`} key={label}><p className="label">{label}</p><p className={`mt-2 text-lg font-semibold ${label === "비용" ? "text-foreground-secondary" : pnlTone(value)}`}>{signedDecimal(value)}</p></div>)}</div></section>
     </div>
 

@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -19,7 +19,7 @@ from app.models.strategy import StrategyStateRecord
 from app.repositories.simulation import SimulationStateRepository
 from app.repositories.strategy import StrategyStateRepository
 from app.services.entry_management_runtime import (
-    ApprovedCandidate, EntryAction, EntryLifecycleService, EntryManagementRuntime,
+    ApprovedCandidate, EntryAction, EntryLifecycleService, EntryManagementRuntime, EntryOutcome,
 )
 from app.services.simulation_runtime import SimulationRuntimeContext
 from app.services.simulation import rehydrate_sim_broker
@@ -222,9 +222,132 @@ async def test_no_approved_candidate_fast_path_never_constructs_provider(durable
     built = []
 
     class EmptyLifecycle:
-        def approved_candidates(self, trading_date):
+        def approved_candidates_for_entry_session(self, entry_session_date):
             return ()
 
     owner = EntryManagementRuntime(runtime, lambda: built.append(True), lifecycle=EmptyLifecycle())
     assert await owner.run_once(as_of=OPEN + timedelta(minutes=30)) == ()
     assert built == []
+
+
+# --- Entry session / analysis session date contract -------------------------------------
+# Scanner and GPT stamp `trading_date` with the last COMPLETED XNYS session, so an entry
+# session consumes the analysis of its immediate predecessor session, never its own date.
+
+ENTRY_SESSION = date(2026, 9, 8)
+ANALYSIS_SESSION = date(2026, 9, 4)
+
+
+def seed_session(session, trading_date: date, symbols: tuple[str, ...]) -> None:
+    """One COMPLETED run and one IMPORTED analysis on `trading_date`, every symbol APPROVEd."""
+    at = datetime.combine(trading_date, time(16, 30), ET)
+    run = ScannerRun(trading_date=trading_date, started_at=at, status="COMPLETED",
+                     completed_at=at, provider="KIWOOM_REAL", score_version="v0")
+    session.add(run)
+    session.flush()
+    analysed = GPTAnalysis(scanner_run_id=run.id, trading_date=trading_date, provider="gpt",
+                           model="m", prompt_version="1", schema_version="1",
+                           evidence_version="1", status="IMPORTED", raw_json="{}",
+                           payload_hash=f"analysis-{trading_date}", analysis_at=at)
+    session.add(analysed)
+    session.flush()
+    for rank, symbol in enumerate(symbols, start=1):
+        scanned = ScannerCandidate(scanner_run_id=run.id, symbol=symbol, rank=rank, is_top8=True,
+                                   score=1.0, score_components_json={}, observed_at=at,
+                                   available_at=at)
+        session.add(scanned)
+        session.flush()
+        session.add(GPTCandidateAnalysis(
+            gpt_analysis_id=analysed.id, scanner_candidate_id=scanned.id, symbol=symbol,
+            gpt_rank=rank, overall_score=1, catalyst_score=1, fundamental_score=1,
+            momentum_score=1, risk_score=1, evidence_confidence=1, catalyst_duration="D",
+            stop_profile="TIGHT", trailing_profile=TrailingProfile.WIDE.value,
+            overnight_suitability=OvernightSuitability.MEDIUM.value, company_summary="",
+            catalyst_summary="", risk_summary="", invalidation_summary="", unknown_fields_json=[]))
+        session.add(HumanDecisionRecord(
+            gpt_analysis_id=analysed.id, scanner_candidate_id=scanned.id, symbol=symbol,
+            decision="APPROVE", decided_at=at))
+    session.commit()
+
+
+def test_todays_entry_session_consumes_the_labor_day_predecessor_analysis(durable) -> None:
+    """Production case: 09/08 entry must read the 09/04 analysis, not an empty 09/08 one."""
+    runtime, factory = durable
+    with factory() as session:
+        seed_session(session, ANALYSIS_SESSION, ("NVDA", "AAPL"))
+    service = EntryLifecycleService(runtime)
+
+    assert service.analysis_session_date(ENTRY_SESSION) == ANALYSIS_SESSION
+    approved = service.approved_candidates_for_entry_session(ENTRY_SESSION)
+
+    assert sorted(entry.symbol for entry in approved) == ["AAPL", "NVDA"]
+    # The pre-fix lookup, kept explicit so the defect cannot silently return.
+    assert service.approved_candidates(ENTRY_SESSION) == ()
+
+
+@pytest.mark.parametrize("entry_session, analysis_session, case", [
+    (date(2026, 9, 8), date(2026, 9, 4), "labor day 09/07 and the weekend are skipped"),
+    (date(2026, 9, 9), date(2026, 9, 8), "consecutive sessions"),
+    (date(2026, 9, 14), date(2026, 9, 11), "monday entry consumes friday analysis"),
+    (date(2026, 11, 27), date(2026, 11, 25), "thanksgiving 11/26 is skipped"),
+    (date(2026, 1, 20), date(2026, 1, 16), "mlk day and the weekend are skipped"),
+])
+def test_previous_xnys_session_is_the_analysis_authority(durable, entry_session: date,
+                                                         analysis_session: date, case: str) -> None:
+    runtime, factory = durable
+    with factory() as session:
+        seed_session(session, analysis_session, ("NVDA",))
+    service = EntryLifecycleService(runtime)
+
+    assert service.analysis_session_date(entry_session) == analysis_session, case
+    assert [entry.symbol for entry in
+            service.approved_candidates_for_entry_session(entry_session)] == ["NVDA"], case
+
+
+def test_a_missing_exact_predecessor_never_falls_back_to_an_older_analysis(durable) -> None:
+    """09/09 entry with no 09/08 analysis enters nothing; 09/04 approvals are not reused."""
+    runtime, factory = durable
+    with factory() as session:
+        seed_session(session, ANALYSIS_SESSION, ("NVDA", "AAPL"))
+
+    assert EntryLifecycleService(runtime).approved_candidates_for_entry_session(
+        date(2026, 9, 9)) == ()
+
+
+def test_a_superseded_sessions_approvals_never_leak_into_the_next_entry_session(durable) -> None:
+    runtime, factory = durable
+    with factory() as session:
+        seed_session(session, ANALYSIS_SESSION, ("OLD", "STALE"))
+        seed_session(session, ENTRY_SESSION, ("NVDA",))
+
+    approved = EntryLifecycleService(runtime).approved_candidates_for_entry_session(
+        date(2026, 9, 9))
+
+    assert [entry.symbol for entry in approved] == ["NVDA"]
+
+
+@pytest.mark.asyncio
+async def test_run_once_evaluates_the_previous_sessions_approvals_in_the_current_session(
+        durable) -> None:
+    """End to end through run_once: the 09/08 regular session evaluates 09/04's approvals."""
+    runtime, factory = durable
+    with factory() as session:
+        seed_session(session, ANALYSIS_SESSION, ("NVDA", "AAPL"))
+
+    class RecordingLifecycle(EntryLifecycleService):
+        def __init__(self, context) -> None:
+            super().__init__(context)
+            self.evaluated: list[str] = []
+
+        def evaluate(self, candidate, provider, *, as_of):
+            self.evaluated.append(candidate.symbol)
+            return EntryOutcome(candidate.symbol, EntryAction.HOLD, "recorded")
+
+    lifecycle = RecordingLifecycle(runtime)
+    owner = EntryManagementRuntime(runtime, lambda: Provider(), lifecycle=lifecycle)
+
+    outcomes = await owner.run_once(as_of=datetime(2026, 9, 8, 10, 0, tzinfo=ET))
+
+    assert sorted(lifecycle.evaluated) == ["AAPL", "NVDA"]
+    assert sorted(outcome.symbol for outcome in outcomes) == ["AAPL", "NVDA"]
+    assert all(outcome.action is EntryAction.HOLD for outcome in outcomes)
