@@ -53,6 +53,11 @@ export default function CandidatesPage() {
 
   const s = scan.data;
   const showCompany = s.top8.some(candidate => Boolean(candidate.company_name?.trim()));
+  // /research/latest is the newest imported analysis overall, which may still belong to an
+  // earlier ScannerRun. Analysis status is only this run's, so an analysis from another run
+  // is not consulted at all -- otherwise a previous run's decision reappears on a symbol
+  // this run has never analysed.
+  const runAnalysis = research.data?.analysis.scanner_run_id === s.run.id ? research.data : null;
   return <>
     <AnalysisTabs/>
     <PageHeader title="후보 종목" description="정량 분석을 통과한 종목 중 최대 8개를 표시합니다." actions={<><button className="btn-action-secondary" disabled={busy} onClick={() => void loadPrompt(true)}>미리보기</button><button className="btn-action-primary" disabled={busy} onClick={() => void loadPrompt(false)}>GPT 프롬프트 복사</button></>}/>
@@ -66,7 +71,7 @@ export default function CandidatesPage() {
       <th>거래 규모<InfoTooltip label="거래 규모" text={COLUMN_HELP.dollarVolume}/></th>
       <th>분석 상태</th>
     </tr></thead><tbody>{s.top8.map(candidate => {
-      const researched = research.data?.candidates.find(item => item.symbol === candidate.symbol);
+      const researched = runAnalysis?.candidates.find(item => item.symbol === candidate.symbol);
       const decision = researched?.human_decision?.decision;
       const status = decision ? formatDecisionStatus(decision) : researched ? "분석 완료" : "분석 전";
       return <tr key={candidate.symbol} className="cursor-pointer" onClick={() => setSelected(candidate)}>
