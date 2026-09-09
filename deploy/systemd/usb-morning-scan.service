@@ -9,8 +9,11 @@ User=root
 WorkingDirectory=/root/usb
 EnvironmentFile=/root/usb/.env
 Environment=PYTHONPATH=/root/usb/backend
-Environment=RUN_KIWOOM_REAL_SCANNER=1
-ExecStart=/root/usb/.venv/bin/python -m app.dev.run_morning_scanner --limit 10
+# systemd applies EnvironmentFile= after Environment=, so /root/usb/.env (which keeps the
+# global RUN_KIWOOM_REAL_SCANNER=0) overrode an Environment= line here and the run exited
+# at the safety gate. The flag is injected at exec time instead, so it applies to this
+# oneshot only and .env stays authoritative for every other process.
+ExecStart=/usr/bin/env RUN_KIWOOM_REAL_SCANNER=1 /root/usb/.venv/bin/python -m app.dev.run_morning_scanner --limit 10
 TimeoutStartSec=30min
 
 # This unit only acquires market data and writes Scanner snapshots. It never restarts
