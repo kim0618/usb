@@ -23,11 +23,11 @@ describe("Stage 10B-4 human review detail drawer", () => {
     expect(page).not.toContain("Human Review");
   });
 
-  it("keeps decisions only in adoption detail with the two-approval guard", () => {
+  it("keeps decisions only in adoption detail without an approval-count guard", () => {
     const page = adoption();
     expect(page).toContain("<ResearchDecisionControl");
-    expect(page).toContain("approveDisabled={approved >= 2");
-    expect(page).toContain("error.status === 409");
+    expect(page).not.toContain("approveDisabled={approved >= 2");
+    expect(page).not.toContain("error.status === 409");
     expect(page).toContain("await result.refresh()");
   });
 });

@@ -39,7 +39,7 @@ Trading Engine
 - Human APPROVE는 즉시 BUY가 아니다.
 - APPROVE는 해당 종목에 오늘 전략 실행을 허용한다는 의미다.
 - 실제 진입은 Premarket 및 Opening 조건을 통과해야 한다.
-- 실제 거래 대상은 하루 최대 0~2종목이다.
+- Human 승인 수는 제한하지 않는다. 실제 신규 진입은 하루 최대 3종목, 동시 보유는 최대 3종목이다.
 - TOP 8 전 종목은 Human 결정과 무관하게 Shadow Trading한다.
 - 매매하지 않는 날도 정상이다.
 
@@ -60,7 +60,7 @@ GPT 분석용 프롬프트 생성
 ↓
 GPT 웹검색 + TOP 8 재랭킹
 ↓
-Human 0~2종목 승인
+Human 0~8종목 승인 (다음 거래일 진입 평가 허용)
 ↓
 Premarket Gate
 ↓
@@ -247,7 +247,9 @@ GPT 자기신고 confidence를 그대로 사용하지 않는다.
 
 ## 7. Human Approval
 
-Human은 GPT 결과와 Quant 데이터를 확인하고 최종 0~2개를 승인한다.
+Human은 GPT 결과와 Quant 데이터를 확인하고 승인할 종목을 고른다. 승인 수는 제한하지 않는다.
+승인은 매수가 아니라 다음 거래일 시스템이 그 종목의 진입 여부를 평가하도록 허용하는 것이다.
+실제 신규 진입은 Risk가 하루 최대 3종목, 동시 보유 최대 3종목으로 제한한다.
 
 상태:
 
@@ -508,7 +510,7 @@ TOP 8 전 종목을 Human 승인 여부와 관계없이 Shadow Trading한다.
 실제 Paper 대상:
 
 ```text
-0~2 symbols
+승인 종목 전체 평가, 신규 진입 0~3 symbols
 ```
 
 Shadow 대상:

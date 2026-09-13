@@ -3,14 +3,50 @@
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
+from enum import StrEnum
 from typing import Mapping
 
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 
 from app.market.calendar import MarketCalendar
 from app.models.simulation import AccountDailyPerformanceRecord
 from app.repositories.simulation import SimulationStateRepository
 from app.services.simulation_runtime import SimulationRuntimeContext
+
+
+class SessionEquitySource(StrEnum):
+    PREVIOUS_SESSION_CLOSE = "PREVIOUS_SESSION_CLOSE"
+    LATEST_EARLIER_CLOSE = "LATEST_EARLIER_CLOSE"
+    INITIAL_CASH = "INITIAL_CASH"
+
+
+@dataclass(frozen=True)
+class SessionEquity:
+    equity: Decimal
+    source: SessionEquitySource
+
+
+def session_opening_equity(session: Session, account_id: int, trading_date: date,
+                           calendar: MarketCalendar) -> SessionEquity:
+    """Durable start-of-session equity that fixes the daily risk-accounting 1R.
+
+    It is the opening equity the daily performance snapshot already uses: the exact
+    previous XNYS session's recorded closing equity, or the account's initial cash
+    when nothing was ever recorded. A missed snapshot falls back to the latest earlier
+    close and says so through ``source`` rather than blocking every entry. Only
+    persisted rows are read, so a restart reproduces the same value.
+    """
+    repository = SimulationStateRepository(session)
+    previous = repository.latest_daily_performance_before(account_id, trading_date)
+    if previous is not None:
+        exact = previous.trading_date == calendar.previous_trading_day(trading_date)
+        return SessionEquity(previous.closing_equity, SessionEquitySource.PREVIOUS_SESSION_CLOSE
+                             if exact else SessionEquitySource.LATEST_EARLIER_CLOSE)
+    account = repository.get_account_by_id(account_id)
+    if account is None:
+        raise LookupError("simulation account does not exist")
+    return SessionEquity(account.initial_cash, SessionEquitySource.INITIAL_CASH)
 
 
 class DailyPerformanceUnavailable(RuntimeError):

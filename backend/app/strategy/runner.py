@@ -136,7 +136,9 @@ class StrategyLifecycleRunner:
                 state.trading_date, daily.attempted_symbols | {state.symbol},
                 daily.planned_risk_reserved + evaluation.metrics.planned_risk,
                 daily.base_notional_reserved + evaluation.metrics.final_notional_account_ccy,
-                daily.pyramid_notional_reserved, dict(daily.add_counts))
+                daily.pyramid_notional_reserved, dict(daily.add_counts),
+                base_notional_by_symbol={**daily.base_notional_by_symbol,
+                                         state.symbol: evaluation.metrics.final_notional_account_ccy})
         return LifecycleExecution(next_state, evaluation, order)
 
     def execute_add(self, *, state: StrategyState, decision: StrategyDecision,

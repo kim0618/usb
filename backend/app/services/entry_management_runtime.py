@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, datetime, time, timedelta, timezone
 from decimal import Decimal
 from enum import StrEnum
@@ -23,6 +23,8 @@ from app.repositories.risk import DailyRiskRepository
 from app.repositories.strategy import StrategyStateRepository
 from app.risk.domain import AccountSnapshot, Currency, PortfolioSnapshot, PositionSnapshot
 from app.risk.engine import RiskEngine
+from app.services.daily_performance import SessionEquitySource, session_opening_equity
+from app.services.entry_capacity import load_entry_capacity, pending_entries
 from app.services.position_lifecycle import strategy_state_sink
 from app.services.simulation_runtime import SimulationRuntimeContext
 from app.services.strategy import StrategyLifecycleService
@@ -173,6 +175,15 @@ class EntryLifecycleService:
         if state is not None and (state.phase in TERMINAL_PHASES or
                                   state.phase in {StrategyPhase.POSITION_OPEN, StrategyPhase.PYRAMID_ADDED}):
             return EntryOutcome(candidate.symbol, EntryAction.SKIPPED, state.phase.value, state)
+        # A full cap stops new-symbol work before any market data or strategy state is
+        # touched, so a skipped candidate stays re-evaluable if open capacity frees up.
+        with self.runtime.session_factory() as session:
+            capacity = load_entry_capacity(session, self.runtime.broker, candidate_date,
+                                           self.risk_engine.config)
+        if (capacity.blocked_reason is not None
+                and candidate.symbol not in capacity.pending_entry_symbols):
+            return EntryOutcome(candidate.symbol, EntryAction.SKIPPED,
+                                capacity.blocked_reason.value, state)
 
         bars = tuple(provider.get_minute_bars(
             [candidate.symbol], datetime.combine(candidate_date, time(4), self.calendar.timezone),
@@ -210,6 +221,7 @@ class EntryLifecycleService:
         account, portfolio = self._risk_snapshots(provider, as_of, candidate.symbol, visible)
         with self.runtime.session_factory() as session:
             daily = DailyRiskRepository(session).load(candidate_date)
+            daily = replace(daily, session_equity=self._session_equity(session, candidate_date))
         result = self.runner.execute_entry(
             state=evaluated_state, decision=decision, account=account, portfolio=portfolio,
             market_bars=visible, instrument_currency=Currency.USD, created_at=as_of,
@@ -293,7 +305,8 @@ class EntryLifecycleService:
             Currency(self.runtime.broker.currency), base_notional_account_ccy=position.cost_basis,
         ) for position in positions)
         base = sum((position.cost_basis for position in positions), Decimal("0"))
-        return account, PortfolioSnapshot(snapshots, base, Decimal("0"), as_of)
+        return account, PortfolioSnapshot(snapshots, base, Decimal("0"), as_of,
+                                          pending_entries(self.runtime.broker))
 
     def _entry_sink(self, updated_at: datetime):  # type: ignore[no-untyped-def]
         def persist(session: Session, state: StrategyState) -> None:
@@ -309,6 +322,16 @@ class EntryLifecycleService:
                     strategy_version=state.strategy_version,
                 )
         return persist
+
+    def _session_equity(self, session: Session, trading_date: date) -> Decimal | None:
+        """Durable session-start equity for the daily 1R; never process-local."""
+        if self.runtime.account_id is None:
+            return None
+        opening = session_opening_equity(session, self.runtime.account_id, trading_date, self.calendar)
+        if opening.source is not SessionEquitySource.PREVIOUS_SESSION_CLOSE:
+            logger.warning("SESSION RISK UNIT: %s uses %s equity %s",
+                           trading_date, opening.source.value, opening.equity)
+        return opening.equity
 
     def _load(self, symbol: str, trading_date: date) -> StrategyState | None:
         with self.runtime.session_factory() as session:

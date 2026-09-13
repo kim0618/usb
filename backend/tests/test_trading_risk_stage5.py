@@ -131,10 +131,10 @@ def test_daily_attempt_symbol_and_planned_risk_guards() -> None:
         daily_state=DailyTradingState(DAY, attempted_symbols=frozenset({"AAA"}))
     ).rejection_reason is RiskRejectionReason.SYMBOL_ALREADY_ATTEMPTED
     assert evaluate(
-        daily_state=DailyTradingState(DAY, attempted_symbols=frozenset({"X", "Y"}))
+        daily_state=DailyTradingState(DAY, attempted_symbols=frozenset({"X", "Y", "Z"}))
     ).rejection_reason is RiskRejectionReason.DAILY_SYMBOL_LIMIT
     relaxed = RiskEngine(RiskConfig(max_new_symbols_per_day=10))
-    state = DailyTradingState(DAY, attempted_symbols=frozenset({"X", "Y"}), planned_risk_reserved=Decimal("1000"))
+    state = DailyTradingState(DAY, attempted_symbols=frozenset({"X", "Y"}), planned_risk_reserved=Decimal("1500"))
     assert evaluate(engine=relaxed, daily_state=state).rejection_reason is RiskRejectionReason.DAILY_RISK_LIMIT
 
 
@@ -206,22 +206,22 @@ def test_persistent_reservations_survive_reload_and_block_duplicate(tmp_path: Pa
     db_engine.dispose()
 
 
-def test_service_two_r_atomic_reservation_and_third_rejection(tmp_path: Path) -> None:
-    db_engine, session, service = _service(tmp_path / "2r.sqlite3")
-    for symbol in ("AAA", "BBB"):
+def test_service_three_r_atomic_reservation_and_fourth_rejection(tmp_path: Path) -> None:
+    db_engine, session, service = _service(tmp_path / "3r.sqlite3")
+    for symbol in ("AAA", "BBB", "CCC"):
         result = service.prepare_base_entry(
             trading_date=DAY, decision=decision(symbol), eligibility=TradingEligibility(True),
             account=account(), portfolio=portfolio(), entry_price="100", stop_price="98",
             instrument_currency=Currency.USD, created_at=NOW,
         )
         assert result.approved
-    third = service.prepare_base_entry(
-        trading_date=DAY, decision=decision("CCC"), eligibility=TradingEligibility(True),
+    fourth = service.prepare_base_entry(
+        trading_date=DAY, decision=decision("DDD"), eligibility=TradingEligibility(True),
         account=account(), portfolio=portfolio(), entry_price="100", stop_price="98",
         instrument_currency=Currency.USD, created_at=NOW,
     )
-    assert third.rejection_reason is RiskRejectionReason.DAILY_RISK_LIMIT
-    assert session.scalar(select(func.count()).select_from(DailySymbolState)) == 2
+    assert fourth.rejection_reason is RiskRejectionReason.DAILY_RISK_LIMIT
+    assert session.scalar(select(func.count()).select_from(DailySymbolState)) == 3
     session.close()
     db_engine.dispose()
 

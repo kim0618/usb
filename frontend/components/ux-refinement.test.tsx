@@ -118,7 +118,7 @@ describe("Stage 9.13.3 analysis workflow policy", () => {
     expect(research).not.toContain("GPT 분석 및 투자 승인");
     expect(research).not.toContain("api.decide");
     expect(adoption).toContain("api.decide(selected.analysis_id, selected.symbol, decision)");
-    expect(adoption).toContain("error.status === 409");
+    expect(adoption).not.toContain("error.status === 409");
     expect(research).not.toContain("api.researchDetail");
     expect(adoption).toContain("api.researchDetail");
     expect(research).toContain("api.importResearch(raw)");

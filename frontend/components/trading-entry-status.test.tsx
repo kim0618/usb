@@ -132,12 +132,13 @@ describe("entry status reflects persisted StrategyState", () => {
     expect(within(view).queryByText("진입 제외 · 프리마켓 조건 미충족")).toBeNull();
   });
 
-  it("keeps open-position exclusion and the analysis date label", async () => {
-    tradingApi.mockResolvedValue(overview([state("NVDA", "PREMARKET_REJECTED", "GAP_TOO_LOW")], ["NVDA"]));
+  it("keeps an entered approval on the list with its phase and the analysis date label", async () => {
+    tradingApi.mockResolvedValue(overview([state("NVDA", "POSITION_OPEN")], ["NVDA"]));
     render(<TradingPage/>);
     const view = await section();
     await waitFor(() => expect(within(view).getByText("09/04 (금) 분석 기준")).toBeInTheDocument());
-    expect(within(view).queryByText("NVDA")).toBeNull();
+    expect(within(view).getByText("NVDA")).toBeInTheDocument();
+    expect(within(view).getByText("보유 중")).toBeInTheDocument();
     expect(within(view).getByText("AAPL")).toBeInTheDocument();
   });
 
@@ -146,5 +147,40 @@ describe("entry status reflects persisted StrategyState", () => {
     expect(source).toContain("o.strategy_states.find");
     ["gap_pct", "volume_ratio", "premarket_gap", "getMinuteBars", "kiwoom"].forEach(token =>
       expect(source).not.toContain(token));
+  });
+});
+
+describe("multi-approval entry evaluation", () => {
+  const many = (): ResearchAnalysis => ({ ...research(), candidates: ["AAA", "BBB", "CCC", "DDD", "EEE", "FFF"].map(candidate) });
+  const capacity = (blocked_reason: "DAILY_ENTRY_CAP_REACHED" | "OPEN_POSITION_CAP_REACHED" | null, used: number, open: number) => ({
+    entry_session_date: ENTRY_SESSION, new_entries_used: used, max_new_entries: 3,
+    open_positions_used: open, max_open_positions: 3, pending_entries: 0, blocked_reason,
+  });
+
+  it("lists every approved symbol instead of the first two", async () => {
+    researchApi.mockResolvedValue(many());
+    render(<TradingPage/>);
+    const view = await section();
+    await waitFor(() => expect(within(view).getAllByText("승인 · 정규장 진입 평가 대기")).toHaveLength(6));
+  });
+
+  it("labels unentered approvals with the backend daily-cap reason and keeps entered phases", async () => {
+    researchApi.mockResolvedValue(many());
+    tradingApi.mockResolvedValue({ ...overview([state("AAA", "POSITION_OPEN"), state("BBB", "POSITION_OPEN"), state("CCC", "EXITED")], ["AAA", "BBB"]),
+      entry_capacity: capacity("DAILY_ENTRY_CAP_REACHED", 3, 2) });
+    render(<TradingPage/>);
+    const view = await section();
+    await waitFor(() => expect(within(view).getAllByText("일일 진입 한도 도달")).toHaveLength(3));
+    expect(within(view).getByText("신규 진입 3/3 · 보유 2/3")).toBeInTheDocument();
+    expect(within(view).getAllByText("보유 중")).toHaveLength(2);
+    expect(within(view).getByText("청산 완료")).toBeInTheDocument();
+    expect(view.textContent).not.toContain("DAILY_ENTRY_CAP_REACHED");
+  });
+
+  it("shows the open-position cap as its own reason", async () => {
+    tradingApi.mockResolvedValue({ ...overview(), entry_capacity: capacity("OPEN_POSITION_CAP_REACHED", 1, 3) });
+    render(<TradingPage/>);
+    const view = await section();
+    await waitFor(() => expect(within(view).getAllByText("보유 한도 도달")).toHaveLength(2));
   });
 });

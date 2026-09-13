@@ -13,6 +13,11 @@ from app.risk.domain import (
 from app.strategy.domain import DecisionType, StrategyDecision, TradingEligibility
 
 
+# Relative slack for comparing a fresh 1R against a budget built from earlier Decimal
+# reservations; without it the third 1R entry could fail by a rounding residue.
+RISK_UNIT_TOLERANCE = Decimal("1e-9")
+
+
 class RiskEngine:
     def __init__(self, config: RiskConfig | None = None) -> None:
         self.config = config or RiskConfig()
@@ -20,8 +25,39 @@ class RiskEngine:
     def one_r(self, account: AccountSnapshot) -> Decimal:
         return account.equity * self.config.risk_per_trade_pct
 
-    def daily_risk_limit(self, account: AccountSnapshot) -> Decimal:
-        return self.one_r(account) * self.config.max_daily_risk_units
+    def session_risk_unit(self, account: AccountSnapshot,
+                          daily_state: DailyTradingState | None = None) -> Decimal:
+        """1R for daily risk accounting, fixed at the entry session's starting equity.
+
+        Intraday costs and PnL move ``account.equity``; recomputing the budget from it
+        let the first fill's costs shrink the budget below the next 1R entry.
+        """
+        if daily_state is None or daily_state.session_equity is None:
+            return self.one_r(account)
+        return daily_state.session_equity * self.config.risk_per_trade_pct
+
+    def daily_risk_limit(self, account: AccountSnapshot,
+                         daily_state: DailyTradingState | None = None) -> Decimal:
+        return self.session_risk_unit(account, daily_state) * self.config.max_daily_risk_units
+
+    @staticmethod
+    def base_exposure_used(portfolio: PortfolioSnapshot, daily_state: DailyTradingState) -> Decimal:
+        """Open, pending, and reserved base exposure, each counted exactly once.
+
+        A symbol entered today is both a held position and a daily reservation; it is
+        counted as held. A pending order counts its unfilled remainder. A reservation
+        whose symbol is neither held nor pending (a same-day exit) still counts, so an
+        exit never frees base capacity within the session.
+        """
+        held = {position.symbol for position in portfolio.positions}
+        pending = portfolio.pending_entries
+        by_symbol = daily_state.base_notional_by_symbol
+        unattributed = max(daily_state.base_notional_reserved - sum(by_symbol.values(), Decimal("0")),
+                           Decimal("0"))
+        reserved_elsewhere = sum((value for symbol, value in by_symbol.items()
+                                  if symbol not in held and symbol not in pending), Decimal("0"))
+        return (portfolio.base_exposure_used + sum(pending.values(), Decimal("0"))
+                + reserved_elsewhere + unattributed)
 
     def evaluate_base_entry(
         self,
@@ -56,19 +92,22 @@ class RiskEngine:
         if multiplier <= 0:
             return _reject(RiskRejectionReason.INVALID_FX_RATE)
 
-        one_r = self.one_r(account)
-        daily_remaining = self.daily_risk_limit(account) - daily_state.planned_risk_reserved
-        if one_r <= 0:
+        # One entry sizes one unit of risk, never more than the session unit the daily
+        # budget is counted in; below-session equity keeps its smaller current 1R.
+        entry_r = min(self.one_r(account), self.session_risk_unit(account, daily_state))
+        daily_remaining = self.daily_risk_limit(account, daily_state) - daily_state.planned_risk_reserved
+        if entry_r <= 0:
             return _reject(RiskRejectionReason.INVALID_ACCOUNT_STATE)
-        if daily_remaining < one_r:
+        if daily_remaining < entry_r * (Decimal("1") - RISK_UNIT_TOLERANCE):
             return _reject(RiskRejectionReason.DAILY_RISK_LIMIT)
+        entry_r = min(entry_r, daily_remaining)  # absorbs Decimal rounding of earlier reservations
 
         per_share_account = per_share_instrument * multiplier
-        requested_quantity = one_r / per_share_account
+        requested_quantity = entry_r / per_share_account
         requested_account_notional = requested_quantity * entry * multiplier
         base_remaining = (
             account.equity * self.config.base_capacity_pct
-            - portfolio.base_exposure_used - daily_state.base_notional_reserved
+            - self.base_exposure_used(portfolio, daily_state)
         )
         if base_remaining <= 0:
             return _reject(RiskRejectionReason.BASE_CAPACITY_EXHAUSTED)
@@ -91,7 +130,7 @@ class RiskEngine:
         final_quantity = final_account_notional / (entry * multiplier)
         planned_risk = final_quantity * per_share_account
         metrics = RiskMetrics(
-            one_r=one_r, planned_risk=planned_risk,
+            one_r=entry_r, planned_risk=planned_risk,
             per_share_risk=per_share_account,
             requested_quantity=requested_quantity, final_quantity=final_quantity,
             requested_notional_account_ccy=requested_account_notional,
@@ -283,12 +322,17 @@ class RiskEngine:
             return _reject(RiskRejectionReason.INVALID_ACCOUNT_STATE)
         if portfolio.base_exposure_used + portfolio.pyramid_exposure_used > account.equity:
             return _reject(RiskRejectionReason.INVALID_PORTFOLIO_STATE)
-        if decision.symbol in daily_state.attempted_symbols:
+        pending = portfolio.pending_entry_symbols
+        if decision.symbol in daily_state.attempted_symbols or decision.symbol in pending:
             return _reject(RiskRejectionReason.SYMBOL_ALREADY_ATTEMPTED)
-        if daily_state.planned_risk_reserved >= self.daily_risk_limit(account):
+        if daily_state.planned_risk_reserved >= self.daily_risk_limit(account, daily_state):
             return _reject(RiskRejectionReason.DAILY_RISK_LIMIT)
-        if len(daily_state.attempted_symbols) >= self.config.max_new_symbols_per_day:
+        # Entered symbols stay counted after an exit, so a same-day exit never frees a slot.
+        if len(daily_state.attempted_symbols | pending) >= self.config.max_new_symbols_per_day:
             return _reject(RiskRejectionReason.DAILY_SYMBOL_LIMIT)
+        held = frozenset(position.symbol for position in portfolio.positions)
+        if decision.symbol not in held and len(held | pending) >= self.config.max_open_positions:
+            return _reject(RiskRejectionReason.OPEN_POSITION_LIMIT)
         return None
 
     @staticmethod

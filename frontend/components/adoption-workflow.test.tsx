@@ -18,7 +18,7 @@ describe("Stage 10B-4 adoption workflow", () => {
   it("renders classification, excluded toggle, rank delta and human review detail", () => {
     const page = adoption();
     ["채택 후보", "검토 필요", "제외", "제외 숨기기", "Quant → GPT", "순위 변화", "채택 이유", "순위 변화 이유", "위험 / 주의"].forEach(text => expect(page).toContain(text));
-    expect(page).toContain("approved >= 2"); expect(page).toContain("최종 채택 {approved}/2");
+    expect(page).not.toContain("approved >= 2"); expect(page).toContain("최종 채택 {approved}개");
     expect(page).toContain("table-wrap"); expect(page).toContain("Drawer");
   });
   it("keeps the final review free of report-only research sections", () => {

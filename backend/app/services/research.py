@@ -136,9 +136,9 @@ class HumanDecisionService:
             candidate = next((item for item in analysis.candidates if item.symbol == symbol), None)
             if candidate is None:
                 raise ResearchError("Symbol is not present in this GPT analysis")
+            # APPROVE only admits a symbol to next-session entry evaluation; how many are
+            # actually entered is owned by RiskConfig's daily and open-position caps.
             existing = self.repository.get_decision(analysis_id, symbol)
-            if decision is HumanDecision.APPROVE and self.repository.count_approvals(analysis_id, excluding_symbol=symbol) >= 2:
-                raise ResearchError("At most two candidates may be APPROVED per GPT analysis")
             if existing is None:
                 existing = HumanDecisionRecord(gpt_analysis_id=analysis_id, scanner_candidate_id=candidate.scanner_candidate_id, symbol=symbol, decision=decision.value, note=note, decided_at=timestamp)
             else:

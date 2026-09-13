@@ -70,8 +70,8 @@ describe("Stage 10B-4.1 adoption review refinement", () => {
   it("keeps the frozen decision contract and its non-purchase wording intact", () => {
     const page = adoption();
     expect(page).toContain("<ResearchDecisionControl");
-    expect(page).toContain("approveDisabled={approved >= 2");
-    expect(page).toContain("최대 2개 종목까지 채택할 수 있습니다.");
+    expect(page).not.toContain("approveDisabled");
+    expect(page).toContain("실제 신규 진입은 시스템 조건에 따라 하루 최대 3종목입니다.");
     expect(readFileSync("components/research-decision.tsx", "utf8")).toContain("채택은 즉시 매수가 아닙니다. Strategy/Risk 조건을 통과한 경우에만 SimulationBroker 진입 대상이 됩니다.");
   });
 

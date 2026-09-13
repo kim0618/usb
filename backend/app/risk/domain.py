@@ -1,5 +1,6 @@
 """Decimal money, account, portfolio, and risk-result domain."""
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from decimal import Decimal
@@ -92,9 +93,16 @@ class PortfolioSnapshot:
     base_exposure_used: Decimal
     pyramid_exposure_used: Decimal
     as_of: datetime
+    # Unfilled account-currency notional of base-entry BUY orders the broker accepted;
+    # a partial fill keeps only its remainder here, the filled part is a position.
+    pending_entries: Mapping[str, Decimal] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "positions", tuple(self.positions))
+        pending = {normalize_symbol(k): decimal_from(v) for k, v in dict(self.pending_entries).items()}
+        if any(value < 0 for value in pending.values()):
+            raise ValueError("pending entry exposure cannot be negative")
+        object.__setattr__(self, "pending_entries", pending)
         object.__setattr__(self, "base_exposure_used", decimal_from(self.base_exposure_used))
         object.__setattr__(self, "pyramid_exposure_used", decimal_from(self.pyramid_exposure_used))
         if self.base_exposure_used < 0 or self.pyramid_exposure_used < 0:
@@ -106,6 +114,10 @@ class PortfolioSnapshot:
     def position(self, symbol: str) -> PositionSnapshot | None:
         normalized = normalize_symbol(symbol)
         return next((item for item in self.positions if item.symbol == normalized), None)
+
+    @property
+    def pending_entry_symbols(self) -> frozenset[str]:
+        return frozenset(self.pending_entries)
 
     @property
     def overnight_position_count(self) -> int:
@@ -120,9 +132,21 @@ class DailyTradingState:
     base_notional_reserved: Decimal = Decimal("0")
     pyramid_notional_reserved: Decimal = Decimal("0")
     add_counts: dict[str, int] = field(default_factory=dict)
+    # Base notional reserved per symbol today, so capacity can count a filled entry once.
+    base_notional_by_symbol: Mapping[str, Decimal] = field(default_factory=dict)
+    # Equity at the start of this entry session; fixes the 1R the daily budget counts in.
+    session_equity: Decimal | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "attempted_symbols", frozenset(normalize_symbol(v) for v in self.attempted_symbols))
+        by_symbol = {normalize_symbol(k): decimal_from(v) for k, v in dict(self.base_notional_by_symbol).items()}
+        if any(value < 0 for value in by_symbol.values()):
+            raise ValueError("daily reservations cannot be negative")
+        object.__setattr__(self, "base_notional_by_symbol", by_symbol)
+        if self.session_equity is not None:
+            object.__setattr__(self, "session_equity", decimal_from(self.session_equity))
+            if self.session_equity <= 0:
+                raise ValueError("session equity must be positive")
         for name in ("planned_risk_reserved", "base_notional_reserved", "pyramid_notional_reserved"):
             object.__setattr__(self, name, decimal_from(getattr(self, name)))
             if getattr(self, name) < 0:
@@ -152,6 +176,7 @@ class RiskRejectionReason(StrEnum):
     POSITION_NOT_PROFITABLE = "POSITION_NOT_PROFITABLE"
     POSITION_NOT_FOUND = "POSITION_NOT_FOUND"
     OVERNIGHT_POSITION_LIMIT = "OVERNIGHT_POSITION_LIMIT"
+    OPEN_POSITION_LIMIT = "OPEN_POSITION_LIMIT"
 
 
 @dataclass(frozen=True)

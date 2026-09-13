@@ -32,6 +32,7 @@ from app.research.versions import DETAIL_PROMPT_VERSION, EVIDENCE_VERSION, GPT_S
 from app.research.adoption import ADOPTION_FILTER_VERSION
 from app.research.authority import ResearchAuthorityService
 from app.scanner.config import ScannerConfig
+from app.services.entry_capacity import load_entry_capacity
 from app.services.research import GPTImportService, HumanDecisionService
 from app.risk.config import RiskConfig
 from app.execution.config import ExecutionConfig
@@ -245,14 +246,17 @@ async def trading(db: DB) -> dict[str, Any]:
     states = list(db.scalars(select(StrategyStateRecord).order_by(StrategyStateRecord.updated_at.desc(), StrategyStateRecord.id.desc())))
     broker = get_active_sim_broker()
     if broker is not None:
+        today = datetime.now(timezone.utc).astimezone(ZoneInfo(get_settings().market_timezone)).date()
         return {"broker_mode": "SIMULATION", "availability": "AVAILABLE", **broker_projection(broker),
-                "strategy_states": [strategy_dict(row) for row in states]}
+                "strategy_states": [strategy_dict(row) for row in states],
+                "entry_capacity": load_entry_capacity(db, broker, today).as_dict()}
     mock = ui_review_mock_account()
     if mock is not None:
         return {"broker_mode": "SIMULATION", "availability": "SIMULATED_UI_REVIEW", **mock,
-                "strategy_states": [strategy_dict(row) for row in states]}
+                "strategy_states": [strategy_dict(row) for row in states], "entry_capacity": None}
     return {"broker_mode": "SIMULATION", "availability": "NO_ACTIVE_SIM_BROKER", "account": None,
-            "open_positions": [], "open_orders": [], "strategy_states": [strategy_dict(row) for row in states]}
+            "open_positions": [], "open_orders": [], "strategy_states": [strategy_dict(row) for row in states],
+            "entry_capacity": None}
 
 
 @router.get("/trading/daily-performance", tags=["Trading"])

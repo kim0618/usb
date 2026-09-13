@@ -96,23 +96,24 @@ describe("entry session consumes the previous session's analysis", () => {
     expect(trading).not.toContain("research.data?.analysis.trading_date === dashboard.data.market.trading_date");
   });
 
-  it("excludes symbols that already hold an open position", async () => {
+  it("keeps an approved symbol that already holds a position on the list", async () => {
     tradingApi.mockResolvedValue(overview(["NVDA"]));
     render(<TradingPage/>);
     const section = await waitingSection();
     await waitFor(() => expect(within(section).getByText("AAPL")).toBeInTheDocument());
-    expect(within(section).queryByText("NVDA")).toBeNull();
+    expect(within(section).getByText("NVDA")).toBeInTheDocument();
   });
 
-  it("keeps the two-card display cap and shows only approved candidates", async () => {
+  it("shows every approved candidate and only approved candidates", async () => {
     researchApi.mockResolvedValue(research([
       candidate("NVDA", "APPROVE"), candidate("AAPL", "APPROVE"), candidate("TSLA", "APPROVE"),
       candidate("MSFT", "REJECT"), candidate("AMD", null),
     ]));
     render(<TradingPage/>);
     const section = await waitingSection();
-    await waitFor(() => expect(within(section).getAllByText("승인 · 정규장 진입 평가 대기")).toHaveLength(2));
-    ["MSFT", "AMD", "TSLA"].forEach(symbol => expect(within(section).queryByText(symbol)).toBeNull());
+    await waitFor(() => expect(within(section).getAllByText("승인 · 정규장 진입 평가 대기")).toHaveLength(3));
+    expect(within(section).getByText("TSLA")).toBeInTheDocument();
+    ["MSFT", "AMD"].forEach(symbol => expect(within(section).queryByText(symbol)).toBeNull());
   });
 
   it("says an approval is still awaiting strategy and risk evaluation, never a planned buy", async () => {
@@ -127,6 +128,6 @@ describe("entry session consumes the previous session's analysis", () => {
     render(<TradingPage/>);
     const section = await waitingSection();
     await waitFor(() =>
-      expect(within(section).getByText("승인 후 아직 진입하지 않은 종목이 없습니다.")).toBeInTheDocument());
+      expect(within(section).getByText("승인된 종목이 없습니다.")).toBeInTheDocument());
   });
 });

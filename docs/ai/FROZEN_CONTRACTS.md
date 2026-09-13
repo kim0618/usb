@@ -30,7 +30,7 @@ config. These strings are persisted with the data they produced.
 | Stock detail prompt | `stock_detail_research_v0` | same |
 | Research import schema | `gpt_research_v0` | same |
 | Evidence confidence | `evidence_v0` | same |
-| Risk | `risk_v0` | `backend/app/risk/config.py` |
+| Risk | `risk_v1` | `backend/app/risk/config.py` |
 | Execution simulation | `execution_v0` | `backend/app/execution/config.py` |
 | Strategy | `strategy_v0` | `backend/app/strategy/config.py` |
 | Shadow variants | `shadow_variants_v0` | same |
@@ -214,11 +214,12 @@ boundary and never used for money arithmetic.
 | Parameter | Value |
 | --- | --- |
 | `risk_per_trade_pct` (1R) | `0.005` of equity |
-| `max_daily_risk_units` | `2` (daily risk limit = 2 x 1R) |
+| `max_daily_risk_units` | `3` (daily risk limit = 3 x session 1R, fixed at session-start equity) |
 | `base_capacity_pct` | `0.80` |
 | `pyramid_reserve_pct` | `0.20` (base + reserve must total exactly 1) |
 | `max_symbol_exposure_pct` | `0.60` |
-| `max_new_symbols_per_day` | `2` |
+| `max_new_symbols_per_day` | `3` |
+| `max_open_positions` | `3` |
 | `max_pyramid_adds` | `1` |
 | `overnight_stress_gap_pct` | `0.20` |
 | `max_overnight_stress_loss_pct` | `0.05` of equity |

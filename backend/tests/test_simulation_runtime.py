@@ -146,7 +146,8 @@ async def test_api_projection_history_and_shutdown(engine):
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
             empty = (await client.get("/api/v1/trading")).json()
             assert empty == {"broker_mode": "SIMULATION", "availability": "NO_ACTIVE_SIM_BROKER",
-                             "account": None, "open_positions": [], "open_orders": [], "strategy_states": []}
+                             "account": None, "open_positions": [], "open_orders": [], "strategy_states": [],
+                             "entry_capacity": None}
             assert (await client.get("/api/v1/trading/positions/TSLA")).status_code == 404
             history = {name: (await client.get(f"/api/v1/trading/{name}")).json() for name in ("orders", "fills")}
             assert len(history["orders"]) == len(history["fills"]) == 1
@@ -155,6 +156,8 @@ async def test_api_projection_history_and_shutdown(engine):
             result = (await client.get("/api/v1/trading")).json()
             assert result.keys() == empty.keys()
             assert result["availability"] == "AVAILABLE"
+            assert {k: result["entry_capacity"][k] for k in ("max_new_entries", "max_open_positions")} == {
+                "max_new_entries": 3, "max_open_positions": 3}
             assert result["account"]["cash"] == "82957.50"
             assert result["account"]["equity"] is None
             assert result["open_orders"] == [] and broker.get_fills() == ()

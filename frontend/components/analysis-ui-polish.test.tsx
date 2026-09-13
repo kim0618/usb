@@ -27,7 +27,7 @@ describe("Iteration 4 analysis UI polish", () => {
     const decisions = source("components/research-decision.tsx");
     expect(page).toContain('<PageHeader title="채택 후보"');
     expect(page).toContain('className="analysis-table"');
-    expect(page).toContain("최종 채택 {approved}/2");
+    expect(page).toContain("최종 채택 {approved}개");
     expect(decisions).toContain('className="btn-success-soft"');
     expect(decisions).toContain('className="btn-danger-soft"');
     expect(decisions).toContain('onDecide("APPROVE")');

@@ -48,13 +48,13 @@ Sidebar 단순화는 업무 route 통합이 아니다. 6개 content page와 `/` 
 
 ## 운영 흐름
 
-후보 종목에서 프롬프트 복사 → ChatGPT 분석 → 반환 JSON 붙여넣기 → 채택 후보 상세 확인 → 채택/거절 순서로 진행한다. GPT API 자동 호출은 없다. Evidence는 출처 품질과 핵심 주장 근거 범위 기반 점수이며 사실일 확률로 해석하지 않는다. 최대 2개 채택 제한과 충돌 처리는 Backend 응답을 따른다.
+후보 종목에서 프롬프트 복사 → ChatGPT 분석 → 반환 JSON 붙여넣기 → 채택 후보 상세 확인 → 채택/거절 순서로 진행한다. GPT API 자동 호출은 없다. Evidence는 출처 품질과 핵심 주장 근거 범위 기반 점수이며 사실일 확률로 해석하지 않는다. 채택 수는 제한하지 않으며, 실제 신규 진입 한도(하루 3종목, 동시 보유 3종목)는 Backend Risk가 판단한다.
 
 분석 화면은 역할을 분리한다. Candidates는 Quant-first 화면으로 Quant 순위·점수, RVOL, 상대강도, 거래대금, 모멘텀과 workflow 상태를 보여준다. 큰 요약 카드 대신 거래일, 완료 시각, 전체 후보, TOP 수, Quant 버전을 compact metadata로 표시한다. RVOL은 배수, 수익률 비율은 백분율, 거래대금은 compact USD로 표시하지만 raw 값이나 계산은 변경하지 않는다. TOP 후보 전체에 회사명이 없으면 정보 가치가 없는 회사 열만 숨긴다.
 
 Prompt 생성·미리보기·복사는 Candidates 화면의 책임이다. Research는 GPT 결과 입력과 결과 비교만 담당하는 GPT-first 읽기 전용 화면이다. 상세와 HumanDecision은 `/adoption`의 Human Review Drawer에서만 제공한다. 최신 분석이 있으면 결과 table을 먼저 표시하고 JSON textarea는 `분석 결과 입력` 동작으로만 펼친다. 분석이 없을 때만 import 영역을 기본 표시한다.
 
-`risk_score`는 Backend 계약대로 높을수록 안전하며 UI label은 `안전도`다. 70 이상 매우 안전, 50 이상 안전, 30 이상 보통, 30 미만 위험으로 표시한다. Adoption은 채택 후보와 검토 필요를 기본 표시하고 제외 종목은 toggle로 접근한다. 후보 수는 제한하지 않으며 최종 APPROVE만 분석당 최대 2개다.
+`risk_score`는 Backend 계약대로 높을수록 안전하며 UI label은 `안전도`다. 70 이상 매우 안전, 50 이상 안전, 30 이상 보통, 30 미만 위험으로 표시한다. Adoption은 채택 후보와 검토 필요를 기본 표시하고 제외 종목은 toggle로 접근한다. 후보 수와 최종 APPROVE 수는 제한하지 않는다.
 
 HumanDecision 표시 용어는 `APPROVE = 채택`, `REJECT = 거절`, decision 없음은 `미결정`이다. 이는 Frontend label이며 Backend enum과 API payload는 계속 `APPROVE / REJECT`를 사용한다. 채택은 즉시 매수가 아니라 오늘 자동매매 감시 대상으로 허용한다는 의미이고, 실제 주문은 Premarket, Opening, Strategy, Risk 조건을 추가로 통과해야 한다.
 

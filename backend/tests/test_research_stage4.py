@@ -172,14 +172,15 @@ def test_invalid_payloads_leave_no_rows(db: Session, mutation) -> None:
     assert db.scalar(select(func.count()).select_from(GPTAnalysis)) == 0
 
 
-def test_human_approval_limit_and_change(db: Session) -> None:
+def test_human_approval_has_no_count_limit_and_change(db: Session) -> None:
     run, scanner = setup_run(db)
     repo = ResearchRepository(db)
     analysis = GPTImportService(repo, scanner).import_json(json.dumps(payload(run.id)))
     service = HumanDecisionService(repo, clock=lambda: NOW)
     service.decide(analysis.id, "AAA", HumanDecision.APPROVE)
     service.decide(analysis.id, "BBB", "APPROVE")
-    with pytest.raises(ResearchError): service.decide(analysis.id, "CCC", "APPROVE")
+    assert service.decide(analysis.id, "CCC", "APPROVE").decision == "APPROVE"  # APPROVE count is not capped
+    assert repo.count_approvals(analysis.id) == 3
     service.decide(analysis.id, "AAA", "REJECT")
     assert service.decide(analysis.id, "CCC", "APPROVE").decision == "APPROVE"
     with pytest.raises(ResearchError): service.decide(analysis.id, "ZZZ", "REJECT")

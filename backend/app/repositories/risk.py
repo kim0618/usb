@@ -27,6 +27,7 @@ class DailyRiskRepository:
             base_notional_reserved=sum((row.base_notional_reserved for row in rows), Decimal("0")),
             pyramid_notional_reserved=sum((row.pyramid_notional_reserved for row in rows), Decimal("0")),
             add_counts={row.symbol: row.add_count for row in rows},
+            base_notional_by_symbol={row.symbol: row.base_notional_reserved for row in rows},
         )
 
     def reserve_entry(

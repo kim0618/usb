@@ -60,14 +60,21 @@ currency.
 
 ## Risk V0 and position sizing
 
-`RiskConfig(version="risk_v0")` is the single source of truth:
+`RiskConfig(version="risk_v1")` is the single source of truth:
 
 - per-trade planned risk: equity × 0.5% (`1R`);
-- daily planned initial-risk limit: `2R`;
+- daily planned initial-risk limit: `3R`, where daily accounting uses a session 1R fixed at the
+  entry session's starting equity (previous XNYS session closing equity from
+  `account_daily_performance`, or initial cash when none was recorded); an entry sizes
+  `min(current 1R, session 1R)` so intraday costs never push a 1R entry over the budget;
+- base capacity counts open, pending, and reserved exposure once each: a symbol entered
+  today is counted as held, a pending base entry by its unfilled notional, and a same-day
+  exit keeps its reservation;
 - base capacity: at most 80% of equity;
 - pyramid reserve: separate 20% of equity;
 - total symbol exposure safety cap: at most 60% of equity;
-- at most two newly issued symbol entry intents per trading day;
+- at most three newly entered symbols per trading day; an exit does not free a slot;
+- at most three concurrently held symbols, pending base-entry orders included;
 - one entry intent per symbol and trading day;
 - at most one pyramid add;
 - overnight stress gap: 20%;

@@ -196,3 +196,7 @@ const failureCodeDescriptions: Readonly<Record<string, string>> = {
   MANUAL_HALT: "수동 자동매매 중지", KILL_SWITCH_ACTIVATED: "비상 중지 실행",
 };
 export const formatFailureCodeDescription = (value?: string | null) => value ? failureCodeDescriptions[value] ?? value : "";
+
+export const formatEntryCapacityReason = (value?: string | null) => display(value, {
+  DAILY_ENTRY_CAP_REACHED: "일일 진입 한도 도달", OPEN_POSITION_CAP_REACHED: "보유 한도 도달",
+});
