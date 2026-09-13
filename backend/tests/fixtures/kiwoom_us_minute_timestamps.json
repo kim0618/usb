@@ -1,0 +1,11 @@
+[
+  {"bus_dt":"20260911","cntr_tm":"20260911040000","open_pric":"100","high_pric":"101","low_pric":"99","cur_prc":"100","trde_qty":"10","expected":"2026-09-11T04:00:00-04:00","session":"PREMARKET"},
+  {"bus_dt":"20260911","cntr_tm":"20260911092900","open_pric":"100","high_pric":"101","low_pric":"99","cur_prc":"100","trde_qty":"10","expected":"2026-09-11T09:29:00-04:00","session":"PREMARKET"},
+  {"bus_dt":"20260911","cntr_tm":"20260911093000","open_pric":"100","high_pric":"101","low_pric":"99","cur_prc":"100","trde_qty":"10","expected":"2026-09-11T09:30:00-04:00","session":"REGULAR"},
+  {"bus_dt":"20260911","cntr_tm":"20260911160000","open_pric":"100","high_pric":"101","low_pric":"99","cur_prc":"100","trde_qty":"10","expected":"2026-09-11T16:00:00-04:00","session":"POSTMARKET"},
+  {"bus_dt":"20260911","cntr_tm":"20260911185900","open_pric":"100","high_pric":"101","low_pric":"99","cur_prc":"100","trde_qty":"10","expected":"2026-09-11T18:59:00-04:00","session":"POSTMARKET"},
+  {"bus_dt":"20260911","cntr_tm":"20260911112900","open_pric":"100","high_pric":"101","low_pric":"99","cur_prc":"100","trde_qty":"10","expected":"2026-09-11T11:29:00-04:00","session":"REGULAR"},
+  {"bus_dt":"20260910","cntr_tm":"20260910240000","open_pric":"100","high_pric":"101","low_pric":"99","cur_prc":"100","trde_qty":"10","expected":"2026-09-11T00:00:00-04:00","session":null},
+  {"bus_dt":"20260910","cntr_tm":"20260910250000","open_pric":"100","high_pric":"101","low_pric":"99","cur_prc":"100","trde_qty":"10","expected":"2026-09-11T01:00:00-04:00","session":null},
+  {"bus_dt":"20260910","cntr_tm":"20260910274100","open_pric":"100","high_pric":"101","low_pric":"99","cur_prc":"100","trde_qty":"10","expected":"2026-09-11T03:41:00-04:00","session":null}
+]

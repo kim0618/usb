@@ -19,7 +19,7 @@ from app.core.database import Base
 from app.dev.schema_fingerprint import schema_fingerprint
 from app.models.simulation import SimulationAccountRecord, SimulationTradeRecord
 
-REVISION = "20260913_0012"
+REVISION = "20260913_0013"
 SIMULATION_TABLES = ("simulation_accounts", "simulation_positions", "simulation_trades", "account_daily_performance")
 OPEN_INDEX = "uq_simulation_trades_open_symbol"
 # SimBroker fractional sizing produces repeating decimals that must survive exactly.
@@ -63,7 +63,7 @@ def _open_index_sql(engine: Engine) -> str | None:
 
 def test_migration_adds_exactly_the_simulation_tables(migrated: Engine) -> None:
     tables = {name for name in inspect(migrated).get_table_names() if name != "alembic_version"}
-    assert len(tables) == 17  # 13 before 0009, plus three broker tables and daily performance.
+    assert len(tables) == 18  # 13 before 0009, plus three broker tables, daily performance and premarket diagnostics.
     assert set(SIMULATION_TABLES) <= tables
 
 

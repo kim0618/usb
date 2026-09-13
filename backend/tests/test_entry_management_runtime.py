@@ -15,11 +15,12 @@ from app.models.research import GPTAnalysis, GPTCandidateAnalysis, HumanDecision
 from app.models.risk import DailySymbolState
 from app.models.scanner import ScannerCandidate, ScannerRun
 from app.models.simulation import SimulationAccountRecord
-from app.models.strategy import StrategyStateRecord
+from app.models.strategy import PremarketDiagnosticRecord, StrategyStateRecord
 from app.repositories.simulation import SimulationStateRepository
 from app.repositories.strategy import StrategyStateRepository
 from app.services.entry_management_runtime import (
     ApprovedCandidate, EntryAction, EntryLifecycleService, EntryManagementRuntime, EntryOutcome,
+    PremarketInvalidField,
 )
 from app.services.simulation_runtime import SimulationRuntimeContext
 from app.services.simulation import rehydrate_sim_broker
@@ -162,6 +163,41 @@ def test_only_an_approved_decision_on_the_current_run_and_analysis_is_entered(du
     assert (approved[0].scanner_run_id, approved[0].analysis_id, approved[0].candidate_id) == (
         run_id, analysis_id, candidate_id)
     assert EntryLifecycleService(runtime).approved_candidates(DAY - timedelta(days=1)) == ()
+
+
+def test_premarket_context_requires_exact_previous_xnys_session(durable) -> None:
+    runtime, _ = durable
+    service = EntryLifecycleService(runtime)
+    provider = Provider()
+    provider.get_daily_bars = lambda *args, **kwargs: [DailyBar(
+        symbol="AAA", trading_date=date(2024, 6, 14), open=100, high=101, low=99,
+        close=100, volume=1_000_000,
+        observed_at=datetime(2024, 6, 14, 16, tzinfo=ET),
+        available_at=datetime(2024, 6, 14, 16, 1, tzinfo=ET),
+    )]
+
+    built = service._premarket_context("AAA", DAY, provider.minutes, provider,
+                                       OPEN + timedelta(minutes=1))
+
+    assert built.context.previous_regular_close == 0
+    assert built.diagnostic.invalid_field is PremarketInvalidField.NO_EXACT_PREVIOUS_CLOSE
+
+
+def test_premarket_diagnostic_is_persisted_with_gate_state(durable) -> None:
+    runtime, factory = durable
+    outcome = EntryLifecycleService(runtime).evaluate(
+        candidate(), Provider(), as_of=OPEN + timedelta(minutes=1))
+
+    assert outcome.state is not None
+    with factory() as session:
+        diagnostic = session.scalar(select(PremarketDiagnosticRecord))
+        assert diagnostic is not None
+        assert diagnostic.minute_bars_count == 2
+        assert diagnostic.premarket_bars_count == 1
+        assert diagnostic.previous_close == Decimal("100.0")
+        assert diagnostic.reference_price == Decimal("105.0")
+        assert diagnostic.first_timestamp == datetime(2024, 6, 18, 8, tzinfo=ET)
+        assert diagnostic.invalid_field is None
 
 
 def test_strategy_signal_retries_no_next_bar_then_fills_once_and_is_restart_safe(durable) -> None:

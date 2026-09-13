@@ -18,6 +18,7 @@ from app.market.domain import MarketSession, MinuteBar
 from app.market.provider import MarketDataProvider
 from app.models.research import GPTCandidateAnalysis, HumanDecisionRecord
 from app.models.scanner import ScannerCandidate, ScannerRun
+from app.models.strategy import PremarketDiagnosticRecord
 from app.repositories.risk import DailyRiskRepository
 from app.repositories.strategy import StrategyStateRepository
 from app.risk.domain import AccountSnapshot, Currency, PortfolioSnapshot, PositionSnapshot
@@ -45,6 +46,15 @@ class EntryAction(StrEnum):
     SKIPPED = "SKIPPED"
 
 
+class PremarketInvalidField(StrEnum):
+    NO_DAILY_HISTORY = "NO_DAILY_HISTORY"
+    NO_EXACT_PREVIOUS_CLOSE = "NO_EXACT_PREVIOUS_CLOSE"
+    NO_PREMARKET_BARS = "NO_PREMARKET_BARS"
+    INVALID_PREVIOUS_CLOSE = "INVALID_PREVIOUS_CLOSE"
+    INVALID_REFERENCE_PRICE = "INVALID_REFERENCE_PRICE"
+    INVALID_AVERAGE_VOLUME = "INVALID_AVERAGE_VOLUME"
+
+
 @dataclass(frozen=True)
 class ApprovedCandidate:
     analysis_id: int
@@ -62,6 +72,25 @@ class EntryOutcome:
     reason: str
     state: StrategyState | None = None
     order_id: str | None = None
+
+
+@dataclass(frozen=True)
+class PremarketDiagnostic:
+    minute_bars_count: int
+    premarket_bars_count: int
+    previous_close: Decimal | None
+    reference_price: Decimal | None
+    premarket_volume: Decimal | None
+    historical_average_daily_volume: Decimal | None
+    first_timestamp: datetime | None
+    last_timestamp: datetime | None
+    invalid_field: PremarketInvalidField | None = None
+
+
+@dataclass(frozen=True)
+class PremarketBuildResult:
+    context: PremarketContext
+    diagnostic: PremarketDiagnostic
 
 
 class EntryLifecycleService:
@@ -157,12 +186,10 @@ class EntryLifecycleService:
                 overnight_suitability=candidate.overnight_suitability,
             )
             state = StrategyLifecycleService.apply_human_gate(state, approved=True, shadow_mode=False)
-            gate = self.engine.premarket_gate(
-                self._premarket_context(candidate.symbol, candidate_date, visible, provider, as_of),
-                human_approved=True, shadow_mode=False,
-            )
+            built = self._premarket_context(candidate.symbol, candidate_date, visible, provider, as_of)
+            gate = self.engine.premarket_gate(built.context, human_approved=True, shadow_mode=False)
             state = StrategyLifecycleService.apply_premarket_gate(state, gate)
-            self._save(state, as_of)
+            self._save(state, as_of, built.diagnostic)
             if not gate.passed:
                 return EntryOutcome(candidate.symbol, EntryAction.REJECTED, gate.reason.value, state)
 
@@ -201,20 +228,44 @@ class EntryLifecycleService:
 
     def _premarket_context(self, symbol: str, trading_date: date,
                            minute_bars: Sequence[MinuteBar], provider: MarketDataProvider,
-                           as_of: datetime) -> PremarketContext:
+                           as_of: datetime) -> PremarketBuildResult:
         daily = [bar for bar in provider.get_daily_bars(
             [symbol], trading_date - timedelta(days=45), trading_date - timedelta(days=1)
         ) if bar.available_at <= as_of and bar.trading_date < trading_date]
         daily.sort(key=lambda bar: bar.trading_date)
-        premarket = [bar for bar in minute_bars if bar.session is MarketSession.PREMARKET]
-        if not daily or not premarket:
-            return PremarketContext(Decimal("0"), Decimal("0"), Decimal("0"), Decimal("0"))
-        history = daily[-20:]
-        return PremarketContext(
-            Decimal(str(daily[-1].close)), Decimal(str(premarket[-1].close)),
-            sum((Decimal(bar.volume) for bar in premarket), Decimal("0")),
-            sum((Decimal(bar.volume) for bar in history), Decimal("0")) / Decimal(len(history)),
+        previous_session = self.calendar.previous_trading_day(trading_date)
+        previous = next((bar for bar in reversed(daily)
+                         if bar.trading_date == previous_session), None)
+        premarket = sorted(
+            (bar for bar in minute_bars if bar.session is MarketSession.PREMARKET),
+            key=lambda bar: bar.timestamp,
         )
+        history = daily[-20:]
+        previous_close = None if previous is None else Decimal(str(previous.close))
+        reference_price = None if not premarket else Decimal(str(premarket[-1].close))
+        premarket_volume = (None if not premarket else
+                            sum((Decimal(bar.volume) for bar in premarket), Decimal("0")))
+        average_volume = (None if not history else
+                          sum((Decimal(bar.volume) for bar in history), Decimal("0")) /
+                          Decimal(len(history)))
+        invalid = (PremarketInvalidField.NO_DAILY_HISTORY if not daily
+                   else PremarketInvalidField.NO_EXACT_PREVIOUS_CLOSE if previous is None
+                   else PremarketInvalidField.NO_PREMARKET_BARS if not premarket
+                   else PremarketInvalidField.INVALID_PREVIOUS_CLOSE if previous_close <= 0
+                   else PremarketInvalidField.INVALID_REFERENCE_PRICE if reference_price <= 0
+                   else PremarketInvalidField.INVALID_AVERAGE_VOLUME if average_volume <= 0
+                   else None)
+        context = PremarketContext(
+            previous_close or Decimal("0"), reference_price or Decimal("0"),
+            premarket_volume if premarket_volume is not None else Decimal("0"),
+            average_volume or Decimal("0"),
+        )
+        return PremarketBuildResult(context, PremarketDiagnostic(
+            len(minute_bars), len(premarket), previous_close, reference_price,
+            premarket_volume, average_volume,
+            None if not premarket else premarket[0].timestamp,
+            None if not premarket else premarket[-1].timestamp, invalid,
+        ))
 
     def _risk_snapshots(self, provider: MarketDataProvider, as_of: datetime,
                         candidate_symbol: str, candidate_bars: Sequence[MinuteBar]
@@ -263,10 +314,39 @@ class EntryLifecycleService:
         with self.runtime.session_factory() as session:
             return StrategyStateRepository(session).load(symbol, trading_date)
 
-    def _save(self, state: StrategyState, updated_at: datetime) -> None:
+    def _save(self, state: StrategyState, updated_at: datetime,
+              diagnostic: PremarketDiagnostic | None = None) -> None:
         with self.runtime.session_factory() as session:
             try:
-                StrategyStateRepository(session).save(state, updated_at=updated_at)
+                row = StrategyStateRepository(session).save(state, updated_at=updated_at)
+                if diagnostic is not None:
+                    existing = session.scalar(select(PremarketDiagnosticRecord).where(
+                        PremarketDiagnosticRecord.strategy_state_id == row.id))
+                    record = existing or PremarketDiagnosticRecord(
+                        strategy_state_id=row.id, created_at=updated_at)
+                    if existing is None:
+                        session.add(record)
+                    context = PremarketContext(
+                        diagnostic.previous_close or Decimal("0"),
+                        diagnostic.reference_price or Decimal("0"),
+                        diagnostic.premarket_volume or Decimal("0"),
+                        diagnostic.historical_average_daily_volume or Decimal("0"),
+                    )
+                    for name, value in {
+                        "minute_bars_count": diagnostic.minute_bars_count,
+                        "premarket_bars_count": diagnostic.premarket_bars_count,
+                        "previous_close": diagnostic.previous_close,
+                        "reference_price": diagnostic.reference_price,
+                        "gap_pct": context.gap_pct,
+                        "premarket_volume": diagnostic.premarket_volume,
+                        "historical_average_daily_volume": diagnostic.historical_average_daily_volume,
+                        "volume_ratio": context.volume_ratio,
+                        "first_timestamp": diagnostic.first_timestamp,
+                        "last_timestamp": diagnostic.last_timestamp,
+                        "invalid_field": None if diagnostic.invalid_field is None else diagnostic.invalid_field.value,
+                    }.items():
+                        setattr(record, name, value)
+                    session.flush()
                 session.commit()
             except Exception:
                 session.rollback()

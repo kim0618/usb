@@ -59,8 +59,10 @@ class KiwoomMarketDataProvider(MarketDataProvider, SymbolMetadataProvider):
                 continue
             symbol_bars: list[DailyBar] = []
             try:
+                # usa06012 strt_dt is the newest (base) date and history runs backwards
+                # from it (live-verified), so the request anchors on the window end.
                 rows = self.client.daily_chart(
-                    symbol, exchange, None if start is None else start.strftime("%Y%m%d")
+                    symbol, exchange, None if end is None else end.strftime("%Y%m%d")
                 )
             except MarketDataError as exc:
                 if symbol == "SPY":
@@ -97,7 +99,7 @@ class KiwoomMarketDataProvider(MarketDataProvider, SymbolMetadataProvider):
                 try:
                     bar = map_minute_bar(symbol, row, received_at)
                 except MarketDataError as exc:
-                    if exc.code == "FUTURE_DATA":
+                    if exc.code in {"FUTURE_DATA", "OUTSIDE_SESSION"}:
                         continue
                     raise
                 if (start is None or bar.timestamp >= start) and (end is None or bar.timestamp <= end) and (session is None or bar.session == session):

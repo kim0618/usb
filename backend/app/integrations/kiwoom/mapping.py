@@ -3,6 +3,8 @@
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal, InvalidOperation
 from typing import Any
+import exchange_calendars as xcals
+import pandas as pd
 from app.core.exceptions import MarketDataError
 from app.integrations.kiwoom.timestamps import ET, minute_timestamp
 from app.market.domain import DailyBar, MarketSession, MinuteBar
@@ -10,6 +12,7 @@ from app.market.reference import SymbolMetadata
 from app.market.symbols import normalize_symbol
 
 EXCHANGES = {"ND": "NASDAQ", "NY": "NYSE", "NA": "AMEX"}
+US_CALENDAR = xcals.get_calendar("XNYS")
 
 
 def canonical_exchange(raw: object) -> str:
@@ -38,7 +41,10 @@ def map_daily_bar(symbol: str, row: dict[str, Any], received_at: datetime) -> Da
         close=float(number(row["cur_prc"], "cur_prc")),
         volume=int(number(row["acc_trde_qty"], "acc_trde_qty")),
         observed_at=market_close,
-        available_at=max(market_close, received_at.astimezone(ET)),
+        # A completed bar is knowable once it closes. FUTURE_DATA above already proves
+        # close <= received_at; tying availability to receipt instead would hide every
+        # bar from a live consumer whose as_of was captured just before the fetch.
+        available_at=market_close,
     )
 
 
@@ -47,12 +53,15 @@ def map_minute_bar(symbol: str, row: dict[str, Any], received_at: datetime) -> M
     observed_at = timestamp + timedelta(minutes=1)
     if observed_at > received_at.astimezone(ET):
         raise MarketDataError("FUTURE_DATA", "Incomplete or future minute bar was excluded")
+    label = pd.Timestamp(timestamp.date())
     local_time = timestamp.timetz().replace(tzinfo=None)
-    session = (
-        MarketSession.PREMARKET if local_time < time(9, 30)
-        else MarketSession.REGULAR if local_time < time(16, 0)
-        else MarketSession.POSTMARKET
-    )
+    if not US_CALENDAR.is_session(label) or local_time < time(4) or local_time >= time(20):
+        raise MarketDataError("OUTSIDE_SESSION", "Minute bar is outside supported US sessions")
+    market_open = US_CALENDAR.session_open(label).to_pydatetime().astimezone(ET)
+    market_close = US_CALENDAR.session_close(label).to_pydatetime().astimezone(ET)
+    session = (MarketSession.PREMARKET if timestamp < market_open
+               else MarketSession.REGULAR if timestamp < market_close
+               else MarketSession.POSTMARKET)
     return MinuteBar(
         symbol=normalize_symbol(symbol), timestamp=timestamp, session=session,
         open=float(number(row["open_pric"], "open_pric")),
@@ -61,7 +70,7 @@ def map_minute_bar(symbol: str, row: dict[str, Any], received_at: datetime) -> M
         close=float(number(row["cur_prc"], "cur_prc")),
         volume=int(number(row["trde_qty"], "trde_qty")),
         observed_at=observed_at,
-        available_at=max(observed_at, received_at.astimezone(ET)),
+        available_at=observed_at,  # same completed-bar contract as daily bars
     )
 
 

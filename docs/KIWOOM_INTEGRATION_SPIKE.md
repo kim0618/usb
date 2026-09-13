@@ -83,7 +83,7 @@ OHLC. Unknown response fields are ignored.
 | `mac` | `market_cap` | DIRECT | unit must be confirmed live |
 | `stex_tp` | `exchange` | DIRECT | ND/NASDAQ, NY/NYSE, NA/AMEX |
 | ET timestamp | `session` | DERIVED | pre/regular/post boundaries |
-| receipt time + market close | `available_at` | DERIVED | aware, no future bar |
+| bar completion / 16:00 ET close | `available_at` | DERIVED | see timestamp and availability contract below |
 | daily OHLCV history | RVOL | DERIVED | volume history |
 | symbol + SPY history | Relative Strength | DERIVED | existing formula |
 | close × volume | Dollar Volume | DERIVED | existing formula |
@@ -341,3 +341,37 @@ canonical requested window still contained zero bars, so no postmarket price
 or return could be produced for this sample. ScannerRun 2's same-day regular
 close remains available as `latest_close = 370.51`. No raw payload, credential,
 or token was printed; order requests remained zero.
+
+## US chart timestamp and availability contract (2026-09-13)
+
+The official `usa06011` / `usa06012` specification documents field shapes only.
+It does not define the timezone, hours above 23, or the direction of `strt_dt`.
+The rules below separate what is documented or directly observed from what was
+inferred from production payloads.
+
+| Item | Contract | Basis |
+|------|----------|-------|
+| `cntr_tm` shape | 14 digits `YYYYMMDDHHmmss`; the date prefix equals `bus_dt` | FACT: official field shape and every captured production row |
+| `bus_dt` | ET business date the row belongs to | INFERRED from production row order |
+| Hours 24-27 | Business-date-relative overflow: `bus_dt` + HH:mm:ss, so `20260910274100` is 2026-09-11 03:41 ET | INFERRED: rows `20260909 26:21-27:44` continue into `20260910 04:00`; observed maximum is 27:44 |
+| Hours 28+ | Rejected as an invalid raw row | Defensive bound: overnight trading ends at 04:00 ET (27:59), and 28+ would overlap the next business date |
+| Source timezone | America/New_York wall clock; DST is resolved on the normalized calendar instant | INFERRED and live-validated: volume jumps at 09:30, the closing cross prints in the 16:00 bar, 390 regular bars, AAPL 09/11 16:00 open equals the daily close |
+| Bar label | Bar start (`[t, t+1m)`) | INFERRED: labels run 04:00 to 18:59 with 390 bars from 09:30 to 15:59 |
+| `strt_dt` (daily and minute) | Newest (base) date; history runs backwards from it. A weekend or holiday base returns the latest earlier session | FACT: live-verified 2026-09-13 (`20260901` returns rows up to 09/01, `20260913` up to 09/11, `20260907` up to 09/04) |
+
+Sessions use the normalized ET timestamp and the official XNYS calendar:
+PREMARKET `[04:00, open)`, REGULAR `[open, official close)`, POSTMARKET
+`[official close, 20:00)`. Everything else, including weekends, holidays, and
+the overnight 20:00-04:00 window, is excluded as `OUTSIDE_SESSION`.
+
+Availability:
+
+- Minute bar: `observed_at = available_at = bar start + 1 minute` (bar completion).
+  A bar that is still incomplete when the response arrives is excluded as `FUTURE_DATA`.
+- Daily bar: `observed_at = available_at = 16:00 ET` on its trading date. This is a fixed
+  16:00, not the official close, so it is late (conservative) on early-close days.
+- Consumers keep `available_at <= as_of`. Receipt latency no longer changes whether a
+  completed bar is visible. Before this change availability was `max(completion, receipt)`,
+  which hid every bar from a live `as_of` captured just before the fetch.
+- The Entry premarket context uses the daily bar whose trading date is exactly
+  `MarketCalendar.previous_trading_day(entry_date)`. It never falls back to an older bar.
