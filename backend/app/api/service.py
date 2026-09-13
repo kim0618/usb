@@ -27,7 +27,7 @@ def run_dict(run: ScannerRun) -> dict[str, Any]:
             "completed_at": run.completed_at, "status": run.status, "provider": run.provider,
             "score_version": run.score_version, "universe_count": run.universe_count,
             "excluded_count": run.excluded_count, "candidate_count": run.candidate_count,
-            "top8_count": run.top8_count}
+            "top8_count": run.top8_count, "active_gpt_analysis_id": run.active_gpt_analysis_id}
 
 
 def candidate_dict(row: ScannerCandidate) -> dict[str, Any]:
@@ -66,7 +66,8 @@ class APIQueryService:
         return {"analysis": {"id": row.id, "scanner_run_id": row.scanner_run_id, "trading_date": row.trading_date,
                 "analysis_at": row.analysis_at, "imported_at": row.imported_at, "provider": row.provider,
                 "model": row.model, "prompt_version": row.prompt_version, "schema_version": row.schema_version,
-                "evidence_version": row.evidence_version, "status": row.status},
+                "evidence_version": row.evidence_version, "status": row.status,
+                "is_active": row.scanner_run.active_gpt_analysis_id == row.id},
                 "candidates": [self.research_candidate(item, decisions.get(item.symbol)) for item in candidates]}
 
     def adoption(self, row: GPTAnalysis) -> dict[str, Any]:

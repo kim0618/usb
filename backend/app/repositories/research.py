@@ -4,6 +4,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.models.research import GPTAnalysis, GPTCandidateAnalysis, GPTSource, HumanDecisionRecord
+from app.models.scanner import ScannerRun
 
 
 class ResearchRepository:
@@ -40,6 +41,31 @@ class ResearchRepository:
 
     def get_latest_valid_analysis(self, scanner_run_id: int) -> GPTAnalysis | None:
         statement = select(GPTAnalysis).where(GPTAnalysis.scanner_run_id == scanner_run_id, GPTAnalysis.status == "IMPORTED").order_by(GPTAnalysis.analysis_at.desc(), GPTAnalysis.id.desc()).limit(1)
+        return self.session.scalar(statement)
+
+    def get_active_analysis(self, scanner_run_id: int) -> GPTAnalysis | None:
+        statement = (
+            select(GPTAnalysis)
+            .join(ScannerRun, ScannerRun.active_gpt_analysis_id == GPTAnalysis.id)
+            .where(
+                ScannerRun.id == scanner_run_id,
+                GPTAnalysis.scanner_run_id == scanner_run_id,
+                GPTAnalysis.status == "IMPORTED",
+            )
+        )
+        return self.session.scalar(statement)
+
+    def get_latest_active_analysis(self) -> GPTAnalysis | None:
+        statement = (
+            select(GPTAnalysis)
+            .join(ScannerRun, ScannerRun.active_gpt_analysis_id == GPTAnalysis.id)
+            .where(
+                GPTAnalysis.scanner_run_id == ScannerRun.id,
+                GPTAnalysis.status == "IMPORTED",
+            )
+            .order_by(GPTAnalysis.analysis_at.desc(), GPTAnalysis.id.desc())
+            .limit(1)
+        )
         return self.session.scalar(statement)
 
     def find_duplicate(self, scanner_run_id: int, payload_hash: str) -> GPTAnalysis | None:

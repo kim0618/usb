@@ -56,6 +56,7 @@ def seed_run2(sessions) -> None:  # type: ignore[no-untyped-def]
             evidence_version="evidence_v0", analysis_at=now, imported_at=now, status="IMPORTED",
             raw_json="{}", payload_hash="b" * 64)
         db.add(analysis); db.flush()
+        run.active_gpt_analysis_id = analysis.id
         for symbol, quant_rank, gpt_rank, overall, catalyst, momentum_score, risk, evidence, fundamental, rvol, momentum, relative_strength in RUN2_ROWS:
             quant = ScannerCandidate(scanner_run_id=run.id, symbol=symbol, rank=quant_rank, is_top8=True,
                 score=1.0 / quant_rank, observed_at=now, available_at=now,

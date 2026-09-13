@@ -129,6 +129,7 @@ def seed_chain(session) -> None:
     stale_analysis = analysis(current, 10, "stale")
     decide(stale_analysis, candidate_row(current, "STALE"), 1, "APPROVE")
     latest = analysis(current, 11, "latest")
+    current.active_gpt_analysis_id = latest.id
     decide(latest, candidate_row(current, "AAA"), 2, "APPROVE")
     decide(latest, candidate_row(current, "BBB"), 1, "REJECT")
     # An approval carrying a candidate row that belongs to the superseded run is
@@ -153,7 +154,8 @@ def test_only_an_approved_decision_on_the_current_run_and_analysis_is_entered(du
     assert approved[0].overnight_suitability is OvernightSuitability.MEDIUM
     with factory() as session:
         run_id, analysis_id = session.execute(select(
-            ScannerRun.id, GPTAnalysis.id).join(GPTAnalysis).where(
+            ScannerRun.id, GPTAnalysis.id).join(
+            GPTAnalysis, GPTAnalysis.scanner_run_id == ScannerRun.id).where(
             GPTAnalysis.payload_hash == "latest")).one()
         candidate_id = session.scalar(select(ScannerCandidate.id).where(
             ScannerCandidate.symbol == "AAA"))
@@ -251,6 +253,7 @@ def seed_session(session, trading_date: date, symbols: tuple[str, ...]) -> None:
                            payload_hash=f"analysis-{trading_date}", analysis_at=at)
     session.add(analysed)
     session.flush()
+    run.active_gpt_analysis_id = analysed.id
     for rank, symbol in enumerate(symbols, start=1):
         scanned = ScannerCandidate(scanner_run_id=run.id, symbol=symbol, rank=rank, is_top8=True,
                                    score=1.0, score_components_json={}, observed_at=at,
@@ -268,6 +271,64 @@ def seed_session(session, trading_date: date, symbols: tuple[str, ...]) -> None:
             gpt_analysis_id=analysed.id, scanner_candidate_id=scanned.id, symbol=symbol,
             decision="APPROVE", decided_at=at))
     session.commit()
+
+
+def append_analysis(session, run: ScannerRun, symbols: tuple[str, ...], *,
+                    payload_hash: str, hour: int, approve: bool = True) -> GPTAnalysis:
+    analysed = GPTAnalysis(scanner_run_id=run.id, trading_date=run.trading_date, provider="gpt",
+                           model="m", prompt_version="1", schema_version="1",
+                           evidence_version="1", status="IMPORTED", raw_json="{}",
+                           payload_hash=payload_hash,
+                           analysis_at=datetime.combine(run.trading_date, time(hour), ET))
+    session.add(analysed); session.flush()
+    for rank, symbol in enumerate(symbols, start=1):
+        scanned = session.scalar(select(ScannerCandidate).where(
+            ScannerCandidate.scanner_run_id == run.id, ScannerCandidate.symbol == symbol))
+        if scanned is None:
+            scanned = ScannerCandidate(scanner_run_id=run.id, symbol=symbol, rank=rank,
+                is_top8=True, score=1.0, score_components_json={},
+                observed_at=analysed.analysis_at, available_at=analysed.analysis_at)
+            session.add(scanned); session.flush()
+        session.add(GPTCandidateAnalysis(
+            gpt_analysis_id=analysed.id, scanner_candidate_id=scanned.id, symbol=symbol,
+            gpt_rank=rank, overall_score=1, catalyst_score=1, fundamental_score=1,
+            momentum_score=1, risk_score=1, evidence_confidence=1, catalyst_duration="D",
+            stop_profile="TIGHT", trailing_profile=TrailingProfile.WIDE.value,
+            overnight_suitability=OvernightSuitability.MEDIUM.value, company_summary="",
+            catalyst_summary="", risk_summary="", invalidation_summary="", unknown_fields_json=[]))
+        if approve:
+            session.add(HumanDecisionRecord(
+                gpt_analysis_id=analysed.id, scanner_candidate_id=scanned.id, symbol=symbol,
+                decision="APPROVE", decided_at=analysed.analysis_at))
+    session.flush()
+    return analysed
+
+
+def test_entry_uses_active_older_analysis_not_newer_inactive_analysis(durable) -> None:
+    runtime, factory = durable
+    with factory() as session:
+        seed_session(session, ANALYSIS_SESSION, ("AAA", "BBB"))
+        run = session.scalar(select(ScannerRun).where(ScannerRun.trading_date == ANALYSIS_SESSION))
+        active_id = run.active_gpt_analysis_id
+        append_analysis(session, run, ("BBB", "CCC"), payload_hash="newer-inactive", hour=18)
+        session.commit()
+        assert run.active_gpt_analysis_id == active_id
+
+    approved = EntryLifecycleService(runtime).approved_candidates_for_entry_session(ENTRY_SESSION)
+    assert [candidate.symbol for candidate in approved] == ["AAA", "BBB"]
+
+
+def test_active_analysis_without_decisions_never_falls_back(durable) -> None:
+    runtime, factory = durable
+    with factory() as session:
+        seed_session(session, ANALYSIS_SESSION, ("AAA", "BBB"))
+        run = session.scalar(select(ScannerRun).where(ScannerRun.trading_date == ANALYSIS_SESSION))
+        empty = append_analysis(session, run, ("AAA", "BBB"), payload_hash="active-empty",
+                                hour=18, approve=False)
+        run.active_gpt_analysis_id = empty.id
+        session.commit()
+
+    assert EntryLifecycleService(runtime).approved_candidates_for_entry_session(ENTRY_SESSION) == ()
 
 
 def test_todays_entry_session_consumes_the_labor_day_predecessor_analysis(durable) -> None:

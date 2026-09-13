@@ -30,6 +30,7 @@ from app.repositories.simulation import SimulationStateRepository
 from app.research.prompt import ResearchPromptService
 from app.research.versions import DETAIL_PROMPT_VERSION, EVIDENCE_VERSION, GPT_SCHEMA_VERSION, TOP8_PROMPT_VERSION
 from app.research.adoption import ADOPTION_FILTER_VERSION
+from app.research.authority import ResearchAuthorityService
 from app.scanner.config import ScannerConfig
 from app.services.research import GPTImportService, HumanDecisionService
 from app.risk.config import RiskConfig
@@ -116,15 +117,15 @@ async def research_detail_prompt(symbol: str, db: DB, scanner_run_id: int | None
 async def research_import(body: ResearchImportRequest, db: DB) -> dict[str, Any]:
     analysis = GPTImportService(ResearchRepository(db), ScannerSnapshotRepository(db)).import_json(body.raw_json)
     count = int(db.scalar(select(func.count()).select_from(GPTCandidateAnalysis).where(GPTCandidateAnalysis.gpt_analysis_id == analysis.id)) or 0)
+    active_id = db.get(ScannerRun, analysis.scanner_run_id).active_gpt_analysis_id
     return {"analysis_id": analysis.id, "scanner_run_id": analysis.scanner_run_id, "analysis_at": analysis.analysis_at,
-            "provider": analysis.provider, "model": analysis.model, "imported_at": analysis.imported_at, "candidate_count": count}
+            "provider": analysis.provider, "model": analysis.model, "imported_at": analysis.imported_at,
+            "candidate_count": count, "active_analysis_id": active_id, "activated": active_id == analysis.id}
 
 
 @router.get("/research/latest", tags=["Research"])
 async def research_latest(db: DB, scanner_run_id: int | None = None) -> dict[str, Any]:
-    stmt = select(GPTAnalysis).where(GPTAnalysis.status == "IMPORTED")
-    if scanner_run_id is not None: stmt = stmt.where(GPTAnalysis.scanner_run_id == scanner_run_id)
-    row = require(db.scalar(stmt.order_by(GPTAnalysis.analysis_at.desc(), GPTAnalysis.id.desc()).limit(1)), "Research analysis not found")
+    row = require(ResearchAuthorityService(db).resolve(scanner_run_id), "Active research analysis not found")
     result = query_service(db).analysis(row)
     settings = get_settings()
     if ui_review_mock_active(settings):
@@ -138,11 +139,41 @@ async def research_latest(db: DB, scanner_run_id: int | None = None) -> dict[str
 
 @router.get("/research/adoption", tags=["Research"])
 async def research_adoption(db: DB, scanner_run_id: int | None = None) -> dict[str, Any]:
+    row = require(ResearchAuthorityService(db).resolve(scanner_run_id), "Active research analysis not found")
+    return query_service(db).adoption(row)
+
+
+@router.get("/research/history", tags=["Research"])
+async def research_history(db: DB, scanner_run_id: int | None = None) -> list[dict[str, Any]]:
     stmt = select(GPTAnalysis).where(GPTAnalysis.status == "IMPORTED")
     if scanner_run_id is not None:
         stmt = stmt.where(GPTAnalysis.scanner_run_id == scanner_run_id)
-    row = require(db.scalar(stmt.order_by(GPTAnalysis.analysis_at.desc(), GPTAnalysis.id.desc()).limit(1)), "Research analysis not found")
-    return query_service(db).adoption(row)
+    rows = db.scalars(stmt.order_by(GPTAnalysis.analysis_at.desc(), GPTAnalysis.id.desc()))
+    result = []
+    for row in rows:
+        candidates = list(db.scalars(select(GPTCandidateAnalysis).where(
+            GPTCandidateAnalysis.gpt_analysis_id == row.id
+        ).order_by(GPTCandidateAnalysis.gpt_rank, GPTCandidateAnalysis.symbol)))
+        approved = set(db.scalars(select(HumanDecisionRecord.symbol).where(
+            HumanDecisionRecord.gpt_analysis_id == row.id,
+            HumanDecisionRecord.decision == "APPROVE",
+        )))
+        result.append({"id": row.id, "scanner_run_id": row.scanner_run_id,
+            "trading_date": row.trading_date, "analysis_at": row.analysis_at,
+            "imported_at": row.imported_at, "provider": row.provider, "model": row.model,
+            "status": row.status, "is_active": row.scanner_run.active_gpt_analysis_id == row.id,
+            "candidate_count": len(candidates), "approved_symbols": sorted(approved),
+            "candidates": [{"symbol": candidate.symbol, "gpt_rank": candidate.gpt_rank}
+                           for candidate in candidates]})
+    return result
+
+
+@router.put("/research/{analysis_id}/activate", tags=["Research"])
+async def activate_research(analysis_id: int, db: DB) -> dict[str, Any]:
+    analysis = require(db.get(GPTAnalysis, analysis_id), "Research analysis not found")
+    activated = ResearchAuthorityService(db).activate(analysis.scanner_run_id, analysis.id)
+    return {"analysis_id": activated.id, "scanner_run_id": activated.scanner_run_id,
+            "active": True}
 
 
 @router.get("/research/{analysis_id}/candidates/{symbol}", tags=["Research"])
@@ -433,7 +464,8 @@ async def dashboard(db: DB) -> dict[str, Any]:
     now = datetime.now(timezone.utc); market = await market_status(); service = query_service(db); run = service.latest_run(); rt = service.runtime(now)
     simulation_runtime = get_active_runtime()
     simulation_account = None if simulation_runtime is None or simulation_runtime.account_id is None else SimulationStateRepository(db).get_account_by_id(simulation_runtime.account_id)
-    analysis = db.scalar(select(GPTAnalysis).where(GPTAnalysis.status == "IMPORTED").order_by(GPTAnalysis.analysis_at.desc(), GPTAnalysis.id.desc()).limit(1))
+    latest_analysis = db.scalar(select(GPTAnalysis).where(GPTAnalysis.status == "IMPORTED").order_by(GPTAnalysis.analysis_at.desc(), GPTAnalysis.id.desc()).limit(1))
+    analysis = ResearchAuthorityService(db).resolve()
     approved = 0 if analysis is None else int(db.scalar(select(func.count()).select_from(HumanDecisionRecord).where(HumanDecisionRecord.gpt_analysis_id == analysis.id, HumanDecisionRecord.decision == "APPROVE")) or 0)
     shadow_count = int(db.scalar(select(func.count()).select_from(ShadowTradeRecord)) or 0)
     return {"system_time": now, "market": {"trading_date": market["trading_date"], "session": market["session"],
@@ -443,7 +475,11 @@ async def dashboard(db: DB) -> dict[str, Any]:
             "scanner": {"latest_run_id": None if run is None else run.id, "trading_date": None if run is None else run.trading_date,
             "completed_at": None if run is None else run.completed_at, "candidate_count": 0 if run is None else run.candidate_count,
             "top8_count": 0 if run is None else run.top8_count},
-            "research": {"latest_analysis_id": None if analysis is None else analysis.id, "analysis_at": None if analysis is None else analysis.analysis_at, "approved_count": approved},
+            "research": {"latest_analysis_id": None if latest_analysis is None else latest_analysis.id,
+            "active_analysis_id": None if analysis is None else analysis.id,
+            "scanner_run_id": None if analysis is None else analysis.scanner_run_id,
+            "trading_date": None if analysis is None else analysis.trading_date,
+            "analysis_at": None if analysis is None else analysis.analysis_at, "approved_count": approved},
             "trading": {"broker_mode": "SIMULATION", "open_positions_count": rt["open_positions_count"], "open_orders_count": rt["open_orders_count"],
             "paper_started_at": None if simulation_account is None else simulation_account.created_at},
             "shadow": {"recent_result_count": shadow_count}}

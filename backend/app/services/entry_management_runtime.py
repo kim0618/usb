@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 from app.market.calendar import MarketCalendar
 from app.market.domain import MarketSession, MinuteBar
 from app.market.provider import MarketDataProvider
-from app.models.research import GPTAnalysis, GPTCandidateAnalysis, HumanDecisionRecord
+from app.models.research import GPTCandidateAnalysis, HumanDecisionRecord
 from app.models.scanner import ScannerCandidate, ScannerRun
 from app.repositories.risk import DailyRiskRepository
 from app.repositories.strategy import StrategyStateRepository
@@ -31,6 +31,7 @@ from app.strategy.lifecycle import (
     TERMINAL_PHASES, OvernightSuitability, StrategyPhase, StrategyState, TrailingProfile,
 )
 from app.strategy.runner import StrategyLifecycleRunner
+from app.research.authority import ResearchAuthorityService
 
 logger = logging.getLogger(__name__)
 Clock = Callable[[], datetime]
@@ -105,13 +106,7 @@ class EntryLifecycleService:
             )
             if run is None:
                 return ()
-            analysis = session.scalar(
-                select(GPTAnalysis).where(
-                    GPTAnalysis.scanner_run_id == run.id,
-                    GPTAnalysis.trading_date == analysis_session_date,
-                    GPTAnalysis.status == "IMPORTED",
-                ).order_by(GPTAnalysis.analysis_at.desc(), GPTAnalysis.id.desc()).limit(1)
-            )
+            analysis = ResearchAuthorityService(session).resolve(run.id)
             if analysis is None:
                 return ()
             rows = session.execute(

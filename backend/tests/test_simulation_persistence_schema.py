@@ -19,7 +19,7 @@ from app.core.database import Base
 from app.dev.schema_fingerprint import schema_fingerprint
 from app.models.simulation import SimulationAccountRecord, SimulationTradeRecord
 
-REVISION = "20260908_0011"
+REVISION = "20260913_0012"
 SIMULATION_TABLES = ("simulation_accounts", "simulation_positions", "simulation_trades", "account_daily_performance")
 OPEN_INDEX = "uq_simulation_trades_open_symbol"
 # SimBroker fractional sizing produces repeating decimals that must survive exactly.
@@ -113,6 +113,47 @@ def test_downgrade_and_reupgrade_restores_the_schema(tmp_path: Path, monkeypatch
         assert _open_index_sql(engine) == index_sql
     finally:
         engine.dispose()
+        get_settings.cache_clear()
+
+
+def test_active_analysis_backfill_preserves_previous_latest_authority(
+        tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
+    path = tmp_path / "authority-backfill.sqlite3"
+    engine = _migrated_engine(path, monkeypatch, "20260908_0011")
+    run_sql = text("""INSERT INTO scanner_runs
+        (id, trading_date, started_at, completed_at, status, provider, score_version,
+         universe_count, excluded_count, candidate_count, top8_count, created_at)
+        VALUES (:id, '2026-09-11', :at, :at, 'COMPLETED', 'TEST', 'quant_v0', 0, 0, 0, 0, :at)""")
+    analysis_sql = text("""INSERT INTO gpt_analyses
+        (id, scanner_run_id, trading_date, provider, model, prompt_version, schema_version,
+         evidence_version, analysis_at, imported_at, status, raw_json, payload_hash)
+        VALUES (:id, :run_id, '2026-09-11', 'GPT', 'm', 'p', 's', 'e', :analysis_at,
+                :imported_at, :status, '{}', :payload_hash)""")
+    with engine.begin() as connection:
+        connection.execute(run_sql, [{"id": index, "at": "2026-09-11T20:00:00+00:00"}
+                                     for index in range(1, 5)])
+        connection.execute(analysis_sql, [
+            {"id": 100, "run_id": 1, "analysis_at": "2026-09-13T02:00:00+00:00", "imported_at": "2026-09-13T03:00:00+00:00", "status": "IMPORTED", "payload_hash": "a" * 64},
+            {"id": 200, "run_id": 1, "analysis_at": "2026-09-12T02:00:00+00:00", "imported_at": "2026-09-14T03:00:00+00:00", "status": "IMPORTED", "payload_hash": "b" * 64},
+            {"id": 300, "run_id": 2, "analysis_at": "2026-09-13T02:00:00+00:00", "imported_at": "2026-09-13T03:00:00+00:00", "status": "IMPORTED", "payload_hash": "c" * 64},
+            {"id": 301, "run_id": 2, "analysis_at": "2026-09-13T02:00:00+00:00", "imported_at": "2026-09-13T03:00:00+00:00", "status": "IMPORTED", "payload_hash": "d" * 64},
+            {"id": 400, "run_id": 3, "analysis_at": "2026-09-14T02:00:00+00:00", "imported_at": "2026-09-14T03:00:00+00:00", "status": "IMPORTED", "payload_hash": "e" * 64},
+            {"id": 401, "run_id": 3, "analysis_at": "2026-09-12T02:00:00+00:00", "imported_at": "2026-09-15T03:00:00+00:00", "status": "IMPORTED", "payload_hash": "f" * 64},
+            {"id": 500, "run_id": 4, "analysis_at": "2026-09-13T02:00:00+00:00", "imported_at": "2026-09-13T03:00:00+00:00", "status": "IMPORTED", "payload_hash": "0" * 64},
+            {"id": 501, "run_id": 4, "analysis_at": "2026-09-14T02:00:00+00:00", "imported_at": "2026-09-14T03:00:00+00:00", "status": "FAILED", "payload_hash": "1" * 64},
+        ])
+    engine.dispose()
+    command.upgrade(Config(PROJECT_ROOT / "alembic.ini"), "head")
+    upgraded = create_engine(f"sqlite:///{path}")
+    try:
+        with upgraded.connect() as connection:
+            assert connection.execute(text(
+                "SELECT id, active_gpt_analysis_id FROM scanner_runs ORDER BY id"
+            )).fetchall() == [(1, 100), (2, 301), (3, 400), (4, 500)]
+            assert connection.execute(text("PRAGMA quick_check")).scalars().all() == ["ok"]
+            assert connection.execute(text("PRAGMA foreign_key_check")).fetchall() == []
+    finally:
+        upgraded.dispose()
         get_settings.cache_clear()
 
 

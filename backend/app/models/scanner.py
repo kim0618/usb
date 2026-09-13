@@ -36,6 +36,10 @@ class ScannerRun(Base):
     top8_count: Mapped[int] = mapped_column(
         Integer, default=0, server_default="0", nullable=False
     )
+    active_gpt_analysis_id: Mapped[int | None] = mapped_column(
+        ForeignKey("gpt_analyses.id", name="fk_scanner_runs_active_gpt_analysis", ondelete="SET NULL"),
+        nullable=True,
+    )
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utc_now, nullable=False)
 
     candidates: Mapped[list["ScannerCandidate"]] = relationship(

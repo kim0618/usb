@@ -29,7 +29,7 @@ class GPTAnalysis(Base):
     status: Mapped[str] = mapped_column(String(32), nullable=False)
     raw_json: Mapped[str] = mapped_column(Text, nullable=False)
     payload_hash: Mapped[str] = mapped_column(String(64), nullable=False)
-    scanner_run: Mapped[ScannerRun] = relationship()
+    scanner_run: Mapped[ScannerRun] = relationship(foreign_keys=[scanner_run_id])
     candidates: Mapped[list["GPTCandidateAnalysis"]] = relationship(back_populates="analysis", cascade="all, delete-orphan")
     decisions: Mapped[list["HumanDecisionRecord"]] = relationship(back_populates="analysis", cascade="all, delete-orphan")
 

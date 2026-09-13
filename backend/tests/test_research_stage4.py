@@ -15,6 +15,7 @@ from app.repositories.research import ResearchRepository
 from app.repositories.scanner import ScannerCandidateData, ScannerSnapshotRepository
 from app.research.domain import HumanDecision, ResearchSource, SourceType
 from app.research.evidence import evidence_confidence
+from app.research.authority import ResearchAuthorityService
 from app.research.prompt import ResearchPromptService
 from app.services.research import GPTImportService, HumanDecisionService
 
@@ -98,6 +99,7 @@ def test_atomic_import_validation_duplicate_latest_and_quant_immutable(db: Sessi
     before = [(c.id, c.rank, c.score, c.score_components_json, c.is_top8) for c in scanner.get_top8(run.id)]
     raw = json.dumps(payload(run.id))
     first = service.import_json(raw)
+    assert run.active_gpt_analysis_id == first.id
     assert len(repository.get_candidates(first.id)) == 3
     assert db.scalar(select(func.count()).select_from(HumanDecisionRecord)) == 0
     after = [(c.id, c.rank, c.score, c.score_components_json, c.is_top8) for c in scanner.get_top8(run.id)]
@@ -108,10 +110,46 @@ def test_atomic_import_validation_duplicate_latest_and_quant_immutable(db: Sessi
     later = payload(run.id); later["analysis_at"] = "2024-06-30T01:00:00+00:00"; later["model"] = "new"
     second = service.import_json(json.dumps(later))
     assert repository.get_latest_valid_analysis(run.id).id == second.id
+    db.refresh(run)
+    assert run.active_gpt_analysis_id == first.id
+    authority = ResearchAuthorityService(db)
+    assert authority.resolve(run.id).id == first.id
+    authority.activate(run.id, second.id)
+    assert authority.resolve(run.id).id == second.id
+    authority.activate(run.id, first.id)
+    assert authority.resolve(run.id).id == first.id
     bad = payload(run.id); bad["candidates"][2]["gpt_rank"] = 2; bad["model"] = "bad"
     with pytest.raises(ResearchError):
         service.import_json(json.dumps(bad))
     assert db.scalar(select(func.count()).select_from(GPTAnalysis)) == 2
+
+
+def test_activation_rejects_different_run_and_non_imported_analysis(db: Session) -> None:
+    first_run, scanner = setup_run(db)
+    first = GPTImportService(ResearchRepository(db), scanner).import_json(
+        json.dumps(payload(first_run.id)))
+    second_run, _ = setup_run(db)
+    authority = ResearchAuthorityService(db)
+    with pytest.raises(ResearchError, match="different scanner run"):
+        authority.activate(second_run.id, first.id)
+    first.status = "FAILED"
+    db.commit()
+    with pytest.raises(ResearchError, match="Only IMPORTED"):
+        authority.activate(first_run.id, first.id)
+
+
+def test_global_resolver_ignores_cross_run_pointer_corruption(db: Session) -> None:
+    first_run, scanner = setup_run(db)
+    analysis = GPTImportService(ResearchRepository(db), scanner).import_json(
+        json.dumps(payload(first_run.id)))
+    second_run, _ = setup_run(db)
+    first_run.active_gpt_analysis_id = None
+    second_run.active_gpt_analysis_id = analysis.id
+    db.commit()
+
+    authority = ResearchAuthorityService(db)
+    assert authority.resolve(second_run.id) is None
+    assert authority.resolve() is None
 
 
 @pytest.mark.parametrize("mutation", [

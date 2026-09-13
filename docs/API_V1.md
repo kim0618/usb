@@ -54,8 +54,10 @@ non-empty and bounded. Failure resolution alone never restores NORMAL.
 | GET | `/api/v1/research/prompt` | Stored Top-8 manual GPT prompt |
 | GET | `/api/v1/research/prompt/{symbol}` | Stock detail prompt |
 | POST | `/api/v1/research/import` | Atomic raw GPT JSON import |
-| GET | `/api/v1/research/latest` | Latest imported analysis |
-| GET | `/api/v1/research/adoption` | Latest analysis classified by read-only `adoption_filter_v0` |
+| GET | `/api/v1/research/latest` | Active analysis (name retained for compatibility) |
+| GET | `/api/v1/research/history` | Imported analysis history and active marker |
+| PUT | `/api/v1/research/{analysis_id}/activate` | Explicitly select this run's active imported analysis |
+| GET | `/api/v1/research/adoption` | Active analysis classified by read-only `adoption_filter_v0` |
 | GET | `/api/v1/research/{analysis_id}/candidates/{symbol}` | Candidate, evidence, decision, Quant reference |
 | PUT | `/api/v1/research/{analysis_id}/decisions/{symbol}` | APPROVE/REJECT through existing service |
 | GET | `/api/v1/trading` | Simulation availability and strategy states |

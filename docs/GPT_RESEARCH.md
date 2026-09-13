@@ -54,7 +54,7 @@ Example: catalyst NEWS (32), one other NEWS claim (8), two domains (+10) gives 5
 - `gpt_sources`: candidate-analysis FK, claim, URL/type/title/date and parsed hostname.
 - `human_decisions`: analysis and ScannerCandidate FKs with one mutable current decision per analysis+symbol.
 
-Analysis deletion cascades to candidate analyses, sources, and decisions. Scanner candidate references use RESTRICT so research cannot silently orphan its quant snapshot. The current analysis for a ScannerRun is the latest `IMPORTED` row by `analysis_at DESC`, then `id DESC`; history is retained.
+Analysis deletion cascades to candidate analyses, sources, and decisions. Scanner candidate references use RESTRICT so research cannot silently orphan its quant snapshot. `scanner_runs.active_gpt_analysis_id` is the explicit trading authority. The first import initializes it; later imports only append history until explicitly activated. Human decisions remain attached to their exact analysis, and an active analysis with no decisions yields no entry candidates.
 
 ## Human decisions and Stage 5+
 

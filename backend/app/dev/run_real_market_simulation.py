@@ -16,8 +16,9 @@ from sqlalchemy.orm import Session
 from app.core.config import REAL_MARKET_DATABASE_URL, Settings, get_settings
 from app.core.database import create_db_engine
 from app.market.factory import build_kiwoom_provider
-from app.models.research import GPTAnalysis, GPTCandidateAnalysis, HumanDecisionRecord
+from app.models.research import GPTCandidateAnalysis, HumanDecisionRecord
 from app.models.scanner import ScannerCandidate, ScannerRun
+from app.research.authority import ResearchAuthorityService
 from app.strategy.session_policy import SessionPolicy
 
 DEFAULT_DB = REAL_MARKET_DATABASE_URL.removeprefix("sqlite:///")
@@ -51,9 +52,7 @@ def inspect_readiness(session: Session) -> OperatorReadiness:
     top8 = tuple(session.scalars(select(ScannerCandidate.symbol).where(
         ScannerCandidate.scanner_run_id == run.id, ScannerCandidate.is_top8.is_(True)
     ).order_by(ScannerCandidate.rank)))
-    analysis = session.scalar(select(GPTAnalysis).where(
-        GPTAnalysis.scanner_run_id == run.id, GPTAnalysis.status == "IMPORTED"
-    ).order_by(GPTAnalysis.analysis_at.desc(), GPTAnalysis.id.desc()).limit(1))
+    analysis = ResearchAuthorityService(session).resolve(run.id)
     if analysis is None:
         return OperatorReadiness(run.id, run.trading_date, top8, None, 0, 0, 0, 0)
     research_count = int(session.scalar(select(func.count()).select_from(GPTCandidateAnalysis).where(

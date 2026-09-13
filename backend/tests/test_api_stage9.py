@@ -89,6 +89,34 @@ async def test_missing_resources_use_common_error(api) -> None:  # type: ignore[
 
 
 @pytest.mark.asyncio
+async def test_research_reads_and_dashboard_use_active_not_latest_analysis(api) -> None:  # type: ignore[no-untyped-def]
+    app, sessions = api
+    now = datetime(2026, 9, 1, 20, tzinfo=timezone.utc)
+    with sessions() as db:
+        run = ScannerRun(trading_date=date(2026, 9, 1), started_at=now, completed_at=now,
+            status="COMPLETED", provider="FAKE", score_version="quant_v0")
+        db.add(run); db.flush()
+        active = GPTAnalysis(scanner_run_id=run.id, trading_date=run.trading_date, provider="GPT", model="A",
+            prompt_version="p", schema_version="s", evidence_version="e", analysis_at=now,
+            imported_at=now, status="IMPORTED", raw_json="{}", payload_hash="a" * 64)
+        latest = GPTAnalysis(scanner_run_id=run.id, trading_date=run.trading_date, provider="GPT", model="B",
+            prompt_version="p", schema_version="s", evidence_version="e",
+            analysis_at=now.replace(hour=21), imported_at=now.replace(hour=21), status="IMPORTED",
+            raw_json="{}", payload_hash="b" * 64)
+        db.add_all([active, latest]); db.flush(); run.active_gpt_analysis_id = active.id; db.commit()
+        active_id, latest_id = active.id, latest.id
+
+    assert (await get(app, "/api/v1/research/latest")).json()["analysis"]["id"] == active_id
+    assert (await get(app, "/api/v1/research/adoption")).json()["analysis_id"] == active_id
+    dashboard = (await get(app, "/api/v1/dashboard")).json()["research"]
+    assert (dashboard["active_analysis_id"], dashboard["latest_analysis_id"]) == (active_id, latest_id)
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.put(f"/api/v1/research/{latest_id}/activate")
+    assert response.status_code == 200
+    assert (await get(app, "/api/v1/research/latest")).json()["analysis"]["id"] == latest_id
+
+
+@pytest.mark.asyncio
 async def test_adoption_endpoint_is_versioned_and_read_only(api, monkeypatch) -> None:  # type: ignore[no-untyped-def]
     app, sessions = api; now = datetime(2026, 9, 1, 20, tzinfo=timezone.utc)
     with sessions() as db:
@@ -103,6 +131,7 @@ async def test_adoption_endpoint_is_versioned_and_read_only(api, monkeypatch) ->
             prompt_version="top8_research_v0", schema_version="gpt_research_v0", evidence_version="evidence_v0",
             analysis_at=now, imported_at=now, status="IMPORTED", raw_json="{}", payload_hash="a" * 64)
         db.add(analysis); db.flush()
+        run.active_gpt_analysis_id = analysis.id
         db.add(GPTCandidateAnalysis(gpt_analysis_id=analysis.id, scanner_candidate_id=quant.id, symbol="AAA", gpt_rank=1,
             overall_score=80, catalyst_score=90, fundamental_score=95, momentum_score=80, risk_score=70,
             evidence_confidence=60, catalyst_duration="ONE_TO_TWO_DAYS", stop_profile="NORMAL", trailing_profile="WIDE",

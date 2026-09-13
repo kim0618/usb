@@ -98,6 +98,8 @@ class GPTImportService:
                         published_at=source.published_at, source_domain=(source.url.host or "").lower(),
                     ))
                 self.repository.add_sources(sources)
+            if run.active_gpt_analysis_id is None:
+                run.active_gpt_analysis_id = analysis.id
             session.commit()
             return analysis
         except Exception:
