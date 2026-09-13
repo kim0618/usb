@@ -33,6 +33,10 @@ from app.research.adoption import ADOPTION_FILTER_VERSION
 from app.research.authority import ResearchAuthorityService
 from app.scanner.config import ScannerConfig
 from app.services.entry_capacity import load_entry_capacity
+from app.services.performance_baseline import (
+    EXCLUDED_PERFORMANCE_PERIODS, STRATEGY_PERFORMANCE_VALID_FROM, excluded_period,
+    strategy_baseline_equity, strategy_performance_fields,
+)
 from app.services.research import GPTImportService, HumanDecisionService
 from app.risk.config import RiskConfig
 from app.execution.config import ExecutionConfig
@@ -269,6 +273,9 @@ async def daily_performance(db: DB, limit: Annotated[int, Query(ge=1, le=500)] =
     account = repository.get_account_by_id(runtime.account_id)
     if account is None:
         return []
+    # Rows are history and are never altered; the scope only says whether a row counts
+    # toward strategy performance, measured from the POST-FIX DAY 1 opening equity.
+    baseline = strategy_baseline_equity(db, runtime.account_id)
     return [{
         "trading_date": row.trading_date,
         "opening_equity": str(row.opening_equity),
@@ -278,6 +285,7 @@ async def daily_performance(db: DB, limit: Annotated[int, Query(ge=1, le=500)] =
         "daily_pnl": str(row.daily_pnl),
         "daily_return": str(row.daily_return),
         "cumulative_pnl": str(row.closing_equity - account.initial_cash),
+        **strategy_performance_fields(row.trading_date, row.closing_equity, baseline),
     } for row in repository.list_daily_performance(runtime.account_id, limit=limit)]
 
 
@@ -353,19 +361,25 @@ async def shadow_summary(
     if start_date is not None and end_date is not None and start_date > end_date:
         raise ValueError("start_date must be on or before end_date")
     rows = list(db.scalars(select(ShadowTradeRecord).order_by(ShadowTradeRecord.variant, ShadowTradeRecord.id)))
-    if start_date is not None or end_date is not None:
-        run_ids = {row.scanner_run_id for row in rows if row.scanner_run_id is not None}
-        trading_dates = {
-            run.id: run.trading_date
-            for run in db.scalars(select(ScannerRun).where(ScannerRun.id.in_(run_ids)))
-        } if run_ids else {}
-        market_timezone = get_settings().market_timezone
-        rows = [
-            row for row in rows
-            if (performance_date := shadow_performance_date(row, trading_dates, market_timezone)) is not None
-            and (start_date is None or performance_date >= start_date)
-            and (end_date is None or performance_date <= end_date)
-        ]
+    run_ids = {row.scanner_run_id for row in rows if row.scanner_run_id is not None}
+    trading_dates = {
+        run.id: run.trading_date
+        for run in db.scalars(select(ScannerRun).where(ScannerRun.id.in_(run_ids)))
+    } if run_ids else {}
+    market_timezone = get_settings().market_timezone
+
+    def counted(row: ShadowTradeRecord) -> bool:
+        performance_date = shadow_performance_date(row, trading_dates, market_timezone)
+        # Pre-fix system-validation days never count, whatever period is asked for.
+        if performance_date is not None and excluded_period(performance_date) is not None:
+            return False
+        if start_date is None and end_date is None:
+            return True
+        return (performance_date is not None
+                and (start_date is None or performance_date >= start_date)
+                and (end_date is None or performance_date <= end_date))
+
+    rows = [row for row in rows if counted(row)]
     variants = []
     for variant in "ABCDE":
         items = [r for r in rows if r.variant == variant]; closed = [r for r in items if r.status == "CLOSED"]
@@ -376,7 +390,9 @@ async def shadow_summary(
             "avg_net_r": str(net_r / len(closed)) if closed else "0", "total_cost": str(sum((r.total_cost for r in items), Decimal("0"))),
             "ambiguity": sum(r.ambiguous_bar_count for r in items), "overnight": sum(r.holding_days > 1 for r in items),
             "pyramid": None, "source": "SIMULATION"})
-    return {"source": "SIMULATION", "variants": variants}
+    return {"source": "SIMULATION", "variants": variants,
+            "excluded_periods": [{"start": start, "end": end, "reason": scope.value}
+                                 for start, end, scope in EXCLUDED_PERFORMANCE_PERIODS]}
 
 
 @router.get("/replay-smoke/latest", tags=["Shadow"])
@@ -485,5 +501,6 @@ async def dashboard(db: DB) -> dict[str, Any]:
             "trading_date": None if analysis is None else analysis.trading_date,
             "analysis_at": None if analysis is None else analysis.analysis_at, "approved_count": approved},
             "trading": {"broker_mode": "SIMULATION", "open_positions_count": rt["open_positions_count"], "open_orders_count": rt["open_orders_count"],
-            "paper_started_at": None if simulation_account is None else simulation_account.created_at},
+            "paper_started_at": None if simulation_account is None else simulation_account.created_at,
+            "strategy_performance_valid_from": STRATEGY_PERFORMANCE_VALID_FROM},
             "shadow": {"recent_result_count": shadow_count}}

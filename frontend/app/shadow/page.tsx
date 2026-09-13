@@ -27,6 +27,6 @@ export default function ShadowPage() {
   return <>
     <PageHeader title="전략 성과" />
     {error && summary && <p className="mb-3 text-right text-xs text-danger" role="alert">{error}</p>}
-    <StrategyComparison variants={summary.variants} period={period} loading={loading} onPeriodChange={setPeriod} />
+    <StrategyComparison variants={summary.variants} period={period} loading={loading} onPeriodChange={setPeriod} />{summary.excluded_periods?.map(excluded => <p key={excluded.start} className="mt-2 text-xs text-muted">시스템 검증 기간({excluded.start} ~ {excluded.end})은 전략 성과 집계에서 제외됩니다.</p>)}
   </>;
 }

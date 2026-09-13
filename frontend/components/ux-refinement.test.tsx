@@ -117,7 +117,7 @@ describe("Stage 9.13.3 analysis workflow policy", () => {
     expect(research).not.toContain('<MetricCard label="분석 종목"');
     expect(research).not.toContain("GPT 분석 및 투자 승인");
     expect(research).not.toContain("api.decide");
-    expect(adoption).toContain("api.decide(selected.analysis_id, selected.symbol, decision)");
+    expect(adoption).toContain("api.decide(target.analysis_id, target.symbol, decision)");
     expect(adoption).not.toContain("error.status === 409");
     expect(research).not.toContain("api.researchDetail");
     expect(adoption).toContain("api.researchDetail");

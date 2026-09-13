@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { AnalysisTabs } from "@/components/section-tabs";
 import { ResearchDecisionControl } from "@/components/research-decision";
 import { useToast } from "@/components/toast";
@@ -37,11 +37,16 @@ export default function AdoptionPage() {
   const noAnalysis = Boolean(result.error?.toLowerCase().includes("research analysis not found"));
   const approved = result.data?.items.filter(item => item.human_decision?.decision === "APPROVE").length ?? 0;
   const visible = result.data?.items.filter(item => showExcluded || item.classification !== "EXCLUDED") ?? [];
-  async function open(item: AdoptionItem) { setSelected(item); setDetail(null); setLoadingDetail(true); try { setDetail(await api.researchDetail(item.analysis_id, item.symbol)); } catch (error) { toast(error instanceof Error ? error.message : "상세 조회 실패", true); } finally { setLoadingDetail(false); } }
+  // The drawer that is open right now; a detail response for any other drawer is stale and dropped.
+  const openKey = useRef<string | null>(null); const submitting = useRef(false);
+  function closeDrawer() { openKey.current = null; setSelected(null); setDetail(null); setLoadingDetail(false); }
+  async function open(item: AdoptionItem) { const key = `${item.analysis_id}:${item.symbol}`; openKey.current = key; setSelected(item); setDetail(null); setLoadingDetail(true); try { const loaded = await api.researchDetail(item.analysis_id, item.symbol); if (openKey.current === key) setDetail(loaded); } catch (error) { if (openKey.current === key) toast(error instanceof Error ? error.message : "상세 조회 실패", true); } finally { if (openKey.current === key) setLoadingDetail(false); } }
+  /** Close only after the decision is saved and the list reflects it; a failure keeps the drawer open. */
   async function decide(decision: "APPROVE" | "REJECT") {
-    if (!selected || !result.data) return;
-    setBusy(true); try { await api.decide(selected.analysis_id, selected.symbol, decision); toast(`${selected.symbol} 결정을 ${formatDecisionStatus(decision)}으로 변경했습니다.`); await result.refresh(); setDetail(await api.researchDetail(selected.analysis_id, selected.symbol)); }
-    catch (error) { toast(error instanceof Error ? error.message : "결정 저장 실패", true); } finally { setBusy(false); }
+    if (!selected || !result.data || submitting.current) return;
+    const target = selected; submitting.current = true; setBusy(true);
+    try { await api.decide(target.analysis_id, target.symbol, decision); toast(`${target.symbol} 결정을 ${formatDecisionStatus(decision)}으로 변경했습니다.`); await result.refresh(); closeDrawer(); }
+    catch (error) { toast(error instanceof Error ? error.message : "결정 저장 실패", true); } finally { submitting.current = false; setBusy(false); }
   }
   return <><AnalysisTabs/>{result.loading ? <LoadingState/> : result.error && !noAnalysis ? <ErrorState message={result.error} retry={result.refresh}/> : !result.data ? <><PageHeader title="채택 후보" description="GPT 분석이 완료되면 최종 검토할 후보가 표시됩니다."/><EmptyState title="아직 채택 후보가 없습니다." description="먼저 GPT 분석 결과를 입력하고 적용하세요."/></> : <>
     <PageHeader title="채택 후보" description="Quant와 GPT 분석을 함께 비교해 최종 검토가 필요한 종목을 보여줍니다."/>
@@ -50,7 +55,7 @@ export default function AdoptionPage() {
     <div className="mb-3 flex justify-end"><button className="btn-action-secondary-compact" aria-pressed={showExcluded} onClick={() => setShowExcluded(value => !value)}>{showExcluded ? "제외 숨기기" : `제외 ${result.data.counts.excluded}개 보기`}</button></div>
     <div className="table-wrap"><table className="analysis-table"><thead><tr><th className="whitespace-nowrap">순위</th><th>상태</th><th>종목</th><th>Quant → GPT</th><th>순위 변화</th><th>핵심 강점</th><th>핵심 주의</th><th>상세</th><th>최종 결정</th></tr></thead><tbody>{visible.map(item => { const meta=status(item.classification); return <tr key={item.symbol}><td className="whitespace-nowrap font-bold text-primary">{rankLabel(item.recommendation_rank)}</td><td><StatusBadge value={item.classification} label={meta.label} tone={meta.tone}/></td><td><p className="font-bold text-foreground">{item.symbol}</p>{item.company_name && <p className="text-xs text-muted">{item.company_name}</p>}</td><td className="whitespace-nowrap">{item.quant_rank == null ? "—" : `#${item.quant_rank}`} → #{item.gpt_rank}</td><td><StatusBadge value={item.rank_direction} label={item.rank_delta_label} tone={deltaTone(item)}/></td><td className="hidden min-w-48 text-xs text-foreground-secondary lg:table-cell">{summaryCell(item.strengths)}</td><td className="hidden min-w-48 text-xs text-foreground-secondary lg:table-cell">{summaryCell(item.warnings)}</td><td><button className="btn-action-secondary-compact whitespace-nowrap" onClick={() => void open(item)}>상세보기</button></td><td><StatusBadge value={item.human_decision?.decision || "UNDECIDED"} label={formatDecisionStatus(item.human_decision?.decision)}/></td></tr>})}</tbody></table></div>
   </>}
-  <Drawer open={selected !== null} title={`${selected?.symbol ?? "채택 후보"} · 채택 검토`} onClose={() => { setSelected(null); setDetail(null); }} footer={selected && <ResearchDecisionControl decision={detail?.human_decision?.decision ?? selected.human_decision?.decision} busy={busy} onDecide={decision => void decide(decision)}/>}>{loadingDetail ? <LoadingState/> : selected && detail && <Detail item={selected} detail={detail}/>}</Drawer>
+  <Drawer open={selected !== null} title={`${selected?.symbol ?? "채택 후보"} · 채택 검토`} onClose={closeDrawer} footer={selected && <ResearchDecisionControl decision={detail?.human_decision?.decision ?? selected.human_decision?.decision} busy={busy} onDecide={decision => void decide(decision)}/>}>{loadingDetail ? <LoadingState/> : selected && detail && <Detail item={selected} detail={detail}/>}</Drawer>
   </>;
 }
 
