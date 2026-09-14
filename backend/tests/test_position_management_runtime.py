@@ -3,8 +3,9 @@ from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 import pytest
 
+from app.market.domain import MarketSession
 from app.services.position_management_runtime import (
-    PositionManagementRuntime, get_position_management_runtime,
+    FINAL_FLUSH_ATTEMPTS, PositionManagementRuntime, get_position_management_runtime,
     start_position_management_runtime, stop_position_management_runtime,
 )
 from app.services.simulation_runtime import SimulationRuntimeContext
@@ -30,6 +31,9 @@ class Lifecycle:
     def evaluate(self, bars, *, as_of, symbols=None):
         self.calls.append((bars, as_of, symbols))
         return ()
+
+    def fetch_start(self, symbol, window):
+        return window.market_open
 
 
 class Provider:
@@ -125,16 +129,33 @@ WEEKEND = datetime(2024, 6, 22, 11, 0, tzinfo=ET)
 @pytest.mark.parametrize("as_of", [PREMARKET, POSTMARKET, HOLIDAY, WEEKEND],
                          ids=["premarket", "postmarket", "holiday", "weekend"])
 @pytest.mark.asyncio
-async def test_outside_the_regular_session_nothing_is_acquired_or_evaluated(as_of):
-    """The cadence manages the regular session only; other hours are not this loop's.
+async def test_outside_the_regular_session_only_the_bounded_final_flush_reads_data(as_of):
+    """The cadence manages the regular session; other hours are not this loop's.
 
-    The gate is what keeps an unattended process from authenticating and
-    requesting market data around the clock, so it is asserted before the
-    provider exists rather than after the request comes back empty.
+    The one thing it still reads outside the session is the last closed session's
+    final regular bar, which completes at the close itself and so is never visible
+    to an in-session tick. That read is bounded - a final bar the provider never
+    publishes is asked for a fixed number of times - so an unattended process still
+    never requests market data around the clock. What it hands the lifecycle is the
+    catch-up of the closed session: completed regular bars only, never a future one.
     """
     built = []
+    provider = Provider()
     lifecycle = Lifecycle()
-    runtime = owner(Broker("AAA"), lambda: built.append(True), lifecycle)
 
-    assert await runtime.run_once(as_of=as_of) == ()
-    assert built == [] and lifecycle.calls == []
+    def build():  # type: ignore[no-untyped-def]
+        built.append(True)
+        return provider
+
+    runtime = owner(Broker("AAA"), build, lifecycle)
+
+    for minute in range(FINAL_FLUSH_ATTEMPTS + 20):
+        assert await runtime.run_once(as_of=as_of + timedelta(minutes=minute)) == ()
+
+    assert len(built) == 1
+    assert len(lifecycle.calls) <= FINAL_FLUSH_ATTEMPTS
+    for bars, evaluated_at, _ in lifecycle.calls:
+        assert all(bar.session is MarketSession.REGULAR and bar.available_at <= evaluated_at
+                   for values in bars.values() for bar in values)
+    assert len(provider.calls) == FINAL_FLUSH_ATTEMPTS
+    assert {call[3] for call in provider.calls} == {MarketSession.REGULAR}

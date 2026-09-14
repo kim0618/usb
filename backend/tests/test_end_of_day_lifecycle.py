@@ -59,6 +59,7 @@ from backend.tests.test_position_lifecycle_hard_stop import (
     DAY,
     ENTRY_CASH,
     ENTRY_FILL,
+    ENTRY_FILL_AT,
     ENTRY_REFERENCE,
     INITIAL_STOP,
     MARKET_OPEN,
@@ -158,10 +159,17 @@ def day2_tape(close: Decimal = CARRY_CLOSE, *, fill: bool = True) -> tuple[Minut
 
 def carriable(factory, *, suitability=OvernightSuitability.HIGH,
               active_stop: Decimal | None = None, **changes) -> StrategyState:
-    """Give the open state the research and trailing figures a carry needs."""
+    """Give the open state the research and trailing figures a carry needs.
+
+    Trailing figures are what the minute driver leaves after testing the stop on the
+    bars it has seen, so the state also records that it has tested the entry's fill
+    bar: a stop raised later is never replayed against a bar it did not exist for.
+    """
     with factory() as session:
         repository = StrategyStateRepository(session)
         state = repository.list_open(SYMBOL)[0]
+        changes.setdefault("last_protected_bar_at",
+                           state.last_protected_bar_at or ENTRY_FILL_AT)
         updated = replace(state, overnight_suitability=suitability,
                           active_stop=active_stop or state.active_stop, **changes)
         repository.save(updated, updated_at=SIGNAL_AT)
@@ -537,9 +545,8 @@ def test_a_pending_exit_is_retried_by_the_minute_driver_that_owns_that_phase(fac
 
     Two owners retrying one signal is how a position gets sold twice, so the
     closing review hands a signalled exit to the driver that already owns it. The
-    cost is visible here: that driver re-derives the label from the stops, so a
-    retried overnight exit closes the trade as a stop. It is a labelling loss on an
-    unfilled exit, not a second sell.
+    signal records why it is leaving, so the retry closes the trade with that
+    reason - an overnight rejection, not a stop - and sells exactly once.
     """
     runtime = activate()
     enter(runtime, factory)
@@ -557,7 +564,7 @@ def test_a_pending_exit_is_retried_by_the_minute_driver_that_owns_that_phase(fac
         {SYMBOL: eod_tape(fill=False, late=True)}, as_of=LATE_AS_OF)[0]
     assert retried.action is PositionAction.EXIT_FILLED
     assert runtime.broker.get_positions() == ()
-    assert durable_trade(factory).exit_reason == StrategyReason.INITIAL_STOP.value
+    assert durable_trade(factory).exit_reason == StrategyReason.OVERNIGHT_REJECTED.value
 
 
 # 16-18. Day 2 --------------------------------------------------------------
@@ -627,16 +634,23 @@ def test_day_two_closes_the_position_rather_than_carrying_it_to_day_three(factor
     assert driver.review({SYMBOL: day2_tape()}, as_of=DAY2_REVIEW_AS_OF) == ()
 
 
-def test_the_minute_driver_does_not_manage_a_position_the_night_owns(factory) -> None:
-    """One position, two cadences, no overlap: OVERNIGHT_HELD is not a managed phase."""
+def test_the_minute_driver_guards_the_stop_but_leaves_the_night_its_decisions(factory) -> None:
+    """One position, two cadences, no overlap: the minute driver only tests the stop.
+
+    A carried position's stop is enforced on every completed regular bar, but a bar
+    that does not breach it changes nothing the closing review decided - no order,
+    no phase, no trailing figure, no high-water mark.
+    """
     runtime, _, _ = carry_once(factory)
+    before = stored_state(factory)
     submitted = count_submissions(runtime.broker)
-    outcome = PositionLifecycleService(runtime).evaluate({SYMBOL: eod_tape()},
+    outcome = PositionLifecycleService(runtime).evaluate({SYMBOL: eod_tape(late=True)},
                                                         as_of=LATE_AS_OF)[0]
-    assert outcome.action is PositionAction.SKIPPED
-    assert "OVERNIGHT_HELD" in outcome.reason
+    assert outcome.action is PositionAction.HOLD
     assert submitted == []
     assert runtime.broker.get_position(SYMBOL).quantity == QUANTITY
+    # The one durable effect is the cursor: both new bars had their stop tested.
+    assert stored_state(factory) == replace(before, last_protected_bar_at=LATE_BAR_AT)
 
 
 # 19. Everything the earlier stages built has to survive the night -----------
@@ -655,6 +669,9 @@ def test_a_pyramided_and_trailed_position_keeps_every_figure_through_the_night(f
     enter(runtime, factory)
     added = PositionLifecycleService(runtime).evaluate({SYMBOL: add_tape()}, as_of=ADD_AS_OF)[0]
     assert added.action is PositionAction.ADD_FILLED
+    # The minute driver keeps testing the stop on every bar until the review, as the
+    # real cadence does, so the figures the night must preserve are the ones it left.
+    PositionLifecycleService(runtime).evaluate({SYMBOL: add_tape()}, as_of=CLOSING_BAR_AT)
     before = carriable(factory)
     assert before.add_count == 1 and before.add_signal_issued is True
     assert before.phase is StrategyPhase.PYRAMID_ADDED

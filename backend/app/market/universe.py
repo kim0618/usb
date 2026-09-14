@@ -4,7 +4,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
-from app.integrations.kiwoom.mapping import canonical_exchange, map_metadata
+from app.core.exceptions import MarketDataError
+from app.integrations.kiwoom.mapping import exchange_code, map_metadata
 from app.market.kiwoom import KiwoomMarketDataProvider
 from app.market.reference import SymbolMetadata
 from app.market.symbols import normalize_symbol
@@ -55,7 +56,7 @@ class KiwoomUniverseSource:
 
     def prime_provider(self, candidates: tuple[UniverseCandidate, ...], received_at: datetime) -> None:
         for item in candidates:
-            self.provider._exchanges[item.symbol] = item.exchange_code
+            self.provider.bind_exchange(item.symbol, item.exchange_code)
             payload: dict[str, Any] = {
                 "stex_tp": item.exchange_code,
                 "stk_cd": item.symbol,
@@ -78,11 +79,16 @@ class KiwoomUniverseSource:
 
     @staticmethod
     def _exchange_code(value: object) -> str:
+        """Ranking TRs report the venue numerically or as a code; names are accepted too.
+
+        Acquisition keeps its NASDAQ default because Scanner metadata, not this
+        pre-filter, is the exchange authority every later lookup is bound to.
+        """
         raw = str(value).strip().upper()
-        if raw in {"NA", "ND", "NY"}:
-            return raw
         numeric = {"1": "NY", "2": "ND", "3": "NA"}.get(raw)
         if numeric:
             return numeric
-        canonical = canonical_exchange(raw)
-        return {"NYSE": "NY", "NASDAQ": "ND", "AMEX": "NA"}.get(canonical, "ND")
+        try:
+            return exchange_code(raw)
+        except MarketDataError:
+            return "ND"

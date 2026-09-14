@@ -19,11 +19,23 @@ def minute(clock: str, day: str = "20260914") -> dict[str, str]:
 
 
 class Client:
-    def __init__(self, rows: list[dict[str, str]]) -> None:
+    def __init__(self, rows: list[dict[str, str]],
+                 regular_closes: dict[str, str] | None = None) -> None:
         self.rows = rows
+        self.regular_closes = regular_closes or {"20260911": "100"}
 
     def minute_chart(self, symbol, exchange, start=None):  # type: ignore[no-untyped-def]
-        return SimpleNamespace(rows=self.rows)
+        rows = list(self.rows)
+        if start is not None:
+            day = start.astimezone(ET).strftime("%Y%m%d")
+            close = self.regular_closes.get(day)
+            if close is not None:
+                rows.append({
+                    "bus_dt": day, "cntr_tm": f"{day}155900", "open_pric": close,
+                    "high_pric": close, "low_pric": close, "cur_prc": close,
+                    "trde_qty": "1000",
+                })
+        return SimpleNamespace(rows=rows)
 
     def daily_chart(self, symbol, exchange, start=None):  # type: ignore[no-untyped-def]
         # Mirrors live usa06012: strt_dt is the base date and rows run backwards from it.
@@ -113,7 +125,7 @@ def test_future_bar_is_never_consumed_at_0931(received_at: datetime, provider_re
 
 
 def daily_client(closes: dict[str, str]) -> Client:
-    client = Client([minute("080000")])
+    client = Client([minute("080000")], regular_closes=closes)
 
     def daily_chart(symbol, exchange, start=None):  # type: ignore[no-untyped-def]
         return [{"dt": dt, "open_pric": close, "high_pric": close, "low_pric": close,
@@ -125,7 +137,7 @@ def daily_client(closes: dict[str, str]) -> Client:
 
 
 @pytest.mark.parametrize(("entry", "closes", "previous_close", "invalid"), [
-    # Monday entry: the predecessor is Friday 09/11, not the older Thursday bar.
+    # The minute fixture, not the daily close field, supplies the expected close.
     (date(2026, 9, 14), {"20260910": "110", "20260911": "111"}, "111", None),
     # After Labor Day (09/07): the predecessor is Friday 09/04.
     (date(2026, 9, 8), {"20260903": "103", "20260904": "104"}, "104", None),

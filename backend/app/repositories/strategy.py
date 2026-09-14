@@ -64,6 +64,7 @@ class StrategyStateRepository:
             "highest_price": state.highest_price_since_entry, "add_count": state.add_count,
             "add_signal_issued": state.add_signal_issued, "holding_day": state.holding_day_number,
             "overnight": state.overnight, "last_market_as_of": state.last_market_as_of,
+            "last_protected_bar_at": state.last_protected_bar_at,
             "strategy_version": state.strategy_version, "trailing_profile": state.trailing_profile.value,
             "overnight_suitability": state.overnight_suitability.value, "updated_at": updated_at,
         }
@@ -83,5 +84,6 @@ class StrategyStateRepository:
             highest_price_since_entry=row.highest_price, add_count=row.add_count,
             add_signal_issued=row.add_signal_issued, holding_day_number=row.holding_day,
             overnight=row.overnight, last_market_as_of=row.last_market_as_of,
+            last_protected_bar_at=row.last_protected_bar_at,
             strategy_version=row.strategy_version, trailing_profile=row.trailing_profile,
             overnight_suitability=row.overnight_suitability)

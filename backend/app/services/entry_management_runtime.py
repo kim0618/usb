@@ -25,6 +25,7 @@ from app.risk.domain import AccountSnapshot, Currency, PortfolioSnapshot, Positi
 from app.risk.engine import RiskEngine
 from app.services.daily_performance import SessionEquitySource, session_opening_equity
 from app.services.entry_capacity import load_entry_capacity, pending_entries
+from app.services.exchange_authority import bind_exchange, bind_open_position, stored_exchange
 from app.services.position_lifecycle import strategy_state_sink
 from app.services.simulation_runtime import SimulationRuntimeContext
 from app.services.strategy import StrategyLifecycleService
@@ -63,6 +64,7 @@ class ApprovedCandidate:
     scanner_run_id: int
     candidate_id: int
     symbol: str
+    exchange: str
     trailing_profile: TrailingProfile
     overnight_suitability: OvernightSuitability
 
@@ -156,9 +158,19 @@ class EntryLifecycleService:
             ).all()
             return tuple(ApprovedCandidate(
                 analysis.id, run.id, scanner.id, decision.symbol,
+                self._candidate_exchange(scanner),
                 TrailingProfile(candidate.trailing_profile),
                 OvernightSuitability(candidate.overnight_suitability),
             ) for decision, candidate, scanner in rows)
+
+    @staticmethod
+    def _candidate_exchange(scanner: ScannerCandidate) -> str:
+        """The scanner snapshot is the only durable exchange authority for a symbol.
+
+        It is carried forward as stored, including an empty or unknown value, so the
+        provider binding fails closed rather than guessing a venue here.
+        """
+        return stored_exchange(scanner)
 
     def evaluate(self, candidate: ApprovedCandidate, provider: MarketDataProvider, *,
                  as_of: datetime) -> EntryOutcome:
@@ -185,6 +197,10 @@ class EntryLifecycleService:
             return EntryOutcome(candidate.symbol, EntryAction.SKIPPED,
                                 capacity.blocked_reason.value, state)
 
+        # Bind the candidate's own exchange before the first lookup: a provider that
+        # routes per venue would otherwise read an NYSE or AMEX listing off NASDAQ and
+        # fail the symbol on every tick for the rest of the session.
+        self._bind_exchange(candidate, provider)
         bars = tuple(provider.get_minute_bars(
             [candidate.symbol], datetime.combine(candidate_date, time(4), self.calendar.timezone),
             as_of, None,
@@ -238,22 +254,25 @@ class EntryLifecycleService:
         return EntryOutcome(candidate.symbol, EntryAction.FILLED, decision.reason_code,
                             result.state, result.order.id)
 
+    @staticmethod
+    def _bind_exchange(candidate: ApprovedCandidate, provider: MarketDataProvider) -> None:
+        """Hand the candidate's exchange authority to a provider that routes by venue."""
+        bind_exchange(provider, candidate.symbol, candidate.exchange)
+
     def _premarket_context(self, symbol: str, trading_date: date,
                            minute_bars: Sequence[MinuteBar], provider: MarketDataProvider,
                            as_of: datetime) -> PremarketBuildResult:
+        previous_close = EntryLifecycleService._previous_regular_close(
+            self, symbol, trading_date, provider, as_of)
         daily = [bar for bar in provider.get_daily_bars(
             [symbol], trading_date - timedelta(days=45), trading_date - timedelta(days=1)
         ) if bar.available_at <= as_of and bar.trading_date < trading_date]
         daily.sort(key=lambda bar: bar.trading_date)
-        previous_session = self.calendar.previous_trading_day(trading_date)
-        previous = next((bar for bar in reversed(daily)
-                         if bar.trading_date == previous_session), None)
         premarket = sorted(
             (bar for bar in minute_bars if bar.session is MarketSession.PREMARKET),
             key=lambda bar: bar.timestamp,
         )
         history = daily[-20:]
-        previous_close = None if previous is None else Decimal(str(previous.close))
         reference_price = None if not premarket else Decimal(str(premarket[-1].close))
         premarket_volume = (None if not premarket else
                             sum((Decimal(bar.volume) for bar in premarket), Decimal("0")))
@@ -261,7 +280,7 @@ class EntryLifecycleService:
                           sum((Decimal(bar.volume) for bar in history), Decimal("0")) /
                           Decimal(len(history)))
         invalid = (PremarketInvalidField.NO_DAILY_HISTORY if not daily
-                   else PremarketInvalidField.NO_EXACT_PREVIOUS_CLOSE if previous is None
+                   else PremarketInvalidField.NO_EXACT_PREVIOUS_CLOSE if previous_close is None
                    else PremarketInvalidField.NO_PREMARKET_BARS if not premarket
                    else PremarketInvalidField.INVALID_PREVIOUS_CLOSE if previous_close <= 0
                    else PremarketInvalidField.INVALID_REFERENCE_PRICE if reference_price <= 0
@@ -279,6 +298,36 @@ class EntryLifecycleService:
             None if not premarket else premarket[-1].timestamp, invalid,
         ))
 
+    def _previous_regular_close(self, symbol: str, trading_date: date,
+                                provider: MarketDataProvider,
+                                as_of: datetime) -> Decimal | None:
+        """Return only the exact predecessor session's completed final regular minute.
+
+        Kiwoom's latest daily ``cur_prc`` can continue to reflect extended-hours
+        prices, so it is not an authority for the completed regular-session close.
+        The exchange calendar supplies the close boundary, including early closes;
+        the exact final minute proves the bounded query reached that boundary.
+        """
+        previous_session = self.calendar.previous_trading_day(trading_date)
+        window = self.calendar.session(previous_session)
+        if window is None:
+            return None
+        final_timestamp = window.market_close - timedelta(minutes=1)
+        bars = provider.get_minute_bars(
+            [symbol], final_timestamp, window.market_close, MarketSession.REGULAR,
+        )
+        exact = [bar for bar in bars if (
+            bar.symbol == symbol
+            and bar.timestamp == final_timestamp
+            and bar.session is MarketSession.REGULAR
+            and bar.observed_at >= window.market_close
+            and bar.available_at <= as_of
+            and bar.close > 0
+        )]
+        if len(exact) != 1:
+            return None
+        return Decimal(str(exact[0].close))
+
     def _risk_snapshots(self, provider: MarketDataProvider, as_of: datetime,
                         candidate_symbol: str, candidate_bars: Sequence[MinuteBar]
                         ) -> tuple[AccountSnapshot, PortfolioSnapshot]:
@@ -290,6 +339,9 @@ class EntryLifecycleService:
             else:
                 window = self.calendar.session(as_of.astimezone(self.calendar.timezone).date())
                 assert window is not None
+                # A held symbol is marked on its own trade's exchange, read from the
+                # database, so a restart or another symbol's candidate cannot change it.
+                bind_open_position(provider, self.runtime, position.symbol)
                 bars = provider.get_minute_bars([position.symbol], window.market_open, as_of,
                                                 MarketSession.REGULAR)
             visible = [bar for bar in bars if bar.available_at <= as_of and

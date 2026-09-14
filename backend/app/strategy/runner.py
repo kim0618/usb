@@ -27,6 +27,7 @@ from app.services.risk import RiskService
 from app.services.simulation_runtime import SimulationRuntimeContext, get_active_runtime
 from app.services.strategy import StrategyLifecycleService
 from app.strategy.domain import DecisionType, StrategyDecision, TradingEligibility
+from app.strategy.engine import StrategyReason
 from app.strategy.lifecycle import StrategyBook, StrategyPhase, StrategyState
 from app.strategy.session_policy import SessionPolicy
 
@@ -210,14 +211,23 @@ class StrategyLifecycleRunner:
     def execute_exit(self, *, state: StrategyState, decision: StrategyDecision,
                      position: PositionSnapshot, market_bars: tuple[MinuteBar, ...],
                      created_at: datetime, quantity: Decimal | None = None,
-                     on_state: Callable[[Session, StrategyState], None] | None = None) -> LifecycleExecution:
+                     on_state: Callable[[Session, StrategyState], None] | None = None,
+                     fill_session_at: datetime | None = None) -> LifecycleExecution:
+        """Sell through the durable execution transaction.
+
+        ``fill_session_at`` names the regular session the sell may fill in; it
+        defaults to the signal's own. Only a protective exit whose signal session
+        has ended passes a later one, and the broker still fills it on the first
+        bar after the signal, never on a bar the signal could not have preceded.
+        """
         if state.phase is not StrategyPhase.EXIT_SIGNALLED:
             state = state.transition(StrategyPhase.EXIT_SIGNALLED)
         intent = self.risk.build_exit_intent(decision=decision, position=position,
                                              created_at=created_at, quantity=quantity)
-        # An exit fills in the same regular session an entry would, so a stop does
-        # not settle on a thin premarket or postmarket print.
-        fill_bars = self.session_policy.regular_fill_bars(market_bars, as_of=decision.market_as_of)
+        # An exit fills in a regular session, as an entry would, so a stop does not
+        # settle on a thin premarket or postmarket print.
+        fill_bars = self.session_policy.regular_fill_bars(
+            market_bars, as_of=fill_session_at or decision.market_as_of)
         settled: list[StrategyState] = []
         order = self._submit(intent, fill_bars, created_at=created_at,
                              on_persist=self._settler(state, self._exit_state, settled, on_state))
@@ -274,12 +284,17 @@ class StrategyLifecycleRunner:
                              account: AccountSnapshot, portfolio: PortfolioSnapshot,
                              position: PositionSnapshot, market_bars: tuple[MinuteBar, ...],
                              created_at: datetime,
-                             on_state: Callable[[Session, StrategyState], None] | None = None) -> LifecycleExecution:
+                             on_state: Callable[[Session, StrategyState], None] | None = None,
+                             fill_session_at: datetime | None = None) -> LifecycleExecution:
         """Size a carry the risk engine has to approve; it holds, trims, or leaves.
 
         ``on_state`` joins the phase a reduction produces - OVERNIGHT_HELD, or the
         still-pending review a rejection leaves - to the fill's own transaction, so
         a sold quantity and the state that describes it can never disagree.
+
+        ``fill_session_at`` names the regular session a sell may fill in, exactly as
+        for ``execute_exit``; only a reduction whose own session has ended passes a
+        later one.
         """
         review = state if state.phase is StrategyPhase.OVERNIGHT_REVIEW else state.transition(StrategyPhase.OVERNIGHT_REVIEW)
         outcome = self.risk.evaluate_overnight_notional(
@@ -288,9 +303,15 @@ class StrategyLifecycleRunner:
         if outcome.action is OvernightAction.HOLD_FULL:
             return LifecycleExecution(review.transition(StrategyPhase.OVERNIGHT_HELD, overnight=True), None, None)
         if outcome.action is OvernightAction.EXIT_ALL:
-            exit_decision = replace(decision, decision=DecisionType.EXIT)
-            return self.execute_exit(state=review, decision=exit_decision, position=position,
-                                     market_bars=market_bars, created_at=created_at, on_state=on_state)
+            # Risk refused the carry outright: the position may not stay open, which is
+            # the same mandatory exit the closing review records as OVERNIGHT_REJECTED,
+            # so a retry in a later session can tell it from an ordinary signal.
+            rejected = StrategyReason.OVERNIGHT_REJECTED.value
+            exit_decision = replace(decision, decision=DecisionType.EXIT, reason_code=rejected)
+            leaving = review.transition(StrategyPhase.EXIT_SIGNALLED, phase_reason=rejected)
+            return self.execute_exit(state=leaving, decision=exit_decision, position=position,
+                                     market_bars=market_bars, created_at=created_at,
+                                     on_state=on_state, fill_session_at=fill_session_at)
         reduction_quantity = outcome.reduce_notional / position.current_price
         exit_decision = replace(decision, decision=DecisionType.EXIT, reason_code="OVERNIGHT_REDUCTION")
         intent = self.risk.build_exit_intent(decision=exit_decision, position=position,
@@ -299,7 +320,8 @@ class StrategyLifecycleRunner:
         # settles inside the signal's own regular session. Handing the broker the
         # raw tape would let an overnight trim fill on a premarket or postmarket
         # print that no other exit is allowed to use.
-        fill_bars = self.session_policy.regular_fill_bars(market_bars, as_of=exit_decision.market_as_of)
+        fill_bars = self.session_policy.regular_fill_bars(
+            market_bars, as_of=fill_session_at or exit_decision.market_as_of)
         settled: list[StrategyState] = []
         order = self._submit(intent, fill_bars, created_at=created_at,
                              on_persist=self._settler(review, self._reduction_state, settled, on_state))

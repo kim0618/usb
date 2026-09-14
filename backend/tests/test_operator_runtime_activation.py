@@ -484,7 +484,22 @@ async def test_operator_startup_and_durable_entry_never_reach_kiwoom(operator, m
                         lambda *a, **k: pytest.fail("Kiwoom request during simulation execution"))
     monkeypatch.setattr(factory_module, "build_kiwoom_provider",
                         lambda *a, **k: pytest.fail("Kiwoom provider built at startup"))
-    app = create_app()
+
+    class MarketData:
+        """The market-data seam the position owners use; it never reaches Kiwoom."""
+
+        def __init__(self) -> None:
+            self.sessions: list[object] = []
+
+        def get_minute_bars(self, symbols, start=None, end=None, session=None):  # type: ignore[no-untyped-def]
+            self.sessions.append(session)
+            return []
+
+    market_data = MarketData()
+    # A held position may read its stop's bars at any hour - in session, or the
+    # final bar of a closed one - so the seam is injected rather than left to
+    # depend on the wall clock this test happens to run at.
+    app = create_app(position_market_data_provider_factory=lambda: market_data)
 
     async def override():
         with factory() as session:
@@ -497,6 +512,8 @@ async def test_operator_startup_and_durable_entry_never_reach_kiwoom(operator, m
         assert result.order is not None and result.order.id.startswith("SIM-")
     with factory() as session:
         assert session.scalars(select(ExecutionOrderRecord)).one().broker_type == "SIM"
+    # Whatever the owners read, it was regular-session market data, never an order.
+    assert set(market_data.sessions) <= {MarketSession.REGULAR, None}
 
 
 def test_shadow_runner_without_a_runtime_still_executes_without_persistence(operator):

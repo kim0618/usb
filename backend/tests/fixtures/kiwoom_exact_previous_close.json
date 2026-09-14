@@ -1,0 +1,42 @@
+{
+  "META": {
+    "exchange": "ND",
+    "daily": {
+      "dt": "20260911",
+      "open_pric": "653.5100",
+      "high_pric": "664.2400",
+      "low_pric": "646.2000",
+      "cur_prc": "640.5600",
+      "acc_trde_qty": "16924953"
+    },
+    "final_regular_minute": {
+      "bus_dt": "20260911",
+      "cntr_tm": "20260911155900",
+      "open_pric": "648.2300",
+      "high_pric": "648.2300",
+      "low_pric": "648.2300",
+      "cur_prc": "648.2300",
+      "trde_qty": "1000"
+    }
+  },
+  "ORCL": {
+    "exchange": "NY",
+    "daily": {
+      "dt": "20260911",
+      "open_pric": "164.4300",
+      "high_pric": "166.0000",
+      "low_pric": "149.8400",
+      "cur_prc": "148.2000",
+      "acc_trde_qty": "80438562"
+    },
+    "final_regular_minute": {
+      "bus_dt": "20260911",
+      "cntr_tm": "20260911155900",
+      "open_pric": "150.2700",
+      "high_pric": "150.2700",
+      "low_pric": "150.2700",
+      "cur_prc": "150.2700",
+      "trde_qty": "1000"
+    }
+  }
+}

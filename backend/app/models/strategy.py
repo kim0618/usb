@@ -34,6 +34,7 @@ class StrategyStateRecord(Base):
     holding_day: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     overnight: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     last_market_as_of: Mapped[datetime | None] = mapped_column(UTCDateTime())
+    last_protected_bar_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
     strategy_version: Mapped[str] = mapped_column(String(64), nullable=False)
     trailing_profile: Mapped[str] = mapped_column(String(16), nullable=False)
     overnight_suitability: Mapped[str] = mapped_column(String(16), nullable=False)

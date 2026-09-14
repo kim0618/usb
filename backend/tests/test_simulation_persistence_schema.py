@@ -19,7 +19,7 @@ from app.core.database import Base
 from app.dev.schema_fingerprint import schema_fingerprint
 from app.models.simulation import SimulationAccountRecord, SimulationTradeRecord
 
-REVISION = "20260913_0013"
+REVISION = "20260914_0014"
 SIMULATION_TABLES = ("simulation_accounts", "simulation_positions", "simulation_trades", "account_daily_performance")
 OPEN_INDEX = "uq_simulation_trades_open_symbol"
 # SimBroker fractional sizing produces repeating decimals that must survive exactly.

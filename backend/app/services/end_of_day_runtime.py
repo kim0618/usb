@@ -16,15 +16,19 @@ review decides.
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 import logging
 
-from app.market.calendar import MarketCalendar
+from app.core.exceptions import MarketDataError
+from app.market.calendar import MarketCalendar, TradingSessionWindow
 from app.market.domain import MarketSession, MinuteBar
 from app.market.provider import MarketDataProvider
-from app.services.end_of_day_lifecycle import EndOfDayLifecycleService, EndOfDayOutcome
+from app.services.end_of_day_lifecycle import (
+    EndOfDayAction, EndOfDayLifecycleService, EndOfDayOutcome,
+)
+from app.services.exchange_authority import AUTHORITY_FAILURE_CODES, bind_open_position
 from app.services.daily_performance import DailyPerformanceService, DailyPerformanceUnavailable
 from app.services.simulation_runtime import SimulationRuntimeContext
 
@@ -72,19 +76,27 @@ class EndOfDayPositionRuntime:
             local_now = now.astimezone(self._calendar.timezone)
             session = self._calendar.session(local_now.date())
             if session is None or now < session.market_open:
-                # Weekends, holidays, and pre-open time have no EOD work.
-                return ()
+                # Weekends, holidays, and pre-open time have no review; a position
+                # already past its last holding moment is still signalled to leave.
+                return self._overdue(now)
             if now > session.market_close:
+                outcomes = self._overdue(now)
                 await self._record_daily_performance(session.market_open, session.market_close,
                                                      session.session_date, now)
-                return ()
+                return outcomes
             if not self.runtime.broker.get_positions():
                 return ()
-            outcomes = list(self._lifecycle.activate_day2(as_of=now))
+            outcomes = list(self._lifecycle.enforce_holding_limit(as_of=now, overdue_only=True))
+            outcomes.extend(self._settle_overdue(session, now))
+            outcomes.extend(self._lifecycle.activate_day2(as_of=now))
             review_at = self._lifecycle.review_at(session.session_date)
             if review_at is None or now < review_at:
                 return tuple(outcomes)
-            outcomes.extend(await self._review(session.market_open, now))
+            reviewed, symbols = self._review(session, now)
+            outcomes.extend(reviewed)
+            # A position the review could not reach this tick is still closed on its
+            # last holding day: signalled without prices, sold by the minute driver.
+            outcomes.extend(self._lifecycle.enforce_holding_limit(as_of=now, exclude=symbols))
             for outcome in outcomes:
                 logger.info("EOD OUTCOME: %s %s (%s)", outcome.symbol,
                             outcome.action.value, outcome.reason)
@@ -102,9 +114,19 @@ class EndOfDayPositionRuntime:
                 self._provider = self._provider_factory()
             for position in positions:
                 try:
+                    # The closing mark is read on the trade's own exchange, exactly as
+                    # the review and the minute driver read it.
+                    bind_open_position(self._provider, self.runtime, position.symbol)
                     bars = self._provider.get_minute_bars(
                         [position.symbol], market_open, market_close, MarketSession.REGULAR,
                     )
+                except MarketDataError as error:
+                    if error.code in AUTHORITY_FAILURE_CODES:
+                        logger.critical("DAILY PERFORMANCE MARK UNAVAILABLE: %s %s: %s",
+                                        position.symbol, error.code, error)
+                    else:
+                        logger.exception("DAILY PERFORMANCE MARKET DATA FAILED: %s", position.symbol)
+                    return
                 except Exception:
                     logger.exception("DAILY PERFORMANCE MARKET DATA FAILED: %s", position.symbol)
                     return
@@ -126,29 +148,72 @@ class EndOfDayPositionRuntime:
             logger.info("DAILY PERFORMANCE RECORDED: %s equity=%s",
                         trading_date, result.snapshot.closing_equity)
 
-    async def _review(self, market_open: datetime, now: datetime) -> tuple[EndOfDayOutcome, ...]:
+    def _overdue(self, now: datetime) -> tuple[EndOfDayOutcome, ...]:
+        """Signal the mandatory Day 2 close for positions past their last holding moment."""
+        if not self.runtime.broker.get_positions():
+            return ()
+        return self._lifecycle.enforce_holding_limit(as_of=now)
+
+    def _acquire(self, symbols: Iterable[str], window: TradingSessionWindow, now: datetime,
+                 ) -> tuple[dict[str, tuple[MinuteBar, ...]], list[EndOfDayOutcome]]:
+        """Completed regular bars per symbol, read on its trade's exchange from its cursor."""
         # Construction stays lazy so an empty account performs no Kiwoom auth or
         # market-data work.  The configured factory remains the sole provider seam.
         if self._provider is None:
             self._provider = self._provider_factory()
         bars_by_symbol: dict[str, tuple[MinuteBar, ...]] = {}
-        for position in self.runtime.broker.get_positions():
+        unavailable: list[EndOfDayOutcome] = []
+        for symbol in symbols:
             try:
+                # The venue is the trade's own scanner candidate, read from the
+                # database, never this owner's provider memory or a default.
+                bind_open_position(self._provider, self.runtime, symbol)
+                # The read starts where the stop's durable cursor needs it to, so a
+                # night reviewed after a restart still sees the bars it never tested.
+                start = self._lifecycle.protection.fetch_start(symbol, window)
                 # MarketDataProvider is intentionally synchronous across the
                 # application; keep that established boundary here.
-                bars = self._provider.get_minute_bars(
-                    [position.symbol], market_open, now, MarketSession.REGULAR,
-                )
+                bars = self._provider.get_minute_bars([symbol], start, now, MarketSession.REGULAR)
+            except MarketDataError as error:
+                if error.code not in AUTHORITY_FAILURE_CODES:
+                    logger.exception("EOD MARKET DATA FAILED: %s", symbol)
+                    continue
+                # A night that cannot be reviewed on the right listing is reported,
+                # never decided on a guessed venue's prices.
+                logger.critical("EOD PROTECTION UNAVAILABLE: %s %s: %s", symbol, error.code, error)
+                unavailable.append(EndOfDayOutcome(
+                    symbol, EndOfDayAction.PROTECTION_UNAVAILABLE, f"{error.code}: {error}"))
+                continue
             except Exception:
                 # One symbol's data failure must not decide the whole book's night.
-                logger.exception("EOD MARKET DATA FAILED: %s", position.symbol)
+                logger.exception("EOD MARKET DATA FAILED: %s", symbol)
                 continue
-            bars_by_symbol[position.symbol] = tuple(bar for bar in bars if bar.available_at <= now)
-        if not bars_by_symbol:
+            bars_by_symbol[symbol] = tuple(bar for bar in bars if bar.available_at <= now)
+        return bars_by_symbol, unavailable
+
+    def _settle_overdue(self, session: TradingSessionWindow,
+                        now: datetime) -> tuple[EndOfDayOutcome, ...]:
+        """Settle reductions an earlier session decided but could not fill."""
+        due = self._lifecycle.overdue_reductions(as_of=now)
+        if not due:
             return ()
+        bars_by_symbol, unavailable = self._acquire(sorted(due), session, now)
+        if not bars_by_symbol:
+            return tuple(unavailable)
+        return tuple(unavailable) + self._lifecycle.settle_overdue_reductions(
+            bars_by_symbol, as_of=now)
+
+    def _review(self, session: TradingSessionWindow, now: datetime,
+                ) -> tuple[tuple[EndOfDayOutcome, ...], frozenset[str]]:
+        """Review every held symbol whose bars could be read; name the ones reviewed."""
+        bars_by_symbol, unavailable = self._acquire(
+            [position.symbol for position in self.runtime.broker.get_positions()], session, now)
+        if not bars_by_symbol:
+            return tuple(unavailable), frozenset()
         # The lifecycle service remains the only business and execution owner.
-        return self._lifecycle.review(bars_by_symbol, as_of=now,
-                                      symbols=frozenset(bars_by_symbol))
+        reviewed = frozenset(bars_by_symbol)
+        return tuple(unavailable) + self._lifecycle.review(
+            bars_by_symbol, as_of=now, symbols=reviewed), reviewed
 
     async def run(self) -> None:
         """Evaluate immediately, then at each wall-clock completed-minute boundary."""

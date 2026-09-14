@@ -12,11 +12,32 @@ from app.market.reference import SymbolMetadata
 from app.market.symbols import normalize_symbol
 
 EXCHANGES = {"ND": "NASDAQ", "NY": "NYSE", "NA": "AMEX"}
+EXCHANGE_CODES = {name: code for code, name in EXCHANGES.items()}
 US_CALENDAR = xcals.get_calendar("XNYS")
 
 
 def canonical_exchange(raw: object) -> str:
     return EXCHANGES.get(str(raw).strip().upper(), "UNKNOWN")
+
+
+def exchange_code(raw: object) -> str:
+    """Resolve a stored exchange authority to the Kiwoom code its lookups require.
+
+    Accepts either the canonical market name a candidate snapshot carries (NASDAQ,
+    NYSE, AMEX) or an already-resolved Kiwoom code, so the scanner and the entry
+    runtime share one contract. Anything else fails closed: a silent NASDAQ default
+    is what sent NYSE symbols to the wrong endpoint.
+    """
+    value = str(raw or "").strip().upper()
+    if value in EXCHANGES:
+        return value
+    code = EXCHANGE_CODES.get(value)
+    if code is None:
+        raise MarketDataError(
+            "UNSUPPORTED_EXCHANGE",
+            f"Exchange {value or 'MISSING'} is not a supported US exchange",
+        )
+    return code
 
 
 def number(raw: object, field: str) -> Decimal:

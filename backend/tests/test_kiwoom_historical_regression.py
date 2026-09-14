@@ -22,7 +22,14 @@ AS_OF = datetime(2026, 9, 10, 9, 31, tzinfo=ET)
 
 class RecordedClient:
     def minute_chart(self, symbol, exchange, start=None):  # type: ignore[no-untyped-def]
-        return SimpleNamespace(rows=RAW["amd_20260910_premarket"])
+        rows = list(RAW["amd_20260910_premarket"])
+        if start is not None and start.astimezone(ET).date() == date(2026, 9, 9):
+            rows.append({
+                "bus_dt": "20260909", "cntr_tm": "20260909155900",
+                "open_pric": "521.095", "high_pric": "521.095",
+                "low_pric": "521.095", "cur_prc": "521.095", "trde_qty": "1000",
+            })
+        return SimpleNamespace(rows=rows)
 
     def daily_chart(self, symbol, exchange, start=None):  # type: ignore[no-untyped-def]
         return [row for row in RAW["amd_daily_base_20260909"] if start is None or row["dt"] <= start]
@@ -55,7 +62,7 @@ def test_fixed_parser_builds_premarket_bars_and_a_valid_context_without_lookahea
     built = EntryLifecycleService._premarket_context(
         SimpleNamespace(calendar=MarketCalendar()), "AMD", AS_OF.date(), visible, provider, AS_OF)
     assert built.diagnostic.invalid_field is None
-    assert str(built.diagnostic.previous_close) == "521.095"  # exact 09/09 XNYS close
+    assert str(built.diagnostic.previous_close) == "521.095"  # exact 09/09 final regular minute
     assert built.diagnostic.premarket_bars_count == len(premarket)
     assert built.context.gap_pct is not None and built.context.volume_ratio is not None
 

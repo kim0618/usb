@@ -47,7 +47,9 @@ from app.market.domain import MinuteBar
 from app.repositories.strategy import StrategyStateRepository
 from app.risk.domain import AccountSnapshot, Currency, PortfolioSnapshot, PositionSnapshot
 from app.risk.engine import RiskEngine
-from app.services.position_lifecycle import ACTUAL_VARIANT, strategy_state_sink
+from app.services.position_lifecycle import (
+    ACTUAL_VARIANT, PositionLifecycleService, closing_review_at, strategy_state_sink,
+)
 from app.services.simulation_runtime import SimulationRuntimeContext
 from app.strategy.config import VariantConfig
 from app.strategy.domain import DecisionType, StrategyDecision
@@ -64,6 +66,10 @@ logger = logging.getLogger(__name__)
 REVIEWABLE_PHASES = frozenset({StrategyPhase.POSITION_OPEN, StrategyPhase.PYRAMID_ADDED,
                                StrategyPhase.DAY2_ACTIVE})
 
+# Every phase in which the strategy still holds a position it has not decided to leave.
+HELD_PHASES = REVIEWABLE_PHASES | frozenset({StrategyPhase.OVERNIGHT_REVIEW,
+                                             StrategyPhase.OVERNIGHT_HELD})
+
 
 class EndOfDayAction(StrEnum):
     CARRIED = "CARRIED"
@@ -72,7 +78,15 @@ class EndOfDayAction(StrEnum):
     EXIT_FILLED = "EXIT_FILLED"
     EXIT_UNFILLED = "EXIT_UNFILLED"
     DAY2_ACTIVATED = "DAY2_ACTIVATED"
+    # The latest bar breached the stop: the full protective exit is signalled, durably,
+    # and left to the one owner that submits and retries a signalled exit.
+    STOP_SIGNALLED = "STOP_SIGNALLED"
+    # The last holding moment has passed and no review could close the position: the
+    # mandatory Day 2 close is signalled without prices, for the minute driver to sell.
+    MAX_HOLD_SIGNALLED = "MAX_HOLD_SIGNALLED"
     SKIPPED = "SKIPPED"
+    # The owner could not read this symbol on its trade's exchange; nothing was decided.
+    PROTECTION_UNAVAILABLE = "PROTECTION_UNAVAILABLE"
 
 
 @dataclass(frozen=True)
@@ -107,6 +121,11 @@ class EndOfDayLifecycleService:
         self.variant = variant
         self.runner = StrategyLifecycleRunner(runtime.broker, runtime=runtime,
                                               risk_engine=self.risk, calendar=self.calendar)
+        # The minute driver's own stop replay, so the night tests the same bars with
+        # the same rule and leaves the same cursor whichever owner goes first.
+        self.protection = PositionLifecycleService(runtime, engine=self.engine,
+                                                   risk_engine=self.risk,
+                                                   calendar=self.calendar, variant=variant)
 
     @property
     def broker(self):  # type: ignore[no-untyped-def]
@@ -119,8 +138,7 @@ class EndOfDayLifecycleService:
         holiday or weekend has no review time at all. No wall-clock time is written
         down anywhere in this stage.
         """
-        close = self.calendar.regular_market_close(day)
-        return None if close is None else close - self.engine.config.closing_review_before_close
+        return closing_review_at(self.calendar, self.engine, day)
 
     # Day 2 --------------------------------------------------------------
 
@@ -216,16 +234,32 @@ class EndOfDayLifecycleService:
             as_of.astimezone(self.calendar.timezone).date())
         if market_open is None:
             return _skip(symbol, "not a trading session")
+        if state.phase is StrategyPhase.OVERNIGHT_REVIEW or state.phase in REVIEWABLE_PHASES:
+            # A protective stop outranks every night decision. Every bar the stop has
+            # not yet met is tested first, with the minute driver's own replay, so
+            # whichever owner reaches a bar first, a breach leaves in full and never
+            # reaches a reduce or a carry, and the review decides on the same state.
+            protected = self._protect(state, position, bars, as_of=as_of)
+            if isinstance(protected, EndOfDayOutcome):
+                return protected
+            state = protected
+            states = {**states, symbol: state}
         if state.phase is StrategyPhase.OVERNIGHT_REVIEW:
             # The carry was decided; only its size is still settling.
-            return self._settle_reduction(state, position, bars, as_of=as_of, marks=marks,
-                                          states=states)
+            return self._settle_reduction(
+                state, position, bars, as_of=as_of, marks=marks, states=states,
+                fill_session_at=as_of if self._reduction_overdue(state, as_of) else None)
         if state.phase not in REVIEWABLE_PHASES:
             return _skip(symbol, f"phase {state.phase.value} is not reviewed at the close")
         visible = available_regular_bars(bars, as_of)
         if not visible:
             return _skip(symbol, "no completed regular bar")
         current_price = Decimal(str(visible[-1].close))
+        # Holding days are counted on the exchange calendar, never by how many
+        # transitions happened: a Day 1 whose closing review was lost is Day 2 today.
+        held = self._holding_day(state, as_of)
+        if held > state.holding_day_number:
+            state = replace(state, holding_day_number=held)
         account = self._account(marks, as_of)
         if account.equity <= 0:
             return _skip(symbol, "account equity is not positive")
@@ -257,12 +291,17 @@ class EndOfDayLifecycleService:
     def _settle_reduction(self, state: StrategyState, position: SimPosition,
                           bars: tuple[MinuteBar, ...], *, as_of: datetime,
                           marks: Mapping[str, Decimal],
-                          states: Mapping[str, StrategyState | None]) -> EndOfDayOutcome:
+                          states: Mapping[str, StrategyState | None],
+                          fill_session_at: datetime | None = None) -> EndOfDayOutcome:
         """Retry a reduction the broker had no bar to fill; never review again.
 
         The retry is still the reduction that was decided, so it keeps that
         decision's own time. Re-dating it to now would push the next-bar rule past
-        every bar that has completed since, and the sell could never settle.
+        every bar that has completed since, and the sell could never settle. A
+        reduction whose own session ended unsettled is still owed - the excess may
+        not be carried - so ``fill_session_at`` moves it to the current session,
+        where it sells on the first bar after its decision, exactly as a mandatory
+        exit does.
         """
         visible = available_regular_bars(bars, as_of)
         if not visible:
@@ -274,17 +313,19 @@ class EndOfDayLifecycleService:
                                     strategy_version=state.strategy_version)
         return self._carry(state, position, bars, decision=decision, account=account,
                            portfolio=self._portfolio(marks, states, as_of=as_of),
-                           current_price=Decimal(str(visible[-1].close)), as_of=as_of)
+                           current_price=Decimal(str(visible[-1].close)), as_of=as_of,
+                           fill_session_at=fill_session_at)
 
     def _carry(self, state: StrategyState, position: SimPosition, bars: tuple[MinuteBar, ...], *,
                decision: StrategyDecision, account: AccountSnapshot, portfolio: PortfolioSnapshot,
-               current_price: Decimal, as_of: datetime) -> EndOfDayOutcome:
+               current_price: Decimal, as_of: datetime,
+               fill_session_at: datetime | None = None) -> EndOfDayOutcome:
         """Hand an approved carry to risk, which holds it, trims it, or refuses it."""
         snapshot = self._snapshot(state, position, current_price)
         result = self.runner.apply_overnight_risk(
             state=state, decision=decision, account=account, portfolio=portfolio,
             position=snapshot, market_bars=bars, created_at=as_of,
-            on_state=strategy_state_sink(as_of))
+            on_state=strategy_state_sink(as_of), fill_session_at=fill_session_at)
         if result.order is None:
             # Nothing was submitted, so nothing joined an execution transaction; the
             # carry is state alone and this owns its commit.
@@ -308,9 +349,142 @@ class EndOfDayLifecycleService:
         return EndOfDayOutcome(state.symbol, EndOfDayAction.REDUCED, "OVERNIGHT_REDUCTION",
                                result.state, result.order)
 
+    def _protect(self, state: StrategyState, position: SimPosition,
+                 bars: tuple[MinuteBar, ...], *,
+                 as_of: datetime) -> StrategyState | EndOfDayOutcome:
+        """Test the stop on every bar it has not yet met, before any night decision.
+
+        This is the minute driver's replay, with no add allowed, so the bars, the
+        rule, the order and the cursor are the ones the minute driver would have left.
+        A breach is only made durable here. Submitting and retrying it belong to the
+        minute driver, which owns every signalled exit, so the book records the same
+        orders whichever owner reached the bar first. Otherwise the review decides
+        on the state the replay left.
+        """
+        replay = self.protection.replay(state, position, bars, as_of=as_of,
+                                        trading_allowed=False)
+        if replay.conflict:
+            return _skip(state.symbol, "conflicting regular bars for one minute")
+        if replay.bars == 0:
+            return state
+        self._save(replay.state, updated_at=as_of)
+        if not replay.breached:
+            return replay.state
+        logger.warning("EOD STOP SIGNALLED: %s %s", state.symbol, replay.reason)
+        return EndOfDayOutcome(state.symbol, EndOfDayAction.STOP_SIGNALLED,
+                               replay.reason, replay.state)
+
+    # Holding limit and overdue settlement -------------------------------
+
+    def _holding_day(self, state: StrategyState, as_of: datetime) -> int:
+        """The XNYS session number of ``as_of`` counted from the entry session."""
+        entry = state.entry_trading_date
+        today = as_of.astimezone(self.calendar.timezone).date()
+        if (entry is None or today < entry or not self.calendar.is_trading_day(entry)
+                or not self.calendar.is_trading_day(today)):
+            return state.holding_day_number
+        return self.calendar.holding_day_number(entry, today)
+
+    def _holding_deadline(self, entry: date) -> datetime | None:
+        """The closing review of the last session a position may be held on."""
+        day = entry
+        for _ in range(self.variant.max_holding_days - 1):
+            day = self.calendar.next_trading_day(day)
+        return closing_review_at(self.calendar, self.engine, day)
+
+    def enforce_holding_limit(self, *, as_of: datetime, exclude: frozenset[str] = frozenset(),
+                              overdue_only: bool = False) -> tuple[EndOfDayOutcome, ...]:
+        """Signal the mandatory Day 2 close for a position no review could close.
+
+        The closing review of the last holding day closes a position with the bars in
+        front of it. A position that review never reached - the process was down, or
+        its market data unavailable, through the whole closing window - is still past
+        its last holding moment, and waiting for another review would carry it into a
+        day the strategy does not have. It is signalled here without prices, anchored
+        at this moment, and the minute driver sells it on the first regular bar that
+        can fill it. ``exclude`` names symbols a review is handling this tick, and
+        ``overdue_only`` limits this to deadlines of an earlier session.
+        """
+        _require_aware(as_of)
+        today = as_of.astimezone(self.calendar.timezone).date()
+        outcomes: list[EndOfDayOutcome] = []
+        for position in self.broker.get_positions():
+            if position.symbol in exclude:
+                continue
+            state = self._single_state(position.symbol)
+            if (state is None or state.phase not in HELD_PHASES
+                    or state.entry_trading_date is None):
+                continue
+            deadline = self._holding_deadline(state.entry_trading_date)
+            if deadline is None or as_of < deadline:
+                continue
+            if overdue_only and deadline.astimezone(self.calendar.timezone).date() >= today:
+                continue
+            reason = StrategyReason.DAY2_MAX_HOLD.value
+            signalled = state.transition(StrategyPhase.EXIT_SIGNALLED, phase_reason=reason,
+                                         last_market_as_of=as_of)
+            self._save(signalled, updated_at=as_of)
+            logger.critical("MAX HOLD SIGNALLED WITHOUT REVIEW: %s phase=%s deadline=%s",
+                            position.symbol, state.phase.value, deadline.isoformat())
+            outcomes.append(EndOfDayOutcome(position.symbol, EndOfDayAction.MAX_HOLD_SIGNALLED,
+                                            reason, signalled))
+        return tuple(outcomes)
+
+    def _reduction_overdue(self, state: StrategyState, as_of: datetime) -> bool:
+        """A reduction decided in a session that has since ended without settling it."""
+        if state.phase is not StrategyPhase.OVERNIGHT_REVIEW or state.last_market_as_of is None:
+            return False
+        tz = self.calendar.timezone
+        return state.last_market_as_of.astimezone(tz).date() < as_of.astimezone(tz).date()
+
+    def overdue_reductions(self, *, as_of: datetime) -> frozenset[str]:
+        """Symbols whose decided reduction is still owed from an earlier session."""
+        _require_aware(as_of)
+        return frozenset(
+            position.symbol for position in self.broker.get_positions()
+            if (state := self._single_state(position.symbol)) is not None
+            and self._reduction_overdue(state, as_of))
+
+    def settle_overdue_reductions(self, bars_by_symbol: Mapping[str, Sequence[MinuteBar]], *,
+                                  as_of: datetime) -> tuple[EndOfDayOutcome, ...]:
+        """Sell a reduction its own session could not fill, on this session's first bar.
+
+        The stop is tested first, exactly as the review would; the reduction is then
+        re-sized by risk on today's marks and filled in the current session.
+        """
+        _require_aware(as_of)
+        marks = self._marks(bars_by_symbol, as_of=as_of)
+        states = {position.symbol: self._single_state(position.symbol)
+                  for position in self.broker.get_positions()}
+        outcomes: list[EndOfDayOutcome] = []
+        for position in self.broker.get_positions():
+            state = states.get(position.symbol)
+            if (position.symbol not in bars_by_symbol or state is None
+                    or not self._reduction_overdue(state, as_of)):
+                continue
+            bars = tuple(bars_by_symbol[position.symbol])
+            try:
+                protected = self._protect(state, position, bars, as_of=as_of)
+                if isinstance(protected, EndOfDayOutcome):
+                    outcomes.append(protected)
+                    continue
+                outcomes.append(self._settle_reduction(
+                    protected, position, bars, as_of=as_of, marks=marks,
+                    states={**states, position.symbol: protected}, fill_session_at=as_of))
+            except Exception as error:
+                logger.exception("OVERDUE REDUCTION FAILED: %s", position.symbol)
+                outcomes.append(_skip(position.symbol, f"overdue reduction failed: {error}"))
+        return tuple(outcomes)
+
     def _exit(self, state: StrategyState, position: SimPosition, bars: tuple[MinuteBar, ...], *,
               current_price: Decimal, as_of: datetime, reason: str) -> EndOfDayOutcome:
-        """Sell the whole position through the durable execution transaction."""
+        """Sell the whole position through the durable execution transaction.
+
+        The signalled phase records why it is leaving, so a retry in a later session
+        can tell a protective exit - a stop, or the Day 2 close - from any other.
+        """
+        if state.phase is not StrategyPhase.EXIT_SIGNALLED:
+            state = state.transition(StrategyPhase.EXIT_SIGNALLED, phase_reason=reason)
         decision = StrategyDecision(state.symbol, DecisionType.EXIT, reason,
                                     state.last_market_as_of or as_of,
                                     strategy_version=state.strategy_version)

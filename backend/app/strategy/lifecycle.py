@@ -89,6 +89,10 @@ class StrategyState:
     holding_day_number: int = 0
     overnight: bool = False
     last_market_as_of: datetime | None = None
+    # The start of the last completed regular bar this position's stop has been tested
+    # on. Separate from last_market_as_of, which anchors a pending order's next-bar
+    # rule and must not move while that order waits.
+    last_protected_bar_at: datetime | None = None
     strategy_version: str = STRATEGY_VERSION
     trailing_profile: TrailingProfile = TrailingProfile.NORMAL
     overnight_suitability: OvernightSuitability = OvernightSuitability.UNKNOWN
@@ -113,6 +117,11 @@ class StrategyState:
             self.last_market_as_of.tzinfo is None or self.last_market_as_of.utcoffset() is None
         ):
             raise ValueError("last_market_as_of must be timezone-aware")
+        if self.last_protected_bar_at is not None and (
+            self.last_protected_bar_at.tzinfo is None
+            or self.last_protected_bar_at.utcoffset() is None
+        ):
+            raise ValueError("last_protected_bar_at must be timezone-aware")
         if self.add_count < 0 or self.holding_day_number < 0:
             raise ValueError("strategy counters cannot be negative")
         if self.phase_reason is not None:

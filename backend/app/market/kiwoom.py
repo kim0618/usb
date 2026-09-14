@@ -5,7 +5,9 @@ from datetime import date, datetime, timezone
 
 from app.core.exceptions import MarketDataError
 from app.integrations.kiwoom.client import KiwoomMarketDataClient
-from app.integrations.kiwoom.mapping import map_daily_bar, map_metadata, map_minute_bar
+from app.integrations.kiwoom.mapping import (
+    exchange_code, map_daily_bar, map_metadata, map_minute_bar,
+)
 from app.market.domain import DailyBar, MarketSession, MinuteBar
 from app.market.provider import MarketDataProvider
 from app.market.reference import SymbolMetadata, SymbolMetadataProvider
@@ -22,7 +24,7 @@ class KiwoomMarketDataProvider(MarketDataProvider, SymbolMetadataProvider):
         clock: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
     ) -> None:
         self.client = client
-        self._exchanges = {"SPY": "NY", **{normalize_symbol(k): v.strip().upper() for k, v in (exchanges or {}).items()}}
+        self._exchanges = {"SPY": "NY", **{normalize_symbol(k): exchange_code(v) for k, v in (exchanges or {}).items()}}
         self._default_exchange = default_exchange.strip().upper()
         self._clock = clock
         self._metadata_cache: dict[tuple[str, str], SymbolMetadata] = {}
@@ -37,6 +39,15 @@ class KiwoomMarketDataProvider(MarketDataProvider, SymbolMetadataProvider):
     @property
     def provider_failures(self) -> dict[str, str]:
         return dict(self._provider_failures)
+
+    def bind_exchange(self, symbol: str, exchange: str) -> None:
+        """Bind one symbol to the exchange its owner holds authority over.
+
+        Accepts the canonical name a scanner candidate stores or an already-resolved
+        Kiwoom code; an unsupported or missing value raises instead of falling back,
+        because the default routes every non-NASDAQ listing to the wrong venue.
+        """
+        self._exchanges[normalize_symbol(symbol)] = exchange_code(exchange)
 
     def _exchange(self, symbol: str) -> str:
         exchange = self._exchanges.get(symbol, self._default_exchange)

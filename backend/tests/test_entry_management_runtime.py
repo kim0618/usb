@@ -46,6 +46,7 @@ class Provider:
         self.calls = 0
         self.minutes = [minute(datetime(2024, 6, 18, 8, 0, tzinfo=ET), 105,
                                MarketSession.PREMARKET)]
+        self.minutes += [minute(datetime(2024, 6, 17, 15, 59, tzinfo=ET), 100)]
         self.minutes += [minute(OPEN + timedelta(minutes=i), 100) for i in range(15)]
         self.minutes += [minute(OPEN + timedelta(minutes=15), 102),
                          minute(OPEN + timedelta(minutes=16), 102.1),
@@ -53,7 +54,10 @@ class Provider:
 
     def get_minute_bars(self, symbols, start=None, end=None, session=None):
         self.calls += 1
-        return [bar for bar in self.minutes if session is None or bar.session is session]
+        return [bar for bar in self.minutes
+                if (start is None or bar.timestamp >= start)
+                and (end is None or bar.timestamp <= end)
+                and (session is None or bar.session is session)]
 
     def get_daily_bars(self, symbols, start=None, end=None):
         at = datetime(2024, 6, 17, 16, 0, tzinfo=ET)
@@ -78,8 +82,8 @@ def durable(tmp_path: Path):
     engine.dispose()
 
 
-def candidate() -> ApprovedCandidate:
-    return ApprovedCandidate(1, 1, 1, "AAA", TrailingProfile.WIDE,
+def candidate(exchange: str = "NASDAQ") -> ApprovedCandidate:
+    return ApprovedCandidate(1, 1, 1, "AAA", exchange, TrailingProfile.WIDE,
                              OvernightSuitability.MEDIUM)
 
 
@@ -95,7 +99,8 @@ def seed_chain(session) -> None:
 
     def candidate_row(scanner_run: ScannerRun, symbol: str) -> ScannerCandidate:
         record = ScannerCandidate(scanner_run_id=scanner_run.id, symbol=symbol, rank=1,
-                                  is_top8=True, score=1.0, score_components_json={},
+                                  is_top8=True, score=1.0,
+                                  score_components_json={"exchange": "NASDAQ"},
                                   observed_at=UTC_NOON, available_at=UTC_NOON)
         session.add(record)
         session.flush()
@@ -175,6 +180,8 @@ def test_premarket_context_requires_exact_previous_xnys_session(durable) -> None
         observed_at=datetime(2024, 6, 14, 16, tzinfo=ET),
         available_at=datetime(2024, 6, 14, 16, 1, tzinfo=ET),
     )]
+    provider.minutes = [bar for bar in provider.minutes
+                        if bar.timestamp != datetime(2024, 6, 17, 15, 59, tzinfo=ET)]
 
     built = service._premarket_context("AAA", DAY, provider.minutes, provider,
                                        OPEN + timedelta(minutes=1))
@@ -198,6 +205,23 @@ def test_premarket_diagnostic_is_persisted_with_gate_state(durable) -> None:
         assert diagnostic.reference_price == Decimal("105.0")
         assert diagnostic.first_timestamp == datetime(2024, 6, 18, 8, tzinfo=ET)
         assert diagnostic.invalid_field is None
+
+
+def test_missing_exact_previous_minute_is_persisted_as_the_typed_reason(durable) -> None:
+    runtime, factory = durable
+    provider = Provider()
+    provider.minutes = [bar for bar in provider.minutes
+                        if bar.timestamp != datetime(2024, 6, 17, 15, 59, tzinfo=ET)]
+
+    outcome = EntryLifecycleService(runtime).evaluate(
+        candidate(), provider, as_of=OPEN + timedelta(minutes=1))
+
+    assert outcome.action is EntryAction.REJECTED
+    with factory() as session:
+        diagnostic = session.scalar(select(PremarketDiagnosticRecord))
+        assert diagnostic is not None
+        assert diagnostic.previous_close is None
+        assert diagnostic.invalid_field == PremarketInvalidField.NO_EXACT_PREVIOUS_CLOSE.value
 
 
 def test_strategy_signal_retries_no_next_bar_then_fills_once_and_is_restart_safe(durable) -> None:
@@ -276,8 +300,13 @@ ENTRY_SESSION = date(2026, 9, 8)
 ANALYSIS_SESSION = date(2026, 9, 4)
 
 
-def seed_session(session, trading_date: date, symbols: tuple[str, ...]) -> None:
-    """One COMPLETED run and one IMPORTED analysis on `trading_date`, every symbol APPROVEd."""
+def seed_session(session, trading_date: date, symbols: tuple[str, ...],
+                 exchanges: dict[str, str] | None = None) -> None:
+    """One COMPLETED run and one IMPORTED analysis on `trading_date`, every symbol APPROVEd.
+
+    `exchanges` carries the listing venue the scanner snapshot stored, defaulting to
+    the NASDAQ listing most candidates have.
+    """
     at = datetime.combine(trading_date, time(16, 30), ET)
     run = ScannerRun(trading_date=trading_date, started_at=at, status="COMPLETED",
                      completed_at=at, provider="KIWOOM_REAL", score_version="v0")
@@ -291,9 +320,10 @@ def seed_session(session, trading_date: date, symbols: tuple[str, ...]) -> None:
     session.flush()
     run.active_gpt_analysis_id = analysed.id
     for rank, symbol in enumerate(symbols, start=1):
-        scanned = ScannerCandidate(scanner_run_id=run.id, symbol=symbol, rank=rank, is_top8=True,
-                                   score=1.0, score_components_json={}, observed_at=at,
-                                   available_at=at)
+        scanned = ScannerCandidate(
+            scanner_run_id=run.id, symbol=symbol, rank=rank, is_top8=True, score=1.0,
+            score_components_json={"exchange": (exchanges or {}).get(symbol, "NASDAQ")},
+            observed_at=at, available_at=at)
         session.add(scanned)
         session.flush()
         session.add(GPTCandidateAnalysis(
@@ -322,7 +352,7 @@ def append_analysis(session, run: ScannerRun, symbols: tuple[str, ...], *,
             ScannerCandidate.scanner_run_id == run.id, ScannerCandidate.symbol == symbol))
         if scanned is None:
             scanned = ScannerCandidate(scanner_run_id=run.id, symbol=symbol, rank=rank,
-                is_top8=True, score=1.0, score_components_json={},
+                is_top8=True, score=1.0, score_components_json={"exchange": "NASDAQ"},
                 observed_at=analysed.analysis_at, available_at=analysed.analysis_at)
             session.add(scanned); session.flush()
         session.add(GPTCandidateAnalysis(
