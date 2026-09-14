@@ -3,6 +3,7 @@
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
+import logging
 import time
 from typing import Any
 
@@ -15,6 +16,7 @@ from app.integrations.kiwoom.timestamps import ET, minute_timestamp
 
 
 MAX_MINUTE_HISTORY_PAGES = 50
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -92,9 +94,45 @@ class KiwoomMarketDataClient:
         if (api_id, path) not in self.ALLOWED_ENDPOINTS:
             raise MarketDataError("ENDPOINT_BLOCKED", "Endpoint is not allowed in MARKET_DATA_ONLY mode")
         limiter = self._limits.chart if path == "/api/us/chart" else self._limits.query
-        headers = {"authorization": f"Bearer {self._auth.access_token()}", "api-id": api_id}
-        if continuation and continuation.continuation and continuation.next_key:
-            headers.update({"cont-yn": "Y", "next-key": continuation.next_key})
+        lease = self._auth.token_lease()
+        recovered = False
+        while True:
+            headers = {"authorization": f"Bearer {lease.value}", "api-id": api_id}
+            if continuation and continuation.continuation and continuation.next_key:
+                headers.update({"cont-yn": "Y", "next-key": continuation.next_key})
+            response = self._send_with_transport_retries(path, body, headers, limiter)
+            payload = self._response_payload(response)
+            if self._is_auth_failure(response.status_code, payload):
+                if recovered:
+                    logger.warning("KIWOOM TOKEN REFRESH reason=AUTH_FAILED attempt=1 result=FAILURE")
+                    raise MarketDataError("AUTH_FAILED", "Kiwoom authorization failed")
+                logger.warning("KIWOOM TOKEN REFRESH reason=AUTH_FAILED attempt=1")
+                try:
+                    lease = self._auth.recover_after_auth_failure(lease.generation)
+                except MarketDataError as exc:
+                    logger.warning(
+                        "KIWOOM TOKEN REFRESH reason=AUTH_FAILED attempt=1 result=FAILURE"
+                    )
+                    raise MarketDataError("AUTH_FAILED", "Kiwoom authentication recovery failed") from exc
+                logger.info("KIWOOM TOKEN REFRESH reason=AUTH_FAILED attempt=1 result=SUCCESS")
+                recovered = True
+                continue
+            if response.status_code in {401, 403}:
+                raise MarketDataError("AUTH_FAILED", "Kiwoom authorization failed")
+            if payload.get("return_code") not in (None, 0):
+                message = str(payload.get("return_msg", ""))
+                code = "INVALID_SYMBOL" if "종목" in message else "MARKET_DATA_UNAVAILABLE"
+                raise MarketDataError(code, "Kiwoom market-data query was rejected")
+            return KiwoomPage(
+                payload,
+                response.headers.get("cont-yn", "N") == "Y",
+                response.headers.get("next-key"),
+            )
+
+    def _send_with_transport_retries(
+        self, path: str, body: dict[str, str], headers: dict[str, str],
+        limiter: RequestRateLimiter,
+    ) -> httpx.Response:
         for attempt in range(self._max_retries + 1):
             limiter.acquire()
             self._request_counts[path] = self._request_counts.get(path, 0) + 1
@@ -116,25 +154,36 @@ class KiwoomMarketDataClient:
                     continue
                 code = "RATE_LIMITED" if response.status_code == 429 else "MARKET_DATA_UNAVAILABLE"
                 raise MarketDataError(code, "Kiwoom market-data request failed")
-            if response.status_code in {401, 403}:
-                raise MarketDataError("AUTH_FAILED", "Kiwoom authorization failed")
-            try:
-                response.raise_for_status()
-                payload = response.json()
-            except (httpx.HTTPError, ValueError) as exc:
-                raise MarketDataError("MARKET_DATA_UNAVAILABLE", "Kiwoom returned an invalid response") from exc
-            if not isinstance(payload, dict):
-                raise MarketDataError("MARKET_DATA_UNAVAILABLE", "Kiwoom returned an invalid response")
-            if payload.get("return_code") not in (None, 0):
-                message = str(payload.get("return_msg", ""))
-                code = "INVALID_SYMBOL" if "종목" in message else "MARKET_DATA_UNAVAILABLE"
-                raise MarketDataError(code, "Kiwoom market-data query was rejected")
-            return KiwoomPage(
-                payload,
-                response.headers.get("cont-yn", "N") == "Y",
-                response.headers.get("next-key"),
-            )
+            return response
         raise AssertionError("bounded retry loop exhausted")
+
+    @staticmethod
+    def _response_payload(response: httpx.Response) -> dict[str, Any]:
+        try:
+            response.raise_for_status()
+            payload = response.json()
+        except (httpx.HTTPError, ValueError) as exc:
+            if response.status_code in {401, 403}:
+                return {}
+            raise MarketDataError("MARKET_DATA_UNAVAILABLE", "Kiwoom returned an invalid response") from exc
+        if not isinstance(payload, dict):
+            raise MarketDataError("MARKET_DATA_UNAVAILABLE", "Kiwoom returned an invalid response")
+        return payload
+
+    @staticmethod
+    def _is_auth_failure(status_code: int, payload: dict[str, Any]) -> bool:
+        if status_code in {401, 403}:
+            return True
+        try:
+            return_code = int(payload.get("return_code"))
+        except (TypeError, ValueError):
+            return False
+        message = str(payload.get("return_msg", "")).casefold()
+        token_marker = "token" in message or "토큰" in message
+        invalid_marker = any(marker in message for marker in (
+            "유효하지", "만료", "invalid", "expired", "expire",
+        ))
+        return return_code == 3 and token_marker and invalid_marker
 
     def quote(self, symbol: str, exchange: str) -> dict[str, Any]:
         return self.request("usa20100", "/api/us/mrkcond", {"stex_tp": exchange, "stk_cd": symbol}).body
