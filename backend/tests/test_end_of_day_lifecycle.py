@@ -21,6 +21,8 @@ import pytest
 from sqlalchemy import select
 
 from app.broker.domain import OrderStatus, RejectionReason, TradeStatus
+from app.execution.config import ExecutionConfig
+from app.execution.costs import buy_effective_price
 from app.execution.domain import IntentType, OrderSide
 from app.integrations.kiwoom.client import KiwoomMarketDataClient
 from app.market.calendar import MarketCalendar
@@ -116,8 +118,11 @@ PYRAMID_CLOSE = Decimal("106")
 # The second entry: the same 1R, taken with a one-dollar stop, so risk sizes a
 # position large enough for the twenty-percent gap stress to require a trim.
 TIGHT_STOP = Decimal("101")
-TIGHT_QUANTITY = Decimal("500")
-TIGHT_ENTRY_CASH = Decimal("48872.50")
+# Sized at the effective price the broker charges for the reference, as RiskEngine does.
+_TIGHT_EFFECTIVE = buy_effective_price(Decimal("102"), ExecutionConfig())
+TIGHT_QUANTITY = Decimal("500") / (_TIGHT_EFFECTIVE - TIGHT_STOP) * _TIGHT_EFFECTIVE / _TIGHT_EFFECTIVE
+TIGHT_ENTRY_CASH = Decimal("100000") - (Decimal("102.153") * TIGHT_QUANTITY
+                                        + Decimal("102.0") * TIGHT_QUANTITY * Decimal("10") / Decimal("10000"))
 REDUCE_CLOSE = Decimal("103")
 
 

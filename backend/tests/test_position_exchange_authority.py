@@ -129,8 +129,10 @@ def kiwoom_factory(client: RoutingClient, clock: Clock, built: list | None = Non
 # Tape ----------------------------------------------------------------------
 
 def minute(symbol: str, at: datetime, close: float, *, low: float | None = None,
-           session: MarketSession = MarketSession.REGULAR, volume: int = 20_000) -> MinuteBar:
-    return MinuteBar(symbol=symbol, timestamp=at, open=close, high=close + 0.2,
+           session: MarketSession = MarketSession.REGULAR, volume: int = 20_000,
+           open_: float | None = None) -> MinuteBar:
+    return MinuteBar(symbol=symbol, timestamp=at, open=close if open_ is None else open_,
+                     high=close + 0.2,
                      low=close - 0.2 if low is None else low, close=close, volume=volume,
                      session=session, observed_at=at + timedelta(minutes=1),
                      available_at=at + timedelta(minutes=1))
@@ -142,9 +144,11 @@ def entry_tape(symbol: str, *after: MinuteBar) -> list[MinuteBar]:
             minute(symbol, datetime(2024, 6, 18, 8, 0, tzinfo=ET), 105,
                    session=MarketSession.PREMARKET, volume=100_000)]
     bars += [minute(symbol, OPEN + timedelta(minutes=i), 100) for i in range(15)]
+    # 09:47 is the 09:46 signal's intended execution bar; it opens at the signal
+    # close, inside the Risk-approved price ceiling.
     bars += [minute(symbol, OPEN + timedelta(minutes=15), 102),
              minute(symbol, OPEN + timedelta(minutes=16), 102.1),
-             minute(symbol, OPEN + timedelta(minutes=17), 102.2)]
+             minute(symbol, OPEN + timedelta(minutes=17), 102.2, open_=102)]
     return bars + list(after)
 
 
@@ -476,8 +480,12 @@ def test_entry_refuses_to_value_a_book_it_cannot_route(ledger) -> None:
     service = EntryLifecycleService(runtime)
     candidate = service.approved_candidates_for_entry_session(DAY)[0]
 
+    # The signal sizes nothing, so the book is valued only when its bar settles it.
+    signalled = service.evaluate(candidate, kiwoom_factory(client, clock)(), as_of=clock.now)
+    assert signalled.action is EntryAction.HOLD
+    settle = Clock(OPEN + timedelta(minutes=18))
     with pytest.raises(MarketDataError) as error:
-        service.evaluate(candidate, kiwoom_factory(client, clock)(), as_of=clock.now)
+        service.evaluate(candidate, kiwoom_factory(client, settle)(), as_of=settle.now)
 
     assert error.value.code == "EXCHANGE_AUTHORITY_MISSING"
     assert client.exchanges("HELD") == []

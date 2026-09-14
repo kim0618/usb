@@ -102,17 +102,28 @@ class StrategyLifecycleRunner:
                       account: AccountSnapshot, portfolio: PortfolioSnapshot,
                       market_bars: tuple[MinuteBar, ...], instrument_currency: Currency,
                       created_at: datetime, actual_risk_state: DailyTradingState | None = None,
-                      on_state: Callable[[Session, StrategyState], None] | None = None) -> LifecycleExecution:
+                      on_state: Callable[[Session, StrategyState], None] | None = None,
+                      persisted_at: datetime | None = None,
+                      resolve_unfilled: Callable[[StrategyState, SimOrder], StrategyState] | None = None,
+                      ) -> LifecycleExecution:
+        """Size a base entry against the broker's own cost model and submit it once.
+
+        ``created_at`` is when the order is decided, so it stamps the intent and the
+        order's ``submitted_at``; ``persisted_at`` is when this process records the
+        settlement and defaults to it. ``resolve_unfilled`` names the phase an
+        unfilled order leaves, and lands with the rejected order in one transaction.
+        """
         if not self.session_policy.permissions_at(decision.market_as_of).new_entry:
             return LifecycleExecution(state, None, None)
         eligibility = TradingEligibility(False if state.book is StrategyBook.SHADOW else True,
                                          book=state.book.value)
+        # The broker that fills the order is the one cost authority Risk sizes with.
         if state.book is StrategyBook.ACTUAL and self.actual_risk_service is not None:
             evaluation = self.actual_risk_service.prepare_base_entry(
                 trading_date=state.trading_date, decision=decision, eligibility=eligibility,
                 account=account, portfolio=portfolio, entry_price=state.entry_price or Decimal("0"),
                 stop_price=state.initial_stop or Decimal("0"), instrument_currency=instrument_currency,
-                created_at=created_at)
+                created_at=created_at, execution_config=self.broker.config)
             daily = actual_risk_state or DailyTradingState(state.trading_date)
         else:
             daily = self.risk_state(state, actual_risk_state)
@@ -120,17 +131,21 @@ class StrategyLifecycleRunner:
                 decision=decision, eligibility=eligibility, account=account, portfolio=portfolio,
                 daily_state=daily, entry_price=state.entry_price or Decimal("0"),
                 stop_price=state.initial_stop or Decimal("0"), instrument_currency=instrument_currency,
-                created_at=created_at,
+                created_at=created_at, execution_config=self.broker.config,
             )
         if not evaluation.approved or evaluation.order_intent is None:
             return LifecycleExecution(state, evaluation, None)
         fill_bars = self.session_policy.regular_fill_bars(market_bars, as_of=decision.market_as_of)
         settled: list[StrategyState] = []
-        order = self._submit(evaluation.order_intent, fill_bars, created_at=created_at,
-                             on_persist=self._settler(state, self._entry_state, settled, on_state))
+
+        def resolve(current: StrategyState, submitted: SimOrder) -> StrategyState:
+            return self._entry_state(current, submitted, resolve_unfilled)
+
+        order = self._submit(evaluation.order_intent, fill_bars, created_at=persisted_at or created_at,
+                             on_persist=self._settler(state, resolve, settled, on_state))
         filled = self.broker.get_fills(order.id)
         if not filled:
-            return LifecycleExecution(state, evaluation, order)
+            return LifecycleExecution(settled[0] if settled else resolve(state, order), evaluation, order)
         next_state = settled[0] if settled else self._entry_state(state, order)
         if state.book is StrategyBook.SHADOW and evaluation.metrics is not None:
             self._shadow_risk[(state.trading_date, state.variant)] = DailyTradingState(
@@ -252,10 +267,12 @@ class StrategyLifecycleRunner:
 
         return persist
 
-    def _entry_state(self, state: StrategyState, order: SimOrder) -> StrategyState:
+    def _entry_state(self, state: StrategyState, order: SimOrder,
+                     resolve_unfilled: Callable[[StrategyState, SimOrder], StrategyState] | None = None,
+                     ) -> StrategyState:
         fills = self.broker.get_fills(order.id)
         if not fills:
-            return state
+            return state if resolve_unfilled is None else resolve_unfilled(state, order)
         position = self.broker.get_position(state.symbol)
         assert position is not None
         return StrategyLifecycleService.mark_entry_filled(

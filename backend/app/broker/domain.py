@@ -29,6 +29,8 @@ class RejectionReason(StrEnum):
     UNSUPPORTED_CURRENCY = "UNSUPPORTED_CURRENCY"
     INVALID_MARKET_DATA = "INVALID_MARKET_DATA"
     ORDER_ALREADY_FINAL = "ORDER_ALREADY_FINAL"
+    # The next bar's execution price exceeds the intent's maximum execution price.
+    PRICE_ABOVE_LIMIT = "PRICE_ABOVE_LIMIT"
 
 
 class TradeStatus(StrEnum):

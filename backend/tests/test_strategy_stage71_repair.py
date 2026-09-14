@@ -154,7 +154,8 @@ def test_t6_t11_shadow_risk_is_local_and_add_count_changes_only_on_fill():
                                 strategy_version="strategy_v0")
     account = AccountSnapshot(Decimal("100000"), Decimal("100000"), Currency.USD, OPEN)
     empty = PortfolioSnapshot((), Decimal("0"), Decimal("0"), OPEN)
-    fillbar = make_bar(17, price=102.55)
+    # The next bar opens at the reference, inside the Risk-approved price ceiling.
+    fillbar = make_bar(17, price=102)
     entered = runner.execute_entry(state=state, decision=decision, account=account, portfolio=empty,
         market_bars=(fillbar,), instrument_currency=Currency.USD, created_at=decision.market_as_of)
     assert entered.state.phase is StrategyPhase.POSITION_OPEN
@@ -259,7 +260,7 @@ def _run_complete_lifecycle():
     account = AccountSnapshot(Decimal("100000"), Decimal("100000"), Currency.USD, OPEN)
     entered = runner.execute_entry(state=evaluated.state, decision=evaluated.decision,
         account=account, portfolio=PortfolioSnapshot((), Decimal("0"), Decimal("0"), OPEN),
-        market_bars=(make_bar(18, price=102.55),), instrument_currency=Currency.USD,
+        market_bars=(make_bar(18, price=102),), instrument_currency=Currency.USD,
         created_at=evaluated.decision.market_as_of)
     state = entered.state
     state = state.transition(StrategyPhase.OVERNIGHT_REVIEW)

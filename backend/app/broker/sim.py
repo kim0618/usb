@@ -13,6 +13,7 @@ from app.broker.domain import (
     TradeResult, TradeStatus,
 )
 from app.execution.config import ExecutionConfig
+from app.execution.costs import execution_price
 from app.execution.domain import OrderIntent, OrderSide
 from app.market.domain import MinuteBar
 from app.market.symbols import normalize_symbol
@@ -62,6 +63,11 @@ class SimBroker(Broker):
         quantity = intent.quantity * (self.config.partial_fill_ratio if self.config.partial_fill_enabled else Decimal("1"))
         raw = decimal_from(bar.open)
         fill = self._make_fill(order, quantity, raw, bar)
+        # A limit, not a policy: Risk set the ceiling, and a BUY that would execute above
+        # it does not fill at all rather than fill and be resized afterwards.
+        if (intent.side is OrderSide.BUY and intent.max_execution_price is not None
+                and fill.fill_price > intent.max_execution_price):
+            return self._reject(order, RejectionReason.PRICE_ABOVE_LIMIT)
         debit = fill.fill_price * quantity + fill.commission + fill.fx_cost
         if intent.side is OrderSide.BUY and debit > self.cash:
             return self._reject(order, RejectionReason.INSUFFICIENT_CASH)
@@ -169,8 +175,7 @@ class SimBroker(Broker):
         bps = Decimal("10000")
         spread = raw * quantity * self.config.default_spread_bps / bps
         slippage = raw * quantity * self.config.default_slippage_bps / bps
-        direction = Decimal("1") if order.side is OrderSide.BUY else Decimal("-1")
-        fill_price = raw + direction * raw * (self.config.default_spread_bps + self.config.default_slippage_bps) / bps
+        fill_price = execution_price(raw, order.side, self.config)
         commission = raw * quantity * self.config.commission_bps / bps
         fx = raw * quantity * self.config.fx_cost_bps / bps
         self._sequence += 1

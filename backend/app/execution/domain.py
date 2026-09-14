@@ -36,11 +36,17 @@ class OrderIntent:
     market_as_of: datetime
     created_at: datetime
     reason: str
+    # The highest per-share execution price a BUY may fill at: a limit price. Risk
+    # derives it from the risk and capacity it approved; the broker only compares
+    # against it and never computes one.
+    max_execution_price: Decimal | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "symbol", normalize_symbol(self.symbol))
         if min(self.quantity, self.reference_price, self.notional, self.account_notional) <= 0:
             raise ValueError("order intent quantity and notionals must be positive")
+        if self.max_execution_price is not None and self.max_execution_price <= 0:
+            raise ValueError("a maximum execution price must be positive")
         for name in ("market_as_of", "created_at"):
             value = getattr(self, name)
             if value.tzinfo is None or value.utcoffset() is None:

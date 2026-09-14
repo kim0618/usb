@@ -209,18 +209,19 @@ def test_broker_dependency_direction() -> None:
 
 
 def test_risk_intent_replay_to_sim_broker_preserves_sized_quantity() -> None:
+    broker = SimBroker("10000")
     decision = StrategyDecision("AAA", DecisionType.ENTER, "FIXED", T0)
+    # Risk sizes with the cost model of the broker that will fill the order.
     evaluation = RiskEngine().evaluate_base_entry(
         decision=decision, eligibility=TradingEligibility(True),
         account=AccountSnapshot(Decimal("10000"), Decimal("10000"), Currency.USD, T0),
         portfolio=PortfolioSnapshot((), Decimal("0"), Decimal("0"), T0),
         daily_state=DailyTradingState(T0.date()), entry_price="100", stop_price="98",
-        instrument_currency=Currency.USD, created_at=T0,
+        instrument_currency=Currency.USD, created_at=T0, execution_config=broker.config,
     )
     assert evaluation.order_intent is not None
     replay = ReplayMarketDataProvider(T0 + timedelta(minutes=3), minute_bars=[bar(1, 100), bar(2, 101)])
     bars = replay.get_minute_bars(["AAA"])
-    broker = SimBroker("10000")
     order = broker.submit_order(evaluation.order_intent, bars)
     assert order.status is OrderStatus.FILLED
     assert order.filled_quantity == evaluation.order_intent.quantity

@@ -33,10 +33,11 @@ CAPITAL = Decimal("7428.92")
 UTC_NOON = datetime(2024, 6, 18, 12, tzinfo=ET)
 
 
-def minute(at: datetime, close: float, session=MarketSession.REGULAR) -> MinuteBar:
+def minute(at: datetime, close: float, session=MarketSession.REGULAR,
+           open_: float | None = None) -> MinuteBar:
     volume = 100_000 if session is MarketSession.PREMARKET else 20_000
-    return MinuteBar(symbol="AAA", timestamp=at, open=close, high=close + .2,
-                     low=close - .2, close=close, volume=volume, session=session,
+    return MinuteBar(symbol="AAA", timestamp=at, open=close if open_ is None else open_,
+                     high=close + .2, low=close - .2, close=close, volume=volume, session=session,
                      observed_at=at + timedelta(minutes=1),
                      available_at=at + timedelta(minutes=1))
 
@@ -48,9 +49,11 @@ class Provider:
                                MarketSession.PREMARKET)]
         self.minutes += [minute(datetime(2024, 6, 17, 15, 59, tzinfo=ET), 100)]
         self.minutes += [minute(OPEN + timedelta(minutes=i), 100) for i in range(15)]
+        # The 09:47 bar is the 09:46 signal's intended execution bar; it opens at the
+        # signal close, inside the Risk-approved price ceiling.
         self.minutes += [minute(OPEN + timedelta(minutes=15), 102),
                          minute(OPEN + timedelta(minutes=16), 102.1),
-                         minute(OPEN + timedelta(minutes=17), 102.2)]
+                         minute(OPEN + timedelta(minutes=17), 102.2, open_=102)]
 
     def get_minute_bars(self, symbols, start=None, end=None, session=None):
         self.calls += 1
@@ -224,16 +227,18 @@ def test_missing_exact_previous_minute_is_persisted_as_the_typed_reason(durable)
         assert diagnostic.invalid_field == PremarketInvalidField.NO_EXACT_PREVIOUS_CLOSE.value
 
 
-def test_strategy_signal_retries_no_next_bar_then_fills_once_and_is_restart_safe(durable) -> None:
+def test_strategy_signal_waits_for_its_bar_then_fills_once_and_is_restart_safe(durable) -> None:
     runtime, factory = durable
     provider = Provider()
     service = EntryLifecycleService(runtime)
 
     first = service.evaluate(candidate(), provider, as_of=OPEN + timedelta(minutes=16))
-    assert first.action is EntryAction.REJECTED
+    assert first.action is EntryAction.HOLD
     assert runtime.broker.get_positions() == ()
     with factory() as session:
         assert session.scalar(select(StrategyStateRecord)).phase == StrategyPhase.ENTRY_SIGNALLED.value
+        # Nothing is submitted before the intended bar exists: no NO_NEXT_BAR row.
+        assert session.scalar(select(func.count()).select_from(ExecutionOrderRecord)) == 0
         assert session.scalar(select(func.count()).select_from(ExecutionFillRecord)) == 0
         assert session.scalar(select(SimulationAccountRecord)).state_version == 0
 
@@ -274,7 +279,8 @@ def test_entry_strategy_state_failure_rolls_back_fill_and_broker_memory(durable,
     assert runtime.broker.cash == before_cash and runtime.broker.get_positions() == ()
     with factory() as session:
         assert session.scalar(select(func.count()).select_from(ExecutionFillRecord)) == 0
-        assert session.scalar(select(func.count()).select_from(ExecutionOrderRecord)) == 1
+        # The signal tick submits nothing and the failed settlement rolls its order back.
+        assert session.scalar(select(func.count()).select_from(ExecutionOrderRecord)) == 0
         assert session.scalar(select(SimulationAccountRecord)).state_version == 0
 
 

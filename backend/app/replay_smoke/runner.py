@@ -133,8 +133,9 @@ class ReplaySmokeRunner:
         account_cash = Decimal("0") if pattern == 13 else self.starting_capital
         account = AccountSnapshot(self.starting_capital, account_cash, Currency.USD, trigger.available_at)
         portfolio = PortfolioSnapshot((), Decimal("0"), Decimal("0"), trigger.available_at)
+        # The execution bar opens at the breakout close, inside the Risk-approved ceiling.
         fill_bars = () if pattern == 12 else (self._bar(symbol, trigger.timestamp + timedelta(minutes=2),
-                                                        float(trigger.close) + .1),)
+                                                        float(trigger.close)),)
         entered = lifecycle.execute_entry(state=evaluated.state, decision=evaluated.decision,
             account=account, portfolio=portfolio, market_bars=fill_bars,
             instrument_currency=Currency.USD, created_at=evaluated.decision.market_as_of)

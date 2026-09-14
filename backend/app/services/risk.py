@@ -5,6 +5,7 @@ from decimal import Decimal
 
 from sqlalchemy.exc import IntegrityError
 
+from app.execution.config import ExecutionConfig
 from app.risk.domain import (
     AccountSnapshot, Currency, FxRate, PortfolioSnapshot, RiskEvaluation,
     RiskRejectionReason,
@@ -25,6 +26,7 @@ class RiskService:
         portfolio: PortfolioSnapshot, entry_price: Decimal | float | str,
         stop_price: Decimal | float | str, instrument_currency: Currency,
         created_at: datetime, fx_rate: FxRate | None = None,
+        execution_config: ExecutionConfig | None = None,
     ) -> RiskEvaluation:
         session = self.repository.session
         if session.in_transaction():
@@ -37,7 +39,7 @@ class RiskService:
                 decision=decision, eligibility=eligibility, account=account,
                 portfolio=portfolio, daily_state=state, entry_price=entry_price,
                 stop_price=stop_price, instrument_currency=instrument_currency,
-                created_at=created_at, fx_rate=fx_rate,
+                created_at=created_at, fx_rate=fx_rate, execution_config=execution_config,
             )
             if not evaluation.approved:
                 session.rollback()

@@ -21,9 +21,12 @@ PREMARKET_PASSED → OPENING_RANGE_BUILDING → WAITING_ENTRY → ENTRY_SIGNALLE
 POSITION_OPEN → optional PYRAMID_ADDED → OVERNIGHT_REVIEW → optional
 OVERNIGHT_HELD → DAY2_ACTIVE → EXIT_SIGNALLED → EXITED. `EXIT_SIGNALLED` means
 the SELL was requested; only a confirmed full Broker fill produces `EXITED`.
-Rejected, unfilled, and no-next-bar orders remain signalled while a Broker
-position exists. Human rejection, premarket rejection,
-and deadline NO_TRADE are terminal. Invalid transitions raise an error.
+Rejected, unfilled, and no-next-bar exit orders remain signalled while a Broker
+position exists. `ENTRY_SIGNALLED` is different: it is one entry order decided at
+the signal and valid for exactly one intended execution bar (see Entry
+settlement), and it ends `POSITION_OPEN` or `NO_TRADE`, never lingering. Human
+rejection, premarket rejection, and every NO_TRADE are terminal. Invalid
+transitions raise an error.
 
 Strategy state stores lifecycle facts (phase, entry/stop/high, add signal/count,
 holding day, profiles and cutoff), not quantity, cash, cost basis, or account
@@ -46,6 +49,10 @@ same pure RiskEngine formulas and never consumes Actual daily symbol/risk limits
 - Entry evaluation starts at exchange market open plus `opening_range_minutes`
   (09:45 for the 15-minute default) through 10:30 ET, inclusive. Missing OR bars
   after the deadline produce `INSUFFICIENT_OPENING_RANGE`, not an infinite HOLD.
+  The deadline bounds the signal decision. Because `fill_delay_bars=1`, a signal
+  decided at 10:30 fills on the 10:31 bar; that is the only bar after the
+  deadline an entry can fill on. A stored signal decided after the deadline ends
+  `NO_TRADE` / `ENTRY_DEADLINE_EXPIRED` at settlement.
 - One entry attempt per symbol/day; no re-entry.
 - ATR: 14-period SMA of one-minute regular-session True Range.
 - Trailing profiles: TIGHT 1.0, NORMAL/UNKNOWN 1.5, WIDE 2.0 ATR.
@@ -71,6 +78,33 @@ new entries are not allowed.
 The initial long stop is OR Low. This simple structure-first rule avoids making
 one-minute ATR the initial risk anchor. It must be strictly below entry and Risk
 validates it again. There is no fixed take-profit.
+
+## Entry settlement
+
+A signal decided at `last_market_as_of` T names one **intended execution bar**:
+the bar starting `fill_delay_bars` minutes after T's minute (T 09:46 → the 09:47
+bar). That identity follows from the stored signal time, so a restart
+reconstructs it; no extra state is kept.
+
+- While the intended bar is not yet available the signal waits and submits
+  nothing (no `NO_NEXT_BAR` order rows).
+- On the first tick at which the intended bar is available, and while it is
+  still the latest completed bar, Risk sizes the order as of T and it is submitted
+  once, against that bar alone. The order's `submitted_at` is T, which precedes
+  the bar it fills on.
+- The signal ends `NO_TRADE` with a typed `phase_reason`:
+  `ENTRY_SIGNAL_STALE` once the bar after the intended bar has completed or is
+  visible (settling then would be a retroactive fill, including after a
+  restart); `ENTRY_DEADLINE_EXPIRED` for a signal decided after the deadline;
+  `ENTRY_SESSION_ENDED` if the intended bar is outside the signal's session or
+  the session closed first (the entry runtime ends such orphans every tick);
+  `ENTRY_PRICE_ABOVE_CEILING` if the intended bar would execute above the
+  Risk-approved price ceiling; `ENTRY_RISK_REJECTED` if Risk refuses the order
+  at settlement; `ENTRY_EXECUTION_REJECTED` for any other broker rejection.
+
+An entry never fills across sessions and never fills a bar earlier than the
+latest completed one. Protective exits keep their own historical catch-up
+contract, which this does not change.
 
 ## Position management
 

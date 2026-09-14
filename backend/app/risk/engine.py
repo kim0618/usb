@@ -3,6 +3,8 @@
 from datetime import datetime
 from decimal import Decimal
 
+from app.execution.config import ExecutionConfig
+from app.execution.costs import buy_effective_price, execution_price
 from app.execution.domain import IntentType, OrderIntent, OrderSide
 from app.risk.config import RiskConfig
 from app.risk.domain import (
@@ -72,7 +74,20 @@ class RiskEngine:
         instrument_currency: Currency,
         created_at: datetime,
         fx_rate: FxRate | None = None,
+        execution_config: ExecutionConfig | None = None,
     ) -> RiskEvaluation:
+        """Size a base entry and set the highest price it may execute at.
+
+        ``execution_config`` is the broker's own cost model. With it the entry is
+        sized at the effective price a BUY at ``entry_price`` costs (spread,
+        slippage, commission, FX), so the approved stop risk and notional are exact
+        at the reference. Both only rise with the execution price, so the
+        reference's own execution price is the highest one at which neither the
+        approved risk nor any capacity the notional was capped to is exceeded; it
+        is the intent's ``max_execution_price``. A fill at or below it therefore
+        carries at most the approved risk, and nothing is resized after a fill.
+        Without a cost model the reference itself is the ceiling.
+        """
         reject = self._entry_gate(decision, eligibility, account, portfolio, daily_state)
         if reject is not None:
             return reject
@@ -81,7 +96,12 @@ class RiskEngine:
             return _reject(RiskRejectionReason.INVALID_ENTRY_PRICE)
         if stop <= 0 or stop >= entry:
             return _reject(RiskRejectionReason.INVALID_STOP_PRICE)
-        per_share_instrument = entry - stop
+        if execution_config is None:
+            ceiling, effective = entry, entry
+        else:
+            ceiling = execution_price(entry, OrderSide.BUY, execution_config)
+            effective = buy_effective_price(entry, execution_config)
+        per_share_instrument = effective - stop
         if per_share_instrument == 0:
             return _reject(RiskRejectionReason.ZERO_RISK_DISTANCE)
         multiplier = self._account_currency_multiplier(
@@ -104,7 +124,7 @@ class RiskEngine:
 
         per_share_account = per_share_instrument * multiplier
         requested_quantity = entry_r / per_share_account
-        requested_account_notional = requested_quantity * entry * multiplier
+        requested_account_notional = requested_quantity * effective * multiplier
         base_remaining = (
             account.equity * self.config.base_capacity_pct
             - self.base_exposure_used(portfolio, daily_state)
@@ -127,7 +147,7 @@ class RiskEngine:
             requested_account_notional, base_remaining, symbol_remaining, account.cash
         )
         # A positive cap always yields a positive Decimal quantity; no broker lot rounding occurs here.
-        final_quantity = final_account_notional / (entry * multiplier)
+        final_quantity = final_account_notional / (effective * multiplier)
         planned_risk = final_quantity * per_share_account
         metrics = RiskMetrics(
             one_r=entry_r, planned_risk=planned_risk,
@@ -141,16 +161,18 @@ class RiskEngine:
                 - portfolio.pyramid_exposure_used - daily_state.pyramid_notional_reserved
             ),
             symbol_capacity_remaining=symbol_remaining,
+            effective_entry_price=effective, max_execution_price=ceiling,
         )
         intent = OrderIntent(
             symbol=decision.symbol, side=OrderSide.BUY, intent_type=IntentType.BASE_ENTRY,
             quantity=final_quantity, reference_price=entry,
-            notional=final_quantity * entry, account_notional=final_account_notional,
+            notional=final_quantity * effective, account_notional=final_account_notional,
             account_currency=account.currency.value,
             instrument_currency=Currency(instrument_currency).value,
             strategy_version=decision.strategy_version, risk_amount=planned_risk,
             initial_stop=stop, market_as_of=decision.market_as_of,
             created_at=created_at, reason=decision.reason_code,
+            max_execution_price=ceiling,
         )
         return RiskEvaluation(True, intent, metrics)
 

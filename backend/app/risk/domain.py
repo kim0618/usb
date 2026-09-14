@@ -197,6 +197,10 @@ class RiskMetrics:
     current_stop_risk: Decimal = Decimal("0")
     post_add_stop_risk: Decimal = Decimal("0")
     risk_capped_notional_account_ccy: Decimal = Decimal("0")
+    # Base-entry pricing: the per-share cash the reference costs under the broker's
+    # cost model, and the highest execution price the approval allows.
+    effective_entry_price: Decimal = Decimal("0")
+    max_execution_price: Decimal = Decimal("0")
 
 
 @dataclass(frozen=True)

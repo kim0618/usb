@@ -13,6 +13,9 @@ import logging
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.broker.domain import RejectionReason, SimOrder
+from app.execution.costs import buy_effective_price
+from app.execution.domain import IntentType, OrderSide
 from app.market.calendar import MarketCalendar
 from app.market.domain import MarketSession, MinuteBar
 from app.market.provider import MarketDataProvider
@@ -22,7 +25,7 @@ from app.models.strategy import PremarketDiagnosticRecord
 from app.repositories.risk import DailyRiskRepository
 from app.repositories.strategy import StrategyStateRepository
 from app.risk.domain import AccountSnapshot, Currency, PortfolioSnapshot, PositionSnapshot
-from app.risk.engine import RiskEngine
+from app.risk.engine import RISK_UNIT_TOLERANCE, RiskEngine
 from app.services.daily_performance import SessionEquitySource, session_opening_equity
 from app.services.entry_capacity import load_entry_capacity, pending_entries
 from app.services.exchange_authority import bind_exchange, bind_open_position, stored_exchange
@@ -40,6 +43,21 @@ from app.research.authority import ResearchAuthorityService
 logger = logging.getLogger(__name__)
 Clock = Callable[[], datetime]
 ProviderFactory = Callable[[], MarketDataProvider]
+MINUTE = timedelta(minutes=1)  # one MinuteBar
+
+
+class EntryRiskInvariantError(RuntimeError):
+    """A filled entry would carry more stop risk or cost than Risk approved."""
+
+
+def intended_entry_bar_at(signal_at: datetime, fill_delay_bars: int) -> datetime:
+    """The start of the one bar an entry signalled at ``signal_at`` executes on.
+
+    The broker fills on the ``fill_delay_bars``-th bar starting strictly after the
+    decision; bars start on minute boundaries, so that bar's identity follows from
+    the signal time alone and survives a restart without being stored.
+    """
+    return signal_at.replace(second=0, microsecond=0) + fill_delay_bars * MINUTE
 
 
 class EntryAction(StrEnum):
@@ -220,39 +238,117 @@ class EntryLifecycleService:
             if not gate.passed:
                 return EntryOutcome(candidate.symbol, EntryAction.REJECTED, gate.reason.value, state)
 
-        if state.phase is StrategyPhase.ENTRY_SIGNALLED:
-            decision = StrategyDecision(candidate.symbol, DecisionType.ENTER,
-                StrategyReason.ABOVE_VWAP_AND_OR_BREAK.value,
-                state.last_market_as_of or as_of, state.strategy_version)
-            evaluated_state = state
-        else:
+        if state.phase is not StrategyPhase.ENTRY_SIGNALLED:
             evaluated = self.engine.evaluate_entry(
                 state=state, bars=visible, market_open=session_window.market_open, as_of=as_of)
-            evaluated_state, decision = evaluated.state, evaluated.decision
-            if decision.decision is not DecisionType.ENTER:
-                self._save(evaluated_state, as_of)
-                action = EntryAction.REJECTED if decision.decision is DecisionType.NO_TRADE else EntryAction.HOLD
-                return EntryOutcome(candidate.symbol, action, decision.reason_code, evaluated_state)
+            if evaluated.decision.decision is not DecisionType.ENTER:
+                self._save(evaluated.state, as_of)
+                action = (EntryAction.REJECTED if evaluated.decision.decision is DecisionType.NO_TRADE
+                          else EntryAction.HOLD)
+                return EntryOutcome(candidate.symbol, action, evaluated.decision.reason_code,
+                                    evaluated.state)
+            # The signal is durable before any order exists, so a restart finds it and
+            # its intended bar; nothing is submitted until that bar can settle it.
+            state = evaluated.state
+            self._save(state, as_of)
+        return self._settle(candidate, state, visible, session_window, provider, as_of)
 
-        account, portfolio = self._risk_snapshots(provider, as_of, candidate.symbol, visible)
+    def _settle(self, candidate: ApprovedCandidate, state: StrategyState,
+                visible: Sequence[MinuteBar], window, provider: MarketDataProvider,  # type: ignore[no-untyped-def]
+                as_of: datetime) -> EntryOutcome:
+        """Settle an ENTRY_SIGNALLED state on its one intended execution bar, or end it.
+
+        A signal is an order decided at its ``last_market_as_of`` for exactly one bar,
+        the bar the broker's next-bar rule names. It waits, submitting nothing, only
+        while that bar is not yet available. Once it is, the order is sized and
+        submitted once against that bar alone. It ends NO_TRADE if the signal came
+        after the entry deadline, if its bar is outside the signal's session, if a
+        later bar is already visible (the bar was not settled in time, and filling on
+        it now would be a retroactive fill), or if Risk or the broker refuses it.
+        """
+        symbol = candidate.symbol
+        signal_at = state.last_market_as_of
+        if signal_at is None:
+            return self._end_signal(state, StrategyReason.ENTRY_SIGNAL_STALE, as_of)
+        signal_time = signal_at.astimezone(self.calendar.timezone).time().replace(tzinfo=None)
+        if signal_time > self.engine.config.entry_deadline_et:
+            return self._end_signal(state, StrategyReason.ENTRY_DEADLINE_EXPIRED, as_of)
+        intended = intended_entry_bar_at(signal_at, self.runtime.broker.config.fill_delay_bars)
+        if not (window.market_open <= intended < window.market_close):
+            return self._end_signal(state, StrategyReason.ENTRY_SESSION_ENDED, as_of)
+        regular = [bar for bar in visible if bar.symbol == symbol
+                   and bar.session is MarketSession.REGULAR
+                   and window.market_open <= bar.timestamp < window.market_close]
+        # The intended bar may settle only while it is the latest completed bar: once
+        # the bar after it has completed, whether or not a provider has returned it,
+        # a fill on the intended bar would be a fill on the past.
+        if as_of >= intended + 2 * MINUTE or any(bar.timestamp > intended for bar in regular):
+            return self._end_signal(state, StrategyReason.ENTRY_SIGNAL_STALE, as_of)
+        fill_bars = tuple(bar for bar in regular if bar.timestamp == intended)
+        if not fill_bars:
+            return EntryOutcome(symbol, EntryAction.HOLD,
+                                StrategyReason.ENTRY_AWAITING_EXECUTION_BAR.value, state)
+
+        decision = StrategyDecision(symbol, DecisionType.ENTER,
+                                    StrategyReason.ABOVE_VWAP_AND_OR_BREAK.value, signal_at,
+                                    state.strategy_version)
+        # Sized as of the decision: the intended bar's own prices are never an input.
+        account, portfolio = self._risk_snapshots(provider, signal_at, symbol, visible)
         with self.runtime.session_factory() as session:
-            daily = DailyRiskRepository(session).load(candidate_date)
-            daily = replace(daily, session_equity=self._session_equity(session, candidate_date))
+            daily = DailyRiskRepository(session).load(state.trading_date)
+            daily = replace(daily, session_equity=self._session_equity(session, state.trading_date))
         result = self.runner.execute_entry(
-            state=evaluated_state, decision=decision, account=account, portfolio=portfolio,
-            market_bars=visible, instrument_currency=Currency.USD, created_at=as_of,
-            actual_risk_state=daily, on_state=self._entry_sink(as_of),
+            state=state, decision=decision, account=account, portfolio=portfolio,
+            market_bars=fill_bars, instrument_currency=Currency.USD, created_at=signal_at,
+            persisted_at=as_of, actual_risk_state=daily, on_state=self._entry_sink(as_of),
+            resolve_unfilled=self._unfilled_entry,
         )
         if result.order is None:
-            self._save(result.state, as_of)
-            reason = (result.risk.rejection_reason.value if result.risk and
-                      result.risk.rejection_reason else "entry not permitted")
-            return EntryOutcome(candidate.symbol, EntryAction.REJECTED, reason, result.state)
+            if result.risk is None:
+                return self._end_signal(state, StrategyReason.ENTRY_SESSION_ENDED, as_of)
+            detail = (result.risk.rejection_reason.value if result.risk.rejection_reason
+                      else StrategyReason.ENTRY_RISK_REJECTED.value)
+            return self._end_signal(state, StrategyReason.ENTRY_RISK_REJECTED, as_of, detail)
         if not self.runtime.broker.get_fills(result.order.id):
-            return EntryOutcome(candidate.symbol, EntryAction.REJECTED,
-                                str(result.order.rejection_reason), result.state, result.order.id)
-        return EntryOutcome(candidate.symbol, EntryAction.FILLED, decision.reason_code,
+            logger.warning("ENTRY SIGNAL ENDED: %s %s order=%s rejection=%s", symbol,
+                           result.state.phase_reason, result.order.id, result.order.rejection_reason)
+            return EntryOutcome(symbol, EntryAction.REJECTED, str(result.order.rejection_reason),
+                                result.state, result.order.id)
+        return EntryOutcome(symbol, EntryAction.FILLED, decision.reason_code,
                             result.state, result.order.id)
+
+    @staticmethod
+    def _unfilled_entry(state: StrategyState, order: SimOrder) -> StrategyState:
+        """An intended bar settles once: an unfilled entry order ends the signal."""
+        reason = (StrategyReason.ENTRY_PRICE_ABOVE_CEILING
+                  if order.rejection_reason is RejectionReason.PRICE_ABOVE_LIMIT
+                  else StrategyReason.ENTRY_EXECUTION_REJECTED)
+        return state.transition(StrategyPhase.NO_TRADE, phase_reason=reason.value)
+
+    def _end_signal(self, state: StrategyState, reason: StrategyReason, as_of: datetime,
+                    detail: str | None = None) -> EntryOutcome:
+        ended = state.transition(StrategyPhase.NO_TRADE, phase_reason=reason.value)
+        self._save(ended, as_of)
+        logger.warning("ENTRY SIGNAL ENDED: %s %s signal_at=%s detail=%s", state.symbol,
+                       reason.value, state.last_market_as_of, detail)
+        return EntryOutcome(state.symbol, EntryAction.REJECTED, detail or reason.value, ended)
+
+    def expire_ended_signals(self, now: datetime) -> tuple[EntryOutcome, ...]:
+        """End every actual ENTRY_SIGNALLED whose signal session has closed.
+
+        An entry never fills outside its signal's session, so a signal still open
+        after that close (the process was down, or the candidate left the approved
+        set) can only be ended, never settled; this leaves no orphan behind.
+        """
+        with self.runtime.session_factory() as session:
+            signalled = StrategyStateRepository(session).list_in_phase(StrategyPhase.ENTRY_SIGNALLED)
+        ended: list[EntryOutcome] = []
+        for state in signalled:
+            window = self.calendar.session(state.trading_date)
+            if window is not None and now <= window.market_close:
+                continue
+            ended.append(self._end_signal(state, StrategyReason.ENTRY_SESSION_ENDED, now))
+        return tuple(ended)
 
     @staticmethod
     def _bind_exchange(candidate: ApprovedCandidate, provider: MarketDataProvider) -> None:
@@ -365,15 +461,45 @@ class EntryLifecycleService:
             strategy_state_sink(updated_at)(session, state)
             if state.phase is StrategyPhase.POSITION_OPEN:
                 position = self.runtime.broker.get_position(state.symbol)
-                trade = self.runtime.broker.get_trade(state.symbol)
-                assert position is not None and trade is not None
+                assert position is not None
+                # The day's risk counts what the fill actually carries, not the plan.
                 DailyRiskRepository(session).reserve_entry(
                     trading_date=state.trading_date, symbol=state.symbol,
-                    issued_at=updated_at, planned_risk=trade.planned_initial_risk,
+                    issued_at=updated_at, planned_risk=self._entry_fill_risk(state),
                     base_notional=position.cost_basis, risk_version=self.risk_engine.config.version,
                     strategy_version=state.strategy_version,
                 )
         return persist
+
+    def _entry_fill_risk(self, state: StrategyState) -> Decimal:
+        """The initial stop risk the filled entry carries, from the cash it cost.
+
+        That cash is the execution price plus commission and FX cost, the same cost
+        model Risk sized with. Risk approved the order's quantity at the effective
+        price of its reference, so a fill that paid no more per share than that
+        carries at most the approved stop risk and at most the approved cost, for
+        any quantity up to the order's. Raising here rolls the whole fill back,
+        broker memory included, so an over-budget entry is never recorded.
+        """
+        broker = self.runtime.broker
+        buys = [fill for fill in broker.get_fills()
+                if fill.symbol == state.symbol and fill.side is OrderSide.BUY]
+        order = broker.get_order(buys[-1].order_id) if buys else None
+        trade = broker.get_trade(state.symbol)
+        if order is None or order.intent_type != IntentType.BASE_ENTRY or trade is None:
+            raise EntryRiskInvariantError(f"{state.symbol}: no base-entry fill to account")
+        fills = [fill for fill in buys if fill.order_id == order.id]
+        quantity = sum((fill.quantity for fill in fills), Decimal("0"))
+        outlay = sum((fill.fill_price * fill.quantity + fill.commission + fill.fx_cost
+                      for fill in fills), Decimal("0"))
+        assert state.initial_stop is not None
+        approved_price = buy_effective_price(order.reference_price, broker.config)
+        if (quantity > order.requested_quantity
+                or outlay > approved_price * quantity * (Decimal("1") + RISK_UNIT_TOLERANCE)):
+            raise EntryRiskInvariantError(
+                f"{state.symbol}: paid {outlay} for {quantity}, above the approved "
+                f"{approved_price} per share for {order.requested_quantity}")
+        return outlay - state.initial_stop * quantity
 
     def _session_equity(self, session: Session, trading_date: date) -> Decimal | None:
         """Durable session-start equity for the daily 1R; never process-local."""
@@ -449,6 +575,10 @@ class EntryManagementRuntime:
             now = as_of or self._clock()
             if now.tzinfo is None or now.utcoffset() is None:
                 raise ValueError("entry management clock must be timezone-aware")
+            try:
+                self._lifecycle.expire_ended_signals(now)
+            except Exception:
+                logger.exception("ENTRY SIGNAL EXPIRY FAILED; retrying next tick")
             local = now.astimezone(self._calendar.timezone)
             window = self._calendar.session(local.date())
             if window is None or not (window.market_open < now <= window.market_close):

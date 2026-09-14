@@ -23,6 +23,7 @@ from app.core import database
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.execution.config import ExecutionConfig
+from app.execution.costs import buy_effective_price
 from app.main import create_app
 from app.market.domain import MarketSession, MinuteBar
 from app.models.execution import ExecutionFillRecord, ExecutionOrderRecord
@@ -48,8 +49,11 @@ AS_OF = datetime(2026, 7, 2, 9, 45, tzinfo=ET)
 NEXT_BAR = datetime(2026, 7, 2, 9, 46, tzinfo=ET)
 CASH = Decimal("100000")
 FILL_PRICE = Decimal("102.153")
-QUANTITY = Decimal("166.6666666666666666666666667")
-FILLED_CASH = Decimal("82957.50")
+# 1R (500) sized at the effective price the broker charges for the 102 reference,
+# against the 99 stop, exactly as RiskEngine does.
+_EFFECTIVE_ENTRY = buy_effective_price(Decimal("102"), ExecutionConfig())
+QUANTITY = Decimal("500") / (_EFFECTIVE_ENTRY - Decimal("99")) * _EFFECTIVE_ENTRY / _EFFECTIVE_ENTRY
+FILLED_CASH = CASH - (FILL_PRICE * QUANTITY + Decimal("102.0") * QUANTITY * Decimal("10") / Decimal("10000"))
 
 
 # Fixtures ------------------------------------------------------------------

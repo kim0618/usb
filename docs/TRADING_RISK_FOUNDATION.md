@@ -86,10 +86,12 @@ Risk does not calculate either price. Risk requires `entry > stop > 0` and uses:
 
 ```text
 1R = account equity × 0.005
-per-share risk (instrument currency) = entry − stop
+effective entry = entry + entry × (spread + slippage + commission + FX) bps
+                  (the broker's ExecutionConfig; entry itself without one)
+per-share risk (instrument currency) = effective entry − stop
 per-share risk (account currency) = per-share risk × FX multiplier
 risk quantity = 1R / per-share risk (account currency)
-risk notional = risk quantity × entry × FX multiplier
+risk notional = risk quantity × effective entry × FX multiplier
 
 final account notional = min(
     risk notional,
@@ -97,13 +99,28 @@ final account notional = min(
     remaining symbol capacity,
     cash,
 )
-final quantity = final account notional / (entry × FX multiplier)
+final quantity = final account notional / (effective entry × FX multiplier)
+max execution price = entry + entry × (spread + slippage) bps
 ```
 
 There is no leverage, margin, short sizing, or forced allocation. A cap may reduce
 planned risk below 1R. The base path cannot consume pyramid reserve. Cash and
-exposure must remain within equity. `1R` is planned initial stop loss, not a loss
-guarantee: slippage and especially overnight gaps can exceed it.
+exposure must remain within equity.
+
+Sizing at the effective entry makes the approved stop risk and notional exact at
+the reference price. Both rise with the execution price, so the reference's own
+execution price is the highest price at which neither is exceeded. That price is
+the intent's `max_execution_price`, a limit the broker enforces. A base entry
+therefore fills with actual stop risk ≤ approved risk and actual notional ≤ the
+capacity it was capped to, or it does not fill (`NO_TRADE`). No tolerance is
+added: a next bar opening above the reference does not fill. `1R` still excludes
+exit slippage and overnight gaps, which can exceed it.
+
+When an entry fills, the daily reservation records the fill's **actual** initial
+stop risk (cash paid, including commission and FX, minus stop × quantity) and its
+actual cost basis, not the plan. Because actual ≤ approved, and approved ≤ the
+remaining daily budget, the day's recorded risk stays within 3R. The fill's own
+transaction re-checks both bounds and rolls the fill back if either is exceeded.
 
 Example, USD account: equity 100,000, entry 100, stop 98 gives 1R=500,
 per-share risk=2, quantity=250, and notional=25,000.

@@ -32,6 +32,7 @@ from app.core.database import get_db
 from app.core.exceptions import MarketDataError
 from app.dev.run_real_market_simulation import inspect_readiness, safety_gate
 from app.execution.config import ExecutionConfig
+from app.execution.costs import buy_effective_price
 from app.main import create_app
 from app.market.calendar import MarketCalendar
 from app.market.domain import MarketSession
@@ -90,14 +91,18 @@ ENTRY_PRICE = Decimal("102")
 INITIAL_STOP = Decimal("99")
 OPENING_RANGE_HIGH = Decimal("101")
 PLANNED_RISK = Decimal("500")
-QUANTITY = Decimal("166.6666666666666666666666667")
+# Risk sizes 1R at the effective price the broker charges for the reference
+# (execution_v0 spread, slippage and commission), exactly as RiskEngine does.
+_EFFECTIVE_ENTRY = buy_effective_price(ENTRY_PRICE, ExecutionConfig())
+QUANTITY = PLANNED_RISK / (_EFFECTIVE_ENTRY - INITIAL_STOP) * _EFFECTIVE_ENTRY / _EFFECTIVE_ENTRY
 FILL_PRICE = Decimal("102.153")
-SPREAD_COST = Decimal("17")
-SLIPPAGE_COST = Decimal("8.50")
-COMMISSION = Decimal("17")
+_RAW_NOTIONAL = Decimal("102.0") * QUANTITY
+SPREAD_COST = _RAW_NOTIONAL * Decimal("10") / Decimal("10000")
+SLIPPAGE_COST = _RAW_NOTIONAL * Decimal("5") / Decimal("10000")
+COMMISSION = _RAW_NOTIONAL * Decimal("10") / Decimal("10000")
 FX_COST = Decimal("0")
-TOTAL_COST = Decimal("42.50")
-FILLED_CASH = Decimal("82957.50")
+TOTAL_COST = SPREAD_COST + SLIPPAGE_COST + COMMISSION + FX_COST
+FILLED_CASH = CASH - (FILL_PRICE * QUANTITY + COMMISSION)
 
 
 # Kiwoom fixture payloads ---------------------------------------------------
@@ -446,9 +451,11 @@ async def test_end_to_end_real_market_simulation_smoke(operator, provider) -> No
         assert result.risk is not None and result.risk.approved
         assert result.risk.metrics.one_r == PLANNED_RISK
         assert result.risk.metrics.final_quantity == QUANTITY
-        # 500/3 does not terminate, so planned risk keeps the quotient's tail
-        # rather than being re-rounded to the 1R it was derived from.
-        assert result.risk.metrics.planned_risk == QUANTITY * Decimal("3")
+        # The quotient does not terminate, so planned risk keeps its tail rather than
+        # being re-rounded to the 1R it was derived from. The per-share risk is the
+        # effective entry the broker charges, less the stop.
+        assert result.risk.metrics.planned_risk == QUANTITY * (_EFFECTIVE_ENTRY - INITIAL_STOP)
+        assert result.risk.metrics.max_execution_price == FILL_PRICE
         assert result.risk.metrics.planned_risk.quantize(Decimal("0.01")) == PLANNED_RISK
         assert result.order is not None and result.order.status is OrderStatus.FILLED
         assert result.order.id.startswith("SIM-") and result.order.rejection_reason is None

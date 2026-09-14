@@ -45,6 +45,15 @@ class StrategyStateRepository:
         ).order_by(StrategyStateRecord.trading_date.desc(), StrategyStateRecord.id.desc()))
         return tuple(self._domain(row) for row in rows)
 
+    def list_in_phase(self, phase: StrategyPhase, *,
+                      book: StrategyBook = StrategyBook.ACTUAL) -> tuple[StrategyState, ...]:
+        """Every state of one book currently in ``phase``, oldest trading date first."""
+        rows = self.session.scalars(select(StrategyStateRecord).where(
+            StrategyStateRecord.phase == StrategyPhase(phase).value,
+            StrategyStateRecord.book == StrategyBook(book).value,
+        ).order_by(StrategyStateRecord.trading_date, StrategyStateRecord.id))
+        return tuple(self._domain(row) for row in rows)
+
     def save(self, state: StrategyState, *, updated_at: datetime) -> StrategyStateRecord:
         row = self.session.scalar(select(StrategyStateRecord).where(
             StrategyStateRecord.symbol == state.symbol,

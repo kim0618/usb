@@ -39,6 +39,14 @@ subtracts them. No later bar means `NO_NEXT_BAR`; the last known price is never
 used. The fill records its session and whether the last signal-side bar and fill
 bar crossed a session boundary; Stage 6 does not impose a strategy session rule.
 
+`app.execution.costs` is the one cost model: the broker's fill price and Risk's
+entry sizing both call it on the broker's own `ExecutionConfig`. A BUY intent
+may carry `max_execution_price`, a limit price set by Risk. If the next bar's
+execution price (open plus spread and slippage) is above it, the order is
+rejected `PRICE_ABOVE_LIMIT`. It does not fill, and its quantity is never
+adjusted after the price is seen. This is the simulated form of a marketable
+limit order.
+
 Fixed-ratio partial fills were selected instead of bar volume because it is
 deterministic, supports fractional Stage 5 quantity, and avoids claiming a volume
 unit/participation model not yet validated. Random fills and market impact are

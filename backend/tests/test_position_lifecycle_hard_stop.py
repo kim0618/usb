@@ -39,6 +39,7 @@ from app.services.position_management_runtime import (
 from app.services.simulation_runtime import (
     activate_operator_simulation_runtime, clear_active_sim_broker, get_active_sim_broker,
 )
+from app.execution.costs import buy_effective_price
 from app.strategy.domain import DecisionType, StrategyDecision
 from app.strategy.lifecycle import StrategyBook, StrategyPhase, StrategyState
 from app.strategy.runner import StrategyLifecycleRunner
@@ -59,9 +60,12 @@ SYMBOL = "TSLA"
 CASH = Decimal("100000")
 ENTRY_REFERENCE = Decimal("102")
 INITIAL_STOP = Decimal("99")
-QUANTITY = Decimal("166.6666666666666666666666667")
+# Risk sizes 1R (500) at the effective price the broker charges for the reference
+# (execution_v0: 25 bps of spread, slippage and commission), exactly as RiskEngine does.
+_EFFECTIVE_ENTRY = buy_effective_price(ENTRY_REFERENCE, ExecutionConfig())
+QUANTITY = Decimal("500") / (_EFFECTIVE_ENTRY - INITIAL_STOP) * _EFFECTIVE_ENTRY / _EFFECTIVE_ENTRY
 ENTRY_FILL = Decimal("102.153")
-ENTRY_CASH = Decimal("82957.50")
+ENTRY_CASH = CASH - (ENTRY_FILL * QUANTITY + Decimal("102.0") * QUANTITY * Decimal("10") / Decimal("10000"))
 EXIT_OPEN = 98.80
 
 

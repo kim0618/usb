@@ -207,7 +207,7 @@ def test_stop_gap_exit_intent_uses_next_bar_open_not_stop_price():
         account=AccountSnapshot(Decimal("10000"), Decimal("10000"), Currency.USD, OPEN),
         portfolio=PortfolioSnapshot((), Decimal("0"), Decimal("0"), OPEN),
         daily_state=DailyTradingState(DAY), entry_price=Decimal("100"), stop_price=Decimal("99"),
-        instrument_currency=Currency.USD, created_at=OPEN)
+        instrument_currency=Currency.USD, created_at=OPEN, execution_config=broker.config)
     assert entered.order_intent
     entry_fill_bar = bar(1, close=100)
     broker.submit_order(entered.order_intent, [entry_fill_bar])
