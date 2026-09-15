@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.api.entry_board import entry_board
 from app.api.simulation import broker_projection, position_projection
 from app.services.simulation_runtime import get_active_runtime, get_active_sim_broker
 from app.api.schemas import HumanDecisionRequest, KillSwitchRequest, ReasonRequest, RecoveryRequest, ResearchImportRequest
@@ -142,6 +143,20 @@ async def research_latest(db: DB, scanner_run_id: int | None = None) -> dict[str
     return result
 
 
+@router.get("/research/current", tags=["Research"])
+async def research_current(db: DB) -> dict[str, Any]:
+    """Current authority only: the latest COMPLETED run and that run's own active analysis."""
+    authority = ResearchAuthorityService(db).current()
+    run, analysis = authority.run, authority.analysis
+    return {"status": authority.status.value,
+            "scanner_run_id": None if run is None else run.id,
+            "trading_date": None if run is None else run.trading_date,
+            "completed_at": None if run is None else run.completed_at,
+            "active_analysis_id": None if analysis is None else analysis.id,
+            "analysis_at": None if analysis is None else analysis.analysis_at,
+            "approved_count": authority.approved_count}
+
+
 @router.get("/research/adoption", tags=["Research"])
 async def research_adoption(db: DB, scanner_run_id: int | None = None) -> dict[str, Any]:
     row = require(ResearchAuthorityService(db).resolve(scanner_run_id), "Active research analysis not found")
@@ -261,6 +276,17 @@ async def trading(db: DB) -> dict[str, Any]:
     return {"broker_mode": "SIMULATION", "availability": "NO_ACTIVE_SIM_BROKER", "account": None,
             "open_positions": [], "open_orders": [], "strategy_states": [strategy_dict(row) for row in states],
             "entry_capacity": None}
+
+
+@router.get("/trading/entry-board", tags=["Trading"])
+async def trading_entry_board(db: DB) -> dict[str, Any]:
+    settings = get_settings(); broker = get_active_sim_broker()
+    fill_delay_bars = (broker.config.fill_delay_bars if broker is not None
+                       else ExecutionConfig().fill_delay_bars)
+    # UI review seeds a fixed historical run; like /research/latest it is shown as current.
+    return entry_board(db, calendar=MarketCalendar(settings.market_timezone),
+                       as_of=datetime.now(timezone.utc), fill_delay_bars=fill_delay_bars,
+                       allow_outdated=ui_review_mock_active(settings))
 
 
 @router.get("/trading/daily-performance", tags=["Trading"])

@@ -5,16 +5,17 @@ import { ToastProvider } from "@/components/toast";
 import type { ResearchAnalysis, ResearchHistoryItem } from "@/types/api";
 
 vi.mock("next/navigation", () => ({ usePathname: () => "/research" }));
-const researchApi = vi.fn(); const historyApi = vi.fn(); const activateApi = vi.fn(); const importApi = vi.fn();
+const researchApi = vi.fn(); const historyApi = vi.fn(); const activateApi = vi.fn(); const importApi = vi.fn(); const currentApi = vi.fn();
 vi.mock("@/lib/api", () => ({
   api: {
-    research: () => researchApi(), researchHistory: () => historyApi(),
+    research: () => researchApi(), researchHistory: () => historyApi(), researchCurrent: () => currentApi(),
     activateResearch: (id: number) => activateApi(id), importResearch: (raw: string) => importApi(raw),
   },
-  ApiError: class ApiError extends Error { constructor(public status: number, message: string) { super(message); } },
+  ApiError: class ApiError extends Error { constructor(public status: number, public code: string, message: string) { super(message); } },
 }));
 
 import ResearchPage from "@/app/research/page";
+import { ApiError } from "@/lib/api";
 
 const candidate = (symbol: string, rank: number, decision: "APPROVE" | null = null) => ({
   scanner_candidate_id: rank, symbol, quant_rank: rank, gpt_rank: rank, quant_score: 1,
@@ -48,6 +49,8 @@ beforeEach(() => {
   history = [item(6, 5, false, []), item(5, 5, true, ["AMD", "SPCX"]), item(2, 4, true, ["OLD"])];
   researchApi.mockImplementation(async () => current);
   historyApi.mockImplementation(async () => history);
+  currentApi.mockImplementation(async () => ({ status: "READY", scanner_run_id: 5, trading_date: "2026-09-11", completed_at: null,
+    active_analysis_id: current.analysis.id, analysis_at: null, approved_count: 2 }));
   activateApi.mockImplementation(async (id: number) => {
     current = analysis(id); history = history.map(row => row.scanner_run_id === 5 ? { ...row, is_active: row.id === id } : row);
     return { analysis_id: id, scanner_run_id: 5, active: true };
@@ -64,8 +67,36 @@ describe("research active-analysis authority UX", () => {
     renderPage(); await screen.findByText("09/11 분석 이력");
     expect(within(rowFor(5)).getByText("이 ScannerRun의 현재 활성 분석")).toBeInTheDocument();
     expect(within(rowFor(6)).getByText("비활성 분석")).toBeInTheDocument();
-    const other = screen.getByText("다른 거래일 분석 이력 1건").closest("details") as HTMLDetailsElement;
+    const other = screen.getByText("이전 분석 이력 1건").closest("details") as HTMLDetailsElement;
     expect(other.open).toBe(false); expect(within(other).getByText("2026-09-10 ScannerRun 분석")).toBeInTheDocument();
+    // A previous run's active analysis is history: no green current badge, no activation.
+    expect(within(rowFor(2)).getByText("당시 거래 기준")).toBeInTheDocument();
+    expect(within(rowFor(2)).queryByText("이 ScannerRun의 현재 활성 분석")).toBeNull();
+    expect(within(rowFor(2)).queryByText("이 분석 사용")).toBeNull();
+  });
+
+  it("shows an empty current analysis for a new run and keeps previous analyses as history only", async () => {
+    researchApi.mockRejectedValue(new ApiError(404, "RESOURCE_NOT_FOUND", "Active research analysis not found"));
+    currentApi.mockResolvedValue({ status: "NO_ACTIVE_ANALYSIS", scanner_run_id: 6, trading_date: "2026-09-14", completed_at: null,
+      active_analysis_id: null, analysis_at: null, approved_count: 0 });
+    history = [item(6, 5, true, ["SPCX", "ORCL"]), item(5, 5, false, [])];
+    renderPage();
+    expect(await screen.findByText("현재 ScannerRun에 대한 GPT 분석이 아직 없습니다.")).toBeInTheDocument();
+    expect(screen.getByText("현재 기준 거래일: 09/14 · 현재 GPT 분석: 없음")).toBeInTheDocument();
+    expect(screen.queryByText(/현재 거래 기준 · Analysis #/)).toBeNull();
+    expect(screen.queryByText("이 ScannerRun의 현재 활성 분석")).toBeNull();
+    expect(screen.getByText("이전 분석 이력 2건")).toBeInTheDocument();
+    expect(within(rowFor(6)).getByText("당시 거래 기준")).toBeInTheDocument();
+  });
+
+  it("separates a missing ScannerRun from a missing analysis", async () => {
+    researchApi.mockRejectedValue(new ApiError(404, "RESOURCE_NOT_FOUND", "Active research analysis not found"));
+    currentApi.mockResolvedValue({ status: "NO_SCANNER_RUN", scanner_run_id: null, trading_date: null, completed_at: null,
+      active_analysis_id: null, analysis_at: null, approved_count: 0 });
+    history = [];
+    renderPage();
+    expect(await screen.findByText("오늘 스캐너 실행 결과가 없습니다.")).toBeInTheDocument();
+    expect(screen.queryByText("현재 ScannerRun에 대한 GPT 분석이 아직 없습니다.")).toBeNull();
   });
 
   it("confirms with approved symbols and cancel performs no activation", async () => {

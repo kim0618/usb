@@ -40,6 +40,10 @@ from app.services.entry_management_runtime import (
     build_premarket_context, intended_entry_bar_at, load_approved_candidates,
 )
 from app.services.exchange_authority import bind_exchange
+from app.services.premarket_volume_history import (
+    BASELINE_METHOD, COLLECTOR_VERSION, V2_THRESHOLDS, PremarketVolumeBaseline, V2Status,
+    V2VolumeAnalytics, history_statistics, load_baseline, v2_analytics,
+)
 from app.services.strategy import StrategyLifecycleService
 from app.strategy.config import STRATEGY_VERSION
 from app.strategy.domain import DecisionType, StrategyDecision, TradingEligibility
@@ -48,10 +52,13 @@ from app.strategy.lifecycle import StrategyState
 
 logger = logging.getLogger(__name__)
 Clock = Callable[[], datetime]
+# (symbol, Kiwoom exchange code, entry session) -> the stored V2 baseline, or None when
+# this database cannot hold V2 analytics. It reads durable rows only, never a provider.
+BaselineReader = Callable[[str, str, date], PremarketVolumeBaseline | None]
 
 OBSERVER_VERSION = "entry_drift_observer_v2"
 # The schema revision this observer writes; a newer head needs review before writing.
-OBSERVER_SCHEMA_REVISION = "20260915_0015"
+OBSERVER_SCHEMA_REVISION = "20260915_0016"
 TOLERANCES = tuple(Decimal(value) for value in (
     "0.00", "0.10", "0.25", "0.50", "0.75", "1.00", "1.50", "2.00"))
 MINUTE = timedelta(minutes=1)
@@ -84,6 +91,8 @@ FINAL_STATUSES = frozenset({ObservationStatus.VALID.value, ObservationStatus.NO_
 class WriteOutcome(StrEnum):
     INSERTED = "INSERTED"
     UPDATED = "UPDATED"
+    # The observation was rewritten but its stored AVAILABLE V2 answer was kept.
+    UPDATED_V2_KEPT = "UPDATED_V2_KEPT"
     KEPT_FINAL = "KEPT_FINAL"
     VERSION_CONFLICT = "VERSION_CONFLICT"
 
@@ -123,6 +132,10 @@ class ObservationResult:
     projections: tuple[dict[str, Any], ...] = ()
     # Each evaluated tick and the strategy reason it produced, for replay audits.
     trace: tuple[tuple[datetime, str], ...] = ()
+    # The V1 numerator: PREMARKET volume the gate saw at the open tick (04:00-09:29).
+    premarket_volume: Decimal | None = None
+    # Counterfactual V2 normalisation; attached after, and never read by, the replay.
+    v2: V2VolumeAnalytics | None = None
 
 
 @dataclass(frozen=True)
@@ -140,7 +153,8 @@ class EntryDriftObserver:
                  calendar: MarketCalendar | None = None,
                  execution_config: ExecutionConfig | None = None,
                  risk_config: RiskConfig | None = None,
-                 clock: Clock | None = None) -> None:
+                 clock: Clock | None = None,
+                 v2_baseline: BaselineReader | None = None) -> None:
         self.session = session
         self.provider = provider
         self.engine = engine or StrategyV0Engine()
@@ -149,6 +163,8 @@ class EntryDriftObserver:
         self.risk = risk_config or RiskConfig()
         self.risk_engine = RiskEngine(self.risk)
         self.clock = clock or (lambda: datetime.now(timezone.utc))
+        self.v2_baseline = v2_baseline or (lambda symbol, exchange, day: load_baseline(
+            self.session, symbol, exchange, day, calendar=self.calendar))
 
     @property
     def versions(self) -> tuple[str, str, str]:
@@ -182,6 +198,30 @@ class EntryDriftObserver:
         return ObservationRun(entry_session_date, results, writes)
 
     def observe(self, candidate: ObserverCandidate) -> ObservationResult:
+        """The V1 Production replay, then V2 analytics beside it.
+
+        V2 is computed from the finished V1 result and durable history rows only, so
+        no V2 value or failure can reach a decision, a status, or a provider request.
+        """
+        result = self._observe_v1(candidate)
+        if result.status is ObservationStatus.UNSUPPORTED_EXCHANGE:
+            return replace(result, v2=V2VolumeAnalytics(V2Status.UNSUPPORTED_EXCHANGE,
+                                                        None, None, None))
+        if result.status is ObservationStatus.SESSION_NOT_COMPLETE or (
+                result.quality_reason == "NOT_A_TRADING_SESSION"):
+            return result
+        return replace(result, v2=self._v2(result))
+
+    def _v2(self, result: ObservationResult) -> V2VolumeAnalytics | None:
+        item = result.candidate
+        try:
+            baseline = self.v2_baseline(item.symbol, item.exchange, item.trading_date)
+            return None if baseline is None else v2_analytics(result.premarket_volume, baseline)
+        except Exception:
+            logger.exception("ENTRY DRIFT V2 ANALYTICS FAILED: %s", item.symbol)
+            return V2VolumeAnalytics(V2Status.ANALYTICS_ERROR, result.premarket_volume, None, None)
+
+    def _observe_v1(self, candidate: ObserverCandidate) -> ObservationResult:
         window = self.calendar.session(candidate.trading_date)
         if window is None:
             return ObservationResult(candidate, ObservationStatus.OTHER, "NOT_A_TRADING_SESSION")
@@ -213,6 +253,7 @@ class EntryDriftObserver:
             window.market_close, None), key=lambda bar: bar.timestamp))
         state: StrategyState | None = None
         gate: GateResult | None = None
+        built: PremarketBuildResult | None = None
         trace: list[tuple[datetime, str]] = []
         as_of = window.market_open + TICK_EPSILON
         while True:
@@ -239,12 +280,19 @@ class EntryDriftObserver:
                 break
             as_of += MINUTE
             if as_of > window.market_close:
+                # The gate passed at the open, so its inputs are known; they are carried
+                # for analytics only, after the replay has already ended.
+                assert gate is not None and built is not None
                 return ObservationResult(candidate, ObservationStatus.INSUFFICIENT_MINUTE_DATA,
-                                         "NO_ENTRY_DECISION", trace=tuple(trace))
-        assert gate is not None
+                                         "NO_ENTRY_DECISION", gate_reason=gate.reason.value,
+                                         gap_pct=gate.gap_pct, volume_ratio=gate.volume_ratio,
+                                         premarket_volume=built.diagnostic.premarket_volume,
+                                         trace=tuple(trace))
+        assert gate is not None and built is not None
         context: dict[str, Any] = {
             "gate_reason": gate.reason.value, "gap_pct": gate.gap_pct,
             "volume_ratio": gate.volume_ratio,
+            "premarket_volume": built.diagnostic.premarket_volume,
             "opening_range_high": evaluated.opening_range_high,
             "opening_range_low": evaluated.opening_range_low, "trace": tuple(trace),
         }
@@ -292,7 +340,8 @@ class EntryDriftObserver:
                   else ObservationStatus.INVALID_PREMARKET)
         return ObservationResult(candidate, status, (invalid or gate.reason).value,
                                  gate_reason=gate.reason.value, gap_pct=gate.gap_pct,
-                                 volume_ratio=gate.volume_ratio)
+                                 volume_ratio=gate.volume_ratio,
+                                 premarket_volume=built.diagnostic.premarket_volume)
 
     def tolerance_projections(self, symbol: str, signal_price: Decimal, stop: Decimal,
                               intended_open: Decimal, decided_at: datetime
@@ -350,6 +399,7 @@ class EntryDriftObserver:
         row = self.session.scalar(select(EntryDriftObservation).where(
             EntryDriftObservation.scanner_candidate_id == result.candidate.candidate_id))
         now = self.clock()
+        v2 = _v2_columns(result.v2)
         if row is None:
             row = EntryDriftObservation(scanner_candidate_id=result.candidate.candidate_id,
                                         created_at=now)
@@ -357,13 +407,19 @@ class EntryDriftObserver:
             outcome = WriteOutcome.INSERTED
         else:
             stored = (row.strategy_version, row.risk_version, row.observer_version)
+            outcome = WriteOutcome.UPDATED
             if stored != self.versions:
                 # Another version's statistics stay reproducible unless replaced on purpose.
                 if not replace_versions:
                     return WriteOutcome.VERSION_CONFLICT
             elif row.status in FINAL_STATUSES and row.status != result.status.value:
                 return WriteOutcome.KEPT_FINAL
-            outcome = WriteOutcome.UPDATED
+            elif _v2_final(row) and (result.v2 is None
+                                     or result.v2.status is not V2Status.AVAILABLE):
+                # Same contract: a later error or thinner history never erases an
+                # AVAILABLE V2 answer. Only an AVAILABLE recomputation replaces it.
+                v2 = {}
+                outcome = WriteOutcome.UPDATED_V2_KEPT
         strategy_version, risk_version, observer_version = self.versions
         values = {
             "trading_date": result.candidate.trading_date, "scanner_run_id": result.candidate.scanner_run_id,
@@ -377,10 +433,34 @@ class EntryDriftObserver:
             "intended_execution_raw_open": result.execution_open, "drift_pct": result.drift_pct,
             "stop_distance_pct": result.stop_distance_pct,
             "projections_json": list(result.projections), "updated_at": now,
+            "v1_volume_ratio": result.volume_ratio, **v2,
         }
         for name, value in values.items():
             setattr(row, name, value)
         return outcome
+
+
+def _v2_final(row: EntryDriftObservation) -> bool:
+    """A stored AVAILABLE V2 answer of the current collector and baseline contract."""
+    return (row.v2_status == V2Status.AVAILABLE.value
+            and row.v2_collector_version == COLLECTOR_VERSION
+            and row.v2_baseline_method == BASELINE_METHOD)
+
+
+def _v2_columns(v2: V2VolumeAnalytics | None) -> dict[str, Any]:
+    baseline = None if v2 is None else v2.baseline
+    return {
+        "v2_status": None if v2 is None else v2.status.value,
+        "v2_median_ratio": None if v2 is None else v2.ratio,
+        "v2_today_premarket_volume": None if v2 is None else v2.today_premarket_volume,
+        "v2_baseline_volume": None if baseline is None else baseline.median_volume,
+        "v2_baseline_method": None if baseline is None else baseline.method,
+        "v2_baseline_sessions": None if baseline is None else baseline.valid_sessions,
+        "v2_baseline_start_date": None if baseline is None else baseline.start_date,
+        "v2_baseline_end_date": None if baseline is None else baseline.end_date,
+        "v2_collector_version": None if baseline is None else baseline.collector_version,
+        "v2_projections_json": None if v2 is None else v2.projections(),
+    }
 
 
 def _first_missing_minute(regular: Sequence[MinuteBar], market_open: datetime,
@@ -436,6 +516,7 @@ def entry_drift_report(session: Session, *, trading_date: date | None = None,
     report = observation_statistics(current, strategy_version=strategy_version,
                                     risk_version=risk_version, observer_version=observer_version)
     report["excluded_superseded_authority"] = len(rows) - len(current)
+    report["premarket_volume_v2"]["history"] = history_statistics(session)
     return report
 
 
@@ -490,4 +571,29 @@ def observation_statistics(rows: list[EntryDriftObservation], *,
                    **{f"p{p}": percentile(drifts, p) for p in (75, 90, 95, 99)},
                    "min": min(drifts), "max": max(drifts)} if drifts else None),
         "tolerances": tolerances,
+        "premarket_volume_v2": v2_observation_statistics(selected),
+    }
+
+
+def v2_observation_statistics(rows: Sequence[EntryDriftObservation]) -> dict[str, Any]:
+    """Counterfactual V2 forward-sample statistics; every observation status counts."""
+    recorded = [row for row in rows if row.v2_status is not None]
+    ratios = [Decimal(row.v2_median_ratio) for row in recorded
+              if row.v2_status == V2Status.AVAILABLE.value and row.v2_median_ratio is not None]
+    counts = Counter(row.v2_status for row in recorded)
+    return {
+        "candidate_count": len(rows), "v2_recorded": len(recorded), "v2_available": len(ratios),
+        "insufficient_history": counts.get(V2Status.INSUFFICIENT_PREMARKET_HISTORY.value, 0),
+        "observation_provider_failures": sum(
+            1 for row in rows if row.status == ObservationStatus.PROVIDER_FAILURE.value),
+        "status_counts": dict(counts),
+        "ratio": ({"median": median(ratios),
+                   **{f"p{p}": percentile(ratios, p) for p in (75, 90, 95)},
+                   "min": min(ratios), "max": max(ratios)} if ratios else None),
+        "threshold_projections": [{
+            "threshold": str(threshold),
+            "would_pass": sum(1 for ratio in ratios if ratio >= threshold),
+            "pass_rate": (sum(1 for ratio in ratios if ratio >= threshold) / len(ratios)
+                          if ratios else None),
+        } for threshold in V2_THRESHOLDS],
     }

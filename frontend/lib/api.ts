@@ -1,4 +1,4 @@
-import type { AdoptionResponse, Capabilities, DailyPerformance, Dashboard, Failure, Fill, Order, ReplayReport, ResearchAnalysis, ResearchDetail, ResearchHistoryItem, RuntimeStatus, ScannerSnapshot, Settings, ShadowSummary, Trade, TradingOverview } from "@/types/api";
+import type { AdoptionResponse, Capabilities, DailyPerformance, Dashboard, EntryBoard, Failure, Fill, Order, ReplayReport, ResearchAnalysis, ResearchCurrentAuthority, ResearchDetail, ResearchHistoryItem, RuntimeStatus, ScannerSnapshot, Settings, ShadowSummary, Trade, TradingOverview } from "@/types/api";
 
 export const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
 
@@ -24,6 +24,7 @@ export const api = {
   scannerRun: (id: number) => apiFetch<ScannerSnapshot>(`/api/v1/scanner/runs/${id}`),
   prompt: (symbol?: string) => apiFetch<{ prompt: string; prompt_version: string }>(`/api/v1/research/prompt${symbol ? `/${encodeURIComponent(symbol)}` : ""}`),
   research: () => apiFetch<ResearchAnalysis>("/api/v1/research/latest"),
+  researchCurrent: () => apiFetch<ResearchCurrentAuthority>("/api/v1/research/current"),
   researchHistory: () => apiFetch<ResearchHistoryItem[]>("/api/v1/research/history"),
   adoption: () => apiFetch<AdoptionResponse>("/api/v1/research/adoption"),
   researchDetail: (id: number, symbol: string) => apiFetch<ResearchDetail>(`/api/v1/research/${id}/candidates/${encodeURIComponent(symbol)}`),
@@ -31,6 +32,7 @@ export const api = {
   activateResearch: (id: number) => apiFetch<{ analysis_id: number; scanner_run_id: number; active: boolean }>(`/api/v1/research/${id}/activate`, { method: "PUT" }),
   decide: (id: number, symbol: string, decision: "APPROVE" | "REJECT", note?: string) => apiFetch<{ approved_count: number }>(`/api/v1/research/${id}/decisions/${encodeURIComponent(symbol)}`, { method: "PUT", body: JSON.stringify({ decision, note: note || null }) }),
   trading: () => apiFetch<TradingOverview>("/api/v1/trading"),
+  entryBoard: () => apiFetch<EntryBoard>("/api/v1/trading/entry-board"),
   dailyPerformance: () => apiFetch<DailyPerformance[]>("/api/v1/trading/daily-performance"),
   orders: () => apiFetch<Order[]>("/api/v1/trading/orders"),
   fills: () => apiFetch<Fill[]>("/api/v1/trading/fills"),

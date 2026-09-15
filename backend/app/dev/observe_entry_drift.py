@@ -4,6 +4,10 @@
 traded, whose authority is the scanner run stamped with the session before it.
 Read-only unless ``--write`` is given. The database is always named explicitly, must
 already exist, and is never created, migrated, or re-journaled here.
+
+``--dry-run`` here is a REAL MARKET-DATA REPLAY with zero DB writes: it fetches each
+candidate's minute bars from the provider and only skips persisting. This differs from
+the premarket volume collector, whose ``--dry-run`` is a plan with zero requests.
 """
 
 import argparse
@@ -32,6 +36,9 @@ AUTHORITY_COLUMNS = {
     "human_decisions": {"gpt_analysis_id", "scanner_candidate_id", "symbol", "decision"},
 }
 OBSERVATION_TABLE = "entry_drift_observations"
+HISTORY_TABLE = "premarket_volume_sessions"
+V2_COLUMNS = {"v1_volume_ratio", "v2_status", "v2_median_ratio", "v2_baseline_volume",
+              "v2_baseline_sessions"}
 
 
 def not_run(reason: str) -> SystemExit:
@@ -57,8 +64,12 @@ def open_database(path: Path, *, write: bool) -> Engine:
     return engine
 
 
-def check_schema(engine: Engine, *, write: bool, report: bool) -> None:
-    """Refuse before any market-data request when the database cannot hold the run."""
+def check_schema(engine: Engine, *, write: bool, report: bool) -> bool:
+    """Refuse before any market-data request when the database cannot hold the run.
+
+    Returns whether the database holds V2 analytics; a read-only dry run of an older
+    schema still replays V1 and simply records no V2 values.
+    """
     inspector = inspect(engine)
     tables = set(inspector.get_table_names())
     for table, columns in AUTHORITY_COLUMNS.items():
@@ -67,6 +78,10 @@ def check_schema(engine: Engine, *, write: bool, report: bool) -> None:
             raise not_run(f"{table} lacks authority columns {sorted(columns - present)}")
     if report and OBSERVATION_TABLE not in tables:
         raise not_run(f"{OBSERVATION_TABLE} does not exist")
+    v2_ready = HISTORY_TABLE in tables and OBSERVATION_TABLE in tables and V2_COLUMNS <= {
+        column["name"] for column in inspector.get_columns(OBSERVATION_TABLE)}
+    if report and not v2_ready:
+        raise not_run(f"{OBSERVATION_TABLE} predates V2 premarket volume analytics")
     if write:
         revision: list[str] = []
         if "alembic_version" in tables:
@@ -76,6 +91,7 @@ def check_schema(engine: Engine, *, write: bool, report: bool) -> None:
         if revision != [OBSERVER_SCHEMA_REVISION]:
             raise not_run(f"write requires schema revision {OBSERVER_SCHEMA_REVISION}, "
                           f"found {revision or 'none'}")
+    return v2_ready
 
 
 def kiwoom_provider() -> MarketDataProvider:
@@ -94,7 +110,9 @@ def main(argv: Sequence[str] | None = None, *,
     parser.add_argument("--database", type=Path, required=True,
                         help="existing SQLite authority database")
     mode = parser.add_mutually_exclusive_group()
-    mode.add_argument("--dry-run", action="store_true", help="observe without persisting (default)")
+    mode.add_argument("--dry-run", action="store_true",
+                      help="REAL market-data replay (minute requests are made), "
+                           "DB write 0 (default)")
     mode.add_argument("--write", action="store_true", help="persist observations")
     mode.add_argument("--report", action="store_true",
                       help="authority-filtered statistics; no market-data request")
@@ -108,7 +126,7 @@ def main(argv: Sequence[str] | None = None, *,
 
     engine = open_database(args.database.resolve(), write=args.write)
     try:
-        check_schema(engine, write=args.write, report=args.report)
+        v2_ready = check_schema(engine, write=args.write, report=args.report)
         with Session(engine) as session:
             if args.report:
                 print(entry_drift_report(session, trading_date=args.date))
@@ -120,7 +138,9 @@ def main(argv: Sequence[str] | None = None, *,
             if clock() < window.market_close:
                 raise not_run(f"entry session {args.date} has not completed")
             provider = provider_factory()
-            observer = EntryDriftObserver(session, provider, calendar=calendar, clock=clock)
+            observer = EntryDriftObserver(
+                session, provider, calendar=calendar, clock=clock,
+                v2_baseline=None if v2_ready else (lambda _symbol, _exchange, _day: None))
             run = observer.observe_date(args.date, persist=args.write,
                                         replace_versions=args.replace_versions)
             writes = run.writes or (None,) * len(run.results)

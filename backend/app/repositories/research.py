@@ -55,19 +55,6 @@ class ResearchRepository:
         )
         return self.session.scalar(statement)
 
-    def get_latest_active_analysis(self) -> GPTAnalysis | None:
-        statement = (
-            select(GPTAnalysis)
-            .join(ScannerRun, ScannerRun.active_gpt_analysis_id == GPTAnalysis.id)
-            .where(
-                GPTAnalysis.scanner_run_id == ScannerRun.id,
-                GPTAnalysis.status == "IMPORTED",
-            )
-            .order_by(GPTAnalysis.analysis_at.desc(), GPTAnalysis.id.desc())
-            .limit(1)
-        )
-        return self.session.scalar(statement)
-
     def find_duplicate(self, scanner_run_id: int, payload_hash: str) -> GPTAnalysis | None:
         return self.session.scalar(select(GPTAnalysis).where(GPTAnalysis.scanner_run_id == scanner_run_id, GPTAnalysis.payload_hash == payload_hash, GPTAnalysis.status == "IMPORTED"))
 

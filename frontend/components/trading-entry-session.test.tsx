@@ -2,132 +2,116 @@ import React from "react";
 import { readFileSync } from "node:fs";
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { Dashboard, ResearchAnalysis, ResearchCandidate, TradingOverview } from "@/types/api";
+import type { Dashboard, EntryBoard, EntryBoardStatus, TradingOverview } from "@/types/api";
 
 vi.mock("next/navigation", () => ({ usePathname: () => "/trading" }));
 const tradingApi = vi.fn();
-const dashboardApi = vi.fn();
+const entryBoardApi = vi.fn();
 const researchApi = vi.fn();
 vi.mock("@/lib/api", () => ({
   api: {
-    trading: () => tradingApi(), dashboard: () => dashboardApi(), research: () => researchApi(),
-    orders: async () => [], fills: async () => [], trades: async () => [],
-    dailyPerformance: async () => [],
+    trading: () => tradingApi(), dashboard: async () => ({ trading: { strategy_performance_valid_from: null } } as unknown as Dashboard),
+    entryBoard: () => entryBoardApi(), research: () => researchApi(),
+    orders: async () => [], fills: async () => [], trades: async () => [], dailyPerformance: async () => [],
   },
   ApiError: class ApiError extends Error { constructor(public status: number) { super("api"); } },
 }));
 
 import TradingPage from "@/app/trading/page";
 
-const source = () => readFileSync("app/trading/page.tsx", "utf8");
-
-/** Production shape: the 09/08 entry session consumes the 09/04 analysis. */
-const ENTRY_SESSION = "2026-09-08";
-const ANALYSIS_SESSION = "2026-09-04";
-
-const candidate = (symbol: string, decision: "APPROVE" | "REJECT" | null): ResearchCandidate => ({
-  scanner_candidate_id: 1, symbol, quant_rank: 1, gpt_rank: 1, quant_score: 1, overall_score: 80,
-  catalyst_score: 80, fundamental_score: 80, momentum_score: 80, risk_score: 60,
-  evidence_confidence: 60, catalyst_duration: "ONE_TO_TWO_DAYS", stop_profile: "NORMAL",
-  trailing_profile: "NORMAL", overnight_suitability: "MEDIUM", company_summary: "",
-  catalyst_summary: "", risk_summary: "", invalidation_summary: "", unknown_fields: [],
-  human_decision: decision === null
-    ? null
-    : { symbol, decision, note: null, decided_at: `${ANALYSIS_SESSION}T20:00:00Z` },
+/** Production shape: the 09/14 ScannerRun exists, 09/11 Analysis #6 is the previous run's. */
+const board = (status: EntryBoardStatus, extra: Partial<EntryBoard> = {}): EntryBoard => ({
+  status, scanner_run_id: 8, analysis_session_date: "2026-09-14", entry_session_date: "2026-09-15",
+  analysis_id: null, analysis_at: null,
+  thresholds: { strategy_version: "strategy_v0", premarket_gap_min_pct: "0.02", premarket_gap_max_pct: "0.15", premarket_volume_ratio_min: "0.05" },
+  candidates: [], ...extra,
 });
 
-const research = (candidates: ResearchCandidate[], trading_date = ANALYSIS_SESSION): ResearchAnalysis => ({
-  analysis: {
-    id: 2, scanner_run_id: 1, trading_date, analysis_at: `${trading_date}T20:00:00Z`,
-    imported_at: `${trading_date}T20:05:00Z`, provider: "gpt", model: "m", prompt_version: "1",
-    schema_version: "1", evidence_version: "1", status: "IMPORTED",
-  },
-  candidates,
+const overview = (): TradingOverview => ({
+  broker_mode: "SIMULATION", availability: "AVAILABLE",
+  account: { currency: "USD", equity: "10000", cash: "10000", invested_notional: "0", unrealized_pnl: "0", realized_pnl: "12", today_pnl: "12" },
+  open_positions: [], open_orders: [], strategy_states: [],
+  entry_capacity: { entry_session_date: "2026-09-15", new_entries_used: 0, max_new_entries: 3, open_positions_used: 0, max_open_positions: 3, pending_entries: 0, blocked_reason: null },
 });
 
-const dashboard = (trading_date = ENTRY_SESSION) => ({
-  system_time: `${trading_date}T14:00:00Z`,
-  market: { trading_date, session: "REGULAR", is_trading_day: true, market_open: null, market_close: null },
-  runtime: { mode: "NORMAL", healthy: true, last_heartbeat_at: null, unresolved_failure_count: 0, last_failure: null },
-  scanner: { latest_run_id: 1, trading_date: ANALYSIS_SESSION, completed_at: null, candidate_count: 8, top8_count: 8 },
-  research: { latest_analysis_id: 2, analysis_at: null, approved_count: 2 },
-  trading: { broker_mode: "SIMULATION", open_positions_count: 0, open_orders_count: 0, paper_started_at: null },
-  shadow: { recent_result_count: 0 },
-} as unknown as Dashboard);
-
-const overview = (openSymbols: string[] = []): TradingOverview => ({
-  broker_mode: "SIMULATION", availability: "OK",
-  account: { currency: "USD", equity: "10000", cash: "10000", invested_notional: "0", unrealized_pnl: "0", realized_pnl: "0", today_pnl: "0" },
-  open_positions: openSymbols.map(symbol => ({ symbol, currency: "USD", quantity: "1" })),
-  open_orders: [], strategy_states: [],
-});
-
-const waitingSection = async () => {
-  const heading = await screen.findByRole("heading", { name: "진입 평가" });
-  return heading.closest("section") as HTMLElement;
-};
+const view = async () => (await screen.findByRole("heading", { name: "진입 평가" })).closest("section") as HTMLElement;
+const PREVIOUS_ANALYSIS_SYMBOLS = ["SPCX", "ORCL", "AMD", "AAPL", "META"];
 
 beforeEach(() => {
   vi.clearAllMocks();
   tradingApi.mockResolvedValue(overview());
-  dashboardApi.mockResolvedValue(dashboard());
-  researchApi.mockResolvedValue(research([candidate("NVDA", "APPROVE"), candidate("AAPL", "APPROVE")]));
+  entryBoardApi.mockResolvedValue(board("NO_ACTIVE_ANALYSIS"));
 });
 afterEach(cleanup);
 
-describe("entry session consumes the previous session's analysis", () => {
-  it("shows APPROVE candidates even though the analysis date is not the current session date", async () => {
+describe("current ScannerRun authority on the Trading screen", () => {
+  it("shows no entry candidate while the current run has no GPT analysis", async () => {
     render(<TradingPage/>);
-    const section = await waitingSection();
-    await waitFor(() => expect(within(section).getByText("NVDA")).toBeInTheDocument());
-    expect(within(section).getByText("AAPL")).toBeInTheDocument();
-    expect(within(section).queryByText("승인 후 아직 진입하지 않은 종목이 없습니다.")).toBeNull();
+    const section = await view();
+    await waitFor(() => expect(within(section).getByText("현재 ScannerRun의 GPT 분석이 아직 없습니다.")).toBeInTheDocument());
+    expect(within(section).getByText(/오늘 진입 후보가 아직 준비되지 않았습니다/)).toBeInTheDocument();
+    expect(within(section).getByText(/09\/14 \(월\) 분석 기준/)).toBeInTheDocument();
+    expect(section.textContent).not.toContain("Analysis #");
+    PREVIOUS_ANALYSIS_SYMBOLS.forEach(symbol => expect(section.textContent).not.toContain(symbol));
+    expect(within(section).queryAllByRole("listitem")).toHaveLength(0);
   });
 
-  it("labels which session's analysis the waiting list came from", async () => {
+  it("never consults /research/latest for entry candidates", async () => {
     render(<TradingPage/>);
-    const section = await waitingSection();
-    await waitFor(() => expect(within(section).getByText("09/04 (금) 분석 기준")).toBeInTheDocument());
+    await view();
+    await waitFor(() => expect(entryBoardApi).toHaveBeenCalled());
+    expect(researchApi).not.toHaveBeenCalled();
   });
 
-  it("never gates the list on research trading_date matching the current market date", () => {
-    const trading = source();
-    expect(trading).not.toContain("researchIsToday");
-    expect(trading).not.toContain("research.data?.analysis.trading_date === dashboard.data.market.trading_date");
+  it.each<[EntryBoardStatus, string]>([
+    ["NO_SCANNER_RUN", "오늘 스캐너 실행 결과가 없습니다."],
+    ["SCANNER_RUN_OUTDATED", "오늘 스캐너 실행 결과가 없습니다."],
+    ["NO_ACTIVE_ANALYSIS", "현재 ScannerRun의 GPT 분석이 아직 없습니다."],
+    ["NO_APPROVALS", "현재 분석에서 채택된 진입 후보가 없습니다."],
+  ])("separates the %s empty state", async (status, title) => {
+    entryBoardApi.mockResolvedValue(board(status, status === "NO_SCANNER_RUN" ? { scanner_run_id: null, analysis_session_date: null, entry_session_date: null } : status === "NO_APPROVALS" ? { analysis_id: 9 } : {}));
+    render(<TradingPage/>);
+    const section = await view();
+    await waitFor(() => expect(within(section).getByText(title)).toBeInTheDocument());
+    expect(section.querySelectorAll("[data-entry-board]")).toHaveLength(1);
   });
 
-  it("keeps an approved symbol that already holds a position on the list", async () => {
-    tradingApi.mockResolvedValue(overview(["NVDA"]));
+  it("explains an outdated run with its own passed entry session", async () => {
+    entryBoardApi.mockResolvedValue(board("SCANNER_RUN_OUTDATED", { analysis_session_date: "2026-09-11", entry_session_date: "2026-09-14" }));
     render(<TradingPage/>);
-    const section = await waitingSection();
-    await waitFor(() => expect(within(section).getByText("AAPL")).toBeInTheDocument());
-    expect(within(section).getByText("NVDA")).toBeInTheDocument();
+    const section = await view();
+    await waitFor(() => expect(within(section).getByText("마지막 스캐너 실행은 09/11 (금) 기준이며, 그 진입 세션(09/14 (월))은 이미 지났습니다.")).toBeInTheDocument());
   });
 
-  it("shows every approved candidate and only approved candidates", async () => {
-    researchApi.mockResolvedValue(research([
-      candidate("NVDA", "APPROVE"), candidate("AAPL", "APPROVE"), candidate("TSLA", "APPROVE"),
-      candidate("MSFT", "REJECT"), candidate("AMD", null),
-    ]));
+  it("labels the current analysis, entry session and capacity once candidates are ready", async () => {
+    entryBoardApi.mockResolvedValue(board("READY", { analysis_id: 7, candidates: [{ rank: 1, symbol: "GOOGL", scanner_candidate_id: 1, exchange: "NASDAQ", state_conflict: false, state: null, premarket: null }] }));
     render(<TradingPage/>);
-    const section = await waitingSection();
-    await waitFor(() => expect(within(section).getAllByText("승인 · 정규장 진입 평가 대기")).toHaveLength(3));
-    expect(within(section).getByText("TSLA")).toBeInTheDocument();
-    ["MSFT", "AMD"].forEach(symbol => expect(within(section).queryByText(symbol)).toBeNull());
+    const section = await view();
+    await waitFor(() => expect(within(section).getByText("09/14 (월) 분석 기준 · Analysis #7 · 진입 세션 09/15 (화)")).toBeInTheDocument());
+    expect(within(section).getByText("신규 진입 0/3 · 보유 0/3")).toBeInTheDocument();
+    expect(within(section).getByRole("link", { name: "분석 보기" })).toHaveAttribute("href", "/research");
+  });
+});
+
+describe("Trading layout", () => {
+  it("removes the current-session P&L panel and gives the board the full width", async () => {
+    render(<TradingPage/>);
+    const section = await view();
+    expect(screen.queryByText("현재 세션 손익 상세")).toBeNull();
+    expect(screen.queryByText("실현 손익")).toBeNull();
+    expect(section.parentElement?.className ?? "").not.toContain("xl:grid-cols-2");
+    ["총 자산", "투자 중", "보유 현금", "평가 손익", "직전 거래일 손익"].forEach(label => expect(screen.getAllByText(new RegExp(label)).length).toBeGreaterThan(0));
   });
 
-  it("says an approval is still awaiting strategy and risk evaluation, never a planned buy", async () => {
+  it("keeps the daily P&L section below the entry board", async () => {
     render(<TradingPage/>);
-    const section = await waitingSection();
-    await waitFor(() => expect(within(section).getAllByText("승인 · 정규장 진입 평가 대기")).toHaveLength(2));
-    ["매수 예정", "매수 확정"].forEach(text => expect(source()).not.toContain(text));
+    const section = await view();
+    const daily = screen.getByRole("heading", { name: "일별 손익" });
+    expect(section.compareDocumentPosition(daily) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it("keeps the empty state when no approval is outstanding", async () => {
-    researchApi.mockResolvedValue(research([candidate("MSFT", "REJECT")]));
-    render(<TradingPage/>);
-    const section = await waitingSection();
-    await waitFor(() =>
-      expect(within(section).getByText("승인된 종목이 없습니다.")).toBeInTheDocument());
+  it("no longer carries the card-per-candidate UI", () => {
+    const page = readFileSync("app/trading/page.tsx", "utf8");
+    ["EntryStatusCard", "현재 세션 손익 상세", "pnl-metric-grid", "승인 · 정규장 진입 평가 대기"].forEach(token => expect(page).not.toContain(token));
   });
 });

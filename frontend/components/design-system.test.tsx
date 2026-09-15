@@ -83,7 +83,7 @@ describe("Stage 9.16 semantic design system", () => {
     const candidates = source("app/candidates/page.tsx");
     const research = source("app/research/page.tsx");
     const adoption = source("app/adoption/page.tsx");
-    expect(trading).toContain('className="btn-action-secondary-compact">분석 보기');
+    expect(source("components/entry-status-board.tsx")).toContain('className="btn-action-secondary-compact">분석 보기');
     expect(trading).toContain("btn-compact-active");
     expect(candidates).toContain('className="btn-action-primary" disabled={busy}');
     expect(candidates).toContain('className="btn-action-secondary" disabled={busy}');

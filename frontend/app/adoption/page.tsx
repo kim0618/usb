@@ -31,11 +31,18 @@ function ExtendedMetric({ label, quote }: { label: string; quote: ExtendedMarket
 }
 
 export default function AdoptionPage() {
-  const result = useApi(api.adoption); const toast = useToast();
+  const result = useApi(api.adoption); const authority = useApi(api.researchCurrent); const toast = useToast();
   const [showExcluded, setShowExcluded] = useState(false); const [selected, setSelected] = useState<AdoptionItem | null>(null);
   const [detail, setDetail] = useState<ResearchDetail | null>(null); const [loadingDetail, setLoadingDetail] = useState(false); const [busy, setBusy] = useState(false);
   const noAnalysis = Boolean(result.error?.toLowerCase().includes("research analysis not found"));
   const approved = result.data?.items.filter(item => item.human_decision?.decision === "APPROVE").length ?? 0;
+  const decided = result.data?.items.filter(item => item.human_decision).length ?? 0;
+  const runDate = authority.data?.trading_date ? authority.data.trading_date.slice(5).replace("-", "/") : null;
+  // No active analysis on the current run means no current adoption candidates; a previous
+  // run's APPROVE results are history (GPT 분석 > 이전 분석 이력), never shown here.
+  const emptyState = authority.data?.status === "NO_SCANNER_RUN"
+    ? <EmptyState title="오늘 스캐너 실행 결과가 없습니다." description="Scanner 실행과 GPT 분석이 완료되면 채택 후보가 표시됩니다."/>
+    : <EmptyState title="현재 채택 후보가 없습니다." description={`현재 ScannerRun${runDate ? `(${runDate})` : ""}의 GPT 분석이 아직 없습니다. 이전 분석 결과는 GPT 분석 화면의 이전 분석 이력에서 확인할 수 있습니다.`}/>;
   const visible = result.data?.items.filter(item => showExcluded || item.classification !== "EXCLUDED") ?? [];
   // The drawer that is open right now; a detail response for any other drawer is stale and dropped.
   const openKey = useRef<string | null>(null); const submitting = useRef(false);
@@ -48,10 +55,11 @@ export default function AdoptionPage() {
     try { await api.decide(target.analysis_id, target.symbol, decision); toast(`${target.symbol} 결정을 ${formatDecisionStatus(decision)}으로 변경했습니다.`); await result.refresh(); closeDrawer(); }
     catch (error) { toast(error instanceof Error ? error.message : "결정 저장 실패", true); } finally { submitting.current = false; setBusy(false); }
   }
-  return <><AnalysisTabs/>{result.loading ? <LoadingState/> : result.error && !noAnalysis ? <ErrorState message={result.error} retry={result.refresh}/> : !result.data ? <><PageHeader title="채택 후보" description="GPT 분석이 완료되면 최종 검토할 후보가 표시됩니다."/><EmptyState title="아직 채택 후보가 없습니다." description="먼저 GPT 분석 결과를 입력하고 적용하세요."/></> : <>
+  return <><AnalysisTabs/>{result.loading ? <LoadingState/> : result.error && !noAnalysis ? <ErrorState message={result.error} retry={result.refresh}/> : !result.data ? <><PageHeader title="채택 후보" description="GPT 분석이 완료되면 최종 검토할 후보가 표시됩니다."/>{emptyState}</> : <>
     <PageHeader title="채택 후보" description="Quant와 GPT 분석을 함께 비교해 최종 검토가 필요한 종목을 보여줍니다."/>
-    <div className="mb-4 rounded-lg border border-line bg-surface-alt px-3 py-2"><p className="text-xs text-muted">현재 활성 분석 기준 · {result.data.trading_date.slice(5).replace("-", "/")} 분석 기준 · Analysis #{result.data.analysis_id}</p><p className="mt-1 text-xs text-muted">채택 후보 {result.data.counts.adoption_candidate}개 · 검토 필요 {result.data.counts.review_required}개 · 최종 채택 {approved}개 · {result.data.filter_version}</p><p className="mt-1 text-xs text-muted">순위는 검토 순서이며 채택 결정이 아닙니다. 채택한 종목은 다음 거래일 시스템의 진입 평가 대상이 됩니다. 실제 신규 진입은 시스템 조건에 따라 하루 최대 3종목입니다.</p></div>
-    {result.data.counts.adoption_candidate === 0 && <p className="mb-4 rounded-lg border border-line bg-surface-alt p-3 text-sm text-muted">{result.data.counts.review_required ? "채택 후보는 없지만 검토가 필요한 종목이 있습니다." : "현재 기준을 충족한 채택 후보가 없습니다."}</p>}
+    <div className="mb-4 rounded-lg border border-line bg-surface-alt px-3 py-2"><p className="text-xs text-muted">현재 ScannerRun 분석 기준 · {result.data.trading_date.slice(5).replace("-", "/")} 분석 기준 · Analysis #{result.data.analysis_id}</p><p className="mt-1 text-xs text-muted">채택 후보 {result.data.counts.adoption_candidate}개 · 검토 필요 {result.data.counts.review_required}개 · 최종 채택 {approved}개 · {result.data.filter_version}</p><p className="mt-1 text-xs text-muted">순위는 검토 순서이며 채택 결정이 아닙니다. 채택한 종목은 다음 거래일 시스템의 진입 평가 대상이 됩니다. 실제 신규 진입은 시스템 조건에 따라 하루 최대 3종목입니다.</p></div>
+    {decided === 0 ? <p className="mb-4 rounded-lg border border-line bg-surface-alt p-3 text-sm text-muted">현재 분석에 대한 채택 결정이 아직 없습니다. 아래 목록에서 검토 후 채택한 종목만 진입 평가 대상이 됩니다.</p> : approved === 0 && <p className="mb-4 rounded-lg border border-line bg-surface-alt p-3 text-sm text-muted">현재 분석에서 채택된 종목이 없습니다.</p>}
+    {result.data.counts.adoption_candidate === 0 &&<p className="mb-4 rounded-lg border border-line bg-surface-alt p-3 text-sm text-muted">{result.data.counts.review_required ? "채택 후보는 없지만 검토가 필요한 종목이 있습니다." : "현재 기준을 충족한 채택 후보가 없습니다."}</p>}
     <div className="mb-3 flex justify-end"><button className="btn-action-secondary-compact" aria-pressed={showExcluded} onClick={() => setShowExcluded(value => !value)}>{showExcluded ? "제외 숨기기" : `제외 ${result.data.counts.excluded}개 보기`}</button></div>
     <div className="table-wrap"><table className="analysis-table"><thead><tr><th className="whitespace-nowrap">순위</th><th>상태</th><th>종목</th><th>Quant → GPT</th><th>순위 변화</th><th>핵심 강점</th><th>핵심 주의</th><th>상세</th><th>최종 결정</th></tr></thead><tbody>{visible.map(item => { const meta=status(item.classification); return <tr key={item.symbol}><td className="whitespace-nowrap font-bold text-primary">{rankLabel(item.recommendation_rank)}</td><td><StatusBadge value={item.classification} label={meta.label} tone={meta.tone}/></td><td><p className="font-bold text-foreground">{item.symbol}</p>{item.company_name && <p className="text-xs text-muted">{item.company_name}</p>}</td><td className="whitespace-nowrap">{item.quant_rank == null ? "—" : `#${item.quant_rank}`} → #{item.gpt_rank}</td><td><StatusBadge value={item.rank_direction} label={item.rank_delta_label} tone={deltaTone(item)}/></td><td className="hidden min-w-48 text-xs text-foreground-secondary lg:table-cell">{summaryCell(item.strengths)}</td><td className="hidden min-w-48 text-xs text-foreground-secondary lg:table-cell">{summaryCell(item.warnings)}</td><td><button className="btn-action-secondary-compact whitespace-nowrap" onClick={() => void open(item)}>상세보기</button></td><td><StatusBadge value={item.human_decision?.decision || "UNDECIDED"} label={formatDecisionStatus(item.human_decision?.decision)}/></td></tr>})}</tbody></table></div>
   </>}
