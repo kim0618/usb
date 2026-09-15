@@ -7,5 +7,6 @@ from app.models.execution import ExecutionFillRecord, ExecutionOrderRecord, Shad
 from app.models.strategy import PremarketDiagnosticRecord, StrategyStateRecord
 from app.models.runtime import RuntimeFailureRecord, RuntimeStateRecord
 from app.models.simulation import AccountDailyPerformanceRecord, SimulationAccountRecord, SimulationPositionRecord, SimulationTradeRecord
+from app.models.analytics import EntryDriftObservation
 
-__all__ = ["ScannerCandidate", "ScannerRun", "GPTAnalysis", "GPTCandidateAnalysis", "GPTSource", "HumanDecisionRecord", "DailySymbolState", "ExecutionOrderRecord", "ExecutionFillRecord", "ShadowTradeRecord", "StrategyStateRecord", "PremarketDiagnosticRecord", "RuntimeStateRecord", "RuntimeFailureRecord", "SimulationAccountRecord", "SimulationPositionRecord", "SimulationTradeRecord", "AccountDailyPerformanceRecord"]
+__all__ = ["ScannerCandidate", "ScannerRun", "GPTAnalysis", "GPTCandidateAnalysis", "GPTSource", "HumanDecisionRecord", "DailySymbolState", "ExecutionOrderRecord", "ExecutionFillRecord", "ShadowTradeRecord", "StrategyStateRecord", "PremarketDiagnosticRecord", "RuntimeStateRecord", "RuntimeFailureRecord", "SimulationAccountRecord", "SimulationPositionRecord", "SimulationTradeRecord", "AccountDailyPerformanceRecord", "EntryDriftObservation"]

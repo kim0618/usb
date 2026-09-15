@@ -115,6 +115,121 @@ class PremarketBuildResult:
     diagnostic: PremarketDiagnostic
 
 
+def analysis_session_date(calendar: MarketCalendar, entry_session_date: date) -> date:
+    """Scanner/GPT `trading_date` is the last completed XNYS session at analysis time,
+    so the analysis an entry session consumes is the one stamped with its predecessor."""
+    return calendar.previous_trading_day(entry_session_date)
+
+
+def load_approved_candidates(session: Session, analysis_date: date) -> tuple[ApprovedCandidate, ...]:
+    """Use the newest completed run as one chain; never combine latest rows.
+
+    ``analysis_date`` is the Scanner/GPT ``trading_date``, not the entry session. The
+    scanner snapshot is the only durable exchange authority for a symbol; it is carried
+    forward as stored, including an empty or unknown value, so the provider binding
+    fails closed rather than guessing a venue here.
+    """
+    run = session.scalar(
+        select(ScannerRun).where(
+            ScannerRun.trading_date == analysis_date,
+            ScannerRun.status == "COMPLETED",
+        ).order_by(ScannerRun.completed_at.desc(), ScannerRun.id.desc()).limit(1)
+    )
+    if run is None:
+        return ()
+    analysis = ResearchAuthorityService(session).resolve(run.id)
+    if analysis is None:
+        return ()
+    rows = session.execute(
+        select(HumanDecisionRecord, GPTCandidateAnalysis, ScannerCandidate)
+        .join(GPTCandidateAnalysis, (
+            GPTCandidateAnalysis.gpt_analysis_id == HumanDecisionRecord.gpt_analysis_id
+        ) & (GPTCandidateAnalysis.scanner_candidate_id == HumanDecisionRecord.scanner_candidate_id)
+          & (GPTCandidateAnalysis.symbol == HumanDecisionRecord.symbol))
+        .join(ScannerCandidate, ScannerCandidate.id == HumanDecisionRecord.scanner_candidate_id)
+        .where(
+            HumanDecisionRecord.gpt_analysis_id == analysis.id,
+            HumanDecisionRecord.decision == "APPROVE",
+            ScannerCandidate.scanner_run_id == run.id,
+            ScannerCandidate.symbol == HumanDecisionRecord.symbol,
+        ).order_by(GPTCandidateAnalysis.gpt_rank, HumanDecisionRecord.symbol)
+    ).all()
+    return tuple(ApprovedCandidate(
+        analysis.id, run.id, scanner.id, decision.symbol, stored_exchange(scanner),
+        TrailingProfile(candidate.trailing_profile),
+        OvernightSuitability(candidate.overnight_suitability),
+    ) for decision, candidate, scanner in rows)
+
+
+def previous_regular_close(calendar: MarketCalendar, symbol: str, trading_date: date,
+                           provider: MarketDataProvider, as_of: datetime) -> Decimal | None:
+    """Return only the exact predecessor session's completed final regular minute.
+
+    Kiwoom's latest daily ``cur_prc`` can continue to reflect extended-hours
+    prices, so it is not an authority for the completed regular-session close.
+    The exchange calendar supplies the close boundary, including early closes;
+    the exact final minute proves the bounded query reached that boundary.
+    """
+    previous_session = calendar.previous_trading_day(trading_date)
+    window = calendar.session(previous_session)
+    if window is None:
+        return None
+    final_timestamp = window.market_close - timedelta(minutes=1)
+    bars = provider.get_minute_bars(
+        [symbol], final_timestamp, window.market_close, MarketSession.REGULAR,
+    )
+    exact = [bar for bar in bars if (
+        bar.symbol == symbol
+        and bar.timestamp == final_timestamp
+        and bar.session is MarketSession.REGULAR
+        and bar.observed_at >= window.market_close
+        and bar.available_at <= as_of
+        and bar.close > 0
+    )]
+    if len(exact) != 1:
+        return None
+    return Decimal(str(exact[0].close))
+
+
+def build_premarket_context(calendar: MarketCalendar, symbol: str, trading_date: date,
+                            minute_bars: Sequence[MinuteBar], provider: MarketDataProvider,
+                            as_of: datetime) -> PremarketBuildResult:
+    previous_close = previous_regular_close(calendar, symbol, trading_date, provider, as_of)
+    daily = [bar for bar in provider.get_daily_bars(
+        [symbol], trading_date - timedelta(days=45), trading_date - timedelta(days=1)
+    ) if bar.available_at <= as_of and bar.trading_date < trading_date]
+    daily.sort(key=lambda bar: bar.trading_date)
+    premarket = sorted(
+        (bar for bar in minute_bars if bar.session is MarketSession.PREMARKET),
+        key=lambda bar: bar.timestamp,
+    )
+    history = daily[-20:]
+    reference_price = None if not premarket else Decimal(str(premarket[-1].close))
+    premarket_volume = (None if not premarket else
+                        sum((Decimal(bar.volume) for bar in premarket), Decimal("0")))
+    average_volume = (None if not history else
+                      sum((Decimal(bar.volume) for bar in history), Decimal("0")) /
+                      Decimal(len(history)))
+    invalid = (PremarketInvalidField.NO_DAILY_HISTORY if not daily
+               else PremarketInvalidField.NO_EXACT_PREVIOUS_CLOSE if previous_close is None
+               else PremarketInvalidField.NO_PREMARKET_BARS if not premarket
+               else PremarketInvalidField.INVALID_PREVIOUS_CLOSE if previous_close <= 0
+               else PremarketInvalidField.INVALID_REFERENCE_PRICE if reference_price <= 0
+               else PremarketInvalidField.INVALID_AVERAGE_VOLUME if average_volume <= 0
+               else None)
+    context = PremarketContext(
+        previous_close or Decimal("0"), reference_price or Decimal("0"),
+        premarket_volume if premarket_volume is not None else Decimal("0"),
+        average_volume or Decimal("0"),
+    )
+    return PremarketBuildResult(context, PremarketDiagnostic(
+        len(minute_bars), len(premarket), previous_close, reference_price,
+        premarket_volume, average_volume,
+        None if not premarket else premarket[0].timestamp,
+        None if not premarket else premarket[-1].timestamp, invalid,
+    ))
+
+
 class EntryLifecycleService:
     """Compose existing Strategy, Risk, and durable execution authorities."""
 
@@ -134,9 +249,7 @@ class EntryLifecycleService:
         )
 
     def analysis_session_date(self, entry_session_date: date) -> date:
-        """Scanner/GPT `trading_date` is the last completed XNYS session at analysis time,
-        so the analysis an entry session consumes is the one stamped with its predecessor."""
-        return self.calendar.previous_trading_day(entry_session_date)
+        return analysis_session_date(self.calendar, entry_session_date)
 
     def approved_candidates_for_entry_session(self, entry_session_date: date
                                               ) -> tuple[ApprovedCandidate, ...]:
@@ -144,51 +257,9 @@ class EntryLifecycleService:
         return self.approved_candidates(self.analysis_session_date(entry_session_date))
 
     def approved_candidates(self, analysis_session_date: date) -> tuple[ApprovedCandidate, ...]:
-        """Use the newest completed run as one chain; never combine latest rows.
-
-        ``analysis_session_date`` is the Scanner/GPT ``trading_date``, not the entry session.
-        """
+        """``analysis_session_date`` is the Scanner/GPT ``trading_date``, not the entry session."""
         with self.runtime.session_factory() as session:
-            run = session.scalar(
-                select(ScannerRun).where(
-                    ScannerRun.trading_date == analysis_session_date,
-                    ScannerRun.status == "COMPLETED",
-                ).order_by(ScannerRun.completed_at.desc(), ScannerRun.id.desc()).limit(1)
-            )
-            if run is None:
-                return ()
-            analysis = ResearchAuthorityService(session).resolve(run.id)
-            if analysis is None:
-                return ()
-            rows = session.execute(
-                select(HumanDecisionRecord, GPTCandidateAnalysis, ScannerCandidate)
-                .join(GPTCandidateAnalysis, (
-                    GPTCandidateAnalysis.gpt_analysis_id == HumanDecisionRecord.gpt_analysis_id
-                ) & (GPTCandidateAnalysis.scanner_candidate_id == HumanDecisionRecord.scanner_candidate_id)
-                  & (GPTCandidateAnalysis.symbol == HumanDecisionRecord.symbol))
-                .join(ScannerCandidate, ScannerCandidate.id == HumanDecisionRecord.scanner_candidate_id)
-                .where(
-                    HumanDecisionRecord.gpt_analysis_id == analysis.id,
-                    HumanDecisionRecord.decision == "APPROVE",
-                    ScannerCandidate.scanner_run_id == run.id,
-                    ScannerCandidate.symbol == HumanDecisionRecord.symbol,
-                ).order_by(GPTCandidateAnalysis.gpt_rank, HumanDecisionRecord.symbol)
-            ).all()
-            return tuple(ApprovedCandidate(
-                analysis.id, run.id, scanner.id, decision.symbol,
-                self._candidate_exchange(scanner),
-                TrailingProfile(candidate.trailing_profile),
-                OvernightSuitability(candidate.overnight_suitability),
-            ) for decision, candidate, scanner in rows)
-
-    @staticmethod
-    def _candidate_exchange(scanner: ScannerCandidate) -> str:
-        """The scanner snapshot is the only durable exchange authority for a symbol.
-
-        It is carried forward as stored, including an empty or unknown value, so the
-        provider binding fails closed rather than guessing a venue here.
-        """
-        return stored_exchange(scanner)
+            return load_approved_candidates(session, analysis_session_date)
 
     def evaluate(self, candidate: ApprovedCandidate, provider: MarketDataProvider, *,
                  as_of: datetime) -> EntryOutcome:
@@ -358,71 +429,13 @@ class EntryLifecycleService:
     def _premarket_context(self, symbol: str, trading_date: date,
                            minute_bars: Sequence[MinuteBar], provider: MarketDataProvider,
                            as_of: datetime) -> PremarketBuildResult:
-        previous_close = EntryLifecycleService._previous_regular_close(
-            self, symbol, trading_date, provider, as_of)
-        daily = [bar for bar in provider.get_daily_bars(
-            [symbol], trading_date - timedelta(days=45), trading_date - timedelta(days=1)
-        ) if bar.available_at <= as_of and bar.trading_date < trading_date]
-        daily.sort(key=lambda bar: bar.trading_date)
-        premarket = sorted(
-            (bar for bar in minute_bars if bar.session is MarketSession.PREMARKET),
-            key=lambda bar: bar.timestamp,
-        )
-        history = daily[-20:]
-        reference_price = None if not premarket else Decimal(str(premarket[-1].close))
-        premarket_volume = (None if not premarket else
-                            sum((Decimal(bar.volume) for bar in premarket), Decimal("0")))
-        average_volume = (None if not history else
-                          sum((Decimal(bar.volume) for bar in history), Decimal("0")) /
-                          Decimal(len(history)))
-        invalid = (PremarketInvalidField.NO_DAILY_HISTORY if not daily
-                   else PremarketInvalidField.NO_EXACT_PREVIOUS_CLOSE if previous_close is None
-                   else PremarketInvalidField.NO_PREMARKET_BARS if not premarket
-                   else PremarketInvalidField.INVALID_PREVIOUS_CLOSE if previous_close <= 0
-                   else PremarketInvalidField.INVALID_REFERENCE_PRICE if reference_price <= 0
-                   else PremarketInvalidField.INVALID_AVERAGE_VOLUME if average_volume <= 0
-                   else None)
-        context = PremarketContext(
-            previous_close or Decimal("0"), reference_price or Decimal("0"),
-            premarket_volume if premarket_volume is not None else Decimal("0"),
-            average_volume or Decimal("0"),
-        )
-        return PremarketBuildResult(context, PremarketDiagnostic(
-            len(minute_bars), len(premarket), previous_close, reference_price,
-            premarket_volume, average_volume,
-            None if not premarket else premarket[0].timestamp,
-            None if not premarket else premarket[-1].timestamp, invalid,
-        ))
+        return build_premarket_context(self.calendar, symbol, trading_date, minute_bars,
+                                       provider, as_of)
 
     def _previous_regular_close(self, symbol: str, trading_date: date,
                                 provider: MarketDataProvider,
                                 as_of: datetime) -> Decimal | None:
-        """Return only the exact predecessor session's completed final regular minute.
-
-        Kiwoom's latest daily ``cur_prc`` can continue to reflect extended-hours
-        prices, so it is not an authority for the completed regular-session close.
-        The exchange calendar supplies the close boundary, including early closes;
-        the exact final minute proves the bounded query reached that boundary.
-        """
-        previous_session = self.calendar.previous_trading_day(trading_date)
-        window = self.calendar.session(previous_session)
-        if window is None:
-            return None
-        final_timestamp = window.market_close - timedelta(minutes=1)
-        bars = provider.get_minute_bars(
-            [symbol], final_timestamp, window.market_close, MarketSession.REGULAR,
-        )
-        exact = [bar for bar in bars if (
-            bar.symbol == symbol
-            and bar.timestamp == final_timestamp
-            and bar.session is MarketSession.REGULAR
-            and bar.observed_at >= window.market_close
-            and bar.available_at <= as_of
-            and bar.close > 0
-        )]
-        if len(exact) != 1:
-            return None
-        return Decimal(str(exact[0].close))
+        return previous_regular_close(self.calendar, symbol, trading_date, provider, as_of)
 
     def _risk_snapshots(self, provider: MarketDataProvider, as_of: datetime,
                         candidate_symbol: str, candidate_bars: Sequence[MinuteBar]
