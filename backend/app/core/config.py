@@ -44,6 +44,7 @@ class Settings(BaseSettings):
     run_kiwoom_live_smoke: bool = False
     run_kiwoom_real_scanner: bool = False
     run_real_market_simulation: bool = False
+    massive_api_key: SecretStr | None = None
 
     @field_validator("log_level")
     @classmethod

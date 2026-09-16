@@ -27,6 +27,9 @@ data/runtime/*
 !data/runtime/.gitkeep
 logs/*
 !logs/.gitkeep
+# Shared workspace write contract: a file in flight is never committed.
+*.partial
+.doctor_probe
 .pytest_cache/
 .coverage
 htmlcov/
