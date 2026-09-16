@@ -21,6 +21,7 @@ from app.market.domain import MarketSession, MinuteBar
 from app.market.provider import MarketDataProvider
 from app.models.research import GPTCandidateAnalysis, HumanDecisionRecord
 from app.models.scanner import ScannerCandidate, ScannerRun
+from app.models.analytics import PaperEntryEvaluation
 from app.models.strategy import PremarketDiagnosticRecord
 from app.repositories.risk import DailyRiskRepository
 from app.repositories.strategy import StrategyStateRepository
@@ -28,12 +29,16 @@ from app.risk.domain import AccountSnapshot, Currency, PortfolioSnapshot, Positi
 from app.risk.engine import RISK_UNIT_TOLERANCE, RiskEngine
 from app.services.daily_performance import SessionEquitySource, session_opening_equity
 from app.services.entry_capacity import load_entry_capacity, pending_entries
+from app.services.entry_evaluation_log import (
+    EntryEvaluationRecorder, EvaluationKey, EvaluationStatus, classify, finalize,
+    session_diagnostics, session_states, session_trades,
+)
 from app.services.exchange_authority import bind_exchange, bind_open_position, stored_exchange
 from app.services.position_lifecycle import strategy_state_sink
 from app.services.simulation_runtime import SimulationRuntimeContext
 from app.services.strategy import StrategyLifecycleService
 from app.strategy.domain import DecisionType, StrategyDecision
-from app.strategy.engine import PremarketContext, StrategyReason, StrategyV0Engine
+from app.strategy.engine import BarEvaluation, PremarketContext, StrategyReason, StrategyV0Engine
 from app.strategy.lifecycle import (
     TERMINAL_PHASES, OvernightSuitability, StrategyPhase, StrategyState, TrailingProfile,
 )
@@ -58,6 +63,12 @@ def intended_entry_bar_at(signal_at: datetime, fill_delay_bars: int) -> datetime
     the signal time alone and survives a restart without being stored.
     """
     return signal_at.replace(second=0, microsecond=0) + fill_delay_bars * MINUTE
+
+
+#: Evidence a skipped tick leaves behind. These are not strategy verdicts: they say
+#: why the runtime did not evaluate, and finalization reports them as INCOMPLETE.
+SKIP_POSITION_ALREADY_OPEN = "POSITION_ALREADY_OPEN"
+SKIP_DATE_OWNED_BY_OTHER_CANDIDATE = "DATE_OWNED_BY_OTHER_CANDIDATE"
 
 
 class EntryAction(StrEnum):
@@ -85,6 +96,8 @@ class ApprovedCandidate:
     exchange: str
     trailing_profile: TrailingProfile
     overnight_suitability: OvernightSuitability
+    #: The GPT rank this candidate was approved at; reporting only, never authority.
+    rank: int | None = None
 
 
 @dataclass(frozen=True)
@@ -157,7 +170,7 @@ def load_approved_candidates(session: Session, analysis_date: date) -> tuple[App
     return tuple(ApprovedCandidate(
         analysis.id, run.id, scanner.id, decision.symbol, stored_exchange(scanner),
         TrailingProfile(candidate.trailing_profile),
-        OvernightSuitability(candidate.overnight_suitability),
+        OvernightSuitability(candidate.overnight_suitability), candidate.gpt_rank,
     ) for decision, candidate, scanner in rows)
 
 
@@ -230,6 +243,22 @@ def build_premarket_context(calendar: MarketCalendar, symbol: str, trading_date:
     ))
 
 
+def entry_no_trade_state(evaluated: BarEvaluation) -> StrategyState:
+    """The engine's terminal entry decision, with its reason on the durable phase.
+
+    The engine names a reason on every decision but transitions to NO_TRADE without
+    one, so an opening range that never completed and a deadline that expired were
+    both stored as a reasonless NO_TRADE. The reason is the runtime's own, taken from
+    the decision it just made, exactly as ``position_lifecycle.stop_signal`` records
+    a signalled exit's. It is written for the record only: no gate, sizing, or
+    execution rule reads an entry phase reason.
+    """
+    state = evaluated.state
+    if state.phase is StrategyPhase.NO_TRADE and state.phase_reason is None:
+        return replace(state, phase_reason=evaluated.decision.reason_code)
+    return state
+
+
 class EntryLifecycleService:
     """Compose existing Strategy, Risk, and durable execution authorities."""
 
@@ -247,6 +276,11 @@ class EntryLifecycleService:
             runtime.broker, runtime=runtime, risk_engine=self.risk_engine,
             calendar=self.calendar,
         )
+        # Analytics only: this recorder writes evaluation history in its own short
+        # transaction and never participates in a trading or execution transaction.
+        self.evaluations = EntryEvaluationRecorder(
+            runtime.session_factory, strategy_version=self.engine.config.version,
+            config=self.engine.config)
 
     def analysis_session_date(self, entry_session_date: date) -> date:
         return analysis_session_date(self.calendar, entry_session_date)
@@ -267,14 +301,21 @@ class EntryLifecycleService:
             self.calendar.timezone).date())
         if session_window is None or not (session_window.market_open < as_of <= session_window.market_close):
             return EntryOutcome(candidate.symbol, EntryAction.SKIPPED, "outside regular session")
+        key = self.evaluation_key(candidate, candidate_date)
         if self.runtime.broker.get_position(candidate.symbol) is not None:
+            self.evaluations.record(key, now=as_of, progress_reason=SKIP_POSITION_ALREADY_OPEN)
             return EntryOutcome(candidate.symbol, EntryAction.SKIPPED, "position already open")
 
         state = self._load(candidate.symbol, candidate_date)
         if state is not None and state.scanner_candidate_id != candidate.candidate_id:
+            self.evaluations.record(key, now=as_of,
+                                    progress_reason=SKIP_DATE_OWNED_BY_OTHER_CANDIDATE)
             return EntryOutcome(candidate.symbol, EntryAction.SKIPPED, "different candidate already owns date")
         if state is not None and (state.phase in TERMINAL_PHASES or
                                   state.phase in {StrategyPhase.POSITION_OPEN, StrategyPhase.PYRAMID_ADDED}):
+            # The phase is already durable; the row is only told where the session
+            # stands, so a history written after the fact still finds the outcome.
+            self.evaluations.record(key, now=as_of, phase=state.phase.value)
             return EntryOutcome(candidate.symbol, EntryAction.SKIPPED, state.phase.value, state)
         # A full cap stops new-symbol work before any market data or strategy state is
         # touched, so a skipped candidate stays re-evaluable if open capacity frees up.
@@ -283,6 +324,8 @@ class EntryLifecycleService:
                                            self.risk_engine.config)
         if (capacity.blocked_reason is not None
                 and candidate.symbol not in capacity.pending_entry_symbols):
+            self.evaluations.record(key, now=as_of, progress_reason=capacity.blocked_reason.value,
+                                    phase=None if state is None else state.phase.value)
             return EntryOutcome(candidate.symbol, EntryAction.SKIPPED,
                                 capacity.blocked_reason.value, state)
 
@@ -306,6 +349,7 @@ class EntryLifecycleService:
             gate = self.engine.premarket_gate(built.context, human_approved=True, shadow_mode=False)
             state = StrategyLifecycleService.apply_premarket_gate(state, gate)
             self._save(state, as_of, built.diagnostic)
+            self._record_premarket(key, gate, built.diagnostic, state, as_of)
             if not gate.passed:
                 return EntryOutcome(candidate.symbol, EntryAction.REJECTED, gate.reason.value, state)
 
@@ -313,20 +357,26 @@ class EntryLifecycleService:
             evaluated = self.engine.evaluate_entry(
                 state=state, bars=visible, market_open=session_window.market_open, as_of=as_of)
             if evaluated.decision.decision is not DecisionType.ENTER:
-                self._save(evaluated.state, as_of)
+                # The engine names the reason on its decision only; a NO_TRADE phase
+                # carries it onto the durable state, exactly as a signalled exit does.
+                resolved = entry_no_trade_state(evaluated)
+                self._save(resolved, as_of)
+                self._record_entry(key, evaluated, resolved, as_of)
                 action = (EntryAction.REJECTED if evaluated.decision.decision is DecisionType.NO_TRADE
                           else EntryAction.HOLD)
                 return EntryOutcome(candidate.symbol, action, evaluated.decision.reason_code,
-                                    evaluated.state)
+                                    resolved)
             # The signal is durable before any order exists, so a restart finds it and
             # its intended bar; nothing is submitted until that bar can settle it.
             state = evaluated.state
             self._save(state, as_of)
-        return self._settle(candidate, state, visible, session_window, provider, as_of)
+            self._record_entry(key, evaluated, state, as_of)
+        return self._settle(candidate, state, visible, session_window, provider, as_of,
+                            key=key)
 
     def _settle(self, candidate: ApprovedCandidate, state: StrategyState,
                 visible: Sequence[MinuteBar], window, provider: MarketDataProvider,  # type: ignore[no-untyped-def]
-                as_of: datetime) -> EntryOutcome:
+                as_of: datetime, *, key: EvaluationKey | None = None) -> EntryOutcome:
         """Settle an ENTRY_SIGNALLED state on its one intended execution bar, or end it.
 
         A signal is an order decided at its ``last_market_as_of`` for exactly one bar,
@@ -340,13 +390,13 @@ class EntryLifecycleService:
         symbol = candidate.symbol
         signal_at = state.last_market_as_of
         if signal_at is None:
-            return self._end_signal(state, StrategyReason.ENTRY_SIGNAL_STALE, as_of)
+            return self._end_signal(state, StrategyReason.ENTRY_SIGNAL_STALE, as_of, key=key)
         signal_time = signal_at.astimezone(self.calendar.timezone).time().replace(tzinfo=None)
         if signal_time > self.engine.config.entry_deadline_et:
-            return self._end_signal(state, StrategyReason.ENTRY_DEADLINE_EXPIRED, as_of)
+            return self._end_signal(state, StrategyReason.ENTRY_DEADLINE_EXPIRED, as_of, key=key)
         intended = intended_entry_bar_at(signal_at, self.runtime.broker.config.fill_delay_bars)
         if not (window.market_open <= intended < window.market_close):
-            return self._end_signal(state, StrategyReason.ENTRY_SESSION_ENDED, as_of)
+            return self._end_signal(state, StrategyReason.ENTRY_SESSION_ENDED, as_of, key=key)
         regular = [bar for bar in visible if bar.symbol == symbol
                    and bar.session is MarketSession.REGULAR
                    and window.market_open <= bar.timestamp < window.market_close]
@@ -354,7 +404,7 @@ class EntryLifecycleService:
         # the bar after it has completed, whether or not a provider has returned it,
         # a fill on the intended bar would be a fill on the past.
         if as_of >= intended + 2 * MINUTE or any(bar.timestamp > intended for bar in regular):
-            return self._end_signal(state, StrategyReason.ENTRY_SIGNAL_STALE, as_of)
+            return self._end_signal(state, StrategyReason.ENTRY_SIGNAL_STALE, as_of, key=key)
         fill_bars = tuple(bar for bar in regular if bar.timestamp == intended)
         if not fill_bars:
             return EntryOutcome(symbol, EntryAction.HOLD,
@@ -376,15 +426,22 @@ class EntryLifecycleService:
         )
         if result.order is None:
             if result.risk is None:
-                return self._end_signal(state, StrategyReason.ENTRY_SESSION_ENDED, as_of)
+                return self._end_signal(state, StrategyReason.ENTRY_SESSION_ENDED, as_of, key=key)
             detail = (result.risk.rejection_reason.value if result.risk.rejection_reason
                       else StrategyReason.ENTRY_RISK_REJECTED.value)
-            return self._end_signal(state, StrategyReason.ENTRY_RISK_REJECTED, as_of, detail)
+            return self._end_signal(state, StrategyReason.ENTRY_RISK_REJECTED, as_of, detail,
+                                    key=key)
         if not self.runtime.broker.get_fills(result.order.id):
             logger.warning("ENTRY SIGNAL ENDED: %s %s order=%s rejection=%s", symbol,
                            result.state.phase_reason, result.order.id, result.order.rejection_reason)
+            # The unfilled order already named the phase reason; the same code is the
+            # evaluation's outcome, with the broker's own rejection kept as the detail.
+            self._record_settlement(key, result.state, as_of, order_id=result.order.id,
+                                    detail=None if result.order.rejection_reason is None
+                                    else result.order.rejection_reason.value)
             return EntryOutcome(symbol, EntryAction.REJECTED, str(result.order.rejection_reason),
                                 result.state, result.order.id)
+        self._record_settlement(key, result.state, as_of, order_id=result.order.id)
         return EntryOutcome(symbol, EntryAction.FILLED, decision.reason_code,
                             result.state, result.order.id)
 
@@ -397,9 +454,10 @@ class EntryLifecycleService:
         return state.transition(StrategyPhase.NO_TRADE, phase_reason=reason.value)
 
     def _end_signal(self, state: StrategyState, reason: StrategyReason, as_of: datetime,
-                    detail: str | None = None) -> EntryOutcome:
+                    detail: str | None = None, *, key: EvaluationKey | None = None) -> EntryOutcome:
         ended = state.transition(StrategyPhase.NO_TRADE, phase_reason=reason.value)
         self._save(ended, as_of)
+        self._record_settlement(key, ended, as_of, detail=detail)
         logger.warning("ENTRY SIGNAL ENDED: %s %s signal_at=%s detail=%s", state.symbol,
                        reason.value, state.last_market_as_of, detail)
         return EntryOutcome(state.symbol, EntryAction.REJECTED, detail or reason.value, ended)
@@ -420,6 +478,148 @@ class EntryLifecycleService:
                 continue
             ended.append(self._end_signal(state, StrategyReason.ENTRY_SESSION_ENDED, now))
         return tuple(ended)
+
+    # --- Evaluation history (analytics only; no trading path reads any of it) -----
+
+    def evaluation_key(self, candidate: ApprovedCandidate, entry_session_date: date
+                       ) -> EvaluationKey:
+        return EvaluationKey(entry_session_date, self.analysis_session_date(entry_session_date),
+                             candidate.scanner_run_id, candidate.analysis_id,
+                             candidate.candidate_id, candidate.symbol,
+                             candidate.exchange or None, candidate.rank)
+
+    def _record_premarket(self, key: EvaluationKey, gate, diagnostic: PremarketDiagnostic,  # type: ignore[no-untyped-def]
+                          state: StrategyState, as_of: datetime) -> None:
+        self.evaluations.premarket(
+            key, now=as_of, passed=gate.passed, gate_reason=gate.reason.value,
+            gap_pct=gate.gap_pct, volume_ratio=gate.volume_ratio,
+            previous_close=diagnostic.previous_close, reference_price=diagnostic.reference_price,
+            premarket_volume=diagnostic.premarket_volume,
+            average_volume=diagnostic.historical_average_daily_volume,
+            invalid_field=None if diagnostic.invalid_field is None else diagnostic.invalid_field.value,
+            phase=state.phase.value)
+
+    def _record_entry(self, key: EvaluationKey, evaluated: BarEvaluation,
+                      state: StrategyState, as_of: datetime) -> None:
+        """One entry-evaluation tick: the reason it produced and what it observed."""
+        reason = evaluated.decision.reason_code
+        terminal = state.phase is StrategyPhase.NO_TRADE
+        signalled = state.phase is StrategyPhase.ENTRY_SIGNALLED
+        signal_at = state.last_market_as_of if signalled else None
+        self.evaluations.record(
+            key, now=as_of, phase=state.phase.value,
+            status=classify(reason) if terminal else None,
+            reason=reason if terminal else None, finalized=terminal,
+            progress_reason=None if terminal else reason,
+            flags={"opening_range_ready": evaluated.opening_range_high is not None,
+                   "entry_signalled": signalled},
+            values={"opening_range_high": evaluated.opening_range_high,
+                    "opening_range_low": evaluated.opening_range_low,
+                    "signal_price": state.entry_price if signalled else None,
+                    "initial_stop": state.initial_stop if signalled else None,
+                    "signal_at": signal_at,
+                    "intended_entry_bar_at": None if signal_at is None else intended_entry_bar_at(
+                        signal_at, self.runtime.broker.config.fill_delay_bars)})
+
+    def _record_settlement(self, key: EvaluationKey | None, state: StrategyState,
+                           as_of: datetime, *, order_id: str | None = None,
+                           detail: str | None = None) -> None:
+        """The outcome an ENTRY_SIGNALLED state settled into, filled or ended.
+
+        ``key`` is absent only for a state reached without its candidate - the
+        post-close expiry sweep - and the phase it wrote is then resolved by
+        finalization from that same durable state.
+        """
+        if key is None:
+            return
+        filled = state.phase is StrategyPhase.POSITION_OPEN
+        position = self.runtime.broker.get_position(state.symbol) if filled else None
+        trade = self.runtime.broker.get_trade(state.symbol) if filled else None
+        self.evaluations.record(
+            key, now=as_of, phase=state.phase.value,
+            status=EvaluationStatus.TRADED if filled else classify(state.phase_reason),
+            reason=(StrategyReason.ABOVE_VWAP_AND_OR_BREAK.value if filled
+                    else state.phase_reason),
+            detail=detail, finalized=True, flags={"entry_filled": filled},
+            values={"order_id": order_id,
+                    "fill_price": None if position is None else position.average_price,
+                    "fill_quantity": None if position is None else position.quantity,
+                    "trade_uid": None if trade is None else trade.trade_id})
+
+    def record_candidate_error(self, candidate: ApprovedCandidate, entry_session_date: date,
+                               code: str, as_of: datetime) -> None:
+        """Count one failed tick for a candidate; a recovered tick leaves no verdict.
+
+        A provider failure is evidence, not an outcome: the entry contract already
+        retries on the next minute boundary, so nothing is terminal here. Only a
+        session that closes on this evidence, with no decision of its own, is
+        finalized as DATA_ERROR.
+        """
+        self.evaluations.record(self.evaluation_key(candidate, entry_session_date),
+                                now=as_of, error_code=code)
+
+    def finalize_session(self, entry_session_date: date, *, now: datetime) -> int:
+        """Give every APPROVE candidate of a closed session one final outcome.
+
+        Refuses to run while the session is still open: a candidate still being
+        evaluated has no final answer, and writing one would be the guess this
+        contract exists to prevent.
+        """
+        window = self.calendar.session(entry_session_date)
+        if window is None or now < window.market_close:
+            return 0
+        candidates = self.approved_candidates_for_entry_session(entry_session_date)
+        if not candidates:
+            return 0
+        written = 0
+        with self.runtime.session_factory() as session:
+            try:
+                symbols = [item.symbol for item in candidates]
+                states = session_states(session, entry_session_date, symbols)
+                diagnostics = session_diagnostics(session, list(states.values()))
+                trades = session_trades(session, symbols, window.market_open, window.market_close)
+                for item in candidates:
+                    state = states.get(item.symbol)
+                    # A state row another candidate owns is not this candidate's session.
+                    if state is not None and state.scanner_candidate_id != item.candidate_id:
+                        state = None
+                    finalize(session, self.evaluation_key(item, entry_session_date), now=now,
+                             strategy_version=self.engine.config.version, state=state,
+                             diagnostic=None if state is None else diagnostics.get(state.id),
+                             trade=trades.get(item.symbol))
+                    written += 1
+                session.commit()
+            except Exception:
+                session.rollback()
+                raise
+        return written
+
+    def finalize_pending(self, now: datetime, *, lookback_trading_days: int = 10) -> tuple[date, ...]:
+        """Finalize today's closed session and any earlier one left unresolved.
+
+        A process that was down over a close never finalized that session; its rows
+        stay IN_PROGRESS, and this is how they are resolved once the process is back.
+        """
+        today = now.astimezone(self.calendar.timezone).date()
+        pending: set[date] = set()
+        window = self.calendar.session(today)
+        if window is not None and now >= window.market_close:
+            pending.add(today)
+        oldest = today
+        for _ in range(lookback_trading_days):
+            oldest = self.calendar.previous_trading_day(oldest)
+        with self.runtime.session_factory() as session:
+            pending.update(session.scalars(select(PaperEntryEvaluation.trading_date).where(
+                PaperEntryEvaluation.final_status == EvaluationStatus.IN_PROGRESS.value,
+                PaperEntryEvaluation.trading_date >= oldest).distinct()))
+        finalized: list[date] = []
+        for day in sorted(pending):
+            try:
+                if self.finalize_session(day, now=now):
+                    finalized.append(day)
+            except Exception:
+                logger.exception("ENTRY EVALUATION FINALIZATION FAILED: %s", day)
+        return tuple(finalized)
 
     @staticmethod
     def _bind_exchange(candidate: ApprovedCandidate, provider: MarketDataProvider) -> None:
@@ -595,6 +795,10 @@ class EntryManagementRuntime:
             local = now.astimezone(self._calendar.timezone)
             window = self._calendar.session(local.date())
             if window is None or not (window.market_open < now <= window.market_close):
+                # Outside the entry window nothing is traded; a closed session is the
+                # moment its candidates' evaluation history gets its final answer.
+                if window is not None and now > window.market_close:
+                    self._finalize(now)
                 return ()
             entry_session_date = local.date()
             candidates = self._lifecycle.approved_candidates_for_entry_session(entry_session_date)
@@ -610,8 +814,19 @@ class EntryManagementRuntime:
                     outcomes.append(self._lifecycle.evaluate(candidate, self._provider, as_of=now))
                 except Exception as error:
                     logger.exception("ENTRY CANDIDATE FAILED: %s", candidate.symbol)
+                    # One failed tick is counted, never concluded: the next minute
+                    # retries this candidate exactly as it did before.
+                    self._lifecycle.record_candidate_error(
+                        candidate, entry_session_date,
+                        getattr(error, "code", None) or type(error).__name__, now)
                     outcomes.append(EntryOutcome(candidate.symbol, EntryAction.REJECTED, str(error)))
             return tuple(outcomes)
+
+    def _finalize(self, now: datetime) -> None:
+        try:
+            self._lifecycle.finalize_pending(now)
+        except Exception:
+            logger.exception("ENTRY EVALUATION FINALIZATION FAILED; retrying next tick")
 
     async def run(self) -> None:
         while not self._stop.is_set():

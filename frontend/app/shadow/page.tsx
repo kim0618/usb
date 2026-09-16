@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ErrorState, LoadingState, PageHeader } from "@/components/ui";
 import { StrategyComparison } from "@/components/shadow-performance";
+import { StrategyEvaluationHistory } from "@/components/strategy-evaluation-history";
 import { api } from "@/lib/api";
 import { periodRange, type PerformancePeriod } from "@/lib/shadow-performance";
 import type { ShadowSummary } from "@/types/api";
@@ -21,11 +22,14 @@ export default function ShadowPage() {
     return () => { active = false; };
   }, [period, requestKey]);
 
-  if (loading && !summary) return <LoadingState />;
-  if (!summary) return <ErrorState message={error || "전략 성과 요약 조회 실패"} retry={() => setRequestKey(value => value + 1)} />;
+  // The evaluation history answers for finished entry sessions and is independent of the
+  // shadow variant summary, so a failed summary never hides it.
+  if (loading && !summary) return <><PageHeader title="전략 성과" /><StrategyEvaluationHistory /><LoadingState /></>;
+  if (!summary) return <><PageHeader title="전략 성과" /><StrategyEvaluationHistory /><ErrorState message={error || "전략 성과 요약 조회 실패"} retry={() => setRequestKey(value => value + 1)} /></>;
 
   return <>
     <PageHeader title="전략 성과" />
+    <StrategyEvaluationHistory />
     {error && summary && <p className="mb-3 text-right text-xs text-danger" role="alert">{error}</p>}
     <StrategyComparison variants={summary.variants} period={period} loading={loading} onPeriodChange={setPeriod} />{summary.excluded_periods?.map(excluded => <p key={excluded.start} className="mt-2 text-xs text-muted">시스템 검증 기간({excluded.start} ~ {excluded.end})은 전략 성과 집계에서 제외됩니다.</p>)}
   </>;

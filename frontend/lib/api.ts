@@ -1,4 +1,4 @@
-import type { AdoptionResponse, Capabilities, DailyPerformance, Dashboard, EntryBoard, Failure, Fill, Order, ReplayReport, ResearchAnalysis, ResearchCurrentAuthority, ResearchDetail, ResearchHistoryItem, RuntimeStatus, ScannerSnapshot, Settings, ShadowSummary, Trade, TradingOverview } from "@/types/api";
+import type { AdoptionResponse, Capabilities, DailyPerformance, Dashboard, EntryBoard, Failure, Fill, Order, ReplayReport, ResearchAnalysis, ResearchCurrentAuthority, ResearchDetail, ResearchHistoryItem, RuntimeStatus, ScannerSnapshot, Settings, ShadowSummary, StrategyEvaluationDetail, StrategyEvaluationSummary, Trade, TradingOverview } from "@/types/api";
 
 export const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
 
@@ -37,6 +37,8 @@ export const api = {
   orders: () => apiFetch<Order[]>("/api/v1/trading/orders"),
   fills: () => apiFetch<Fill[]>("/api/v1/trading/fills"),
   trades: () => apiFetch<Trade[]>("/api/v1/trading/trades"),
+  strategyEvaluations: (limit = 30) => apiFetch<StrategyEvaluationSummary[]>(`/api/v1/strategy/evaluations?limit=${limit}`),
+  strategyEvaluationDetail: (tradingDate: string) => apiFetch<StrategyEvaluationDetail>(`/api/v1/strategy/evaluations/${encodeURIComponent(tradingDate)}`),
   shadow: (range?: { startDate: string; endDate: string }) => {
     const query = range ? `?start_date=${encodeURIComponent(range.startDate)}&end_date=${encodeURIComponent(range.endDate)}` : "";
     return apiFetch<ShadowSummary>(`/api/v1/shadow/summary${query}`);

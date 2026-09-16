@@ -1049,7 +1049,7 @@ def test_migration_0015_to_0016_roundtrip_preserves_business_rows(
         business = _business_rows(path)
         assert all(business.values())
 
-        _alembic(path, monkeypatch, "head")
+        _alembic(path, monkeypatch, "20260915_0016")
         head = _fingerprint(path)
         engine = create_engine(f"sqlite:///{path}")
         with engine.connect() as connection:
@@ -1075,20 +1075,27 @@ def test_migration_0015_to_0016_roundtrip_preserves_business_rows(
             assert exact[name][0] == "varchar(100)", name
         assert _business_rows(path) == business
 
+        # Declarative metadata is the current head's, which is past 0016; the V2 tables
+        # and columns this revision adds must match it exactly all the same.
         created = create_engine(f"sqlite:///{tmp_path / 'create-all.sqlite3'}")
         Base.metadata.create_all(created)
-        assert schema_fingerprint(created) == head
+        current = schema_fingerprint(created)
+        for key, value in head.items():
+            if isinstance(value, dict):
+                assert {name: value[name] for name in value} == {
+                    name: current[key][name] for name in value}  # type: ignore[index]
         created.dispose()
 
         _alembic(path, monkeypatch, "20260915_0015", down=True)
         assert _fingerprint(path) == fingerprint_0015 and _business_rows(path) == business
-        _alembic(path, monkeypatch, "head")
+        _alembic(path, monkeypatch, "20260915_0016")
         assert _fingerprint(path) == head and _business_rows(path) == business
     finally:
         get_settings.cache_clear()
 
 
-def test_fresh_database_reaches_the_v2_head(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
+def test_fresh_database_reaches_the_current_head_with_the_v2_contract(
+        tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
     path = tmp_path / "fresh.sqlite3"
     try:
         _alembic(path, monkeypatch, "head")
@@ -1098,4 +1105,4 @@ def test_fresh_database_reaches_the_v2_head(tmp_path: Path, monkeypatch: MonkeyP
     unique = fingerprint["unique_constraints"]["premarket_volume_sessions"]  # type: ignore[index]
     assert unique == [("symbol", "exchange", "trading_date", "source", "collector_version")]
     head = ScriptDirectory.from_config(Config(PROJECT_ROOT / "alembic.ini")).get_current_head()
-    assert head == HISTORY_SCHEMA_REVISION == OBSERVER_SCHEMA_REVISION == "20260915_0016"
+    assert head == HISTORY_SCHEMA_REVISION == OBSERVER_SCHEMA_REVISION == "20260916_0017"

@@ -72,7 +72,7 @@ def workspace(tmp_path: Path) -> Workspace:
 def test_discovers_the_google_drive_root(tmp_path: Path) -> None:
     root = mount_workspace(tmp_path / "mnt", "g")
     assert discover_workspace_roots([tmp_path / "mnt"]) == (root,)
-    assert resolve_workspace_root(mount_bases=[tmp_path / "mnt"]) == root
+    assert resolve_workspace_root(bases=[tmp_path / "mnt"]) == root
 
 
 def test_discovery_follows_a_different_drive_letter(tmp_path: Path) -> None:
@@ -89,7 +89,7 @@ def test_discovery_accepts_the_english_drive_root(tmp_path: Path) -> None:
 def test_no_workspace_is_not_found(tmp_path: Path) -> None:
     (tmp_path / "mnt" / "c").mkdir(parents=True)
     with pytest.raises(WorkspaceNotFound) as error:
-        resolve_workspace_root(mount_bases=[tmp_path / "mnt"])
+        resolve_workspace_root(bases=[tmp_path / "mnt"])
     assert "BACKTEST_WORKSPACE_NOT_FOUND" in str(error.value)
 
 
@@ -98,7 +98,7 @@ def test_two_workspaces_are_ambiguous(tmp_path: Path) -> None:
     mount_workspace(tmp_path / "mnt", "h")
     assert len(discover_workspace_roots([tmp_path / "mnt"])) == 2
     with pytest.raises(WorkspaceAmbiguous) as error:
-        resolve_workspace_root(mount_bases=[tmp_path / "mnt"])
+        resolve_workspace_root(bases=[tmp_path / "mnt"])
     assert "BACKTEST_WORKSPACE_AMBIGUOUS" in str(error.value)
 
 
@@ -110,7 +110,7 @@ def test_a_candidate_inside_the_repo_is_never_used(tmp_path: Path,
     mount_workspace(fake_repo / "mnt", "g")
     assert discover_workspace_roots([fake_repo / "mnt"]) == ()
     with pytest.raises(WorkspaceNotFound):
-        resolve_workspace_root(mount_bases=[fake_repo / "mnt"])
+        resolve_workspace_root(bases=[fake_repo / "mnt"])
     with pytest.raises(WorkspaceInsideRepo):
         validate_workspace_root(fake_repo / "mnt" / "g" / "내 드라이브" / WORKSPACE_DIR_NAME)
 
@@ -380,12 +380,32 @@ def test_cli_init_seeds_the_verified_stage(tmp_path: Path,
 
 def test_cli_reports_a_missing_workspace_without_creating_one(
         tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The default discovery path, driven by a mount tree that holds no workspace.
+
+    The bases are read through ``discovery.mount_bases`` at call time, so this patch
+    actually reaches the CLI and the result no longer depends on whether the machine
+    running the tests happens to have Google Drive mounted.
+    """
     monkeypatch.setattr(discovery, "DEFAULT_MOUNT_BASES", (tmp_path / "mnt",))
     (tmp_path / "mnt" / "c").mkdir(parents=True)
+    assert discovery.mount_bases() == (tmp_path / "mnt",)
     with pytest.raises(SystemExit) as error:
         cli.main(["status"])
     assert "BACKTEST_WORKSPACE_NOT_FOUND" in str(error.value)
     assert not (PROJECT_ROOT / WORKSPACE_DIR_NAME).exists()
+
+
+def test_default_mount_bases_are_read_at_call_time_not_at_import(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A default argument would freeze the real /mnt into the signature at import.
+
+    That is exactly how this suite came to depend on the machine it ran on: the
+    override looked effective and the CLI kept searching the real Drive mount.
+    """
+    monkeypatch.setattr(discovery, "DEFAULT_MOUNT_BASES", (tmp_path / "mnt",))
+    root = mount_workspace(tmp_path / "mnt", "g")
+    assert discovery.discover_workspace_roots() == (root,)
+    assert discovery.resolve_workspace_root() == root
 
 
 def test_doctor_fails_on_a_missing_directory(workspace: Workspace) -> None:

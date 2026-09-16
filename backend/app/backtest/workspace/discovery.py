@@ -20,6 +20,9 @@ from app.core.config import PROJECT_ROOT
 WORKSPACE_DIR_NAME = "1_US-B"
 # Google Drive for desktop names the personal root per UI language.
 DRIVE_ROOT_NAMES = ("내 드라이브", "My Drive")
+# Where discovery looks when a caller names no base. Read through ``mount_bases()`` at
+# call time, never bound as a default argument: a default is evaluated once at import,
+# which would make this constant look overridable while silently staying the real /mnt.
 DEFAULT_MOUNT_BASES = (Path("/mnt"),)
 # WSL internal mounts: never a Windows drive, and iterating them is pointless.
 SKIPPED_MOUNTS = frozenset({"wsl", "wslg"})
@@ -54,15 +57,22 @@ def _is_directory(path: Path) -> bool:
         return False
 
 
+def mount_bases(explicit: Iterable[Path] | None = None) -> tuple[Path, ...]:
+    """The bases to search: the caller's own, else the current DEFAULT_MOUNT_BASES."""
+    if explicit is not None:
+        return tuple(Path(base) for base in explicit)
+    return tuple(Path(base) for base in DEFAULT_MOUNT_BASES)
+
+
 def inside_repo(path: Path) -> bool:
     return path == PROJECT_ROOT or path.is_relative_to(PROJECT_ROOT)
 
 
-def discover_workspace_roots(mount_bases: Iterable[Path] = DEFAULT_MOUNT_BASES) -> tuple[Path, ...]:
+def discover_workspace_roots(bases: Iterable[Path] | None = None) -> tuple[Path, ...]:
     """Every distinct ``1_US-B`` directory reachable under the given mount bases."""
     found: dict[str, Path] = {}
-    for base in mount_bases:
-        for mount in _iter_mounts(Path(base)):
+    for base in mount_bases(bases):
+        for mount in _iter_mounts(base):
             for candidate in _candidate_paths(mount):
                 if not _is_directory(candidate):
                     continue
@@ -86,13 +96,14 @@ def validate_workspace_root(path: Path, *, must_exist: bool = True) -> Path:
 
 
 def resolve_workspace_root(explicit: Path | None = None, *,
-                           mount_bases: Iterable[Path] = DEFAULT_MOUNT_BASES,
+                           bases: Iterable[Path] | None = None,
                            must_exist: bool = True) -> Path:
     if explicit is not None:
         return validate_workspace_root(explicit, must_exist=must_exist)
-    roots = discover_workspace_roots(mount_bases)
+    searched_bases = mount_bases(bases)
+    roots = discover_workspace_roots(searched_bases)
     if not roots:
-        searched = ", ".join(str(Path(base)) for base in mount_bases)
+        searched = ", ".join(str(base) for base in searched_bases)
         raise WorkspaceNotFound(
             f"no {WORKSPACE_DIR_NAME} directory under {searched}; mount Google Drive or pass "
             "--workspace-root")

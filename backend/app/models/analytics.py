@@ -93,3 +93,82 @@ class PremarketVolumeSession(Base):
     collected_at: Mapped[datetime] = mapped_column(UTCDateTime(), nullable=False)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utc_now, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utc_now, nullable=False)
+
+
+class PaperEntryEvaluation(Base):
+    """One APPROVE candidate's durable Entry-runtime evaluation for one entry session.
+
+    The Entry runtime writes what it actually judged; nothing here is replayed,
+    inferred, or recomputed later. A value the runtime never reached stays NULL, and
+    the thresholds are stored beside the observations so a later config change cannot
+    retro-explain a past session. This table is analytics: no trading, risk, or entry
+    decision reads it.
+    """
+
+    __tablename__ = "paper_entry_evaluations"
+    __table_args__ = (
+        UniqueConstraint("trading_date", "scanner_candidate_id",
+                         name="uq_paper_entry_evaluation_session_candidate"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    # The ENTRY session evaluated; its authority is the analysis of the session before.
+    trading_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    analysis_trading_date: Mapped[date] = mapped_column(Date, nullable=False)
+    scanner_run_id: Mapped[int] = mapped_column(
+        ForeignKey("scanner_runs.id", ondelete="CASCADE"), nullable=False)
+    gpt_analysis_id: Mapped[int] = mapped_column(
+        ForeignKey("gpt_analyses.id", ondelete="CASCADE"), nullable=False)
+    scanner_candidate_id: Mapped[int] = mapped_column(
+        ForeignKey("scanner_candidates.id", ondelete="CASCADE"), nullable=False)
+    symbol: Mapped[str] = mapped_column(String(32), nullable=False)
+    exchange: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    rank: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+    final_status: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    # The raw StrategyReason/provider code, preserved exactly as the runtime named it.
+    final_reason: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    final_detail: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    last_phase: Mapped[str | None] = mapped_column(String(32), nullable=True)
+
+    # Monotonic funnel flags: the gate a candidate passed is never un-passed.
+    premarket_passed: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    opening_range_ready: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    entry_signalled: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    entry_filled: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+
+    # Exact Decimal text: a SQLite REAL would round a ratio across its own threshold.
+    previous_close: Mapped[Decimal | None] = mapped_column(DecimalString(), nullable=True)
+    premarket_reference_price: Mapped[Decimal | None] = mapped_column(DecimalString(), nullable=True)
+    gap_pct: Mapped[Decimal | None] = mapped_column(DecimalString(), nullable=True)
+    gap_min: Mapped[Decimal | None] = mapped_column(DecimalString(), nullable=True)
+    gap_max: Mapped[Decimal | None] = mapped_column(DecimalString(), nullable=True)
+    premarket_volume: Mapped[Decimal | None] = mapped_column(DecimalString(), nullable=True)
+    historical_average_daily_volume: Mapped[Decimal | None] = mapped_column(DecimalString(), nullable=True)
+    v1_volume_ratio: Mapped[Decimal | None] = mapped_column(DecimalString(), nullable=True)
+    v1_volume_min: Mapped[Decimal | None] = mapped_column(DecimalString(), nullable=True)
+
+    opening_range_high: Mapped[Decimal | None] = mapped_column(DecimalString(), nullable=True)
+    opening_range_low: Mapped[Decimal | None] = mapped_column(DecimalString(), nullable=True)
+    signal_price: Mapped[Decimal | None] = mapped_column(DecimalString(), nullable=True)
+    initial_stop: Mapped[Decimal | None] = mapped_column(DecimalString(), nullable=True)
+    signal_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
+    intended_entry_bar_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
+    fill_price: Mapped[Decimal | None] = mapped_column(DecimalString(), nullable=True)
+    fill_quantity: Mapped[Decimal | None] = mapped_column(DecimalString(), nullable=True)
+    order_id: Mapped[str | None] = mapped_column(String(96), nullable=True)
+    # The broker trade this entry opened; realized PnL and R are read from it, never copied.
+    trade_uid: Mapped[str | None] = mapped_column(String(128), nullable=True)
+
+    # Evidence a finalization may conclude from; never a strategy reason on its own.
+    last_progress_reason: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    last_error_code: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    last_error_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
+    error_tick_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
+
+    strategy_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    first_evaluated_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
+    evaluated_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
+    finalized_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utc_now, nullable=False)

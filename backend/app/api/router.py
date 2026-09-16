@@ -10,6 +10,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.entry_board import entry_board
+from app.api.strategy_history import evaluation_detail, evaluation_history
 from app.api.simulation import broker_projection, position_projection
 from app.services.simulation_runtime import get_active_runtime, get_active_sim_broker
 from app.api.schemas import HumanDecisionRequest, KillSwitchRequest, ReasonRequest, RecoveryRequest, ResearchImportRequest
@@ -357,6 +358,21 @@ def shadow_dict(r: ShadowTradeRecord) -> dict[str, Any]:
 @router.get("/trading/trades", tags=["Trading"])
 async def trades(db: DB, symbol: str | None = None, status: str | None = None, limit: Annotated[int, Query(ge=1, le=500)] = 100) -> list[dict[str, Any]]:
     return await shadow_trades(db, None, symbol, None, status, limit)
+
+
+@router.get("/strategy/evaluations", tags=["Strategy"])
+async def strategy_evaluations(db: DB, limit: Annotated[int, Query(ge=1, le=120)] = 30,
+                               ) -> list[dict[str, Any]]:
+    """Recent-first daily entry funnel; a day that traded nothing is still a row."""
+    return evaluation_history(db, calendar=MarketCalendar(get_settings().market_timezone),
+                              limit=limit)
+
+
+@router.get("/strategy/evaluations/{trading_date}", tags=["Strategy"])
+async def strategy_evaluation_detail(trading_date: date, db: DB) -> dict[str, Any]:
+    """One entry session's candidates, each with the outcome the runtime recorded."""
+    return evaluation_detail(db, trading_date,
+                             calendar=MarketCalendar(get_settings().market_timezone))
 
 
 @router.get("/shadow/trades", tags=["Shadow"])
