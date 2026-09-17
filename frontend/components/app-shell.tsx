@@ -10,12 +10,14 @@ import { RuntimeBanner, StatusBadge } from "@/components/ui";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { formatBrokerMode, formatMarketSession, formatRuntimeMode } from "@/lib/display";
 import { marketSessionSchedule } from "@/lib/market-session";
+import { FX_CONFIG, FX_MODE_LABELS, formatFxRate } from "@/lib/fx";
 
 type NavigationItem = { href: string; icon: string; label: string; activePaths: string[] };
 export const navigationItems: NavigationItem[] = [
-  { href: "/trading", icon: "↗", label: "트레이딩", activePaths: ["/trading"] },
+  { href: "/dashboard", icon: "▦", label: "대시보드", activePaths: ["/dashboard"] },
+  { href: "/trading", icon: "↗", label: "트레이딩", activePaths: ["/trading", "/trading-b"] },
   { href: "/candidates", icon: "◎", label: "종목 분석", activePaths: ["/candidates", "/research", "/adoption"] },
-  { href: "/shadow", icon: "≋", label: "전략 성과", activePaths: ["/shadow"] },
+  { href: "/shadow", icon: "≋", label: "전략", activePaths: ["/shadow", "/strategy-b", "/strategy-compare"] },
   { href: "/runtime", icon: "⚠", label: "시스템", activePaths: ["/runtime", "/settings"] },
 ];
 
@@ -45,6 +47,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         <span className="hidden h-4 w-px shrink-0 bg-line 2xl:block" aria-hidden="true"/>
         <p className="shrink-0 whitespace-nowrap text-xs text-muted"><span>기준거래일 :</span> <span className="font-medium tabular-nums text-foreground-secondary">{tradingDate(contextTradingDate)}</span></p>
         {paperStartedAt && <><span className="hidden h-4 w-px shrink-0 bg-line 2xl:block" aria-hidden="true"/><p className="shrink-0 whitespace-nowrap text-xs text-muted"><span>가상매매 시작 :</span> <span className="font-medium tabular-nums text-foreground-secondary" title={kstTime(paperStartedAt)}>{kstDate(paperStartedAt)}</span></p></>}
+        <span className="hidden h-4 w-px shrink-0 bg-line 2xl:block" aria-hidden="true"/>
+        {/* The one rate every KRW figure on screen is converted with (lib/fx). A fixed value, never a quote. */}
+        <p className="shrink-0 whitespace-nowrap text-xs text-muted" data-fx-rate={FX_CONFIG.usdKrw} data-fx-mode={FX_CONFIG.mode}><span>USD/KRW :</span> <span className="font-medium tabular-nums text-foreground-secondary">{formatFxRate()}</span> · {FX_MODE_LABELS[FX_CONFIG.mode]}</p>
         <div className="grid w-full shrink-0 grid-cols-3 gap-1.5 sm:flex sm:w-auto" aria-label="미국 시장 세션">{sessions.map(session => { const active = market?.is_trading_day && market.session === session.key; return <div key={session.key} className={`min-w-0 rounded-lg border px-1.5 py-0.5 text-center 2xl:px-2 ${active ? "border-primary bg-primary-soft text-primary" : "border-line text-muted"}`}><p className="truncate text-[10px] font-semibold">{session.label}{active && <span className="ml-1">· 현재</span>}</p><p className="truncate text-[9px] tabular-nums 2xl:text-[10px]">{session.kstRange} KST</p></div>; })}</div>
         <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-1.5"><span className="text-[11px] text-muted">시장</span><StatusBadge value={market?.session || "UNKNOWN"} label={market && !market.is_trading_day ? "휴장" : formatMarketSession(market?.session || "UNKNOWN")}/><span className="text-[11px] text-muted">시스템</span><StatusBadge value={runtime} label={formatRuntimeMode(runtime)}/>{state.data?.trading.broker_mode && <StatusBadge value={state.data.trading.broker_mode} label={formatBrokerMode(state.data.trading.broker_mode)}/>}<ThemeToggle/></div>
       </div>

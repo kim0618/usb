@@ -471,8 +471,9 @@ Ordered by how much they block the next operator cycle.
    but the bounded TSLA 2026-09-03 check still produced no canonical bars after
    reaching the requested boundary. Strategy V0 is minute-bar driven, so
    real-market intraday evaluation remains unproven end to end on live data.
-9. **No trusted FX source.** Only account-specific Kiwoom rates exist. KRW
-   secondary display must stay off in production.
+9. **No trusted FX source.** Only account-specific Kiwoom rates exist. The
+   frontend KRW secondary display uses the FIXED rate in `frontend/lib/fx.ts`
+   (KRW 10,000,000 / USD 7,428.92), labelled `고정`, never a live quote.
 10. **Shadow source distinction missing.** `shadow_trades` has no source column;
     `/api/v1/shadow/*` hardcodes `"source": "SIMULATION"`. Real-market simulation
     results and synthetic replay/fixture results cannot currently be told apart

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ErrorState, LoadingState, PageHeader } from "@/components/ui";
+import { StrategyTabs } from "@/components/section-tabs";
 import { StrategyComparison } from "@/components/shadow-performance";
 import { StrategyEvaluationHistory } from "@/components/strategy-evaluation-history";
 import { api } from "@/lib/api";
@@ -24,10 +25,11 @@ export default function ShadowPage() {
 
   // The evaluation history answers for finished entry sessions and is independent of the
   // shadow variant summary, so a failed summary never hides it.
-  if (loading && !summary) return <><PageHeader title="전략 성과" /><StrategyEvaluationHistory /><LoadingState /></>;
-  if (!summary) return <><PageHeader title="전략 성과" /><StrategyEvaluationHistory /><ErrorState message={error || "전략 성과 요약 조회 실패"} retry={() => setRequestKey(value => value + 1)} /></>;
+  if (loading && !summary) return <><StrategyTabs /><PageHeader title="전략 성과" /><StrategyEvaluationHistory /><LoadingState /></>;
+  if (!summary) return <><StrategyTabs /><PageHeader title="전략 성과" /><StrategyEvaluationHistory /><ErrorState message={error || "전략 성과 요약 조회 실패"} retry={() => setRequestKey(value => value + 1)} /></>;
 
   return <>
+    <StrategyTabs />
     <PageHeader title="전략 성과" />
     <StrategyEvaluationHistory />
     {error && summary && <p className="mb-3 text-right text-xs text-danger" role="alert">{error}</p>}

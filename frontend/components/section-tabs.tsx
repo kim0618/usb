@@ -14,6 +14,21 @@ export const analysisTabs: SectionTab[] = [
   { href: "/adoption", label: "채택 후보" },
 ];
 
+/** Operating screens: what each strategy is doing right now. Strategy A's runtime keeps
+ *  its original route; Strategy B's runtime sits beside it. */
+export const tradingTabs: SectionTab[] = [
+  { href: "/trading", label: "전략 A · 기존 전략" },
+  { href: "/trading-b", label: "전략 B · 실시간 모멘텀" },
+];
+
+/** Result screens: how each strategy performed. Strategy B and the A/B comparison live
+ *  inside this group instead of as new top-level menu entries. */
+export const strategyTabs: SectionTab[] = [
+  { href: "/shadow", label: "전략 A · 기존 전략" },
+  { href: "/strategy-b", label: "전략 B · 실시간 모멘텀" },
+  { href: "/strategy-compare", label: "전략 A/B 비교" },
+];
+
 export const systemTabs: SectionTab[] = [
   { href: "/runtime", label: "시스템 상태" },
   { href: "/settings", label: "설정" },
@@ -47,6 +62,14 @@ export function SectionTabs({ label, tabs }: { label: string; tabs: SectionTab[]
 
 export function AnalysisTabs() {
   return <SectionTabs label="분석 화면" tabs={analysisTabs} />;
+}
+
+export function TradingTabs() {
+  return <SectionTabs label="트레이딩 화면" tabs={tradingTabs} />;
+}
+
+export function StrategyTabs() {
+  return <SectionTabs label="전략 화면" tabs={strategyTabs} />;
 }
 
 export function SystemTabs() {

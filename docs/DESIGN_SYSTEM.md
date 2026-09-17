@@ -94,8 +94,50 @@ label은 `안전도`이고 높을수록 안전하다. 단기 가격 상태는 `�
 전체 폭과 sticky 최종 결정 footer를 유지한다. 별도 색상 token이나 tab
 system은 추가하지 않는다.
 
-- USD는 미국주식 계좌와 거래가격의 primary source currency다.
-- KRW는 환산값임을 알 수 있도록 `환산 약`을 붙인 secondary display이며 primary USD보다 작은 muted text를 사용한다.
-- Production KRW 표시는 Kiwoom 또는 다른 신뢰 가능한 FX source에서 변환값이 전달될 때만 활성화한다.
-- Frontend에 고정 USD/KRW 환율을 두거나 누락된 값을 추론하지 않는다.
-- 평균단가, 현재가, Stop 및 개별 fill 가격은 USD 중심으로 유지한다.
+### Money 표현 규칙
+
+USD는 미국주식 계좌와 거래가격의 기준 통화다. 환율은 FIXED이며 단일 원본은 `frontend/lib/fx.ts`다(정책은 `docs/FRONTEND_V1.md`의 Currency / FX). 화면·컴포넌트·Mock에 환율 숫자를 따로 두지 않는다.
+
+#### Stock Price: USD only
+
+```text
+$5.72
+```
+
+- 대상: 현재가, 진입가, 청산가, Stop, Bid, Ask, Scanner price, 평균단가, 개별 fill 가격
+- KRW를 병기하지 않는다.
+
+#### Money: USD Primary + KRW Secondary
+
+```text
+$7,957.04
+≈ ₩10,742,000
+```
+
+- 대상: 현재 자산, 투자 중, 보유 현금, 평가 손익, 실현 손익, 거래 손익, 순손익, 평균 이익, 평균 손실, Equity
+- USD가 시각적으로 더 강해야 한다. USD는 해당 위치의 기본 숫자 스타일(primary text, 손익이면 success/danger tone)을 쓴다.
+- KRW는 USD 아래 줄의 더 작은 `text-muted` secondary text다. primary text로 승격하지 않는다.
+- 신규 화면은 `components/money.tsx`의 `<Money>`를 사용한다. 크기는 위치별로 고정한다.
+
+| size | 위치 | KRW 줄 | 형식 |
+|---|---|---|---|
+| `card` | 계좌 카드 | `text-sm font-medium text-muted` | `≈ ₩10,742,000` |
+| `figure` | KPI 값 | `text-xs font-medium text-muted` | `≈ ₩742,000` |
+| `cell` | Table cell | `text-[11px] text-muted` | `₩742,000` (행 높이를 위해 `≈` 생략) |
+
+- 한 줄 helper text는 `moneyText()`의 `$7,428.92 (≈ ₩10,000,000)` 형식을 사용한다.
+- 부호 있는 손익은 USD와 KRW 모두 부호를 붙인다(`+$60.92` / `≈ +₩82,000`).
+- 수익률, 승률, Profit Factor, 기대값, 최대 낙폭, 평균 R, 매매 횟수 같은 비율·횟수 지표에는 통화를 붙이지 않는다.
+- 자산 곡선 축은 USD(`$7.5K`)로 표시하고 tooltip은 USD 위, KRW 아래로 표시한다.
+- Strategy A 계좌 카드와 일별 성과 표는 `<Money>` 이전의 기존 formatter(`usdToDisplayKrw`)를 그대로 쓴다. USD 아래 더 작은 KRW 줄(`≈` 없음)이라는 위계는 같지만, 부호 있는 손익의 KRW 줄은 muted가 아니라 손익 tone을 따른다. 이 차이는 A 화면 불변 원칙에 따라 V1에서 유지한다.
+- `환산 약` 접두는 사용하지 않는다.
+
+#### Header FX
+
+```text
+USD/KRW : 1,346.09 · 고정
+```
+
+- Header 기준거래일·가상매매 시작과 같은 `text-xs text-muted` metadata 형식이며 숫자만 `tabular-nums text-foreground-secondary`다.
+- 숫자는 `formatFxRate()`, 상태는 `FX_MODE_LABELS`(`FIXED` → `고정`)에서 온다.
+- `현재 환율`, `실시간 환율`, `Live FX`는 사용하지 않는다. 고정값이 시세처럼 읽히면 안 된다.

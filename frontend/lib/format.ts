@@ -1,3 +1,5 @@
+import { FX_CONFIG, krwToUsd, usdToKrw } from "@/lib/fx";
+
 export const dash = (value: unknown) => value === null || value === undefined || value === "" ? "-" : String(value);
 export const number = (value: number | null | undefined, digits = 2) => value === null || value === undefined ? "-" : value.toLocaleString(undefined, { maximumFractionDigits: digits });
 export const decimal = (value: string | null | undefined, suffix = "") => value == null ? "-" : `${formatDecimalString(value)}${suffix}`;
@@ -40,10 +42,11 @@ export const unconfirmedMarketCap = (value: number | null | undefined) => value 
 
 type MoneyInput = number | string | null | undefined;
 const numericMoney = (value: MoneyInput) => value == null || value === "" || !Number.isFinite(Number(value)) ? null : Number(value);
-export const KRW_DISPLAY_RATE = 10_000_000 / 7_428.92;
+/** Strategy A's display rate. It is lib/fx's fixed rate, not a copy of it. */
+export const KRW_DISPLAY_RATE = FX_CONFIG.usdKrw;
 export const usdToDisplayKrw = (value: MoneyInput) => {
   const amount = numericMoney(value);
-  return amount == null ? null : Math.round(amount * KRW_DISPLAY_RATE);
+  return amount == null ? null : usdToKrw(amount);
 };
 export const formatUsd = (value: MoneyInput) => {
   const amount = numericMoney(value);
@@ -60,3 +63,11 @@ const signedMoney = (value: MoneyInput, formatter: (amount: number) => string) =
 };
 export const formatSignedUsd = (value: MoneyInput) => signedMoney(value, amount => formatUsd(amount));
 export const formatSignedKrw = (value: MoneyInput) => signedMoney(value, amount => formatKrw(amount));
+
+/** A KRW-stored amount on one line, USD first: "$7,428.92 (≈ ₩10,000,000)". For helper
+ *  text; stacked values use components/money. The space after ≈ is non-breaking so a
+ *  narrow card wraps before the parenthesis, never inside it. */
+export const moneyText = (krw: number, signed = false): string => {
+  const usd = krwToUsd(krw);
+  return `${signed ? formatSignedUsd(usd) : formatUsd(usd)} (≈\u00a0${signed ? formatSignedKrw(krw) : formatKrw(krw)})`;
+};

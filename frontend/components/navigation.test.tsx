@@ -14,20 +14,24 @@ describe("Stage 9.10 navigation", () => {
   beforeEach(() => { pathname = "/candidates"; });
   afterEach(() => cleanup());
 
-  it("defines exactly four top-level menu entries in trading-first order", () => {
-    expect(navigationItems.map(item => item.label)).toEqual(["트레이딩", "종목 분석", "전략 성과", "시스템"]);
-    expect(navigationItems).toHaveLength(4);
-    expect(navigationItems.some(item => item.label === "대시보드")).toBe(false);
+  it("defines exactly five top-level menu entries, dashboard first", () => {
+    expect(navigationItems.map(item => item.label)).toEqual(["대시보드", "트레이딩", "종목 분석", "전략", "시스템"]);
+    expect(navigationItems).toHaveLength(5);
+    // Strategy B and the A/B comparison stay inside the 전략 group, never as their own menus.
+    expect(navigationItems.some(item => item.href === "/strategy-b" || item.href === "/strategy-compare")).toBe(false);
     const shell = source("components/app-shell.tsx");
     ["후보 종목", "GPT 분석", "설정"].forEach(label => expect(shell).not.toContain(`label: "${label}"`));
   });
 
   it.each([
+    ["/dashboard", "대시보드"],
     ["/trading", "트레이딩"],
     ["/candidates", "종목 분석"],
     ["/candidates/NVDA", "종목 분석"],
     ["/research", "종목 분석"],
-    ["/shadow", "전략 성과"],
+    ["/shadow", "전략"],
+    ["/strategy-b", "전략"],
+    ["/strategy-compare", "전략"],
     ["/runtime", "시스템"],
     ["/settings", "시스템"],
   ])("maps %s to the %s group", (route, label) => {
@@ -75,16 +79,18 @@ describe("Stage 9.10 navigation", () => {
     expect(screen.getByRole("navigation", { name: "테스트 그룹" })).toBeInTheDocument();
   });
 
-  it("keeps all seven route pages and grouped tabs in place", () => {
-    ["page.tsx", "candidates/page.tsx", "research/page.tsx", "trading/page.tsx", "shadow/page.tsx", "runtime/page.tsx", "settings/page.tsx"].forEach(path => expect(() => source(`app/${path}`)).not.toThrow());
+  it("keeps every route page and grouped tabs in place", () => {
+    ["page.tsx", "dashboard/page.tsx", "candidates/page.tsx", "research/page.tsx", "trading/page.tsx", "shadow/page.tsx", "strategy-b/page.tsx", "strategy-compare/page.tsx", "runtime/page.tsx", "settings/page.tsx"].forEach(path => expect(() => source(`app/${path}`)).not.toThrow());
+    ["shadow", "strategy-b", "strategy-compare"].forEach(route => expect(source(`app/${route}/page.tsx`)).toContain("<StrategyTabs"));
     expect(source("app/candidates/page.tsx")).toContain("<AnalysisTabs/>");
     expect(source("app/research/page.tsx")).toContain("<AnalysisTabs/>");
     expect(source("app/runtime/page.tsx")).toContain("<SystemTabs/>");
     expect(source("app/settings/page.tsx")).toContain("<SystemTabs/>");
   });
 
-  it("redirects the root route and sends the logo to trading", () => {
+  it("keeps the root redirect on trading while the dashboard is a menu entry only", () => {
     expect(source("app/page.tsx")).toContain('redirect("/trading")');
+    expect(source("app/page.tsx")).not.toContain('redirect("/dashboard")');
     const shell = source("components/app-shell.tsx");
     expect(shell).toContain('href="/trading" aria-label="USB Trading System"');
   });

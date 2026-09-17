@@ -35,6 +35,8 @@
   --card-gold: rgba(202, 138, 4, 0.41);
   --card-green: rgba(34, 197, 94, 0.46);
   --card-bluegreen: rgba(34, 197, 140, 0.36);
+  --series-a: #3b82f6;
+  --series-b: #a78bfa;
   --panel-shadow: none;
 }
 
@@ -70,6 +72,8 @@
   --card-gold: rgba(180, 120, 12, 0.34);
   --card-green: rgba(22, 163, 74, 0.36);
   --card-bluegreen: rgba(22, 163, 104, 0.29);
+  --series-a: #2563eb;
+  --series-b: #7c3aed;
   --panel-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 

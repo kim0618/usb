@@ -184,6 +184,11 @@ not demonstrated as an independent trusted spot USD/KRW source. Verdict:
 hidden until its trust contract is separately approved. No FX endpoint is
 called or allowlisted.
 
+Update (2026-09-17): the verdict on Kiwoom's rates is unchanged, and no Kiwoom FX
+rate is displayed. The frontend's KRW secondary line does not use them; it uses
+the FIXED rate in `frontend/lib/fx.ts` (KRW 10,000,000 / USD 7,428.92), labelled
+`고정` in the header. See `docs/FRONTEND_V1.md` Currency / FX.
+
 ## Account APIs — Audit Only
 
 Official account TRs include cash/deposit (`ust21110`, `ust21160`), positions

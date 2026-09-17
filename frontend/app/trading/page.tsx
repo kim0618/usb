@@ -4,6 +4,7 @@ import { useState } from "react";
 import { EmptyState, ErrorState, LoadingState, MetricCard, StatusBadge } from "@/components/ui";
 import { DailyPerformanceTable, PreviousSessionPerformance } from "@/components/daily-performance";
 import { EntryStatusBoard } from "@/components/entry-status-board";
+import { TradingTabs } from "@/components/section-tabs";
 import { useApi } from "@/hooks/use-api";
 import { api } from "@/lib/api";
 import { formatExecutionBroker, formatOrderRejectionReason, formatOrderSide, formatOrderStatus, strategyStatusDisplay, formatTradeStatus } from "@/lib/display";
@@ -55,6 +56,7 @@ export default function TradingPage() {
   const visibleHistory = history.filter(row => row.eventType === historyFilter);
 
   return <div className="trading-screen">
+    <TradingTabs/>
     <section aria-label="계좌 요약" className="mb-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
       <MetricCard accent="primary" icon={<SummaryIcon type="wallet"/>} label={`총 자산${account?.currency ? ` (${account.currency})` : ""}`} meta="계좌" value={accountCardValue(account, "equity")}/>
       <MetricCard accent="indigo" icon={<SummaryIcon type="layers"/>} label="투자 중" meta="포지션" value={accountCardValue(account, "invested_notional")}/>

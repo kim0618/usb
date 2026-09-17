@@ -2,7 +2,7 @@
 
 ## 목적과 기술 구성
 
-Stage 9.13.3 Frontend는 Stage 9 `/api/v1` 계약을 사용하는 한국어 중심 운영 UI다. Next.js 15, React, TypeScript, App Router, Tailwind CSS를 사용한다. Quant, GPT 분석 검증, 승인 제한, Risk, Strategy, Execution, Runtime 전환의 Source of Truth는 Backend이며 Frontend는 값을 재계산하거나 가짜 데이터로 대체하지 않는다.
+Stage 9.13.3 Frontend는 Stage 9 `/api/v1` 계약을 사용하는 한국어 중심 운영 UI다. Next.js 15, React, TypeScript, App Router, Tailwind CSS를 사용한다. Quant, GPT 분석 검증, 승인 제한, Risk, Strategy, Execution, Runtime 전환의 Source of Truth는 Backend이며 Frontend는 값을 재계산하거나 가짜 데이터로 대체하지 않는다. 예외는 Backend가 아직 없는 Strategy B, 대시보드, 전략 A/B 비교 화면의 Mock 데이터다. 이 화면들은 `MOCK` / `DEMO DATA` 배지를 표시하며 데이터는 `lib/strategy-b-source.ts`, `lib/dashboard-source.ts` 한 곳에서만 공급한다. Strategy A 운영 화면은 Mock으로 대체하지 않는다.
 
 ## 언어 정책과 메뉴
 
@@ -17,34 +17,69 @@ Stage 9.13.3 Frontend는 Stage 9 `/api/v1` 계약을 사용하는 한국어 중�
 - 새 enum을 Frontend mapper가 아직 모르면 빈 값이나 `알 수 없음`으로 숨기지 않고 raw value를 그대로 표시한다.
 - 색상은 의미를 보조할 뿐이며, 핵심 상태는 항상 text label로도 전달한다.
 
-Sidebar는 사용자의 일일 운영 흐름에 따라 다음 4개 상위 메뉴만 표시한다.
+Sidebar는 사용자의 일일 운영 흐름에 따라 다음 5개 상위 메뉴만 표시한다.
 
 ```text
+대시보드
 트레이딩
+  - 전략 A · 기존 전략
+  - 전략 B · 실시간 모멘텀
 종목 분석
   - 후보 종목
   - GPT 분석
   - 채택 후보
-전략 성과
+전략
+  - 전략 A · 기존 전략
+  - 전략 B · 실시간 모멘텀
+  - 전략 A/B 비교
 시스템
   - 시스템 상태
   - 설정
 ```
 
-`/`는 Next.js App Router의 server-side redirect로 `/trading`에 이동하며, USB Logo도 `/trading`으로 이동한다. 별도 Dashboard UI는 V1 navigation에서 제거되었지만 Backend `GET /api/v1/dashboard` 계약은 유지한다. `/trading`은 Portfolio / Account primary operating view다. TOP8 상세, GPT 분석, Shadow 성과, 장애 상세와 Runtime 제어는 각각의 전용 화면에서 확인한다.
+`/`는 Next.js App Router의 server-side redirect로 `/trading`에 이동하며, USB Logo도 `/trading`으로 이동한다. `/dashboard`는 A/B 현황 요약 화면이며 Backend `GET /api/v1/dashboard` 계약과는 별개다(현재 Mock 조립). `/trading`은 Strategy A의 Portfolio / Account primary operating view다. TOP8 상세, GPT 분석, 성과, 장애 상세와 Runtime 제어는 각각의 전용 화면에서 확인한다.
 
-Sidebar 단순화는 업무 route 통합이 아니다. 6개 content page와 `/` redirect route를 유지하며, 분석 및 시스템의 하위 화면은 content 영역의 공통 탭으로 이동한다. `/candidates`와 `/research`에서는 분석이, `/runtime`과 `/settings`에서는 시스템이 Sidebar active 상태가 된다.
+Sidebar 단순화는 업무 route 통합이 아니다. 각 content page와 `/` redirect route를 유지하며, 하위 화면은 content 영역의 공통 탭(`TradingTabs`, `AnalysisTabs`, `StrategyTabs`, `SystemTabs`)으로 이동한다. `/trading`과 `/trading-b`에서는 트레이딩이, `/candidates`·`/research`·`/adoption`에서는 종목 분석이, `/shadow`·`/strategy-b`·`/strategy-compare`에서는 전략이, `/runtime`과 `/settings`에서는 시스템이 Sidebar active 상태가 된다.
 
 | 경로 | Sidebar 영역 | 화면 | 주요 기능 |
 |---|---|---|---|
 | `/` | - | Redirect | `/trading`으로 server-side 이동 |
+| `/dashboard` | 대시보드 | 대시보드 | A/B 현재 자산·오늘 손익 요약, 자산 곡선, 최근 활동 (Mock) |
+| `/trading` | 트레이딩 | 전략 A · 기존 전략 | Strategy A Runtime: 계좌 요약, 현재 포지션, 진입 대기, 통합 매매 내역 |
+| `/trading-b` | 트레이딩 | 전략 B · 실시간 모멘텀 | Strategy B Runtime: 계좌 요약, 실시간 스캐너, 보유 포지션, 당일 거래 (Mock) |
 | `/candidates` | 종목 분석 | 후보 종목 | TOP8, Quant 상세, GPT 프롬프트 미리보기/복사 |
 | `/research` | 종목 분석 | GPT 분석 | 결과 입력 및 분석 결과 비교(읽기 전용) |
 | `/adoption` | 종목 분석 | 채택 후보 | deterministic 분류, Human Review, APPROVE/REJECT |
-| `/trading` | 트레이딩 | 매매 현황 | 계좌 요약, 현재 포지션, 진입 대기, 통합 매매 내역 |
-| `/shadow` | 전략 성과 | 전략 성과 | 7일·30일·전체 Shadow A–E aggregate 성과 비교, C 기준 전략 |
+| `/shadow` | 전략 | 전략 성과 | Strategy A Performance: 7일·30일·전체 Shadow A–E aggregate 성과 비교, C 기준 전략 |
+| `/strategy-b` | 전략 | 전략 B · 성과 | Strategy B Performance: 성과 지표, 자산 곡선, 셋업별 성과, 일별 손익 (Mock) |
+| `/strategy-compare` | 전략 | 전략 A/B 비교 | 동일 기간·동일 초기 자본 기준 A/B 지표·자산 곡선·동일 종목 비교 (Mock) |
 | `/runtime` | 시스템 | 시스템 상태 | 현재 상태, 미해결 장애, 운영·비상 제어 |
 | `/settings` | 시스템 | 설정 | 연결 상태, 환경, compact 버전 정보 |
+
+### 화면 역할
+
+```text
+Dashboard   = 전체 요약
+Trading     = 현재 무엇을 하고 있는가      (/trading, /trading-b)
+Performance = 지금까지 결과가 어떠한가      (/shadow, /strategy-b)
+Compare     = 동일 조건에서 전략 차이가 어떠한가 (/strategy-compare)
+```
+
+- 대시보드 화면은 숫자를 직접 갖지 않고 `lib/dashboard-source.ts`가 상세 화면과 같은 Mock에서 조립한다(상세 화면이 없는 A의 당일값·이벤트만 `mocks/dashboard.ts`). 카드의 이동 버튼은 운용 화면(`/trading`, `/trading-b`)으로 간다.
+- 운용 화면에는 기간 통계(Profit Factor, 최대 낙폭, 기대값, 평균 R, 총 수익률)를 두지 않는다.
+- 성과 화면에는 실시간 스캐너, 보유 포지션, 당일 거래를 두지 않는다.
+- 새 전략 화면은 새 최상위 메뉴가 아니라 기존 그룹의 탭으로 추가한다.
+
+### Strategy B V1 Setup
+
+Strategy B V1의 Setup은 다음 2개뿐이다.
+
+| Setup | 표시 |
+|---|---|
+| `HOD_BREAKOUT` | 당일 고가 돌파 |
+| `FIRST_PULLBACK` | 첫 눌림목 |
+
+Setup 정의의 단일 원본은 `lib/strategy-b.ts`의 `SETUP_META`다. Strategy A의 VWAP 관련 조건과 사유 코드는 이 목록과 무관하며 그대로 유지한다.
 
 ## 운영 흐름
 
@@ -68,7 +103,42 @@ Trading 화면은 Account Summary → Current Positions → Today PnL / Entry Wa
 
 계좌와 포지션은 broker mode에 무관한 동일 DTO/display path를 사용하며 향후 SIMULATION, PAPER, LIVE가 같은 화면에 공급된다. Broker account/position source-of-truth가 없으면 총자산, 투자금, 현금, 손익, 수량, mark와 stop을 `—`로 표시한다. 저장된 주문·체결·종료 매매를 account truth로 확대 해석하거나, 평균단가·수량·환율로 금융 값을 재계산하지 않는다. Trade 방향·수량·통화처럼 API가 제공하지 않는 값도 다른 이벤트에서 추론하거나 환산하지 않는다. 각 history row의 상세 영역은 원본 API가 제공한 ID, 수량, 가격, 비용, PnL/R, 보유 기간과 청산 사유를 그대로 표시한다.
 
-미국주식 계좌의 source currency인 USD를 항상 primary로 표시한다. KRW는 향후 Kiwoom 또는 신뢰 가능한 FX source가 명시적으로 제공한 환산 금액이 있을 때만 `환산 약 ₩…` 형식의 작은 secondary line으로 표시한다. 현재 API에는 trusted USD/KRW rate가 없으므로 production 화면은 KRW를 계산하거나 표시하지 않는다. Frontend formatter와 null-safe secondary component만 준비하며 고정 환율을 사용하지 않는다.
+## Currency / FX
+
+- 미국주식의 기준 통화는 USD다.
+- 종목 가격(현재가, 진입가, 청산가, Stop, Bid, Ask, 스캐너 가격)은 USD만 표시한다.
+- 계좌·현금·손익 성격의 금액은 USD를 Primary로, KRW를 Secondary로 병기한다.
+- 현재 USB Frontend는 실시간 FX가 아니라 FIXED USD/KRW 환율을 사용한다. 외부 FX API는 호출하지 않는다.
+- FX의 단일 Source of Truth는 `frontend/lib/fx.ts`의 `FX_CONFIG`다. KRW 환산(`usdToKrw`, `krwToUsd`), Header 표시(`formatFxRate`), Strategy A formatter(`lib/format.ts`의 `KRW_DISPLAY_RATE`, `usdToDisplayKrw`)는 모두 이 값을 참조한다.
+- A/B/Dashboard/Compare 화면은 동일한 FX Source를 사용하므로 같은 금액은 모든 화면에서 같은 USD·KRW로 표시된다.
+- 화면·컴포넌트·Mock별 환율 숫자 하드코딩은 금지한다. `components/fx-display.test.tsx`가 `lib/fx.ts` 외 파일의 환율 리터럴과 `현재 환율`/`실시간 환율` 문구를 감시한다.
+- KRW 병기는 표시용 환산이다. Backend 금융 값을 KRW 기준으로 재계산하거나 저장하지 않는다.
+- Strategy A는 Backend USD 값을 `usdToDisplayKrw`로 KRW 환산한다. Strategy B·대시보드·비교 Mock은 KRW가 원본이고 USD를 `krwToUsd`로 파생하며, KRW 줄은 반올림된 USD를 되돌려 계산하지 않고 원본 KRW를 그대로 표시한다.
+
+### Trading capital과 FX configuration
+
+두 개념은 같은 숫자에서 출발했지만 서로 다른 설정이다.
+
+| 개념 | 값 | 의미 |
+|---|---|---|
+| Paper Initial Cash | `$7,428.92` | Backend `PAPER_INITIAL_CASH`. Paper 계좌의 거래 원금(Trading capital) |
+| Reference KRW Capital | `₩10,000,000` | 위 원금을 정할 때 기준으로 삼은 원화 금액 |
+| Derived Fixed FX | `₩10,000,000 / $7,428.92 ≈ 1,346.09` | 이 초기 기준에서 유도한 고정 FX configuration |
+
+- `$7,428.92`는 환율을 매번 계산하는 동적 입력이 아니다. 최초 기준에서 한 번 유도한 FIXED 값을 `lib/fx.ts`가 보유할 뿐이다.
+- Paper 원금은 이후 환율로 다시 계산하지 않는다(README의 Paper account bootstrap).
+- 환율 정책이 바뀌면(예: 신뢰 가능한 FX source 도입) `lib/fx.ts`의 FX configuration만 교체한다. Trading capital은 바뀌지 않는다.
+
+### Header FX 표시
+
+Header는 현재 적용 중인 환율과 모드를 함께 표시한다.
+
+```text
+USD/KRW : 1,346.09 · 고정
+```
+
+- 숫자는 `formatFxRate()`, 모드 label은 `FX_MODE_LABELS`(`FIXED` → `고정`)에서 온다.
+- FIXED인 동안 `현재 환율`, `실시간 환율`, `Live FX` 같은 표현은 사용하지 않는다.
 
 ## Empty State
 

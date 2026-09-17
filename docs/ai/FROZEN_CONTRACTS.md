@@ -507,20 +507,29 @@ Source: `backend/app/monitoring/`. Narrative: `docs/RUNTIME_SAFETY.md`.
 
 ## UI / Display contracts
 
-Source: `frontend/lib/display.ts`, `frontend/lib/format.ts`,
+Source: `frontend/lib/display.ts`, `frontend/lib/format.ts`, `frontend/lib/fx.ts`,
 `docs/DESIGN_SYSTEM.md`, `docs/FRONTEND_V1.md`.
 
 - The backend is the only source of truth. The frontend never recomputes a
   financial value, never falls back to mock data, and never infers a missing
   field. Missing contract data renders as `-`, `데이터 미제공`, or `정보 없음`.
+  The one exception is the screens with no backend yet (`/dashboard`,
+  `/trading-b`, `/strategy-b`, `/strategy-compare`): they render explicit,
+  badge-labelled mocks. Strategy A screens never fall back to them.
 - Enums stay English in the API and the database. Korean labels are display-only
   via the shared mappers. An unknown enum renders as its raw value, never as an
   empty string or `알 수 없음`.
 - Human decision labels: `APPROVE = 채택`, `REJECT = 거절`, none = `미결정`.
-- **USD is the primary display currency.** KRW is a secondary, prefixed
-  `환산 약`, and is shown only when a trusted FX source supplies the converted
-  amount. There is no trusted FX source today, so production must not render
-  KRW. Never hardcode a USD/KRW rate in the frontend.
+- **USD is the primary display currency.** Share prices (current, entry, exit,
+  stop, bid, ask, scanner price) are USD only. Account, cash and P&L amounts
+  show USD primary with a smaller muted KRW secondary line.
+- **KRW uses one FIXED USD/KRW rate, not a live quote.** Its only source is
+  `frontend/lib/fx.ts` (`FX_CONFIG`): KRW 10,000,000 / USD 7,428.92 ≈ 1,346.09,
+  derived from the paper account's initial cash. The header shows it as
+  `USD/KRW : 1,346.09 · 고정`. No screen, component or mock may carry its own
+  rate, and no FX API is called. Trading capital (`PAPER_INITIAL_CASH`) and the
+  FX configuration are separate; a future trusted FX source replaces only
+  `lib/fx.ts`. There is still no trusted market FX source.
 - Strategy status mapping (`strategyStatusDisplay`) returns a Korean label plus a
   semantic tone; an unknown raw state keeps the raw value with a neutral tone.
 - Color is supporting information only; every critical state also has a text
