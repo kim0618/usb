@@ -1,6 +1,6 @@
 """USB-HIST-V2 raw validation (read-only, no API): every COMPLETE ledger of a kind is re-read.
 
-    PYTHONPATH=backend .venv/bin/python -m app.dev.validate_historical_v2 minute|daily [--symbols A,B]
+    PYTHONPATH=backend .venv/bin/python -m app.dev.validate_historical_v2 minute|daily [--symbols A,B] [--tier local|drive]
 
 Per ledger: page sha256 (file and raw body) against the ledger, gzip integrity, ``adjusted=false``,
 timestamps strictly increasing across pages (no duplicate bar, no overlapping page), every bar
@@ -72,10 +72,12 @@ def main() -> None:
     parser.add_argument("kind", choices=("minute", "daily"))
     parser.add_argument("--symbols", default=None)
     parser.add_argument("--workspace-root", type=Path, default=None)
+    parser.add_argument("--tier", choices=("local", "drive"), default="local",
+                        help="minute only: local staging (default) or the Drive workspace")
     args = parser.parse_args()
     root = resolve_workspace_root(args.workspace_root)
     minute = args.kind == "minute"
-    base = (STAGING / MINUTE_DIR) if minute else (root / DAILY_DIR)
+    base = ((STAGING if args.tier == "local" else root) / MINUTE_DIR) if minute else (root / DAILY_DIR)
     universe = {r["symbol"]: r for r in json.loads((OUT / "b_fetch_universe_q1.json").read_text())["symbols"]}
     wanted = set(args.symbols.split(",")) if args.symbols else None
     calendar = MarketCalendar()
