@@ -1,0 +1,106 @@
+{
+  "taxonomy_id": "c-e0-event-taxonomy-v1",
+  "declared_on": "2026-09-18",
+  "declared_before_results": true,
+  "event_data_rows_at_declaration": 0,
+  "supersedes": {
+    "file": "docs/backtest/strategy_c/v2/c_v2c_event_taxonomy_draft_v0.json",
+    "checksum": "31ca4a755baedfcbf33e594166f20b733d16d2d23f1d09cbf1189c72d8dcd707",
+    "status": "DRAFT_DESIGN_ONLY, never used for a statistic; this v1 is the only taxonomy C-E0 may use"
+  },
+  "principles": [
+    "No AI, no LLM, no free-text parsing, no sentiment. A class is decided by EDGAR form type and 8-K item number only.",
+    "No class carries a positive direction. Allowed statuses are EVENT_PRESENT, NEGATIVE_RISK, UNKNOWN_* and NO_EVENT. POSITIVE_EVENT does not exist in C-E0.",
+    "Direction comes from the market (the C-M price/volume signal), never from the filing.",
+    "A form or item not listed below is IGNORED: it never makes a candidate EM and never removes it from M_ONLY."
+  ],
+  "source": {
+    "provider": "SEC EDGAR",
+    "primary": "submissions JSON per CIK (data.sec.gov/submissions/CIK##########.json and its paged files): accessionNumber, form, filingDate, acceptanceDateTime, items",
+    "items_field": "comma separated 8-K item numbers as filed (e.g. '1.01,2.03,9.01'); an 8-K with an empty items field is UNKNOWN_ITEMS",
+    "no_text_fields_used": "primaryDocument, exhibits and press-release text are never read",
+    "user_agent": "SEC requires a declared User-Agent identifying the requester; the identifier is chosen by the user before C-E1, never invented"
+  },
+  "classes": {
+    "E1_MATERIAL_AGREEMENT": {
+      "status": "EVENT_PRESENT",
+      "direction": "UNKNOWN",
+      "match": {"forms": ["8-K"], "items_any": ["1.01"]},
+      "note": "Item 1.01 also covers credit agreements, ATM sales agreements and merger agreements. It is not split by text. If the same accession also carries a NEGATIVE_RISK trigger the candidate goes to EM_NEGATIVE_RISK."
+    },
+    "E2_ACQUISITION_DISPOSITION": {
+      "status": "EVENT_PRESENT",
+      "direction": "UNKNOWN",
+      "match": {"forms": ["8-K"], "items_any": ["2.01"]},
+      "note": "Filed by the acquirer or the seller. The acquisition target side is handled by the MA_TARGET_PIN flag, not by E2."
+    },
+    "E3_RESULTS_OF_OPERATIONS": {
+      "status": "EVENT_PRESENT",
+      "direction": "UNKNOWN",
+      "subtypes": {
+        "E3a_8K_202": {"forms": ["8-K"], "items_any": ["2.02"]},
+        "E3b_PERIODIC": {"forms": ["10-Q", "10-K", "10-KT"]}
+      },
+      "note": "Beat/miss is never inferred. E3b exists because some issuers publish results only in the periodic report; an E3a and an E3b of the same CIK in the same event_session dedup to one E3 event."
+    },
+    "E4_FINANCING_DILUTION": {
+      "status": "NEGATIVE_RISK",
+      "direction": "NEGATIVE_RISK (a risk flag, never a positive event)",
+      "subtypes": {
+        "E4a_UNREGISTERED_EQUITY": {"forms": ["8-K"], "items_any": ["3.02"], "covers": "PIPEs, convertible notes/preferred and warrants sold privately (the structural route to 'convertible financing')"},
+        "E4b_PRICED_OR_ATM_TAKEDOWN": {"forms": ["424B1", "424B4", "424B5"], "covers": "priced offerings and shelf takedowns incl. ATM prospectus supplements"},
+        "E4c_REGISTRATION": {"forms": ["S-1", "S-3", "S-3ASR", "F-1", "F-3", "F-3ASR"], "covers": "registration of new issuance or resale capacity"},
+        "E4d_DISTRESS": {"forms": ["8-K"], "items_any": ["1.03", "3.01", "4.02"], "covers": "bankruptcy/receivership, delisting or listing-rule deficiency notice, non-reliance on prior financials"}
+      },
+      "excluded_from_E4": {
+        "424B2": "dominated by bank structured notes, not issuer dilution",
+        "424B3": "resale and merger prospectuses; direction not structural",
+        "S-8": "employee plan registration, routine",
+        "8-K item 2.03 alone": "direct financial obligation covers every credit facility; convertibility needs text"
+      },
+      "note": "E4d is an addition beyond the four financing examples in the request: items 1.03/3.01/4.02 are structurally negative and would otherwise count as E5 material events inside EM."
+    },
+    "E5_OTHER_MATERIAL": {
+      "status": "EVENT_PRESENT",
+      "direction": "UNKNOWN",
+      "match": {"forms": ["8-K"], "items_any": ["1.02", "2.04", "2.05", "2.06", "5.01", "7.01", "8.01"]},
+      "note": "Termination of agreement, triggering event on an obligation, exit costs, impairment, change in control, Regulation FD disclosure, other events. 7.01 and 8.01 are the usual vehicle for product, trial and contract press releases; they are flags, not good news."
+    }
+  },
+  "flags_outside_E_classes": {
+    "MA_TARGET_PIN": {
+      "forms": ["SC 14D9", "SC 14D9/A", "SC TO-T", "PREM14A", "DEFM14A", "PREM14C", "DEFM14C", "SC 13E3"],
+      "rule": "filed by or about the candidate's CIK (as filer or as subject company) with available_at in [open(D-60), close(D))",
+      "effect": "candidate leaves M_ONLY and EM and is reported as EXCLUDED_MA_TARGET (its price converges to a deal price, so momentum there is not drift)",
+      "note": "/A forms count here only for this pin flag, because the original may predate the 60-session window"
+    },
+    "ROUTINE_IGNORED": {
+      "forms_or_items": ["8-K items 2.03 (alone), 3.03, 4.01, 5.02, 5.03, 5.04, 5.05, 5.06, 5.07, 5.08, 9.01", "S-8", "4", "3", "5", "SC 13D", "SC 13G", "13F-HR", "DEF 14A", "144", "ARS", "all other forms"],
+      "effect": "IGNORED; counted descriptively as routine_count, never an event"
+    },
+    "UNCLASSIFIABLE_FORMS": {
+      "forms": ["6-K", "20-F", "40-F"],
+      "rule": "a 6-K has no item numbers; a 20-F/40-F is a periodic report without the 8-K item scheme",
+      "effect": "if any UNCLASSIFIABLE form of the candidate's CIK has available_at inside the primary event window, EVENT_STATUS = UNKNOWN_FORM (excluded from EM and M_ONLY, counted)"
+    }
+  },
+  "amendments": {
+    "rule": "any form ending in /A (8-K/A, 10-Q/A, 424B5/A etc.) never creates an event and never moves an event date; the only exception is the MA_TARGET_PIN list",
+    "orphans": "an /A whose original is outside the fetched range is ignored and counted"
+  },
+  "deduplication": {
+    "event_key": ["cik", "event_class", "event_session"],
+    "event_session": "the XNYS session in which the filing becomes usable (see PIT effective_time in c_e0_rules_v1.json)",
+    "multi_item_8k": "one accession with several items yields at most one event per class (e.g. 1.01 + 2.03 + 3.02 + 9.01 -> one E1 event and one E4a event)",
+    "same_class_same_session": "several accessions of the same CIK, class and event_session are one event; effective_time = earliest, all accession numbers kept in accessions[]",
+    "exhibits": "exhibits live inside their accession and are never separate filings",
+    "e3_merge": "E3a and E3b of the same CIK and event_session are one E3 event",
+    "cross_session": "the same class on two different sessions is two events (a follow-up filing on the next day is not merged); this is fixed now and not revisited after results",
+    "subsidiary_or_co_registrant": "an accession listed under several CIKs counts once per CIK; only the candidate's own CIK is joined"
+  },
+  "form_code_alias_audit": {
+    "purpose": "EDGAR form codes can be renamed (e.g. schedule forms). Before any join with candidates or outcomes, C-E1 lists every distinct form code in the raw event store.",
+    "allowed_change": "a code is added only if it is the same SEC form under a new name; the change is written to c_e0_taxonomy_addendum_v1.json with its own checksum BEFORE the join. No class, item list or direction may change.",
+    "forbidden": "adding or removing an item or form for any other reason after this declaration"
+  }
+}

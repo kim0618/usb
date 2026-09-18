@@ -1,0 +1,208 @@
+{
+  "rule_id": "c-e0-event-momentum-v1",
+  "declared_on": "2026-09-18",
+  "declared_before_results": true,
+  "event_data_rows_at_declaration": 0,
+  "sec_calls_at_declaration": 0,
+  "study_kind": "EVENT_SPLIT_OF_FROZEN_C_M_CANDIDATES",
+  "question": "Among frozen C-M V1 candidates, do those with a structurally identified company event in the primary event window show stronger forward close drift than matched controls and than candidates without an event?",
+  "taxonomy": {
+    "file": "docs/backtest/strategy_c/v2/c_e0_event_taxonomy_v1.json",
+    "checksum": "6ee5a16a9828d6b1d04d76f005117629fd84341399eeadb243c6b41567a45c6b"
+  },
+  "baseline_frozen": {
+    "rules_file": "docs/backtest/strategy_c/c_m_selection_rules_v1.json",
+    "rules_checksum": "c769aea5f25bcc46cfdc40a7d74fe325b5059f630714c007d1285cb2d9865d54",
+    "baseline_run_id": "cmsel1-855b6a0ce64e3698fc74",
+    "baseline_raw_digest": "adc4f1919dd835772262e2820d48c9a04904d5d1c953d8a97386728e08132c02",
+    "unchanged": [
+      "C-M0/M1/M2 conditions and thresholds (return_1d, return_5d, rvol_20, rs_spy_*, distance_52w_high)",
+      "universe, hard filter, history requirements, corporate-action exclusions",
+      "feature formulas and candidate timestamp (signal after D's regular close)",
+      "matching cell (signal_date, price_bucket, atr_bucket, adv20_bucket), control population, min 5 label-valid controls",
+      "labels: P0 = open(D+1) split-normalized, close_return_k, mfe_k, mae_k, clip [-1, 1], label CA suspicion D..D+10, DISAPPEARED censoring"
+    ],
+    "no_tuning": "no C-M parameter, bucket edge or control rule may be changed to rescue C-E0",
+    "snapshot_requirement": "C-E1 runs on the common historical snapshot. It must reproduce the V1 C-M0 candidate set on the V1 primary dates (same ticker-date rows) before any event join, else the run aborts. Snapshot ID and digest are recorded in the run manifest."
+  },
+  "prior_knowledge": [
+    "V1 summary and V2A (read before this declaration) report all C-M0 candidates vs matched controls: close excess -0.10/-0.13/-0.01/-0.06 %p at horizons 1/3/5/10, CIs containing 0; V2A found no positive D+1..D+5 cell.",
+    "Consequence stated in advance: EM and M_ONLY are a split of a pool whose total excess is about 0, so a positive EM excess implies a negative M_ONLY excess of roughly the same weighted size. H1 and H2 are therefore positively correlated and are required jointly, never traded off.",
+    "No event statistic, event count or event-candidate overlap has been computed or looked at. The 5-day primary horizon is taken from the request, not chosen from data."
+  ],
+  "base_variant": {
+    "primary": "C-M0",
+    "why": "V1 showed C-M1's RS conditions add almost no information over return_5d, and C-M2 cuts 55% of candidates with lower lift. One variant keeps the primary test at exactly two hypotheses.",
+    "descriptive_only": ["C-M1", "C-M2"]
+  },
+  "evaluation_window": {
+    "primary": "the V1 primary signal dates (session-grid index 251..N-10 of the V1 grid, 2025-09-18..2026-09-01, 240 dates), unchanged even if the common snapshot is longer",
+    "secondary": "V1 secondary dates (index 60..N-10) for C-M0, descriptive",
+    "extension": "dates of a longer common snapshot outside the V1 grid are reported as C-E0-EXT, descriptive, never a gate input",
+    "time_blocks": "the 240 primary dates split into 4 consecutive blocks of (near) equal date count, same split as V1"
+  },
+  "pit": {
+    "clock": "America/New_York; XNYS session calendar incl. early closes (session close = scheduled close of that day, 13:00 on half days)",
+    "acceptance_time": "EDGAR acceptanceDateTime; filingDate is never used as the event time",
+    "timezone_audit": "before any join, C-E1 compares the submissions-JSON acceptanceDateTime with the ACCEPTANCE-DATETIME header of the filing's .txt/index on >= 30 accessions spread over the range (incl. after-hours and DST-boundary filings). The zone interpretation (ET vs UTC) is fixed by that audit; any mismatch it cannot explain -> GATE-CE0 = INCONCLUSIVE (PIT_UNCERTAIN).",
+    "effective_time": {
+      "during_session": "acceptance inside [open, close) of a session -> effective_time = acceptance",
+      "before_open": "acceptance before the open of a session day -> effective_time = that session's open",
+      "after_close_or_non_session": "acceptance at/after a session's close, or on a non-session day -> effective_time = next session's open"
+    },
+    "event_session": "the session containing effective_time",
+    "missing_acceptance": "a filing of a listed class without acceptanceDateTime whose filingDate is within [D-3, D+1] sessions -> EVENT_STATUS = UNKNOWN_PIT",
+    "post_signal_events": "effective_time in [close(D), open(D+1)] are never events of D; recorded as post_signal_event_flag, descriptive only",
+    "signal_time": "the C-M signal exists after close(D); entry is open(D+1). Nothing with effective_time >= close(D) may affect cohort membership."
+  },
+  "event_windows": {
+    "primary": {
+      "id": "W_PRIMARY",
+      "definition": "effective_time in [open(D-2), close(D))",
+      "meaning": "from the open of the second session before D to D's regular close; filings accepted after close(D-3) or overnight before D-2 enter through the before_open/after_close rules"
+    },
+    "secondary_descriptive": {
+      "W_D5": "effective_time in [open(D-5), close(D))",
+      "W_D1": "effective_time in [open(D-1), close(D))",
+      "W_D0": "effective_time in [open(D), close(D))"
+    },
+    "negative_risk_window": "same as W_PRIMARY for cohort assignment; a separate descriptive flag recent_dilution_20 covers E4 in [open(D-20), close(D))",
+    "ma_target_pin_window": "[open(D-60), close(D)) as fixed in the taxonomy",
+    "frozen": "no window may be changed after any event statistic is seen"
+  },
+  "cik_mapping": {
+    "source": "cik field of the Massive CS reference snapshot with the latest as_of <= D (the same snapshots V1 used for eligibility)",
+    "join_key": "CIK; ticker text is never a join key",
+    "missing": "no CIK in that snapshot -> EVENT_STATUS = UNKNOWN_MAPPING (never NO_EVENT)",
+    "inconsistent": "the same ticker mapped to a different CIK in an adjacent snapshot while D lies between them -> UNKNOWN_MAPPING for dates between the two as_of values",
+    "active_filer_check": "the CIK must have at least one EDGAR filing of any form with filingDate in [D-400 calendar days, D]; otherwise UNKNOWN_MAPPING",
+    "coverage": "the submissions fetch of a CIK must cover [D-60 sessions, D+1 session]; a failed or truncated fetch -> UNKNOWN_COVERAGE"
+  },
+  "event_status_and_cohorts": {
+    "one_row_per_candidate": "a candidate is one row with event_count, event_types[], event_accessions[], negative_risk_flag, negative_risk_types[], ma_target_pin_flag, post_signal_event_flag, recent_dilution_20, routine_count and the status per secondary window",
+    "event_count": "number of distinct dedup event keys of classes E1, E2, E3, E5 in W_PRIMARY",
+    "assignment_order": [
+      ["UNKNOWN_MAPPING", "CIK rules above"],
+      ["UNKNOWN_COVERAGE", "fetch coverage rule above"],
+      ["UNKNOWN_PIT", "missing acceptance rule, or a listed-class filing whose window membership cannot be decided"],
+      ["UNKNOWN_FORM", "an UNCLASSIFIABLE form in W_PRIMARY"],
+      ["EXCLUDED_MA_TARGET", "ma_target_pin_flag"],
+      ["EM_NEGATIVE_RISK", "any E4 event in W_PRIMARY (with or without E1/E2/E3/E5)"],
+      ["EM", "event_count >= 1 and no E4 event in W_PRIMARY"],
+      ["M_ONLY", "no E1..E5 event in W_PRIMARY (IGNORED/routine filings allowed)"]
+    ],
+    "first_match_wins": true,
+    "primary_cohorts": {
+      "EM": "C-M0 candidate AND material event present (E1/E2/E3/E5) AND negative_risk_flag = false AND not excluded/unknown",
+      "M_ONLY": "C-M0 candidate AND no E1..E5 event in W_PRIMARY AND not excluded/unknown"
+    },
+    "reported_not_gated": ["EM_NEGATIVE_RISK", "EXCLUDED_MA_TARGET", "UNKNOWN_* counts", "EM by event class", "EM_CORE3 (E1/E2/E3 only)", "M_ONLY without post_signal_event_flag"],
+    "not_in_c_e0": "E-only cohort (event without C-M), event-conditioned controls, any POSITIVE_EVENT variable",
+    "controls": "matched controls are the V1 C-M0 controls and are not event-classified; H1 compares EM with the ordinary matched base"
+  },
+  "outcomes": {
+    "primary": "close_return_5 = C(last traded session in D+1..D+5) / open(D+1) - 1, split-normalized, clipped [-1, 1]",
+    "secondary": "close_return_10 with the same definition",
+    "descriptive": ["close_return_1", "close_return_3", "mfe_5", "mae_5", "mfe_10", "mae_10", "time_to_mfe_10", "giveback_10 (as V2A)", "win rate (close_return_5 > 0)", "mfe10_ge_10 and mfe10_ge_15 hit rates"],
+    "mfe_rule": "MFE/MAE never substitute for the close-return gate",
+    "validity": "V1 LabelSet validity at horizon k (entry bar, no label CA suspicion D..D+10, not DISAPPEARED at k); a candidate is matched at k if its cell has >= 5 controls valid at k",
+    "cost_reference": "0.25%p round trip printed beside every excess, not a gate input"
+  },
+  "statistics": {
+    "excess": "for a cohort G at horizon k: (sum over matched valid candidates of close_k - sum of their cell control means) / N_G, aggregated per signal date so dates are the resampling unit (the V1 _diff_ci estimator)",
+    "H2_difference": "excess_EM - excess_M_ONLY, both computed on the same bootstrap draw of dates",
+    "bootstrap": "moving block bootstrap over the 240 primary signal dates, block length 10 sessions, 10000 replicates, seed 20260918",
+    "ci": "two-sided 95% percentile",
+    "multiplicity": "C-E0 needs H1 AND H2 (intersection-union test), so each is tested at 5% without Bonferroni; 10D and every descriptive number are not tests",
+    "also_reported": "median of per-candidate (close_5 - cell control mean) for EM and M_ONLY; 99% CIs"
+  },
+  "hypotheses": {
+    "H1_absolute": {"statement": "EM 5D close excess over matched controls > 0", "pass": "point > 0 AND 95% CI low > 0"},
+    "H2_incremental": {"statement": "EM 5D close excess - M_ONLY 5D close excess > 0", "pass": "point > 0 AND 95% CI low > 0"},
+    "secondary_descriptive": {
+      "H1_10": "same as H1 on close_return_10",
+      "H2_10": "same as H2 on close_return_10",
+      "H_reversion": "M_ONLY 5D close excess < 0 (no-news moves revert); reported, never a gate"
+    }
+  },
+  "pre_outcome_checks": {
+    "meaning": "evaluated from cohort membership and label validity only, before any forward return is read. If one fails the run stops with GATE-CE0 = INCONCLUSIVE and no outcome is computed.",
+    "checks": {
+      "P1_timezone_audit": "pass (see pit.timezone_audit)",
+      "P2_pit_audit": "violations == 0 (see pit_audit); a violation found here is a bug, fixed and re-audited before outcomes, not a gate failure",
+      "P3_unknown_share": "UNKNOWN_MAPPING + UNKNOWN_COVERAGE + UNKNOWN_PIT + UNKNOWN_FORM <= 10% of C-M0 primary candidates",
+      "P4_em_sample": "EM matched and valid at k=5 >= 300",
+      "P5_em_unique_tickers": ">= 100",
+      "P6_m_only_sample": "M_ONLY matched and valid at k=5 >= 300",
+      "P7_block_sample": "EM matched valid at k=5 >= 30 in each of the 4 time blocks",
+      "P8_window": "all 240 V1 primary dates present in the snapshot"
+    },
+    "no_threshold_relief": "a failed pre-outcome check is never lowered; the answer is INCONCLUSIVE"
+  },
+  "pit_audit": {
+    "checks": [
+      "every event in W_PRIMARY has effective_time < close(D)",
+      "no event with effective_time >= close(D) changes cohort membership (recompute cohorts after deleting all such filings: identical)",
+      "mutation: shift every effective_time by +1 session; only candidates whose events cross the window edge may change cohort, all changes are explained",
+      "positive control: inject a synthetic filing at close(D) + 1 second for sampled candidates; the audit must flag it",
+      "no /A filing creates an event; no filingDate-only filing is placed without acceptance",
+      "CIK used for D came from a snapshot with as_of <= D"
+    ],
+    "after_outcomes": "a PIT violation discovered after outcomes were computed makes this declaration's gate FAIL; a new declaration is required to retry"
+  },
+  "gate": {
+    "id": "GATE-CE0",
+    "conditions": {
+      "1_em_5d_excess_point": "> 0",
+      "2_h1_ci_low": "> 0 (95%)",
+      "3_em_minus_m_only_5d_point": "> 0",
+      "4_h2_ci_low": "> 0 (95%)",
+      "5_mae5_not_worse": "(EM mae_5 excess) - (M_ONLY mae_5 excess) >= -0.02",
+      "6_time_blocks": "EM - M_ONLY 5D excess point > 0 in >= 3 of 4 blocks AND EM 5D excess point > 0 in >= 3 of 4 blocks",
+      "7_sample": "P4..P7 met",
+      "8_concentration": {
+        "em_single_ticker_share": "<= 0.05",
+        "em_top5_ticker_share": "<= 0.15",
+        "em_single_date_share": "<= 0.05",
+        "em_top10_date_share": "<= 0.25",
+        "leave_one_class_out": "for every event class with >= 10% of EM candidates: dropping EM candidates of that class keeps condition 1 and 3 point estimates > 0",
+        "leave_top5_tickers_out": "dropping EM rows of the 5 most frequent EM tickers keeps condition 1 and 3 point estimates > 0",
+        "event_scope": "if one class carries > 60% of EM candidates, a PASS is recorded with scope = that class and may not be described as 'events in general'"
+      },
+      "9_pit_violations": "== 0"
+    },
+    "decision": {
+      "INCONCLUSIVE": "any pre-outcome check fails (sample, coverage, CIK mapping, PIT uncertainty, window); decided before outcomes",
+      "PASS": "all 9 conditions met -> C-EM Selection V1 becomes a development candidate (a new declaration, out-of-sample requirement, costs)",
+      "FAIL": "pre-outcome checks passed and any of conditions 1..9 fails. Typical: no EM close edge, only MFE higher, EM ~ M_ONLY, EM < M_ONLY, dependence on one class/ticker/period, PIT problem after outcomes"
+    },
+    "per_hypothesis_record": "H1 = conditions 1-2, H2 = conditions 3-4, each recorded PASS/FAIL separately"
+  },
+  "termination_rule": {
+    "on_fail": "GATE-CE0 = FAIL ends the Strategy C directional thesis. If H1 and H2 both fail this is recorded as the explicit case of the termination rule.",
+    "forbidden_after_fail": ["threshold re-tuning", "event window changes", "new composite score", "hand-picked event subsets", "switching the primary horizon or base variant"],
+    "volatility_work": "may continue only as a separately named strategy idea with its own declaration; it is not a continuation of Strategy C"
+  },
+  "required_tables": {
+    "main": {"rows": ["Matched Control", "M_ONLY", "EM", "EM_NEGATIVE_RISK"], "columns": ["N", "Unique", "5D Close", "10D Close", "MFE5", "MAE5", "MFE10", "MAE10"]},
+    "incremental": "EM - M_ONLY for 5D close excess, 10D close excess, MFE5/MFE10 excess, MAE5/MAE10 excess, with 95% CI",
+    "time_blocks": "per block: N_EM, N_M_ONLY, EM excess, M_ONLY excess, difference",
+    "concentration": "N by event class, N by ticker (top 10 and shares), N by date (top 10 and shares), class share of EM",
+    "status_counts": "every EVENT_STATUS with counts and share of C-M0 primary candidates",
+    "secondary_windows": "W_D5, W_D1, W_D0 versions of the main and incremental tables, labelled DESCRIPTIVE"
+  },
+  "execution_order_after_snapshot_id": [
+    "1 user fixes the SEC User-Agent identifier",
+    "2 build the SEC event raw store for the CIKs of C-M0 candidates (and nothing that reads C-M outcomes)",
+    "3 form-code alias audit (taxonomy addendum only if needed, checksummed) and timezone audit",
+    "4 reproduce V1 C-M0 candidates on the snapshot, join events by CIK, assign statuses",
+    "5 PIT audit and pre-outcome checks P1..P8 (INCONCLUSIVE stops here)",
+    "6 compute outcomes, H1/H2 tests and the required tables",
+    "7 decide GATE-CE0 from this file only"
+  ],
+  "outputs": {
+    "root": "data/runtime/strategy_c/e0/runs/<run_id>/",
+    "run_id_inputs": ["this file's checksum", "taxonomy checksum", "snapshot digest", "event store digest"],
+    "no_writes_to": ["data/runtime/strategy_c/raw", "data/runtime/strategy_c/runs", "data/runtime/strategy_c/v2", "any common data store"]
+  }
+}

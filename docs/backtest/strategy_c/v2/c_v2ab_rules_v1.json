@@ -1,0 +1,108 @@
+{
+  "rule_id": "c-v2ab-decomposition-v1",
+  "declared_on": "2026-09-18",
+  "declared_before_results": "partially: see prior_knowledge. No V2A/V2B statistic below had been computed when this file was checksummed, but the V1 summary already exposed some horizon means.",
+  "study_kind": "IN_SAMPLE_DECOMPOSITION",
+  "study_kind_meaning": "Same C-M V1 candidates, same controls, same 240-day primary window that produced GATE-C2 = FAIL. A SUPPORTED/label outcome here is a hypothesis for a future out-of-sample test, never a trading approval and never a reversal of GATE-C2.",
+  "baseline": {
+    "rules_file": "docs/backtest/strategy_c/c_m_selection_rules_v1.json",
+    "rules_checksum": "c769aea5f25bcc46cfdc40a7d74fe325b5059f630714c007d1285cb2d9865d54",
+    "baseline_run_id": "cmsel1-855b6a0ce64e3698fc74",
+    "baseline_raw_digest": "adc4f1919dd835772262e2820d48c9a04904d5d1c953d8a97386728e08132c02",
+    "reused_unchanged": [
+      "features, eligibility, hard filter, history, CA exclusions",
+      "variants C-M0, C-M1, C-M2 and their thresholds",
+      "matching cell (signal_date, price_bucket, atr_bucket, adv20_bucket), min 5 label-valid controls",
+      "reference price P0 = open(D+1) split-normalized",
+      "label CA suspicion (D..D+10) and DISAPPEARED censoring",
+      "primary window idx 251..N-10 (240 dates), secondary idx 60..N-10 (M0/M1 only), 4 time blocks",
+      "block bootstrap: block 10 sessions, seed 20260917"
+    ],
+    "must_reproduce": "V1 horizon 1/3/5/10 candidate and control means for every variant within 1e-12, else the run aborts"
+  },
+  "prior_knowledge": [
+    "V1 summary (read before this declaration) already reports candidate vs matched-control mean close at horizons 1/3/5/10: excess is <= +0.13%p in all 12 cells and negative in 10 of 12 (e.g. C-M0: -0.10, -0.13, -0.01, -0.06 %p).",
+    "V1 reports MFE10 excess +1.8..+2.9%p and MAE10 excess -1.5..-1.9%p in simple-return terms.",
+    "Therefore V2A is expected to be REJECTED before running; the declaration exists so the result cannot be steered. The log-space asymmetry of V2B was chosen because simple-return MFE/MAE are mechanically asymmetric under higher volatility (e^x - 1 > 1 - e^-x), not because of any computed V2B value."
+  ],
+  "c_v2a_short_horizon": {
+    "id": "C-V2A-SHORT",
+    "horizons": [1, 2, 3, 4, 5, 7, 10],
+    "labels": {
+      "close_return_k": "same formula as V1: C(last traded session in D+1..D+k) / P0 - 1, clipped to [-1, 1]",
+      "mfe_k": "max(H(D+1..D+k)) / P0 - 1",
+      "mae_k": "min(L(D+1..D+k)) / P0 - 1",
+      "overnight_gap_reference": "open(D+1)/close(D) - 1 on the split-normalized series; descriptive only, not tradable by a signal that exists after D's close",
+      "time_to_mfe_10": "1-based offset of first session at the 10D high",
+      "time_to_mae_10": "1-based offset of first session at the 10D low",
+      "post_mfe_retrace_j": "for j in 1,2,3: C(D + time_to_mfe_10 + j) / Hmax_10 - 1, using the ticker's bar on that session; NaN when that session has no bar (counted)",
+      "giveback_10": "(Hmax_10 - C_10) / (Hmax_10 - P0) for rows with mfe_10 > 0; share of the peak gain returned by D+10"
+    },
+    "validity_per_horizon": "V1 LabelSet.valid(k): entry bar, no label CA suspicion (D..D+10 for every k), not DISAPPEARED at k",
+    "matched_base": "control mean of the label in the candidate's cell over controls valid at the same k",
+    "statistics": {
+      "mean_excess_k": "candidate mean close_k minus matched base mean, ratio-of-sums per date as in V1 _diff_ci",
+      "median_excess_k": "median over matched candidates of (close_k - cell control mean close_k)",
+      "bootstrap_replicates": 10000,
+      "family": "3 variants x 7 horizons = 21 two-sided tests; Bonferroni level 1 - 0.05/21 = 99.7619%",
+      "also_reported": "95% CI unadjusted"
+    },
+    "supported_rule": {
+      "eligible_horizons": [1, 2, 3, 4, 5],
+      "per_variant_horizon_conditions": {
+        "a_mean_excess_bonferroni_ci_low": "> 0",
+        "b_median_excess": "> 0",
+        "c_time_blocks_positive_mean_excess": ">= 3 of 4",
+        "d_secondary_window_same_sign": "M0/M1 only: secondary mean excess > 0; M2 has no secondary window and is judged on a..c",
+        "e_matched_candidates": ">= 300"
+      },
+      "SUPPORTED": "at least one (variant, horizon in 1..5) meets every condition",
+      "WEAK_DESCRIPTIVE": "no SUPPORTED cell, but some (variant, horizon in 1..5) has 95% unadjusted CI low > 0 and >= 3 of 4 positive blocks; recorded, not SUPPORTED",
+      "REJECTED": "otherwise",
+      "cost_reference": "0.25%p round trip is printed beside every excess; it is not a gate condition"
+    }
+  },
+  "c_v2b_volatility_expansion": {
+    "id": "C-V2B-VOL",
+    "horizons": [5, 10],
+    "primary_horizon": 10,
+    "metrics": {
+      "range_k": "(max H(D+1..D+k) - min L(D+1..D+k)) / P0",
+      "abs_close_k": "|close_return_k|",
+      "max_abs_move_k": "max(mfe_k, -mae_k)",
+      "realized_vol_k": "sample std (ddof 1) of daily log returns r_1 = ln(C(D+1)/P0), r_j = ln(C(D+j)/C(D+j-1)) for j=2..k; requires a bar on every session D+1..D+k else NaN (counted)",
+      "atr_expansion_k": "mean true range over D+1..D+k (TR uses the previous session's close, D's close for D+1) divided by P0, divided by the pre-signal atr_pct feature; same all-bars requirement",
+      "log_up_k": "ln(1 + mfe_k)",
+      "log_down_k": "-ln(1 + mae_k)",
+      "log_asym_k": "log_up_k - log_down_k",
+      "mfe_k": "as V2A",
+      "mae_k": "as V2A"
+    },
+    "statistics": "per metric: candidate mean - matched control mean (same cell, controls valid for that metric), block bootstrap 10000; family 3 variants x 3 decision tests (log_up_10, log_down_10, log_asym_10) plus range_10 and close_10 = 15 tests -> Bonferroni 1 - 0.05/15 = 99.6667%",
+    "classification_per_variant": {
+      "inputs": "U = log_up_10 excess, Dn = log_down_10 excess, A = log_asym_10 excess, R = range_10 excess, C = close_10 excess; 'pos' means Bonferroni CI low > 0, 'neg' means CI high < 0, 'zero' means CI contains 0",
+      "order": "first matching rule wins",
+      "rules": [
+        ["NEITHER", "U zero and Dn zero and R zero"],
+        ["BOTH", "R pos and (C pos or A pos)"],
+        ["DIRECTIONAL", "U pos and (Dn zero or Dn neg)"],
+        ["DIRECTIONAL", "C pos and R zero"],
+        ["VOLATILITY", "U pos and Dn pos and A zero and C zero"],
+        ["VOLATILITY", "R pos and C zero and A neg (downside-skewed expansion)"],
+        ["UNCLASSIFIED", "anything else, printed with its inputs"]
+      ]
+    },
+    "overall_label": "the label shared by at least 2 of the 3 variants; otherwise MIXED",
+    "descriptive_case_map": {
+      "Case 1 (MFE up, MAE same)": "DIRECTIONAL",
+      "Case 2 (MFE up, MAE up, symmetric)": "VOLATILITY",
+      "Case 3 (no MFE/MAE difference)": "NEITHER"
+    },
+    "trading_strategy": "none; this study only labels what information C-M carries"
+  },
+  "outputs": {
+    "root": "data/runtime/strategy_c/v2/runs/<run_id>/",
+    "files": ["summary.json", "v2a_horizon_table.csv", "v2b_metric_table.csv", "rules.json", "manifest.json"],
+    "no_writes_to": ["data/runtime/strategy_c/raw", "data/runtime/strategy_c/runs", "any common data store"]
+  }
+}

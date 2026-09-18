@@ -1,0 +1,59 @@
+{
+  "rule_id": "c-v2c-event-taxonomy-draft-v0",
+  "declared_on": "2026-09-18",
+  "status": "DRAFT_DESIGN_ONLY",
+  "status_meaning": "No event data has been fetched. SEC endpoint facts below come from EDGAR documentation knowledge and are NOT_PROBED in this session. C-E0 verifies them; C-E1 freezes a v1 file with its own checksum before the first event statistic.",
+  "principles": [
+    "No AI, no ML, no free-text sentiment. An event class is decided by form type and 8-K item number only.",
+    "A direction is assigned only when the form or item itself implies it. Everything else is UNKNOWN and is never promoted to POSITIVE.",
+    "Direction for cohort E comes from the price response, never from the filing content."
+  ],
+  "source": {
+    "primary": "SEC EDGAR submissions JSON per CIK (filings: accessionNumber, form, filingDate, acceptanceDateTime, items) and nightly bulk submissions archive",
+    "fallback": "EDGAR full-index/daily-index (form, CIK, filing date; no acceptance time -> only usable with the conservative next-session rule)",
+    "ticker_to_cik": "cik field of the Massive CS reference snapshots already cached for C (latest snapshot with as_of <= D); SEC company_tickers.json is current-only and is not used for history",
+    "history": "EDGAR electronic filings cover the whole 2024-09..2026-09 price window; event depth is not the binding constraint, price depth (Massive Basic 2y) is"
+  },
+  "pit": {
+    "available_at": "acceptanceDateTime converted to America/New_York",
+    "event_session": "first XNYS session whose 16:00 ET close is later than available_at",
+    "usable_for_signal_D": "event_session in [D-1, D] (available_at < 16:00 ET of D)",
+    "pending": "available_at in [16:00 ET of D, signal time] -> E_PENDING: not an event for D, and the candidate is removed from the no-event cohort too (counted)",
+    "amendments": "8-K/A and other /A forms never create a new event date; an /A with no original in range is ignored (counted)",
+    "unknown_cik": "ticker-date without a CIK -> EVENT_STATUS_UNKNOWN, excluded from E, EM and M-no-event, counted",
+    "mutation_audit": "shifting every available_at by +1 session must change cohort membership only for the affected dates; any event with available_at after the signal time of D found in D's cohort is a PIT violation"
+  },
+  "classes": {
+    "EARNINGS_RELEASE": {"source": "8-K item 2.02", "direction": "UNKNOWN", "why": "no consensus source (Massive Benzinga earnings 403); 10-Q XBRL arrives weeks later; EX-99.1 press releases are not XBRL", "v1": "INCLUDE as event flag"},
+    "ITEM_1_01_AGREEMENT": {"source": "8-K item 1.01", "direction": "UNKNOWN", "why": "same item covers customer contracts, credit agreements, ATM sales agreements and merger agreements; MATERIAL_CONTRACT vs MATERIAL_AGREEMENT cannot be split without reading text", "v1": "INCLUDE as event flag"},
+    "ACQUISITION_COMPLETED": {"source": "8-K item 2.01", "direction": "UNKNOWN", "why": "acquirer-side filing; target usually delists", "v1": "INCLUDE as event flag"},
+    "MA_TARGET_PIN": {"source": "SC 14D9, SC TO-T (subject company), PREM14A, DEFM14A", "direction": "PINNED", "why": "a target's price converges to the deal price; momentum there is not drift", "v1": "EXCLUSION filter (removed from every cohort, counted)"},
+    "EQUITY_DILUTION": {"source": "424B4, 424B5, 8-K item 3.02", "direction": "NEGATIVE", "why": "priced offering, shelf takedown (incl. ATM) or unregistered equity sale", "v1": "INCLUDE as negative risk flag"},
+    "SHELF_REGISTRATION": {"source": "S-3, S-3ASR, F-3", "direction": "NEGATIVE_WEAK", "why": "capacity to issue, not issuance", "v1": "DESCRIPTIVE only"},
+    "DISTRESS": {"source": "8-K items 1.03, 3.01, 4.02", "direction": "NEGATIVE", "why": "bankruptcy, delisting notice, non-reliance on prior financials", "v1": "INCLUDE as negative risk flag"},
+    "OTHER_8K_MATERIAL": {"source": "8-K items 7.01, 8.01, 5.02, 2.03 and the rest", "direction": "UNKNOWN", "v1": "DESCRIPTIVE count only"},
+    "EXCLUDED": {
+      "424B2": "dominated by bank structured notes, not issuer dilution",
+      "424B3": "resale and merger prospectuses, direction not structural",
+      "CONVERTIBLE_FINANCING": "needs text to separate from other 8-K 1.01/2.03 debt",
+      "GOING_CONCERN": "10-K/10-Q text; an XBRL flag is unverified (check in C-E0)",
+      "REGULATORY_FDA_ETC": "not an SEC-structured item; openFDA lacks announcement timestamps and sponsor-ticker mapping",
+      "NEWS": "Massive news is unstructured; insights are AI-derived and banned"
+    },
+    "PROPOSED_NOT_IN_V1": {"INSIDER_PURCHASE": "Form 4 XML transaction code P; structurally positive but outside the requested list, needs its own declaration"}
+  },
+  "cohorts": {
+    "base_variant": "C-M0 (V1 thresholds unchanged; C-M1's RS conditions added no information in V1)",
+    "M_only": "C-M0 candidates with no usable event, no E_PENDING, known CIK",
+    "EM": "C-M0 candidates with a usable event in EARNINGS_RELEASE, ITEM_1_01_AGREEMENT or ACQUISITION_COMPLETED, and no EQUITY_DILUTION/DISTRESS event",
+    "E": "eligible ticker-dates with a usable event of those classes and return_1d >= 0.03 on D (V1 threshold, no volume or 5D condition)",
+    "risk": "any candidate with EQUITY_DILUTION or DISTRESS in [D-20, D] reported separately",
+    "all_cohorts": "MA_TARGET_PIN removed; same matching cells, labels and bootstrap as V1"
+  },
+  "hypotheses_to_freeze_at_c_e1": {
+    "H1": "EM close_10 excess over matched controls > 0",
+    "H2": "M_only close_10 excess < 0 (no-news moves revert)",
+    "H3": "EM excess minus M_only excess > 0",
+    "note": "No cohort is assumed best. Thresholds, CI levels and gate are frozen in c-v2c v1 before the first event fetch."
+  }
+}
