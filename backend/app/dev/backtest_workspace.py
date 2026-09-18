@@ -18,7 +18,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from app.backtest.workspace.discovery import resolve_workspace_root
-from app.backtest.workspace.errors import WorkspaceError
+from app.backtest.workspace.errors import ManifestError, WorkspaceError
 from app.backtest.workspace.identity import read_identity
 from app.backtest.workspace.layout import Workspace
 from app.backtest.workspace.lock import force_release, read_lock
@@ -79,9 +79,15 @@ def command_status(args: argparse.Namespace) -> int:
           f"{identity.workspace_schema_version if identity else 'none'}")
     _print_state(read_current_state(workspace))
     if workspace.manifest_path.is_file():
-        with manifest_connection(workspace, create=False) as connection:
-            counts = counts_by_status(connection)
-        print("manifest=" + " ".join(f"{key.lower()}:{value}" for key, value in counts.items()))
+        try:
+            with manifest_connection(workspace, create=False) as connection:
+                counts = counts_by_status(connection)
+        except ManifestError as error:
+            # A manifest written by an older schema is readable again after ``init``
+            # migrates it; status stays informative instead of stopping the handoff.
+            print(f"manifest=migration_pending ({error.reason}); run init")
+        else:
+            print("manifest=" + " ".join(f"{key.lower()}:{value}" for key, value in counts.items()))
     else:
         print("manifest=absent")
     lock = read_lock(workspace)

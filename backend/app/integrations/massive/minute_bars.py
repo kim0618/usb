@@ -80,7 +80,8 @@ def parse_timestamp_ms(value: Any) -> datetime:
     return EPOCH + timedelta(milliseconds=value)
 
 
-def _number(row: Mapping[str, Any], name: str) -> float | None:
+def optional_number(row: Mapping[str, Any], name: str) -> float | None:
+    """One optional finite numeric field of an aggregate row, or None when absent."""
     value = row.get(name)
     if value is None:
         return None
@@ -97,9 +98,9 @@ def parse_bar(row: Any) -> MinuteBar:
         raise MalformedPayload("aggregate field t is missing")
     return MinuteBar(
         bar_start=parse_timestamp_ms(row["t"]),
-        open=_number(row, "o"), high=_number(row, "h"), low=_number(row, "l"),
-        close=_number(row, "c"), volume=_number(row, "v"),
-        vwap=_number(row, "vw"), trades=_number(row, "n"),
+        open=optional_number(row, "o"), high=optional_number(row, "h"), low=optional_number(row, "l"),
+        close=optional_number(row, "c"), volume=optional_number(row, "v"),
+        vwap=optional_number(row, "vw"), trades=optional_number(row, "n"),
     )
 
 

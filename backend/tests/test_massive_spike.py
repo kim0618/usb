@@ -461,7 +461,8 @@ def test_pagination_follows_next_url_and_strips_any_key() -> None:
 
 
 def test_pagination_is_bounded() -> None:
-    transport = Transport(respond(200, body([], next_url=NEXT)))
+    # A fresh cursor on every page: the cap, not loop detection, ends the walk.
+    transport = Transport(*(respond(200, body([], next_url=f"{NEXT}{n}")) for n in range(MAX_PAGES + 1)))
     client = make_client(transport)
     with pytest.raises(MassiveError) as failed:
         client.minute_aggregates("AAPL", START, END)

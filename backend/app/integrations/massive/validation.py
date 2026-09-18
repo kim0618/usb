@@ -97,7 +97,7 @@ def _missing(start: datetime, end: datetime, present: set[datetime]) -> tuple[da
     return tuple(minute.astimezone(ET) for minute in _minutes(start, end) if minute not in present)
 
 
-def _ohlc_invalid(bar: MinuteBar) -> bool:
+def ohlc_invalid(bar: MinuteBar) -> bool:
     ohlc = bar.ohlc
     if ohlc is None:
         return False
@@ -129,7 +129,7 @@ def validate(bars: Sequence[MinuteBar], window: TradingSessionWindow) -> SpikeVa
         rows_at_or_after_close=sum(1 for start in starts if start >= window.market_close),
         duplicate_timestamps=len(starts) - len(present),
         non_monotonic_timestamps=sum(1 for before, after in zip(starts, starts[1:]) if after < before),
-        ohlc_violations=sum(1 for bar in bars if _ohlc_invalid(bar)),
+        ohlc_violations=sum(1 for bar in bars if ohlc_invalid(bar)),
         null_ohlcv_rows=sum(1 for bar in bars if bar.has_null_ohlcv),
         negative_volume_rows=sum(1 for bar in bars if bar.volume is not None and bar.volume < 0),
         zero_volume_rows=sum(1 for bar in bars if bar.volume == 0),
