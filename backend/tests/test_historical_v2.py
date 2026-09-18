@@ -254,3 +254,16 @@ def test_fetch_retries_a_transient_error_on_the_same_item_and_never_retries_auth
     assert sleeps[:2] == [60, 120] and code == 1
     progress = json.loads((tmp_path / "out" / "fetch_progress.json").read_text())
     assert progress["kinds"]["b_minute"]["done"] == 1 and progress["kinds"]["b_minute"]["transient_retries"] == 2
+
+
+def test_minute_window_keeps_only_recent_scope_symbols_with_warmup():
+    from app.dev.historical_v2 import minute_window_ranges
+    sessions = _weekdays(date(2026, 1, 5), 60)
+    member = np.zeros((60, 3), dtype=bool)
+    member[5:15, 0] = True      # OLD: scope ends before the window
+    member[[45, 50], 1] = True  # NEW: first scope day in the window is 45
+    member[[10, 55], 2] = True  # BOTH: counted from its first scope day inside the window
+    ranges = minute_window_ranges(member, ["OLD", "NEW", "BOTH"], sessions, sessions[40], 20)
+    assert set(ranges) == {"NEW", "BOTH"}
+    assert ranges["NEW"] == (sessions[25], sessions[50])
+    assert ranges["BOTH"] == (sessions[35], sessions[55])

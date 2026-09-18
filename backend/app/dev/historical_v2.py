@@ -75,6 +75,13 @@ REFERENCE_GZ_BYTES_PER_PAGE = 75_000
 PRIORITY = ("b_minute", "b_per_symbol_daily", "a_settlement_minute", "reference_daily")
 
 
+def configure_b_minute_tier(tier: str) -> None:
+    """``local`` (default): B minute in the local staging. ``drive``: B minute in the Drive workspace,
+    with only Drive/legacy coverage subtracted, so the Drive copy is complete on its own."""
+    global LOCAL_KINDS
+    LOCAL_KINDS = frozenset({"b_minute"}) if tier == "local" else frozenset()
+
+
 def kind_root(kind: str, root: Path) -> Path:
     return STAGING if kind in LOCAL_KINDS else root
 
@@ -97,12 +104,25 @@ def rows_for_trades(trades: float) -> float:
     return min(rows, 960.0)
 
 
-def build_plan(root: Path) -> dict:
+def minute_window_ranges(member, names: list[str], sessions: list[date], start: date,
+                         warmup: int) -> dict[str, tuple[date, date]]:
+    """B minute ranges restricted to a recent scope window: symbols in S(D) for some D >= ``start``,
+    each [first such scope day - ``warmup``, last scope day]. Same PIT membership, shorter window."""
+    first = next(i for i, d in enumerate(sessions) if d >= start)
+    out = {}
+    for j, name in enumerate(names):
+        days = [i for i in range(first, len(sessions)) if member[i, j]]
+        if days:
+            out[name] = (sessions[max(0, days[0] - warmup)], sessions[days[-1]])
+    return out
+
+
+def build_plan(root: Path, *, b_minute_from: date | None = None) -> dict:
     calendar = MarketCalendar()
     sessions = sessions_between(calendar, *GRID)
     index = {s: i for i, s in enumerate(sessions)}
     snapshots = quarter_snapshot_dates(calendar, date(2024, 9, 16), GRID[1])
-    universe, _, names, trades = b_universe.build(root, sessions, snapshots)
+    universe, member, names, trades = b_universe.build(root, sessions, snapshots)
     col = {t: j for j, t in enumerate(names)}
     ranges = {r["symbol"]: (date.fromisoformat(r["start"]), date.fromisoformat(r["end"])) for r in universe["symbols"]}
     b_symbols = sorted(ranges)
@@ -120,11 +140,17 @@ def build_plan(root: Path) -> dict:
         "requests": len(requests), "http_calls": len(requests), "expected_rows": need,
         "bytes": int(need * DAILY_GZ_BYTES_PER_SESSION), "windowed": True}
 
-    legacy, common = existing_sessions(root, "minute", sessions, b_symbols)
-    _, staged = existing_sessions(root, "minute", sessions, b_symbols, raw_root=STAGING)
-    have = {s: legacy[s] | common[s] | staged[s] for s in b_symbols}
+    minute_ranges = ranges if b_minute_from is None else minute_window_ranges(
+        member, names, sessions, b_minute_from, b_universe.RvolConfig().lookback_sessions)
+    m_symbols = sorted(minute_ranges)
+    legacy, common = existing_sessions(root, "minute", sessions, m_symbols)
+    if "b_minute" in LOCAL_KINDS:
+        _, staged = existing_sessions(root, "minute", sessions, m_symbols, raw_root=STAGING)
+    else:
+        staged = {s: set() for s in m_symbols}
+    have = {s: legacy[s] | common[s] | staged[s] for s in m_symbols}
     first_scope = {r["symbol"]: r["first_scope"] for r in universe["symbols"]}
-    requests = sorted(plan_requests("minute", sessions, have, b_symbols, required=ranges, chunk=len(sessions)),
+    requests = sorted(plan_requests("minute", sessions, have, m_symbols, required=minute_ranges, chunk=len(sessions)),
                       key=lambda r: (r.start, first_scope[r.symbol], r.symbol))
     rows_total, calls = 0.0, 0
     for request in requests:
@@ -135,9 +161,11 @@ def build_plan(root: Path) -> dict:
         calls += max(1, math.ceil(rows / PAGE_LIMIT))
     need = sum(r.sessions for r in requests)
     plans["b_minute"] = requests
+    required = sum(len([d for d in sessions if lo <= d <= hi]) for lo, hi in minute_ranges.values())
     kinds["b_minute"] = {
-        "required_symbol_sessions": universe["range_symbol_sessions"],
-        "existing_symbol_sessions": universe["range_symbol_sessions"] - need, "missing_symbol_sessions": need,
+        "scope_window_from": str(b_minute_from) if b_minute_from else None, "symbols": len(m_symbols),
+        "required_symbol_sessions": required,
+        "existing_symbol_sessions": required - need, "missing_symbol_sessions": need,
         "requests": len(requests), "http_calls": calls, "expected_rows": int(rows_total),
         "bytes": int(rows_total * MINUTE_GZ_BYTES_PER_ROW), "windowed": True}
 
@@ -260,7 +288,7 @@ def fetch(root: Path, plan: dict, *, spacing: float, max_requests: int | None) -
     queue: list[tuple[str, object]] = []
     for kind in PRIORITY:
         if plan["kinds"][kind]["capacity_gate"] != "PASS":
-            log(f"skip {kind}: capacity gate BLOCKED")
+            log(f"skip {kind}: {plan['kinds'][kind]['capacity_gate']}")
             continue
         items = plan["plans"][kind]
         if kind == "b_per_symbol_daily":
@@ -392,10 +420,20 @@ def main() -> None:
     parser.add_argument("--workspace-root", type=Path, default=None)
     parser.add_argument("--spacing-seconds", type=float, default=13.0)
     parser.add_argument("--max-requests", type=int, default=None)
+    parser.add_argument("--b-minute-from", type=date.fromisoformat, default=None,
+                        help="only B scope days on/after this date (+ RVOL warmup) for B minute")
+    parser.add_argument("--b-minute-tier", choices=("local", "drive"), default="local")
+    parser.add_argument("--only", default=None, help="comma-separated kinds to fetch (default: all)")
     args = parser.parse_args()
     root = resolve_workspace_root(args.workspace_root)
     lock = _collector_lock() if args.command == "fetch" else None  # noqa: F841 - held until exit
-    plan = build_plan(root)
+    configure_b_minute_tier(args.b_minute_tier)
+    plan = build_plan(root, b_minute_from=args.b_minute_from)
+    if args.only:
+        wanted = set(args.only.split(","))
+        for kind in PRIORITY:
+            if kind not in wanted:
+                plan["kinds"][kind]["capacity_gate"] = "SKIPPED_BY_ONLY"
     _save(plan)
     print(json.dumps({"free_gb": round(plan["free_bytes"] / 1e9, 2), "kinds": plan["kinds"]}, indent=1), flush=True)
     if args.command == "fetch":

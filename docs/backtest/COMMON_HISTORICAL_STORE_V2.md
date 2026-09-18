@@ -136,3 +136,31 @@ snapshot records `storage.drive` and `storage.local_staging` and embeds `unavail
 strategy_requirements_digest, b_fetch_universe_digest, coverage_digest, manifest_digest, limitations and
 the V1 members plus new members. It refuses while a required kind is MISSING unless the user names it in
 `--accept-missing` (it becomes a limitation). Sessions lost to the window are UNAVAILABLE, not MISSING.
+
+## 7. Direction change (2026-09-18 15:26 KST) and cross-PC handoff
+
+Paid 5-10 year data is planned after the four strategies are tested, so the free 2-year window no longer has
+to be preserved in full. The full 2-year B minute run (P0, local staging) was stopped with SIGINT at 174 symbols
+(432 MB in `data/runtime/common_hist/v2_staging`, kept, not deleted). B has no FSM / setup / entry yet, so data is
+not its bottleneck.
+
+Current run: B minute for the **recent 4-month scope window on Drive** (scope days 2026-05-18..2026-09-16, fetch
+from the first such day - 20 sessions, i.e. 2026-04-20; 3,883 symbols, 3,855 requests, ~4,150 calls, ~15 h,
+~2.2-2.8 GB). Only Drive/legacy coverage is subtracted, so the Drive copy is complete on its own.
+
+```bash
+cd ~/usb && nohup env PYTHONPATH=backend .venv/bin/python -m app.dev.historical_v2 fetch \
+  --b-minute-from 2026-05-18 --b-minute-tier drive --only b_minute \
+  > data/runtime/common_hist/v2/fetch.log 2>&1 &
+```
+
+Rerunning the same command resumes: a request with a COMPLETE ledger costs zero calls; an interrupted one is
+fetched again. To continue on another PC:
+
+1. Stop the collector here (SIGINT, never kill -9) and wait for Google Drive to finish syncing.
+2. Never run two collectors at once on different PCs: `collector.lock` is local to each checkout, and two
+   writers produce Drive conflict copies ("(1)" files).
+3. On the other PC: `git pull` (needs this commit pushed), `.env` with `MASSIVE_API_KEY`, `.venv`; wait until
+   Drive shows the synced `market_data/raw/massive/minute/`, then run the command above.
+4. Progress: `data/runtime/common_hist/v2/fetch_progress.json` / `fetch.log` are per checkout; the Drive ledgers
+   (`*.request.json`) are the shared truth of what is done.
