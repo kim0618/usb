@@ -1,0 +1,260 @@
+{
+  "strategy_id": "HISTORICAL_ANALOG_V1",
+  "rule_id": "d-analog-rules-v1",
+  "schema_version": 1,
+  "phase": "D0",
+  "declared_on": "2026-09-17",
+  "declared_before_results": true,
+  "threshold_status": "RESEARCH_BASELINE_NOT_OPTIMIZED",
+  "ai_enabled": false,
+  "ai_forbidden": ["LLM", "vision model", "CNN", "Transformer", "Autoencoder", "ML ranking", "neural embedding"],
+  "units": "returns, distances to highs and volatilities are fractions (0.05 = 5%); session offsets are XNYS session-grid indices",
+  "change_policy": "any edit changes the canonical checksum and makes this a different study; new values go to d_analog_rules_v2.json with a new declaration",
+
+  "data_frequency": "DAILY",
+  "data": {
+    "provider": "massive",
+    "plan": "Stocks Basic (rolling 2 years, no same-day T bar)",
+    "source": "grouped_daily adjusted=false, include_otc default(false); read from the Strategy C raw cache (data/runtime/strategy_c/raw) read-only",
+    "session_calendar": "XNYS",
+    "reference_snapshots": "reference tickers type=CS active=true as of the first XNYS session of each calendar quarter; date D uses the latest snapshot with as_of <= D",
+    "splits": "market-wide /v3/reference/splits records; only execution_date <= t enters F(t)",
+    "allowed_primary_exchanges": ["XNYS", "XNAS", "XASE", "ARCX", "BATS"],
+    "price_basis": "P(t) = raw close(t) / F(t), H(t) = raw high(t) / F(t), O(t) = raw open(t) / F(t); F(t) = product of split_from/split_to of the ticker's splits executed <= t",
+    "api_calls_in_d0": 0
+  },
+
+  "universe": {
+    "note": "same numeric values as the C-M hard filter, declared here independently; D never reads the C rules file",
+    "security_type": "CS in the snapshot as of D, primary_exchange in allowed_primary_exchanges",
+    "min_close": 3.0,
+    "min_adv20_dollar": 5000000.0,
+    "adv20_definition": "mean(raw close * raw volume) over sessions D-20..D-1",
+    "history": "a bar on every session D-60..D (61 consecutive session bars)",
+    "seasoning_sessions": 60,
+    "corporate_action_exclusion": {
+      "split_window": "any split (either direction) with execution_date in (session D-60, D] excludes the ticker-date",
+      "ca_suspect_window": "any P(t)/P(t-1) >= 3.0 or <= 1/3 for t in D-59..D excludes the ticker-date",
+      "ca_suspect_ratio": 3.0,
+      "applies_to": "query windows AND library windows (symmetric)"
+    }
+  },
+
+  "initial_features": {
+    "signal_input": "split-normalized close path P(D-W..D) only",
+    "not_signal_inputs": ["open", "high", "low", "volume", "volatility", "market cap", "sector", "news"],
+    "other_columns_used_only_for": {
+      "volume": "universe ADV20 filter",
+      "open/high/low": "labels (P0, MFE, MAE) and the N2 baseline distance_to_high",
+      "realized volatility": "N1 volatility bucket and N2 baseline"
+    },
+    "d5_extension_candidates": ["OHLC path", "volume path", "volatility normalization"],
+    "d5_rule": "only after GATE-D-ALPHA = PASS, as a new declared version"
+  },
+
+  "pattern_windows": [20, 40, 60],
+  "forward_horizons": {
+    "20": [1, 3, 5],
+    "40": [5, 10],
+    "60": [10, 20]
+  },
+  "combinations": [
+    {"window": 20, "horizon": 1},
+    {"window": 20, "horizon": 3},
+    {"window": 20, "horizon": 5},
+    {"window": 40, "horizon": 5},
+    {"window": 40, "horizon": 10},
+    {"window": 60, "horizon": 10},
+    {"window": 60, "horizon": 20}
+  ],
+  "combination_count": 7,
+  "combination_policy": "frozen; no window or horizon is added after results; additions are a new version",
+
+  "representations": {
+    "A": {
+      "name": "z_normalized_close_path",
+      "vector": "z_i = (P(D-W+i) - mean) / std_ddof0 over i = 0..W (length W+1)",
+      "undefined": "std_ddof0 == 0 -> window excluded"
+    },
+    "B": {
+      "name": "cumulative_log_return_path",
+      "vector": "c_i = ln(P(D-W+i) / P(D-W)) for i = 1..W (length W)",
+      "undefined": "any non-finite value -> window excluded"
+    }
+  },
+  "similarity_methods": {
+    "A": {
+      "method": "pearson_correlation",
+      "formula": "rho = (z_q . z_n) / (W+1)",
+      "order": "rho descending",
+      "equivalence_note": "on z vectors with ddof0, ||z_q - z_n||^2 = 2(W+1)(1 - rho); Euclidean on representation A is the same ranking and is NOT a separate test"
+    },
+    "B": {
+      "method": "euclidean_distance",
+      "formula": "d = ||c_q - c_n||_2",
+      "order": "d ascending"
+    },
+    "tie_break": "library end session index ascending, then ticker ascending",
+    "dtw": {
+      "enabled": false,
+      "full_universe_search": false,
+      "rerank_k": null,
+      "reason": "V1 keeps the test family at 14 and the search exact; DTW is allowed only as Top-K reranking in a separately declared version"
+    }
+  },
+  "primary_test_family": {
+    "tests": "7 combinations x 2 representations",
+    "size": 14
+  },
+
+  "library": {
+    "definition": "every (ticker, end session d) window that passes the universe rule as of d, has a valid label for the tested horizon h, and satisfies the neighbor policies for the query",
+    "library_stride_sessions": 5,
+    "library_stride_rule": "library end session index d with d % 5 == 0 on the session grid",
+    "expanding": true,
+    "min_history": "same as universe.history (bars on every session d-60..d)"
+  },
+  "top_k": 50,
+  "insufficient_neighbors": "fewer than top_k neighbors after all policies -> query excluded as INSUFFICIENT_NEIGHBORS, counted per test",
+  "same_symbol_policy": {
+    "rule": "exclude every library window whose ticker equals the query ticker, over the whole history",
+    "figi_rule": "also exclude a library window whose composite_figi (snapshot as of its end date) equals the query composite_figi (snapshot as of D) when both are non-null",
+    "ticker_reuse_handling": "a different company that reuses the query ticker is also excluded (conservative); a renamed company without a composite_figi match is not detected (known limitation)"
+  },
+  "embargo_policy": {
+    "forward_label_embargo": "neighbor label window d+1..d+h must end on or before D (d + h <= D)",
+    "overlapping_window_rule": "neighbor span d-W..d+h must end before the query pattern window starts: d + h <= D - W",
+    "effective_rule": "d + h <= D - W (strict; implies the forward-label embargo)",
+    "reason": "a neighbor whose window or outcome overlaps the query window measures contemporaneous co-movement, not a historical analog"
+  },
+  "neighbor_concentration_policy": {
+    "max_windows_per_neighbor_ticker": 1,
+    "max_neighbors_per_library_end_date": 5,
+    "selection": "greedy in similarity order, skipping a candidate that would break either cap, until top_k are accepted"
+  },
+
+  "labels": {
+    "available_at": "D+1 04:00 ET (signal is known only after D's daily bar is final)",
+    "reference_price": "P0 = O(D+1)",
+    "window": "sessions D+1..D+h; D itself never included",
+    "close_return_h": "P(D+h) / P0 - 1, clipped to [-1, 1]; equals the C close_return[h] whenever a bar exists on D+h",
+    "excess_return_h": "close_return_h minus the median close_return_h over all label-valid eligible tickers of the same date (full universe, not the query sample)",
+    "mfe_h": "max(H(D+1..D+h)) / P0 - 1",
+    "mae_h": "min(L(D+1..D+h)) / P0 - 1",
+    "validity": "a bar on D+1 (else NO_ENTRY_BAR), a bar on session D+h itself (else MISSING_HORIZON_BAR), not label CA suspect",
+    "why_not_c_disappeared": "C DISAPPEARED asks whether any bar exists on or after D+h anywhere in the dataset, which reads past D+h; for a neighbor that would read past the query date. The D rule is decidable at D+h, so neighbor validity is known at query time (d + h <= D - W)",
+    "ca_window_vs_query": "W >= 20 > 10, so the C CA window end d+10 is always <= D - W - h + 10 < D for a usable neighbor",
+    "label_ca_suspect": {
+      "h_le_10": "the C LabelSet.label_ca_suspect as is (window D..D+10)",
+      "h_20": "C window D..D+10 plus the same ratio rule on D+11..D+20 (close(t)/close(t-1) or open(t)/close(t-1) >= 3.0 or <= 1/3)",
+      "reason": "C labels.LABEL_CA_HORIZON = 10; a synthetic 10x jump at D+15 passes as a valid 20D label today (measured 2026-09-17)"
+    },
+    "applies_to": "query evaluation labels and neighbor labels (same definitions)"
+  },
+
+  "signal": {
+    "similarity_confidence": {
+      "symbol": "sigma(q)",
+      "A": "mean rho over the accepted top_k",
+      "B": "-mean(d) / sqrt(W) over the accepted top_k",
+      "role": "descriptive only in V1; never a gate input and never a filter"
+    },
+    "analog_forward_signal": {
+      "symbol": "S(q)",
+      "primary": "median of neighbor excess_return_h over the accepted top_k",
+      "direction": "higher S(q) predicts higher query excess_return_h"
+    }
+  },
+
+  "baseline_N1": {
+    "name": "random_analog",
+    "purpose": "similarity search vs random historical sampling from the same library",
+    "library": "the same library the query sees (same universe, label validity, stride, same-symbol and embargo policies)",
+    "matching": "library windows in the same realized-volatility quintile as the query; quintile = per-date percentile rank of rv_W over that date's full eligible universe, edges 0.2/0.4/0.6/0.8",
+    "draw": "top_k windows sampled without replacement in the order of sha256('N1|seed|replicate|query_date|query_ticker|lib_date|lib_ticker'), applying the same concentration caps",
+    "replicates": 20,
+    "seed": 20260917,
+    "signal": "median neighbor excess_return_h, per replicate",
+    "ic": "per date, mean of the 20 replicate Spearman ICs",
+    "descriptive_variant_N1b": "each accepted real neighbor replaced by a random window of the same library end date and same volatility quintile; reported, never a gate input"
+  },
+  "baseline_N2": {
+    "name": "simple_price_features",
+    "features": {
+      "return_W": "P(D) / P(D-W) - 1",
+      "return_1d": "P(D) / P(D-1) - 1",
+      "return_5d": "P(D) / P(D-5) - 1",
+      "realized_vol_W": "std_ddof1 of ln(P(t)/P(t-1)) for t in D-W+1..D",
+      "distance_to_W_high": "P(D) / max(H(D-W+1..D)) - 1"
+    },
+    "standardization": "per-date percentile rank over that date's full eligible universe: (average rank - 1) / (n - 1)",
+    "N2a_feature_knn": "same library, policies, top_k, caps and signal as D, with Euclidean distance on the 5 standardized features instead of the path",
+    "N2b_orthogonalized": "per date, OLS of rank(S(q)) on the 5 standardized features plus intercept over the valid query sample; Spearman IC of the residual with excess_return_h",
+    "missing": "a query with any non-finite N2 feature is excluded from N2a/N2b comparisons only, counted"
+  },
+
+  "evaluation": {
+    "session_grid": "all usable sessions of the frozen C raw cache, index 0..N-1 (N is measured in D1)",
+    "query_dates": "every session index in [eval_start_idx, eval_end_idx], common to all 14 tests and all baselines",
+    "eval_start_idx": "seasoning_sessions + min_library_span_sessions + max(W + h) = 60 + 120 + 80 = 260",
+    "min_library_span_sessions": 120,
+    "eval_end_idx": "N - 1 - 20",
+    "queries_per_date": 300,
+    "query_sampling": "eligible tickers of D ordered by sha256('Q|20260917|D|ticker'), first 300; sampled before label validity is known; invalid labels dropped afterwards and counted",
+    "min_valid_queries_per_date": 100,
+    "ic": "Spearman rank correlation between S(q) and excess_return_h over the date's valid queries",
+    "aggregation": "equal-weight mean of per-date ICs",
+    "time_blocks": 4,
+    "time_block_rule": "evaluable query dates split into 4 consecutive blocks of (near) equal count"
+  },
+
+  "statistics": {
+    "bootstrap": "moving block bootstrap over evaluable query dates, block length 20 sessions, 10000 replicates, seed 20260917",
+    "ci": "percentile",
+    "family_wise": "Bonferroni over the 14 primary tests: two-sided level 1 - 0.05/14 = 0.99643 for gate conditions; 95% also reported",
+    "paired": "differences vs N1 and N2a use per-date paired differences under the same bootstrap draws"
+  },
+
+  "primary_metric": "mean daily Spearman IC between S(q) (median neighbor excess return) and realized excess_return_h, per (window, horizon, representation)",
+  "secondary_metrics": [
+    "IC of mean neighbor excess return",
+    "IC of neighbor hit rate P(excess_return_h > 0)",
+    "IC of median neighbor mfe_h and mae_h",
+    "query realized mfe_h / mae_h by S(q) quintile",
+    "Q5 - Q1 realized excess_return_h spread by S(q) quintile",
+    "IC within sigma(q) terciles (descriptive)",
+    "N1b date-matched random baseline IC",
+    "Spearman correlation of S(q) with each N2 feature",
+    "library size, neighbor date/ticker diversity, INSUFFICIENT_NEIGHBORS share",
+    "inverse effects (IC CI entirely below 0), reported as INVERSE_EFFECT"
+  ],
+
+  "pass_fail_policy": {
+    "gate_name": "GATE-D-ALPHA",
+    "per_test_conditions": {
+      "1_ic_point": "> 0",
+      "2_ic_ci_low": "> 0 at the Bonferroni level",
+      "3_delta_ic_vs_N1_ci_low": "> 0 at the Bonferroni level",
+      "4_orthogonalized_ic_vs_N2b_ci_low": "> 0 at the Bonferroni level",
+      "5_delta_ic_vs_N2a_point": "> 0",
+      "6_quintile_spread_point": "Q5 - Q1 mean realized excess_return_h > 0",
+      "7_time_blocks": "IC point > 0 in >= 3 of 4 blocks",
+      "8_horizon_consistency": "every other horizon of the same window and representation has IC point > 0",
+      "9_sample": "evaluable dates >= 150, valid queries >= 20000, unique query tickers >= 1000, INSUFFICIENT_NEIGHBORS share <= 0.05",
+      "10_pit_violations": "== 0"
+    },
+    "decision": {
+      "PASS": "at least one of the 14 tests meets all 10 conditions",
+      "INCONCLUSIVE": "no test passes, and some test meets 1, 2, 3 and 4 but fails only 7, 8 or 9; or the data yields fewer than 150 evaluable dates",
+      "FAIL": "otherwise"
+    },
+    "negative_direction": "a significant negative IC is reported as INVERSE_EFFECT and is never a PASS; using it needs a new declared version",
+    "on_FAIL": "Strategy D research ends; no backtester, adapter or trading spec",
+    "on_INCONCLUSIVE": "no D5; the only allowed follow-up is a data-depth decision recorded as a new version",
+    "on_PASS": "D5 ablation (OHLC / volume / volatility) and D6 long historical OOS, then GATE-D-OOS; nothing proceeds automatically",
+    "pass_meaning": "the analog signal carries information beyond random analogs and simple price features in this data window; it is not evidence of a profitable strategy"
+  },
+
+  "pit_contract": "docs/backtest/strategy_d/D_PIT_CONTRACT_V1.md",
+  "checksum_recipe": "sha256 of json.dumps(payload, sort_keys=True, separators=(',', ':'), ensure_ascii=False) encoded UTF-8, i.e. app.backtest.strategy_c_selection.rules.canonical_checksum; recorded in d_analog_rules_v1.sha256"
+}

@@ -1,0 +1,10 @@
+# Strategy D (HISTORICAL_ANALOG_V1) rules checksum, declared before any D data read or result.
+# canonical: sha256 of json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False) UTF-8
+#            = app.backtest.strategy_c_selection.rules.canonical_checksum (existing US-B recipe)
+# file:      sha256 of the file bytes (informational; the canonical value is the gate)
+# declared:  2026-09-17 17:25 KST
+# revision:  a 17:21 KST draft (canonical 7e120421e5790e5d13f676f274be5e632f40adac7a3fe6f92d3f5e6f35a9c6f6) was
+#            superseded at 17:25 KST, still before any D data read or result: label validity changed from the C
+#            DISAPPEARED rule (reads past D+h) to "bar on D+h" so neighbor validity is point-in-time.
+canonical  680bf113253fc434102f46a4166ac38b23dfbb4ba7591a7d88c3430c058c0cd3  d_analog_rules_v1.json
+file       b6309ae40aec9a4818aff9c0362e51997cf2c10fb6e16bd5f9df21a153952fd5  d_analog_rules_v1.json
