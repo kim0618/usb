@@ -222,7 +222,9 @@
     "trailing_update": "before judging bar i: stop = max(stop, low of bar i-1); a stop never moves down",
     "partial_rounding": "floor(shares * partial_exit_fraction); 0 means the whole position exits at the target",
     "deadline_fill": "close of the last actual bar before the deadline; a bar printed after it is not used",
-    "catch_up": "several bars in one call are judged bar by bar, identical to tick-by-tick calls"
+    "catch_up": "several bars in one call are judged bar by bar, identical to tick-by-tick calls",
+    "eod_min_margin_minutes": 5,
+    "eod_clamp": "min(eod_exit_et, regular_close - eod_min_margin_minutes): an early close still exits before the bell"
   },
   "pit": {
     "as_of_cut": "available_at <= as_of",

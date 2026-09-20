@@ -1,26 +1,31 @@
-# Strategy B (REALTIME_MOMENTUM_V1) FSM/setup/entry/exit rules checksum, declared before any B backtest result.
+# Strategy B (REALTIME_MOMENTUM_V1) FSM/setup/entry/exit rules checksum.
+#
 # canonical: sha256 of json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False) UTF-8
 #            = app.backtest.strategy_c_selection.rules.canonical_checksum (existing US-B recipe)
 # file:      sha256 of the file bytes (informational; the canonical value is the gate)
-# declared:  (superseded, see below) 2026-09-19 19:09 KST (final), repo main HEAD a2b91ee
-# results:   0 B backtest runs existed at declaration time. B had no FSM, no setup detection and no entry code
-#            when the first draft was written, and none of the three drafts read B data or produced a B result.
-# revision:  two earlier drafts of the same session were superseded while the FSM was being written:
-#            18:51 KST  d6063e17024df2fd79a1eb475ca46ef918e7bf333719d8688eb577d9a6e297ff
-#                       -> SETUP_READY became a per-tick re-evaluation: the trigger is judged before the
-#                          close-below-stop invalidation (a bar that breaks out and then fails is a taken loss,
-#                          not a cancelled setup), a setup that merely disappears falls back to WATCHING, and the
-#                          signal-then-fill tick order was written down.
-#            19:05 KST  94d5a13689d0438dc101b4c68582ad0b11bf1aa4afb94e5fc796c7903549e928
-#                       -> eligibility is rechecked in every non-terminal state, ahead of the TTL check, so an
-#                          ENTRY_SIGNALLED candidate can still be REJECTED (an inferred halt stops the entry).
-# declared:  2026-09-20 11:52 KST (final), repo main HEAD a2b91ee
-#            2026-09-20  288cd7e308393e52b23e82518d185d0c46ce5cbdd73a7316cd2160d89097760c
-#                       -> the exit layer was implemented and its open details were written down while
-#                          still at zero results: the exit scan starts at the entry bar, HARD_STOP vs
-#                          TRAILING_STOP is decided by whether the stop has moved, a partial that rounds
-#                          to zero shares closes the whole position at the target, a deadline fills at the
-#                          last close before it, sizing only lowers for the position cap, and CON is
-#                          recorded as a universe exclusion (Windows reserved path name).
-canonical  54c6063015999ac56d33c69c21d1463e68d9727c13d65c3ff8d47db3ec5e2c13  b_fsm_rules_v1.json
-file       3bb60787c0bd2173b8e955c0fd94a41da798c2665816de7cd623dccbd4f2d1ec  b_fsm_rules_v1.json
+#
+# declared:  2026-09-20 20:45 KST (current), repo main at 3793bd1
+# results:   0. No B backtest has been run against data. Every draft below was superseded while the
+#            implementation was being written, before any B result existed, which is what makes the
+#            supersessions legitimate rather than post-hoc rule fitting.
+#
+# history (each line: the checksum that was replaced, and why)
+#   2026-09-19 18:51  d6063e17024df2fd79a1eb475ca46ef918e7bf333719d8688eb577d9a6e297ff
+#       SETUP_READY became a per-tick re-evaluation: the trigger is judged before the close-below-stop
+#       invalidation (a bar that breaks out and then fails is a taken loss, not a cancelled setup), a
+#       setup that merely disappears falls back to WATCHING, and the signal-then-fill tick order was
+#       written down.
+#   2026-09-19 19:05  94d5a13689d0438dc101b4c68582ad0b11bf1aa4afb94e5fc796c7903549e928
+#       Eligibility is rechecked in every non-terminal state and ahead of the TTL check, so an
+#       ENTRY_SIGNALLED candidate can still be REJECTED when a halt is inferred.
+#   2026-09-19 19:09  288cd7e308393e52b23e82518d185d0c46ce5cbdd73a7316cd2160d89097760c
+#       The exit layer was implemented: the exit scan starts at the entry bar, HARD_STOP vs
+#       TRAILING_STOP is decided by whether the stop has moved, a partial that rounds to zero shares
+#       closes the whole position at the target, a deadline fills at the last close before it, sizing
+#       only lowers for the position cap, and CON is recorded as a universe exclusion.
+#   2026-09-20 20:45  54c6063015999ac56d33c69c21d1463e68d9727c13d65c3ff8d47db3ec5e2c13
+#       The session engine found a calendar hole: 15:55 falls after the bell on an early-close
+#       session, so the EOD exit is clamped to regular_close - eod_min_margin_minutes (5). That is
+#       15:55 on a standard day and keeps the rule meaningful on a half day.
+canonical  a082b998303d6a95ff2aa2ca3715700f1fe2ae8e10be1a3c192ec7c66660a451  b_fsm_rules_v1.json
+file       eac1fc257f698c9d4cfaf5f1d8c411de1ce45d47fbc8d5fd2095236448e23038  b_fsm_rules_v1.json

@@ -175,9 +175,15 @@ class ExitConfig:
     """Wall-clock minutes."""
     eod_exit_et: str = "15:55"
     """HH:MM ET. B holds nothing overnight."""
+    eod_min_margin_minutes: int = 5
+    """Minutes before the closing bell the exit happens at the latest.
+
+    On a standard 16:00 close this equals ``eod_exit_et``; on an early close (13:00 half day)
+    it is what keeps the rule meaningful, because 15:55 would fall after the session ended."""
 
     def __post_init__(self) -> None:
-        _positive(self, "partial_take_profit_r", "partial_exit_fraction", "time_stop_minutes")
+        _positive(self, "partial_take_profit_r", "partial_exit_fraction", "time_stop_minutes",
+                  "eod_min_margin_minutes")
         _clock(self, "eod_exit_et")
         if self.partial_exit_fraction > 1:
             raise InvalidConfig("exit.partial_exit_fraction must be in (0, 1]")

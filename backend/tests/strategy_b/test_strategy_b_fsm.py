@@ -316,3 +316,25 @@ def test_ineligibility_outranks_an_expiring_ttl_on_the_same_tick() -> None:
     watching = advance(detected(), tick(tape, et(9, 49)), CONFIG)
     both = advance(watching, tick(tape, et(10, 19), halt_inferred=HaltStatus.HALT_INFERRED), CONFIG)
     assert (both.state, both.drop_reason) == (CandidateState.REJECTED, DropReason.INELIGIBLE)
+
+
+def test_the_signal_records_the_bar_that_crossed_the_trigger() -> None:
+    """The engine fills from this bar; letting it re-derive the bar would duplicate the rule."""
+    tape = tape_with(breakout_bar())
+    signalled = run(tape, detected(), tick(tape, et(9, 49)), tick(tape, et(9, 50)),
+                    tick(tape, et(9, 51)))
+    assert signalled.signal_bar_timestamp == et(9, 50)
+
+    # a skipped tick still names the first bar that crossed, not the latest one
+    later = tape_with(breakout_bar(), breakout_bar(11.40, close=11.30, low=11.00, open_=11.05,
+                                                   minute=51))
+    armed = run(later, detected(), tick(later, et(9, 49)), tick(later, et(9, 50)))
+    caught_up = advance(armed, tick(later, et(9, 55)), CONFIG)
+    assert caught_up.signal_bar_timestamp == et(9, 50)
+
+
+def test_a_setup_that_disappears_takes_its_signal_bar_with_it() -> None:
+    tape = tape_with(breakout_bar(11.005, close=10.95, low=10.90))
+    armed = run(tape, detected(), tick(tape, et(9, 49)), tick(tape, et(9, 50)))
+    back = advance(armed, tick(tape, et(9, 51)), CONFIG)
+    assert back.state is CandidateState.WATCHING and back.signal_bar_timestamp is None

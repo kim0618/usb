@@ -53,7 +53,7 @@ there are 3 observed bars but 8 elapsed minutes, and 5 bars can take far more th
 
 | Unit | Config fields |
 |---|---|
-| wall-clock minutes | `candidate.candidate_ttl_minutes`, `candidate.setup_ttl_minutes`, `candidate.signal_ttl_minutes`, `exit.time_stop_minutes`, `features.rolling_dollar_volume_window_minutes`, `features.volume_acceleration_window_minutes`, `halt.min_gap_minutes`, `halt.max_gap_minutes` |
+| wall-clock minutes | `candidate.candidate_ttl_minutes`, `candidate.setup_ttl_minutes`, `candidate.signal_ttl_minutes`, `exit.time_stop_minutes`, `exit.eod_min_margin_minutes`, `features.rolling_dollar_volume_window_minutes`, `features.volume_acceleration_window_minutes`, `halt.min_gap_minutes`, `halt.max_gap_minutes` |
 | actual bars | `hod_breakout.consolidation_min_bars`, `hod_breakout.consolidation_max_bars`, `first_pullback.min_duration_bars`, `first_pullback.max_duration_bars` |
 
 A TTL or time stop in minutes cannot be stretched by a silent tape. A pattern length in bars

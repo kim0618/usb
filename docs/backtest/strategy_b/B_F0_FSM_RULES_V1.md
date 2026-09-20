@@ -4,10 +4,11 @@
 
 - Strategy ID: `REALTIME_MOMENTUM_V1`
 - 규칙 정본: `b_fsm_rules_v1.json`
-- canonical sha256: `54c6063015999ac56d33c69c21d1463e68d9727c13d65c3ff8d47db3ec5e2c13` (기록 파일 `b_fsm_rules_v1.sha256`)
+- canonical sha256: `a082b998303d6a95ff2aa2ca3715700f1fe2ae8e10be1a3c192ec7c66660a451` (기록 파일 `b_fsm_rules_v1.sha256`)
   (기존 US-B 방식 `app.backtest.strategy_c_selection.rules.canonical_checksum`)
-- 선언 시각: 2026-09-20 11:52 KST (최종). 이전 초안 3개는 전부 B 결과 0건 상태에서 폐기, 사유와 해시는 `.sha256`에 기록
-- 구현: `backend/app/strategy_b/{scanner,eligibility,setups,fsm,exits,sizing}.py`
+- 선언 시각: `b_fsm_rules_v1.sha256` 참조(현재 선언과 폐기 초안 4개의 사유·해시를 모두 기록)
+- 구현: `backend/app/strategy_b/{scanner,eligibility,setups,fsm,exits,sizing}.py`,
+  엔진 `backend/app/backtest/strategy_b/{prefilter,costs,portfolio,engine}.py`
 - 선언 시점 저장소: `main` HEAD `a2b91ee`
 - 선언 시점 B 결과: 0건. B 백테스트는 아직 한 번도 실행된 적이 없다.
 - 상위 문서: `backend/app/strategy_b/README.md`(피처 계층 계약), `docs/backtest/COMMON_HISTORICAL_STORE_V2.md` 7절
@@ -339,7 +340,7 @@ position_value <= equity * risk.max_position_pct / 100      # 20%
 | `PARTIAL_TRAIL` | `high >= entry + exit.partial_take_profit_r * 1R` (2R) | `exit.partial_exit_fraction`(50%)을 그 가격에 청산, 잔량 stop을 entry(본전)로 올림 |
 | `TRAILING_STOP` | 부분청산 이후, stop = `max(현재 stop, 직전 실제 bar의 low)` (`TrailingModel.PREVIOUS_ACTUAL_BAR_LOW`) | 갱신된 stop |
 | `TIME_STOP` | 진입 후 `exit.time_stop_minutes`(30 wall-clock분) 경과 시점까지 부분청산에 도달하지 못한 경우 | 그 시점 마지막 실제 bar의 종가 |
-| `EOD_EXIT` | 15:55 ET | 그 시각 마지막 실제 bar의 종가 |
+| `EOD_EXIT` | 15:55 ET, 단 조기 마감일에는 `정규 마감 - exit.eod_min_margin_minutes`(5분) | 그 시각 이전 마지막 실제 bar의 종가 |
 
 - 부분청산에 도달했으면 time stop은 적용하지 않는다. 그 뒤로는 트레일링이 관리한다.
 - 오버나이트 없음. 모든 포지션은 당일 청산한다(B는 장중 전략이다).
@@ -355,6 +356,7 @@ position_value <= equity * risk.max_position_pct / 100      # 20%
 | 부분청산 수량 | `floor(보유수량 × exit.partial_exit_fraction)`. 0이면(1주 등) **전량**을 target에서 청산하고 포지션 종료 | 1주를 반으로 나눌 수 없다. 2R 도달은 사실이므로 이익을 실현하되, 없는 분할을 지어내지 않는다 |
 | 데드라인 체결가 | time stop·EOD는 **데드라인 이전** 마지막 실제 bar의 종가. 데드라인 뒤에 찍힌 bar는 쓰지 않는다 | 조용한 tape가 데드라인을 미루지 못하고, 데드라인 후 가격이 체결가가 되지도 않는다 |
 | tick 건너뜀 | 한 번에 여러 bar가 들어와도 bar 단위로 순서대로 판정한다. tick 단위 호출과 결과가 같아야 한다 | 엔진 호출 주기가 결과를 바꾸면 결정성이 깨진다 |
+| 조기 마감 | EOD 청산 시각 = `min(15:55, 정규 마감 - 5분)` | 반일장(13:00 마감)에서 15:55는 장이 끝난 뒤다. 규칙이 존재하는 이유(종 치기 전 청산)를 모든 달력에서 유지한다 |
 
 ### 9.2 사이징 세부 (8.4 구현)
 
@@ -415,3 +417,4 @@ V1 안에서 허용되며, 사유와 이전 checksum을 `.sha256` 파일에 남�
 | 16 | 데드라인 체결가 = 데드라인 이전 마지막 종가 | 조용한 tape와 데드라인 이후 가격을 모두 배제 |
 | 17 | stop이 올라간 뒤의 청산은 `TRAILING_STOP` | 사유 구분을 값 기준으로 고정 |
 | 18 | 사이징은 한도로 낮추기만 | 한도가 리스크 기준 수량을 키우지 않는다 |
+| 19 | 조기 마감일 EOD = 마감 5분 전 | 선언값 15:55가 장 종료 후가 되는 날을 규칙이 덮게 한다 |

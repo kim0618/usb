@@ -158,6 +158,7 @@ def test_fingerprint_changes_with_any_value() -> None:
 CLOCK_MINUTE_FIELDS = {
     ("candidate", "candidate_ttl_minutes"), ("candidate", "setup_ttl_minutes"),
     ("candidate", "signal_ttl_minutes"), ("exit", "time_stop_minutes"),
+    ("exit", "eod_min_margin_minutes"),
     ("features", "rolling_dollar_volume_window_minutes"),
     ("features", "volume_acceleration_window_minutes"),
     ("halt", "min_gap_minutes"), ("halt", "max_gap_minutes"),

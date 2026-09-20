@@ -109,6 +109,8 @@ class Candidate:
     signal_at: datetime | None = None
     entered_at: datetime | None = None
     setup: HodBreakoutSetup | None = None
+    signal_bar_timestamp: datetime | None = None
+    """The bar that crossed the trigger. The engine fills from it and must not guess it again."""
     entry_price: float | None = None
     drop_reason: DropReason | None = None
     eligibility_reasons: tuple[IneligibleReason, ...] = ()
@@ -125,8 +127,9 @@ class Candidate:
         armed = (CandidateState.SETUP_READY, CandidateState.ENTRY_SIGNALLED)
         if self.state in armed and (self.setup is None or self.setup_ready_at is None):
             raise ValueError(f"{self.state} must carry an armed setup and its arming time")
-        if self.state is CandidateState.ENTRY_SIGNALLED and self.signal_at is None:
-            raise ValueError("ENTRY_SIGNALLED must carry a signal time")
+        if self.state is CandidateState.ENTRY_SIGNALLED and (self.signal_at is None
+                                                              or self.signal_bar_timestamp is None):
+            raise ValueError("ENTRY_SIGNALLED must carry a signal time and the bar that crossed")
 
     @property
     def is_terminal(self) -> bool:
@@ -212,7 +215,10 @@ def _setup_ready(candidate: Candidate, tick: Tick, config: StrategyBConfig) -> C
         _, lo, hi = window
         start, stop = tick.tape.window_range(lo, armed_at, tick.as_of)
         if stop > start and tick.tape.high(start, stop) >= setup.trigger_price:
+            crossed = next(index for index in range(start, stop)
+                           if tick.tape.bars[index].high >= setup.trigger_price)
             return replace(candidate, state=CandidateState.ENTRY_SIGNALLED, signal_at=tick.as_of,
+                           signal_bar_timestamp=tick.tape.bars[crossed].timestamp,
                            updated_at=tick.as_of)
         if stop > start and tick.tape.bars[stop - 1].close < setup.initial_stop:
             return _drop(candidate, tick, CandidateState.CANCELLED, DropReason.SETUP_INVALIDATED)
@@ -220,7 +226,7 @@ def _setup_ready(candidate: Candidate, tick: Tick, config: StrategyBConfig) -> C
     rearmed = _detect(tick, config).setup
     if rearmed is None:
         return replace(candidate, state=CandidateState.WATCHING, setup=None, setup_ready_at=None,
-                       updated_at=tick.as_of)
+                       signal_bar_timestamp=None, updated_at=tick.as_of)
     if rearmed.trigger_price != setup.trigger_price or rearmed.initial_stop != setup.initial_stop:
         return replace(candidate, setup=rearmed, setup_ready_at=tick.as_of, updated_at=tick.as_of)
     return replace(candidate, setup=rearmed, updated_at=tick.as_of)

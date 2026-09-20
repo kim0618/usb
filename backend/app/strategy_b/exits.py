@@ -128,7 +128,7 @@ def advance_position(position: Position, tape: SessionTape, as_of: datetime, *,
             f"tick {as_of.isoformat()} is before the position's last update "
             f"{position.updated_at.isoformat()}")
 
-    eod_at = _et_moment(tape, config.eod_exit_et)
+    eod_at = _eod_moment(tape, config)
     current, events = position, []
     window = tape.scope_range(as_of, scope)
     if window is not None:
@@ -207,6 +207,14 @@ def _take_partial(position: Position, config: ExitConfig, at: datetime,
                    partial_taken=True, updated_at=max(position.updated_at, at)), events
 
 
-def _et_moment(tape: SessionTape, clock: str) -> datetime:
-    """``HH:MM`` ET on the tape's own session date."""
-    return datetime.combine(tape.boundaries.session_date, parse_et_clock(clock), tzinfo=ET)
+def _eod_moment(tape: SessionTape, config: ExitConfig) -> datetime:
+    """When the session's forced exit happens: the declared clock, or earlier on a short day.
+
+    An early close (a half day ends at 13:00 ET) would leave the declared 15:55 after the last
+    bar, so the position would never be closed by a rule that exists precisely to close it.
+    The margin keeps the intent - out before the bell - on every calendar.
+    """
+    declared = datetime.combine(tape.boundaries.session_date, parse_et_clock(config.eod_exit_et),
+                                tzinfo=ET)
+    return min(declared,
+               tape.boundaries.regular_close - timedelta(minutes=config.eod_min_margin_minutes))

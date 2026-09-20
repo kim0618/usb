@@ -26,7 +26,7 @@ from tests.strategy_b.fixtures import (
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 RULES_PATH = REPO_ROOT / "docs/backtest/strategy_b/b_fsm_rules_v1.json"
-DECLARED_RULES_CHECKSUM = "54c6063015999ac56d33c69c21d1463e68d9727c13d65c3ff8d47db3ec5e2c13"
+DECLARED_RULES_CHECKSUM = "a082b998303d6a95ff2aa2ca3715700f1fe2ae8e10be1a3c192ec7c66660a451"
 CONFIG = StrategyBConfig()
 
 
@@ -273,3 +273,4 @@ def test_every_declared_number_equals_the_config_default() -> None:
     assert exit_rules["trailing_model"] == CONFIG.exit.trailing_model.value
     assert exit_rules["time_stop_minutes"] == CONFIG.exit.time_stop_minutes
     assert exit_rules["eod_exit_et"] == CONFIG.exit.eod_exit_et
+    assert exit_rules["eod_min_margin_minutes"] == CONFIG.exit.eod_min_margin_minutes
