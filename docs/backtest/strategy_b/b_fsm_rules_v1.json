@@ -1,0 +1,244 @@
+{
+  "strategy_id": "REALTIME_MOMENTUM_V1",
+  "rule_id": "b-fsm-rules-v1",
+  "schema_version": 1,
+  "phase": "F0",
+  "declared_on": "2026-09-19",
+  "declared_before_results": true,
+  "threshold_status": "RESEARCH_DEFAULT_UNOPTIMIZED",
+  "ai_enabled": false,
+  "ai_forbidden": [
+    "LLM",
+    "vision model",
+    "CNN",
+    "Transformer",
+    "Autoencoder",
+    "ML ranking",
+    "neural embedding"
+  ],
+  "units": "return_* and *_pct are percent points (5.0 = 5%); *_fraction is 0 to 1; *_minutes is wall-clock; *_bars is actual observed bars",
+  "change_policy": "any edit changes the canonical checksum and makes this a different study; post-result changes go to b_fsm_rules_v2.json with a new declaration",
+  "document": "docs/backtest/strategy_b/B_F0_FSM_RULES_V1.md",
+  "config_binding": "every numeric threshold here equals the StrategyBConfig default of the same path; a test asserts the two are identical",
+  "data": {
+    "provider": "massive",
+    "plan": "Stocks Basic (rolling 2 years)",
+    "data_kind": "sparse_minute_bars",
+    "adjusted": false,
+    "completeness_policy": "HYBRID_S",
+    "session_calendar": "XNYS",
+    "availability_delay_minutes": 1,
+    "quotes_available": false,
+    "universe_exclusions": [
+      "CON: a DOS device name, which no Windows-backed store can hold as a directory"
+    ]
+  },
+  "scanner": {
+    "session": "REGULAR",
+    "window_et": {
+      "start": "09:35",
+      "end": "15:30"
+    },
+    "momentum_legs": {
+      "combine": "OR",
+      "conditions": [
+        {
+          "feature": "return_1m",
+          "operator": ">=",
+          "threshold": 2.0
+        },
+        {
+          "feature": "return_3m",
+          "operator": ">=",
+          "threshold": 4.0
+        },
+        {
+          "feature": "return_5m",
+          "operator": ">=",
+          "threshold": 6.0
+        }
+      ]
+    },
+    "liquidity_gates": {
+      "combine": "AND",
+      "conditions": [
+        {
+          "feature": "rolling_dollar_volume",
+          "operator": ">=",
+          "threshold": 250000.0
+        },
+        {
+          "feature": "rvol",
+          "operator": ">=",
+          "threshold": 3.0
+        }
+      ]
+    },
+    "spread_gate": {
+      "applied": false,
+      "max_spread_pct": 1.0,
+      "reason": "Basic minute bars carry no quotes and no spread is estimated"
+    },
+    "unknown_policy": "FAIL_CLOSED",
+    "rvol_partial_allowed": true
+  },
+  "score": {
+    "formula": "0.5*cap(momentum_ratio) + 0.3*cap(rvol_ratio) + 0.2*cap(liquidity_ratio)",
+    "cap": "min(x, 2.0) / 2.0",
+    "momentum_ratio": "max over available legs of return_leg / leg_threshold",
+    "rvol_ratio": "rvol / 3.0",
+    "liquidity_ratio": "rolling_dollar_volume / 250000.0",
+    "weights": {
+      "momentum": 0.5,
+      "rvol": 0.3,
+      "liquidity": 0.2
+    },
+    "threshold": 0.6,
+    "tie_break": [
+      "score desc",
+      "rolling_dollar_volume desc",
+      "symbol asc"
+    ]
+  },
+  "eligibility": {
+    "scope": "scope.evaluate_research_scope eligible, D-1 metadata and daily bars only",
+    "reject_corporate_action_flags": [
+      "SPLIT_ON_DAY",
+      "IPO_WARMUP",
+      "DELISTING_WINDOW",
+      "SYMBOL_CHANGE",
+      "CA_SUSPECT"
+    ],
+    "allow_corporate_action_flags": [
+      "RECENT_SPLIT"
+    ],
+    "reject_halt_status": [
+      "HALT_INFERRED"
+    ],
+    "allow_halt_status": [
+      "NO_HALT_SIGNAL",
+      "UNKNOWN"
+    ],
+    "reject_tape_density": [
+      "VERY_SPARSE",
+      "UNKNOWN"
+    ],
+    "allow_tape_density": [
+      "DENSE",
+      "SPARSE"
+    ],
+    "recheck": "every tick in every non-terminal state, ahead of the TTL check"
+  },
+  "fsm": {
+    "tick": "one minute bar availability time (bar_start + 1 minute)",
+    "transitions_per_tick": 1,
+    "priority": "terminal exit beats advance",
+    "ttl_minutes": {
+      "candidate": 30,
+      "setup": 10,
+      "signal": 2
+    },
+    "reentry": {
+      "max_entries_per_symbol_per_day": 1,
+      "entered_symbol_returns_to_pool": false
+    },
+    "setup_ready_order": [
+      "setup_ttl",
+      "eligibility",
+      "trigger",
+      "close_below_stop",
+      "rearm"
+    ],
+    "qualified_and_watching": "stamped on the same tick; counted as one transition",
+    "only_backward_transition": "SETUP_READY -> WATCHING when the setup is gone but not broken"
+  },
+  "setups": {
+    "HOD_BREAKOUT": {
+      "enabled": true,
+      "actual_bars_only": true,
+      "hod_index_rule": "earliest bar reaching the running high",
+      "consolidation_window": "bars after the HOD bar up to the last available bar",
+      "consolidation_min_bars": 3,
+      "consolidation_max_bars": 15,
+      "no_new_high_condition": {
+        "feature": "bar.high",
+        "operator": "<=",
+        "threshold": "hod"
+      },
+      "max_pullback_pct": 3.0,
+      "pullback_condition": "min(low over window) >= hod * (1 - max_pullback_pct/100)",
+      "breakout_buffer_pct": 0.1,
+      "trigger_price": "hod * (1 + breakout_buffer_pct/100)",
+      "initial_stop": "min(low over consolidation window)",
+      "invalidation": "last actual bar closes below initial_stop -> CANCELLED",
+      "rearm": "re-detected every tick: no valid setup -> back to WATCHING; a different trigger_price or initial_stop -> the setup is replaced and its TTL restarts"
+    },
+    "FIRST_PULLBACK": {
+      "enabled": false,
+      "reason": "one setup at a time; defined in config but not detected, not backtested in V1"
+    }
+  },
+  "entry": {
+    "signal": "first actual bar with high >= trigger_price, judged at bar availability time",
+    "price_drift_tolerance_pct": 1.0,
+    "fill_model": {
+      "primary": "signal bar: trigger_price when open <= trigger_price <= high, open when open > trigger_price",
+      "sensitivity": "B-E0 also computes a conservative next-bar-open variant"
+    },
+    "sizing": {
+      "risk_per_trade_pct": 0.5,
+      "max_position_pct": 20.0,
+      "max_open_positions": 3,
+      "daily_loss_limit_r": 3.0,
+      "shares": "floor(equity * risk_per_trade_pct/100 / (entry_price - initial_stop))",
+      "zero_size_action": "CANCELLED",
+      "cap_direction": "max_position_pct only lowers the risk-based share count, never raises it",
+      "r_is_fixed_at_entry": true
+    },
+    "costs": "fees and slippage numbers are declared in B-E0, not here",
+    "signal_then_fill": "the engine answers on a later tick, so entered_at is the tick the fill was recorded and the fill price refers to the signal bar",
+    "trigger_lookback": "every bar that became available since the setup armed"
+  },
+  "exit": {
+    "priority": [
+      "HARD_STOP",
+      "EOD_EXIT",
+      "TIME_STOP",
+      "PARTIAL_TRAIL",
+      "TRAILING_STOP"
+    ],
+    "hard_stop": "actual bar low <= stop; fill at stop, or at open when the bar gaps below",
+    "partial_take_profit_r": 2.0,
+    "partial_exit_fraction": 0.5,
+    "after_partial": "remaining stop moves to entry price (breakeven)",
+    "trailing_model": "PREVIOUS_ACTUAL_BAR_LOW",
+    "trailing_active_after_partial_only": true,
+    "time_stop_minutes": 30,
+    "time_stop_condition": "partial take profit not reached within 30 wall-clock minutes of entry",
+    "eod_exit_et": "15:55",
+    "overnight": false,
+    "scan_starts_at": "the entry bar itself, so a bar that fills and then breaks the stop is a taken loss",
+    "stop_reason_rule": "HARD_STOP while the stop is still the initial stop, TRAILING_STOP once it has moved",
+    "trailing_update": "before judging bar i: stop = max(stop, low of bar i-1); a stop never moves down",
+    "partial_rounding": "floor(shares * partial_exit_fraction); 0 means the whole position exits at the target",
+    "deadline_fill": "close of the last actual bar before the deadline; a bar printed after it is not used",
+    "catch_up": "several bars in one call are judged bar by bar, identical to tick-by-tick calls"
+  },
+  "pit": {
+    "as_of_cut": "available_at <= as_of",
+    "hod": "running extreme up to as_of, never the final high of the day",
+    "synthetic_bars_forbidden_in": [
+      "patterns",
+      "ATR",
+      "breakout detection",
+      "fills"
+    ],
+    "same_bar_entry_and_stop": "HARD_STOP wins (intrabar order is unobservable)",
+    "mutation_tests_required": true
+  },
+  "determinism": {
+    "symbol_order": "score desc, rolling_dollar_volume desc, symbol asc",
+    "float_comparison": "plain comparison, no epsilon",
+    "no_randomness": true
+  }
+}

@@ -9,9 +9,14 @@ from datetime import date, datetime, time, timedelta
 
 from app.strategy_b.corporate_actions import DelistingNotice
 from app.strategy_b.features import SessionTape
-from app.strategy_b.models import MomentumBar, OfficialDailyBar
+from app.strategy_b.models import (
+    Availability, FeatureSnapshot, HaltStatus, Measured, MomentumBar, OfficialDailyBar, RvolStatus,
+    Session, TapeDensity,
+)
 from app.strategy_b.rvol import VolumeProfile, build_volume_profile
-from app.strategy_b.scope import ListingStatus, PriorDailyBar, ScopeInputs, TickerMetadataAsOf
+from app.strategy_b.scope import (
+    ListingStatus, PriorDailyBar, ScopeDecision, ScopeExclusion, ScopeInputs, TickerMetadataAsOf,
+)
 from app.strategy_b.session import ET, AggregationScope, SessionBoundaries
 from app.strategy_b.split_adjustment import SplitRecord
 
@@ -154,3 +159,52 @@ def scope_inputs(*, symbol: str = SYMBOL, security_type: str = "CS", exchange: s
     metadata = TickerMetadataAsOf(symbol, D - timedelta(days=1), security_type, exchange, market, status,
                                   test_issue=test_issue)
     return ScopeInputs(D, metadata, tuple(PriorDailyBar(d, close, volume) for d in days))
+
+
+# ---- scanner, eligibility and setup fixtures ---------------------------------------------
+
+def passing_snapshot(**overrides) -> FeatureSnapshot:
+    """A snapshot that passes the B-F0 gate comfortably; a test breaks exactly one thing.
+
+    Hand-checkable: momentum max(3/2, 1/4, 1/6) = 1.5, rvol 5/3, liquidity 500k/250k = 2.
+    """
+    base = dict(
+        symbol=SYMBOL, as_of=et(10, 0), session=Session.REGULAR,
+        price=Measured.of(10.0), price_age_seconds=60.0,
+        return_1m=Measured.of(3.0), return_3m=Measured.of(1.0), return_5m=Measured.of(1.0),
+        session_vwap=Measured.of(9.9), vwap_distance_pct=Measured.of(1.01),
+        hod=Measured.of(10.2), lod=Measured.of(9.5), hod_distance_pct=Measured.of(-1.96),
+        rolling_dollar_volume=Measured.of(500_000.0),
+        cumulative_dollar_volume=Measured.of(2_000_000.0),
+        volume_acceleration=Measured.of(1.5),
+        rvol=Measured.of(5.0), rvol_status=RvolStatus.FULL,
+        missing_minute_ratio=Measured.of(0.1), sparse_status=TapeDensity.DENSE,
+        halt_inferred=HaltStatus.NO_HALT_SIGNAL, split_adjusted=False,
+        corporate_action_flags=frozenset(),
+    )
+    return FeatureSnapshot(**(base | overrides))
+
+
+def in_scope(included: bool = True, *,
+             exclusions: tuple[ScopeExclusion, ...] = ()) -> ScopeDecision:
+    return ScopeDecision(SYMBOL, D, included, exclusions, 10.0, 5_000_000.0, 20)
+
+
+def at(offset: int) -> tuple[int, int]:
+    """Hour and minute ``offset`` minutes after 09:40, so a long window can cross the hour."""
+    moment = et(9, 40) + timedelta(minutes=offset)
+    return moment.hour, moment.minute
+
+
+def breakout_bars(consolidation: int = 4, *, low: float = 10.75, day: date = D) -> list[MomentumBar]:
+    """Climb to an 11.00 high at 09:45, then hold under it for ``consolidation`` actual bars.
+
+    Trigger with the default config: 11.00 x 1.001 = 11.011; initial stop: the window low.
+    """
+    bars = [make_bar(*at(k), 10.0 + 0.2 * k, 1000.0, high=10.1 + 0.2 * k, low=9.9 + 0.2 * k,
+                     day=day) for k in range(5)]
+    bars.append(make_bar(9, 45, 10.90, 4000.0, open_=10.85, high=11.00, low=10.80, day=day))
+    for k in range(consolidation):
+        bars.append(make_bar(*at(6 + k), 10.85, 900.0, open_=10.86, high=10.95,
+                             low=low if k == 0 else low + 0.03, day=day))
+    return bars

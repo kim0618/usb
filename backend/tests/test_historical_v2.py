@@ -267,3 +267,29 @@ def test_minute_window_keeps_only_recent_scope_symbols_with_warmup():
     assert set(ranges) == {"NEW", "BOTH"}
     assert ranges["NEW"] == (sessions[25], sessions[50])
     assert ranges["BOTH"] == (sessions[35], sessions[55])
+
+
+def test_a_kind_that_cannot_be_planned_is_unavailable_and_never_silently_complete():
+    """A's universe file is untracked, so a second checkout can still collect the B kinds."""
+    from app.dev.historical_v2 import _capacity_gate
+    missing = {"requests": 0, "bytes": 0, "unavailable": "research_universe_v2.json is missing"}
+    assert _capacity_gate(missing, True) == "UNAVAILABLE"
+    assert _capacity_gate(missing, False) == "UNAVAILABLE"
+    assert _capacity_gate({"requests": 3, "bytes": 1}, True) == "PASS"
+    assert _capacity_gate({"requests": 3, "bytes": 1}, False) == "BLOCKED"
+
+
+def test_a_dos_device_symbol_is_recorded_and_skipped_instead_of_killing_the_run(tmp_path, monkeypatch):
+    """CON is a real ticker and an impossible directory on the Windows drive both PCs use."""
+    from app.backtest.historical_store.raw_fetch import reserved_path_name
+    from app.dev import historical_v2
+    assert reserved_path_name("CON") == "CON"
+    assert reserved_path_name("con") == "CON"
+    assert [reserved_path_name(s) for s in ("COM1", "LPT9", "NUL", "AUX")] == ["COM1", "LPT9", "NUL", "AUX"]
+    assert [reserved_path_name(s) for s in ("COMP", "AAPL", "CONCENTRA", "NULL")] == [None] * 4
+
+    monkeypatch.setattr(historical_v2, "UNSUPPORTED", tmp_path / "unsupported.json")
+    historical_v2._record_unsupported("b_minute", "CON", "WINDOWS_RESERVED_NAME:CON")
+    historical_v2._record_unsupported("b_minute", "PRN", "WINDOWS_RESERVED_NAME:PRN")
+    assert json.loads((tmp_path / "unsupported.json").read_text()) == {
+        "b_minute": {"CON": "WINDOWS_RESERVED_NAME:CON", "PRN": "WINDOWS_RESERVED_NAME:PRN"}}

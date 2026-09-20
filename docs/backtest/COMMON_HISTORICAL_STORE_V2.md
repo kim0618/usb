@@ -164,3 +164,15 @@ fetched again. To continue on another PC:
    Drive shows the synced `market_data/raw/massive/minute/`, then run the command above.
 4. Progress: `data/runtime/common_hist/v2/fetch_progress.json` / `fetch.log` are per checkout; the Drive ledgers
    (`*.request.json`) are the shared truth of what is done.
+5. `docs/backtest/research_universe_v2.json` (A's frozen 29-symbol universe) is **not in git**. A checkout that
+   never built it cannot plan `a_settlement_minute`: that kind is reported `capacity_gate = UNAVAILABLE` with its
+   reason and skipped, and the B kinds run normally. To plan A settlement on such a PC, copy the file over from
+   the PC that built it; the file's sha256 is part of the snapshot provenance, so it is copied, never rebuilt.
+
+`CON`은 실제 티커(Concentra)이면서 Windows 예약 장치명이라 Drive에 그 이름의 폴더를 만들 수 없다
+(WSL 마운트에서 `mkdir` EINVAL). 2026-09-19 밤 수집이 538/3,808에서 이 심볼에 걸려 죽었다. 지금은
+`raw_fetch.reserved_path_name`이 DOS 장치명(CON, PRN, AUX, NUL, COM0~9, LPT0~9)을 걸러
+`unsupported_path.json`에 기록하고 그 심볼만 건너뛴다. 두 PC의 저장소를 동일하게 유지하려고 로컬
+staging에서도 똑같이 건너뛴다. 이 심볼들은 수집 대상에서 빠지므로 B 연구의 데이터 한계로 남는다.
+
+Resumed on the home PC 2026-09-19 19:09 KST from 47/3,855 requests (A~ADP), after that UNAVAILABLE fix.

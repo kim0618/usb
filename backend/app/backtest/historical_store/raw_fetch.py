@@ -33,6 +33,24 @@ from app.integrations.massive.client import (
 from app.integrations.massive.minute_bars import ET
 
 RAW_FORMAT_VERSION = "usb-common-raw-v1"
+DOS_DEVICE_NAMES = frozenset({"CON", "PRN", "AUX", "NUL", "CONIN$", "CONOUT$",
+                              *(f"COM{d}" for d in "0123456789"),
+                              *(f"LPT{d}" for d in "0123456789")})
+"""Names a Windows filesystem refuses for any path component, whatever the extension."""
+
+
+def reserved_path_name(symbol: str) -> str | None:
+    """The DOS device name this symbol collides with, or ``None`` when the path is fine.
+
+    Common Raw keeps one directory per symbol and both PCs hold the store on a Windows drive,
+    where ``mkdir CON`` fails with EINVAL through the WSL mount. Such a symbol cannot be stored
+    at all, so the collector records and skips it instead of dying mid-run, and the skip is the
+    same on every machine (local staging included) so the two stores stay identical.
+    """
+    name = symbol.strip().upper()
+    return name if name in DOS_DEVICE_NAMES else None
+
+
 MINUTE_DIR = "market_data/raw/massive/minute"
 DAILY_DIR = "market_data/raw/massive/per_symbol_daily"
 CHUNK_SESSIONS = 50  # 50 x 960 extended-hours minutes < the 50,000-row page limit

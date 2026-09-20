@@ -22,6 +22,7 @@ a run identity later.
 """
 
 from dataclasses import dataclass, field, fields, is_dataclass
+from datetime import time
 from enum import StrEnum
 import hashlib
 import json
@@ -77,10 +78,19 @@ class ScannerConfig:
     min_dollar_volume: float = 250_000.0
     min_rvol: float = 3.0
     max_spread_pct: float = 1.0
+    """Declared but not applied in V1: Basic minute bars carry no quotes and B estimates no
+    spread (`B_F0_FSM_RULES_V1.md` 4.2)."""
+    scan_window_start_et: str = "09:35"
+    """HH:MM ET. Before this the session is too young for RVOL and a consolidation window."""
+    scan_window_end_et: str = "15:30"
+    """HH:MM ET. After this a new entry would collide with the time stop and the EOD exit."""
 
     def __post_init__(self) -> None:
         _positive(self, "min_dollar_volume", "min_rvol", "max_spread_pct")
         _finite(self, "return_1m_threshold", "return_3m_threshold", "return_5m_threshold")
+        _clock(self, "scan_window_start_et", "scan_window_end_et")
+        if parse_et_clock(self.scan_window_start_et) >= parse_et_clock(self.scan_window_end_et):
+            raise InvalidConfig("scanner.scan_window_start_et must be before scan_window_end_et")
 
 
 @dataclass(frozen=True, slots=True)
@@ -93,11 +103,21 @@ class CandidateConfig:
     signal_ttl_minutes: int = 2
     """Wall-clock minutes."""
     price_drift_tolerance_pct: float = 1.0
+    score_weight_momentum: float = 0.5
+    score_weight_rvol: float = 0.3
+    score_weight_liquidity: float = 0.2
+    score_ratio_cap: float = 2.0
+    """Each score component saturates at this multiple of its gate threshold, so one huge
+    mover cannot own the ranking."""
 
     def __post_init__(self) -> None:
         _finite(self, "score_threshold")
         _positive(self, "candidate_ttl_minutes", "setup_ttl_minutes", "signal_ttl_minutes",
-                  "price_drift_tolerance_pct")
+                  "price_drift_tolerance_pct", "score_ratio_cap")
+        _fraction(self, "score_weight_momentum", "score_weight_rvol", "score_weight_liquidity")
+        total = self.score_weight_momentum + self.score_weight_rvol + self.score_weight_liquidity
+        if abs(total - 1.0) > 1e-9:
+            raise InvalidConfig(f"candidate score weights must sum to 1.0, not {total}")
 
 
 @dataclass(frozen=True, slots=True)
@@ -153,9 +173,12 @@ class ExitConfig:
     trailing_model: TrailingModel = TrailingModel.PREVIOUS_ACTUAL_BAR_LOW
     time_stop_minutes: int = 30
     """Wall-clock minutes."""
+    eod_exit_et: str = "15:55"
+    """HH:MM ET. B holds nothing overnight."""
 
     def __post_init__(self) -> None:
         _positive(self, "partial_take_profit_r", "partial_exit_fraction", "time_stop_minutes")
+        _clock(self, "eod_exit_et")
         if self.partial_exit_fraction > 1:
             raise InvalidConfig("exit.partial_exit_fraction must be in (0, 1]")
 
@@ -360,6 +383,25 @@ def _coerce(hint: Any, raw: Any, path: str) -> Any:
             raise InvalidConfig(f"{path} must be a string")
         return raw
     raise InvalidConfig(f"{path} has an unsupported schema type")
+
+
+def parse_et_clock(text: str) -> time:
+    """Parse an ``HH:MM`` ET wall-clock string from the config. Raises ``InvalidConfig``."""
+    parts = text.split(":")
+    if len(parts) != 2 or not all(p.isdigit() and len(p) == 2 for p in parts):
+        raise InvalidConfig(f"{text!r} must be an HH:MM ET clock time")
+    hour, minute = int(parts[0]), int(parts[1])
+    if not (0 <= hour <= 23 and 0 <= minute <= 59):
+        raise InvalidConfig(f"{text!r} is not a valid clock time")
+    return time(hour, minute)
+
+
+def _clock(section: Any, *names: str) -> None:
+    for name in names:
+        value = getattr(section, name)
+        if not isinstance(value, str):
+            raise InvalidConfig(f"{type(section).__name__}.{name} must be an HH:MM string")
+        parse_et_clock(value)
 
 
 def _finite(section: Any, *names: str) -> None:

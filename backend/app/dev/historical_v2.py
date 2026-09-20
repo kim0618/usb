@@ -32,8 +32,12 @@ import shutil
 import time
 
 from app.backtest.historical_store import b_universe, reference_fetch, requirements
-from app.backtest.historical_store.coverage import existing_sessions, minute_universe_v1
-from app.backtest.historical_store.raw_fetch import RawRequest, fetch_request, ordered, plan_requests
+from app.backtest.historical_store.coverage import (
+    RESEARCH_UNIVERSE_V2, existing_sessions, minute_universe_v1,
+)
+from app.backtest.historical_store.raw_fetch import (
+    RawRequest, fetch_request, ordered, plan_requests, reserved_path_name,
+)
 from app.backtest.workspace.discovery import resolve_workspace_root
 from app.backtest.workspace.errors import WriterLockHeld, WriterLockStale
 from app.backtest.workspace.layout import Workspace
@@ -117,6 +121,15 @@ def minute_window_ranges(member, names: list[str], sessions: list[date], start: 
     return out
 
 
+def _capacity_gate(row: dict, ok: bool) -> str:
+    """A kind that could not be planned at all is UNAVAILABLE, not a capacity verdict.
+
+    ``fetch`` only runs kinds gated PASS, so an unplannable kind is skipped with its reason
+    printed instead of being silently treated as "nothing left to fetch".
+    """
+    return "UNAVAILABLE" if row.get("unavailable") else ("PASS" if ok else "BLOCKED")
+
+
 def build_plan(root: Path, *, b_minute_from: date | None = None) -> dict:
     calendar = MarketCalendar()
     sessions = sessions_between(calendar, *GRID)
@@ -169,16 +182,28 @@ def build_plan(root: Path, *, b_minute_from: date | None = None) -> dict:
         "requests": len(requests), "http_calls": calls, "expected_rows": int(rows_total),
         "bytes": int(rows_total * MINUTE_GZ_BYTES_PER_ROW), "windowed": True}
 
-    a_symbols = [s for s in minute_universe_v1()["symbols"] if s != "SPY"]
-    settle = [A_SETTLEMENT]
-    legacy, common = existing_sessions(root, "minute", settle, a_symbols)
-    requests = plan_requests("minute", settle, {s: legacy[s] | common[s] for s in a_symbols}, a_symbols)
-    plans["a_settlement_minute"] = requests
-    kinds["a_settlement_minute"] = {
-        "required_symbol_sessions": len(a_symbols), "existing_symbol_sessions": len(a_symbols) - len(requests),
-        "missing_symbol_sessions": len(requests), "requests": len(requests), "http_calls": len(requests),
-        "expected_rows": 960 * len(requests), "bytes": int(960 * len(requests) * MINUTE_GZ_BYTES_PER_ROW),
-        "windowed": True, "available_from_et_date": "2026-09-18 (T-1)"}
+    # A's research universe file is not in git, so a checkout that never built it (a second PC)
+    # cannot plan A settlement. That is this one kind's problem: it is reported UNAVAILABLE and
+    # skipped, and the B kinds still run. Copy the file over to plan A settlement here.
+    try:
+        a_symbols = [s for s in minute_universe_v1()["symbols"] if s != "SPY"]
+    except FileNotFoundError:
+        plans["a_settlement_minute"] = []
+        kinds["a_settlement_minute"] = {
+            "required_symbol_sessions": None, "existing_symbol_sessions": None,
+            "missing_symbol_sessions": None, "requests": 0, "http_calls": 0, "expected_rows": 0,
+            "bytes": 0, "windowed": True, "available_from_et_date": "2026-09-18 (T-1)",
+            "unavailable": f"{RESEARCH_UNIVERSE_V2} is missing in this checkout"}
+    else:
+        settle = [A_SETTLEMENT]
+        legacy, common = existing_sessions(root, "minute", settle, a_symbols)
+        requests = plan_requests("minute", settle, {s: legacy[s] | common[s] for s in a_symbols}, a_symbols)
+        plans["a_settlement_minute"] = requests
+        kinds["a_settlement_minute"] = {
+            "required_symbol_sessions": len(a_symbols), "existing_symbol_sessions": len(a_symbols) - len(requests),
+            "missing_symbol_sessions": len(requests), "requests": len(requests), "http_calls": len(requests),
+            "expected_rows": 960 * len(requests), "bytes": int(960 * len(requests) * MINUTE_GZ_BYTES_PER_ROW),
+            "windowed": True, "available_from_et_date": "2026-09-18 (T-1)"}
 
     as_of = [calendar.previous_trading_day(sessions[0])] + sessions[:-1]
     have_ref = reference_fetch.existing_dates(root, as_of)
@@ -206,7 +231,7 @@ def build_plan(root: Path, *, b_minute_from: date | None = None) -> dict:
             row["storage_tier"], row["storage_root"] = "DRIVE", str(root)
             ok = (reserved + row["bytes"]) * SAFETY <= free
             reserved += row["bytes"] if ok else 0
-        row["capacity_gate"] = "PASS" if ok else "BLOCKED"
+        row["capacity_gate"] = _capacity_gate(row, ok)
     return {"grid": [str(sessions[0]), str(sessions[-1]), len(sessions)], "free_bytes": free,
             "reserved_bytes": reserved, "safety": SAFETY, "local_free_bytes": local_free,
             "local_reserved_bytes": local_reserved, "local_safety": LOCAL_SAFETY,
@@ -244,6 +269,14 @@ def _locked_batches(workspace: Workspace, items: list, log: Callable[[str], None
 
 
 UNAVAILABLE = OUT / "unavailable_rolling_window.json"
+UNSUPPORTED = OUT / "unsupported_path.json"
+
+
+def _record_unsupported(kind: str, symbol: str, reason: str) -> None:
+    """Record a symbol the store cannot hold at all, so a skip is never silent."""
+    book = json.loads(UNSUPPORTED.read_text()) if UNSUPPORTED.is_file() else {}
+    book.setdefault(kind, {})[symbol] = reason
+    _atomic_json(UNSUPPORTED, book)
 
 
 def _record_unavailable(kind: str, symbol: str, lost: list[date]) -> None:
@@ -316,6 +349,10 @@ def fetch(root: Path, plan: dict, *, spacing: float, max_requests: int | None) -
             if kind == "a_settlement_minute" and \
                     calendar.previous_trading_day(datetime.now(ET).date()) < A_SETTLEMENT:
                 return f"skipped: {A_SETTLEMENT} is not T-1 yet"
+            device = reserved_path_name(item.symbol)
+            if device:
+                _record_unsupported(kind, item.symbol, f"WINDOWS_RESERVED_NAME:{device}")
+                return f"skipped: {item.symbol} is the DOS device name {device}; no directory can hold it"
             required = request = item
             oldest = window_start()  # re-clipped on every attempt: a backoff may cross the ET date
             lost: list[date] = []

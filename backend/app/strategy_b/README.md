@@ -25,6 +25,12 @@ through the AST.
 | `corporate_actions.py` | corporate-action flags |
 | `scope.py` | PIT research scope (L1) from D-1 inputs |
 | `spread.py` | inputs for a future spread model (no estimate) |
+| `scanner.py` | B-F0 gate (`GateReason`) and candidate score, with a deterministic ranking |
+| `eligibility.py` | B-F0 hard eligibility: scope, corporate actions, halt, tape density |
+| `setups.py` | `HOD_BREAKOUT` detection: window, trigger price, initial stop |
+| `fsm.py` | the candidate FSM: `Candidate`, `Tick`, `FillOutcome`, `advance` |
+| `exits.py` | open-position management: stop, 2R partial, trail, time stop, end of day |
+| `sizing.py` | share count from the risk budget and the position cap |
 
 Units: `return_*` and `*_pct` are percent points (5.0 = 5%), `*_fraction` is 0 to 1.
 
@@ -158,11 +164,24 @@ the bar. `split_adjustment` returns `price_factor`, `share_factor`, `split_on_da
 `recent_split` from raw split records. A split on D applies to D-1 values but not to D's
 bars, which already trade post-split.
 
+## Declared rules (B-F0)
+
+`docs/backtest/strategy_b/B_F0_FSM_RULES_V1.md` fixes the gate, the score, eligibility, the
+`HOD_BREAKOUT` setup, the entry signal and the exit rules before any B result exists, and
+`b_fsm_rules_v1.json` is the machine-readable declaration with a canonical checksum. The code
+carries no threshold of its own: every number lives in `StrategyBConfig`, and a test asserts
+that the declaration and the config defaults are the same numbers.
+
+`FIRST_PULLBACK` stays defined in the config and undetected: V1 studies one setup.
+
 ## Not implemented
 
-- orders, fills, portfolio, position sizing
+- the engine that ties it together: the portfolio (open positions, `max_open_positions`, the
+  daily loss limit), the fill price itself, the replay loop and the run store. `fsm.py` asks
+  the engine for a fill through `Tick.fill` and never prices one; `exits.py` and `sizing.py`
+  decide what happens to a position it already holds, from values it is handed.
 - realtime workers, Kiwoom, WebSocket
-- a spread estimate (`SpreadFeatures` has no `estimated_spread_pct`)
-- the actual B strategy: candidate FSM transitions, setup detection, entry and exit
+- a spread estimate (`SpreadFeatures` has no `estimated_spread_pct`), so the declared
+  `max_spread_pct` gate is recorded as not applied
 - backtest integration (replay loop, run store, metrics, manifest)
 - tuned parameters: every config default is `RESEARCH_DEFAULT_UNOPTIMIZED`

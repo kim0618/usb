@@ -23,3 +23,7 @@ class SyntheticBarMisuse(StrategyBError):
 
 class InvalidConfig(StrategyBError):
     """A Strategy B config that does not match the declared schema."""
+
+
+class InvalidTransition(StrategyBError):
+    """A candidate was advanced from a state that has no outgoing transition."""
