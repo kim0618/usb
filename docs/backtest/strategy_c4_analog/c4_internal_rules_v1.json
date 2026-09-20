@@ -1,0 +1,267 @@
+{
+  "declaration": {
+    "strategy_id": "CONTEXTUAL_ANALOG_MOMENTUM_V0",
+    "research_id": "c4-analog-v0",
+    "phase": "INTERNAL_SCREEN",
+    "gate_name": "C4_INTERNAL_SCREEN",
+    "declared_at_kst": "2026-09-20",
+    "declared_before": "any C-4 forecast, neighbour set, IC, quantile or return was computed",
+    "checksum_recipe": "sha256 of json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False)",
+    "final_gate": false,
+    "note": "An internal screen on already-observed sessions. PASS keeps C-4 alive to Forward Shadow; it is not an alpha approval."
+  },
+  "frozen_inputs": {
+    "c_m_rules_checksum": "c769aea5f25bcc46cfdc40a7d74fe325b5059f630714c007d1285cb2d9865d54",
+    "c_m_run_id": "cmsel1-855b6a0ce64e3698fc74",
+    "c_e0_rules_checksum": "48fc34cb",
+    "c_e0_taxonomy_checksum": "6ee5a16a9828d6b1d04d76f005117629fd84341399eeadb243c6b41567a45c6b",
+    "c_e0_run_id": "ce01-234478e8f7ff27570e13",
+    "eqm_rules_checksum": "0cd09ba2bd2e03d083a46696d26af55bfb7f0b46c765e040f6d5b87d48d4840c",
+    "eqm_run_id": "eqm0-ebdad0d225cca00f8fdc",
+    "daily_authority": "MASSIVE_GROUPED_DAILY adjusted=false",
+    "grid": {"first_session": "2024-09-17", "last_session": "2026-09-16", "sessions": 501},
+    "acceptance_zone": "UTC",
+    "not_modified": ["strategy_c_selection", "strategy_c_e0", "strategy_eqm_v0", "strategy_d_analog",
+                     "c_m_selection_rules_v1.json", "c_e0_rules_v1.json", "c_e0_event_taxonomy_v1.json",
+                     "eqm_v0_rules_v1.json", "d_analog_rules_v1.json", "common historical store"]
+  },
+  "query_population": {
+    "source": "frozen C-M0 candidates of run cmsel1-855b6a0ce64e3698fc74",
+    "variant": "C-M0",
+    "windows_used": ["primary", "secondary"],
+    "threshold_change": "NONE; C-M0 is reused as a candidate generator, its thresholds are not touched",
+    "reproduction_required": "recomputed C-M0 (signal_date, ticker) set must equal the stored candidate tables row for row",
+    "excluded_event_status": [],
+    "row_requirements": ["base_eligible", "not ca_excluded", "label_valid_5", "label_valid_10",
+                         "context vector defined for every declared family"]
+  },
+  "library_population": {
+    "definition": "every (analog_date d, ticker) that is base-eligible, not ca_excluded, has valid 5D and 10D labels, and has a defined context vector",
+    "restricted_to_candidates": false,
+    "library_start_idx": 60,
+    "min_library_dates_before_query": 40,
+    "expanding": true,
+    "stride_sessions": 1
+  },
+  "query_window": {
+    "first_query_idx_formula": "library_start_idx + min_library_dates_before_query + embargo_sessions",
+    "first_query_idx": 120,
+    "last_query_idx_formula": "sessions - 1 - max_label_horizon",
+    "last_query_idx": 490,
+    "date_selection": "every session in the window; dates are never chosen after seeing a result"
+  },
+  "embargo": {
+    "embargo_sessions": 20,
+    "rule": "analog_date <= query_date_idx - 20",
+    "justification": "max forward label horizon 10 sessions + max feature lookback 20 sessions, so no analog label overlaps the query's own feature window",
+    "change_after_results": "PROHIBITED"
+  },
+  "entity_control": {
+    "max_analogs_per_ticker": 1,
+    "max_analogs_per_figi": 1,
+    "same_entity_rule": "an analog is dropped when its ticker equals the query ticker, or when both composite_figi values are non-null and equal",
+    "figi_source": "composite_figi of the CS reference snapshot with the latest as_of <= the row's own date",
+    "figi_missing_policy": "ticker only"
+  },
+  "date_concentration": {
+    "max_analogs_per_analog_date": 5
+  },
+  "similarity": {
+    "primary_metric": "euclidean",
+    "space": "normalized context vector in [0,1]",
+    "feature_weights": "ALL_EQUAL",
+    "learned_or_tuned_weights": "PROHIBITED",
+    "secondary_descriptive_metrics": ["cosine"],
+    "top_k_primary": 50,
+    "top_k_secondary_descriptive": [25, 100],
+    "insufficient_neighbors": "a query with fewer than top_k_primary admissible analogs is excluded and counted"
+  },
+  "families": {
+    "F0": {"blocks": ["market"]},
+    "F1": {"blocks": ["market", "event"]},
+    "F2": {"blocks": ["market", "event", "quality"]},
+    "F3": {"blocks": ["market", "event", "quality", "obv", "vwap", "market_context"]},
+    "primary_family": "F3",
+    "distinctiveness_reference": "F0"
+  },
+  "feature_blocks": {
+    "market": {
+      "features": ["return_1d", "return_3d", "return_5d", "rvol_20", "volume_z_20",
+                   "dollar_volume_change_5d", "atr_pct", "true_range_pct", "atr_expansion",
+                   "rs_spy_1d", "rs_spy_5d"],
+      "excluded": {"distance_52w_high": "no incremental directional information in C-M2 and a 252-session warmup that halves the library"},
+      "definitions": {
+        "return_k": "P(D)/P(D-k) - 1 with P = close/F",
+        "rvol_20": "V(D) / mean V(D-20..D-1), V = volume * F",
+        "volume_z_20": "(V(D) - mean)/std_ddof1 over D-20..D-1",
+        "dollar_volume_change_5d": "mean(close*volume over D-4..D) / adv20_dollar - 1",
+        "atr_pct": "mean true range over D-14..D-1 divided by P(D-1); D excluded",
+        "true_range_pct": "TR(D)/P(D-1), TR = max(H,P(D-1)) - min(L,P(D-1))",
+        "atr_expansion": "true_range_pct / atr_pct",
+        "rs_spy_kd": "return_kd - SPY return_kd"
+      }
+    },
+    "event": {
+      "features": ["event_present", "event_type_NO_EVENT", "event_type_RESULTS", "event_type_AGREEMENT",
+                   "event_type_ACQUISITION_DISPOSITION", "event_type_OTHER_MATERIAL",
+                   "event_type_NEGATIVE_RISK", "event_type_UNKNOWN", "event_age_sessions",
+                   "event_count", "negative_risk_flag"],
+      "window_primary": "[open(D-2), close(D)) - the C-E0 W_PRIMARY, unchanged",
+      "definitions": {
+        "event_present": "1 when a material C-E0 class (E1,E2,E3,E5) falls in W_PRIMARY, 0 when none, 0.5 when the event context is UNKNOWN",
+        "event_type": "one-hot under the C-E0 cohort precedence UNKNOWN > NEGATIVE_RISK(E4 in W_PRIMARY) > RESULTS(E3) > AGREEMENT(E1) > ACQUISITION_DISPOSITION(E2) > OTHER_MATERIAL(E5) > NO_EVENT",
+        "event_age_sessions": "D minus the session index of the most recent material event in [D-20, D], capped at 20, 20 when none; this is a context coordinate and changes no C-E0 cohort window",
+        "event_count": "number of material C-E0 events in W_PRIMARY",
+        "negative_risk_flag": "the EQM risk_flag: recent_dilution_20 (E4 in [open(D-20), close(D))) OR financing_event_60d (E4a..E4d in [D-60 calendar days, D])"
+      },
+      "unknown_statuses": ["UNKNOWN_MAPPING", "UNKNOWN_COVERAGE", "UNKNOWN_PIT", "UNKNOWN_FORM", "EXCLUDED_MA_TARGET"],
+      "unknown_policy": "event_type_UNKNOWN = 1, every other event feature takes the declared neutral value; UNKNOWN is never read as NO_EVENT",
+      "event_presence_interpretation": "context dimension only; presence is never treated as a positive signal"
+    },
+    "quality": {
+      "features": ["periodic_event_flag", "quality_observable_flag", "revenue_yoy", "revenue_growth_bucket"],
+      "scope": "E3b periodic reports only (10-K, 10-KT, 10-Q) in W_PRIMARY, EQM-V0 definitions unchanged",
+      "definitions": {
+        "periodic_event_flag": "1 when W_PRIMARY holds a 10-K/10-KT/10-Q accession",
+        "quality_observable_flag": "1 when EQM quality_status == OBSERVABLE",
+        "revenue_yoy": "EQM revenue_growth_yoy from the facts of that accession only",
+        "revenue_growth_bucket": "EQM ladder NEGATIVE,0_5,5_10,10_25,25_50,50_PLUS mapped to the ordinal 0.0,0.2,0.4,0.6,0.8,1.0 because the ladder is ordered; one-hot would destroy that order"
+      },
+      "excluded": ["contract value", "contract duration", "qualitative importance", "consensus", "any text-derived quantity"]
+    },
+    "obv": {
+      "features": ["obv_return_5", "obv_return_10", "obv_return_20", "obv_slope_5", "obv_slope_10",
+                   "price_obv_divergence_10"],
+      "definitions": {
+        "obv": "OBV(t) = OBV(t-1) + sign(P(t)-P(t-1)) * V(t), sign(0)=0, computed on the split-normalized series from the first session of the grid",
+        "obv_return_k": "(OBV(D) - OBV(D-k)) / sum(V(D-k+1..D)), bounded [-1,1], scale free",
+        "obv_slope_k": "ordinary least squares slope of OBV over D-k+1..D divided by mean V over the same window",
+        "price_obv_divergence_10": "cross-sectional percentile rank of (P(D)/P(D-10)-1) minus cross-sectional percentile rank of obv_return_10, mapped to [0,1] by (x+1)/2"
+      },
+      "raw_obv_level": "never used"
+    },
+    "vwap": {
+      "features": ["close_to_vwap_pct", "open_to_vwap_pct"],
+      "minimal_subset_reason": "high_to_vwap and low_to_vwap duplicate the true-range information already carried by true_range_pct and atr_expansion",
+      "definitions": {
+        "close_to_vwap_pct": "close(D)/vw(D) - 1",
+        "open_to_vwap_pct": "open(D)/vw(D) - 1"
+      },
+      "source": "the vw field of the cached grouped daily rows; no new request",
+      "coverage_gate": {
+        "rule": "vw present and > 0 on at least 99.0 percent of base-eligible ticker-dates in the query window",
+        "on_pass": "the vwap block is part of F3",
+        "on_fail": "the vwap block is dropped from F3 for the whole run and the drop is reported",
+        "decided": "before any forecast or return is computed"
+      }
+    },
+    "market_context": {
+      "features": ["spy_return_1d", "spy_return_5d", "spy_atr_pct"],
+      "excluded": {"sector_return": "no point-in-time sector mapping exists", "peer_context": "same reason",
+                   "breadth": "not declared in the internal screen"}
+    },
+    "cvd": {"real_cvd": "EXCLUDED", "cvd_proxy": "EXCLUDED_FROM_PRIMARY",
+            "reason": "minute coverage is not consistent across the market in this window"}
+  },
+  "normalization": {
+    "continuous_cross_sectional": {
+      "method": "percentile rank (average_rank - 1)/(n - 1) inside the same session's base-eligible cross-section",
+      "applies_to": ["market", "obv", "vwap", "event_age_sessions", "event_count"]
+    },
+    "continuous_historical": {
+      "method": "expanding percentile rank inside the pooled distribution of rows with date strictly earlier than the row's own date",
+      "applies_to": ["spy_return_1d", "spy_return_5d", "spy_atr_pct", "revenue_yoy"],
+      "reason": "a value that is constant across a session, or observed a handful of times a session, has no usable cross-section"
+    },
+    "binary_and_one_hot": {"values": [0.0, 1.0]},
+    "ordinal": {"revenue_growth_bucket": [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]},
+    "missing_value": {
+      "continuous": "the declared neutral value 0.5, with the layer's own indicator dimension carrying the missingness (event_type_UNKNOWN for the event block, quality_observable_flag for revenue_yoy and revenue_growth_bucket)",
+      "binary": 0.5,
+      "future_data": "PROHIBITED; no normalization constant may be computed from rows dated on or after the query date"
+    },
+    "range": [0.0, 1.0]
+  },
+  "labels": {
+    "entry_reference": "P0 = open(D+1)/F(D+1)",
+    "window": "sessions D+1..D+h",
+    "horizons_primary": 5,
+    "horizons_secondary": [10],
+    "close_return_h": "last traded close in D+1..D+h divided by P0 minus 1, clipped to [-1,1]",
+    "mfe_h": "max high in D+1..D+h divided by P0 minus 1, not clipped",
+    "mae_h": "min low in D+1..D+h divided by P0 minus 1, not clipped",
+    "validity": "entry bar exists, no label corporate-action suspicion, the horizon bar exists",
+    "excess_return_h": {
+      "primary": "close_return_h minus the mean close_return_h of the same session's matched cell (price_bucket, atr_bucket, adv20_bucket) over label-valid base-eligible rows, C-M matching cells unchanged",
+      "min_cell_members": 5,
+      "fallback": "when the row's cell holds fewer than 5 label-valid members, the same session's mean over all label-valid base-eligible rows is used and cell_matched is recorded as 0",
+      "secondary_reported": "date-median excess, reported for robustness, never a gate input"
+    },
+    "applies_identically_to": ["query rows", "library rows"]
+  },
+  "forecast": {
+    "primary_predictor": "analog_median_excess_5d = median of excess_return_5 over the top-50 analogs",
+    "secondary": ["analog_mean_excess_5d", "analog_median_excess_10d", "analog_positive_rate_5d",
+                  "analog_positive_rate_10d", "analog_median_mfe_5", "analog_median_mae_5",
+                  "analog_median_mfe_10", "analog_median_mae_10"],
+    "score_construction": "PROHIBITED; no weighted sum, no composite, no learned aggregation",
+    "median_reason": "extreme winners distorted the mean in Strategy C"
+  },
+  "evaluation": {
+    "primary_metric": "mean daily Spearman IC between analog_median_excess_5d and the realized excess_return_5",
+    "min_valid_queries_per_date_for_ic": 8,
+    "min_valid_queries_per_date_for_quintiles": 10,
+    "quintiles": {"count": 5, "tie_break": "ticker ascending"},
+    "time_blocks": 4,
+    "bootstrap": {"unit": "query date", "method": "moving block", "block_length": 10,
+                  "replicates": 10000, "seed": 20260921, "levels": [0.95]},
+    "multiplicity": "the gate is an intersection of every condition, so its type-I error is bounded by the smallest single condition; no further correction is applied",
+    "baselines": ["C_M0_pool", "C_E0_event_presence", "EQM_material", "C4_F0", "C4_F3"]
+  },
+  "engineering_gate": {
+    "E1_future_analog_count": 0,
+    "E2_embargo_violation": 0,
+    "E3_entity_cap_violation": 0,
+    "E4_date_cap_violation": 0,
+    "E5_normalization_pit_violation": 0,
+    "E6_label_leakage": 0,
+    "E7_deterministic_digest_twice": "identical",
+    "E8_frozen_c_m_candidate_reproduction": "identical",
+    "on_failure": "return analysis is forbidden"
+  },
+  "coverage_gate": {
+    "min_f3_usable_library_rows": 50000,
+    "min_f3_usable_unique_tickers": 1000,
+    "min_f3_usable_unique_dates": 200,
+    "min_query_share_with_full_top_k": 0.90,
+    "on_failure": "C4_INTERNAL_SCREEN = INCONCLUSIVE; thresholds are never lowered after a return is seen"
+  },
+  "gate_conditions": {
+    "C1": "mean daily IC_F3 point estimate > 0",
+    "C2": "IC_F3 bootstrap 95 percent CI lower bound > 0",
+    "C3": "mean daily (Q5 - Q1) excess_return_5 point estimate > 0 and its 95 percent CI lower bound > 0",
+    "C4": "mean daily Q5 excess_return_5 point estimate > 0",
+    "C5": "the improvement is present in close return, not only in MFE: the Strategy C-1 pattern (Q5 MFE above Q1, Q5 MAE below Q1, and |Q5 excess_return_5| < 0.001) is absent",
+    "C6": "median mae_5 of Q5 minus median mae_5 of Q1 >= -0.02",
+    "C7": "IC_F3 > 0 in at least 3 of the 4 time blocks",
+    "C8": "after removing the top 5 tickers, and separately after removing the top 10 query dates, the point estimates of C1 and C3 keep their sign",
+    "C9": "every engineering and PIT check passes and pit_violations_total == 0",
+    "C10": "IC_F3 - IC_F0 point estimate > 0 and the paired bootstrap 95 percent CI lower bound of that difference > 0"
+  },
+  "decision": {
+    "PASS": "every one of C1..C10 holds",
+    "FAIL": "the coverage gate passes but at least one of C1..C10 fails",
+    "INCONCLUSIVE": "a coverage, mapping or data-integrity condition fails before any return is read",
+    "meaning_of_pass": "C-4 is worth carrying to Forward Shadow; it is not an alpha approval",
+    "on_fail": "Strategy C-4 terminates. Changing K, weights, features, event classes or horizons to revive it is prohibited. A different hypothesis needs a new research id and a new declaration."
+  },
+  "prohibitions": ["LLM", "GPT", "any machine-learned classifier or regressor", "neural network",
+                   "gradient boosting", "post-hoc feature selection", "choosing the distance after seeing results",
+                   "choosing K after seeing results", "choosing the horizon after seeing results",
+                   "retuning any Strategy C threshold", "trading backtester", "entry or exit optimisation",
+                   "buying additional paid historical data for this screen"],
+  "scope_statement": {
+    "SCOPE": "whether a situation-analog forecast built from market, event, quality, OBV and market-context coordinates carries 5-day close-direction selection information inside C-M0 momentum candidates, on the 2024-09-17..2026-09-16 grid",
+    "NOT": "chart analog (Strategy D), a trading strategy, event semantics, sector or peer context, real CVD, or an out-of-sample verdict"
+  }
+}

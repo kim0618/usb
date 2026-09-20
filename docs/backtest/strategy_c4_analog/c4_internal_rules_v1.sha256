@@ -1,0 +1,8 @@
+{
+  "file": "c4_internal_rules_v1.json",
+  "canonical_sha256": "c4f1d243f17c21cf9954536d0874640c1743d03c5afa666b247f8765099dddf8",
+  "file_sha256": "eeb3716db8b3fef8d7e97a0b3b9c0f43853fd3c969fde818ebea29f03160ae97",
+  "recipe": "canonical = sha256 of json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False); same recipe as C-M, C-E0, EQM-V0 and D",
+  "frozen_at_kst": "2026-09-20",
+  "frozen_before": "any C-4 context vector, neighbour set, forecast, IC, quantile or return was computed"
+}
