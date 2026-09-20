@@ -1,0 +1,316 @@
+{
+  "strategy_id": "MARKET_STRUCTURE_ANALOG_V2",
+  "rule_id": "d-v2a-rules-v1",
+  "schema_version": 1,
+  "phase": "D0",
+  "study_class": "SCREENING",
+  "study_purpose": "decide whether long historical data is worth purchasing for the Historical Analog research line; not an alpha approval and not a trading approval",
+  "declared_on": "2026-09-20",
+  "declared_before_results": true,
+  "threshold_status": "RESEARCH_SCREENING_NOT_OPTIMIZED",
+  "predecessor": {
+    "strategy_id": "HISTORICAL_ANALOG_V1",
+    "final": "CLOSED (D4 FAIL, GATE-D-ALPHA)",
+    "modification_policy": "V1 rules, results, artifacts, code and documents are not modified by this study",
+    "inherited_from_v1": "noise structure only: per-date IC sd 0.066 and the 1.25x SE inflation from autocorrelation, used for power sizing; no V1 effect size is used in any threshold"
+  },
+  "ai_enabled": false,
+  "ai_forbidden": ["LLM", "vision model", "CNN", "Transformer", "Autoencoder", "ML ranking", "neural embedding", "metric learning", "learned or optimized feature weights"],
+  "units": "returns and distances are fractions (0.05 = 5%); volatilities are per-session log-return standard deviations; session offsets are XNYS session-grid indices; feature coordinates are per-date cross-sectional percentile ranks in [0, 1]",
+  "change_policy": "any edit changes the canonical checksum and makes this a different study; new values go to d_v2a_rules_v2.json with a new declaration",
+  "data_frequency": "DAILY",
+  "data": {
+    "dataset": "USB-HIST-V1 / STRATEGY_C_RAW_FREEZE_V1",
+    "status": "FROZEN",
+    "new_collection": "forbidden in this study",
+    "provider": "massive",
+    "plan": "Stocks Basic (rolling 2 years, no same-day T bar)",
+    "source": "grouped_daily adjusted=false; read from the Strategy C raw cache read-only",
+    "session_calendar": "XNYS",
+    "range": "2024-09-17..2026-09-16",
+    "grid_count": 501,
+    "freeze_digest": "9ebd6c29c66728ac8c7f295b5836e7fa8489c24165cc2007d290da2e1c9aeafe",
+    "source_digest": "adc4f1919dd835772262e2820d48c9a04904d5d1c953d8a97386728e08132c02",
+    "grid_digest": "830744f64a2d6b8378609ad796313b03575fefb146068f2def602867e80166c9",
+    "reference_snapshots": "reference tickers type=CS active=true as of the first XNYS session of each calendar quarter; date D uses the latest snapshot with as_of <= D",
+    "splits": "market-wide /v3/reference/splits records; only execution_date <= t enters F(t)",
+    "allowed_primary_exchanges": ["XNYS", "XNAS", "XASE", "ARCX", "BATS"],
+    "price_basis": "P(t) = raw close(t)/F(t), H(t) = raw high(t)/F(t), L(t) = raw low(t)/F(t), O(t) = raw open(t)/F(t); F(t) = product of split_from/split_to of the ticker's splits executed <= t",
+    "volume_basis": "V(t) = raw volume (unadjusted); DV(t) = raw close(t) * raw volume(t)",
+    "api_calls_in_d0": 0,
+    "data_reads_in_d0": 0
+  },
+  "universe": {
+    "note": "identical values to HISTORICAL_ANALOG_V1; declared here independently",
+    "security_type": "CS in the snapshot as of D, primary_exchange in allowed_primary_exchanges",
+    "min_close": 3.0,
+    "min_adv20_dollar": 5000000.0,
+    "adv20_definition": "mean(raw close * raw volume) over sessions D-20..D-1",
+    "history": "a bar on every session D-60..D (61 consecutive session bars)",
+    "seasoning_sessions": 60,
+    "corporate_action_exclusion": {
+      "split_window": "any split (either direction) with execution_date in (session D-60, D] excludes the ticker-date",
+      "ca_suspect_window": "any P(t)/P(t-1) >= 3.0 or <= 1/3 for t in D-59..D excludes the ticker-date",
+      "ca_suspect_ratio": 3.0,
+      "applies_to": "query windows AND library windows (symmetric)"
+    },
+    "post_result_change": "forbidden"
+  },
+  "representation": {
+    "name": "market_structure_state_vector_v1",
+    "signal_input": "the ten structural coordinates below, each replaced by its per-date cross-sectional percentile rank",
+    "not_signal_inputs": ["raw close path", "V1 representation A", "V1 representation B", "news", "sector", "market cap", "market regime", "any index or ETF series"],
+    "raw_shape_policy": "V1 path similarity is removed from the primary input; joint path+structure distance is forbidden in this study",
+    "feature_count": 10,
+    "max_lookback_sessions": 60,
+    "features": [
+      {"n": 1, "name": "return_5", "family": "trend", "formula": "P(D)/P(D-5) - 1", "lookback": 5, "hypothesis": "weekly supply-demand exhaustion or continuation", "undefined": "non-finite -> window excluded"},
+      {"n": 2, "name": "return_20", "family": "trend", "formula": "P(D)/P(D-20) - 1", "lookback": 20, "hypothesis": "monthly direction and strength", "undefined": "non-finite -> window excluded"},
+      {"n": 3, "name": "return_60", "family": "trend", "formula": "P(D)/P(D-60) - 1", "lookback": 60, "hypothesis": "quarterly trend context; the same 20d return means different things in different 60d contexts", "undefined": "non-finite -> window excluded"},
+      {"n": 4, "name": "dist_to_20d_high", "family": "position", "formula": "P(D)/max(H(D-19..D)) - 1", "lookback": 20, "hypothesis": "supply is thin near recent highs", "undefined": "max(H) <= 0 -> window excluded"},
+      {"n": 5, "name": "position_in_60d_range", "family": "position", "formula": "(P(D) - min(L(D-59..D))) / (max(H(D-59..D)) - min(L(D-59..D)))", "lookback": 60, "hypothesis": "position inside the range carries low-side information the high distance does not", "undefined": "max == min -> window excluded"},
+      {"n": 6, "name": "rv_20", "family": "volatility", "formula": "std_ddof1 of ln(P(t)/P(t-1)) for t in D-19..D", "lookback": 20, "hypothesis": "volatility regime level; the same price move in a different regime has a different forward distribution", "undefined": "non-finite -> window excluded"},
+      {"n": 7, "name": "atr_ratio_20_60", "family": "volatility", "formula": "ATR_20/ATR_60 where ATR_n = mean TR(t) for t in D-n+1..D and TR(t) = max(H(t)-L(t), abs(H(t)-P(t-1)), abs(L(t)-P(t-1)))", "lookback": 60, "hypothesis": "volatility clusters; contraction and expansion are different states, and true range carries intraday and gap information close-to-close rv does not", "undefined": "ATR_60 == 0 -> window excluded"},
+      {"n": 8, "name": "tr_today_ratio", "family": "volatility", "formula": "TR(D)/ATR_20", "lookback": 20, "hypothesis": "whether D itself is an unusual day; just after a shock is a different state from calm", "undefined": "ATR_20 == 0 -> window excluded"},
+      {"n": 9, "name": "rvol_today", "family": "volume", "formula": "V(D)/mean V(D-20..D-1)", "lookback": 20, "hypothesis": "identical price structure with different participation is a different analog", "undefined": "denominator == 0 -> window excluded"},
+      {"n": 10, "name": "dollar_volume_ratio_20_60", "family": "volume", "formula": "mean DV(D-19..D) / mean DV(D-59..D)", "lookback": 60, "hypothesis": "compression with contracting turnover is supply withdrawal; compression with sustained turnover is distribution", "undefined": "denominator == 0 -> window excluded"}
+    ],
+    "excluded_features": {
+      "52_week_family": "252-session warmup collapses evaluable dates from 221 to 29",
+      "market_relative_strength": "under per-date cross-sectional rank scaling, rank(return_h - market_return_h) == rank(return_h) exactly, so the coordinate contributes nothing",
+      "beta_adjusted_relative_strength": "requires a beta estimation window, a new degree of freedom; recorded as a V2-B candidate only",
+      "sector_relative_strength": "no point-in-time ticker to sector mapping exists in the store",
+      "pivot_or_higher_low": "three or more definitional parameters",
+      "market_regime": "constant across a date's cross-section, so it contributes nothing to cross-sectional rank; used for descriptive stratification only"
+    },
+    "volume_pit_note": "every volume reference window lies inside the (D-60, D] split protection window, so unadjusted raw volume is split-consistent and no V*F transform is declared",
+    "post_result_change": "adding, removing or redefining any coordinate is forbidden"
+  },
+  "scaling": {
+    "method": "per-date cross-sectional percentile rank",
+    "formula": "(average rank - 1)/(n - 1) over that date's full eligible universe, ties take the average rank",
+    "population": "the date's full eligible universe, not the query sample",
+    "rejected": ["rolling z-score (new estimation window)", "robust median/IQR (strictly weaker than rank)", "raw values (scale incomparable across coordinates)"],
+    "declared_cost": "rank scaling discards distribution shape; 5x and 3x of a base map to the same value when both sit in the top 1 percent. Accepted knowingly in exchange for PIT safety and zero estimation parameters",
+    "post_result_change": "forbidden"
+  },
+  "similarity": {
+    "metric": "euclidean",
+    "formula": "d = ||v_q - v_n||_2 over the ten rank coordinates, ascending",
+    "weights": "equal, 1.0 on every coordinate",
+    "forbidden": ["learned weights", "optimized weights", "Mahalanobis", "neural embedding", "metric learning", "DTW", "joint path+structure distance"],
+    "tie_break": "library end session index ascending, then ticker ascending"
+  },
+  "library": {
+    "definition": "every (ticker, end session d) window that passes the universe rule as of d, has all ten coordinates finite, has a valid label for the tested horizon h, and satisfies the neighbor policies for the query",
+    "library_stride_sessions": 5,
+    "library_stride_rule": "library end session index d with d % 5 == 0 on the session grid",
+    "expanding": true,
+    "min_library_span_sessions": 120,
+    "min_history": "same as universe.history (bars on every session d-60..d)"
+  },
+  "top_k": 50,
+  "insufficient_neighbors": "fewer than top_k neighbors after all policies -> query excluded as INSUFFICIENT_NEIGHBORS, counted",
+  "vector_undefined": "any non-finite coordinate -> the (ticker, date) window is excluded from both query and library, counted as VECTOR_UNDEFINED",
+  "same_symbol_policy": {
+    "rule": "exclude every library window whose ticker equals the query ticker, over the whole history",
+    "figi_rule": "also exclude a library window whose composite_figi (snapshot as of its end date) equals the query composite_figi (snapshot as of D) when both are non-null",
+    "ticker_reuse_handling": "a different company that reuses the query ticker is also excluded (conservative); a renamed company without a composite_figi match is not detected (known limitation)"
+  },
+  "embargo_policy": {
+    "feature_lookback_L": 60,
+    "forward_label_embargo": "neighbor label window d+1..d+h must end on or before D (d + h <= D)",
+    "overlapping_window_rule": "neighbor span d-L..d+h must end before the query coordinate window starts: d + h <= D - L",
+    "effective_rule": "d + h <= D - 60 (strict; implies the forward-label embargo)",
+    "reason": "a neighbor whose coordinate window or outcome overlaps the query coordinate window measures contemporaneous co-movement, not a historical analog"
+  },
+  "neighbor_concentration_policy": {
+    "max_windows_per_neighbor_ticker": 1,
+    "max_neighbors_per_library_end_date": 5,
+    "selection": "greedy in similarity order, skipping a candidate that would break either cap, until top_k are accepted"
+  },
+  "labels": {
+    "shared_with": "HISTORICAL_ANALOG_V1 (identical definitions)",
+    "available_at": "D+1 04:00 ET",
+    "reference_price": "P0 = O(D+1)",
+    "window": "sessions D+1..D+h; D itself never included",
+    "close_return_h": "P(D+h)/P0 - 1, clipped to [-1, 1]",
+    "excess_return_h": "close_return_h minus the median close_return_h over all label-valid eligible tickers of the same date (full universe, not the query sample)",
+    "mfe_h": "max(H(D+1..D+h))/P0 - 1",
+    "mae_h": "min(L(D+1..D+h))/P0 - 1",
+    "validity": "a bar on D+1 (else NO_ENTRY_BAR), a bar on session D+h itself (else MISSING_HORIZON_BAR), not label CA suspect",
+    "label_ca_suspect": "V1 rule as is for h <= 10; for h = 20 the same ratio rule extended over D+11..D+20",
+    "applies_to": "query evaluation labels and neighbor labels (same definitions)"
+  },
+  "horizons": {
+    "primary": 5,
+    "primary_justification": "the coordinates are defined on 20 and 60 session windows; a state read at D stays the same state only while a fraction of its defining window is intact, so h=5 (25 percent of the shortest window) matches the state's own horizon better than h=10 (50 percent). Secondary reasons: the swing slot between B (no overnight) and E0 (overnight), and half the label overlap of h=10 across consecutive evaluation dates. V1 horizon results are explicitly not part of this justification",
+    "secondary": [1, 3, 10, 20],
+    "secondary_role": "descriptive only, never a gate input",
+    "max_h_for_eval_window": 20
+  },
+  "signal": {
+    "symbol": "A(q)",
+    "primary": "median of the accepted top_k neighbors' excess_return_5",
+    "direction": "higher A(q) predicts higher query excess_return_5",
+    "mean_variant": "reported as secondary; never substituted for the median"
+  },
+  "baseline_B0": {
+    "name": "equal_weight_signed_rank_composite",
+    "role": "PRIMARY comparator",
+    "formula": "B0(q) = (1/10) * sum_i s_i * r_i(q), r_i = the coordinate's per-date percentile rank",
+    "weights": "equal; optimization forbidden",
+    "direction": "higher B0(q) predicts higher excess_return_5",
+    "uses_neighbors": false,
+    "signs": {
+      "return_5": -1,
+      "return_20": -1,
+      "return_60": 1,
+      "dist_to_20d_high": 1,
+      "position_in_60d_range": 1,
+      "rv_20": -1,
+      "atr_ratio_20_60": -1,
+      "tr_today_ratio": -1,
+      "rvol_today": -1,
+      "dollar_volume_ratio_20_60": -1
+    },
+    "sign_prior_strength": {
+      "return_5": "STRONG",
+      "return_20": "STRONG",
+      "return_60": "STRONG",
+      "dist_to_20d_high": "STRONG",
+      "position_in_60d_range": "STRONG",
+      "rv_20": "STRONG",
+      "atr_ratio_20_60": "WEAK",
+      "tr_today_ratio": "WEAK",
+      "rvol_today": "WEAK",
+      "dollar_volume_ratio_20_60": "WEAK"
+    },
+    "wrong_sign_risk": "four signs carry weak priors; a wrong sign lowers B0's IC and would inflate the primary delta. Controlled by gate condition S4 (sign guard) and by mandatory secondary S-6 (per-coordinate univariate IC)",
+    "pit": "computed from the query's own coordinates only; reads no label, no neighbor and no realized return"
+  },
+  "baselines_secondary": {
+    "B1_random_analog": "V1 N1: same library, realized-volatility quintile matching, 20 replicates, seed 20260917, draw contract d-n1-draw-v1-prefix-seeded (declared deviation inherited from V1 D4)",
+    "B2_simple_factor_knn": "V1 N2a: the five V1 price features, same library and policies",
+    "B3_orthogonalized": "per date, OLS of rank(A(q)) on the ten standardized coordinates plus intercept; Spearman IC of the residual",
+    "role": "descriptive only; none of these is a gate input",
+    "b1_demotion_reason": "measured in V1: the per-date ICs of the analog and of the random analog are nearly uncorrelated, so sd(IC - IC_N1) exceeded sd(IC) in 13 of 14 tests (median ratio 1.08). Pairing against B1 adds variance instead of removing it. This is a variance-structure argument, not a relaxation"
+  },
+  "evaluation": {
+    "session_grid": "all usable sessions of the frozen raw cache, index 0..500",
+    "eval_start_idx": 260,
+    "eval_start_formula": "seasoning_sessions(60) + min_library_span_sessions(120) + max(L + h)(60 + 20) = 260",
+    "eval_end_idx": 480,
+    "eval_end_formula": "N - 1 - max(h) = 501 - 1 - 20",
+    "evaluable_dates": 221,
+    "query_dates": "every session index in [260, 480], common to the primary test, every secondary horizon and every baseline",
+    "queries_per_date": 300,
+    "query_sampling": "eligible tickers of D ordered by sha256('Q|20260917|{D}|{ticker}'), first 300; sampled before label validity is known; invalid labels dropped afterwards and counted",
+    "query_seed_reuse_reason": "keeping V1's sampling seed prevents sample shopping and keeps the two studies on the same query set",
+    "min_valid_queries_per_date": 100,
+    "ic": "Spearman rank correlation between the signal and excess_return_5 over the date's valid queries",
+    "aggregation": "equal-weight mean of per-date ICs",
+    "time_blocks": 4,
+    "time_block_rule": "evaluable query dates split into 4 consecutive blocks of (near) equal count"
+  },
+  "statistics": {
+    "primary_metric": "mean over evaluable dates of delta(t) = IC_A(t) - IC_B0(t), both Spearman against excess_return_5 on the same query set",
+    "primary_test_count": 1,
+    "family_wise": "no Bonferroni correction: the primary family has exactly one test, so FWER is 0.05 as declared",
+    "bootstrap": "moving block bootstrap over evaluable query dates, block length 20 sessions, 10000 replicates, seed 20260920",
+    "ci": "percentile",
+    "paired": "delta uses per-date paired differences under the same bootstrap draws",
+    "mandatory_disclosure": [
+      "realized corr(IC_A(t), IC_B0(t))",
+      "realized sd(IC_A), sd(IC_B0), sd(delta)",
+      "an explicit statement when sd(delta) > sd(IC_A), i.e. pairing failed to reduce variance",
+      "realized SE against the SE predicted in the contract"
+    ],
+    "disclosure_effect_on_verdict": "none; the gate thresholds do not depend on the realized correlation"
+  },
+  "power": {
+    "inputs": "per-date IC sd 0.066 and SE inflation 1.25 (both measured in V1 D4); no V1 effect size is used",
+    "se_formula": "SE(delta) = 0.066 * sqrt(2 * (1 - rho)) / sqrt(221) * 1.25",
+    "mde_significance": {"rho_0.0": 0.0154, "rho_0.5": 0.0109, "rho_0.8": 0.0069, "rho_0.9": 0.0049},
+    "delta80_screening": {"rho_0.0": 0.0096, "rho_0.5": 0.0077, "rho_0.8": 0.0060, "rho_0.9": 0.0051},
+    "interpretation": "the screening can detect only a substantial analog advantage; a small but real advantage lands in BORDERLINE or FAIL, which limits what a FAIL closes",
+    "approximate_operating_characteristics": "under the stated normal approximation, P(PASS | true delta = 0) is about 0.06 to 0.10 and P(PASS or BORDERLINE | true delta = 0) is about 0.16 to 0.22; P(PASS or BORDERLINE | true delta = 0.008) is about 0.72 to 0.97"
+  },
+  "data_sufficiency": {
+    "feature_max_lookback_sessions": 60,
+    "evaluation_start_idx": 260,
+    "evaluation_days": 221,
+    "query_windows": 66300,
+    "expected_valid_queries_h5": 66100,
+    "unique_query_tickers": 3331,
+    "library_stride_dates": 85,
+    "autocorrelation_adjusted_effective_dates": 141,
+    "lookback_budget_note": "the current store supports a maximum coordinate lookback of about 130 sessions before evaluable dates fall below 150; V2-A uses 60",
+    "do_not_start_conditions": ["evaluable dates < 150", "any coordinate requiring a volume reference outside the (D-60, D] protection window", "delta80 > 0.02"],
+    "do_not_start_check": "none of the three holds"
+  },
+  "pass_fail_policy": {
+    "gate_name": "GATE-D-V2A-SCREEN",
+    "conditions": {
+      "S1_sample": "evaluable dates >= 150, valid queries >= 20000, unique query tickers >= 1000, INSUFFICIENT_NEIGHBORS share <= 0.05, VECTOR_UNDEFINED share <= 0.05",
+      "S2_pit_violations": "== 0",
+      "S3_analog_ic_point": "mean IC(A) > 0",
+      "S4_sign_guard": "mean IC(A) > abs(mean IC(B0))",
+      "S5_delta_point": "mean delta >= 0.0030",
+      "S6_delta_ci_low": "95 percent percentile CI lower bound of mean delta > -0.0025",
+      "S7_block_stability": "delta > 0 in >= 3 of 4 chronological blocks AND IC(A) > 0 in >= 3 of 4 blocks",
+      "S8_quintile_spread": "Q5 - Q1 mean realized excess_return_5 by A(q) quintile > 0"
+    },
+    "threshold_justification": "S5 and S6 were set from V1's measured noise (per-date IC sd and SE inflation) to hit declared operating characteristics: P(PASS | no advantage) <= about 0.10 and P(PASS or BORDERLINE | advantage 0.008) >= about 0.70. No V1 effect size entered the numbers",
+    "decision": {
+      "SCREENING_PASS": "S1 through S8 all hold",
+      "SCREENING_BORDERLINE": "S1, S2, S3, S4 and S8 hold, mean delta > 0, and exactly one of S5, S6, S7 fails",
+      "SCREENING_FAIL": "anything else"
+    },
+    "negative_direction": "a significantly negative mean IC(A) or mean delta is reported as INVERSE_EFFECT and is never a PASS; using it needs a new declared version",
+    "secondary_cannot_overturn": "no secondary diagnostic can change the verdict in either direction",
+    "on_PASS": "LONG_DATA_PURCHASE_CANDIDATE = YES; no backtester, no adapter, no trading spec",
+    "on_BORDERLINE": "LONG_DATA_PURCHASE_CANDIDATE = YES (conditional); a written cost, effect size and required-sample re-evaluation note is required before any purchase",
+    "on_FAIL": "Strategy D research CLOSED; long data purchase is not justified by D. The closure is scoped to this coordinate system, this metric, K=50 and this data window",
+    "pass_meaning": "the structure analog carries information beyond an equal-weight composite of the same coordinates in this two-year window; it is not evidence of alpha and not evidence of a profitable strategy"
+  },
+  "secondary_diagnostics": {
+    "count": 13,
+    "role": "descriptive only, reported in full regardless of sign, never a gate input",
+    "slots": [
+      "S-1..S-4 horizons 1, 3, 10, 20: IC(A) and delta",
+      "S-5 volatility-normalized response excess_return_5 / rv_20",
+      "S-6 univariate cross-sectional IC of each of the ten coordinates",
+      "S-7 delta against B0-strong (the six STRONG-prior coordinates)",
+      "S-8 leave-one-family-out ablation (trend, position, volatility, volume)",
+      "S-9 delta against B1 random analog",
+      "S-10 delta against B2 five-feature kNN",
+      "S-11 B3 orthogonalized residual IC",
+      "S-12 IC by mean neighbor distance quintile; realized MFE/MAE by A(q) quintile",
+      "S-13 stratification: rv_20 quintile, four time blocks, market rolling volatility terciles, and the within-date Spearman between A(q) and V1's S(q) (W60_H10_B artifact)"
+    ],
+    "regime_policy": "market regime is never a filter in this study; the evaluation window is effectively a single regime (four blocks all positive, annualized volatility 11.6 to 15.5 percent), so regime hypotheses are untestable here and the results must say so"
+  },
+  "pit_contract": {
+    "inherits": "docs/backtest/strategy_d/D_PIT_CONTRACT_V1.md",
+    "deltas": [
+      "P-1 signal input is the ten structural coordinates instead of the close path; all use information at or before D",
+      "P-2 the embargo constant W is replaced by the coordinate lookback L = 60: d + h <= D - 60",
+      "P-3 coordinate standardization uses date D's eligible cross-section only; no future dates and no rolling estimation window",
+      "P-4 volume coordinates reference only (D-60, D], inside the split protection window, so no V*F transform is declared"
+    ],
+    "additional": [
+      "B0 is computed from the query's own coordinates; it reads no label and no neighbor",
+      "delta(t) is computed on one date's single query set",
+      "a single PIT violation fails S2 and the verdict is FAIL without examining other conditions"
+    ]
+  },
+  "data_status_policy": {
+    "USB-HIST-V1": "DEVELOPMENT / SCREENING DATA, permanently",
+    "reason": "D V1 read this window once, C-4 read it once, V2-A is the third pass",
+    "never": "promoted to holdout or locked OOS in any later study",
+    "future_structure": "DEV (unused past) -> VALIDATION (limited research choices) -> LOCKED OOS (opened once), physically separated after long data is acquired"
+  },
+  "prohibited_in_d0": ["structure feature code", "encoder", "neighbor search", "signal", "evaluation", "backtester", "data reads", "API calls", "commits", "deploys"],
+  "checksum_recipe": "sha256 of json.dumps(payload, sort_keys=True, separators=(',', ':'), ensure_ascii=False) encoded UTF-8, i.e. app.backtest.strategy_c_selection.rules.canonical_checksum; recorded in d_v2a_rules_v1.sha256"
+}

@@ -1,0 +1,10 @@
+# Strategy D V2-A (MARKET_STRUCTURE_ANALOG_V2) rules checksum, declared before any V2-A data read or result.
+# canonical: sha256 of json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False) UTF-8
+#            = app.backtest.strategy_c_selection.rules.canonical_checksum (existing US-B recipe, same as V1)
+# file:      sha256 of the file bytes (informational; the canonical value is the gate)
+# declared:  2026-09-20 KST, D0 pre-registration
+# scope:     SCREENING study. PASS means long historical data is worth buying, not that alpha exists.
+# note:      V1 (HISTORICAL_ANALOG_V1, canonical 680bf113253fc434102f46a4166ac38b23dfbb4ba7591a7d88c3430c058c0cd3)
+#            is untouched by this declaration.
+canonical  2b060ceb34748c3d933d01aee2cf7669ea48bf72a95ae811eba978a3aa3fe229  d_v2a_rules_v1.json
+file       7ddcb93948339ed7bc206db50240f9fedd53a4faf13f6b7f2179edd6cbfb4440  d_v2a_rules_v1.json
