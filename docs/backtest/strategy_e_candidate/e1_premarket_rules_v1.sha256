@@ -1,0 +1,9 @@
+{
+  "file": "e1_premarket_rules_v1.json",
+  "canonical_sha256": "951b973b1c848ef8d7b19e012365bee50bdec73cbea710431e8a9f4d47f67f02",
+  "file_sha256": "c7a6bdec47a5d5beccb4a9558792aab40cc32fbb62c1cf2488711739c9317b14",
+  "recipe": "canonical = sha256 of json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False); same recipe as C-M, C-E0, EQM-V0, D, C-4 and E0",
+  "frozen_at_kst": "2026-09-20",
+  "frozen_before": "any E1 premarket feature, opening label, baseline, bucket, hypothesis result or bootstrap was computed",
+  "frozen_after": "the premarket coverage audit, which counted bars by ET window and computed no return"
+}

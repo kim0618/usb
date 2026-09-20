@@ -1,0 +1,9 @@
+{
+  "file": "e1_h5_confirmation_rules_v1.json",
+  "canonical_sha256": "d2a8b5f23a3c96c354a512d8adad22b5d194abb82eaa75fb35bef89534d511c3",
+  "file_sha256": "e4f47f15d1b7571e47f56547b8b1cfd964cb0a9ad188c92d5487a76394ad7bbf",
+  "recipe": "canonical = sha256 of json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False); same recipe as C-M, C-E0, EQM-V0, D, C-4, E0 and E1",
+  "frozen_at_kst": "2026-09-20",
+  "frozen_before": "any return, lift, matched estimate, cost stress or bootstrap was computed on the confirmation block",
+  "frozen_after": "a read-only coverage audit that compared the current minute symbol list against the E1 tape binding and counted rows per symbol, reading no return"
+}

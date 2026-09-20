@@ -1,0 +1,138 @@
+{
+  "declaration": {
+    "strategy_id": "OVERNIGHT_CLOSING_STRENGTH_V0",
+    "research_id": "e0-overnight-v0",
+    "phase": "PRE_VALIDATION",
+    "gate_name": "E0_OVERNIGHT_PREVALIDATION",
+    "declared_at_kst": "2026-09-20",
+    "declared_before": "any E0 feature, label, baseline, bucket, hypothesis result or bootstrap was computed",
+    "checksum_recipe": "sha256 of json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False)",
+    "final_gate": false,
+    "promotion_claim": "PASS means only that a formal Strategy E research track is worth opening. It is not an alpha approval, not a trading rule and not an execution claim.",
+    "question": "Using only information observable up to the regular-session close, can the probability and expected value of the next session's open (or the first minutes after it) be raised meaningfully above the unconditional base rate?"
+  },
+  "frozen_inputs": {
+    "daily_snapshot_id": "USB-HIST-V1",
+    "daily_authority": "MASSIVE_GROUPED_DAILY adjusted=false",
+    "daily_loader": "app.backtest.strategy_d_analog.source.load_daily_history (imported unmodified)",
+    "grid": {"first_session": "2024-09-17", "last_session": "2026-09-16", "sessions": 501},
+    "minute_authority": "MASSIVE_TICKER_AGGREGATE adjusted=false, raw provider pages",
+    "minute_cohorts": {
+      "M1_DEEP": "the 30 MINUTE_UNIVERSE_V1 symbols over the full grid (raw pages plus the legacy normalized parquet)",
+      "M2_BROAD": "the symbols collected by historical_v2 over the recent scope window 2026-04-20..2026-09-16"
+    },
+    "not_modified": ["strategy_a", "strategy_b", "strategy_c_selection", "strategy_c_e0", "strategy_c4_analog",
+                     "strategy_eqm_v0", "strategy_d_analog", "historical_store", "collector",
+                     "common historical store", "USB-HIST-V1", "USB-HIST-V2"],
+    "no_new_collection": "E0 issues no provider API call. It reads only files that already exist."
+  },
+  "universe": {
+    "point_in_time": true,
+    "membership": "ticker is in the latest CS reference snapshot dated on or before D",
+    "allowed_primary_exchanges": ["XNAS", "XNYS", "XASE"],
+    "security_type": "CS only; ETF, fund, warrant, unit and test symbols are excluded by the CS reference itself",
+    "min_close_at_D": 5.0,
+    "min_median_dollar_volume": 5000000.0,
+    "dollar_volume_window": "median of close*volume over the 20 sessions [D-20, D-1], strictly before D, so the liquidity filter cannot select on D's own volume spike",
+    "min_present_sessions_in_window": 15,
+    "warmup_sessions": 20,
+    "first_eligible_index": 20,
+    "last_eligible_index": 499,
+    "requires": ["close(D) > 0", "open(D+1) > 0", "close(D-1) > 0", "volume(D) >= 0"],
+    "corporate_action_exclusion": "ca_excluded when a split executes in (D, D+1]; such rows are dropped from every E0 statistic and counted separately",
+    "split_basis": "prices are split-normalized with F(t), the cumulative price factor of splits executed on or before t; volume is v/F; dollar volume needs no adjustment"
+  },
+  "labels": {
+    "primary": "overnight_return = open(D+1) / close(D) - 1",
+    "gap_thresholds_positive": [0.0, 0.01, 0.02, 0.03],
+    "gap_thresholds_negative": [-0.01, -0.03, -0.05],
+    "minute_labels": {
+      "close_to_next_1m": "close of the 09:30 ET bar of D+1 / close(D) - 1",
+      "close_to_next_5m": "close of the 09:34 ET bar of D+1 / close(D) - 1",
+      "close_to_next_15m": "close of the 09:44 ET bar of D+1 / close(D) - 1",
+      "next_5m_MFE": "max high 09:30..09:34 / close(D) - 1",
+      "next_5m_MAE": "min low 09:30..09:34 / close(D) - 1",
+      "next_15m_MFE": "max high 09:30..09:44 / close(D) - 1",
+      "next_15m_MAE": "min low 09:30..09:44 / close(D) - 1"
+    },
+    "execution_limitation": "the official consolidated open is not an executable fill; E0 measures the official print only and makes no slippage, spread, auction or capacity claim"
+  },
+  "daily_features": {
+    "day_return": "adjP(D)/adjP(D-1) - 1",
+    "clv": "(close - low) / (high - low); undefined when high == low, such rows are kept in the baseline and dropped from CLV buckets and from any hypothesis that reads CLV",
+    "rvol": "v(D)/F(D) divided by the median of v/F over [D-20, D-1]; undefined when that median is 0",
+    "dollar_volume": "close(D) * volume(D)",
+    "momentum_3d": "adjP(D)/adjP(D-3) - 1",
+    "momentum_5d": "adjP(D)/adjP(D-5) - 1",
+    "relative_strength_5d": "momentum_5d - SPY momentum_5d over the same 5 sessions",
+    "availability": "every feature reads sessions <= D only"
+  },
+  "minute_features": {
+    "regular_session": "09:30:00..15:59:59 ET bars only",
+    "return_1530_to_close": "close of the 15:59 bar / open of the 15:30 bar - 1",
+    "return_1545_to_close": "close of the 15:59 bar / open of the 15:45 bar - 1",
+    "last30m_volume": "sum of volume 15:30..15:59",
+    "last15m_volume": "sum of volume 15:45..15:59",
+    "last30m_volume_share": "last30m_volume / regular session volume",
+    "close_vs_session_vwap": "close(D) / (sum(vw*v)/sum(v) over the regular session) - 1",
+    "close_to_day_high": "close(D) / max(high) over the regular session - 1",
+    "last30m_high_break": "max high 15:30..15:59 >= max high 09:30..15:29",
+    "last15m_high_break": "max high 15:45..15:59 >= max high 09:30..15:44",
+    "availability": "no bar with a start at or after 16:00 ET of D enters any feature"
+  },
+  "buckets": {
+    "day_return": [null, 0.0, 0.02, 0.05, 0.10, null],
+    "clv": [0.0, 0.2, 0.5, 0.8, 0.95, 1.0],
+    "rvol": [0.0, 1.0, 2.0, 3.0, 5.0, null],
+    "dollar_volume": [5000000.0, 20000000.0, 100000000.0, 500000000.0, null],
+    "close_price": [5.0, 10.0, 20.0, 50.0, 200.0, null],
+    "momentum_5d": [null, -0.05, 0.0, 0.05, 0.15, null],
+    "relative_strength_5d": [null, -0.05, 0.0, 0.05, 0.15, null],
+    "note": "fixed edges declared before any result was seen; no bucket edge is tuned to an outcome"
+  },
+  "hypotheses": {
+    "count_limit": 5,
+    "thresholds_come_from": "the declared bucket edges only; no optimizer, no sweep, no search over thresholds",
+    "H1": {"scope": "DAILY", "rule": "day_return > 0 and clv >= 0.8"},
+    "H2": {"scope": "DAILY", "rule": "day_return > 0 and clv >= 0.8 and rvol >= 2.0"},
+    "H3": {"scope": "DAILY", "rule": "clv >= 0.8 and rvol >= 2.0 and relative_strength_5d > 0"},
+    "H4": {"scope": "MINUTE", "rule": "H2 and return_1530_to_close > 0"},
+    "H5": {"scope": "MINUTE", "rule": "H2 and close_to_day_high >= -0.005 and return_1545_to_close > 0"}
+  },
+  "robustness": {
+    "quarterly": "calendar quarters of D; every quarter reported with N, mean, median, win rate and mean lift",
+    "extreme_removal": ["top 1 row by overnight_return", "top 5 rows", "top 1 percent of rows"],
+    "symbol_concentration": ["share of total excess return contributed by the top 5 tickers",
+                             "result after removing the top 5 contributing tickers"],
+    "liquidity_buckets": "declared dollar_volume buckets",
+    "price_buckets": "declared close_price buckets",
+    "bootstrap": {"resamples": 10000, "unit": "session (block bootstrap over D, so rows of one session move together)",
+                  "seed": 20260920, "interval": "percentile 2.5 / 97.5 of the mean lift and of the median lift"}
+  },
+  "gate": {
+    "evaluated_on": "the best declared daily hypothesis by N-weighted evidence, and separately on each minute hypothesis",
+    "pass_requires_all": {
+      "min_rows": 2000,
+      "min_mean_lift": 0.0015,
+      "min_median_lift": 0.0005,
+      "min_win_rate_lift": 0.02,
+      "min_positive_quarters": 6,
+      "quarters_counted": 8,
+      "mean_lift_after_top1pct_removed": 0.0005,
+      "max_top5_ticker_share_of_excess": 0.40,
+      "bootstrap_mean_lift_ci_low_above": 0.0,
+      "max_downside_ratio_vs_baseline": 1.5,
+      "downside_metric": "P(overnight_return <= -0.05) of the candidate divided by the same probability of the baseline"
+    },
+    "inconclusive_requires": "bootstrap mean lift CI low > 0 and at least one pass_requires_all item failed",
+    "fail_otherwise": true,
+    "no_post_hoc_edit": "if the declared hypotheses fail, the verdict is FAIL or INCONCLUSIVE. Rules are not edited to produce a PASS; a new question needs a new declaration file."
+  },
+  "artifacts": {
+    "report": "docs/backtest/strategy_e_candidate/E0_OVERNIGHT_PREVALIDATION.md",
+    "runs": "data/runtime/strategy_e_candidate/runs/<run_id>/",
+    "run_id": "e0-<12 hex of the run identity digest>",
+    "identity_inputs": ["rules canonical checksum", "snapshot id", "freeze digest", "read-set digest",
+                        "grid digest", "minute cohort digest"]
+  }
+}

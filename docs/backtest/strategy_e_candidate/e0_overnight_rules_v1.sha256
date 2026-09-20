@@ -1,0 +1,8 @@
+{
+  "file": "e0_overnight_rules_v1.json",
+  "canonical_sha256": "078aa79231f075a4eee33ff7924dc6185c23b389ab69b1e0c3d0cc92cfb38752",
+  "file_sha256": "2e0cc3cfc918e90815a3bd29733e39b17bb0b93a2618aa871334da34d9509c06",
+  "recipe": "canonical = sha256 of json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False); same recipe as C-M, C-E0, EQM-V0, D and C-4",
+  "frozen_at_kst": "2026-09-20",
+  "frozen_before": "any E0 feature, label, baseline, bucket, hypothesis result or bootstrap was computed"
+}

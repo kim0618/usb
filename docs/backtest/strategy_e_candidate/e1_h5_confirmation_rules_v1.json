@@ -1,0 +1,166 @@
+{
+  "declaration": {
+    "study_id": "E1_H5_CONFIRMATION_V1",
+    "hypothesis_id": "E1_H5",
+    "phase": "CONFIRMATION",
+    "gate_name": "E1_H5_CONFIRMATION",
+    "declared_at_kst": "2026-09-20",
+    "declared_before": "any return, lift, matched estimate, cost stress or bootstrap was computed on the confirmation block",
+    "declared_after": "a read-only coverage audit of the minute store that compared the current symbol list against the E1 tape binding and counted rows per symbol; no return was read",
+    "checksum_recipe": "sha256 of json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False)",
+    "purpose": "confirmation, not discovery. H5 is reproduced verbatim from the E1 declaration and is not modified, relaxed, tightened, extended or re-thresholded for any reason, including a disappointing result.",
+    "final_gate": false,
+    "question": "With H5 unchanged, does the Open->5m excess survive a new out-of-sample block, price and liquidity matched controls, and a realistic round-trip cost?"
+  },
+  "frozen_inputs": {
+    "e1_rules_checksum": "951b973b1c848ef8d7b19e012365bee50bdec73cbea710431e8a9f4d47f67f02",
+    "e0_rules_checksum": "078aa79231f075a4eee33ff7924dc6185c23b389ab69b1e0c3d0cc92cfb38752",
+    "e1_run_id": "e1-32a530c8af9a",
+    "daily_snapshot_id": "USB-HIST-V1",
+    "daily_authority": "MASSIVE_GROUPED_DAILY adjusted=false",
+    "minute_authority": "MASSIVE_TICKER_AGGREGATE adjusted=false",
+    "development_tape_digest": "d12ff28a98cf9cc64cad86f595985fd5ae2308b555635501fa5729d4439222a4",
+    "confirmation_tape_digest": "4f96e04261781ed6",
+    "confirmation_binding_file": "data/runtime/strategy_e_candidate/e1_cache/confirmation_binding.json",
+    "code_reuse": "app.backtest.strategy_e1_premarket premarket/cohort/dataset modules are imported unmodified so that the confirmation block is processed by exactly the code that produced the development result",
+    "not_modified": ["strategy_a", "strategy_b", "strategy_c_selection", "strategy_c_e0", "strategy_c4_analog",
+                     "strategy_eqm_v0", "strategy_d_analog", "strategy_e0_overnight", "strategy_e1_premarket",
+                     "historical_store", "collector", "common historical store", "USB-HIST-V1", "USB-HIST-V2"],
+    "no_new_collection": "this study issues no provider API call and does not interfere with the running B-minute collector; it takes no writer lock and writes nothing under the minute store"
+  },
+  "hypothesis": {
+    "statement": "premarket_gap > 0 and premarket_rvol >= 3.0 and position_in_premarket_range >= 0.8 and return_0900_0925 > 0",
+    "source": "e1_premarket_rules_v1.json hypotheses.H5, reproduced verbatim",
+    "feature_definitions": "e1_premarket_rules_v1.json section 'features', reproduced by importing the E1 code unchanged",
+    "thresholds_frozen": {"premarket_gap": "> 0", "premarket_rvol": ">= 3.0",
+                          "position_in_premarket_range": ">= 0.8", "return_0900_0925": "> 0"},
+    "modification_forbidden": "no threshold, no feature, no additional condition, no H6 or H7. A different rule is a different study and needs its own declaration."
+  },
+  "decision_time": {
+    "primary_et": "09:25",
+    "primary_last_usable_bar_start_et": "09:24",
+    "identical_to_e1": true
+  },
+  "horizons": {
+    "primary": "R_5M",
+    "primary_definition": "close of the last bar starting at or before 09:34 ET divided by the open of the 09:30 bar, minus 1; identical to the E1 primary reading",
+    "strict_variant_reported": "R_5M_strict, the exact 09:34 bar, reported as a sensitivity",
+    "secondary_diagnostic_only": ["R_1M", "R_15M"],
+    "no_primary_switch": "if R_1M or R_15M looks better in this study the primary is NOT changed. The primary was fixed by the E1 result before this study began."
+  },
+  "splits": {
+    "ordering": "no random split anywhere",
+    "DEVELOPMENT": {
+      "definition": "the 1,902 symbols bound by the E1 run (tape digest d12ff28a...)",
+      "use": "reference and neutralization diagnostics only. No DEVELOPMENT number can produce a PASS.",
+      "rationale": "every one of these rows was observed while the E1 result was written"
+    },
+    "CONFIRMATION": {
+      "definition": "symbols present in the minute store that were absent from the E1 tape binding, frozen at confirmation_tape_digest before any return was computed",
+      "use": "the only block that can produce a PASS"
+    },
+    "FINAL_HOLDOUT": {
+      "definition": "the last chronological block of genuinely new data",
+      "expected_status": "NOT CONSTRUCTIBLE and declared so in advance",
+      "reason": "the B collector advances alphabetically over a fixed scope window (2026-04-20..2026-09-16), so newly arrived data is new SYMBOLS over the SAME sessions, not new sessions. The daily snapshot USB-HIST-V1 is frozen at 2026-09-16, so no later session could enter the universe even if its minutes existed. A chronological holdout therefore cannot be cut from what exists.",
+      "forbidden_substitute": "a random or symbol-wise split of the confirmation block is NOT a chronological holdout and must not be reported as one"
+    }
+  },
+  "matched_control": {
+    "purpose": "separate the H5 effect from a price, liquidity or gap-size premium",
+    "method": "coarsened exact matching, deterministic. No propensity model, no ML, no fitted weights.",
+    "control_pool": "universe observations in the same block that do NOT satisfy H5",
+    "match_variables": {
+      "price_bucket": [3.0, 20.0, 100.0, null],
+      "previous_day_dollar_volume_bucket": [5000000.0, 50000000.0, 500000000.0, null],
+      "premarket_dollar_volume_bucket": [50000.0, 1000000.0, 25000000.0, null],
+      "premarket_gap_bucket": [0.0, 0.01, 0.05, null]
+    },
+    "primary_estimator": {
+      "name": "session_demeaned_cell_matching",
+      "step_1": "adj(i) = R_5M(i) - mean R_5M over all universe rows of the same session, which removes the market-wide move of that morning",
+      "step_2": "matched_lift = mean over H5 rows of [adj(i) - mean adj over non-H5 control rows in the same match cell]",
+      "unmatched": "an H5 row whose cell holds no control is dropped and counted; the match rate is reported"
+    },
+    "secondary_estimator": {
+      "name": "same_session_cell_matching",
+      "definition": "the same cell matching but the control pool is restricted to the same session, with no demeaning",
+      "use": "stricter sensitivity; reported with its own match rate, never used to overturn the primary"
+    },
+    "median_and_win_rate": "computed on the same matched differences as the mean"
+  },
+  "robustness": {
+    "price_buckets_reported": [3.0, 5.0, 10.0, 20.0, 50.0, 100.0, 200.0, null],
+    "price_bucket_merge_rule": "a reported price bucket with fewer than 30 H5 rows is merged into the adjacent higher bucket before reporting; the merge is mechanical and declared here, not chosen after seeing results",
+    "liquidity_buckets_reported": [5000000.0, 20000000.0, 100000000.0, 500000000.0, null],
+    "extreme_removal": ["top 1 row by the matched difference", "top 5 rows", "top 1 percent of rows"],
+    "concentration": ["top 1 symbol share of total matched excess", "top 5", "top 10",
+                      "Herfindahl index over per-symbol shares of matched excess"],
+    "time_consistency": {
+      "granularity": "month, and quarter where a quarter holds enough rows",
+      "broad_universe_only": "periods in which the broad minute universe does not exist (before 2026-04-20) are reported separately and are NOT summed into broad-market evidence"
+    },
+    "regime": {
+      "allowed_inputs": "SPY information known at or before the decision time only",
+      "labels": ["SPY previous-day return sign", "SPY premarket return sign at 09:24",
+                 "trailing 20-session universe volatility through D-1, split at its own median"],
+      "forbidden": "any regime label built from the same-day regular-session outcome"
+    },
+    "bootstrap": {
+      "resamples": 10000,
+      "seed": 20260920,
+      "primary_unit": "session cluster (all rows of one session resample together)",
+      "secondary_unit": "symbol-session iid",
+      "interval": "percentile 2.5 / 97.5 of the matched mean lift",
+      "primary_is_conservative": "the session cluster interval is the one the gate reads"
+    }
+  },
+  "cost_stress": {
+    "grid_bp": [0, 5, 10, 15, 20, 25, 30],
+    "definition": "net_matched_lift = gross_matched_lift - assumed_round_trip_cost",
+    "break_even_cost_bp": "the assumed round-trip cost at which net_matched_lift reaches zero, i.e. the gross matched lift expressed in basis points",
+    "declared_realistic_cost_bp": 10,
+    "basis": "Stocks Basic carries no quote, so no spread is measured anywhere in this study. 10 bp round trip is declared as a deliberately modest floor for the sub-$20, low-premarket-volume names that dominate H5; it is a declared assumption, not an estimate from data."
+  },
+  "execution_reality": {
+    "recorded": ["official 09:30 open", "first minute high and low", "first 5-minute MFE",
+                 "first 5-minute MAE"],
+    "not_claimed": "the 09:30 open is not treated as an executable fill, and no number in this study is net of spread, impact, imbalance or auction effects",
+    "required_before_promotion": "a separate Execution Model is required after promotion and is out of scope here"
+  },
+  "sample_gate": {
+    "confirmation_min_rows": 2000,
+    "stretch_target_rows": 5000,
+    "no_lowering": "if the confirmation block does not reach the minimum, the threshold is NOT lowered. The verdict becomes INCONCLUSIVE and the required additional coverage is computed and reported.",
+    "yield_basis": "the development block produced 1,729 H5 rows from 1,902 symbols, i.e. 0.909 rows per symbol; this is used only to size the shortfall, never to impute results"
+  },
+  "gate": {
+    "evaluated_on": "the CONFIRMATION block, primary horizon R_5M, matched-control primary estimator",
+    "pass_requires_all": {
+      "confirmation_rows": 2000,
+      "matched_mean_lift": 0.0015,
+      "matched_median_lift": 0.0005,
+      "matched_win_rate_lift": 0.02,
+      "matched_mean_lift_after_top1pct_removed": 0.0005,
+      "max_top5_symbol_share_of_matched_excess": 0.40,
+      "bootstrap_session_cluster_ci_low_above": 0.0,
+      "max_downside_ratio_vs_control": 1.5,
+      "downside_metric": "P(R_5M <= -0.01) of H5 divided by the same probability of its matched controls",
+      "price_neutralized_positive": "the matched mean lift is positive in the majority of reported price buckets that clear the 30-row minimum",
+      "liquidity_neutralized_positive": "the same in the reported liquidity buckets",
+      "time_direction_consistent": "the matched mean lift has the same sign in the majority of months of the broad-universe period",
+      "net_positive_at_declared_cost": "net_matched_lift > 0 at an assumed round-trip cost of 10 bp"
+    },
+    "inconclusive_requires": "the signal survives in direction but the confirmation sample, the holdout or the cost test is insufficient to decide",
+    "fail_requires": "the matched mean lift is non-positive on the confirmation block, or the edge disappears under price and liquidity neutralization, or it is negative net of the declared cost while also failing the bootstrap",
+    "holdout_rule": "if a final holdout cannot be constructed, the verdict may not be PASS. The best available outcome is CONFIRMATION_PASS_BUT_HOLDOUT_INSUFFICIENT, which does not promote H5 to Strategy E.",
+    "no_post_hoc_edit": "no threshold in this file is edited after a result is seen."
+  },
+  "artifacts": {
+    "report": "docs/backtest/strategy_e_candidate/E1_H5_CONFIRMATION.md",
+    "runs": "data/runtime/strategy_e_candidate/confirmation_runs/<run_id>/",
+    "run_id": "e1h5-<12 hex of the run identity digest>",
+    "identity_inputs": ["this file's canonical checksum", "e1 rules checksum", "e0 rules checksum",
+                        "daily freeze digest", "development tape digest", "confirmation tape digest"]
+  }
+}

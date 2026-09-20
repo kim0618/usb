@@ -1,0 +1,161 @@
+{
+  "declaration": {
+    "strategy_id": "PREMARKET_OPEN_MOMENTUM_V0",
+    "research_id": "e1-premarket-v0",
+    "phase": "PRE_VALIDATION",
+    "gate_name": "E1_PREMARKET_OPEN_PREVALIDATION",
+    "declared_at_kst": "2026-09-20",
+    "declared_before": "any E1 premarket feature, opening label, baseline, bucket, hypothesis result or bootstrap was computed",
+    "declared_after": "the premarket coverage audit, which counted bars by ET window and contained no return, feature or label",
+    "checksum_recipe": "sha256 of json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False)",
+    "final_gate": false,
+    "question": "Using only price, volume, gap and momentum information observable in the premarket up to 09:25 ET, can the stocks that rise further during the first 1, 5 and 15 minutes of the regular session be selected statistically?",
+    "promotion_claim": "PASS means only that a formal Strategy E research track is worth opening. It is not an alpha approval, not a trading rule and not an execution claim.",
+    "relation_to_e0": "E1 is a new question, not a retune of E0. E0 (STRONG_CLOSE -> OVERNIGHT LONG) is CLOSED as FAIL and is not modified. No E0 finding, including its strong-close mean reversion observation, is used as an E1 feature, filter or rule. E0's daily PIT universe machinery is imported unchanged and only as infrastructure."
+  },
+  "frozen_inputs": {
+    "daily_snapshot_id": "USB-HIST-V1",
+    "daily_authority": "MASSIVE_GROUPED_DAILY adjusted=false",
+    "daily_loader": "app.backtest.strategy_e0_overnight.dataset.load_daily_rows (imported unmodified), which itself imports app.backtest.strategy_d_analog.source.load_daily_history unmodified",
+    "daily_universe_rules": "e0_overnight_rules_v1.json, canonical 078aa79231f075a4eee33ff7924dc6185c23b389ab69b1e0c3d0cc92cfb38752",
+    "grid": {"first_session": "2024-09-17", "last_session": "2026-09-16", "sessions": 501},
+    "minute_authority": "MASSIVE_TICKER_AGGREGATE adjusted=false, raw provider pages plus the legacy normalized Parquet",
+    "minute_tape_is_live": "the historical_v2 B-minute collector is running and writes into the same minute directories. E1 takes no lock, writes nothing there, binds itself to the symbol and file list observed at the start of the run, and records a tape digest before and after so a tape that moved under the study is visible rather than silent.",
+    "not_modified": ["strategy_a", "strategy_b", "strategy_c_selection", "strategy_c_e0", "strategy_c4_analog",
+                     "strategy_eqm_v0", "strategy_d_analog", "strategy_e0_overnight", "historical_store",
+                     "collector", "common historical store", "USB-HIST-V1", "USB-HIST-V2"],
+    "no_new_collection": "E1 issues no provider API call. It reads only files that already exist."
+  },
+  "decision_time": {
+    "primary_et": "09:25",
+    "primary_last_usable_bar_start_et": "09:24",
+    "rationale": "a 1-minute bar starting at 09:24 has closed by 09:25; a bar starting at 09:25 has not. Every primary feature therefore reads bars with start <= 09:24 and nothing later.",
+    "robustness_only_et": ["09:00", "09:15"],
+    "robustness_rule": "the two earlier decision times are reported as robustness on the primary hypotheses only. The primary decision time is not re-chosen after seeing which of the three performs best."
+  },
+  "universe": {
+    "point_in_time": true,
+    "daily_eligibility": "the E0 declared PIT universe evaluated at session D-1: CS membership in the latest reference snapshot dated on or before D-1, primary exchange XNAS/XNYS/XASE, close(D-1) >= $5, median dollar volume over [D-21, D-2] >= $5M with >= 15 sessions present, and no split executing in (D-1, D]",
+    "why_d_minus_1": "every daily input to an E1 decision at 09:25 of session D must be known at the close of D-1. Reusing the E0 row for D-1 makes that structural rather than checked.",
+    "premarket_requirements": {
+      "min_premarket_bars_0400_0924": 3,
+      "min_premarket_dollar_volume": 50000.0,
+      "requires_open_bar_0930": true,
+      "basis": "chosen from the coverage audit, which showed a median of 4 premarket bars per active symbol-session and no return information. Three bars is the minimum that defines a premarket range and a last price; it is not tuned to an outcome."
+    },
+    "features_needing_0900_0925": "rows without at least 2 bars in [09:00, 09:24] have return_0900_0925 undefined; they stay in the baseline and are dropped from that feature's buckets and from any hypothesis reading it. The count is reported.",
+    "excluded_by_construction": "ETF, fund, warrant, unit and test symbols are excluded by the CS reference itself",
+    "label_existence_caveat": "the universe requires a 09:30 open bar, which is not knowable at 09:25. This is a data-availability filter of the same class as E0's 'next open exists' and is declared as a limitation, not claimed to be tradeable."
+  },
+  "labels": {
+    "anchor": "open of the 09:30 ET bar of session D",
+    "bar_convention": "a 1-minute bar labelled t covers [t, t+1). price at 09:31 is therefore the close of the 09:30 bar.",
+    "primary": "R_5M",
+    "primary_basis": "declared before any result. The gate is evaluated on R_5M. R_1M and R_15M are reported in full; a hypothesis that fails on R_5M but passes on both R_1M and R_15M is INCONCLUSIVE, never PASS.",
+    "R_1M": "close(09:30 bar) / open(09:30 bar) - 1",
+    "R_5M": "close(09:34 bar) / open(09:30 bar) - 1",
+    "R_15M": "close(09:44 bar) / open(09:30 bar) - 1",
+    "MFE_1M": "max high 09:30..09:30 / open(09:30 bar) - 1",
+    "MFE_5M": "max high 09:30..09:34 / open(09:30 bar) - 1",
+    "MFE_15M": "max high 09:30..09:44 / open(09:30 bar) - 1",
+    "MAE_1M": "min low 09:30..09:30 / open(09:30 bar) - 1",
+    "MAE_5M": "min low 09:30..09:34 / open(09:30 bar) - 1",
+    "MAE_15M": "min low 09:30..09:44 / open(09:30 bar) - 1",
+    "probability_thresholds_up": [0.005, 0.01, 0.02, 0.03],
+    "probability_thresholds_down": [-0.005, -0.01, -0.02, -0.03],
+    "execution_limitation": "the 09:30 bar open is a print, not an executable fill. Stocks Basic carries no quote, so no spread, no imbalance and no auction information enters E1. No number here is a net return."
+  },
+  "features": {
+    "premarket_gap": "last premarket trade price at or before 09:24 / close(D-1) - 1",
+    "premarket_return": "last premarket price / first premarket price of the session - 1",
+    "premarket_high_return": "max premarket high / close(D-1) - 1",
+    "premarket_low_return": "min premarket low / close(D-1) - 1",
+    "premarket_volume": "sum of premarket volume over [04:00, 09:24]",
+    "premarket_dollar_volume": "sum of premarket vwap*volume over [04:00, 09:24]",
+    "premarket_rvol": "premarket_dollar_volume divided by the median premarket dollar volume of the same symbol over the 20 prior sessions that had premarket activity; undefined when fewer than 5 such sessions exist",
+    "return_0800_0925": "last price at or before 09:24 / first price at or after 08:00 - 1, undefined without >= 2 bars in the window",
+    "return_0900_0925": "same over [09:00, 09:24]",
+    "return_0915_0925": "same over [09:15, 09:24]",
+    "return_last30m": "same over [08:55, 09:24]",
+    "distance_to_premarket_high": "last price / max premarket high - 1, always <= 0",
+    "position_in_premarket_range": "(last price - min premarket low) / (max premarket high - min premarket low); undefined when the range is zero",
+    "premarket_volume_last30m_ratio": "premarket dollar volume over [08:55, 09:24] / premarket_dollar_volume",
+    "previous_day_return": "the E0 day_return feature at D-1",
+    "previous_day_clv": "the E0 clv feature at D-1",
+    "previous_day_dollar_volume": "the E0 dollar_volume feature at D-1",
+    "spy_premarket_return": "SPY last premarket price at or before 09:24 / SPY close(D-1) - 1",
+    "relative_strength_vs_spy": "premarket_gap - spy_premarket_return",
+    "availability": "every feature reads only bars with start <= 09:24 ET of D, and daily values known at the close of D-1"
+  },
+  "buckets": {
+    "premarket_gap": [null, 0.0, 0.01, 0.02, 0.05, 0.10, null],
+    "premarket_rvol": [0.0, 1.0, 2.0, 3.0, 5.0, null],
+    "position_in_premarket_range": [0.0, 0.2, 0.5, 0.8, 0.95, 1.0],
+    "distance_to_premarket_high": [null, -0.05, -0.02, -0.01, -0.005, 0.0],
+    "return_0900_0925": [null, -0.01, -0.002, 0.0, 0.002, 0.01, null],
+    "return_last30m": [null, -0.01, -0.002, 0.0, 0.002, 0.01, null],
+    "premarket_dollar_volume": [50000.0, 250000.0, 1000000.0, 5000000.0, 25000000.0, null],
+    "relative_strength_vs_spy": [null, -0.02, 0.0, 0.02, null],
+    "previous_day_dollar_volume": [5000000.0, 20000000.0, 100000000.0, 500000000.0, null],
+    "close_price": [5.0, 10.0, 20.0, 50.0, 200.0, null],
+    "note": "fixed edges declared before any result was seen; no bucket edge is tuned to an outcome"
+  },
+  "hypotheses": {
+    "count_limit": 5,
+    "thresholds_come_from": "the declared bucket edges only; no optimizer, no sweep, no search over thresholds",
+    "H1": {"name": "Premarket Gap Continuation", "rule": "premarket_gap > 0 and return_0900_0925 > 0"},
+    "H2": {"name": "Gap + Volume", "rule": "premarket_gap > 0 and premarket_rvol >= 3.0"},
+    "H3": {"name": "Premarket High Pressure", "rule": "position_in_premarket_range >= 0.8 and return_last30m > 0"},
+    "H4": {"name": "Relative Strength", "rule": "premarket_gap > 0 and relative_strength_vs_spy > 0 and premarket_dollar_volume >= 1000000.0"},
+    "H5": {"name": "Full Premarket Momentum", "rule": "premarket_gap > 0 and premarket_rvol >= 3.0 and position_in_premarket_range >= 0.8 and return_0900_0925 > 0"}
+  },
+  "core_comparison": {
+    "declared": ["gap only: premarket_gap > 0",
+                 "gap + volume: H2",
+                 "gap + premarket closing strength: premarket_gap > 0 and position_in_premarket_range >= 0.8"],
+    "purpose": "to separate a gap effect from a volume effect and from a premarket closing-strength effect on the same rows, rather than reading a combined rule as evidence for each part"
+  },
+  "robustness": {
+    "time_split": "calendar quarters of D, and a first-half / second-half split of the evaluated sessions",
+    "regime": {
+      "spy_premarket_sign": "sessions where SPY's own premarket return at 09:24 is positive versus negative, which is known at the decision time",
+      "trailing_volatility": "median across the universe of the 20-session realized volatility of daily returns through D-1, split at its own median; known at the close of D-1",
+      "excluded": "SPY same-day return is NOT used as a regime label because it is not knowable at 09:25"
+    },
+    "liquidity": "declared premarket_dollar_volume and previous_day_dollar_volume buckets",
+    "price": "declared close_price buckets",
+    "market_cap": "not used; no point-in-time market cap series is available for this universe",
+    "extreme_removal": ["top 1 row by the primary label", "top 5 rows", "top 1 percent of rows"],
+    "symbol_concentration": ["share of total excess contributed by the top 5 tickers",
+                             "result after removing the top 5 contributing tickers"],
+    "bootstrap": {"resamples": 10000, "unit": "session (block bootstrap over D, so rows of one session move together)",
+                  "seed": 20260920, "interval": "percentile 2.5 / 97.5 of the mean lift and of the median lift"}
+  },
+  "gate": {
+    "evaluated_on": "the primary label R_5M, for each of the five declared hypotheses",
+    "pass_requires_all": {
+      "min_rows": 2000,
+      "min_mean_lift": 0.0015,
+      "min_median_lift": 0.0005,
+      "min_win_rate_lift": 0.02,
+      "min_positive_quarters": 6,
+      "quarters_counted": 8,
+      "mean_lift_after_top1pct_removed": 0.0005,
+      "max_top5_ticker_share_of_excess": 0.40,
+      "bootstrap_mean_lift_ci_low_above": 0.0,
+      "max_downside_ratio_vs_baseline": 1.5,
+      "downside_metric": "P(R_5M <= -0.01) of the candidate divided by the same probability of the baseline"
+    },
+    "volatility_selector_rejection": "a candidate whose mean lift is positive while its median lift is <= 0 and both its P(>= +1%) and P(<= -1%) exceed the baseline is recorded as a volatility selector and is not credited as alpha, whatever its mean. This is the E0 RVOL failure mode and it is declared here in advance.",
+    "inconclusive_requires": "bootstrap mean lift CI low > 0 on R_5M and at least one pass_requires_all item failed; or the candidate passes every criterion on both R_1M and R_15M but not on R_5M",
+    "fail_otherwise": true,
+    "no_post_hoc_edit": "if the declared hypotheses fail, the verdict is FAIL or INCONCLUSIVE. Rules are not edited to produce a PASS; a new question needs a new declaration file."
+  },
+  "artifacts": {
+    "report": "docs/backtest/strategy_e_candidate/E1_PREMARKET_OPEN_PREVALIDATION.md",
+    "runs": "data/runtime/strategy_e_candidate/runs/<run_id>/",
+    "run_id": "e1-<12 hex of the run identity digest>",
+    "identity_inputs": ["rules canonical checksum", "e0 rules checksum", "snapshot id", "freeze digest",
+                        "read-set digest", "grid digest", "premarket tape digest"]
+  }
+}
