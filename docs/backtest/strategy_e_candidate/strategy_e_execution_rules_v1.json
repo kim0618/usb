@@ -1,0 +1,69 @@
+{
+  "declaration": {
+    "contract_id": "STRATEGY_E_EXECUTION_RULES_V1",
+    "stage": "E-D2_ENTRY_EXECUTION",
+    "status": "FROZEN_BEFORE_TRADING_BACKTEST",
+    "declared_at_kst": "2026-09-21",
+    "scope": "deterministic candidate selection, execution eligibility, and entry price identity only",
+    "forbidden": ["H5 modification", "Alpha ranking", "PnL", "entry comparison", "exit", "stop", "sizing", "cost optimization"]
+  },
+  "upstream": {
+    "strategy_id": "STRATEGY_E",
+    "signal_version": "STRATEGY_E_H5_SIGNAL_V1",
+    "e_d0_rules_canonical_sha256": "f1534f07688c801f2979491e447eefbb3e62b8045afb9c4ab302b90e4593d4b2",
+    "alpha_evaluator": "app.backtest.strategy_e1_premarket.evaluate.mask('H5') via app.strategy_e.signal.evaluate_h5_signal",
+    "decision_time_et": "09:25"
+  },
+  "data_capability": {
+    "authority": "MASSIVE_TICKER_AGGREGATE adjusted=false one-minute aggregates",
+    "timestamp_semantics": "provider t / normalized timestamp_utc is the UTC start of the aggregate window; converted to America/New_York session date and minute",
+    "fields": ["symbol", "session", "bar_start", "open", "high", "low", "close", "volume", "vwap"],
+    "official_opening_auction_fill": "NOT_IDENTIFIABLE_FROM_CURRENT_DATA",
+    "bar_0930_open": "AVAILABLE",
+    "bar_0930_vwap": "AVAILABLE",
+    "bar_0930_close": "AVAILABLE",
+    "bar_0931_open": "AVAILABLE_WHEN_BAR_EXISTS",
+    "halt_status": "NOT_IDENTIFIABLE_FROM_CURRENT_DATA"
+  },
+  "selection": {
+    "ordering": "canonical symbol ascending",
+    "ordering_purpose": "identity and reproducibility only; not Alpha strength or expected return",
+    "max_selected_candidates": 3,
+    "max_selected_source": "min(RiskConfig.max_new_symbols_per_day=3, RiskConfig.max_open_positions=3)",
+    "overflow": "H5 remains true; candidate is recorded selected=false with NOT_SELECTED_CAPACITY",
+    "forbidden_inputs": ["premarket_gap magnitude", "premarket_rvol magnitude", "position_in_premarket_range magnitude", "return_0900_0925 magnitude", "future outcome"]
+  },
+  "entry": {
+    "model": "FIRST_REGULAR_MINUTE_OPEN_PROXY_V1",
+    "entry_bar_start_et": "09:30",
+    "entry_field": "open",
+    "semantics": "historical first regular-session one-minute aggregate open proxy; not an official auction fill or guaranteed live fill",
+    "lookahead_forbidden_fields": ["09:30 high", "09:30 low", "09:30 close", "09:30 volume", "09:30 vwap", "09:31 or later bars", "future label"]
+  },
+  "eligibility": {
+    "required": ["exactly one matching symbol/session 09:30 ET bar", "finite open", "open > 0"],
+    "missing_0930": "NO_TRADE_MISSING_ENTRY_BAR",
+    "delayed_first_bar": "NO_TRADE_MISSING_ENTRY_BAR",
+    "invalid_open": "NO_TRADE_INVALID_ENTRY_OPEN",
+    "duplicate_0930": "NO_TRADE_DUPLICATE_ENTRY_BAR",
+    "session_mismatch": "NO_TRADE_SESSION_MISMATCH",
+    "symbol_mismatch": "NO_TRADE_SYMBOL_MISMATCH",
+    "non_trading_session": "NO_TRADE_INVALID_SESSION",
+    "shortened_session": "NO_TRADE_SHORTENED_SESSION",
+    "fill_policy": "no forward-fill, backfill, interpolation, or substitution"
+  },
+  "limitations": [
+    "one-minute aggregate open may only be available from the historical vendor payload after the aggregate is published",
+    "does not model bid/ask spread",
+    "does not model queue position",
+    "does not model auction imbalance or auction participation",
+    "does not model market impact",
+    "does not model latency",
+    "does not model partial fills",
+    "does not identify trading halts"
+  ],
+  "record": {
+    "excluded": ["exit", "PnL", "cost-adjusted PnL", "stop", "position size", "future return"],
+    "execution_version": "STRATEGY_E_EXECUTION_V1"
+  }
+}
