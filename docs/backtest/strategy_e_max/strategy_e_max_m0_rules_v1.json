@@ -1,0 +1,188 @@
+{
+  "declaration": {
+    "contract_id": "STRATEGY_E_MAX_M0_RULES_V1",
+    "version": "STRATEGY_E_MAX_M0_V1",
+    "namespace": "STRATEGY_E_MAX",
+    "stage": "E-MAX-M0_AGGRESSIVE_HYPOTHESIS_PREREGISTRATION",
+    "status": "FROZEN_BEFORE_ANY_E_MAX_PERFORMANCE_CALCULATION",
+    "declared_at_kst": "2026-09-21",
+    "checksum_recipe": "sha256 of json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False)",
+    "question": "When strong premarket opening momentum is plentiful, does concentrating capital on the strongest opportunities or the strongest sessions produce meaningfully higher compound growth than E-Base, within a finite risk envelope?",
+    "primary_objective": "maximize compound growth (CAGR) at COST_10BP subject to the risk envelope and the statistical minimum",
+    "not_computed_in_m0": "no ranking, capacity, breadth, exit or exposure return of any kind"
+  },
+  "base_frozen": {
+    "alpha": "H5 V1 (E-D0 alpha, canonical f1534f07688c801f2979491e447eefbb3e62b8045afb9c4ab302b90e4593d4b2)",
+    "trading": "STRATEGY_E_TRADING_V1_1 (canonical b90573bde8809b0eadd03c9f6c5cae59bf115254b792237df92e0f6eaa1304b6)",
+    "replay_protocol": "E-R2 (canonical 86b750ef664ef3c67d8560c5001940c77e792ceeab17a5d024690f939aa8045e)",
+    "base_result": "E-R3 INCONCLUSIVE — STATISTICAL, strategy_e_v1_1_replay_result.json sha256 2d50cca5cfe2ee4b284eb097c87afd2a51fd4b20c11dfa86e95752fa8a94b593",
+    "decision_cutoff_et": "09:25",
+    "rule": "E-MAX never overwrites, edits or re-labels a Base artifact; every E-MAX artifact lives under docs/backtest/strategy_e_max/ and app.strategy_e_max"
+  },
+  "base_reference_values": {
+    "role": "comparator values already published by E-R3; not recomputed in M0",
+    "standard_trades": 485,
+    "active_sessions": 237,
+    "trade_mean_10bp_bp": 6.82,
+    "session_mean_10bp_bp": 1.89,
+    "profit_factor_10bp": 1.122,
+    "mdd_10bp": -0.1645,
+    "sharpe_10bp": 0.32,
+    "bootstrap_ci_10bp_bp": [-6.71, 10.48],
+    "positive_blocks": 2,
+    "top1_symbol": "ABSI",
+    "top1_share_10bp": 0.7338
+  },
+  "feature_pool": {
+    "allowed": ["premarket_gap", "premarket_rvol", "position_in_premarket_range", "return_0900_0925"],
+    "source": "the four frozen H5 inputs, sealed at 09:25 (strategy_e1_forward.seal.H5_INPUTS)",
+    "new_features_forbidden": true,
+    "h5_threshold_changes_forbidden": true,
+    "gap_alone_ranking": {
+      "included": false,
+      "reason": "prior Research evidence (E1_PREMARKET_OPEN_PREVALIDATION.md, 'premarket_gap - not monotone, and the big gaps reverse'; section 490 'The premarket gap on its own carries no information and inverts where it is largest') argues against ranking by gap; decided from that existing document before any E-MAX result"
+    }
+  },
+  "structural_facts_used": {
+    "source": "E-R3 runtime daily_returns.csv, structural columns eligible and h5_candidates only; no return column read",
+    "coverage_regime": "the development minute tape carries only the 30 MINUTE_UNIVERSE_V1 symbols before 2026-04-20 (mean universe 28.6 rows/session) and the broad collection from 2026-04-20 (mean 580.6)",
+    "sessions_with_more_than_3_candidates": {"all": 101, "before_2026_04_20": 4, "from_2026_04_20": 97},
+    "sessions_with_more_than_5_candidates": {"all": 93, "before_2026_04_20": 2, "from_2026_04_20": 91},
+    "implication": "absolute H5 count measures data coverage, not market conditions, in this dataset; ranking, capacity and breadth can differ from Base on about 101 sessions, almost all in the last 104 sessions (one coverage regime, chronological block 4)"
+  },
+  "research_budget": {
+    "ranking": 3,
+    "capacity": 2,
+    "breadth": 2,
+    "exit": 2,
+    "exposure": 3,
+    "rule": "budgets count every declared variant of a stage as listed below; a failed stage does not earn a new variant; any additional hypothesis is a new version and a new research cycle",
+    "grid_search_forbidden": true,
+    "cartesian_combination_forbidden": true
+  },
+  "stages": {
+    "order": ["E-MAX-M0", "E-MAX-M1", "E-MAX-M2", "E-MAX-M3", "E-MAX-M4", "E-MAX-M5", "E-MAX-M6", "FORWARD"],
+    "E-MAX-M0": "this aggressive hypothesis preregistration",
+    "E-MAX-M1": "candidate-strength ranking study",
+    "E-MAX-M2": "capacity study, using the M1 ordering",
+    "E-MAX-M3": "breadth / session-strength study, using the M1 ordering and the M2 capacity",
+    "E-MAX-M4": "aggressive exit study, only if still justified (see exit.run_condition)",
+    "E-MAX-M5": "exposure / risk scaling, last",
+    "E-MAX-M6": "frozen MAX V1 integrated replay",
+    "FORWARD": "only if the MAX V1 candidate survives M6",
+    "per_stage_procedure": "a stage protocol (implementation, data binding, outputs) is frozen and committed before the stage runs; the stage runs once; its result is frozen; the next stage takes the frozen winner or the carried comparator",
+    "skip_rule": "a stage whose outcome is NO_USEFUL_ENHANCEMENT carries its comparator forward; it does not end E-MAX by itself"
+  },
+  "ranking": {
+    "stage": "E-MAX-M1",
+    "comparator": {"id": "R0", "rule": "canonical symbol ascending (E-Base)"},
+    "scope": "orders the session's sealed H5 candidates; selection takes the first `capacity` of that order; replacement NONE; everything else is Trading V1.1",
+    "tie_break": "canonical symbol ascending",
+    "hypotheses": [
+      {"id": "R1", "name": "RVOL strength", "rule": "premarket_rvol descending"},
+      {"id": "R2", "name": "late-premarket momentum", "rule": "return_0900_0925 descending"},
+      {"id": "R3", "name": "equal-rank composite", "rule": "for each of premarket_rvol, return_0900_0925 and position_in_premarket_range, rank the session's H5 candidates descending (1 = largest, ties receive the average rank); score = sum of the three ranks; order by score ascending", "weights": "equal; weight search forbidden"}
+    ],
+    "information": "all inputs are sealed 09:25 values; every H5 candidate has them finite (the H5 mask requires it)"
+  },
+  "capacity": {
+    "stage": "E-MAX-M2",
+    "hypotheses": [
+      {"id": "C1", "max_selected": 3, "role": "comparator (E-Base)"},
+      {"id": "C2", "max_selected": 5, "role": "aggressive"}
+    ],
+    "sizing": "EQUAL_WEIGHT_EXECUTABLE_V1 semantics (1/n over executable positions, n <= max_selected); normalized daily gross 1.0",
+    "risk_v1_conflict": "Common Risk V1 caps max_open_positions and max_new_symbols_per_day at 3; C2 is a development research variant only and cannot be traded without a new, separately approved risk version",
+    "hard_cap_values_forbidden_beyond": 5
+  },
+  "breadth": {
+    "stage": "E-MAX-M3",
+    "principle": "breadth never turns a trade on or off; it only scales exposure of an otherwise unchanged session",
+    "measure": "h5_rate = H5 candidate count / 09:25 PIT universe rows, both known at the seal",
+    "coverage_guard": "h5_rate is defined only when the universe has at least 100 rows, so a single candidate cannot exceed 1%; below that the session is treated as B1",
+    "hypotheses": [
+      {"id": "B1", "rule": "exposure multiplier 1.0 on every session", "role": "comparator"},
+      {"id": "B2", "rule": "exposure multiplier 1.5 when h5_rate >= 0.030741 and universe rows >= 100, else 1.0"}
+    ],
+    "threshold_source": "75th percentile (numpy quantile, method 'higher') of h5_rate over the 104 development sessions with at least 100 universe rows; structural only, no return used; 26 sessions meet it (each with >= 16 candidates)",
+    "exposure_semantics": "session net return x multiplier; costs scale with notional; research-only (see exposure.risk_v1_conflict)"
+  },
+  "exit": {
+    "stage": "E-MAX-M4",
+    "run_condition": "M4 runs only if the configuration entering it (M1-M3 winners or carried comparators) passes the eligibility conditions of the selection rule; otherwise M4 is skipped and recorded as SKIPPED_NOT_JUSTIFIED",
+    "research_prior": "E1-H5 development mean lift over the baseline (E1_PREMARKET_OPEN_PREVALIDATION.md table at line 229): open->1m +6.49 bp, open->5m +16.54 bp, open->15m +5.70 bp (\"continuation peaks at five minutes and is gone by fifteen\"); an unconditional longer hold is not supported, so only one conditional variant is allowed and its prior is weak",
+    "horizon_scan_forbidden": true,
+    "hypotheses": [
+      {"id": "X1", "rule": "exact 09:34 ET close (E-Base FIXED_FIVE_MINUTE_CLOSE_PROXY_V1)", "role": "comparator"},
+      {"id": "X2", "name": "momentum continuation", "rule": "at the close of the exact 09:34 bar: if close(09:34) > open(09:30) hold and exit at the exact 09:44 ET close; otherwise exit at close(09:34). An extended position without a valid exact 09:44 bar is UNRESOLVED_EXIT / INVALID_FOR_STANDARD_PNL; no fallback", "information": "the hold decision uses only the 09:30 open and the 09:34 close, both known at 09:35:00 ET", "cost": "one round trip, COST_10BP primary, unchanged"}
+    ]
+  },
+  "exposure": {
+    "stage": "E-MAX-M5",
+    "hypotheses": [
+      {"id": "L1", "multiplier": 1.0, "role": "comparator"},
+      {"id": "L2", "multiplier": 1.5},
+      {"id": "L3", "multiplier": 2.0}
+    ],
+    "semantics": "session net return x multiplier applied to the frozen M1-M4 configuration; costs scale with notional; no financing cost modelled (reported as a limitation)",
+    "risk_v1_conflict": "Common Risk V1 base capacity is 0.80 of equity and it has no leverage; multipliers above 1.0 are development research only and not tradable without a new, separately approved risk version",
+    "precondition": "M5 runs only if at least one of M1-M4 produced a winner; E-MAX is not a leveraged copy of E-Base"
+  },
+  "risk_envelope": {
+    "primary_cost": "COST_10BP",
+    "cost_scenarios_reported": ["GROSS_0BP", "COST_05BP", "COST_10BP", "COST_15BP", "COST_20BP"],
+    "mdd_hard_ceiling": -0.35,
+    "rule": "a candidate with COST_10BP maximum drawdown below -0.35 (i.e. deeper than 35%) fails; -0.35 itself is eligible",
+    "role": "development research envelope, not a live account recommendation",
+    "diagnostics": ["worst session", "worst week", "worst month", "worst quarter", "recovery duration (sessions from drawdown start to new high, or open)", "consecutive losing sessions (longest run)", "largest single-symbol loss (trade)", "top1 / top5 / top10 contribution", "HHI (trade count)", "trades per symbol"],
+    "symbol_exclusion": "forbidden (ABSI included); no symbol-removed figure is a primary output"
+  },
+  "selection_rule": {
+    "applies_to": ["E-MAX-M1", "E-MAX-M2", "E-MAX-M3", "E-MAX-M4", "E-MAX-M5"],
+    "metrics": "E-D6 metrics unchanged (app.backtest.strategy_e_d6.metrics) over the 480-session E-R2 timeline, no-trade sessions at 0, COST_10BP",
+    "eligibility": [
+      "integrity PASS (E-R2 prechecks and deterministic repeat)",
+      "standard_pnl_coverage >= 0.95",
+      "COST_10BP mean session return > 0 and profit factor > 1.0",
+      "COST_10BP maximum drawdown >= -0.35",
+      "COST_10BP top1 symbol share of total net contribution <= 0.7338 (E-Base), so an improvement cannot come from more concentration"
+    ],
+    "improvement_vs_stage_comparator": [
+      "COST_10BP compound cumulative return > comparator",
+      "paired IID session bootstrap of (candidate - comparator) COST_10BP session returns, 10,000 replicates, seed 20260921: mean difference > 0 and P(difference <= 0) <= 0.10"
+    ],
+    "winner": "among candidates meeting every condition, the highest COST_10BP CAGR = (1 + cumulative)^(252/480) - 1; ties by higher session mean, then by declared order",
+    "no_winner": "NO_USEFUL_ENHANCEMENT; the comparator is carried forward",
+    "statistical_minimum_reported": ["profit factor", "session mean", "bootstrap 95% CI of the session mean", "chronological blocks (E-D6 four-block rule)", "trade count", "active sessions"],
+    "chronology_note": "because ranking, capacity and breadth can only differ from Base on ~101 sessions concentrated in block 4, a block-level test of the difference is reported but is not a selection condition"
+  },
+  "development_reuse_guard": {
+    "dataset": "the E-R2 frozen development binding (tape d12ff28a98cf9cc6..., USB-HIST-V1, 480 sessions 2024-10-16..2026-09-16); forward sessions >= 2026-09-17 excluded",
+    "universe": "Trading V1.1 PIT universe",
+    "rule": "preregister -> execute once -> freeze; no parameter change or re-run within a stage after its result",
+    "evidence_labels": {
+      "E-BASE": "existing historical evidence",
+      "E-MAX DEVELOPMENT": "new exploratory evidence on reused development data; never described as OOS",
+      "FORWARD": "future independent evidence"
+    }
+  },
+  "stop_conditions": {
+    "A": "no aggressive enhancement: M1 to M4 all end NO_USEFUL_ENHANCEMENT (or skipped) -> E-MAX V1 stops; M5 does not run",
+    "B": "risk outgrows return: at any stage winner, |MDD| / |MDD of E-Base| exceeds CAGR / CAGR of E-Base (both COST_10BP) -> flagged; if it holds at M6, E-MAX V1 stops",
+    "C": "more concentration: covered by the top1 eligibility guard; a stage whose only improving candidates fail that guard -> NO_USEFUL_ENHANCEMENT and recorded as Stop C evidence",
+    "D": "risk ceiling: every candidate of two consecutive executed stages below -0.35 MDD -> E-MAX V1 stops",
+    "E": "data mining: any proposal outside this budget, or without prior support, requires a new version; it cannot be appended to E-MAX V1"
+  },
+  "prohibitions": [
+    "changing H5, its thresholds or the Trading V1.1 universe",
+    "new ranking features or weight search",
+    "gap-alone ranking in V1",
+    "capacity values other than 3 and 5",
+    "horizon scans or exits other than X1 and X2",
+    "exposure multipliers other than 1.0, 1.5, 2.0",
+    "lowering the primary cost below 10 bp",
+    "excluding ABSI or any symbol, or any period",
+    "Cartesian grids across stages",
+    "any E-MAX performance calculation in M0"
+  ]
+}
