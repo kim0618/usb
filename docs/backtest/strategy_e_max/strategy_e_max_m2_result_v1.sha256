@@ -1,0 +1,23 @@
+{
+ "file": "strategy_e_max_m2_result_v1.json",
+ "run_id": "em2-45dd8e457fce",
+ "file_sha256": "d5402bf9d42333c63190615b4e7abaa639fc0fd9f4179bfdfeb1df96ed47b53c",
+ "canonical_sha256": "5d1ec3763fe036fc0f3f50615d72db8a2e3ee9e69f43e7279334528098e19f9a",
+ "recipe": "file_sha256 = sha256 of the runtime result.json bytes (the run's result digest)",
+ "runtime_artifacts": {
+  "C1_daily_returns.csv": "9d39d01bdccf0b9c7b1177ed9a39e0f9c647b724a0b964b3d091b8e54588e188",
+  "C1_trades.csv": "95d03874fbb27a111e731117575c2ae55405cad390379fee3f25d61d9a8602ae",
+  "C2_daily_returns.csv": "2517ae896ff4498114ee90a121963ed3a9482d195d8b001247f3130f34129704",
+  "C2_trades.csv": "e93869b9d041d164d446c23e62da9a44d1a9eb5111739c6788749e9cb83c62b7",
+  "result.json": "d5402bf9d42333c63190615b4e7abaa639fc0fd9f4179bfdfeb1df96ed47b53c"
+ },
+ "repeat_check": {
+  "artifacts_identical": true,
+  "attempt": "repeat-2",
+  "first_result_digest": "d5402bf9d42333c63190615b4e7abaa639fc0fd9f4179bfdfeb1df96ed47b53c",
+  "identical": true,
+  "this_result_digest": "d5402bf9d42333c63190615b4e7abaa639fc0fd9f4179bfdfeb1df96ed47b53c"
+ },
+ "protocol_commit": "cf5a6cb",
+ "verdict": "E-MAX-M2 NO_USEFUL_ENHANCEMENT"
+}

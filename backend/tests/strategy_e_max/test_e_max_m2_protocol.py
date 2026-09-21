@@ -186,3 +186,65 @@ def test_checksum_file() -> None:
     recorded = json.loads((DOCS / "strategy_e_max_m2_rules_v1.sha256").read_text("utf-8"))
     assert recorded["canonical_sha256"] == m2.RULES_CANONICAL_SHA256
     assert recorded["file_sha256"] == hashlib.sha256((DOCS / "strategy_e_max_m2_rules_v1.json").read_bytes()).hexdigest()
+
+
+# -- committed M2 result (phase B) ---------------------------------------------------------------
+
+RESULT = DOCS / "strategy_e_max_m2_result_v1.json"
+
+
+@pytest.fixture(scope="module")
+def result():
+    return json.loads(RESULT.read_text(encoding="utf-8"))
+
+
+def test_result_checksum_and_repeat(result) -> None:
+    recorded = json.loads((DOCS / "strategy_e_max_m2_result_v1.sha256").read_text("utf-8"))
+    assert recorded["file_sha256"] == hashlib.sha256(RESULT.read_bytes()).hexdigest()
+    check = recorded["repeat_check"]
+    assert check["identical"] and check["artifacts_identical"]
+    assert check["first_result_digest"] == check["this_result_digest"] == recorded["file_sha256"]
+
+
+def test_c1_reproduced_m1_r1_and_invariants(result, rules) -> None:
+    pre = result["prechecks"]
+    assert pre["c1_reproduces_m1_r1"] == {"trades_csv": rules["upstream"]["m1_r1_trades_csv_sha256"],
+                                          "daily_returns_csv": rules["upstream"]["m1_r1_daily_returns_csv_sha256"]}
+    assert pre["invariants"]["pass"] and pre["in_process_deterministic"]
+    assert result["identity"]["m2_rules"] == m2.RULES_CANONICAL_SHA256
+
+
+def test_c2_capacity_and_exposure(result) -> None:
+    f1 = result["variants"]["C1"]["evaluation"]["funnel"]
+    f2 = result["variants"]["C2"]["evaluation"]["funnel"]
+    assert f1["H5_candidates"]["count"] == f2["H5_candidates"]["count"] == 1738
+    assert f1["selected_candidates"]["count"] == 501 and f2["selected_candidates"]["count"] > 501
+    assert result["opportunity"]["FULL_DEVELOPMENT"]["additional_selected_positions"] == \
+        f2["selected_candidates"]["count"] - f1["selected_candidates"]["count"]
+
+
+def test_verdict_recomputes(result, rules) -> None:
+    ev1 = result["variants"]["C1"]["evaluation"]
+    ev2 = result["variants"]["C2"]["evaluation"]
+    s1, s2 = ev1["scenarios"]["COST_10BP"], ev2["scenarios"]["COST_10BP"]
+    summary = {"integrity": result["integrity"], "coverage": ev2["funnel"]["standard_pnl_coverage"],
+               "mean_10bp": s2["all_session_mean"], "pf_10bp": s2["profit_factor"],
+               "mdd_10bp": s2["maximum_drawdown"],
+               "top1_share_10bp": ev2["concentration"]["cost_10bp"]["top1"]["share_of_total"]}
+    e = m2.eligible(summary, rules)
+    i = m2.improved(s2["cumulative_return"], s1["cumulative_return"], result["paired_c2_minus_c1"], rules)
+    assert e == result["c2_eligibility"] and i == result["c2_improvement"]
+    assert m2.decide(e, i, rules) == result["verdict"]
+    assert (result["paired_c2_minus_c1"]["seed"], result["paired_c2_minus_c1"]["replicates"]) == (20260921, 10_000)
+
+
+def test_base_m0_m1_artifacts_unchanged() -> None:
+    import subprocess
+    for path in ("docs/backtest/strategy_e_candidate/strategy_e_v1_1_replay_result.json",
+                 "docs/backtest/strategy_e_max/strategy_e_max_m0_rules_v1.json",
+                 "docs/backtest/strategy_e_max/strategy_e_max_m1_rules_v1.json",
+                 "docs/backtest/strategy_e_max/strategy_e_max_m1_result_v1.json",
+                 "docs/backtest/strategy_e_max/strategy_e_max_m2_rules_v1.json"):
+        frozen = subprocess.run(["git", "-C", str(ROOT), "show", f"cf5a6cb:{path}"],
+                                capture_output=True, check=True).stdout
+        assert (ROOT / path).read_bytes() == frozen
