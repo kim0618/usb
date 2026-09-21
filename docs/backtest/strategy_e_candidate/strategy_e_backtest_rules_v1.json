@@ -1,0 +1,112 @@
+{
+  "declaration": {
+    "contract_id": "STRATEGY_E_D6_BACKTEST_RULES_V1",
+    "version": "STRATEGY_E_D6_BACKTEST_V1",
+    "status": "FROZEN_BEFORE_FIRST_DEVELOPMENT_TRADING_BACKTEST",
+    "dataset_role": "DEVELOPMENT; previously used during Strategy E research; not OOS and not live approval"
+  },
+  "strategy": {
+    "signal": "H5",
+    "candidate_priority": "CANONICAL_SYMBOL_ASCENDING",
+    "max_selected": 3,
+    "replacement_policy": "NONE",
+    "entry": "exact 09:30 ET aggregate open",
+    "exit": "exact 09:34 ET aggregate close",
+    "fallback": "NONE",
+    "sizing": "EQUAL_WEIGHT_EXECUTABLE_V1",
+    "stop": "NONE",
+    "profit_target": "NONE",
+    "partial_exit": "NONE"
+  },
+  "costs": {
+    "primary_scenario": "COST_10BP",
+    "primary_total_round_trip_bp": 10,
+    "sensitivity_total_round_trip_bp": [0, 5, 10, 15, 20],
+    "gross_0bp_policy": "DIAGNOSTIC_ONLY",
+    "primary_cannot_change_after_results": true
+  },
+  "portfolio": {
+    "session_return": "sum(normalized_weight_i * net_return_i) over standard-PnL trades",
+    "no_trade_session_return": 0,
+    "calendar": "XNYS",
+    "timeline": "every valid XNYS session in the frozen dataset date range",
+    "all_session_active_session_trade_expectancy_reported_separately": true,
+    "invalid_exit": "UNRESOLVED_EXIT / INVALID_FOR_STANDARD_PNL; excluded from standard PnL without synthetic return"
+  },
+  "data_quality": {
+    "standard_pnl_coverage": "valid standard-PnL trades / valid entries",
+    "minimum_coverage": 0.95,
+    "below_minimum_verdict": "E-D6 INCONCLUSIVE — DATA QUALITY"
+  },
+  "statistics": {
+    "primary_unit": "session portfolio return",
+    "bootstrap": {
+      "method": "IID resampling with replacement of complete session portfolio returns",
+      "replicates": 10000,
+      "seed": 20260921,
+      "interval": "two-sided percentile 95% at 2.5 and 97.5",
+      "primary_metric": "mean COST_10BP session portfolio return"
+    },
+    "annualization_sessions": 252,
+    "sharpe": "sqrt(252) * arithmetic mean(all-session returns) / sample standard deviation(ddof=1); zero risk-free rate",
+    "sortino": "sqrt(252) * arithmetic mean(all-session returns) / sqrt(mean(min(return,0)^2)); zero target",
+    "undefined_policy": "null when denominator is zero/non-finite or fewer than two observations for Sharpe",
+    "cumulative_return": "product(1 + all-session return) - 1",
+    "maximum_drawdown": "minimum(equity / running_peak - 1) on compounded equity beginning at 1"
+  },
+  "chronological_robustness": {
+    "blocks": 4,
+    "assignment": "sort all XNYS evaluation sessions and split into four contiguous blocks with counts differing by at most one; never split by trades or outcomes",
+    "requirement": "positive COST_10BP arithmetic mean session return in at least 3 of 4 blocks"
+  },
+  "gate": {
+    "integrity": "all frozen checksums and provenance, deterministic replay, and no look-ahead must pass",
+    "data_quality": "standard_pnl_coverage >= 0.95",
+    "net_economics": "COST_10BP mean session portfolio return > 0 and trade-level profit factor > 1.0",
+    "statistical_support": "COST_10BP session-bootstrap 95% CI lower bound > 0",
+    "chronological_robustness": "positive COST_10BP mean in at least 3 of 4 blocks",
+    "pass": "all five conditions pass",
+    "fail": "integrity and coverage pass, but mean session return <= 0 or profit factor <= 1.0",
+    "inconclusive_promising": "economics pass but bootstrap lower bound <= 0 or fewer than 3 positive blocks",
+    "precedence": ["INTEGRITY_BLOCK", "DATA_QUALITY", "ECONOMIC_FAIL", "STATISTICAL_INCONCLUSIVE", "PASS"]
+  },
+  "diagnostics": {
+    "price_buckets_usd": [[5, 10], [10, 20], [20, 50], [50, 100], [100, 200], [200, null]],
+    "price_bucket_boundary": "left-inclusive right-exclusive; final bucket unbounded",
+    "liquidity_measure": "D-1 dollar volume known before 09:25",
+    "liquidity_buckets": "reuse frozen Research buckets when available; otherwise deterministic full-sample quantiles marked descriptive",
+    "break_even_cost": "mean gross trade return in round-trip bp; diagnostic only",
+    "concentration": ["unique symbols", "top1 contribution", "top5 contribution", "top10 contribution", "HHI", "trades per symbol"],
+    "concentration_gate": "NONE; DIAGNOSTIC ONLY"
+  },
+  "reporting": {
+    "cost_scenarios": ["GROSS_0BP", "COST_05BP", "COST_10BP", "COST_15BP", "COST_20BP"],
+    "scenario_metrics": ["mean", "median", "win_rate", "profit_factor", "cumulative_return", "maximum_drawdown", "sharpe", "sortino"],
+    "periods": ["month", "quarter", "chronological_block"],
+    "funnel": ["eligible_universe_rows", "H5_candidates", "selected_candidates", "capacity_skipped", "valid_entries", "invalid_entries", "valid_exact_exits", "unresolved_exits", "standard_pnl_trades"],
+    "research_comparison": "implementation delta only; the approximately 17bp matched H5 research lift is not a reproduction target"
+  },
+  "prohibitions": [
+    "H5 threshold changes", "candidate ranking changes", "position-count changes",
+    "candidate replacement", "entry or exit timestamp changes", "fallback exits", "stop additions",
+    "sizing changes", "primary cost changes", "month or bucket exclusions", "new decision filters"
+  ],
+  "reproducibility": {
+    "required": "same input and frozen artifacts produce byte-equivalent canonical result content and identical digest",
+    "repeat_runs": 2,
+    "runtime_root": "data/runtime/strategy_e/backtest_runs",
+    "raw_runtime_git_policy": "gitignored; canonical summary is committed"
+  },
+  "upstream": {
+    "e_d0_rules_canonical_sha256": "f1534f07688c801f2979491e447eefbb3e62b8045afb9c4ab302b90e4593d4b2",
+    "e_d1_signal_version": "STRATEGY_E_H5_SIGNAL_V1",
+    "e_d2_execution_rules_canonical_sha256": "d204b1dac9dd40530a7e03bebd36b32fd1950efde2e8b226a5eaedd5f196d041",
+    "e_d2_execution_version": "STRATEGY_E_EXECUTION_V1",
+    "e_d3_horizon_semantics_canonical_sha256": "f96f78f4bbd4758722ced07f758f8f0e5c10bb7f3e47d96b47642486a3f59603",
+    "e_d3_exit_rules_canonical_sha256": "f6f455641efebedfd65777ba4e00c47f1bc0adb60447e4c662d0908d9d38d58b",
+    "e_d3_exit_version": "STRATEGY_E_EXIT_V1",
+    "e_d4_cost_rules_canonical_sha256": "b2229fe5308df6b2b18f4eae8dfedf5d08b4af796ae24aab5ad7861ed3ec454c",
+    "e_d5_risk_rules_canonical_sha256": "2e1e796d7e3563da4b1fd4d4a007314b49d3c3ac9a55e63519076b8ac8d104ee",
+    "e_d5_risk_version": "STRATEGY_E_RISK_V1"
+  }
+}
