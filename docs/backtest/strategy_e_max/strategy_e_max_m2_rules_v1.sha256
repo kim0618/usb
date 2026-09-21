@@ -1,0 +1,8 @@
+{
+  "file": "strategy_e_max_m2_rules_v1.json",
+  "canonical_sha256": "aabeddcd25c16daefe3e273b5df5e2e59d362a48820dd8188fe86c483f285a4b",
+  "file_sha256": "1c2a90342b692ed3591816e6fd5d035b8f4f3e0239d1ef16e927cc569963222f",
+  "recipe": "canonical = sha256 of json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False)",
+  "frozen_at_kst": "2026-09-21",
+  "frozen_before": "any E-MAX-M2 performance calculation"
+}
