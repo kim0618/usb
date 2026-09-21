@@ -1,0 +1,8 @@
+{
+  "file": "strategy_e_forward_feature_context_v1.json",
+  "canonical_sha256": "78bb90b44b2d6eeec9fa945ef2fe7547178f525b4719cb81fc8171e14b5c3fad",
+  "file_sha256": "5b8560fc5b763e5d5fe0d47862c689f7a65291536891ce5c3a6f98e5e05e29e4",
+  "recipe": "canonical = sha256 of json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False)",
+  "frozen_at_kst": "2026-09-21",
+  "frozen_before": "any Strategy E Trading V1.1 forward feature builder, seal or label"
+}

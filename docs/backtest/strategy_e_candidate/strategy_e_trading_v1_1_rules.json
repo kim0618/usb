@@ -1,0 +1,137 @@
+{
+  "declaration": {
+    "contract_id": "STRATEGY_E_TRADING_RULES_V1_1",
+    "version": "STRATEGY_E_TRADING_V1_1",
+    "stage": "E-R1_PIT_UNIVERSE_CORRECTION",
+    "status": "PREREGISTERED",
+    "declared_at_kst": "2026-09-21",
+    "declared_before": "any Trading V1.1 development replay, forward observation, paper trade or live trade",
+    "checksum_recipe": "sha256 of json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False)",
+    "scope": "point-in-time / look-ahead correction of the 09:25 decision universe only",
+    "motivation": "E-F0 audit: two post-09:25 availability tests were pre-selection universe filters in Trading V1 (the 09:30 minute bar of D and the grouped-daily open of D). Neither is knowable at 09:25, so V1 cannot be reproduced by a LIVE 09:25 decision.",
+    "not_motivated_by_performance": "No performance number was computed for V1.1 and no E-D6 result was used to choose any V1.1 rule."
+  },
+  "version_authority": {
+    "alpha_contract": "H5 V1, unchanged (E-D0 alpha section, canonical f1534f07688c801f2979491e447eefbb3e62b8045afb9c4ab302b90e4593d4b2)",
+    "trading_v1": "HISTORICAL; superseded for forward decision semantics",
+    "trading_v1_1": "authoritative candidate for a PIT-corrected development replay and for future Forward",
+    "trading_v1_1_status": {
+      "preregistered": true,
+      "development_validated": false,
+      "forward_approved": false,
+      "live_approved": false
+    }
+  },
+  "upstream": {
+    "e_d0_rules_canonical_sha256": "f1534f07688c801f2979491e447eefbb3e62b8045afb9c4ab302b90e4593d4b2",
+    "e_d1_signal_version": "STRATEGY_E_H5_SIGNAL_V1",
+    "e_d2_execution_rules_canonical_sha256": "d204b1dac9dd40530a7e03bebd36b32fd1950efde2e8b226a5eaedd5f196d041",
+    "e_d3_horizon_semantics_canonical_sha256": "f96f78f4bbd4758722ced07f758f8f0e5c10bb7f3e47d96b47642486a3f59603",
+    "e_d3_exit_rules_canonical_sha256": "f6f455641efebedfd65777ba4e00c47f1bc0adb60447e4c662d0908d9d38d58b",
+    "e_d4_cost_rules_canonical_sha256": "b2229fe5308df6b2b18f4eae8dfedf5d08b4af796ae24aab5ad7861ed3ec454c",
+    "e_d5_risk_rules_canonical_sha256": "2e1e796d7e3563da4b1fd4d4a007314b49d3c3ac9a55e63519076b8ac8d104ee",
+    "e_d6_backtest_rules_canonical_sha256": "73056ac8e8cd6308c4affc343adaad75a7ea4e902e0f8c72b3bdc918e7cb4713",
+    "e_d6_result_file_sha256": "f70f9196894b2a428c039fdd833cdd8ba4284dd9594778ceed6c02e9d5bf7eef",
+    "e1_premarket_rules_canonical_sha256": "951b973b1c848ef8d7b19e012365bee50bdec73cbea710431e8a9f4d47f67f02",
+    "e0_overnight_rules_canonical_sha256": "078aa79231f075a4eee33ff7924dc6185c23b389ab69b1e0c3d0cc92cfb38752",
+    "forward_feature_context_contract": "strategy_e_forward_feature_context_v1.json"
+  },
+  "alpha": {
+    "hypothesis_id": "E1_H5",
+    "statement": "premarket_gap > 0 and premarket_rvol >= 3.0 and position_in_premarket_range >= 0.8 and return_0900_0925 > 0",
+    "evaluator": "app.backtest.strategy_e1_premarket.evaluate.mask('H5', ...) via app.strategy_e.signal.evaluate_h5_signal, both unmodified",
+    "decision_cutoff_et": "09:25",
+    "last_usable_bar_start_et": "09:24",
+    "changed": false
+  },
+  "universe": {
+    "version": "STRATEGY_E_TRADING_UNIVERSE_V1_1",
+    "principle": "every universe, feature, H5 and selection input has information_timestamp <= 09:25 ET of session D",
+    "daily": {
+      "evaluated_at": "D-1 (the XNYS session before D)",
+      "membership": "ticker in the latest CS reference snapshot dated on or before D-1",
+      "allowed_primary_exchanges": ["XNAS", "XNYS", "XASE"],
+      "min_close_d_minus_1_usd": 5.0,
+      "min_median_dollar_volume_usd": 5000000.0,
+      "dollar_volume_window": "median of close*volume over [D-21, D-2] (the 20 sessions before D-1)",
+      "min_present_sessions_in_window": 15,
+      "requires_close_d_minus_2_positive": true,
+      "split_exclusion": "no split executing in (D-1, D], read from a split list published before 09:25 ET of D",
+      "requires_session_d_daily_open": false,
+      "removed_from_v1": "E0 row requirement open(t+1) > 0 at t = D-1, i.e. that the grouped-daily open of D exists"
+    },
+    "premarket": {
+      "window_et": "[04:00, 09:24] bar starts",
+      "min_premarket_bars": 3,
+      "min_premarket_dollar_volume_usd": 50000.0,
+      "requires_open_bar_0930": false,
+      "removed_from_v1": "e1_premarket_rules_v1.json requires_open_bar_0930 = true; premarket.session_rows dropped a session without an opening block; dataset.build required a finite 09:30 open"
+    },
+    "rvol_semantics": {
+      "definition": "premarket dollar volume of D / median of the last 20 finite positive premarket dollar volumes over prior sessions that had at least one bar in [04:00, 09:24] and a 09:30 bar; undefined with fewer than 5 such sessions",
+      "source_of_truth": "app.backtest.strategy_e1_premarket.premarket.session_rows (code), identical per row",
+      "prior_session_0930_requirement_is_pit": "whether an earlier session had a 09:30 bar is known at D; this history rule is kept unchanged so every V1 row keeps its exact RVOL",
+      "rules_text_discrepancy": "e1_premarket_rules_v1.json words the denominator as 'the 20 prior sessions that had premarket activity' without the 09:30 clause; the code that produced every H5 result also requires the 09:30 bar. V1.1 follows the code, because the Alpha evidence was computed with it."
+    },
+    "spy_context": {
+      "spy_close_previous": "SPY close(D-1) from the same grouped-daily source",
+      "spy_premarket_last": "SPY last trade at or before 09:24 ET of D; SPY's 09:30 bar is not required (V1 required it through session_rows)",
+      "role": "sealed control columns spy_premarket_return and relative_strength_vs_spy; not an H5 input"
+    },
+    "coverage": {
+      "development_replay": "D-1 daily-eligible symbols that have a row in the bound development tape; the tape's coverage limitation carries over unchanged from E1/E-D6",
+      "forward": "the whole D-1 daily-eligible universe must have minute coverage; see the forward feature context contract"
+    },
+    "identity_guarantee": "for every (D, symbol) row V1 produced, V1.1 produces bit-identical feature values; V1.1 additionally admits rows whose only V1 rejection was the missing 09:30 bar of D or the missing grouped-daily open of D"
+  },
+  "pipeline": {
+    "order": [
+      "PIT_UNIVERSE_AT_0925",
+      "H5_ALPHA",
+      "CANONICAL_MAX3_SELECTION",
+      "IMMUTABLE_DECISION_SEAL",
+      "ENTRY_AVAILABILITY_AT_0930",
+      "EXECUTE_PROXY_OR_ENTRY_INVALID",
+      "NO_BACKFILL"
+    ],
+    "entry_bar_existence": {
+      "alpha_eligibility": false,
+      "universe_eligibility_at_0925": false,
+      "selection_eligibility": false,
+      "execution_eligibility_at_0930": true
+    },
+    "seal_covers": ["eligible rows", "sealed feature values", "H5 mask", "candidate list", "selected symbols", "not-selected symbols", "V1.1 rules digest", "E-D0 alpha digest", "source digest"],
+    "seal_immutable": true,
+    "post_seal_mutation": "forbidden; the entry layer must reproduce the sealed selected set exactly or the session is refused"
+  },
+  "selection": {
+    "max_selected_candidates": 3,
+    "priority": "CANONICAL_SYMBOL_ASCENDING",
+    "replacement_policy": "NONE",
+    "selection_before_entry_validation": true,
+    "source": "E-D2 strategy_e_execution_rules_v1.json, unchanged",
+    "example": "candidates A,B,C,D -> selected A,B,C; B has no valid 09:30 bar -> executions A,C; D is not promoted"
+  },
+  "entry": {"model": "FIRST_REGULAR_MINUTE_OPEN_PROXY_V1", "price": "exact 09:30 ET bar open", "source": "E-D2, unchanged", "invalid": "NO_TRADE; no replacement"},
+  "exit": {"model": "FIXED_FIVE_MINUTE_CLOSE_PROXY_V1", "price": "exact 09:34 ET bar close", "fallback": "NONE", "source": "E-D3, unchanged", "invalid": "UNRESOLVED_EXIT / INVALID_FOR_STANDARD_PNL"},
+  "costs": {"scenarios_bp": {"GROSS_0BP": 0, "COST_05BP": 5, "COST_10BP": 10, "COST_15BP": 15, "COST_20BP": 20}, "primary": "COST_10BP", "source": "E-D4 (and the E-D6 GROSS_0BP diagnostic), unchanged"},
+  "sizing": {"model": "EQUAL_WEIGHT_EXECUTABLE_V1", "source": "E-D5, unchanged"},
+  "stop": "NONE",
+  "profit_target": "NONE",
+  "partial_exit": "NONE",
+  "e_d6_v1_supersession": {
+    "e_d6_v1_result": "HISTORICAL RESULT PRESERVED (E-D6 INCONCLUSIVE — STATISTICAL); artifacts not modified",
+    "forward_compatible_trading_decision_authority": "SUPERSEDED BY TRADING V1.1 CORRECTION",
+    "reason": "09:30 entry availability (and the grouped-daily open of D) affected pre-selection universe membership, so a missing 09:30 bar could silently hand its capacity slot to the next H5 symbol",
+    "consequence_in_e_d6": "NO_TRADE_MISSING_ENTRY_BAR could not occur in E-D6 (0 of 501 selected); such symbols had already been removed before H5",
+    "re_evaluation": "a V1.1 development replay needs its own preregistered protocol; not part of E-R1"
+  },
+  "forbidden": [
+    "changing any H5 threshold, feature or inclusivity",
+    "adding an Alpha feature or ranking",
+    "changing candidate priority, capacity, entry, exit, cost or sizing",
+    "adding a stop, target, partial exit, price filter or symbol exclusion",
+    "choosing any V1.1 rule from an E-D6 result",
+    "reading any daily row dated D or later, or any minute bar starting after 09:24 ET of D, before the seal"
+  ]
+}

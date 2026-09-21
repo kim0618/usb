@@ -1,0 +1,56 @@
+{
+  "declaration": {
+    "contract_id": "STRATEGY_E_FORWARD_FEATURE_CONTEXT_V1",
+    "stage": "E-R1_PIT_UNIVERSE_CORRECTION",
+    "status": "PREREGISTERED",
+    "declared_at_kst": "2026-09-21",
+    "declared_before": "any forward feature builder, forward seal or forward label for Strategy E Trading V1.1",
+    "checksum_recipe": "sha256 of json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False)",
+    "gate_code": "app.strategy_e_v1_1.context.require_complete",
+    "trading_rules": "strategy_e_trading_v1_1_rules.json"
+  },
+  "principle": {
+    "daily": "information available no later than the close of D-1",
+    "minute": "bars starting at or before 09:24 ET of D, plus complete earlier sessions",
+    "chronology": "each forward session may add only D-1 to the daily context; reading future daily rows in bulk is forbidden",
+    "fail_closed_status": "FEATURE_CONTEXT_INCOMPLETE",
+    "future_violation": "FutureContextViolation; the session is not a valid forward observation",
+    "no_fabrication": "missing context is never filled, defaulted, taken from a later date, or converted into H5 = False"
+  },
+  "features": {
+    "close_d_minus_1": {"source": "grouped daily adjusted=false, T=symbol, field c", "as_of": "close of D-1", "session_dependency": "D-1", "lookback": "1 session", "missing": "FEATURE_CONTEXT_INCOMPLETE if the D-1 grouped file is absent; symbol not daily-eligible if its row is absent from a present file (E0 semantics)"},
+    "close_d_minus_2": {"source": "grouped daily", "as_of": "close of D-2", "session_dependency": "D-2", "lookback": "1 session", "missing": "symbol not daily-eligible (E0 prev_price test)"},
+    "membership": {"source": "reference tickers CS snapshot (historical_v2 reference infrastructure; forward/massive/reference/CS_<as_of>)", "as_of": "latest snapshot dated on or before D-1", "session_dependency": "<= D-1", "lookback": "latest snapshot", "missing": "FEATURE_CONTEXT_INCOMPLETE; a snapshot dated after D-1 is a FutureContextViolation"},
+    "median_dollar_volume": {"source": "grouped daily close*volume", "as_of": "close of D-2", "session_dependency": "[D-21, D-2]", "lookback": "20 XNYS sessions, >= 15 present", "missing": "a missing grouped file inside the window is FEATURE_CONTEXT_INCOMPLETE; a symbol absent from present files counts as not present (E0 semantics)"},
+    "split_exclusion": {"source": "splits list (execution_date, split_from, split_to)", "as_of": "published before 09:25 ET of D for LIVE; RECONSTRUCTED may use a later list but reads only execution_date <= D", "session_dependency": "execution in (D-1, D]", "lookback": "calendar days (D-1, D]", "missing": "FEATURE_CONTEXT_INCOMPLETE unless the list covers executions through D"},
+    "previous_day_dollar_volume": {"source": "grouped daily", "as_of": "close of D-1", "session_dependency": "D-1", "lookback": "1 session", "missing": "as close_d_minus_1"},
+    "premarket_block": {"source": "minute aggregates adjusted=false, 1-minute, forward/massive/minute/<SYMBOL>/<SYMBOL>_<D>.json.gz or Common Raw pages", "as_of": "09:25 ET of D", "session_dependency": "bars starting in [04:00, 09:24] of D", "lookback": "D only", "missing": "a page not fetched is FEATURE_CONTEXT_INCOMPLETE; a fetched page with no premarket bar means no premarket row (not eligible), as in E1"},
+    "premarket_gap": {"source": "premarket last price / close_d_minus_1", "as_of": "09:25 ET of D", "session_dependency": "D premarket, D-1 close", "lookback": "-", "missing": "inherits"},
+    "premarket_rvol": {"source": "minute pages of prior sessions", "as_of": "09:25 ET of D", "session_dependency": "prior sessions < D", "lookback": "back from D-1 until 20 qualifying sessions (a bar in [04:00,09:24] and a 09:30 bar, positive premarket dollar volume) or the symbol's first collected session; undefined below 5", "missing": "an unfetched page inside that range is FEATURE_CONTEXT_INCOMPLETE; fewer than 5 qualifying sessions in a complete history is Research-undefined (NaN)"},
+    "position_in_premarket_range": {"source": "premarket_block", "as_of": "09:25 ET", "session_dependency": "D", "lookback": "-", "missing": "Research-undefined (NaN) on a zero range"},
+    "return_0900_0925": {"source": "premarket_block", "as_of": "09:25 ET", "session_dependency": "bars in [09:00, 09:24] of D", "lookback": "-", "missing": "Research-undefined (NaN) below 2 bars"},
+    "return_last30m": {"source": "premarket_block", "as_of": "09:25 ET", "session_dependency": "bars in [08:55, 09:24] of D", "lookback": "-", "missing": "Research-undefined (NaN) below 2 bars"},
+    "spy_premarket_return": {"source": "SPY minute page of D and SPY close(D-1) from grouped daily", "as_of": "09:25 ET", "session_dependency": "D premarket, D-1 close", "lookback": "-", "missing": "SPY close(D-1) or SPY's D page not fetched is FEATURE_CONTEXT_INCOMPLETE; SPY printing nothing premarket is Research-undefined (NaN)"},
+    "relative_strength_vs_spy": {"source": "premarket_gap - spy_premarket_return", "as_of": "09:25 ET", "session_dependency": "as inputs", "lookback": "-", "missing": "inherits"},
+    "premarket_dollar_volume": {"source": "premarket_block", "as_of": "09:25 ET", "session_dependency": "D", "lookback": "-", "missing": "inherits"},
+    "pm_bars": {"source": "premarket_block", "as_of": "09:25 ET", "session_dependency": "D", "lookback": "-", "missing": "inherits"}
+  },
+  "daily_snapshot": {
+    "minimum_sessions_ending_at_d_minus_1": 21,
+    "first_forward_session": "2026-09-17",
+    "first_forward_session_context": "USB-HIST-V1 grid 2024-09-17..2026-09-16 supplies D-1 = 2026-09-16 and its 21-session window",
+    "later_sessions": "grouped daily for 2026-09-17 onward must be collected into market_data/forward/massive/grouped_daily/<year>/<session>.json.gz and appended one session at a time; not collected as of 2026-09-21",
+    "splits": "the frozen split list covers executions 2024-09-16..2026-09-16 only; every forward session needs forward/massive/splits/splits_asof_<D>.json.gz covering executions through D; none collected as of 2026-09-21",
+    "reference": "latest CS snapshot in the store is CS_2026-07-01; valid as the latest snapshot on or before D-1 for current forward sessions"
+  },
+  "minute_history": {
+    "historical_source": "Common Raw minute pages (market_data/raw/massive/minute) for sessions <= 2026-09-16",
+    "forward_source": "forward/massive/minute pages, or Common Raw pages where B collects the same session",
+    "coverage_requirement": "whole D-1 daily-eligible universe (forward protocol section 13); partial coverage makes the session FEATURE_CONTEXT_INCOMPLETE and INVALID as forward evidence",
+    "known_gap": "historical minute coverage is 1,612 of 2,936 daily-eligible symbols in the broad window; uncovered symbols have no RVOL history until it is collected"
+  },
+  "live_vs_reconstructed": {
+    "LIVE": "seal written before 09:30:00 ET of D from inputs fetched by 09:25; PRIMARY evidence",
+    "RECONSTRUCTED": "built after the close from the same sources truncated at the cutoffs; SECONDARY evidence"
+  }
+}

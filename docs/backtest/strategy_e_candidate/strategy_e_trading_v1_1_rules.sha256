@@ -1,0 +1,8 @@
+{
+  "file": "strategy_e_trading_v1_1_rules.json",
+  "canonical_sha256": "b90573bde8809b0eadd03c9f6c5cae59bf115254b792237df92e0f6eaa1304b6",
+  "file_sha256": "6caada121d2b11b5fc121edd5b0c0237be6dd2b6fbe7d73ea9c8fbed654444fc",
+  "recipe": "canonical = sha256 of json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False)",
+  "frozen_at_kst": "2026-09-21",
+  "frozen_before": "any Trading V1.1 development replay, forward observation, paper trade or live trade"
+}
