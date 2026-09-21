@@ -1,0 +1,3356 @@
+{
+ "evidence_label": "E-MAX DEVELOPMENT (reused development data; not OOS)",
+ "identity": {
+  "code": "91b8c128b6876ff710e948cb7306a018328e4b7f85d4d254ecd988d218ee9223",
+  "daily_freeze": "9ebd6c29c66728ac8c7f295b5836e7fa8489c24165cc2007d290da2e1c9aeafe",
+  "daily_read_set": "7e790a8dcf1db8cee336aa281f5b9b7b8481402bbc1d828f27d19cccb0dd7d55",
+  "e0_rules": "078aa79231f075a4eee33ff7924dc6185c23b389ab69b1e0c3d0cc92cfb38752",
+  "e1_rules": "951b973b1c848ef8d7b19e012365bee50bdec73cbea710431e8a9f4d47f67f02",
+  "e_d0_trading_rules": "f1534f07688c801f2979491e447eefbb3e62b8045afb9c4ab302b90e4593d4b2",
+  "e_d2_execution_rules": "d204b1dac9dd40530a7e03bebd36b32fd1950efde2e8b226a5eaedd5f196d041",
+  "e_d3_exit_rules": "f6f455641efebedfd65777ba4e00c47f1bc0adb60447e4c662d0908d9d38d58b",
+  "e_d3_horizon_semantics": "f96f78f4bbd4758722ced07f758f8f0e5c10bb7f3e47d96b47642486a3f59603",
+  "e_d4_cost_rules": "b2229fe5308df6b2b18f4eae8dfedf5d08b4af796ae24aab5ad7861ed3ec454c",
+  "e_d5_risk_rules": "2e1e796d7e3563da4b1fd4d4a007314b49d3c3ac9a55e63519076b8ac8d104ee",
+  "e_d6_backtest_rules": "73056ac8e8cd6308c4affc343adaad75a7ea4e902e0f8c72b3bdc918e7cb4713",
+  "forward_context": "78bb90b44b2d6eeec9fa945ef2fe7547178f525b4719cb81fc8171e14b5c3fad",
+  "legacy_minute": "86cbb939d83c2e527188ebe9b482439efa086ad195815f627f023021d85077a6",
+  "m0_rules": "3ae07d755501e82c2b7ff2bd765d93f4353aa9319b34a3e6f59d0aad098082ac",
+  "m1_rules": "4556a4f3b8acb16c897ddfdfb392f82be39eb76286f67e35fed706dc7df64c79",
+  "replay_protocol": "86b750ef664ef3c67d8560c5001940c77e792ceeab17a5d024690f939aa8045e",
+  "tape": "d12ff28a98cf9cc64cad86f595985fd5ae2308b555635501fa5729d4439222a4",
+  "trading_v1_1": "b90573bde8809b0eadd03c9f6c5cae59bf115254b792237df92e0f6eaa1304b6"
+ },
+ "identity_digest": "2c8a31f0577e49fe4699b336fa63734df331f8db06d76e5e9a4713b4ea7fcdcc",
+ "integrity": true,
+ "prechecks": {
+  "attribution": true,
+  "chain_ancestry": {
+   "E-D0": true,
+   "E-D1": true,
+   "E-D2": true,
+   "E-D3": true,
+   "E-D4": true,
+   "E-D5": true,
+   "E-D6-PROTOCOL": true,
+   "E-D6-RESULT": true,
+   "E-MAX-M0": true,
+   "E-MAX-M1-PROTOCOL": true,
+   "E-R1": true,
+   "E-R2": true,
+   "E-R3": true,
+   "HORIZON": true
+  },
+  "daily_inputs_unchanged": true,
+  "dataset_binding": true,
+  "in_process_deterministic": true,
+  "invariants": {
+   "at_most_three": true,
+   "pass": true,
+   "same_h5_and_universe": true,
+   "selected_within_candidates": true,
+   "small_sessions_identical": true
+  },
+  "pit_poison": {
+   "daily_unchanged": true,
+   "sample_symbols": 41,
+   "seal_digests_moved": 0,
+   "verdict": "PASS"
+  },
+  "r0_reproduces_e_r3": {
+   "daily_returns_csv": "d0d3f82d0e610baf059e2df4b6d223f79e01de93cfb4c3eac13694c85a1db220",
+   "trades_csv": "e4670ec3bd2da5f971e5190ee3546e2b387fe5b533fdfbc7bad1b03a09d36fac"
+  },
+  "rows_by_origin": {
+   "A": 0,
+   "AB": 1,
+   "B": 380,
+   "V1": 70738
+  },
+  "subset_equivalence": true,
+  "tape_unchanged_after_run": true,
+  "v1_reproduction": {
+   "h5_rows": 1729,
+   "universe_rows": 70738
+  }
+ },
+ "reference_top1_limit": 0.7338,
+ "run_id": "em1-2c8a31f0577e",
+ "variants": {
+  "R0": {
+   "cagr": {
+    "COST_05BP": 0.10366301597135452,
+    "COST_10BP": 0.037122809506688226,
+    "COST_15BP": -0.025435974634228975,
+    "COST_20BP": -0.0842497489276286,
+    "GROSS_0BP": 0.1744358518102409
+   },
+   "calmar": {
+    "COST_05BP": 0.8518701677185738,
+    "COST_10BP": 0.22565328964495937,
+    "COST_15BP": -0.12129370846103905,
+    "COST_20BP": -0.3336954844265971,
+    "GROSS_0BP": 1.9197462610393843
+   },
+   "evaluation": {
+    "break_even": {
+     "definition": "mean gross trade return expressed in round-trip bp; diagnostic only",
+     "mean_gross_trade_return_bp": 16.823217271518796
+    },
+    "buckets": {
+     "liquidity": [
+      {
+       "bucket": "5e+06-2e+07",
+       "gross_mean": 0.008245910966510181,
+       "net_10bp_mean": 0.007245910966510181,
+       "profit_factor_10bp": 2.3228942839142466,
+       "trades": 15,
+       "win_rate_10bp": 0.4666666666666667
+      },
+      {
+       "bucket": "2e+07-1e+08",
+       "gross_mean": 0.004905953438814584,
+       "net_10bp_mean": 0.0039059534388145843,
+       "profit_factor_10bp": 1.626887155772331,
+       "trades": 80,
+       "win_rate_10bp": 0.475
+      },
+      {
+       "bucket": "1e+08-5e+08",
+       "gross_mean": -0.0001820229295576179,
+       "net_10bp_mean": -0.0011820229295576177,
+       "profit_factor_10bp": 0.8240635428230325,
+       "trades": 127,
+       "win_rate_10bp": 0.44881889763779526
+      },
+      {
+       "bucket": "5e+08+",
+       "gross_mean": 0.0012276730422800747,
+       "net_10bp_mean": 0.0002276730422800748,
+       "profit_factor_10bp": 1.0467771274379347,
+       "trades": 263,
+       "win_rate_10bp": 0.5019011406844106
+      }
+     ],
+     "liquidity_basis": "previous-day dollar volume; Research-reported bucket edges",
+     "price": [
+      {
+       "bucket": "5-10",
+       "gross_mean": 0.009478121221265899,
+       "net_10bp_mean": 0.008478121221265898,
+       "profit_factor_10bp": 2.5388151881006102,
+       "trades": 26,
+       "win_rate_10bp": 0.4230769230769231
+      },
+      {
+       "bucket": "10-20",
+       "gross_mean": 0.0027196688150646887,
+       "net_10bp_mean": 0.0017196688150646889,
+       "profit_factor_10bp": 1.2263371765210849,
+       "trades": 42,
+       "win_rate_10bp": 0.4523809523809524
+      },
+      {
+       "bucket": "20-50",
+       "gross_mean": 0.0018686930884467972,
+       "net_10bp_mean": 0.0008686930884467971,
+       "profit_factor_10bp": 1.142333616258534,
+       "trades": 111,
+       "win_rate_10bp": 0.5045045045045045
+      },
+      {
+       "bucket": "50-100",
+       "gross_mean": 0.0022471408216707517,
+       "net_10bp_mean": 0.0012471408216707524,
+       "profit_factor_10bp": 1.2691080669954282,
+       "trades": 94,
+       "win_rate_10bp": 0.5319148936170213
+      },
+      {
+       "bucket": "100-200",
+       "gross_mean": 0.0005253158652137198,
+       "net_10bp_mean": -0.0004746841347862806,
+       "profit_factor_10bp": 0.9274041323137809,
+       "trades": 92,
+       "win_rate_10bp": 0.5108695652173914
+      },
+      {
+       "bucket": "200+",
+       "gross_mean": -9.76369497606334e-05,
+       "net_10bp_mean": -0.0010976369497606333,
+       "profit_factor_10bp": 0.7546850887601763,
+       "trades": 120,
+       "win_rate_10bp": 0.425
+      }
+     ],
+     "price_basis": "previous-session close (D-1), the Research close_price"
+    },
+    "concentration": {
+     "basis": "per-symbol sum of normalized_weight x trade return (session contributions)",
+     "cost_10bp": {
+      "hhi_trade_count": 0.010742905728557763,
+      "share_of_total_note": "null when the total contribution is not positive",
+      "top1": {
+       "contribution": 0.06656228075424814,
+       "share_of_total": 0.7337748269280974,
+       "symbols": [
+        "ABSI"
+       ]
+      },
+      "top10": {
+       "contribution": 0.3399456855326535,
+       "share_of_total": 3.7475216254628747,
+       "symbols": [
+        "ABSI",
+        "HIMS",
+        "SOFI",
+        "UBER",
+        "INTC",
+        "AVO",
+        "UNH",
+        "ANF",
+        "BHVN",
+        "ABT"
+       ]
+      },
+      "top5": {
+       "contribution": 0.23632800656483832,
+       "share_of_total": 2.605252406473602,
+       "symbols": [
+        "ABSI",
+        "HIMS",
+        "SOFI",
+        "UBER",
+        "INTC"
+       ]
+      },
+      "total_contribution": 0.09071213444716683,
+      "trades": 485,
+      "trades_per_symbol": {
+       "max": 18,
+       "mean": 2.2663551401869158,
+       "median": 1.0
+      },
+      "unique_symbols": 214
+     },
+     "gate": "NONE; DIAGNOSTIC ONLY",
+     "gross": {
+      "hhi_trade_count": 0.010742905728557763,
+      "share_of_total_note": "null when the total contribution is not positive",
+      "top1": {
+       "contribution": 0.0672289474209148,
+       "share_of_total": 0.2051463475233424,
+       "symbols": [
+        "ABSI"
+       ]
+      },
+      "top10": {
+       "contribution": 0.37406690298532,
+       "share_of_total": 1.1414496555531923,
+       "symbols": [
+        "ABSI",
+        "HIMS",
+        "SOFI",
+        "UBER",
+        "INTC",
+        "UNH",
+        "AVO",
+        "ANF",
+        "BHVN",
+        "MU"
+       ]
+      },
+      "top5": {
+       "contribution": 0.252494673231505,
+       "share_of_total": 0.7704770336241904,
+       "symbols": [
+        "ABSI",
+        "HIMS",
+        "SOFI",
+        "UBER",
+        "INTC"
+       ]
+      },
+      "total_contribution": 0.32771213444716685,
+      "trades": 485,
+      "trades_per_symbol": {
+       "max": 18,
+       "mean": 2.2663551401869158,
+       "median": 1.0
+      },
+      "unique_symbols": 214
+     }
+    },
+    "funnel": {
+     "H5_candidates": {
+      "count": 1738,
+      "pct_of_h5_candidates": 1.0,
+      "pct_of_previous": 0.02443791391892462
+     },
+     "capacity_skipped": {
+      "count": 1237,
+      "pct_of_h5_candidates": 0.7117376294591484,
+      "pct_of_previous": 0.7117376294591484
+     },
+     "eligible_universe_rows": {
+      "count": 71119
+     },
+     "invalid_entries": {
+      "count": 2,
+      "pct_of_h5_candidates": 0.0011507479861910242,
+      "pct_of_previous": 0.003992015968063872,
+      "reasons": {
+       "NO_TRADE_SHORTENED_SESSION": 2
+      }
+     },
+     "selected_candidates": {
+      "count": 501,
+      "pct_of_h5_candidates": 0.2882623705408516,
+      "pct_of_previous": 0.2882623705408516
+     },
+     "standard_pnl_coverage": 0.9719438877755511,
+     "standard_pnl_trades": {
+      "count": 485,
+      "pct_of_h5_candidates": 0.2790563866513234,
+      "pct_of_previous": 0.9719438877755511
+     },
+     "unresolved_exits": {
+      "count": 14,
+      "pct_of_h5_candidates": 0.00805523590333717,
+      "pct_of_previous": 0.028056112224448898,
+      "reasons": {
+       "NO_TRADE_MISSING_EXIT_BAR": 14
+      }
+     },
+     "valid_entries": {
+      "count": 499,
+      "pct_of_h5_candidates": 0.28711162255466055,
+      "pct_of_previous": 0.9960079840319361
+     },
+     "valid_exact_exits": {
+      "count": 485,
+      "pct_of_h5_candidates": 0.2790563866513234,
+      "pct_of_previous": 0.9719438877755511
+     }
+    },
+    "implementation_delta": {
+     "counts": {
+      "active_sessions": 237,
+      "h5_candidates": 1738,
+      "selected": 501,
+      "standard_trades": 485
+     },
+     "research_reference": {
+      "matched_h5_lift_bp": 17.01,
+      "note": "observational matched-control lift, not a raw return and not a target",
+      "source": "E1_H5_CONFIRMATION.md section F, development, session-demeaned matched lift"
+     },
+     "steps_bp": {
+      "active_session_gross": 13.827516221399446,
+      "active_session_net_10bp": 3.827516221399444,
+      "all_h5_candidates_R_5m": 16.453114329005025,
+      "selected_candidates_R_5m": 17.451362094382173,
+      "standard_trades_R_5m": 16.823217271518807,
+      "standard_trades_R_5m_strict": 16.823217271518807,
+      "standard_trades_trading_gross": 16.823217271518796
+     },
+     "trading_gross_equals_research_strict_label": {
+      "max_abs_difference": 2.671474153004283e-16,
+      "note": "exact 09:30 open to exact 09:34 close is R_5m_strict by construction; any difference would mean the two code paths read different bars",
+      "trades_compared": 485
+     }
+    },
+    "primary_gate": {
+     "all_session_mean": 0.0001889836134315975,
+     "blocks": [
+      {
+       "active_sessions": 44,
+       "block": 1,
+       "first": "2024-10-16",
+       "last": "2025-04-09",
+       "mean": 0.0005746840603270428,
+       "positive": true,
+       "sessions": 120,
+       "trades": 66
+      },
+      {
+       "active_sessions": 48,
+       "block": 2,
+       "first": "2025-04-10",
+       "last": "2025-10-01",
+       "mean": -0.00033987063301585196,
+       "positive": false,
+       "sessions": 120,
+       "trades": 70
+      },
+      {
+       "active_sessions": 37,
+       "block": 3,
+       "first": "2025-10-02",
+       "last": "2026-03-25",
+       "mean": -0.00043127118599602386,
+       "positive": false,
+       "sessions": 120,
+       "trades": 48
+      },
+      {
+       "active_sessions": 108,
+       "block": 4,
+       "first": "2026-03-26",
+       "last": "2026-09-16",
+       "mean": 0.0009523922124112231,
+       "positive": true,
+       "sessions": 120,
+       "trades": 301
+      }
+     ],
+     "bootstrap": {
+      "ci_high": 0.0010475654552350342,
+      "ci_low": -0.0006710944101233212,
+      "mean": 0.0001889836134315975,
+      "method": "IID session bootstrap",
+      "p_mean_le_zero": 0.3303,
+      "replicates": 10000,
+      "seed": 20260921
+     },
+     "gates": {
+      "chronological_robustness": false,
+      "data_quality": true,
+      "integrity": true,
+      "net_economics": true,
+      "statistical_support": false
+     },
+     "positive_blocks": 2,
+     "profit_factor": 1.1219360071044706,
+     "scenario": "COST_10BP",
+     "verdict": "E-D6 INCONCLUSIVE — STATISTICAL"
+    },
+    "scenarios": {
+     "COST_05BP": {
+      "active_session_mean": 0.0008827516221399446,
+      "active_sessions": 237,
+      "all_session_mean": 0.0004358586134315976,
+      "cumulative_return": 0.20668333047960075,
+      "maximum_drawdown": -0.1216887501166738,
+      "mean": 0.0011823217271518796,
+      "median": -0.00012466098411468424,
+      "profit_factor": 1.2214216763024581,
+      "role": "SENSITIVITY",
+      "round_trip_cost_bp": 5,
+      "sessions": 480,
+      "sharpe": 0.7329470829026713,
+      "sortino": 1.112952305811116,
+      "trades": 485,
+      "win_rate": 0.4948453608247423
+     },
+     "COST_10BP": {
+      "active_session_mean": 0.0003827516221399444,
+      "active_sessions": 237,
+      "all_session_mean": 0.0001889836134315975,
+      "cumulative_return": 0.07189620893584014,
+      "maximum_drawdown": -0.16451260057009087,
+      "mean": 0.0006823217271518796,
+      "median": -0.0006246609841146842,
+      "profit_factor": 1.1219360071044706,
+      "role": "PRIMARY",
+      "round_trip_cost_bp": 10,
+      "sessions": 480,
+      "sharpe": 0.31808096926033713,
+      "sortino": 0.4694905989674688,
+      "trades": 485,
+      "win_rate": 0.4824742268041237
+     },
+     "COST_15BP": {
+      "active_session_mean": -0.00011724837786005572,
+      "active_sessions": 237,
+      "all_session_mean": -5.789138656840254e-05,
+      "cumulative_return": -0.04789152612849912,
+      "maximum_drawdown": -0.2097056389565276,
+      "mean": 0.00018232172715187977,
+      "median": -0.0011246609841146843,
+      "profit_factor": 1.0311049958732026,
+      "role": "SENSITIVITY",
+      "round_trip_cost_bp": 15,
+      "sessions": 480,
+      "sharpe": -0.09745602079325374,
+      "sortino": -0.13991657559431317,
+      "trades": 485,
+      "win_rate": 0.4577319587628866
+     },
+     "COST_20BP": {
+      "active_session_mean": -0.0006172483778600553,
+      "active_sessions": 237,
+      "all_session_mean": -0.00030476638656840255,
+      "cumulative_return": -0.15434275469241332,
+      "maximum_drawdown": -0.2524749445513129,
+      "mean": -0.0003176782728481203,
+      "median": -0.0016246609841146843,
+      "profit_factor": 0.9482327149378385,
+      "role": "SENSITIVITY",
+      "round_trip_cost_bp": 20,
+      "sessions": 480,
+      "sharpe": -0.5127873091956442,
+      "sortino": -0.7165776223925073,
+      "trades": 485,
+      "win_rate": 0.43917525773195876
+     },
+     "GROSS_0BP": {
+      "active_session_mean": 0.0013827516221399446,
+      "active_sessions": 237,
+      "all_session_mean": 0.0006827336134315974,
+      "cumulative_return": 0.35833906607289734,
+      "maximum_drawdown": -0.09086401434937463,
+      "mean": 0.0016823217271518798,
+      "median": 0.0003753390158853158,
+      "profit_factor": 1.3302601275018477,
+      "role": "DIAGNOSTIC_GROSS",
+      "round_trip_cost_bp": 0,
+      "sessions": 480,
+      "sharpe": 1.1462727965215802,
+      "sortino": 1.7917983783171156,
+      "trades": 485,
+      "win_rate": 0.5216494845360825
+     }
+    },
+    "stability": {
+     "month": [
+      {
+       "active_sessions": 4,
+       "cumulative_10bp": -0.006809502135696199,
+       "month": "2024-10",
+       "return_0bp": -0.0028238352000145017,
+       "return_10bp": -0.006809502135696199,
+       "sessions": 12,
+       "trades": 4
+      },
+      {
+       "active_sessions": 12,
+       "cumulative_10bp": -0.014529183666479928,
+       "month": "2024-11",
+       "return_0bp": 0.00420798745950024,
+       "return_10bp": -0.007772609129249264,
+       "sessions": 20,
+       "trades": 20
+      },
+      {
+       "active_sessions": 10,
+       "cumulative_10bp": -0.0031536393524922435,
+       "month": "2024-12",
+       "return_0bp": 0.021692945464524716,
+       "return_10bp": 0.011543258435912751,
+       "sessions": 21,
+       "trades": 17
+      },
+      {
+       "active_sessions": 9,
+       "cumulative_10bp": -0.00013783960107505155,
+       "month": "2025-01",
+       "return_0bp": 0.012086769313424117,
+       "return_10bp": 0.0030253405845392933,
+       "sessions": 20,
+       "trades": 13
+      },
+      {
+       "active_sessions": 5,
+       "cumulative_10bp": 0.04808610572574823,
+       "month": "2025-02",
+       "return_0bp": 0.05343381389977275,
+       "return_10bp": 0.04823059341257885,
+       "sessions": 19,
+       "trades": 6
+      },
+      {
+       "active_sessions": 2,
+       "cumulative_10bp": 0.06190400885635672,
+       "month": "2025-03",
+       "return_0bp": 0.015198239178283002,
+       "return_10bp": 0.013183938853039479,
+       "sessions": 21,
+       "trades": 2
+      },
+      {
+       "active_sessions": 7,
+       "cumulative_10bp": 0.08039008088733923,
+       "month": "2025-04",
+       "return_0bp": 0.024534357630800807,
+       "return_10bp": 0.017408420984201367,
+       "sessions": 21,
+       "trades": 10
+      },
+      {
+       "active_sessions": 10,
+       "cumulative_10bp": -0.005722589408705958,
+       "month": "2025-05",
+       "return_0bp": -0.07038246358911937,
+       "return_10bp": -0.0797051655873402,
+       "sessions": 21,
+       "trades": 14
+      },
+      {
+       "active_sessions": 13,
+       "cumulative_10bp": 0.005678819368205135,
+       "month": "2025-06",
+       "return_0bp": 0.02468673625502893,
+       "return_10bp": 0.0114670298806554,
+       "sessions": 20,
+       "trades": 14
+      },
+      {
+       "active_sessions": 5,
+       "cumulative_10bp": 0.021183505377287526,
+       "month": "2025-07",
+       "return_0bp": 0.020489515843482353,
+       "return_10bp": 0.015417134884895711,
+       "sessions": 22,
+       "trades": 7
+      },
+      {
+       "active_sessions": 2,
+       "cumulative_10bp": 0.03263996073344977,
+       "month": "2025-08",
+       "return_0bp": 0.01323099670316319,
+       "return_10bp": 0.011218801807741263,
+       "sessions": 21,
+       "trades": 3
+      },
+      {
+       "active_sessions": 12,
+       "cumulative_10bp": 0.0365141779267415,
+       "month": "2025-09",
+       "return_0bp": 0.015859737005325503,
+       "return_10bp": 0.0037517598975542743,
+       "sessions": 21,
+       "trades": 24
+      },
+      {
+       "active_sessions": 11,
+       "cumulative_10bp": -0.04850249687828656,
+       "month": "2025-10",
+       "return_0bp": -0.07179251077508664,
+       "return_10bp": -0.0820217191578414,
+       "sessions": 23,
+       "trades": 15
+      },
+      {
+       "active_sessions": 5,
+       "cumulative_10bp": -0.058677044029295966,
+       "month": "2025-11",
+       "return_0bp": -0.005725839164075652,
+       "return_10bp": -0.010693193747359664,
+       "sessions": 19,
+       "trades": 6
+      },
+      {
+       "active_sessions": 2,
+       "cumulative_10bp": -0.03743706953087533,
+       "month": "2025-12",
+       "return_0bp": 0.024587524658851834,
+       "return_10bp": 0.022563961033456037,
+       "sessions": 22,
+       "trades": 2
+      },
+      {
+       "active_sessions": 7,
+       "cumulative_10bp": -0.02916026029430907,
+       "month": "2026-01",
+       "return_0bp": 0.01567192884236679,
+       "return_10bp": 0.008598720119558756,
+       "sessions": 20,
+       "trades": 8
+      },
+      {
+       "active_sessions": 7,
+       "cumulative_10bp": -0.06998420332893684,
+       "month": "2026-02",
+       "return_0bp": -0.03528180114101698,
+       "return_10bp": -0.04205013594417084,
+       "sessions": 19,
+       "trades": 10
+      },
+      {
+       "active_sessions": 7,
+       "cumulative_10bp": -0.039092274835935026,
+       "month": "2026-03",
+       "return_0bp": 0.04043775664902016,
+       "return_10bp": 0.03321656320632149,
+       "sessions": 22,
+       "trades": 11
+      },
+      {
+       "active_sessions": 12,
+       "cumulative_10bp": -0.050343226494576454,
+       "month": "2026-04",
+       "return_0bp": 0.00022883027718378912,
+       "return_10bp": -0.011708670212553951,
+       "sessions": 21,
+       "trades": 26
+      },
+      {
+       "active_sessions": 20,
+       "cumulative_10bp": -0.06857454915179395,
+       "month": "2026-05",
+       "return_0bp": 0.0006266659220264259,
+       "return_10bp": -0.019197801948930504,
+       "sessions": 20,
+       "trades": 58
+      },
+      {
+       "active_sessions": 21,
+       "cumulative_10bp": 0.08542986397209673,
+       "month": "2026-06",
+       "return_0bp": 0.18988240077157115,
+       "return_10bp": 0.16534271527973177,
+       "sessions": 21,
+       "trades": 63
+      },
+      {
+       "active_sessions": 22,
+       "cumulative_10bp": 0.09397185571120636,
+       "month": "2026-07",
+       "return_0bp": 0.03026962550524348,
+       "return_10bp": 0.007869685571254115,
+       "sessions": 22,
+       "trades": 61
+      },
+      {
+       "active_sessions": 21,
+       "cumulative_10bp": 0.03159406736469195,
+       "month": "2026-08",
+       "return_0bp": -0.036959828871661715,
+       "return_10bp": -0.05701955495551725,
+       "sessions": 21,
+       "trades": 62
+      },
+      {
+       "active_sessions": 11,
+       "cumulative_10bp": 0.0718962089358397,
+       "month": "2026-09",
+       "return_0bp": 0.0505157687700577,
+       "return_10bp": 0.03906782992083646,
+       "sessions": 11,
+       "trades": 29
+      }
+     ],
+     "quarter": [
+      {
+       "active_sessions": 26,
+       "cumulative_10bp": -0.0031536393524922435,
+       "quarter": "2024Q4",
+       "return_0bp": 0.02309498363041751,
+       "return_10bp": -0.0031536393524922435,
+       "sessions": 53,
+       "trades": 41
+      },
+      {
+       "active_sessions": 16,
+       "cumulative_10bp": 0.06190400885635672,
+       "quarter": "2025Q1",
+       "return_0bp": 0.08237027773235339,
+       "return_10bp": 0.06526346564237873,
+       "sessions": 60,
+       "trades": 21
+      },
+      {
+       "active_sessions": 30,
+       "cumulative_10bp": 0.005678819368204691,
+       "quarter": "2025Q2",
+       "return_0bp": -0.02406262710858087,
+       "return_10bp": -0.052947525406467855,
+       "sessions": 62,
+       "trades": 38
+      },
+      {
+       "active_sessions": 19,
+       "cumulative_10bp": 0.03651417792674083,
+       "quarter": "2025Q3",
+       "return_0bp": 0.050390444251848354,
+       "return_10bp": 0.030661238921097844,
+       "sessions": 64,
+       "trades": 34
+      },
+      {
+       "active_sessions": 18,
+       "cumulative_10bp": -0.037437069530876,
+       "quarter": "2025Q4",
+       "return_0bp": -0.054415629999038706,
+       "return_10bp": -0.07134610315271883,
+       "sessions": 64,
+       "trades": 23
+      },
+      {
+       "active_sessions": 21,
+       "cumulative_10bp": -0.03909227483593558,
+       "quarter": "2026Q1",
+       "return_0bp": 0.01945961182396827,
+       "return_10bp": -0.0017195813932423532,
+       "sessions": 61,
+       "trades": 29
+      },
+      {
+       "active_sessions": 53,
+       "cumulative_10bp": 0.08542986397209673,
+       "quarter": "2026Q2",
+       "return_0bp": 0.19090051127223706,
+       "return_10bp": 0.12958802967971916,
+       "sessions": 62,
+       "trades": 147
+      },
+      {
+       "active_sessions": 54,
+       "cumulative_10bp": 0.07189620893583992,
+       "quarter": "2026Q3",
+       "return_0bp": 0.04231232942817775,
+       "return_10bp": -0.012468474919909545,
+       "sessions": 54,
+       "trades": 152
+      }
+     ]
+    }
+   },
+   "extremes": {
+    "largest_loser": {
+     "net_10bp": -0.09926485660343433,
+     "session": "2026-08-10",
+     "symbol": "BTDR"
+    },
+    "largest_winner": {
+     "net_10bp": 0.11939957939011567,
+     "session": "2026-06-24",
+     "symbol": "ABSI"
+    }
+   },
+   "paired_vs_r0": {
+    "ci_high": 0.0,
+    "ci_low": 0.0,
+    "mean": 0.0,
+    "method": "IID session bootstrap",
+    "p_mean_le_zero": 1.0,
+    "replicates": 10000,
+    "seed": 20260921
+   },
+   "periods": {
+    "BROAD_COVERAGE": {
+     "active_sessions": 101,
+     "cumulative_10bp": 0.10488215405030643,
+     "first": "2026-04-20",
+     "last": "2026-09-16",
+     "mean_session_10bp": 0.0010318325439714593,
+     "paired_mean_delta_vs_r0": 0.0,
+     "profit_factor_10bp": 1.1882611206902172,
+     "sessions": 104,
+     "trades": 286
+    },
+    "FULL_DEVELOPMENT": {
+     "active_sessions": 237,
+     "cumulative_10bp": 0.07189620893584014,
+     "first": "2024-10-16",
+     "last": "2026-09-16",
+     "mean_session_10bp": 0.0001889836134315975,
+     "paired_mean_delta_vs_r0": 0.0,
+     "profit_factor_10bp": 1.1219360071044706,
+     "sessions": 480,
+     "trades": 485
+    },
+    "LEGACY_NARROW": {
+     "active_sessions": 136,
+     "cumulative_10bp": -0.0298547179837646,
+     "first": "2024-10-16",
+     "last": "2026-04-17",
+     "mean_session_10bp": -4.4144814164534533e-05,
+     "paired_mean_delta_vs_r0": 0.0,
+     "profit_factor_10bp": 1.0130144033906294,
+     "sessions": 376,
+     "trades": 199
+    }
+   },
+   "selection_delta_vs_r0": {
+    "eligible_to_change": 101,
+    "entry_valid_changed": 0,
+    "ordering_only_changed": 0,
+    "selected_set_changed": 0,
+    "selected_set_changed_ratio_to_eligible": 0.0,
+    "sessions_with_h5": 239,
+    "standard_pnl_changed": 0,
+    "symbols_added": 0,
+    "symbols_removed": 0,
+    "trade_set_changed": 0
+   }
+  },
+  "R1": {
+   "cagr": {
+    "COST_05BP": 0.2363775368787533,
+    "COST_10BP": 0.161899617466156,
+    "COST_15BP": 0.09187426058632786,
+    "COST_20BP": 0.026037304342952483,
+    "GROSS_0BP": 0.3155886967918451
+   },
+   "calmar": {
+    "COST_05BP": 1.9569097921216672,
+    "COST_10BP": 1.047982343165366,
+    "COST_15BP": 0.4915500027506366,
+    "COST_20BP": 0.11938255030659481,
+    "GROSS_0BP": 3.2389938316020075
+   },
+   "eligibility": {
+    "coverage": true,
+    "integrity": true,
+    "mdd_10bp": true,
+    "mean_session_10bp": true,
+    "pass": true,
+    "profit_factor_10bp": true,
+    "top1_share_10bp": true
+   },
+   "evaluation": {
+    "break_even": {
+     "definition": "mean gross trade return expressed in round-trip bp; diagnostic only",
+     "mean_gross_trade_return_bp": 31.429550446331415
+    },
+    "buckets": {
+     "liquidity": [
+      {
+       "bucket": "5e+06-2e+07",
+       "gross_mean": 0.012582043946755899,
+       "net_10bp_mean": 0.011582043946755896,
+       "profit_factor_10bp": 2.9973246992071214,
+       "trades": 32,
+       "win_rate_10bp": 0.5
+      },
+      {
+       "bucket": "2e+07-1e+08",
+       "gross_mean": 0.003433513137244398,
+       "net_10bp_mean": 0.0024335131372443977,
+       "profit_factor_10bp": 1.2974063419513846,
+       "trades": 87,
+       "win_rate_10bp": 0.4482758620689655
+      },
+      {
+       "bucket": "1e+08-5e+08",
+       "gross_mean": 0.0034712276552258127,
+       "net_10bp_mean": 0.0024712276552258123,
+       "profit_factor_10bp": 1.3963145607412044,
+       "trades": 113,
+       "win_rate_10bp": 0.504424778761062
+      },
+      {
+       "bucket": "5e+08+",
+       "gross_mean": 0.001686661581507762,
+       "net_10bp_mean": 0.0006866615815077614,
+       "profit_factor_10bp": 1.1419895446155726,
+       "trades": 247,
+       "win_rate_10bp": 0.5060728744939271
+      },
+      {
+       "bucket": "outside declared buckets",
+       "gross_mean": -0.0015767634854771783,
+       "net_10bp_mean": -0.0025767634854771786,
+       "profit_factor_10bp": 0.0,
+       "trades": 1,
+       "win_rate_10bp": 0.0
+      }
+     ],
+     "liquidity_basis": "previous-day dollar volume; Research-reported bucket edges",
+     "price": [
+      {
+       "bucket": "5-10",
+       "gross_mean": 0.007781572913364717,
+       "net_10bp_mean": 0.006781572913364716,
+       "profit_factor_10bp": 1.9708983797515076,
+       "trades": 25,
+       "win_rate_10bp": 0.44
+      },
+      {
+       "bucket": "10-20",
+       "gross_mean": 0.009929930326000922,
+       "net_10bp_mean": 0.008929930326000922,
+       "profit_factor_10bp": 2.7679580362946754,
+       "trades": 49,
+       "win_rate_10bp": 0.4489795918367347
+      },
+      {
+       "bucket": "20-50",
+       "gross_mean": 0.0022452580517976616,
+       "net_10bp_mean": 0.0012452580517976614,
+       "profit_factor_10bp": 1.1581995699459382,
+       "trades": 117,
+       "win_rate_10bp": 0.48717948717948717
+      },
+      {
+       "bucket": "50-100",
+       "gross_mean": 0.0052523880875932445,
+       "net_10bp_mean": 0.0042523880875932445,
+       "profit_factor_10bp": 2.11487295121879,
+       "trades": 98,
+       "win_rate_10bp": 0.5918367346938775
+      },
+      {
+       "bucket": "100-200",
+       "gross_mean": -0.00016555293073586833,
+       "net_10bp_mean": -0.001165552930735868,
+       "profit_factor_10bp": 0.843209470799455,
+       "trades": 74,
+       "win_rate_10bp": 0.4864864864864865
+      },
+      {
+       "bucket": "200+",
+       "gross_mean": 0.0005327709815874782,
+       "net_10bp_mean": -0.0004672290184125219,
+       "profit_factor_10bp": 0.8972720874736423,
+       "trades": 117,
+       "win_rate_10bp": 0.452991452991453
+      }
+     ],
+     "price_basis": "previous-session close (D-1), the Research close_price"
+    },
+    "concentration": {
+     "basis": "per-symbol sum of normalized_weight x trade return (session contributions)",
+     "cost_10bp": {
+      "hhi_trade_count": 0.009947916666666667,
+      "share_of_total_note": "null when the total contribution is not positive",
+      "top1": {
+       "contribution": 0.057943785961579106,
+       "share_of_total": 0.1841653101159339,
+       "symbols": [
+        "HIMS"
+       ]
+      },
+      "top10": {
+       "contribution": 0.3819397395140103,
+       "share_of_total": 1.21393604863578,
+       "symbols": [
+        "HIMS",
+        "SOFI",
+        "BAND",
+        "ABSI",
+        "UBER",
+        "BLZE",
+        "ANF",
+        "ITRI",
+        "INTC",
+        "FVRR"
+       ]
+      },
+      "top5": {
+       "contribution": 0.21907514346679993,
+       "share_of_total": 0.6962962648317154,
+       "symbols": [
+        "HIMS",
+        "SOFI",
+        "BAND",
+        "ABSI",
+        "UBER"
+       ]
+      },
+      "total_contribution": 0.3146292096220668,
+      "trades": 480,
+      "trades_per_symbol": {
+       "max": 19,
+       "mean": 1.7647058823529411,
+       "median": 1.0
+      },
+      "unique_symbols": 272
+     },
+     "gate": "NONE; DIAGNOSTIC ONLY",
+     "gross": {
+      "hhi_trade_count": 0.009947916666666667,
+      "share_of_total_note": "null when the total contribution is not positive",
+      "top1": {
+       "contribution": 0.06261045262824577,
+       "share_of_total": 0.11350097408935533,
+       "symbols": [
+        "HIMS"
+       ]
+      },
+      "top10": {
+       "contribution": 0.4002730728473436,
+       "share_of_total": 0.7256197929068683,
+       "symbols": [
+        "HIMS",
+        "SOFI",
+        "UBER",
+        "BAND",
+        "ABSI",
+        "BLZE",
+        "INTC",
+        "ANF",
+        "ITRI",
+        "FVRR"
+       ]
+      },
+      "top5": {
+       "contribution": 0.2322418101334666,
+       "share_of_total": 0.42101071894394515,
+       "symbols": [
+        "HIMS",
+        "SOFI",
+        "UBER",
+        "BAND",
+        "ABSI"
+       ]
+      },
+      "total_contribution": 0.5516292096220669,
+      "trades": 480,
+      "trades_per_symbol": {
+       "max": 19,
+       "mean": 1.7647058823529411,
+       "median": 1.0
+      },
+      "unique_symbols": 272
+     }
+    },
+    "funnel": {
+     "H5_candidates": {
+      "count": 1738,
+      "pct_of_h5_candidates": 1.0,
+      "pct_of_previous": 0.02443791391892462
+     },
+     "capacity_skipped": {
+      "count": 1237,
+      "pct_of_h5_candidates": 0.7117376294591484,
+      "pct_of_previous": 0.7117376294591484
+     },
+     "eligible_universe_rows": {
+      "count": 71119
+     },
+     "invalid_entries": {
+      "count": 2,
+      "pct_of_h5_candidates": 0.0011507479861910242,
+      "pct_of_previous": 0.003992015968063872,
+      "reasons": {
+       "NO_TRADE_SHORTENED_SESSION": 2
+      }
+     },
+     "selected_candidates": {
+      "count": 501,
+      "pct_of_h5_candidates": 0.2882623705408516,
+      "pct_of_previous": 0.2882623705408516
+     },
+     "standard_pnl_coverage": 0.9619238476953907,
+     "standard_pnl_trades": {
+      "count": 480,
+      "pct_of_h5_candidates": 0.2761795166858458,
+      "pct_of_previous": 0.9619238476953907
+     },
+     "unresolved_exits": {
+      "count": 19,
+      "pct_of_h5_candidates": 0.01093210586881473,
+      "pct_of_previous": 0.03807615230460922,
+      "reasons": {
+       "NO_TRADE_MISSING_EXIT_BAR": 19
+      }
+     },
+     "valid_entries": {
+      "count": 499,
+      "pct_of_h5_candidates": 0.28711162255466055,
+      "pct_of_previous": 0.9960079840319361
+     },
+     "valid_exact_exits": {
+      "count": 480,
+      "pct_of_h5_candidates": 0.2761795166858458,
+      "pct_of_previous": 0.9619238476953907
+     }
+    },
+    "implementation_delta": {
+     "counts": {
+      "active_sessions": 237,
+      "h5_candidates": 1738,
+      "selected": 501,
+      "standard_trades": 480
+     },
+     "research_reference": {
+      "matched_h5_lift_bp": 17.01,
+      "note": "observational matched-control lift, not a raw return and not a target",
+      "source": "E1_H5_CONFIRMATION.md section F, development, session-demeaned matched lift"
+     },
+     "steps_bp": {
+      "active_session_gross": 23.275494076880463,
+      "active_session_net_10bp": 13.275494076880458,
+      "all_h5_candidates_R_5m": 16.453114329005025,
+      "selected_candidates_R_5m": 30.204599352640532,
+      "standard_trades_R_5m": 31.429550446331426,
+      "standard_trades_R_5m_strict": 31.429550446331426,
+      "standard_trades_trading_gross": 31.429550446331415
+     },
+     "trading_gross_equals_research_strict_label": {
+      "max_abs_difference": 2.671474153004283e-16,
+      "note": "exact 09:30 open to exact 09:34 close is R_5m_strict by construction; any difference would mean the two code paths read different bars",
+      "trades_compared": 480
+     }
+    },
+    "primary_gate": {
+     "all_session_mean": 0.0006554775200459727,
+     "blocks": [
+      {
+       "active_sessions": 44,
+       "block": 1,
+       "first": "2024-10-16",
+       "last": "2025-04-09",
+       "mean": 0.0004647773765801826,
+       "positive": true,
+       "sessions": 120,
+       "trades": 66
+      },
+      {
+       "active_sessions": 48,
+       "block": 2,
+       "first": "2025-04-10",
+       "last": "2025-10-01",
+       "mean": -0.00027685357668836327,
+       "positive": false,
+       "sessions": 120,
+       "trades": 70
+      },
+      {
+       "active_sessions": 37,
+       "block": 3,
+       "first": "2025-10-02",
+       "last": "2026-03-25",
+       "mean": -0.00043127118599602386,
+       "positive": false,
+       "sessions": 120,
+       "trades": 48
+      },
+      {
+       "active_sessions": 108,
+       "block": 4,
+       "first": "2026-03-26",
+       "last": "2026-09-16",
+       "mean": 0.002865257466288095,
+       "positive": true,
+       "sessions": 120,
+       "trades": 296
+      }
+     ],
+     "bootstrap": {
+      "ci_high": 0.0016638703330601919,
+      "ci_low": -0.00030830682302673026,
+      "mean": 0.0006554775200459727,
+      "method": "IID session bootstrap",
+      "p_mean_le_zero": 0.0941,
+      "replicates": 10000,
+      "seed": 20260921
+     },
+     "gates": {
+      "chronological_robustness": false,
+      "data_quality": true,
+      "integrity": true,
+      "net_economics": true,
+      "statistical_support": false
+     },
+     "positive_blocks": 2,
+     "profit_factor": 1.3674795956709667,
+     "scenario": "COST_10BP",
+     "verdict": "E-D6 INCONCLUSIVE — STATISTICAL"
+    },
+    "scenarios": {
+     "COST_05BP": {
+      "active_session_mean": 0.0018275494076880458,
+      "active_sessions": 237,
+      "all_session_mean": 0.0009023525200459726,
+      "cumulative_return": 0.4980486451847217,
+      "maximum_drawdown": -0.1207912280016109,
+      "mean": 0.0026429550446331416,
+      "median": 0.00025804515354528905,
+      "profit_factor": 1.4734901849142163,
+      "role": "SENSITIVITY",
+      "round_trip_cost_bp": 5,
+      "sessions": 480,
+      "sharpe": 1.3039754076328118,
+      "sortino": 2.0813098866242,
+      "trades": 480,
+      "win_rate": 0.5125
+     },
+     "COST_10BP": {
+      "active_session_mean": 0.0013275494076880458,
+      "active_sessions": 237,
+      "all_session_mean": 0.0006554775200459727,
+      "cumulative_return": 0.3308548244243119,
+      "maximum_drawdown": -0.1544869706269556,
+      "mean": 0.0021429550446331416,
+      "median": -0.0002419548464547109,
+      "profit_factor": 1.3674795956709667,
+      "role": "PRIMARY",
+      "round_trip_cost_bp": 10,
+      "sessions": 480,
+      "sharpe": 0.9487748966147324,
+      "sortino": 1.478069607397585,
+      "trades": 480,
+      "win_rate": 0.49375
+     },
+     "COST_15BP": {
+      "active_session_mean": 0.0008275494076880458,
+      "active_sessions": 237,
+      "all_session_mean": 0.0004086025200459726,
+      "cumulative_return": 0.18225121237034125,
+      "maximum_drawdown": -0.18690725271531672,
+      "mean": 0.0016429550446331413,
+      "median": -0.000741954846454711,
+      "profit_factor": 1.269719552750461,
+      "role": "SENSITIVITY",
+      "round_trip_cost_bp": 15,
+      "sessions": 480,
+      "sharpe": 0.5920988981132687,
+      "sortino": 0.900638399160912,
+      "trades": 480,
+      "win_rate": 0.4666666666666667
+     },
+     "COST_20BP": {
+      "active_session_mean": 0.00032754940768804544,
+      "active_sessions": 237,
+      "all_session_mean": 0.00016172752004597253,
+      "cumulative_return": 0.05017855299454732,
+      "maximum_drawdown": -0.2180997497212468,
+      "mean": 0.0011429550446331418,
+      "median": -0.001241954846454711,
+      "profit_factor": 1.179681507494246,
+      "role": "SENSITIVITY",
+      "round_trip_cost_bp": 20,
+      "sessions": 480,
+      "sharpe": 0.23449795483882876,
+      "sortino": 0.34841231460699806,
+      "trades": 480,
+      "win_rate": 0.45416666666666666
+     },
+     "GROSS_0BP": {
+      "active_session_mean": 0.0023275494076880465,
+      "active_sessions": 237,
+      "all_session_mean": 0.0011492275200459723,
+      "cumulative_return": 0.6861472258317918,
+      "maximum_drawdown": -0.0974341765373955,
+      "mean": 0.0031429550446331416,
+      "median": 0.0007580451535452891,
+      "profit_factor": 1.5885046502277202,
+      "role": "DIAGNOSTIC_GROSS",
+      "round_trip_cost_bp": 0,
+      "sessions": 480,
+      "sharpe": 1.6571612857005287,
+      "sortino": 2.710940112165026,
+      "trades": 480,
+      "win_rate": 0.525
+     }
+    },
+    "stability": {
+     "month": [
+      {
+       "active_sessions": 4,
+       "cumulative_10bp": -0.006809502135696199,
+       "month": "2024-10",
+       "return_0bp": -0.0028238352000145017,
+       "return_10bp": -0.006809502135696199,
+       "sessions": 12,
+       "trades": 4
+      },
+      {
+       "active_sessions": 12,
+       "cumulative_10bp": -0.006164837899811482,
+       "month": "2024-11",
+       "return_0bp": 0.01272283747628733,
+       "return_10bp": 0.0006490841759672072,
+       "sessions": 20,
+       "trades": 20
+      },
+      {
+       "active_sessions": 10,
+       "cumulative_10bp": 0.005307258219008126,
+       "month": "2024-12",
+       "return_0bp": 0.021692945464524716,
+       "return_10bp": 0.011543258435912751,
+       "sessions": 21,
+       "trades": 17
+      },
+      {
+       "active_sessions": 9,
+       "cumulative_10bp": 0.008348655067230037,
+       "month": "2025-01",
+       "return_0bp": 0.012086769313424117,
+       "return_10bp": 0.0030253405845392933,
+       "sessions": 20,
+       "trades": 13
+      },
+      {
+       "active_sessions": 5,
+       "cumulative_10bp": 0.05698190906789824,
+       "month": "2025-02",
+       "return_0bp": 0.05343381389977275,
+       "return_10bp": 0.04823059341257885,
+       "sessions": 19,
+       "trades": 6
+      },
+      {
+       "active_sessions": 2,
+       "cumulative_10bp": 0.07091709392581835,
+       "month": "2025-03",
+       "return_0bp": 0.015198239178283002,
+       "return_10bp": 0.013183938853039479,
+       "sessions": 21,
+       "trades": 2
+      },
+      {
+       "active_sessions": 7,
+       "cumulative_10bp": 0.06609363175979932,
+       "month": "2025-04",
+       "return_0bp": 0.0024903319369145027,
+       "return_10bp": -0.004504048159635676,
+       "sessions": 21,
+       "trades": 10
+      },
+      {
+       "active_sessions": 10,
+       "cumulative_10bp": -0.011418194440547924,
+       "month": "2025-05",
+       "return_0bp": -0.06331989860943099,
+       "return_10bp": -0.07270639640947729,
+       "sessions": 21,
+       "trades": 14
+      },
+      {
+       "active_sessions": 13,
+       "cumulative_10bp": -8.2097336725373e-05,
+       "month": "2025-06",
+       "return_0bp": 0.02468673625502893,
+       "return_10bp": 0.0114670298806554,
+       "sessions": 20,
+       "trades": 14
+      },
+      {
+       "active_sessions": 5,
+       "cumulative_10bp": 0.015333771842456434,
+       "month": "2025-07",
+       "return_0bp": 0.020489515843482353,
+       "return_10bp": 0.015417134884895711,
+       "sessions": 22,
+       "trades": 7
+      },
+      {
+       "active_sessions": 2,
+       "cumulative_10bp": 0.026724600197463255,
+       "month": "2025-08",
+       "return_0bp": 0.01323099670316319,
+       "return_10bp": 0.011218801807741263,
+       "sessions": 21,
+       "trades": 3
+      },
+      {
+       "active_sessions": 12,
+       "cumulative_10bp": 0.03057662437831654,
+       "month": "2025-09",
+       "return_0bp": 0.015859737005325503,
+       "return_10bp": 0.0037517598975542743,
+       "sessions": 21,
+       "trades": 24
+      },
+      {
+       "active_sessions": 11,
+       "cumulative_10bp": -0.05395304207707796,
+       "month": "2025-10",
+       "return_0bp": -0.07179251077508664,
+       "return_10bp": -0.0820217191578414,
+       "sessions": 23,
+       "trades": 15
+      },
+      {
+       "active_sessions": 5,
+       "cumulative_10bp": -0.06406930549224799,
+       "month": "2025-11",
+       "return_0bp": -0.005725839164075652,
+       "return_10bp": -0.010693193747359664,
+       "sessions": 19,
+       "trades": 6
+      },
+      {
+       "active_sessions": 2,
+       "cumulative_10bp": -0.042951001771359576,
+       "month": "2025-12",
+       "return_0bp": 0.024587524658851834,
+       "return_10bp": 0.022563961033456037,
+       "sessions": 22,
+       "trades": 2
+      },
+      {
+       "active_sessions": 7,
+       "cumulative_10bp": -0.034721605294887437,
+       "month": "2026-01",
+       "return_0bp": 0.01567192884236679,
+       "return_10bp": 0.008598720119558756,
+       "sessions": 20,
+       "trades": 8
+      },
+      {
+       "active_sessions": 7,
+       "cumulative_10bp": -0.07531169301620844,
+       "month": "2026-02",
+       "return_0bp": -0.03528180114101698,
+       "return_10bp": -0.04205013594417084,
+       "sessions": 19,
+       "trades": 10
+      },
+      {
+       "active_sessions": 7,
+       "cumulative_10bp": -0.04459672542113491,
+       "month": "2026-03",
+       "return_0bp": 0.04043775664902016,
+       "return_10bp": 0.03321656320632149,
+       "sessions": 22,
+       "trades": 11
+      },
+      {
+       "active_sessions": 12,
+       "cumulative_10bp": 0.035413348983725834,
+       "month": "2026-04",
+       "return_0bp": 0.09673652063355198,
+       "return_10bp": 0.08374481910806586,
+       "sessions": 21,
+       "trades": 28
+      },
+      {
+       "active_sessions": 20,
+       "cumulative_10bp": 0.10454577548439281,
+       "month": "2026-05",
+       "return_0bp": 0.08823912738875661,
+       "return_10bp": 0.06676794979369505,
+       "sessions": 20,
+       "trades": 56
+      },
+      {
+       "active_sessions": 21,
+       "cumulative_10bp": 0.13696855752909287,
+       "month": "2026-06",
+       "return_0bp": 0.0511630186709604,
+       "return_10bp": 0.02935395052367218,
+       "sessions": 21,
+       "trades": 58
+      },
+      {
+       "active_sessions": 22,
+       "cumulative_10bp": 0.224021516268184,
+       "month": "2026-07",
+       "return_0bp": 0.10042157319849876,
+       "return_10bp": 0.07656584534604738,
+       "sessions": 22,
+       "trades": 63
+      },
+      {
+       "active_sessions": 21,
+       "cumulative_10bp": 0.3270063198043329,
+       "month": "2026-08",
+       "return_0bp": 0.10704621025894512,
+       "return_10bp": 0.08413643238080537,
+       "sessions": 21,
+       "trades": 60
+      },
+      {
+       "active_sessions": 11,
+       "cumulative_10bp": 0.3308548244243119,
+       "month": "2026-09",
+       "return_0bp": 0.0139849565914687,
+       "return_10bp": 0.0029001403855759555,
+       "sessions": 11,
+       "trades": 29
+      }
+     ],
+     "quarter": [
+      {
+       "active_sessions": 26,
+       "cumulative_10bp": 0.005307258219008126,
+       "quarter": "2024Q4",
+       "return_0bp": 0.031769979694309836,
+       "return_10bp": 0.005307258219008126,
+       "sessions": 53,
+       "trades": 41
+      },
+      {
+       "active_sessions": 16,
+       "cumulative_10bp": 0.07091709392581835,
+       "quarter": "2025Q1",
+       "return_0bp": 0.08237027773235339,
+       "return_10bp": 0.06526346564237873,
+       "sessions": 60,
+       "trades": 21
+      },
+      {
+       "active_sessions": 30,
+       "cumulative_10bp": -8.209733672526198e-05,
+       "quarter": "2025Q2",
+       "return_0bp": -0.03780609424353509,
+       "return_10bp": -0.06629756090854,
+       "sessions": 62,
+       "trades": 38
+      },
+      {
+       "active_sessions": 19,
+       "cumulative_10bp": 0.03057662437831654,
+       "quarter": "2025Q3",
+       "return_0bp": 0.050390444251848354,
+       "return_10bp": 0.030661238921097844,
+       "sessions": 64,
+       "trades": 34
+      },
+      {
+       "active_sessions": 18,
+       "cumulative_10bp": -0.042951001771359576,
+       "quarter": "2025Q4",
+       "return_0bp": -0.054415629999038706,
+       "return_10bp": -0.07134610315271883,
+       "sessions": 64,
+       "trades": 23
+      },
+      {
+       "active_sessions": 21,
+       "cumulative_10bp": -0.0445967254211348,
+       "quarter": "2026Q1",
+       "return_0bp": 0.01945961182396827,
+       "return_10bp": -0.0017195813932423532,
+       "sessions": 61,
+       "trades": 29
+      },
+      {
+       "active_sessions": 53,
+       "cumulative_10bp": 0.1369685575290931,
+       "quarter": "2026Q2",
+       "return_0bp": 0.25457525016716986,
+       "return_10bp": 0.19004046540479003,
+       "sessions": 62,
+       "trades": 142
+      },
+      {
+       "active_sessions": 54,
+       "cumulative_10bp": 0.3308548244243117,
+       "quarter": "2026Q3",
+       "return_0bp": 0.23525425160471825,
+       "return_10bp": 0.17052913698561745,
+       "sessions": 54,
+       "trades": 152
+      }
+     ]
+    }
+   },
+   "extremes": {
+    "largest_loser": {
+     "net_10bp": -0.07763333333333333,
+     "session": "2026-05-11",
+     "symbol": "INBX"
+    },
+    "largest_winner": {
+     "net_10bp": 0.12337409142303343,
+     "session": "2026-04-30",
+     "symbol": "BAND"
+    }
+   },
+   "improvement": {
+    "cumulative_10bp": true,
+    "paired_mean_delta": true,
+    "paired_p_delta_le_zero": true,
+    "pass": true
+   },
+   "paired_vs_r0": {
+    "ci_high": 0.0012136846748258736,
+    "ci_low": -0.0002353086769016214,
+    "mean": 0.00046649390661437505,
+    "method": "IID session bootstrap",
+    "p_mean_le_zero": 0.0974,
+    "replicates": 10000,
+    "seed": 20260921
+   },
+   "periods": {
+    "BROAD_COVERAGE": {
+     "active_sessions": 101,
+     "cumulative_10bp": 0.36769104603558733,
+     "first": "2026-04-20",
+     "last": "2026-09-16",
+     "mean_session_10bp": 0.003153475078546172,
+     "paired_mean_delta_vs_r0": 0.0021216425345747126,
+     "profit_factor_10bp": 1.5764586282815443,
+     "sessions": 104,
+     "trades": 281
+    },
+    "FULL_DEVELOPMENT": {
+     "active_sessions": 237,
+     "cumulative_10bp": 0.3308548244243119,
+     "first": "2024-10-16",
+     "last": "2026-09-16",
+     "mean_session_10bp": 0.0006554775200459727,
+     "paired_mean_delta_vs_r0": 0.00046649390661437505,
+     "profit_factor_10bp": 1.3674795956709667,
+     "sessions": 480,
+     "trades": 480
+    },
+    "LEGACY_NARROW": {
+     "active_sessions": 136,
+     "cumulative_10bp": -0.02693314525824353,
+     "first": "2024-10-16",
+     "last": "2026-04-17",
+     "mean_session_10bp": -3.545797485833808e-05,
+     "paired_mean_delta_vs_r0": 8.686839306196486e-06,
+     "profit_factor_10bp": 1.0219600413470689,
+     "sessions": 376,
+     "trades": 199
+    }
+   },
+   "selection_delta_vs_r0": {
+    "eligible_to_change": 101,
+    "entry_valid_changed": 101,
+    "ordering_only_changed": 25,
+    "selected_set_changed": 101,
+    "selected_set_changed_ratio_to_eligible": 1.0,
+    "sessions_with_h5": 239,
+    "standard_pnl_changed": 101,
+    "symbols_added": 220,
+    "symbols_removed": 220,
+    "trade_set_changed": 101
+   }
+  },
+  "R2": {
+   "cagr": {
+    "COST_05BP": 0.057415832052061466,
+    "COST_10BP": -0.006359133167838427,
+    "COST_15BP": -0.06631675709875406,
+    "COST_20BP": -0.12268379098520232,
+    "GROSS_0BP": 0.12524908521383593
+   },
+   "calmar": {
+    "COST_05BP": 0.4718253083954911,
+    "COST_10BP": -0.03952037509922171,
+    "COST_15BP": -0.31648980146841066,
+    "COST_20BP": -0.47984235617426346,
+    "GROSS_0BP": 1.1753131398445635
+   },
+   "eligibility": {
+    "coverage": false,
+    "integrity": true,
+    "mdd_10bp": true,
+    "mean_session_10bp": true,
+    "pass": false,
+    "profit_factor_10bp": true,
+    "top1_share_10bp": false
+   },
+   "evaluation": {
+    "break_even": {
+     "definition": "mean gross trade return expressed in round-trip bp; diagnostic only",
+     "mean_gross_trade_return_bp": 15.094044671429415
+    },
+    "buckets": {
+     "liquidity": [
+      {
+       "bucket": "5e+06-2e+07",
+       "gross_mean": 0.008059269699206905,
+       "net_10bp_mean": 0.007059269699206906,
+       "profit_factor_10bp": 2.7973321468299357,
+       "trades": 37,
+       "win_rate_10bp": 0.4594594594594595
+      },
+      {
+       "bucket": "2e+07-1e+08",
+       "gross_mean": -0.0005598809209837425,
+       "net_10bp_mean": -0.0015598809209837426,
+       "profit_factor_10bp": 0.8623101023002333,
+       "trades": 96,
+       "win_rate_10bp": 0.3958333333333333
+      },
+      {
+       "bucket": "1e+08-5e+08",
+       "gross_mean": 0.0015215490313407233,
+       "net_10bp_mean": 0.0005215490313407234,
+       "profit_factor_10bp": 1.072435328060348,
+       "trades": 98,
+       "win_rate_10bp": 0.45918367346938777
+      },
+      {
+       "bucket": "5e+08+",
+       "gross_mean": 0.001283096213614789,
+       "net_10bp_mean": 0.0002830962136147885,
+       "profit_factor_10bp": 1.0508484579524933,
+       "trades": 238,
+       "win_rate_10bp": 0.5
+      },
+      {
+       "bucket": "outside declared buckets",
+       "gross_mean": 0.005998194828199292,
+       "net_10bp_mean": 0.004998194828199292,
+       "profit_factor_10bp": 1.93790188746079,
+       "trades": 2,
+       "win_rate_10bp": 0.5
+      }
+     ],
+     "liquidity_basis": "previous-day dollar volume; Research-reported bucket edges",
+     "price": [
+      {
+       "bucket": "5-10",
+       "gross_mean": 0.006325639509625117,
+       "net_10bp_mean": 0.0053256395096251165,
+       "profit_factor_10bp": 1.6773538537300967,
+       "trades": 35,
+       "win_rate_10bp": 0.4
+      },
+      {
+       "bucket": "10-20",
+       "gross_mean": 0.0035553114088382374,
+       "net_10bp_mean": 0.002555311408838237,
+       "profit_factor_10bp": 1.2659905949992887,
+       "trades": 64,
+       "win_rate_10bp": 0.421875
+      },
+      {
+       "bucket": "20-50",
+       "gross_mean": 0.0006511619204024672,
+       "net_10bp_mean": -0.000348838079597533,
+       "profit_factor_10bp": 0.9542374783699104,
+       "trades": 110,
+       "win_rate_10bp": 0.4727272727272727
+      },
+      {
+       "bucket": "50-100",
+       "gross_mean": 0.0031389027746354984,
+       "net_10bp_mean": 0.002138902774635499,
+       "profit_factor_10bp": 1.4731253768094619,
+       "trades": 89,
+       "win_rate_10bp": 0.5056179775280899
+      },
+      {
+       "bucket": "100-200",
+       "gross_mean": 0.0003704439879103747,
+       "net_10bp_mean": -0.0006295560120896261,
+       "profit_factor_10bp": 0.9195602022047363,
+       "trades": 75,
+       "win_rate_10bp": 0.5333333333333333
+      },
+      {
+       "bucket": "200+",
+       "gross_mean": -0.001191645574064385,
+       "net_10bp_mean": -0.0021916455740643853,
+       "profit_factor_10bp": 0.6139627730735558,
+       "trades": 98,
+       "win_rate_10bp": 0.42857142857142855
+      }
+     ],
+     "price_basis": "previous-session close (D-1), the Research close_price"
+    },
+    "concentration": {
+     "basis": "per-symbol sum of normalized_weight x trade return (session contributions)",
+     "cost_10bp": {
+      "hhi_trade_count": 0.010128876086927124,
+      "share_of_total_note": "null when the total contribution is not positive",
+      "top1": {
+       "contribution": 0.057943785961579106,
+       "share_of_total": 3.6653882265295223,
+       "symbols": [
+        "HIMS"
+       ]
+      },
+      "top10": {
+       "contribution": 0.34382097181406246,
+       "share_of_total": 21.749309631870297,
+       "symbols": [
+        "HIMS",
+        "SOFI",
+        "ABSI",
+        "UBER",
+        "BLZE",
+        "INTC",
+        "FVRR",
+        "MAN",
+        "BHVN",
+        "BLMN"
+       ]
+      },
+      "top5": {
+       "contribution": 0.21315450862211588,
+       "share_of_total": 13.483655121417907,
+       "symbols": [
+        "HIMS",
+        "SOFI",
+        "ABSI",
+        "UBER",
+        "BLZE"
+       ]
+      },
+      "total_contribution": 0.015808362547298754,
+      "trades": 471,
+      "trades_per_symbol": {
+       "max": 18,
+       "mean": 1.7840909090909092,
+       "median": 1.0
+      },
+      "unique_symbols": 264
+     },
+     "gate": "NONE; DIAGNOSTIC ONLY",
+     "gross": {
+      "hhi_trade_count": 0.010128876086927124,
+      "share_of_total_note": "null when the total contribution is not positive",
+      "top1": {
+       "contribution": 0.06261045262824577,
+       "share_of_total": 0.24765973719137463,
+       "symbols": [
+        "HIMS"
+       ]
+      },
+      "top10": {
+       "contribution": 0.36689660834899723,
+       "share_of_total": 1.4512835123496095,
+       "symbols": [
+        "HIMS",
+        "SOFI",
+        "UBER",
+        "ABSI",
+        "BLZE",
+        "INTC",
+        "FVRR",
+        "MAN",
+        "UNH",
+        "BLMN"
+       ]
+      },
+      "top5": {
+       "contribution": 0.2266545086221159,
+       "share_of_total": 0.8965467215496494,
+       "symbols": [
+        "HIMS",
+        "SOFI",
+        "UBER",
+        "ABSI",
+        "BLZE"
+       ]
+      },
+      "total_contribution": 0.25280836254729877,
+      "trades": 471,
+      "trades_per_symbol": {
+       "max": 18,
+       "mean": 1.7840909090909092,
+       "median": 1.0
+      },
+      "unique_symbols": 264
+     }
+    },
+    "funnel": {
+     "H5_candidates": {
+      "count": 1738,
+      "pct_of_h5_candidates": 1.0,
+      "pct_of_previous": 0.02443791391892462
+     },
+     "capacity_skipped": {
+      "count": 1237,
+      "pct_of_h5_candidates": 0.7117376294591484,
+      "pct_of_previous": 0.7117376294591484
+     },
+     "eligible_universe_rows": {
+      "count": 71119
+     },
+     "invalid_entries": {
+      "count": 4,
+      "pct_of_h5_candidates": 0.0023014959723820483,
+      "pct_of_previous": 0.007984031936127744,
+      "reasons": {
+       "NO_TRADE_MISSING_ENTRY_BAR": 2,
+       "NO_TRADE_SHORTENED_SESSION": 2
+      }
+     },
+     "selected_candidates": {
+      "count": 501,
+      "pct_of_h5_candidates": 0.2882623705408516,
+      "pct_of_previous": 0.2882623705408516
+     },
+     "standard_pnl_coverage": 0.9476861167002012,
+     "standard_pnl_trades": {
+      "count": 471,
+      "pct_of_h5_candidates": 0.2710011507479862,
+      "pct_of_previous": 0.9476861167002012
+     },
+     "unresolved_exits": {
+      "count": 26,
+      "pct_of_h5_candidates": 0.014959723820483314,
+      "pct_of_previous": 0.052313883299798795,
+      "reasons": {
+       "NO_TRADE_MISSING_EXIT_BAR": 26
+      }
+     },
+     "valid_entries": {
+      "count": 497,
+      "pct_of_h5_candidates": 0.2859608745684695,
+      "pct_of_previous": 0.9920159680638723
+     },
+     "valid_exact_exits": {
+      "count": 471,
+      "pct_of_h5_candidates": 0.2710011507479862,
+      "pct_of_previous": 0.9476861167002012
+     }
+    },
+    "implementation_delta": {
+     "counts": {
+      "active_sessions": 237,
+      "h5_candidates": 1738,
+      "selected": 501,
+      "standard_trades": 471
+     },
+     "research_reference": {
+      "matched_h5_lift_bp": 17.01,
+      "note": "observational matched-control lift, not a raw return and not a target",
+      "source": "E1_H5_CONFIRMATION.md section F, development, session-demeaned matched lift"
+     },
+     "steps_bp": {
+      "active_session_gross": 10.66701951676366,
+      "active_session_net_10bp": 0.6670195167636599,
+      "all_h5_candidates_R_5m": 16.453114329005025,
+      "selected_candidates_R_5m": 15.036922992036011,
+      "standard_trades_R_5m": 15.094044671429426,
+      "standard_trades_R_5m_strict": 15.094044671429426,
+      "standard_trades_trading_gross": 15.094044671429415
+     },
+     "trading_gross_equals_research_strict_label": {
+      "max_abs_difference": 2.671474153004283e-16,
+      "note": "exact 09:30 open to exact 09:34 close is R_5m_strict by construction; any difference would mean the two code paths read different bars",
+      "trades_compared": 471
+     }
+    },
+    "primary_gate": {
+     "all_session_mean": 3.29340886402059e-05,
+     "blocks": [
+      {
+       "active_sessions": 44,
+       "block": 1,
+       "first": "2024-10-16",
+       "last": "2025-04-09",
+       "mean": 0.0005400550533319572,
+       "positive": true,
+       "sessions": 120,
+       "trades": 66
+      },
+      {
+       "active_sessions": 48,
+       "block": 2,
+       "first": "2025-04-10",
+       "last": "2025-10-01",
+       "mean": -0.00033987063301585196,
+       "positive": false,
+       "sessions": 120,
+       "trades": 70
+      },
+      {
+       "active_sessions": 37,
+       "block": 3,
+       "first": "2025-10-02",
+       "last": "2026-03-25",
+       "mean": -0.00043127118599602386,
+       "positive": false,
+       "sessions": 120,
+       "trades": 48
+      },
+      {
+       "active_sessions": 108,
+       "block": 4,
+       "first": "2026-03-26",
+       "last": "2026-09-16",
+       "mean": 0.0003628231202407422,
+       "positive": true,
+       "sessions": 120,
+       "trades": 287
+      }
+     ],
+     "bootstrap": {
+      "ci_high": 0.0009838466288515533,
+      "ci_low": -0.0009286983537667648,
+      "mean": 3.29340886402059e-05,
+      "method": "IID session bootstrap",
+      "p_mean_le_zero": 0.4703,
+      "replicates": 10000,
+      "seed": 20260921
+     },
+     "gates": {
+      "chronological_robustness": false,
+      "data_quality": false,
+      "integrity": true,
+      "net_economics": true,
+      "statistical_support": false
+     },
+     "positive_blocks": 2,
+     "profit_factor": 1.0732780988833004,
+     "scenario": "COST_10BP",
+     "verdict": "E-D6 INCONCLUSIVE — DATA QUALITY"
+    },
+    "scenarios": {
+     "COST_05BP": {
+      "active_session_mean": 0.0005667019516763659,
+      "active_sessions": 237,
+      "all_session_mean": 0.00027980908864020575,
+      "cumulative_return": 0.11219898006148665,
+      "maximum_drawdown": -0.1216887501166738,
+      "mean": 0.0010094044671429415,
+      "median": -0.0005,
+      "profit_factor": 1.1509136700048825,
+      "role": "SENSITIVITY",
+      "round_trip_cost_bp": 5,
+      "sessions": 480,
+      "sharpe": 0.4109330862729534,
+      "sortino": 0.5969064226330478,
+      "trades": 471,
+      "win_rate": 0.4840764331210191
+     },
+     "COST_10BP": {
+      "active_session_mean": 6.670195167636599e-05,
+      "active_sessions": 237,
+      "all_session_mean": 3.29340886402059e-05,
+      "cumulative_return": -0.012077782528399417,
+      "maximum_drawdown": -0.1609077128411076,
+      "mean": 0.0005094044671429414,
+      "median": -0.001,
+      "profit_factor": 1.0732780988833004,
+      "role": "PRIMARY",
+      "round_trip_cost_bp": 10,
+      "sessions": 480,
+      "sharpe": 0.04838407338389359,
+      "sortino": 0.06866132481950182,
+      "trades": 471,
+      "win_rate": 0.46709129511677283
+     },
+     "COST_15BP": {
+      "active_session_mean": -0.0004332980483236337,
+      "active_sessions": 237,
+      "all_session_mean": -0.0002139409113597942,
+      "cumulative_return": -0.12251992107132736,
+      "maximum_drawdown": -0.2095383699287171,
+      "mean": 9.404467142941468e-06,
+      "median": -0.0015,
+      "profit_factor": 1.0013019798571985,
+      "role": "SENSITIVITY",
+      "round_trip_cost_bp": 15,
+      "sessions": 480,
+      "sharpe": -0.3142427358810436,
+      "sortino": -0.4358862948979738,
+      "trades": 471,
+      "win_rate": 0.45010615711252655
+     },
+     "COST_20BP": {
+      "active_session_mean": -0.0009332980483236338,
+      "active_sessions": 237,
+      "all_session_mean": -0.00046081591135979427,
+      "cumulative_return": -0.22066172426166708,
+      "maximum_drawdown": -0.25567520125432086,
+      "mean": -0.0004905955328570586,
+      "median": -0.002,
+      "profit_factor": 0.9345867978952646,
+      "role": "SENSITIVITY",
+      "round_trip_cost_bp": 20,
+      "sessions": 480,
+      "sharpe": -0.6763646733892242,
+      "sortino": -0.9175129268284886,
+      "trades": 471,
+      "win_rate": 0.4437367303609342
+     },
+     "GROSS_0BP": {
+      "active_session_mean": 0.001066701951676366,
+      "active_sessions": 237,
+      "all_session_mean": 0.0005266840886402058,
+      "cumulative_return": 0.2520351210530509,
+      "maximum_drawdown": -0.10656656593697256,
+      "mean": 0.0015094044671429415,
+      "median": 0.0,
+      "profit_factor": 1.2345895028391292,
+      "role": "DIAGNOSTIC_GROSS",
+      "round_trip_cost_bp": 0,
+      "sessions": 480,
+      "sharpe": 0.7728222589710583,
+      "sortino": 1.1496466559880874,
+      "trades": 471,
+      "win_rate": 0.4989384288747346
+     }
+    },
+    "stability": {
+     "month": [
+      {
+       "active_sessions": 4,
+       "cumulative_10bp": -0.006809502135696199,
+       "month": "2024-10",
+       "return_0bp": -0.0028238352000145017,
+       "return_10bp": -0.006809502135696199,
+       "sessions": 12,
+       "trades": 4
+      },
+      {
+       "active_sessions": 12,
+       "cumulative_10bp": -0.007954546901959736,
+       "month": "2024-11",
+       "return_0bp": 0.010900925260783456,
+       "return_10bp": -0.0011528954100202826,
+       "sessions": 20,
+       "trades": 20
+      },
+      {
+       "active_sessions": 10,
+       "cumulative_10bp": 0.003496890143322995,
+       "month": "2024-12",
+       "return_0bp": 0.021692945464524716,
+       "return_10bp": 0.011543258435912751,
+       "sessions": 21,
+       "trades": 17
+      },
+      {
+       "active_sessions": 9,
+       "cumulative_10bp": 0.006532810011532497,
+       "month": "2025-01",
+       "return_0bp": 0.012086769313424117,
+       "return_10bp": 0.0030253405845392933,
+       "sessions": 20,
+       "trades": 13
+      },
+      {
+       "active_sessions": 5,
+       "cumulative_10bp": 0.055078484727619115,
+       "month": "2025-02",
+       "return_0bp": 0.05343381389977275,
+       "return_10bp": 0.04823059341257885,
+       "sessions": 19,
+       "trades": 6
+      },
+      {
+       "active_sessions": 2,
+       "cumulative_10bp": 0.06898857495542554,
+       "month": "2025-03",
+       "return_0bp": 0.015198239178283002,
+       "return_10bp": 0.013183938853039479,
+       "sessions": 21,
+       "trades": 2
+      },
+      {
+       "active_sessions": 7,
+       "cumulative_10bp": 0.07590282141835858,
+       "month": "2025-04",
+       "return_0bp": 0.013528280001229076,
+       "return_10bp": 0.00646802652986378,
+       "sessions": 21,
+       "trades": 10
+      },
+      {
+       "active_sessions": 10,
+       "cumulative_10bp": -0.009852191118678189,
+       "month": "2025-05",
+       "return_0bp": -0.07038246358911937,
+       "return_10bp": -0.0797051655873402,
+       "sessions": 21,
+       "trades": 14
+      },
+      {
+       "active_sessions": 13,
+       "cumulative_10bp": 0.0015018633920294011,
+       "month": "2025-06",
+       "return_0bp": 0.02468673625502893,
+       "return_10bp": 0.0114670298806554,
+       "sessions": 20,
+       "trades": 14
+      },
+      {
+       "active_sessions": 5,
+       "cumulative_10bp": 0.016942152707418723,
+       "month": "2025-07",
+       "return_0bp": 0.020489515843482353,
+       "return_10bp": 0.015417134884895711,
+       "sessions": 22,
+       "trades": 7
+      },
+      {
+       "active_sessions": 2,
+       "cumulative_10bp": 0.028351025168581012,
+       "month": "2025-08",
+       "return_0bp": 0.01323099670316319,
+       "return_10bp": 0.011218801807741263,
+       "sessions": 21,
+       "trades": 3
+      },
+      {
+       "active_sessions": 12,
+       "cumulative_10bp": 0.03220915130541724,
+       "month": "2025-09",
+       "return_0bp": 0.015859737005325503,
+       "return_10bp": 0.0037517598975542743,
+       "sessions": 21,
+       "trades": 24
+      },
+      {
+       "active_sessions": 11,
+       "cumulative_10bp": -0.05245441781510951,
+       "month": "2025-10",
+       "return_0bp": -0.07179251077508664,
+       "return_10bp": -0.0820217191578414,
+       "sessions": 23,
+       "trades": 15
+      },
+      {
+       "active_sessions": 5,
+       "cumulative_10bp": -0.06258670630986729,
+       "month": "2025-11",
+       "return_0bp": -0.005725839164075652,
+       "return_10bp": -0.010693193747359664,
+       "sessions": 19,
+       "trades": 6
+      },
+      {
+       "active_sessions": 2,
+       "cumulative_10bp": -0.04143494927879943,
+       "month": "2025-12",
+       "return_0bp": 0.024587524658851834,
+       "return_10bp": 0.022563961033456037,
+       "sessions": 22,
+       "trades": 2
+      },
+      {
+       "active_sessions": 7,
+       "cumulative_10bp": -0.03319251669125722,
+       "month": "2026-01",
+       "return_0bp": 0.01567192884236679,
+       "return_10bp": 0.008598720119558756,
+       "sessions": 20,
+       "trades": 8
+      },
+      {
+       "active_sessions": 7,
+       "cumulative_10bp": -0.07384690279623152,
+       "month": "2026-02",
+       "return_0bp": -0.03528180114101698,
+       "return_10bp": -0.04205013594417084,
+       "sessions": 19,
+       "trades": 10
+      },
+      {
+       "active_sessions": 7,
+       "cumulative_10bp": -0.04308327990423211,
+       "month": "2026-03",
+       "return_0bp": 0.04043775664902016,
+       "return_10bp": 0.03321656320632149,
+       "sessions": 22,
+       "trades": 11
+      },
+      {
+       "active_sessions": 12,
+       "cumulative_10bp": 0.017020985502875563,
+       "month": "2026-04",
+       "return_0bp": 0.07557040336827514,
+       "return_10bp": 0.06281034090520698,
+       "sessions": 21,
+       "trades": 28
+      },
+      {
+       "active_sessions": 20,
+       "cumulative_10bp": -0.08529894563030849,
+       "month": "2026-05",
+       "return_0bp": -0.08234833433455835,
+       "return_10bp": -0.10060749246249923,
+       "sessions": 20,
+       "trades": 56
+      },
+      {
+       "active_sessions": 21,
+       "cumulative_10bp": 0.016153878275910305,
+       "month": "2026-06",
+       "return_0bp": 0.1343642579699127,
+       "return_10bp": 0.11091364049659758,
+       "sessions": 21,
+       "trades": 58
+      },
+      {
+       "active_sessions": 22,
+       "cumulative_10bp": 0.03484988576904957,
+       "month": "2026-07",
+       "return_0bp": 0.04102426518168745,
+       "return_10bp": 0.018398795588774775,
+       "sessions": 22,
+       "trades": 59
+      },
+      {
+       "active_sessions": 21,
+       "cumulative_10bp": 0.001992298794287306,
+       "month": "2026-08",
+       "return_0bp": -0.011179138579641368,
+       "return_10bp": -0.03175106595324606,
+       "sessions": 21,
+       "trades": 54
+      },
+      {
+       "active_sessions": 11,
+       "cumulative_10bp": -0.012077782528400416,
+       "month": "2026-09",
+       "return_0bp": -0.0031272996695764776,
+       "return_10bp": -0.014042105253322279,
+       "sessions": 11,
+       "trades": 30
+      }
+     ],
+     "quarter": [
+      {
+       "active_sessions": 26,
+       "cumulative_10bp": 0.0034968901433225508,
+       "quarter": "2024Q4",
+       "return_0bp": 0.029913801221748137,
+       "return_10bp": 0.0034968901433225508,
+       "sessions": 53,
+       "trades": 41
+      },
+      {
+       "active_sessions": 16,
+       "cumulative_10bp": 0.0689885749554251,
+       "quarter": "2025Q1",
+       "return_0bp": 0.08237027773235339,
+       "return_10bp": 0.06526346564237873,
+       "sessions": 60,
+       "trades": 21
+      },
+      {
+       "active_sessions": 30,
+       "cumulative_10bp": 0.001501863392028735,
+       "quarter": "2025Q2",
+       "return_0bp": -0.03454665080933983,
+       "return_10bp": -0.06313136842104272,
+       "sessions": 62,
+       "trades": 38
+      },
+      {
+       "active_sessions": 19,
+       "cumulative_10bp": 0.03220915130541635,
+       "quarter": "2025Q3",
+       "return_0bp": 0.050390444251848354,
+       "return_10bp": 0.030661238921097844,
+       "sessions": 64,
+       "trades": 34
+      },
+      {
+       "active_sessions": 18,
+       "cumulative_10bp": -0.041434949278800204,
+       "quarter": "2025Q4",
+       "return_0bp": -0.054415629999038706,
+       "return_10bp": -0.07134610315271883,
+       "sessions": 64,
+       "trades": 23
+      },
+      {
+       "active_sessions": 21,
+       "cumulative_10bp": -0.043083279904232774,
+       "quarter": "2026Q1",
+       "return_0bp": 0.01945961182396827,
+       "return_10bp": -0.0017195813932423532,
+       "sessions": 61,
+       "trades": 29
+      },
+      {
+       "active_sessions": 53,
+       "cumulative_10bp": 0.016153878275910305,
+       "quarter": "2026Q2",
+       "return_0bp": 0.11961635670690529,
+       "return_10bp": 0.061904193892875714,
+       "sessions": 62,
+       "trades": 142
+      },
+      {
+       "active_sessions": 54,
+       "cumulative_10bp": -0.012077782528401304,
+       "quarter": "2026Q3",
+       "return_0bp": 0.026167310561808765,
+       "return_10bp": -0.027782859867849674,
+       "sessions": 54,
+       "trades": 143
+      }
+     ]
+    }
+   },
+   "extremes": {
+    "largest_loser": {
+     "net_10bp": -0.09926485660343433,
+     "session": "2026-08-10",
+     "symbol": "BTDR"
+    },
+    "largest_winner": {
+     "net_10bp": 0.11939957939011567,
+     "session": "2026-06-24",
+     "symbol": "ABSI"
+    }
+   },
+   "improvement": {
+    "cumulative_10bp": false,
+    "paired_mean_delta": false,
+    "paired_p_delta_le_zero": false,
+    "pass": false
+   },
+   "paired_vs_r0": {
+    "ci_high": 0.00045909191905620344,
+    "ci_low": -0.0007903060935687821,
+    "mean": -0.00015604952479139178,
+    "method": "IID session bootstrap",
+    "p_mean_le_zero": 0.6881,
+    "replicates": 10000,
+    "seed": 20260921
+   },
+   "periods": {
+    "BROAD_COVERAGE": {
+     "active_sessions": 101,
+     "cumulative_10bp": 0.005551677546963729,
+     "first": "2026-04-20",
+     "last": "2026-09-16",
+     "mean_session_10bp": 0.00018691260672227267,
+     "paired_mean_delta_vs_r0": -0.0008449199372491869,
+     "profit_factor_10bp": 1.0838526978121752,
+     "sessions": 104,
+     "trades": 272
+    },
+    "FULL_DEVELOPMENT": {
+     "active_sessions": 237,
+     "cumulative_10bp": -0.012077782528399417,
+     "first": "2024-10-16",
+     "last": "2026-09-16",
+     "mean_session_10bp": 3.29340886402059e-05,
+     "paired_mean_delta_vs_r0": -0.00015604952479139178,
+     "profit_factor_10bp": 1.0732780988833004,
+     "sessions": 480,
+     "trades": 471
+    },
+    "LEGACY_NARROW": {
+     "active_sessions": 136,
+     "cumulative_10bp": -0.017532127357562044,
+     "first": "2024-10-16",
+     "last": "2026-04-17",
+     "mean_session_10bp": -9.655714233557436e-06,
+     "paired_mean_delta_vs_r0": 3.448909993097706e-05,
+     "profit_factor_10bp": 1.0504411987110287,
+     "sessions": 376,
+     "trades": 199
+    }
+   },
+   "selection_delta_vs_r0": {
+    "eligible_to_change": 101,
+    "entry_valid_changed": 97,
+    "ordering_only_changed": 39,
+    "selected_set_changed": 97,
+    "selected_set_changed_ratio_to_eligible": 0.9603960396039604,
+    "sessions_with_h5": 239,
+    "standard_pnl_changed": 97,
+    "symbols_added": 209,
+    "symbols_removed": 209,
+    "trade_set_changed": 97
+   }
+  },
+  "R3": {
+   "cagr": {
+    "COST_05BP": 0.15009910331871978,
+    "COST_10BP": 0.08078025228182106,
+    "COST_15BP": 0.015607825198401981,
+    "COST_20BP": -0.04566431323239928,
+    "GROSS_0BP": 0.22382591165697718
+   },
+   "calmar": {
+    "COST_05BP": 1.3050663799734992,
+    "COST_10BP": 0.5538906076874224,
+    "COST_15BP": 0.08739518066211587,
+    "COST_20BP": -0.2107444328244961,
+    "GROSS_0BP": 2.4633064394047173
+   },
+   "eligibility": {
+    "coverage": false,
+    "integrity": true,
+    "mdd_10bp": true,
+    "mean_session_10bp": true,
+    "pass": false,
+    "profit_factor_10bp": true,
+    "top1_share_10bp": true
+   },
+   "evaluation": {
+    "break_even": {
+     "definition": "mean gross trade return expressed in round-trip bp; diagnostic only",
+     "mean_gross_trade_return_bp": 23.486671466287657
+    },
+    "buckets": {
+     "liquidity": [
+      {
+       "bucket": "5e+06-2e+07",
+       "gross_mean": 0.007073879224264271,
+       "net_10bp_mean": 0.006073879224264271,
+       "profit_factor_10bp": 2.078738234806773,
+       "trades": 34,
+       "win_rate_10bp": 0.5
+      },
+      {
+       "bucket": "2e+07-1e+08",
+       "gross_mean": 0.00023123393588442179,
+       "net_10bp_mean": -0.000768766064115578,
+       "profit_factor_10bp": 0.9147703213379388,
+       "trades": 96,
+       "win_rate_10bp": 0.4166666666666667
+      },
+      {
+       "bucket": "1e+08-5e+08",
+       "gross_mean": 0.0033154491472678657,
+       "net_10bp_mean": 0.0023154491472678665,
+       "profit_factor_10bp": 1.3845874213584533,
+       "trades": 103,
+       "win_rate_10bp": 0.5339805825242718
+      },
+      {
+       "bucket": "5e+08+",
+       "gross_mean": 0.002025497071880849,
+       "net_10bp_mean": 0.001025497071880849,
+       "profit_factor_10bp": 1.204612283891353,
+       "trades": 236,
+       "win_rate_10bp": 0.5169491525423728
+      },
+      {
+       "bucket": "outside declared buckets",
+       "gross_mean": 0.021654636313159357,
+       "net_10bp_mean": 0.020654636313159357,
+       "profit_factor_10bp": null,
+       "trades": 1,
+       "win_rate_10bp": 1.0
+      }
+     ],
+     "liquidity_basis": "previous-day dollar volume; Research-reported bucket edges",
+     "price": [
+      {
+       "bucket": "5-10",
+       "gross_mean": 0.007703379239838856,
+       "net_10bp_mean": 0.006703379239838855,
+       "profit_factor_10bp": 1.865098978231294,
+       "trades": 29,
+       "win_rate_10bp": 0.4827586206896552
+      },
+      {
+       "bucket": "10-20",
+       "gross_mean": 0.00858634850044473,
+       "net_10bp_mean": 0.007586348500444728,
+       "profit_factor_10bp": 2.3030126738081003,
+       "trades": 48,
+       "win_rate_10bp": 0.4791666666666667
+      },
+      {
+       "bucket": "20-50",
+       "gross_mean": 0.001930382692903624,
+       "net_10bp_mean": 0.0009303826929036241,
+       "profit_factor_10bp": 1.1413194384991923,
+       "trades": 113,
+       "win_rate_10bp": 0.5132743362831859
+      },
+      {
+       "bucket": "50-100",
+       "gross_mean": 0.0030604103604762356,
+       "net_10bp_mean": 0.002060410360476236,
+       "profit_factor_10bp": 1.46795028804358,
+       "trades": 91,
+       "win_rate_10bp": 0.5494505494505495
+      },
+      {
+       "bucket": "100-200",
+       "gross_mean": 1.406322693458304e-06,
+       "net_10bp_mean": -0.0009985936773065415,
+       "profit_factor_10bp": 0.8771056182688326,
+       "trades": 77,
+       "win_rate_10bp": 0.5064935064935064
+      },
+      {
+       "bucket": "200+",
+       "gross_mean": -0.0002536432233035481,
+       "net_10bp_mean": -0.001253643223303548,
+       "profit_factor_10bp": 0.7603208436011919,
+       "trades": 112,
+       "win_rate_10bp": 0.45535714285714285
+      }
+     ],
+     "price_basis": "previous-session close (D-1), the Research close_price"
+    },
+    "concentration": {
+     "basis": "per-symbol sum of normalized_weight x trade return (session contributions)",
+     "cost_10bp": {
+      "hhi_trade_count": 0.010013580805794476,
+      "share_of_total_note": "null when the total contribution is not positive",
+      "top1": {
+       "contribution": 0.057943785961579106,
+       "share_of_total": 0.33361280933157905,
+       "symbols": [
+        "HIMS"
+       ]
+      },
+      "top10": {
+       "contribution": 0.33952468065351676,
+       "share_of_total": 1.9548219135237894,
+       "symbols": [
+        "HIMS",
+        "SOFI",
+        "ABSI",
+        "UBER",
+        "INTC",
+        "FLNC",
+        "FVRR",
+        "MAN",
+        "BHVN",
+        "BLMN"
+       ]
+      },
+      "top5": {
+       "contribution": 0.20956558560729543,
+       "share_of_total": 1.2065791455191623,
+       "symbols": [
+        "HIMS",
+        "SOFI",
+        "ABSI",
+        "UBER",
+        "INTC"
+       ]
+      },
+      "total_contribution": 0.17368573490230874,
+      "trades": 470,
+      "trades_per_symbol": {
+       "max": 18,
+       "mean": 1.8007662835249043,
+       "median": 1.0
+      },
+      "unique_symbols": 261
+     },
+     "gate": "NONE; DIAGNOSTIC ONLY",
+     "gross": {
+      "hhi_trade_count": 0.010013580805794476,
+      "share_of_total_note": "null when the total contribution is not positive",
+      "top1": {
+       "contribution": 0.06261045262824577,
+       "share_of_total": 0.15245343898574695,
+       "symbols": [
+        "HIMS"
+       ]
+      },
+      "top10": {
+       "contribution": 0.3702743814652092,
+       "share_of_total": 0.9016002992002818,
+       "symbols": [
+        "HIMS",
+        "SOFI",
+        "UBER",
+        "ABSI",
+        "INTC",
+        "UNH",
+        "FLNC",
+        "FVRR",
+        "MAN",
+        "BLMN"
+       ]
+      },
+      "top5": {
+       "contribution": 0.22539891894062875,
+       "share_of_total": 0.5488355201678606,
+       "symbols": [
+        "HIMS",
+        "SOFI",
+        "UBER",
+        "ABSI",
+        "INTC"
+       ]
+      },
+      "total_contribution": 0.41068573490230875,
+      "trades": 470,
+      "trades_per_symbol": {
+       "max": 18,
+       "mean": 1.8007662835249043,
+       "median": 1.0
+      },
+      "unique_symbols": 261
+     }
+    },
+    "funnel": {
+     "H5_candidates": {
+      "count": 1738,
+      "pct_of_h5_candidates": 1.0,
+      "pct_of_previous": 0.02443791391892462
+     },
+     "capacity_skipped": {
+      "count": 1237,
+      "pct_of_h5_candidates": 0.7117376294591484,
+      "pct_of_previous": 0.7117376294591484
+     },
+     "eligible_universe_rows": {
+      "count": 71119
+     },
+     "invalid_entries": {
+      "count": 4,
+      "pct_of_h5_candidates": 0.0023014959723820483,
+      "pct_of_previous": 0.007984031936127744,
+      "reasons": {
+       "NO_TRADE_MISSING_ENTRY_BAR": 2,
+       "NO_TRADE_SHORTENED_SESSION": 2
+      }
+     },
+     "selected_candidates": {
+      "count": 501,
+      "pct_of_h5_candidates": 0.2882623705408516,
+      "pct_of_previous": 0.2882623705408516
+     },
+     "standard_pnl_coverage": 0.9456740442655935,
+     "standard_pnl_trades": {
+      "count": 470,
+      "pct_of_h5_candidates": 0.27042577675489066,
+      "pct_of_previous": 0.9456740442655935
+     },
+     "unresolved_exits": {
+      "count": 27,
+      "pct_of_h5_candidates": 0.015535097813578827,
+      "pct_of_previous": 0.05432595573440644,
+      "reasons": {
+       "NO_TRADE_MISSING_EXIT_BAR": 27
+      }
+     },
+     "valid_entries": {
+      "count": 497,
+      "pct_of_h5_candidates": 0.2859608745684695,
+      "pct_of_previous": 0.9920159680638723
+     },
+     "valid_exact_exits": {
+      "count": 470,
+      "pct_of_h5_candidates": 0.27042577675489066,
+      "pct_of_previous": 0.9456740442655935
+     }
+    },
+    "implementation_delta": {
+     "counts": {
+      "active_sessions": 237,
+      "h5_candidates": 1738,
+      "selected": 501,
+      "standard_trades": 470
+     },
+     "research_reference": {
+      "matched_h5_lift_bp": 17.01,
+      "note": "observational matched-control lift, not a raw return and not a target",
+      "source": "E1_H5_CONFIRMATION.md section F, development, session-demeaned matched lift"
+     },
+     "steps_bp": {
+      "active_session_gross": 17.328512021194463,
+      "active_session_net_10bp": 7.328512021194461,
+      "all_h5_candidates_R_5m": 16.453114329005025,
+      "selected_candidates_R_5m": 21.732508430330615,
+      "standard_trades_R_5m": 23.48667146628769,
+      "standard_trades_R_5m_strict": 23.48667146628769,
+      "standard_trades_trading_gross": 23.486671466287657
+     },
+     "trading_gross_equals_research_strict_label": {
+      "max_abs_difference": 2.671474153004283e-16,
+      "note": "exact 09:30 open to exact 09:34 close is R_5m_strict by construction; any difference would mean the two code paths read different bars",
+      "trades_compared": 470
+     }
+    },
+    "primary_gate": {
+     "all_session_mean": 0.0003618452810464765,
+     "blocks": [
+      {
+       "active_sessions": 44,
+       "block": 1,
+       "first": "2024-10-16",
+       "last": "2025-04-09",
+       "mean": 0.0005335222546929662,
+       "positive": true,
+       "sessions": 120,
+       "trades": 66
+      },
+      {
+       "active_sessions": 48,
+       "block": 2,
+       "first": "2025-04-10",
+       "last": "2025-10-01",
+       "mean": -0.00027685357668836327,
+       "positive": false,
+       "sessions": 120,
+       "trades": 70
+      },
+      {
+       "active_sessions": 37,
+       "block": 3,
+       "first": "2025-10-02",
+       "last": "2026-03-25",
+       "mean": -0.00043127118599602386,
+       "positive": false,
+       "sessions": 120,
+       "trades": 48
+      },
+      {
+       "active_sessions": 108,
+       "block": 4,
+       "first": "2026-03-26",
+       "last": "2026-09-16",
+       "mean": 0.0016219836321773272,
+       "positive": true,
+       "sessions": 120,
+       "trades": 286
+      }
+     ],
+     "bootstrap": {
+      "ci_high": 0.0012904027734646133,
+      "ci_low": -0.000561568244645174,
+      "mean": 0.0003618452810464765,
+      "method": "IID session bootstrap",
+      "p_mean_le_zero": 0.2181,
+      "replicates": 10000,
+      "seed": 20260921
+     },
+     "gates": {
+      "chronological_robustness": false,
+      "data_quality": false,
+      "integrity": true,
+      "net_economics": true,
+      "statistical_support": false
+     },
+     "positive_blocks": 2,
+     "profit_factor": 1.2216121304316225,
+     "scenario": "COST_10BP",
+     "verdict": "E-D6 INCONCLUSIVE — DATA QUALITY"
+    },
+    "scenarios": {
+     "COST_05BP": {
+      "active_session_mean": 0.001232851202119446,
+      "active_sessions": 237,
+      "all_session_mean": 0.0006087202810464764,
+      "cumulative_return": 0.3052275100502253,
+      "maximum_drawdown": -0.11501261975790666,
+      "mean": 0.001848667146628765,
+      "median": 0.00046102898774144554,
+      "profit_factor": 1.3166599939350454,
+      "role": "SENSITIVITY",
+      "round_trip_cost_bp": 5,
+      "sessions": 480,
+      "sharpe": 0.9321236654703772,
+      "sortino": 1.398085461240223,
+      "trades": 470,
+      "win_rate": 0.5127659574468085
+     },
+     "COST_10BP": {
+      "active_session_mean": 0.0007328512021194461,
+      "active_sessions": 237,
+      "all_session_mean": 0.0003618452810464765,
+      "cumulative_return": 0.15947587228729443,
+      "maximum_drawdown": -0.14584152747975077,
+      "mean": 0.0013486671466287656,
+      "median": -3.897101225855444e-05,
+      "profit_factor": 1.2216121304316225,
+      "role": "PRIMARY",
+      "round_trip_cost_bp": 10,
+      "sessions": 480,
+      "sharpe": 0.5547236416138326,
+      "sortino": 0.8113903429213003,
+      "trades": 470,
+      "win_rate": 0.5
+     },
+     "COST_15BP": {
+      "active_session_mean": 0.00023285120211944622,
+      "active_sessions": 237,
+      "all_session_mean": 0.00011497028104647654,
+      "cumulative_return": 0.029938995676269675,
+      "maximum_drawdown": -0.17858908328989442,
+      "mean": 0.000848667146628765,
+      "median": -0.0005389710122585545,
+      "profit_factor": 1.1338315045902103,
+      "role": "SENSITIVITY",
+      "round_trip_cost_bp": 15,
+      "sessions": 480,
+      "sharpe": 0.17635364049744198,
+      "sortino": 0.25168935084944283,
+      "trades": 470,
+      "win_rate": 0.4787234042553192
+     },
+     "COST_20BP": {
+      "active_session_mean": -0.0002671487978805539,
+      "active_sessions": 237,
+      "all_session_mean": -0.00013190471895352355,
+      "cumulative_return": -0.08518020990360475,
+      "maximum_drawdown": -0.2166809942278648,
+      "mean": 0.0003486671466287651,
+      "median": -0.0010389710122585545,
+      "profit_factor": 1.052794683811608,
+      "role": "SENSITIVITY",
+      "round_trip_cost_bp": 20,
+      "sessions": 480,
+      "sharpe": -0.20232542461266534,
+      "sortino": -0.2818979450049676,
+      "trades": 470,
+      "win_rate": 0.4702127659574468
+     },
+     "GROSS_0BP": {
+      "active_session_mean": 0.0017328512021194463,
+      "active_sessions": 237,
+      "all_session_mean": 0.0008555952810464765,
+      "cumulative_return": 0.46921392690786856,
+      "maximum_drawdown": -0.09086401434937463,
+      "mean": 0.0023486671466287656,
+      "median": 0.0009610289877414455,
+      "profit_factor": 1.41949540752755,
+      "role": "DIAGNOSTIC_GROSS",
+      "round_trip_cost_bp": 0,
+      "sessions": 480,
+      "sharpe": 1.307901248655831,
+      "sortino": 2.0126787980348646,
+      "trades": 470,
+      "win_rate": 0.5297872340425532
+     }
+    },
+    "stability": {
+     "month": [
+      {
+       "active_sessions": 4,
+       "cumulative_10bp": -0.006809502135696199,
+       "month": "2024-10",
+       "return_0bp": -0.0028238352000145017,
+       "return_10bp": -0.006809502135696199,
+       "sessions": 12,
+       "trades": 4
+      },
+      {
+       "active_sessions": 12,
+       "cumulative_10bp": -0.007954546901959736,
+       "month": "2024-11",
+       "return_0bp": 0.010900925260783456,
+       "return_10bp": -0.0011528954100202826,
+       "sessions": 20,
+       "trades": 20
+      },
+      {
+       "active_sessions": 10,
+       "cumulative_10bp": 0.003496890143322995,
+       "month": "2024-12",
+       "return_0bp": 0.021692945464524716,
+       "return_10bp": 0.011543258435912751,
+       "sessions": 21,
+       "trades": 17
+      },
+      {
+       "active_sessions": 9,
+       "cumulative_10bp": 0.006532810011532497,
+       "month": "2025-01",
+       "return_0bp": 0.012086769313424117,
+       "return_10bp": 0.0030253405845392933,
+       "sessions": 20,
+       "trades": 13
+      },
+      {
+       "active_sessions": 5,
+       "cumulative_10bp": 0.055078484727619115,
+       "month": "2025-02",
+       "return_0bp": 0.05343381389977275,
+       "return_10bp": 0.04823059341257885,
+       "sessions": 19,
+       "trades": 6
+      },
+      {
+       "active_sessions": 2,
+       "cumulative_10bp": 0.06898857495542554,
+       "month": "2025-03",
+       "return_0bp": 0.015198239178283002,
+       "return_10bp": 0.013183938853039479,
+       "sessions": 21,
+       "trades": 2
+      },
+      {
+       "active_sessions": 7,
+       "cumulative_10bp": 0.07505506717691368,
+       "month": "2025-04",
+       "return_0bp": 0.012730475469859392,
+       "return_10bp": 0.005674983216486851,
+       "sessions": 21,
+       "trades": 10
+      },
+      {
+       "active_sessions": 10,
+       "cumulative_10bp": -0.0031083126992682564,
+       "month": "2025-05",
+       "return_0bp": -0.06331989860943099,
+       "return_10bp": -0.07270639640947729,
+       "sessions": 21,
+       "trades": 14
+      },
+      {
+       "active_sessions": 13,
+       "cumulative_10bp": 0.008323074066786118,
+       "month": "2025-06",
+       "return_0bp": 0.02468673625502893,
+       "return_10bp": 0.0114670298806554,
+       "sessions": 20,
+       "trades": 14
+      },
+      {
+       "active_sessions": 5,
+       "cumulative_10bp": 0.023868526907226517,
+       "month": "2025-07",
+       "return_0bp": 0.020489515843482353,
+       "return_10bp": 0.015417134884895711,
+       "sessions": 22,
+       "trades": 7
+      },
+      {
+       "active_sessions": 2,
+       "cumulative_10bp": 0.035355104987782715,
+       "month": "2025-08",
+       "return_0bp": 0.01323099670316319,
+       "return_10bp": 0.011218801807741263,
+       "sessions": 21,
+       "trades": 3
+      },
+      {
+       "active_sessions": 12,
+       "cumulative_10bp": 0.03923950875040405,
+       "month": "2025-09",
+       "return_0bp": 0.015859737005325503,
+       "return_10bp": 0.0037517598975542743,
+       "sessions": 21,
+       "trades": 24
+      },
+      {
+       "active_sessions": 11,
+       "cumulative_10bp": -0.046000702374054625,
+       "month": "2025-10",
+       "return_0bp": -0.07179251077508664,
+       "return_10bp": -0.0820217191578414,
+       "sessions": 23,
+       "trades": 15
+      },
+      {
+       "active_sessions": 5,
+       "cumulative_10bp": -0.05620200169841394,
+       "month": "2025-11",
+       "return_0bp": -0.005725839164075652,
+       "return_10bp": -0.010693193747359664,
+       "sessions": 19,
+       "trades": 6
+      },
+      {
+       "active_sessions": 2,
+       "cumulative_10bp": -0.03490618044128313,
+       "month": "2025-12",
+       "return_0bp": 0.024587524658851834,
+       "return_10bp": 0.022563961033456037,
+       "sessions": 22,
+       "trades": 2
+      },
+      {
+       "active_sessions": 7,
+       "cumulative_10bp": -0.02660760879778179,
+       "month": "2026-01",
+       "return_0bp": 0.01567192884236679,
+       "return_10bp": 0.008598720119558756,
+       "sessions": 20,
+       "trades": 8
+      },
+      {
+       "active_sessions": 7,
+       "cumulative_10bp": -0.06753889117485656,
+       "month": "2026-02",
+       "return_0bp": -0.03528180114101698,
+       "return_10bp": -0.04205013594417084,
+       "sessions": 19,
+       "trades": 10
+      },
+      {
+       "active_sessions": 7,
+       "cumulative_10bp": -0.036565737816129595,
+       "month": "2026-03",
+       "return_0bp": 0.04043775664902016,
+       "return_10bp": 0.03321656320632149,
+       "sessions": 22,
+       "trades": 11
+      },
+      {
+       "active_sessions": 12,
+       "cumulative_10bp": 0.02204246247387487,
+       "month": "2026-04",
+       "return_0bp": 0.07357083076054294,
+       "return_10bp": 0.06083258878208664,
+       "sessions": 21,
+       "trades": 28
+      },
+      {
+       "active_sessions": 20,
+       "cumulative_10bp": 0.004486708295827313,
+       "month": "2026-05",
+       "return_0bp": 0.0026869046777153738,
+       "return_10bp": -0.017177127979157936,
+       "sessions": 20,
+       "trades": 56
+      },
+      {
+       "active_sessions": 21,
+       "cumulative_10bp": 0.13024323000540794,
+       "month": "2026-06",
+       "return_0bp": 0.148931161467182,
+       "return_10bp": 0.12519480912090342,
+       "sessions": 21,
+       "trades": 58
+      },
+      {
+       "active_sessions": 22,
+       "cumulative_10bp": 0.17864888377011012,
+       "month": "2026-07",
+       "return_0bp": 0.06597108340773494,
+       "return_10bp": 0.0428276431830259,
+       "sessions": 22,
+       "trades": 59
+      },
+      {
+       "active_sessions": 21,
+       "cumulative_10bp": 0.18089218217759262,
+       "month": "2026-08",
+       "return_0bp": 0.023153956948100518,
+       "return_10bp": 0.001903279626674692,
+       "sessions": 21,
+       "trades": 57
+      },
+      {
+       "active_sessions": 11,
+       "cumulative_10bp": 0.15947587228729398,
+       "month": "2026-09",
+       "return_0bp": -0.007262393425850666,
+       "return_10bp": -0.018135702999410586,
+       "sessions": 11,
+       "trades": 26
+      }
+     ],
+     "quarter": [
+      {
+       "active_sessions": 26,
+       "cumulative_10bp": 0.0034968901433225508,
+       "quarter": "2024Q4",
+       "return_0bp": 0.029913801221748137,
+       "return_10bp": 0.0034968901433225508,
+       "sessions": 53,
+       "trades": 41
+      },
+      {
+       "active_sessions": 16,
+       "cumulative_10bp": 0.0689885749554251,
+       "quarter": "2025Q1",
+       "return_0bp": 0.08237027773235339,
+       "return_10bp": 0.06526346564237873,
+       "sessions": 60,
+       "trades": 21
+      },
+      {
+       "active_sessions": 30,
+       "cumulative_10bp": 0.008323074066785674,
+       "quarter": "2025Q2",
+       "return_0bp": -0.027977566837755874,
+       "return_10bp": -0.05675037349315837,
+       "sessions": 62,
+       "trades": 38
+      },
+      {
+       "active_sessions": 19,
+       "cumulative_10bp": 0.03923950875040316,
+       "quarter": "2025Q3",
+       "return_0bp": 0.050390444251848354,
+       "return_10bp": 0.030661238921097844,
+       "sessions": 64,
+       "trades": 34
+      },
+      {
+       "active_sessions": 18,
+       "cumulative_10bp": -0.03490618044128391,
+       "quarter": "2025Q4",
+       "return_0bp": -0.054415629999038706,
+       "return_10bp": -0.07134610315271883,
+       "sessions": 64,
+       "trades": 23
+      },
+      {
+       "active_sessions": 21,
+       "cumulative_10bp": -0.03656573781613026,
+       "quarter": "2026Q1",
+       "return_0bp": 0.01945961182396827,
+       "return_10bp": -0.0017195813932423532,
+       "sessions": 61,
+       "trades": 29
+      },
+      {
+       "active_sessions": 53,
+       "cumulative_10bp": 0.13024323000540705,
+       "quarter": "2026Q2",
+       "return_0bp": 0.2367731682101688,
+       "return_10bp": 0.17313995813624294,
+       "sessions": 62,
+       "trades": 142
+      },
+      {
+       "active_sessions": 54,
+       "cumulative_10bp": 0.15947587228729354,
+       "quarter": "2026Q3",
+       "return_0bp": 0.08273178420273264,
+       "return_10bp": 0.025864027764843645,
+       "sessions": 54,
+       "trades": 142
+      }
+     ]
+    }
+   },
+   "extremes": {
+    "largest_loser": {
+     "net_10bp": -0.07763333333333333,
+     "session": "2026-05-11",
+     "symbol": "INBX"
+    },
+    "largest_winner": {
+     "net_10bp": 0.11939957939011567,
+     "session": "2026-06-24",
+     "symbol": "ABSI"
+    }
+   },
+   "improvement": {
+    "cumulative_10bp": true,
+    "paired_mean_delta": true,
+    "paired_p_delta_le_zero": false,
+    "pass": false
+   },
+   "paired_vs_r0": {
+    "ci_high": 0.0008437972480369218,
+    "ci_low": -0.0005067109714611938,
+    "mean": 0.00017286166761487903,
+    "method": "IID session bootstrap",
+    "p_mean_le_zero": 0.3051,
+    "replicates": 10000,
+    "seed": 20260921
+   },
+   "periods": {
+    "BROAD_COVERAGE": {
+     "active_sessions": 101,
+     "cumulative_10bp": 0.17218298860434578,
+     "first": "2026-04-20",
+     "last": "2026-09-16",
+     "mean_session_10bp": 0.0016397901204952552,
+     "paired_mean_delta_vs_r0": 0.0006079575765237966,
+     "profit_factor_10bp": 1.3062915791325607,
+     "sessions": 104,
+     "trades": 271
+    },
+    "FULL_DEVELOPMENT": {
+     "active_sessions": 237,
+     "cumulative_10bp": 0.15947587228729443,
+     "first": "2024-10-16",
+     "last": "2026-09-16",
+     "mean_session_10bp": 0.0003618452810464765,
+     "paired_mean_delta_vs_r0": 0.00017286166761487903,
+     "profit_factor_10bp": 1.2216121304316225,
+     "sessions": 480,
+     "trades": 470
+    },
+    "LEGACY_NARROW": {
+     "active_sessions": 136,
+     "cumulative_10bp": -0.010840556841881566,
+     "first": "2024-10-16",
+     "last": "2026-04-17",
+     "mean_session_10bp": 8.37117651809072e-06,
+     "paired_mean_delta_vs_r0": 5.2515990682625264e-05,
+     "profit_factor_10bp": 1.0706403117652656,
+     "sessions": 376,
+     "trades": 199
+    }
+   },
+   "selection_delta_vs_r0": {
+    "eligible_to_change": 101,
+    "entry_valid_changed": 101,
+    "ordering_only_changed": 33,
+    "selected_set_changed": 101,
+    "selected_set_changed_ratio_to_eligible": 1.0,
+    "sessions_with_h5": 239,
+    "standard_pnl_changed": 101,
+    "symbols_added": 213,
+    "symbols_removed": 213,
+    "trade_set_changed": 101
+   }
+  }
+ },
+ "version": "STRATEGY_E_MAX_M1_RESULT_V1",
+ "winner": {
+  "label": "E-MAX-M1 PASS — R1 SELECTED",
+  "pool": [
+   "R1"
+  ],
+  "winner": "R1"
+ }
+}

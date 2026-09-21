@@ -139,3 +139,80 @@ def test_checksum_file() -> None:
     assert recorded["canonical_sha256"] == m1.RULES_CANONICAL_SHA256
     body = (DOCS / "strategy_e_max_m1_rules_v1.json").read_bytes()
     assert recorded["file_sha256"] == hashlib.sha256(body).hexdigest()
+
+
+# -- committed M1 result (phase B) ---------------------------------------------------------------
+
+RESULT = DOCS / "strategy_e_max_m1_result_v1.json"
+
+
+@pytest.fixture(scope="module")
+def result():
+    return json.loads(RESULT.read_text(encoding="utf-8"))
+
+
+def test_result_checksum_and_repeat_identity(result) -> None:
+    recorded = json.loads((DOCS / "strategy_e_max_m1_result_v1.sha256").read_text("utf-8"))
+    assert recorded["file_sha256"] == hashlib.sha256(RESULT.read_bytes()).hexdigest()
+    check = recorded["repeat_check"]
+    assert check["identical"] and check["artifacts_identical"]
+    assert check["this_result_digest"] == recorded["file_sha256"] == check["first_result_digest"]
+
+
+def test_result_ran_after_the_protocol_commit(result) -> None:
+    assert result["identity"]["m1_rules"] == m1.RULES_CANONICAL_SHA256
+    assert result["identity"]["m0_rules"] == m0.RULES_CANONICAL_SHA256
+    assert result["prechecks"]["chain_ancestry"]["E-MAX-M1-PROTOCOL"]
+
+
+def test_r0_reproduced_e_r3_and_invariants_held(result, rules) -> None:
+    pre = result["prechecks"]
+    assert pre["r0_reproduces_e_r3"] == {"trades_csv": rules["upstream"]["e_r3_trades_csv_sha256"],
+                                         "daily_returns_csv": rules["upstream"]["e_r3_daily_returns_csv_sha256"]}
+    assert pre["subset_equivalence"] and pre["invariants"]["pass"] and pre["in_process_deterministic"]
+    assert pre["v1_reproduction"] == {"universe_rows": 70738, "h5_rows": 1729}
+    assert pre["pit_poison"]["verdict"] == "PASS"
+
+
+def test_universe_h5_and_capacity_identical_across_variants(result) -> None:
+    funnels = [v["evaluation"]["funnel"] for v in result["variants"].values()]
+    assert {f["eligible_universe_rows"]["count"] for f in funnels} == {71119}
+    assert {f["H5_candidates"]["count"] for f in funnels} == {1738}
+    assert {f["selected_candidates"]["count"] for f in funnels} == {501}
+    assert set(result["variants"]) == {"R0", "R1", "R2", "R3"}
+
+
+def test_paired_bootstrap_uses_the_frozen_configuration(result) -> None:
+    for name, v in result["variants"].items():
+        assert (v["paired_vs_r0"]["seed"], v["paired_vs_r0"]["replicates"]) == (20260921, 10_000)
+    assert result["variants"]["R0"]["paired_vs_r0"]["mean"] == 0.0
+
+
+def test_verdict_recomputes_from_the_stored_numbers(result, rules) -> None:
+    candidates = []
+    base_cum = result["variants"]["R0"]["evaluation"]["scenarios"]["COST_10BP"]["cumulative_return"]
+    for name in ("R1", "R2", "R3"):
+        v = result["variants"][name]
+        ev = v["evaluation"]
+        s = ev["scenarios"]["COST_10BP"]
+        summary = {"integrity": result["integrity"], "coverage": ev["funnel"]["standard_pnl_coverage"],
+                   "mean_10bp": s["all_session_mean"], "pf_10bp": s["profit_factor"],
+                   "mdd_10bp": s["maximum_drawdown"],
+                   "top1_share_10bp": ev["concentration"]["cost_10bp"]["top1"]["share_of_total"]}
+        e, i = m1.eligible(summary, rules), m1.improved(s["cumulative_return"], base_cum, v["paired_vs_r0"], rules)
+        assert e == v["eligibility"] and i == v["improvement"]
+        assert v["cagr"]["COST_10BP"] == m1.cagr(s["cumulative_return"])
+        candidates.append({"id": name, "eligible_pass": e["pass"], "improved_pass": i["pass"],
+                           "cagr_10bp": v["cagr"]["COST_10BP"], "mean_10bp": s["all_session_mean"]})
+    assert m1.winner(candidates, rules) == result["winner"]
+
+
+def test_frozen_base_and_m0_artifacts_unchanged() -> None:
+    import subprocess
+    for path in ("docs/backtest/strategy_e_candidate/strategy_e_v1_1_replay_result.json",
+                 "docs/backtest/strategy_e_candidate/strategy_e_trading_v1_1_rules.json",
+                 "docs/backtest/strategy_e_max/strategy_e_max_m0_rules_v1.json",
+                 "docs/backtest/strategy_e_max/strategy_e_max_m1_rules_v1.json"):
+        frozen = subprocess.run(["git", "-C", str(ROOT), "show", f"058217f:{path}"],
+                                capture_output=True, check=True).stdout
+        assert (ROOT / path).read_bytes() == frozen

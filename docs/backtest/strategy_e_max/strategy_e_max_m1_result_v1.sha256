@@ -1,0 +1,27 @@
+{
+ "file": "strategy_e_max_m1_result_v1.json",
+ "run_id": "em1-2c8a31f0577e",
+ "file_sha256": "eac7dfd78635216ee77a01948c1e831ffff041dbb9e0e75fcd0bfee0360a2bed",
+ "canonical_sha256": "c5af8975d697d69096595f6aa4371540291d2d2837ac621f5c5ccc3f37bd128c",
+ "recipe": "file_sha256 = sha256 of the runtime result.json bytes (the run's result digest)",
+ "runtime_artifacts": {
+  "R0_daily_returns.csv": "d0d3f82d0e610baf059e2df4b6d223f79e01de93cfb4c3eac13694c85a1db220",
+  "R0_trades.csv": "e4670ec3bd2da5f971e5190ee3546e2b387fe5b533fdfbc7bad1b03a09d36fac",
+  "R1_daily_returns.csv": "9d39d01bdccf0b9c7b1177ed9a39e0f9c647b724a0b964b3d091b8e54588e188",
+  "R1_trades.csv": "95d03874fbb27a111e731117575c2ae55405cad390379fee3f25d61d9a8602ae",
+  "R2_daily_returns.csv": "8729e8f5d318e3b10efdfc22a04351bd533719b6f1cd83798993931be7b2fcc9",
+  "R2_trades.csv": "7a4810eba8fb659429c093c7aa8de9c984a6c904324ec270e014e085bed152b2",
+  "R3_daily_returns.csv": "2611d2f133708204ba0fb12ca7829dc90a0f94313f43cb4af4c47359bc133df6",
+  "R3_trades.csv": "7848435d738ecceb036f0557f7f58da95cf18b1b21517d7dcd3faa255757bb6f",
+  "result.json": "eac7dfd78635216ee77a01948c1e831ffff041dbb9e0e75fcd0bfee0360a2bed"
+ },
+ "repeat_check": {
+  "artifacts_identical": true,
+  "attempt": "repeat-2",
+  "first_result_digest": "eac7dfd78635216ee77a01948c1e831ffff041dbb9e0e75fcd0bfee0360a2bed",
+  "identical": true,
+  "this_result_digest": "eac7dfd78635216ee77a01948c1e831ffff041dbb9e0e75fcd0bfee0360a2bed"
+ },
+ "protocol_commit": "058217f3263663859a1d1d17245359437c3cf40e",
+ "verdict": "E-MAX-M1 PASS — R1 SELECTED"
+}

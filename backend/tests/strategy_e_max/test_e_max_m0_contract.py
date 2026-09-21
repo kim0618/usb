@@ -123,7 +123,11 @@ def test_contract_loads_without_any_performance_entry_point(monkeypatch) -> None
                          (exits, "resolve_exit_batch"), (risk, "build_sizing_records")):
         monkeypatch.setattr(module, name, refuse)
     m0.load_rules()
-    assert not (ROOT / "data/runtime/strategy_e_max").exists()
+    # E-MAX runs may exist after M0, but only from a HEAD that already contained the M0 contract.
+    for manifest in (ROOT / "data/runtime/strategy_e_max").glob("**/run_manifest.json"):
+        head = json.loads(manifest.read_text(encoding="utf-8"))["git_head"]
+        assert subprocess.run(["git", "-C", str(ROOT), "merge-base", "--is-ancestor", "b05bbf6",
+                               head], capture_output=True).returncode == 0, manifest
 
 
 # 14 no unlimited grid ---------------------------------------------------------------------------
