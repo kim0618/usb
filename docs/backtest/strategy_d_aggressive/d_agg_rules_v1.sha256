@@ -1,0 +1,10 @@
+# Strategy D-AGGRESSIVE (MARKET_STRUCTURE_ANALOG_TAIL_V1) rules checksum, declared before any tail statistic was computed.
+# canonical: sha256 of json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False) UTF-8
+#            = app.backtest.strategy_c_selection.rules.canonical_checksum (existing US-B recipe, same as V1 and V2-A)
+# file:      sha256 of the file bytes (informational; the canonical value is the gate)
+# declared:  2026-09-21 KST, D0 pre-registration
+# scope:     SCREENING study. PASS authorizes a trading-rule/backtest design stage only.
+# note:      V2-A (MARKET_STRUCTURE_ANALOG_V2, canonical 2b060ceb34748c3d933d01aee2cf7669ea48bf72a95ae811eba978a3aa3fe229)
+#            keeps its official verdict SCREENING_FAIL and is untouched by this declaration.
+canonical  1d2b453aed74a7fc76384659b9389ba6b9c7b55e114f7b4a18184e441cc033a8  d_agg_rules_v1.json
+file       d4f169d99a8dac34cf77186f3506ce2bb3a56412669619c8996db78237d66cf0  d_agg_rules_v1.json

@@ -1,0 +1,7 @@
+# Strategy D-AGGRESSIVE D-AGG-3 trading / control contract checksum.
+# Recorded 2026-09-21T07:26:51Z, BEFORE the MDE noise estimator ran and before any trade return of this rule set existed.
+# canonical: sha256 of json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False) UTF-8
+#            = app.backtest.strategy_c_selection.rules.canonical_checksum
+# upstream:  d_agg_rules_v1.json canonical 1d2b453aed74a7fc76384659b9389ba6b9c7b55e114f7b4a18184e441cc033a8
+canonical  4b35d3446799f639543ab3be6bf31b5d582131a441308b997e542a2bf87e3871  d_agg_trading_rules_v1.json
+file       4534e0305b65241c6012942e28cdaa8f246b83da1ff78fd726b62d06372ea359  d_agg_trading_rules_v1.json

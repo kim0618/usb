@@ -1,0 +1,155 @@
+{
+  "contract_id": "D_AGG_TRADING_CONTROL_V1",
+  "strategy_id": "MARKET_STRUCTURE_ANALOG_TAIL_V1",
+  "phase": "D-AGG-3",
+  "schema_version": 1,
+  "declared_on": "2026-09-21",
+  "declared_before": "any trade return, control return, delta, profit factor, win rate, TP rate or SL rate of this rule set on any data; the MDE noise estimation runs after this file's checksum is recorded",
+  "upstream": {
+    "d_agg_rules_canonical": "1d2b453aed74a7fc76384659b9389ba6b9c7b55e114f7b4a18184e441cc033a8",
+    "d_agg_1_run": "dagg1-e90649a1e15a",
+    "d_agg_2_run": "dagg2-588ada9e677f",
+    "d_agg_2_verdict": "D_AGG_SCREEN_BORDERLINE (unchanged)",
+    "borderline_decision": "docs/backtest/strategy_d_aggressive/D_AGG_BORDERLINE_DECISION_V1.md, PROCEED_LIMITED, one-time",
+    "v2a_verdict": "SCREENING_FAIL (unchanged)"
+  },
+  "prior_exposure": [
+    "D-AGG-2 X-8: setup vs full-universe mean and median close_return_5 and excess_return_5 (time-exit, no TP/SL, not vs a volatility-matched control)",
+    "D-AGG-2 X-7: volatility-matched TL 1.079 / DL 1.026 (tail probabilities, not returns)",
+    "D-AGG-2 X-9: MFE/MAE deciles of setup and universe",
+    "none of these is a trade return of this rule set against this control"
+  ],
+
+  "sample": {
+    "signal": "V2-A D3 analog_signal_A, unchanged",
+    "setup": "D0 setup rule: per session, signal-OK queries by A(q) descending, sample_rank ascending, first ceil(1/10 x n_ok), selected before validity",
+    "sessions": "the 221 D-AGG-2 evaluable sessions (index 260..480)",
+    "min_valid_setup_trades_per_session": 20,
+    "session_drop": "a session with fewer than 20 valid setup trades, or with a setup decile that has no valid control row, is dropped from every statistic, counted"
+  },
+
+  "trading_rule": {
+    "id": "D_AGG_BRACKET_10_10_H5_V1",
+    "direction": "long",
+    "price_basis": "x(t)/F(t), F cumulative over splits executed <= t (D-AGG-1 excursion basis)",
+    "entry": "P0 = O(D+1)/F(D+1), the first price after the signal at D close; D is never an entry",
+    "entry_gap": "no TP/SL test at the entry print itself; the entry session's high and low are tested after entry",
+    "take_profit_level": "TP = 1.10 x P0 (D0 UP10 threshold)",
+    "stop_loss_level": "SL = 0.90 x P0 (D0 DN10 threshold)",
+    "comparison": "a level counts as touched when price/P0 - 1 >= +0.10 - 1e-12 (TP) or <= -0.10 + 1e-12 (SL), D-AGG-1 THRESHOLD_EPS",
+    "session_1": "intraday on D+1: if high touches TP and low touches SL -> exit at SL; else if low touches SL -> exit at SL; else if high touches TP -> exit at TP",
+    "sessions_2_to_5": "for k = 2..5 in order, if session D+k has a bar: if open touches SL -> exit at that open; else if open touches TP -> exit at that open; else intraday as in session_1; a session without a bar is skipped (no trading possible), never replaced by D+6",
+    "same_bar_ambiguity": "SL FIRST (conservative): a bar whose high touches TP and low touches SL exits at SL",
+    "gap_exit": "a gap through a level exits at the open price, not at the level (worse than SL on a gap down, better than TP on a gap up)",
+    "time_exit": "no level touched by the end of D+5 -> exit at C(D+5)/F(D+5)",
+    "max_holding": "sessions D+1..D+5",
+    "gross_return": "exit_price / P0 - 1",
+    "validity": "a trade exists only where the D-AGG-1 excursion is valid (bar on D+1 with open > 0, bar on session D+5, not label CA suspect); every other row is NO_TRADE and counted",
+    "missing_entry": "NO_TRADE (NO_ENTRY_BAR)",
+    "missing_middle_bar": "session skipped, trade continues (D-AGG-1 VALID_GAP)",
+    "missing_final_bar": "NO_TRADE (MISSING_HORIZON_BAR): a trade whose D+5 bar is absent is undecidable under this contract",
+    "delisting_or_halt": "indistinguishable inside the window; treated as missing_final_bar; no exit price is invented",
+    "ca_suspect": "NO_TRADE (LABEL_CA_SUSPECT)",
+    "symmetry": "the same rule, validity and cost apply to setup and control rows",
+    "known_bias": "NO_TRADE on a missing D+5 bar drops trades that may have ended in delisting losses; applies to both groups equally and is disclosed with counts"
+  },
+
+  "cost": {
+    "model": "STRATEGY_E_COST_RULES_V1 TOTAL_ROUND_TRIP_SUBTRACTION_V1 (existing US-B contract)",
+    "primary": "COST_10BP: net_return = gross_return - 0.0010 per trade (E-D6 primary scenario)",
+    "secondary": ["COST_20BP (2x): net_return = gross_return - 0.0020"],
+    "delta_note": "a flat per-trade cost cancels in Delta; it only moves the absolute net expectancy condition",
+    "limitation": "10 bp may understate friction for low-priced high-volatility names; no price or volatility multiplier without a new evidence-backed declaration (E contract rule)"
+  },
+
+  "control": {
+    "id": "D_AGG_RV20_DECILE_REWEIGHT_V1",
+    "type": "full enumeration, no random draw",
+    "population": "session D's as-of eligible universe (D-AGG-1 universe rows), before any future validity is known",
+    "matching_variable": "rv_20 of session D (V2-A structure coordinate: std_ddof1 of ln(P(t)/P(t-1)), t in D-19..D)",
+    "buckets": "10 deciles: edges = numpy.quantile(population rv_20, [0.1, 0.2, ..., 0.9]) with the default linear method; bucket = searchsorted(edges, rv_20, side='right') in 0..9",
+    "edge_population": "the whole as-of population, setup members included; validity is not consulted",
+    "setup_excluded": "rows whose ticker is in that session's setup are removed from the control after edges are built",
+    "weights": "w_j(t) = valid setup trades in bucket j / valid setup trades, session t",
+    "control_expectancy": "E_C(t) = sum_j w_j(t) x mean net_return of the valid non-setup control rows in bucket j",
+    "empty_bucket": "if w_j(t) > 0 and bucket j has no valid control row the session is dropped (counted); no neighbouring bucket is borrowed",
+    "secondary_random_control": "none"
+  },
+
+  "estimand": {
+    "session_setup": "E_S(t) = mean net_return of the valid setup trades of session t",
+    "session_delta": "Delta(t) = E_S(t) - E_C(t)",
+    "primary": "Mean Delta = equal-session mean of Delta(t) over the retained sessions",
+    "absolute": "Mean setup net expectancy = equal-session mean of E_S(t)",
+    "unit": "return per trade (0.001 = 0.10%)"
+  },
+
+  "statistics": {
+    "bootstrap": "moving block over retained sessions, non-circular, block 20, 10000 replicates, percentile, 95% two-sided",
+    "draws": "strategy_d_analog.resample.block_indices(T, horizon=5, block_length=20, replicates=10000, seed=2026092103)",
+    "time_blocks": "resample.block_partition(T, 4)",
+    "session_contribution": "Delta(t)",
+    "ticker_contribution": "c_i = sum over ticker i's valid setup trades of (net_return - E_C(t)) / n_S(t), ties by ticker column ascending",
+    "leave_out": "drop the 5 sessions with the largest Delta(t) and recompute Mean Delta; separately drop every row of the 10 tickers with the largest c_i from setup and control on every session and recompute (the 20-trade rule re-applied)"
+  },
+
+  "mde_gate": {
+    "purpose": "decide whether a backtest can detect a delta of practical size before it is built",
+    "noise_inputs_allowed": [
+      "number of retained sessions",
+      "valid setup trades per session",
+      "sd of per-trade setup net return (demeaned inside the estimator)",
+      "sd of the Delta(t) series (demeaned inside the estimator)",
+      "lag-1 autocorrelation of the demeaned Delta(t) series",
+      "bootstrap standard error of Mean Delta (spread of replicate means; location removed)"
+    ],
+    "forbidden_outputs": ["any mean or median return", "Mean Delta", "Mean setup or control expectancy", "profit factor", "win rate", "TP rate", "SL rate", "time-exit rate", "share positive", "the sign of any location statistic"],
+    "estimator_location": "scratchpad script outside the repository; prints only the allowed fields",
+    "se_used": "SE_block = standard deviation over the 10000 replicate means of Delta(t), draws from block_indices(T, horizon=5, block_length=20, replicates=10000, seed=2026092100)",
+    "formula": "MDE80 = (z_0.975 + z_0.80) x SE_block = (1.959964 + 0.841621) x SE_block",
+    "limit": "MDE80 <= 0.0050 per trade -> MDE_PASS; MDE80 > 0.0050 -> D_AGG_MDE_STOP (0.0050 exactly passes; the decision note stops only when MDE exceeds 0.50%)",
+    "on_stop": "D-AGG research CLOSED, backtester NOT BUILT, no rule or control change, no retry",
+    "on_pass": "backtester implementation authorized for this contract only"
+  },
+
+  "backtest_gate": {
+    "name": "GATE-D-AGG-BACKTEST",
+    "conditions": {
+      "P1_validity": "execution PIT audits pass with 0 violations; retained sessions >= 150 and dropped sessions <= 5; valid setup trades >= 5000; setup NO_TRADE share <= 0.02 and <= 2 x control NO_TRADE share",
+      "P2_absolute": "Mean setup net expectancy (COST_10BP) > 0",
+      "P3_delta_point": "Mean Delta > 0",
+      "P4_delta_interval": "95% bootstrap CI lower bound of Mean Delta > 0",
+      "P5_blocks": "Delta block mean > 0 in >= 3 of 4 blocks",
+      "P6_leave_out": "Mean Delta without the top 5 sessions > 0 and Mean Delta without the top 10 tickers > 0",
+      "P7_concentration": "largest single-ticker share of the sum of positive ticker contributions <= 0.05 (D0 H7 value)"
+    },
+    "verdict": {
+      "D_AGG_BACKTEST_PASS": "P1 through P7 all hold",
+      "D_AGG_BACKTEST_FAIL": "any of P2 through P7 fails, or P1 fails on a PIT violation or a sample condition",
+      "D_AGG_BACKTEST_INCONCLUSIVE_TECHNICAL": "only data corruption or an execution failure that prevents computing the statistics; never a statistical outcome"
+    },
+    "no_borderline": "the borderline decision was one-time; a statistically marginal result is FAIL",
+    "secondary_cannot_overturn": true
+  },
+
+  "secondary": {
+    "role": "descriptive only, reported in full, never a gate input",
+    "rules": {
+      "S1_time_exit_only": "same entry, no TP/SL, exit at C(D+5)",
+      "S2_same_bar_tp_first": "same rule with same-bar ambiguity resolved TP first",
+      "S3_cost_2x": "primary rule with COST_20BP"
+    },
+    "descriptives": ["profit factor", "win rate", "TP / SL / time-exit / gap exit shares", "setup and control expectancy per block", "trade count per session"],
+    "profit_factor_role": "reported, not a gate: the decision note declared no profit factor threshold"
+  },
+
+  "forbidden": ["TP other than +10%", "SL other than -10%", "holding other than 5 sessions", "Top 5% or Top 2% setup", "any volatility or price filter", "block, session, ticker or theme exclusion beyond the declared leave-out", "a second matching variable in the primary control", "changing cost after results", "grid search", "reading any location statistic before the MDE gate"],
+
+  "authorizations": {
+    "backtester": "only after MDE_PASS and only for this contract",
+    "virtual_trading": "NOT AUTHORIZED before D_AGG_BACKTEST_PASS",
+    "long_data_purchase": "NOT AUTHORIZED"
+  },
+
+  "checksum_recipe": "sha256 of json.dumps(payload, sort_keys=True, separators=(',', ':'), ensure_ascii=False), app.backtest.strategy_c_selection.rules.canonical_checksum; recorded in d_agg_trading_rules_v1.sha256"
+}

@@ -1,0 +1,249 @@
+{
+  "strategy_id": "MARKET_STRUCTURE_ANALOG_TAIL_V1",
+  "strategy_alias": "D-AGGRESSIVE",
+  "research_family": "HISTORICAL_ANALOG_TAIL_CAPTURE",
+  "rule_id": "d-agg-rules-v1",
+  "schema_version": 1,
+  "phase": "D0",
+  "study_class": "SCREENING",
+  "study_purpose": "decide whether the frozen V2-A analog signal A(q) enriches large upside moves with an asymmetric payoff strongly enough to justify building a trading rule and a historical backtest; not an alpha approval, not a trading approval, not a long-data purchase trigger",
+  "declared_on": "2026-09-21",
+  "declared_before_results": true,
+  "declared_before_results_scope": "no tail rate, tail lift, top-decile statistic or MFE/MAE threshold count of any group has been computed on this data for this study; the prior exposures listed under prior_exposure were visible at declaration time and are disclosed, not hidden",
+  "threshold_status": "RESEARCH_SCREENING_NOT_OPTIMIZED",
+  "ai_enabled": false,
+  "units": "returns and excursions are fractions (0.10 = 10%); session offsets are XNYS session-grid indices",
+  "change_policy": "any edit changes the canonical checksum and makes this a different study; new values go to d_agg_rules_v2.json with a new declaration",
+
+  "relation_to_v2a": {
+    "v2a_strategy_id": "MARKET_STRUCTURE_ANALOG_V2",
+    "v2a_rules_canonical": "2b060ceb34748c3d933d01aee2cf7669ea48bf72a95ae811eba978a3aa3fe229",
+    "v2a_official_verdict": "SCREENING_FAIL (S6, S7), unchanged",
+    "v2a_modification_policy": "V2-A rules, results, artifacts, code and documents are not modified by this study; this study cannot reclassify V2-A",
+    "v2a_question": "does A(q) rank excess_return_5 better than the equal-weight composite B0 (mean-direction, IC delta)",
+    "this_question": "does the top decile of A(q) contain more large upside excursions than the same-date universe, without a matching increase in large downside excursions",
+    "hypothesis_status": "a different primary hypothesis, metric, comparator and gate on the same frozen signal; not a re-test of V2-A's hypothesis"
+  },
+
+  "prior_exposure": {
+    "policy": "everything below was visible before this declaration; none of it is a tail-rate or a top-decile statistic, and no threshold below was chosen by comparing candidate values on it",
+    "items": [
+      "V2-A D4 S-12: within-date mean MFE_5 by A(q) quintile Q1..Q5 = 0.0683, 0.0475, 0.0454, 0.0470, 0.0591 and mean MAE_5 = -0.0605, -0.0435, -0.0405, -0.0421, -0.0524 (arithmetic means, not tail probabilities, top quintile not top decile)",
+      "V2-A D4: mean IC(A) +0.017156 against excess_return_5, Q5-Q1 excess_return_5 +0.002089, 138 label-invalid queries of 66,300",
+      "Strategy C prevalidation GATE-C2: a different selection signal showed MFE lift 1.36 with no 10-day close excess, i.e. the lift was volatility",
+      "Strategy C V2B: classified as VOLATILITY (log-symmetric, clustered true range)"
+    ],
+    "consequence": "the known quintile pattern is U-shaped in both MFE and MAE and the top quintile's mean MFE/|MAE| ratio (1.128) is close to the pooled ratio (1.118); this raises the prior that any tail lift of the top decile is volatility, which is exactly what the asymmetry conditions H5, H6 and T4 are built to reject",
+    "forbidden_uses": [
+      "switching the setup to the bottom decile or to both tails because Q1 shows the largest mean MFE",
+      "re-choosing the tail threshold, the setup quantile, the horizon or the comparator after the D-AGG-1 base rate is computed"
+    ]
+  },
+
+  "data": {
+    "dataset": "USB-HIST-V1 / STRATEGY_C_RAW_FREEZE_V1",
+    "status": "FROZEN",
+    "new_collection": "forbidden",
+    "range": "2024-09-17..2026-09-16",
+    "grid_count": 501,
+    "freeze_digest": "9ebd6c29c66728ac8c7f295b5836e7fa8489c24165cc2007d290da2e1c9aeafe",
+    "source_digest": "adc4f1919dd835772262e2820d48c9a04904d5d1c953d8a97386728e08132c02",
+    "grid_digest": "830744f64a2d6b8378609ad796313b03575fefb146068f2def602867e80166c9",
+    "price_basis": "identical to V2-A: O, H, L, P are raw values divided by F(t), splits executed <= t",
+    "data_status": "DEVELOPMENT / SCREENING DATA permanently; this is the fourth study to read the window (D V1, C-4, D V2-A, D-AGG)",
+    "api_calls_in_d0": 0,
+    "data_reads_in_d0": 0
+  },
+
+  "signal": {
+    "name": "A(q)",
+    "source": "V2-A D3 signal artifact, reused as is",
+    "definition": "median of the accepted top-50 structure-analog neighbours' excess_return_5 (V2-A rules signal.primary)",
+    "frozen_inputs": "V2-A universe, ten structure coordinates, per-date percentile rank scaling, equal-weight Euclidean, K=50, library stride 5, caps 1 per ticker and 5 per end date, embargo d + h <= D - 60, same-ticker and same-FIGI exclusion, h = 5",
+    "new_signal": "none; no coordinate, weight, K, horizon or similarity change",
+    "parent_binding": "the D3 run whose COMPLETE token and identity bind rules canonical 2b060ceb...fe229; binding digest is computed over the signal_rows columns query_date_idx, query_ticker_col, query_ticker, sample_rank, analog_signal_A, signal_status only (b0, b0_strong and distance columns excluded)",
+    "binding_reason": "V2-A D4 section 11 measured that the b0 column differs by up to 2 ULP across machines (BLAS summation order); A(q) involves no matrix product, so the A-only digest is machine independent while the full signal_rows digest is not",
+    "query_set": "V2-A query set unchanged: 221 evaluation sessions (index 260..480), 300 hash-sampled eligible tickers per session"
+  },
+
+  "setup": {
+    "name": "HIGH_A_TOP_DECILE",
+    "primary_quantile": 0.10,
+    "population": "the session's queries with signal_status OK (known at D)",
+    "rule": "per session t, order signal-OK queries by A(q) descending, ties by sample_rank ascending; the first ceil(0.10 * n_ok(t)) rows form the setup",
+    "selection_timing": "selection happens before label validity is known; label-invalid setup rows are dropped afterwards and counted",
+    "expected_size": "about 30 per session, about 6,630 over 221 sessions",
+    "min_valid_setup_per_session": 20,
+    "session_drop_rule": "a session with fewer than 20 label-valid setup rows is dropped from every statistic of this study (both groups), counted",
+    "secondary_quantiles": [0.05, 0.02],
+    "secondary_role": "descriptive only, never a gate input"
+  },
+
+  "labels": {
+    "shared_with": "V2-A labels, identical definitions and validity",
+    "available_at": "D+1 04:00 ET",
+    "entry_reference": "P0 = O(D+1)",
+    "window": "sessions D+1..D+5 inclusive; D is never included",
+    "mfe_5": "max(H(D+1), ..., H(D+5)) / P0 - 1",
+    "mae_5": "min(L(D+1), ..., L(D+5)) / P0 - 1",
+    "sign_facts": "H(D+1) >= O(D+1) and L(D+1) <= O(D+1) on every bar, so mfe_5 >= 0 and mae_5 <= 0 always",
+    "close_return_5": "P(D+5)/P0 - 1, clipped to [-1, 1] (recorded, not a gate input)",
+    "excess_return_5": "close_return_5 minus the session median close_return_5 of all label-valid eligible tickers (recorded, not a gate input)",
+    "validity": "V2-A: a bar on D+1, a bar on session D+5 itself, not label CA suspect",
+    "clipping": "mfe_5 and mae_5 are not clipped; every gate statistic is an indicator or a median, so extreme values carry no leverage",
+    "implementation": "strategy_d_analog.labels.compute_extremes via strategy_d_v2.evaluation_labels.forward_extremes, horizon 5",
+    "capture_caveat": "MFE is the best price the window touched, not a price a rule can be assumed to exit at; realized capture belongs to the trading-rule stage"
+  },
+
+  "events": {
+    "primary_upside": {"name": "UP10", "definition": "mfe_5 >= 0.10"},
+    "primary_downside": {"name": "DN10", "definition": "mae_5 <= -0.10"},
+    "symmetry": "the downside threshold mirrors the upside threshold so that pure volatility selection, which raises both, is visible as TL close to or below DL",
+    "threshold_justification": "0.10 is about twice the known typical five-session excursion scale (about 0.05, the order of the V2-A S-12 unconditional means and of sqrt(5) times a 2.5 to 3 percent daily move), making UP10 a tail event while leaving an expected handful of events per session in a 30-name setup; 0.05 sits near the centre of the distribution and is not a tail, 0.15 leaves about one event per session in the setup and makes per-block estimates unstable",
+    "secondary_upside": ["mfe_5 >= 0.05", "mfe_5 >= 0.15"],
+    "secondary_downside": ["mae_5 <= -0.05", "mae_5 <= -0.15"],
+    "secondary_role": "descriptive only, never a gate input"
+  },
+
+  "comparator": {
+    "primary": "SAME_DATE_ELIGIBLE_UNIVERSE",
+    "definition": "every label-valid eligible ticker of session t under the V2-A universe rule (the same population whose median defines excess_return_5), about 2,600 names per session",
+    "overlap": "setup rows are members of the universe (about 1 percent); this biases every lift toward 1, the conservative direction, and is not corrected",
+    "reason": "the question is whether A(q) concentrates large-move candidates relative to picking any eligible name that day; the per-session comparison removes the session's market-wide tail rate",
+    "secondary": ["the session's full signal-OK query sample (300)", "top decile of B0 on the same query sample", "top decile of rv_20 on the same query sample", "universe reweighted to the setup's per-session rv_20 decile mix"],
+    "secondary_role": "descriptive only, never a gate input"
+  },
+
+  "metrics": {
+    "per_session": {
+      "p_up_S(t)": "share of label-valid setup rows with UP10",
+      "p_up_U(t)": "share of label-valid universe rows with UP10",
+      "p_dn_S(t)": "share of label-valid setup rows with DN10",
+      "p_dn_U(t)": "share of label-valid universe rows with DN10",
+      "m_up_G(t)": "median mfe_5 over group G's label-valid rows",
+      "m_dn_G(t)": "median of -mae_5 over group G's label-valid rows"
+    },
+    "primary": {
+      "name": "TL",
+      "long_name": "session-stratified upside tail lift",
+      "formula": "TL = sum_t p_up_S(t) / sum_t p_up_U(t), sums over the evaluable sessions, equal session weights",
+      "reading": "how many times more often a top-decile setup reaches +10 percent within five sessions than an eligible name picked on the same day",
+      "why_ratio_not_difference": "the threshold of a ratio does not depend on the base rate, which this declaration deliberately has not looked at; an absolute percentage-point threshold would have required it",
+      "near_zero": "the denominator is a sum over about 221 sessions of a rate of order 0.1 and cannot be near zero; a zero denominator is a HARD FAIL of data integrity"
+    },
+    "required": {
+      "DL": "sum_t p_dn_S(t) / sum_t p_dn_U(t), the downside tail lift",
+      "NTL": "TL / DL, net tail lift; pure volatility selection gives NTL at or below 1",
+      "AG": "R_S / R_U with R_G = sum_t m_up_G(t) / sum_t m_dn_G(t); median payoff asymmetry gain, scale invariant, so pure volatility scaling gives AG at or near 1",
+      "AG_near_zero": "sums of per-session medians of about 0.03 to 0.05 over 221 sessions; per-session ratios are never formed"
+    },
+    "descriptive": {
+      "TEP": "mean_t (p_up_S(t) - p_up_U(t)), tail excess probability",
+      "levels": "sum_t p_up_U(t) / T and sum_t p_dn_U(t) / T, the base rates, computed in D-AGG-1 for data validation only"
+    }
+  },
+
+  "statistics": {
+    "unit": "evaluation session",
+    "bootstrap": "moving block bootstrap over the evaluable sessions, non-circular, block length 20, 10000 replicates, percentile intervals",
+    "bootstrap_draws": "strategy_d_analog.resample.block_indices(T, horizon=5, block_length=20, replicates=10000, seed=20260921), i.e. numpy default_rng([20260921, 5]); starts uniform on [0, T-20], ceil(T/20) blocks concatenated and truncated to T",
+    "bootstrap_single_draw_set": "one draw matrix serves every interval in this study; numerator and denominator sums of every ratio are taken on the same resampled sessions in each replicate",
+    "ci_level": "95 percent two-sided",
+    "seed_note": "20260921 is this study's own seed; the V1 seed 20260917 and the V2-A seed 20260920 are not reused for resampling (the query-sample hash seed 20260917 is reused because the query set is inherited)",
+    "time_blocks": "strategy_d_analog.resample.block_partition(T, 4), consecutive near-equal blocks (56/55/55/55 when T = 221)",
+    "primary_test_count": 1,
+    "family_wise": "one primary metric at one threshold on one setup; no multiplicity correction is needed and none is applied"
+  },
+
+  "concentration": {
+    "session_excess": "e_t = k_up_S(t) - n_S(t) * p_up_U(t), observed minus expected UP10 events in the setup",
+    "ticker_excess": "e_i = sum over ticker i's setup rows of (1[UP10] - p_up_U(t))",
+    "leave_top5_sessions_TL": "drop the 5 sessions with the largest e_t from both groups, recompute TL",
+    "leave_top10_tickers_TL": "drop every row of the 10 tickers with the largest e_i from both groups on every session, recompute TL",
+    "single_ticker_share": "max over tickers of (ticker's UP10 events in the setup) / (all UP10 events in the setup)",
+    "descriptive": ["top 5 sessions' share of positive e_t", "top 10 tickers' share of positive e_i", "unique tickers in the setup", "setup rows of the most repeated ticker"],
+    "sector_theme": "NOT_AVAILABLE: the store holds no point-in-time ticker to sector mapping (same reason V2-A excluded sector features); reported as a limitation, not a gate"
+  },
+
+  "gate": {
+    "gate_name": "GATE-D-AGG-SCREEN",
+    "hard": {
+      "H1_sample": "evaluable sessions >= 150, label-valid setup rows >= 5000, unique setup tickers >= 500, UP10 events in the setup >= 250",
+      "H2_pit_violations": "== 0",
+      "H3_label_missingness": "label-invalid share of the setup <= 0.02 and <= 2 x the universe's label-invalid share",
+      "H4_direction": "TL > 1.00",
+      "H5_not_pure_volatility_tail": "NTL >= 1.00",
+      "H6_not_pure_volatility_median": "AG >= 1.00",
+      "H7_single_ticker": "single_ticker_share <= 0.05"
+    },
+    "tiered": {
+      "T1_tail_lift": {"pass": "TL >= 1.25", "floor": "TL >= 1.10"},
+      "T2_tail_lift_ci": {"pass": "95 percent CI lower bound of TL > 1.00", "floor": "95 percent CI lower bound of TL > 0.95"},
+      "T3_block_stability": {"pass": "TL > 1 in >= 3 of 4 blocks", "floor": "TL > 1 in >= 2 of 4 blocks"},
+      "T4_net_tail_lift": {"pass": "NTL >= 1.10", "floor": "NTL >= 1.00 (H5)"},
+      "T5_session_concentration": {"pass": "leave_top5_sessions_TL >= 1.10", "floor": "leave_top5_sessions_TL > 1.00"},
+      "T6_ticker_concentration": {"pass": "leave_top10_tickers_TL >= 1.10", "floor": "leave_top10_tickers_TL > 1.00"}
+    },
+    "decision": {
+      "D_AGG_SCREEN_PASS": "every H holds and every T meets its pass level",
+      "D_AGG_SCREEN_BORDERLINE": "every H holds, every T meets its floor, and exactly one T misses its pass level",
+      "D_AGG_SCREEN_FAIL": "anything else"
+    },
+    "inverse": "if the 95 percent CI upper bound of TL < 1.00 the result is reported as INVERSE_EFFECT and is FAIL; using the bottom of A(q) needs a new declaration",
+    "first_failure_rule": "H2 failing ends evaluation with FAIL before any other condition is read",
+    "secondary_cannot_overturn": "no secondary or descriptive statistic can change the verdict in either direction",
+    "threshold_justification": "T1 1.25 is the smallest enrichment declared worth a trading-rule stage (one extra +10 percent move per four expected); under the design noise model the TL point condition, not the interval, is binding at TL = 1.25. H5, H6 and T4 exist because a synthetic pure-volatility selection with zero drift produced TL 1.55 to 3.31 with NTL 0.90 to 0.97 and AG 0.985 to 0.991: TL alone would pass volatility. Leave-out floors at 1.10 require the enrichment to survive removing about 2 percent of sessions and the 10 strongest names"
+  },
+
+  "power": {
+    "inputs": "assumed base rate p_up_U in {0.06, 0.10, 0.15, 0.20}, setup size 6,630, design effect DEFF in {1, 2, 4} for within-session correlation and overlapping five-session windows of persistent names; no observed tail rate is used",
+    "se_formula": "SE(log TL) ~= sqrt(DEFF * (1 - p) / (p * 6630)), universe side negligible",
+    "tl80_for_ci_above_1": "1.07 to 1.31 across the grid (1.23 at p = 0.10, DEFF = 4)",
+    "ci_lower_at_true_TL_1.25": "1.06 to 1.20 across the grid",
+    "null_TL_1": "P(TL >= 1.10) 0.0001 to 0.16 (worst p = 0.06, DEFF = 4); P(TL >= 1.25) at most 0.011",
+    "block_rule": "P(>= 3 of 4 blocks TL > 1) = 0.95 to 1.00 at true TL 1.25, 0.3125 under the null",
+    "interpretation": "sampling noise is not the main risk; confounding by volatility is, and it is addressed by H5, H6 and T4, not by more sample"
+  },
+
+  "secondary_diagnostics": {
+    "role": "descriptive only, reported in full regardless of sign, never a gate input",
+    "slots": [
+      "X-1 TL and DL at 0.05 and 0.15 thresholds",
+      "X-2 TL, DL, NTL, AG for the top 5 percent and top 2 percent setups",
+      "X-3 TEP with its bootstrap interval",
+      "X-4 all primary statistics against the 300-name query sample instead of the universe",
+      "X-5 top decile of B0: TL, DL, NTL, AG, and the setup-vs-B0-decile TL ratio",
+      "X-6 top decile of rv_20: TL, DL, NTL, AG (pure-volatility benchmark)",
+      "X-7 TL and DL against the universe reweighted to the setup's per-session rv_20 decile mix",
+      "X-8 setup close_return_5 and excess_return_5: mean, median, share positive; universe the same",
+      "X-9 mfe_5 and mae_5 deciles p10..p90, setup and universe",
+      "X-10 A(q) decile profile of p_up, p_dn, median mfe_5, median mae_5 for all ten deciles (bottom decile reported, never usable)",
+      "X-11 concentration descriptives listed under concentration",
+      "X-12 per-block TL, DL, NTL, AG"
+    ]
+  },
+
+  "pit_contract": {
+    "inherits": ["docs/backtest/strategy_d/D_PIT_CONTRACT_V1.md", "V2-A pit_contract deltas P-1..P-4"],
+    "additional": [
+      "PA-1 setup selection reads only A(q), signal_status and sample_rank of session t, all fixed at D close by the audited V2-A D3 artifact",
+      "PA-2 setup selection precedes label validity; the module that selects cannot import labels",
+      "PA-3 mfe_5 and mae_5 of session D read bars D+1..D+5 only: truncating the panel after D+5 and mutating any bar after D+5 or before D+1 must leave them bit-identical (except that a mutated O(D+1) changes P0 by design)",
+      "PA-4 the universe comparator of session t uses the same eligibility mask as V2-A D1 for t; no future eligibility",
+      "PA-5 no statistic of this study is computed from a session outside the V2-A evaluation grid (index 260..480)"
+    ],
+    "single_violation": "any PIT violation fails H2 and the verdict is FAIL"
+  },
+
+  "on_verdict": {
+    "PASS": "authorizes D-AGG trading-rule specification and a historical backtest design declaration; no virtual trading, no long-data purchase",
+    "BORDERLINE": "authorizes a written note (cost, realized effect, the missed condition, what the backtest would have to show) before any trading-rule work; no backtest without that note",
+    "FAIL": "D-AGG closed for this signal, this setup, this threshold and this data window; the long-data question is not reopened by D-AGG",
+    "never": "any verdict here changes the V2-A verdict"
+  },
+
+  "pipeline_after_pass": ["trading rule / backtester design declaration", "historical backtest", "virtual trading", "forward performance", "only then long-data purchase review"],
+
+  "prohibited_in_d0": ["code", "data reads", "API calls", "tail-rate computation", "backtester", "virtual trading", "long-data purchase", "commits", "pushes", "deploys"],
+  "checksum_recipe": "sha256 of json.dumps(payload, sort_keys=True, separators=(',', ':'), ensure_ascii=False) encoded UTF-8, i.e. app.backtest.strategy_c_selection.rules.canonical_checksum; recorded in d_agg_rules_v1.sha256"
+}
