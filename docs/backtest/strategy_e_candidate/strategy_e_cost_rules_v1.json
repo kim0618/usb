@@ -1,0 +1,73 @@
+{
+  "declaration": {
+    "contract_id": "STRATEGY_E_COST_RULES_V1",
+    "version": "STRATEGY_E_COST_V1",
+    "status": "FROZEN_BEFORE_ANY_STRATEGY_E_TRADING_BACKTEST",
+    "purpose": "pre-registered execution-friction stress model, not observed execution cost"
+  },
+  "data_capability": {
+    "bid": "NOT_AVAILABLE",
+    "ask": "NOT_AVAILABLE",
+    "spread": "NOT_IDENTIFIABLE",
+    "nbbo": "NOT_AVAILABLE",
+    "trade_count": "NOT_AVAILABLE",
+    "volume": "AVAILABLE",
+    "vwap": "AVAILABLE",
+    "ohlc": "AVAILABLE",
+    "opening_auction_price": "NOT_IDENTIFIABLE",
+    "opening_auction_volume": "NOT_IDENTIFIABLE",
+    "venue": "NOT_AVAILABLE",
+    "halt": "NOT_IDENTIFIABLE",
+    "market_cap": "NOT_AVAILABLE",
+    "d_minus_1_dollar_volume": "DERIVABLE",
+    "premarket_dollar_volume": "DERIVABLE",
+    "regular_session_volume": "DERIVABLE"
+  },
+  "cost_model": {
+    "id": "TOTAL_ROUND_TRIP_SUBTRACTION_V1",
+    "round_trip_definition": "one total deduction covering entry plus exit for the complete trade",
+    "stress_scenarios_bp": {
+      "COST_05BP": 5,
+      "COST_10BP": 10,
+      "COST_15BP": 15,
+      "COST_20BP": 20
+    },
+    "gross_baseline_policy": "GROSS_0BP is diagnostic only and is not a realistic execution scenario",
+    "formula": {
+      "gross_return": "exit_price / entry_price - 1",
+      "round_trip_cost_decimal": "round_trip_cost_bp / 10000",
+      "net_return": "gross_return - round_trip_cost_decimal"
+    },
+    "direction": "always adverse for long trades",
+    "leg_allocation": "NONE; total cost is not split between entry and exit",
+    "price_dependent_cost": false,
+    "liquidity_dependent_cost": false,
+    "numeric_policy": "Decimal constructed from source price text; no intermediate rounding; display-only rounding",
+    "invalid_trade_policy": "NO_COST_RESULT"
+  },
+  "taxonomy": {
+    "broker_explicit_fees": "NOT_YET_MODELED_SEPARATELY",
+    "spread_adverse_execution": "NOT_OBSERVED; covered only as generic stress friction",
+    "slippage": "NOT_OBSERVED; covered only as generic stress friction",
+    "market_impact": "NOT_YET_EXPLICITLY_MODELED; size is not frozen before E-D5",
+    "latency_queue_auction_uncertainty": "NOT_IDENTIFIABLE; covered only as generic stress friction",
+    "double_counting_rule": "a later separately modeled broker fee or execution component must replace or explicitly reconcile the all-in stress component before use"
+  },
+  "limitations": {
+    "bar_range_is_not_spread": true,
+    "open_close_is_not_spread": true,
+    "vwap_open_is_not_spread": true,
+    "actual_slippage_claim_forbidden": true,
+    "low_price_caveat": "5-20 bp may understate friction for relatively low-priced names, but no price multiplier is permitted without a new pre-registered evidence-backed version",
+    "historical_performance_evaluation": "FORBIDDEN_IN_E_D4"
+  },
+  "upstream": {
+    "e_d0_rules_canonical_sha256": "f1534f07688c801f2979491e447eefbb3e62b8045afb9c4ab302b90e4593d4b2",
+    "e_d1_signal_version": "STRATEGY_E_H5_SIGNAL_V1",
+    "e_d2_execution_rules_canonical_sha256": "d204b1dac9dd40530a7e03bebd36b32fd1950efde2e8b226a5eaedd5f196d041",
+    "e_d2_execution_version": "STRATEGY_E_EXECUTION_V1",
+    "e_d3_horizon_semantics_canonical_sha256": "f96f78f4bbd4758722ced07f758f8f0e5c10bb7f3e47d96b47642486a3f59603",
+    "e_d3_exit_rules_canonical_sha256": "f6f455641efebedfd65777ba4e00c47f1bc0adb60447e4c662d0908d9d38d58b",
+    "e_d3_exit_version": "STRATEGY_E_EXIT_V1"
+  }
+}
