@@ -1,0 +1,8 @@
+{
+  "file": "strategy_e_horizon_semantics_v1.json",
+  "canonical_sha256": "f96f78f4bbd4758722ced07f758f8f0e5c10bb7f3e47d96b47642486a3f59603",
+  "file_sha256": "f71448879e1fefd878e088dc0e46221a712e5e5ce2ecf4e5a53dda81b73ae6d7",
+  "recipe": "canonical = sha256 of json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False)",
+  "frozen_at_kst": "2026-09-21",
+  "scope": "semantic clarification only; no Research or Trading rule changed"
+}

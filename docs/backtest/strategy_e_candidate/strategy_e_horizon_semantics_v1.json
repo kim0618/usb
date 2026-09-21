@@ -1,0 +1,69 @@
+{
+  "declaration": {
+    "contract_id": "STRATEGY_E_HORIZON_SEMANTICS_V1",
+    "stage": "E-D3_HORIZON_SEMANTICS_RESOLUTION",
+    "status": "CLARIFICATION_ONLY",
+    "declared_at_kst": "2026-09-21",
+    "purpose": "separate the frozen observational Research horizon from the already-preregistered deterministic Trading exit without changing either rule",
+    "performance_comparison_performed": false
+  },
+  "research_primary_label": {
+    "name": "R_5m",
+    "window_bar_starts_et_inclusive": ["09:30", "09:34"],
+    "entry_anchor": "open of the exact 09:30 bar",
+    "observation": "close of the last existing bar whose start is in [09:30,09:34]",
+    "exact_0934_required": false,
+    "purpose": "flexible observational research label used during Alpha discovery"
+  },
+  "research_strict_label": {
+    "name": "R_5m_strict",
+    "entry_anchor": "open of the exact 09:30 bar",
+    "observation": "close of the exact 09:34 bar",
+    "exact_0934_required": true,
+    "missing_exact_0934": "NaN"
+  },
+  "research_implementation": {
+    "path": "backend/app/backtest/strategy_e1_premarket/premarket.py",
+    "functions": ["opening_block", "labels"],
+    "file_sha256_at_resolution": "12b250ec63b9244d442c34c6797599a3b5d2134a9f41f72bb2c9e7f595e9cdd6",
+    "existing_tests": [
+      "test_labels_are_anchored_on_the_0930_open",
+      "test_strict_reading_is_undefined_when_the_exact_bar_is_absent"
+    ],
+    "modified_by_resolution": false
+  },
+  "trading_exit_model": {
+    "name": "FIXED_FIVE_MINUTE_CLOSE_PROXY_V1",
+    "entry_timestamp_et": "09:30",
+    "entry_field": "open",
+    "exit_timestamp_et": "09:34",
+    "exit_field": "close",
+    "exact_0934_required": true,
+    "fallback_policy": "FORBIDDEN",
+    "missing_exact_0934": "exit_valid=false",
+    "forbidden_substitutes": ["09:33 close", "09:32 close", "last existing bar", "09:35 open", "session close", "forward fill", "backfill"]
+  },
+  "relationship": {
+    "research_primary_is_literal_trading_exit": false,
+    "statement": "Research R_5m is an observational label; Trading V1 converts the observed opening-momentum horizon into a deterministic fixed-time execution contract requiring the exact 09:34 close.",
+    "strict_relationship": "Trading V1 exact-09:34 field semantics are structurally closer to R_5m_strict than R_5m.",
+    "performance_claim": "NONE",
+    "alpha_retuning": false,
+    "reason_not_retuning": "The exact 09:34 Trading exit was frozen in E-D0 before any Strategy E trading backtest or PnL evaluation; this artifact only corrects the semantic provenance description."
+  },
+  "frozen_chain": {
+    "e_d0_commit": "89f27c6cee98e3cdf98c3e262ef3f926e319499c",
+    "e_d0_rules_canonical_sha256": "f1534f07688c801f2979491e447eefbb3e62b8045afb9c4ab302b90e4593d4b2",
+    "e_d1_commit": "c210f6f8f5e56427aa003f29092022acc835a96d",
+    "e_d1_signal_version": "STRATEGY_E_H5_SIGNAL_V1",
+    "e_d2_commit": "1ba07734bf5ad270d566a9492e432c716cbeae40",
+    "e_d2_execution_rules_canonical_sha256": "d204b1dac9dd40530a7e03bebd36b32fd1950efde2e8b226a5eaedd5f196d041",
+    "e_d2_entry_model": "FIRST_REGULAR_MINUTE_OPEN_PROXY_V1",
+    "existing_artifacts_modified": false
+  },
+  "data_capability": {
+    "exact_0934_close": "AVAILABLE_WHEN_EXACT_BAR_EXISTS",
+    "missing_bar_behavior": "No synthetic value; Trading exit is invalid.",
+    "historical_proxy_limitation": "One-minute aggregate close is a historical price proxy, not a guaranteed live fill."
+  }
+}
