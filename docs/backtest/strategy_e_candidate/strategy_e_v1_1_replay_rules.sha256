@@ -1,0 +1,8 @@
+{
+  "file": "strategy_e_v1_1_replay_rules.json",
+  "canonical_sha256": "86b750ef664ef3c67d8560c5001940c77e792ceeab17a5d024690f939aa8045e",
+  "file_sha256": "cab3c1426f07bd4e7d1d8053f844a4c98289270b632226edf4706eff04e7dcd7",
+  "recipe": "canonical = sha256 of json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False)",
+  "frozen_at_kst": "2026-09-21",
+  "frozen_before": "the first Strategy E Trading V1.1 development performance calculation (E-R3)"
+}
