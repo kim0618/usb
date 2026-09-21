@@ -1,0 +1,8 @@
+{
+  "file": "strategy_e_exit_rules_v1.json",
+  "canonical_sha256": "f6f455641efebedfd65777ba4e00c47f1bc0adb60447e4c662d0908d9d38d58b",
+  "file_sha256": "8a086eb58c85d1ee84ed25beaf624bbf0682222774e1d7f5365c1689ac271c84",
+  "recipe": "canonical = sha256 of json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False)",
+  "frozen_at_kst": "2026-09-21",
+  "frozen_before": "any Strategy E trading backtest, exit performance calculation, or horizon comparison"
+}

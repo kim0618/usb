@@ -1,0 +1,68 @@
+{
+  "declaration": {
+    "contract_id": "STRATEGY_E_EXIT_RULES_V1",
+    "strategy": "STRATEGY_E",
+    "version": "STRATEGY_E_EXIT_V1",
+    "stage": "E-D3_EXIT_EXECUTION",
+    "status": "FROZEN_BEFORE_TRADING_BACKTEST",
+    "declared_at_kst": "2026-09-21",
+    "performance_evaluation_performed": false
+  },
+  "model": {
+    "entry_model": "FIRST_REGULAR_MINUTE_OPEN_PROXY_V1",
+    "exit_model": "FIXED_FIVE_MINUTE_CLOSE_PROXY_V1",
+    "entry_minute_et": "09:30",
+    "entry_field": "open",
+    "exit_minute_et": "09:34",
+    "exit_field": "close",
+    "timestamp_semantics": "09:34 identifies the start of the one-minute aggregate covering 09:34:00 through the final observation before 09:35:00 ET",
+    "fallback_policy": "NONE",
+    "missing_exit_policy": "FAIL_CLOSED",
+    "duplicate_exit_policy": "FAIL_CLOSED",
+    "invalid_price_policy": "FAIL_CLOSED",
+    "shortened_session_policy": "NO_TRADE_SHORTENED_SESSION",
+    "halt_capability": "UNKNOWN"
+  },
+  "validity": {
+    "requires": [
+      "entry record selected=true and execution_eligible=true",
+      "entry model FIRST_REGULAR_MINUTE_OPEN_PROXY_V1",
+      "entry timestamp 09:30 ET and finite positive entry price",
+      "valid non-shortened XNYS session",
+      "exactly one matching symbol/session bar starting 09:34 ET",
+      "finite positive 09:34 close"
+    ],
+    "no_valid_entry": "NO_EXIT_NO_VALID_ENTRY",
+    "missing_exact_0934": "NO_TRADE_MISSING_EXIT_BAR",
+    "duplicate_exact_0934": "NO_TRADE_DUPLICATE_EXIT_BAR",
+    "invalid_close": "NO_TRADE_INVALID_EXIT_CLOSE",
+    "session_mismatch": "NO_TRADE_SESSION_MISMATCH",
+    "symbol_mismatch": "NO_TRADE_SYMBOL_MISMATCH",
+    "invalid_session": "NO_TRADE_INVALID_SESSION",
+    "shortened_session": "NO_TRADE_SHORTENED_SESSION"
+  },
+  "forbidden_substitutes": [
+    "Research R_5m last-existing-bar label",
+    "09:33 close",
+    "09:32 close",
+    "09:35 open",
+    "session close",
+    "last known price",
+    "forward fill",
+    "backfill",
+    "interpolation",
+    "nearest bar"
+  ],
+  "record_excludes": ["return", "gross PnL", "net PnL", "fees", "slippage", "position size", "portfolio PnL"],
+  "upstream": {
+    "e_d0_rules_canonical_sha256": "f1534f07688c801f2979491e447eefbb3e62b8045afb9c4ab302b90e4593d4b2",
+    "e_d1_signal_version": "STRATEGY_E_H5_SIGNAL_V1",
+    "e_d2_execution_rules_canonical_sha256": "d204b1dac9dd40530a7e03bebd36b32fd1950efde2e8b226a5eaedd5f196d041",
+    "e_d2_execution_version": "STRATEGY_E_EXECUTION_V1",
+    "e_d3_horizon_semantics_canonical_sha256": "f96f78f4bbd4758722ced07f758f8f0e5c10bb7f3e47d96b47642486a3f59603"
+  },
+  "research_independence": {
+    "trading_resolver_imports_research_labels": false,
+    "performance_claim": "NONE"
+  }
+}
