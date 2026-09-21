@@ -67,6 +67,16 @@ def _row_digest(symbols: Sequence[str], features: Mapping[str, np.ndarray],
     return digest.hexdigest()
 
 
+def decision_digest(symbols: Sequence[str], features: Mapping[str, np.ndarray],
+                    mask: np.ndarray) -> str:
+    """Return the frozen forward-seal digest for an already evaluated H5 decision.
+
+    Trading uses this public boundary instead of copying the serialization scheme. The private
+    implementation remains unchanged so existing forward seals retain byte-for-byte identity.
+    """
+    return _row_digest(symbols, features, mask)
+
+
 @dataclass(frozen=True)
 class DecisionSeal:
     session: date
@@ -91,7 +101,7 @@ def build(session: date, symbols: Sequence[str], features: Mapping[str, np.ndarr
     if missing:
         raise ForwardViolation(f"seal is missing declared feature columns: {missing}")
     mask = e1_evaluate.mask("H5", features)
-    digest = _row_digest(symbols, features, mask)
+    digest = decision_digest(symbols, features, mask)
     moment = created_at or datetime.now(timezone.utc)
     payload = {
         "format": SEAL_FORMAT,
@@ -134,7 +144,7 @@ def read(path: Path) -> dict[str, Any]:
     features = {name: np.array([row[name] for row in payload["rows"]], dtype=float)
                 for name in SEALED_FEATURES}
     mask = np.array([bool(row["h5"]) for row in payload["rows"]])
-    found = _row_digest(symbols, features, mask)
+    found = decision_digest(symbols, features, mask)
     if found != payload["decision_digest"]:
         raise ForwardViolation(
             f"seal {path} does not hash to its own decision_digest ({found} != "
