@@ -1,0 +1,25 @@
+{
+ "file": "strategy_e_max_m4_result_v1.json",
+ "run_id": "em4-99617c1874d4",
+ "file_sha256": "a4f5323bc20a4b9389b8fc6f14af8c37bc071cb9293b9f05417df0b70e056bf5",
+ "canonical_sha256": "f79676e481062a6d595cbbe262ab4de4208a241ca0e8c3b374fd1be0cc2750f7",
+ "recipe": "file_sha256 = sha256 of the runtime result.json bytes (the run's result digest)",
+ "runtime_artifacts": {
+  "X1_daily_returns.csv": "97f9d50cb87a998640d065bb87c73f09ff96a3dbdf20030c52342a38840d10a9",
+  "X1_trades.csv": "fee44b841fffb5ce348bc5ab0d1515d1e82c87809d8d024fda4894d8bd08b910",
+  "X2_daily_returns.csv": "2ffdc39961a7481dfb9873919f8295937e32553dbca25d785c8d63bfea0a44a2",
+  "X2_trades.csv": "9529ccf33a11851d5d3e48c1599f025ac094eb6dc0a495970de5a19dbfd17420",
+  "exit_decisions.json": "f92807ae04f938b47f3d9d40aff7c58fe0c59d558c280ac71064a8b550877d22",
+  "result.json": "a4f5323bc20a4b9389b8fc6f14af8c37bc071cb9293b9f05417df0b70e056bf5"
+ },
+ "repeat_check": {
+  "artifacts_identical": true,
+  "attempt": "repeat-2",
+  "first_result_digest": "a4f5323bc20a4b9389b8fc6f14af8c37bc071cb9293b9f05417df0b70e056bf5",
+  "identical": true,
+  "this_result_digest": "a4f5323bc20a4b9389b8fc6f14af8c37bc071cb9293b9f05417df0b70e056bf5"
+ },
+ "protocol_commit": "362b978",
+ "verdict": "E-MAX-M4 NO_USEFUL_ENHANCEMENT",
+ "m5": "M5 AUTHORIZED"
+}

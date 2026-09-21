@@ -181,3 +181,72 @@ def test_checksum_file() -> None:
     recorded = json.loads((DOCS / "strategy_e_max_m4_rules_v1.sha256").read_text("utf-8"))
     assert recorded["canonical_sha256"] == m4.RULES_CANONICAL_SHA256
     assert recorded["file_sha256"] == hashlib.sha256((DOCS / "strategy_e_max_m4_rules_v1.json").read_bytes()).hexdigest()
+
+
+# -- committed M4 result (phase B) ---------------------------------------------------------------
+
+RESULT = DOCS / "strategy_e_max_m4_result_v1.json"
+
+
+@pytest.fixture(scope="module")
+def result():
+    return json.loads(RESULT.read_text(encoding="utf-8"))
+
+
+def test_result_checksum_and_repeat(result) -> None:
+    recorded = json.loads((DOCS / "strategy_e_max_m4_result_v1.sha256").read_text("utf-8"))
+    assert recorded["file_sha256"] == hashlib.sha256(RESULT.read_bytes()).hexdigest()
+    check = recorded["repeat_check"]
+    assert check["identical"] and check["artifacts_identical"]
+    assert check["first_result_digest"] == check["this_result_digest"] == recorded["file_sha256"]
+
+
+def test_x1_reproduced_m3_b2_and_invariants(result, rules) -> None:
+    pre = result["prechecks"]
+    assert pre["x1_reproduces_m3_b2"] == {"trades_csv": rules["upstream"]["m3_b2_trades_csv_sha256"],
+                                          "daily_returns_csv": rules["upstream"]["m3_b2_daily_returns_csv_sha256"]}
+    assert pre["invariants"]["pass"] and pre["in_process_deterministic"]
+    assert result["identity"]["m4_rules"] == m4.RULES_CANONICAL_SHA256
+
+
+def test_exit_funnel_is_consistent(result) -> None:
+    f = result["exit_funnel"]
+    assert f["x2_0934_exits"] + f["x2_0944_extended_exits"] + f["x2_0944_unresolved"] + f["x2_unresolved_at_0934"] \
+        == f["x1_0934_exits"] + f["x1_unresolved"]
+    assert f["extension_attempts"] == f["x2_0944_extended_exits"] + f["x2_0944_unresolved"]
+    assert result["continuation_outcome"]["gross_at_0934"]["positive_rate"] == 1.0
+
+
+def test_trade_selection_identical(result) -> None:
+    f1 = result["variants"]["X1"]["evaluation"]["funnel"]
+    f2 = result["variants"]["X2"]["evaluation"]["funnel"]
+    for key in ("eligible_universe_rows", "H5_candidates", "selected_candidates", "valid_entries"):
+        assert f1[key]["count"] == f2[key]["count"]
+
+
+def test_verdict_and_m5_recompute(result, rules) -> None:
+    def summary(name):
+        ev = result["variants"][name]["evaluation"]
+        s = ev["scenarios"]["COST_10BP"]
+        return {"integrity": result["integrity"], "coverage": ev["funnel"]["standard_pnl_coverage"],
+                "mean_10bp": s["all_session_mean"], "pf_10bp": s["profit_factor"],
+                "mdd_10bp": s["maximum_drawdown"],
+                "top1_share_10bp": ev["concentration"]["cost_10bp"]["top1"]["share_of_total"]}
+    e2, e1 = m4.eligible(summary("X2"), rules), m4.eligible(summary("X1"), rules)
+    s1 = result["variants"]["X1"]["evaluation"]["scenarios"]["COST_10BP"]
+    s2 = result["variants"]["X2"]["evaluation"]["scenarios"]["COST_10BP"]
+    i = m4.improved(s2["cumulative_return"], s1["cumulative_return"], result["paired_x2_minus_x1"], rules)
+    assert (e2, e1, i) == (result["x2_eligibility"], result["x1_eligibility"], result["x2_improvement"])
+    assert m4.decide(e2, i, e1, rules) == result["verdict"]
+    assert (result["paired_x2_minus_x1"]["seed"], result["paired_x2_minus_x1"]["replicates"]) == (20260921, 10_000)
+
+
+def test_upstream_artifacts_unchanged() -> None:
+    import subprocess
+    for path in ("docs/backtest/strategy_e_candidate/strategy_e_v1_1_replay_result.json",
+                 "docs/backtest/strategy_e_max/strategy_e_max_m0_rules_v1.json",
+                 "docs/backtest/strategy_e_max/strategy_e_max_m3_result_v1.json",
+                 "docs/backtest/strategy_e_max/strategy_e_max_m4_rules_v1.json"):
+        frozen = subprocess.run(["git", "-C", str(ROOT), "show", f"362b978:{path}"],
+                                capture_output=True, check=True).stdout
+        assert (ROOT / path).read_bytes() == frozen
