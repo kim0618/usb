@@ -1,0 +1,111 @@
+{
+  "declaration": {
+    "contract_id": "STRATEGY_E_MAX_M1_RULES_V1",
+    "version": "STRATEGY_E_MAX_M1_V1",
+    "namespace": "STRATEGY_E_MAX",
+    "stage": "E-MAX-M1_CANDIDATE_STRENGTH_RANKING",
+    "status": "FROZEN_BEFORE_ANY_M1_PERFORMANCE_CALCULATION",
+    "declared_at_kst": "2026-09-21",
+    "checksum_recipe": "sha256 of json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False)",
+    "evidence_label": "E-MAX DEVELOPMENT (reused development data; not OOS)"
+  },
+  "upstream": {
+    "m0_commit": "b05bbf6b6781a6caac8e0358535d7941dc95e21d",
+    "m0_rules_canonical_sha256": "3ae07d755501e82c2b7ff2bd765d93f4353aa9319b34a3e6f59d0aad098082ac",
+    "e_r2_replay_rules_canonical_sha256": "86b750ef664ef3c67d8560c5001940c77e792ceeab17a5d024690f939aa8045e",
+    "trading_v1_1_rules_canonical_sha256": "b90573bde8809b0eadd03c9f6c5cae59bf115254b792237df92e0f6eaa1304b6",
+    "e_r3_result_file_sha256": "2d50cca5cfe2ee4b284eb097c87afd2a51fd4b20c11dfa86e95752fa8a94b593",
+    "e_r3_trades_csv_sha256": "e4670ec3bd2da5f971e5190ee3546e2b387fe5b533fdfbc7bad1b03a09d36fac",
+    "e_r3_daily_returns_csv_sha256": "d0d3f82d0e610baf059e2df4b6d223f79e01de93cfb4c3eac13694c85a1db220"
+  },
+  "dataset": {
+    "binding": "the E-R2 / E-R3 development binding, unchanged: tape d12ff28a98cf9cc6..., 2,152 files, 1,902 symbols, USB-HIST-V1, 480 sessions 2024-10-16..2026-09-16",
+    "forward_excluded_from": "2026-09-17",
+    "universe": "Trading V1.1 PIT universe, built by the same code as E-R3",
+    "prechecks": "the E-R3 prechecks are re-run before any return: frozen chain, dataset binding, V1 reproduction 70,738 / 1,729, V1.1 attribution, PIT poison"
+  },
+  "variants": {
+    "comparator": {"id": "R0", "rule": "canonical symbol ascending", "role": "E-Base"},
+    "hypotheses": [
+      {"id": "R1", "rule": "premarket_rvol descending; tie symbol ascending"},
+      {"id": "R2", "rule": "return_0900_0925 descending; tie symbol ascending"},
+      {"id": "R3", "rule": "equal-rank composite: descending average ranks of premarket_rvol, return_0900_0925, position_in_premarket_range; score = sum; score ascending; tie symbol ascending"}
+    ],
+    "implementation": "app.strategy_e_max.ranking.order / select",
+    "declared_order": ["R1", "R2", "R3"],
+    "forbidden": ["R4 or any other ranking", "gap-only ranking", "weighted composite or weight search", "products, z-scores or learned rankings", "liquidity, price or sector ranking", "future-return ranking", "symbol exclusion or favouring (ABSI included)", "combinations of R1/R2/R3"]
+  },
+  "held_fixed": {
+    "max_selected": 3,
+    "replacement": "NONE",
+    "entry": "exact 09:30 ET open (E-D2)",
+    "exit": "exact 09:34 ET close (E-D3), fallback NONE",
+    "sizing": "EQUAL_WEIGHT_EXECUTABLE_V1 (E-D5)",
+    "costs": ["GROSS_0BP", "COST_05BP", "COST_10BP", "COST_15BP", "COST_20BP"],
+    "primary_cost": "COST_10BP",
+    "exposure": 1.0,
+    "stop": "NONE",
+    "profit_target": "NONE"
+  },
+  "replay_method": {
+    "R0": "the E-R3 path unchanged (decision.seal + replay_sealed); its trades.csv and daily_returns.csv must hash to the E-R3 artifacts",
+    "R1_R3": "per session, the variant's selected symbols are passed to the unchanged E-D2..E-D5 layers (strategy_e_d6.replay.replay_session) as the candidate set; not-selected H5 candidates are recorded as NOT_SELECTED_CAPACITY rows with zero weight; the variant's priority rank is written to selection_rank",
+    "equivalence_check": "the same subset method applied with R0 must reproduce R0's session returns exactly for every scenario, before any variant is evaluated",
+    "integrity_invariants": ["identical universe rows and H5 candidates for every variant", "every selected symbol is an H5 candidate of its session", "at most 3 selected per session", "sessions with <= 3 candidates select the same set in every variant"]
+  },
+  "evaluation": {
+    "metrics": "app.backtest.strategy_e_d6.run.evaluate unchanged over the 480-session timeline, no-trade sessions at 0",
+    "additional": {
+      "cagr": "(1 + cumulative)^(252/480) - 1 at each cost",
+      "calmar": "CAGR / |MDD| (null when MDD is 0)",
+      "largest_winner_loser": "largest and smallest single standard trade net return at COST_10BP with symbol and session"
+    },
+    "paired": "delta_t = candidate COST_10BP session return - R0 session return for all 480 sessions (no-trade sessions included as 0); IID session bootstrap via metrics.bootstrap_mean_ci, 10,000 replicates, seed 20260921; report mean, CI and P(delta <= 0)"
+  },
+  "eligibility": {
+    "source": "M0 selection_rule.eligibility, verbatim values",
+    "integrity": "PASS (prechecks, invariants, equivalence, two identical runs)",
+    "min_coverage": 0.95,
+    "mean_session_10bp_gt": 0.0,
+    "profit_factor_10bp_gt": 1.0,
+    "mdd_10bp_ge": -0.35,
+    "top1_share_10bp_le": 0.7338
+  },
+  "improvement": {
+    "source": "M0 selection_rule.improvement_vs_stage_comparator, verbatim",
+    "cumulative_10bp_gt_comparator": true,
+    "paired_mean_delta_gt": 0.0,
+    "paired_p_delta_le_zero_max": 0.10
+  },
+  "winner": {
+    "pool": "R1..R3 passing every eligibility and improvement condition",
+    "rule": "highest COST_10BP CAGR; exact ties by higher session mean, then declared order R1, R2, R3",
+    "no_percentage_point_tie_band": "M0 declares no CAGR tie band; none is applied",
+    "no_winner": "E-MAX-M1 NO_USEFUL_ENHANCEMENT; R0 ordering is carried to M2"
+  },
+  "diagnostics": {
+    "periods": {
+      "FULL_DEVELOPMENT": ["2024-10-16", "2026-09-16"],
+      "LEGACY_NARROW": ["2024-10-16", "2026-04-17"],
+      "BROAD_COVERAGE": ["2026-04-20", "2026-09-16"]
+    },
+    "period_role": "interpretation only; never used to choose or alter a rule",
+    "per_period": ["sessions", "trades", "active sessions", "COST_10BP session mean", "COST_10BP cumulative", "profit factor", "paired mean delta vs R0"],
+    "selection_delta_vs_r0": ["sessions with H5 candidates", "sessions with > 3 candidates (eligible to change)", "selected set changed sessions and ratio to eligible", "ordering-only changed sessions", "selected symbols added / removed", "trade-set changed sessions", "entry-valid set changed sessions", "standard-PnL set changed sessions"],
+    "blocks": "E-D6 four chronological blocks per variant; reported, not a selection condition",
+    "concentration": ["unique symbols", "top1 / top5 / top10 contribution", "HHI", "largest winner / loser"],
+    "interpretation_limit": "almost every session where ranking can matter lies in the broad-coverage period (block 4); a winner means a preregistered ranking beat Base selection mainly there, not that a ranking alpha is validated over two years"
+  },
+  "reproducibility": {"repeat_runs": 2, "required": "identical result digest and byte-identical runtime artifacts"},
+  "verdict_labels": {
+    "R1": "E-MAX-M1 PASS — R1 SELECTED",
+    "R2": "E-MAX-M1 PASS — R2 SELECTED",
+    "R3": "E-MAX-M1 PASS — R3 SELECTED",
+    "NONE": "E-MAX-M1 NO_USEFUL_ENHANCEMENT",
+    "BLOCK": "E-MAX-M1 BLOCKED — INTEGRITY"
+  },
+  "outputs": {
+    "runtime_root": "data/runtime/strategy_e_max/m1_runs/<run_id>/ (gitignored)",
+    "committed": ["E_MAX_M1_RANKING_RESULT_V1.md", "strategy_e_max_m1_result_v1.json", "strategy_e_max_m1_result_v1.sha256"]
+  }
+}
