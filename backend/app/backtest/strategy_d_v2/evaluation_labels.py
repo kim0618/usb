@@ -23,7 +23,9 @@ import numpy as np
 
 from app.backtest.strategy_c_selection.panel import Panel
 # The declared label value contract, shared with V1 and pinned against C's LabelSet.
-from app.backtest.strategy_d_analog.labels import LABEL_VALUE_CONTRACT, compute_labels
+from app.backtest.strategy_d_analog.labels import (
+    LABEL_VALUE_CONTRACT, compute_extremes, compute_labels,
+)
 from app.backtest.strategy_d_analog.label_extension import LabelValidity
 from app.backtest.strategy_d_v2.models import HardFail
 
@@ -94,3 +96,16 @@ def query_labels(excess: ForwardExcess, session_idx: np.ndarray,
     valid = excess.gather_valid(session_idx, ticker_col)
     values = np.where(valid, values, np.nan)
     return QueryLabels(session_idx, ticker_col, values, valid, excess.horizon)
+
+
+def forward_extremes(panel: Panel, validity: LabelValidity, horizon: int):
+    """``mfe_h`` and ``mae_h`` for one horizon, for the D-V2A-4 quintile description.
+
+    These are future bars turned into numbers, which is this module's job and no other module's:
+    the package keeps exactly one importer of V1's ``labels``, so the path from a bar to a value
+    can be read in one place. Nothing here is a gate input - the declaration lists MFE and MAE
+    under secondary slot S-12 - and nothing here is allowed to see a signal.
+    """
+    if horizon <= 0:
+        raise HardFail("R1", f"forward extremes asked for horizon {horizon}")
+    return compute_extremes(panel, validity, (horizon,))

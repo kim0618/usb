@@ -325,16 +325,27 @@ ALLOWED_V1_MODULES = {
     # future bar into a number joins the list here. It is confined to one V2-A file by
     # ``test_only_the_evaluation_module_turns_bars_into_numbers``.
     "app.backtest.strategy_d_analog.labels",
+    # D-V2A-4 is the phase that scores, and these two modules are the arithmetic of scoring
+    # rather than a study's opinion about it: a Spearman correlation, equal-count baskets,
+    # chronological blocks, and a moving block bootstrap that takes its length, replicate count
+    # and seed from its caller. Neither knows what a signal is or what a good one looks like.
+    # They join the list at D-V2A-4 for the same reason ``labels`` joined it at D-V2A-3, and
+    # two tests below keep the addition honest: only ``d4.py`` may load them, and it may not
+    # read the V1 numbers they carry.
+    "app.backtest.strategy_d_analog.metrics",
+    "app.backtest.strategy_d_analog.resample",
 }
+#: V1 constants that live in the allowed statistics modules and belong to V1's declaration, not
+#: this one. V2-A passes its own block length, replicate count and seed on every call.
+V1_DECLARED_CONSTANTS = ("BLOCK_LENGTH", "REPLICATES", "SEED", "FAMILY_SIZE", "FAMILY_ALPHA",
+                         "BONFERRONI_ALPHA", "NOMINAL_ALPHA")
 #: The half of V1 that must never load: the raw-path encoder V2-A replaced, the modules that
-#: turn a future bar into a number, and everything that scores or judges a signal.
+#: turn a future bar into a number, and everything that judges a signal or carries V1's answer.
 FORBIDDEN_V1_MODULES = {
     "app.backtest.strategy_d_analog.encoder",
     "app.backtest.strategy_d_analog.signal",
     "app.backtest.strategy_d_analog.evaluation",
     "app.backtest.strategy_d_analog.baselines",
-    "app.backtest.strategy_d_analog.metrics",
-    "app.backtest.strategy_d_analog.resample",
     "app.backtest.strategy_d_analog.gate",
     "app.backtest.strategy_d_analog.library",
     "app.backtest.strategy_d_analog.config",
@@ -415,3 +426,28 @@ def _eligible_except(panel, column, row):
     mask = np.ones(panel.close.shape, dtype=bool)
     mask[row, column] = False
     return mask
+
+
+def test_only_the_scoring_phase_loads_the_scoring_arithmetic():
+    """``metrics`` and ``resample`` entered the whitelist for D-V2A-4. No earlier phase may
+    load them: a module that could compute an IC is a module that could look at one, and the
+    firewall D1 to D3 rests on is that they cannot."""
+    scoring = {"app.backtest.strategy_d_analog.metrics",
+               "app.backtest.strategy_d_analog.resample"}
+    for file, modules in _imported_modules().items():
+        if set(modules) & scoring:
+            assert file == "d4.py", f"{file} loads V1 scoring arithmetic"
+
+
+def test_the_scoring_phase_brings_its_own_numbers():
+    """V1's ``resample`` carries V1's declared block length, replicate count and seed, and V1's
+    Bonferroni family of 14. V2-A declares its own (seed 20260920, one test, no correction), so
+    D4 must pass them on every call rather than inherit the module's."""
+    body = (PACKAGE_DIR / "d4.py").read_text(encoding="utf-8")
+    for constant in V1_DECLARED_CONSTANTS:
+        assert f"resample.{constant}" not in body, f"d4.py reads V1's {constant}"
+        assert f"metrics.{constant}" not in body
+    for call in ("block_length=", "replicates=", "seed="):
+        assert call in body, f"d4.py must pass {call} explicitly"
+    assert "20260917" not in body, "d4.py must not carry V1's bootstrap seed"
+    assert "bonferroni" not in body.lower(), "V2-A declares one test and no correction"

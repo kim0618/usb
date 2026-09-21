@@ -291,6 +291,51 @@ class V2ARules:
                           str(self.raw["pass_fail_policy"]["conditions"]["S5_delta_point"]), "S5")
 
     @property
+    def delta_ci_low_threshold(self) -> float:
+        """S6: the declared floor under the CI lower bound of the paired difference."""
+        return _one_float(r">\s*(-?[0-9.]+)",
+                          str(self.raw["pass_fail_policy"]["conditions"]["S6_delta_ci_low"]), "S6")
+
+    @property
+    def block_stability_minimum(self) -> int:
+        """S7: how many of the blocks must carry a positive statistic.
+
+        The condition states the same count twice, once for ``delta`` and once for ``IC(A)``, and
+        names the block count in both halves. All three are read and cross-checked rather than
+        assumed, because a declaration that said "3 of 4" in one half and "3 of 5" in the other
+        would be a different gate and must not be silently averaged into one.
+        """
+        text = str(self.raw["pass_fail_policy"]["conditions"]["S7_block_stability"])
+        minimums = re.findall(r">=\s*([0-9]+)", text)
+        blocks = re.findall(r"of\s+([0-9]+)", text)
+        if len(minimums) != 2 or minimums[0] != minimums[1]:
+            raise HardFail("R1", f"S7 does not state one repeated minimum: {text!r}")
+        if len(blocks) != 2 or len(set(blocks)) != 1 or int(blocks[0]) != self.time_blocks:
+            raise HardFail("R1", f"S7 block count {blocks} != evaluation.time_blocks"
+                                 f" {self.time_blocks}")
+        if int(minimums[0]) > self.time_blocks:
+            raise HardFail("R1", f"S7 asks for {minimums[0]} of {self.time_blocks} blocks")
+        return int(minimums[0])
+
+    @property
+    def time_blocks(self) -> int:
+        return int(self.raw["evaluation"]["time_blocks"])
+
+    @property
+    def bootstrap(self) -> dict[str, int]:
+        """The resampling recipe, parsed whole so a half-matching sentence cannot pass."""
+        text = str(self.raw["statistics"]["bootstrap"])
+        match = re.fullmatch(
+            r"moving block bootstrap over evaluable query dates, block length ([0-9]+) sessions,"
+            r" ([0-9]+) replicates, seed ([0-9]+)", text)
+        if match is None:
+            raise HardFail("R1", f"statistics.bootstrap is not in the declared form: {text!r}")
+        if str(self.raw["statistics"]["ci"]).strip() != "percentile":
+            raise HardFail("R1", f"CI type {self.raw['statistics']['ci']!r} is not percentile")
+        return {"block_length": int(match.group(1)), "replicates": int(match.group(2)),
+                "seed": int(match.group(3))}
+
+    @property
     def power_inputs(self) -> dict[str, float]:
         """``sd_ic``, ``n_dates`` and the SE inflation, read out of the declared SE formula."""
         text = str(self.raw["power"]["se_formula"])

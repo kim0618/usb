@@ -328,3 +328,53 @@ def test_the_signal_artifact_carries_no_realized_outcome():
     for banned in ("excess_return", "realized", "label_valid", "forward"):
         assert not any(banned in name for name in table.column_names)
     assert "analog_signal_A" in table.column_names and "b0" in table.column_names
+
+
+# -- the mutation audit's own arithmetic ------------------------------------------------------
+
+def test_ulp_gap_counts_last_place_steps_and_not_magnitudes():
+    one = np.array([1.0, -0.087321772639691735973])
+    assert d3._max_ulp_gap(one, one) == 0
+    nudged = np.nextafter(one, np.inf)
+    assert d3._max_ulp_gap(one, nudged) == 1
+    assert d3._max_ulp_gap(one, np.nextafter(nudged, np.inf)) == 2
+    assert d3._max_ulp_gap(one, one[:1]) == -1          # shape mismatch is not a gap
+
+
+def test_the_audit_reference_is_built_at_the_audit_s_own_operand_size():
+    """A 66,300-row product and a 300-row product of the same rows need not agree bit for bit.
+
+    ``B0 = rank_matrix @ weights`` goes through BLAS, and its summation order depends on the
+    operand's size. On 2026-09-21 that made one row of date 333 differ by 2 ULP between the
+    artifact's full-sample product and the audit's per-date product, and the audit called it
+    ``b0_changed`` - a future leak that had not happened. The reference the audit compares
+    against is therefore built through the audit's own path, which is what this test pins: the
+    reference comes from ``b0_composite.build`` on the per-date matrix, never from a slice of
+    the full-sample vector.
+    """
+    source = inspect.getsource(d3.execute)
+    tree = ast.parse(source.lstrip())
+    baseline = [node for node in ast.walk(tree)
+                if isinstance(node, ast.Assign)
+                and any(isinstance(t, ast.Name) and t.id == "audit_baseline" for t in node.targets)]
+    assert baseline, "execute must stash a per-date audit baseline"
+    built = [node for node in ast.walk(tree) if isinstance(node, ast.Call)
+             and isinstance(node.func, ast.Attribute) and node.func.attr == "build"]
+    assert built, "the per-date reference must come from b0_composite.build"
+    reference_fields = [f.name for f in d3.MutationReference.__dataclass_fields__.values()]
+    assert "coordinates" in reference_fields
+    assert "b0_artifact_ulp" in reference_fields
+
+
+def test_moving_a_coordinate_is_reported_even_when_b0_survives_it():
+    """The coordinate matrix is the object a mutated future could corrupt, so it is compared
+    exactly. Two coordinates swapped between rows leave every column's sum - and therefore B0 -
+    untouched, so an audit that only watched B0 would see nothing."""
+    signs = RULES.b0_sign_vector
+    pair = next((i, j) for i in range(10) for j in range(i + 1, 10) if signs[i] == signs[j])
+    weights = np.asarray(signs, dtype=np.float64) / 10.0
+    matrix = np.tile(np.linspace(0.05, 0.95, 10), (4, 1))
+    swapped = matrix.copy()
+    swapped[:, [pair[0], pair[1]]] = swapped[:, [pair[1], pair[0]]]
+    assert np.array_equal(matrix @ weights, swapped @ weights)   # B0 cannot see the swap
+    assert not np.array_equal(matrix, swapped)                   # the coordinates can

@@ -68,6 +68,20 @@ def _peak_rss_mb() -> float:
     return round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024.0, 1)
 
 
+def _max_ulp_gap(left: np.ndarray, right: np.ndarray) -> int:
+    """Largest last-place gap between two float arrays, as a plain integer count.
+
+    Reported rather than asserted. Two correct products of the same numbers can land a couple of
+    ULP apart when BLAS blocks them differently, and the honest record of that is the size of the
+    gap, not a boolean that says the arrays "differ".
+    """
+    if left.shape != right.shape or left.size == 0:
+        return -1
+    a = left.astype(np.float64).view(np.int64)
+    b = right.astype(np.float64).view(np.int64)
+    return int(np.abs(a - b).max())
+
+
 def _json_digest(payload: Any) -> str:
     return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":"),
                                      ensure_ascii=False).encode("utf-8")).hexdigest()
@@ -200,12 +214,27 @@ def distance_summary(distance: np.ndarray, queries: int, top_k: int) -> dict[str
 
 @dataclass(frozen=True)
 class MutationReference:
-    """What a future-mutated rebuild has to reproduce, and what it has to change."""
+    """What a future-mutated rebuild has to reproduce, and what it has to change.
+
+    ``coordinates`` and ``b0`` are both built on the unmutated panel through the same per-date
+    path the audit uses, and that symmetry is load bearing. ``B0 = rank_matrix @ weights`` goes
+    through BLAS, whose summation order depends on the operand's size, so the 66,300-row product
+    the artifact carries and a 300-row product of the same rows can differ in the last bits while
+    both are correct. Measured here on 2026-09-21: one row of date 333 differed by 2 ULP
+    (2.776e-17), which an exact comparison reported as ``b0_changed`` - a leak that had not
+    happened, on a machine whose BLAS blocked differently from the one that ran D3 first.
+
+    The reference therefore comes from the same shape as the thing it is compared with, and the
+    coordinate matrix - the only object a mutated future could actually corrupt - is compared
+    exactly. ``b0_artifact_ulp`` records the full-vs-partial gap instead of hiding it.
+    """
 
     date_idx: int
     positions: np.ndarray
     analog: np.ndarray
+    coordinates: np.ndarray
     b0: np.ndarray
+    b0_artifact_ulp: int
     query_label: np.ndarray
     query_valid: np.ndarray
 
@@ -250,6 +279,8 @@ def future_query_mutation_audit(history: DailyHistory, rules: V2ARules, *,
         issues: list[str] = []
         if not np.array_equal(signal.values, reference.analog):
             issues.append("analog_signal_changed")
+        if not np.array_equal(matrix, reference.coordinates):
+            issues.append("coordinates_changed")
         if not np.array_equal(b0.values, reference.b0):
             issues.append("b0_changed")
         moved = ~((np.isnan(query.values) & np.isnan(reference.query_label))
@@ -267,7 +298,11 @@ def future_query_mutation_audit(history: DailyHistory, rules: V2ARules, *,
         f"{changed_labels:,} labels moved, {len(findings)} findings")
     return {"dates": [int(r.date_idx) for r in references], "queries": checked,
             "query_labels_changed": changed_labels, "findings": findings,
-            "signal_unchanged": not findings}
+            "signal_unchanged": not findings,
+            "comparison": "coordinates compared exactly; B0 compared against a reference built"
+                          " through the same per-date path, so BLAS operand size cannot decide"
+                          " the outcome",
+            "b0_artifact_max_ulp": max((r.b0_artifact_ulp for r in references), default=0)}
 
 
 def _history_with_panel(history: DailyHistory, panel: Panel, last_idx: int) -> DailyHistory:
@@ -401,6 +436,17 @@ def execute(workspace_root: Path, snapshot_id: str, *, parent_d1_run_id: str,
     }
     d1_checks = verify_parent_matrices(parent_d1, computed_d1, required=REQUIRED_D1_DIGESTS)
     log(f"D1 parent digests verified: {len(d1_checks)}")
+
+    # The mutation audit's references, taken while the coordinates are still in memory and built
+    # through the audit's own per-date path (see ``MutationReference``).
+    step = max(1, len(eval_indices) // mutation_dates) if mutation_dates else 1
+    audit_indices = tuple(eval_indices[i] for i in range(0, len(eval_indices), step))[:mutation_dates]
+    audit_baseline = {}
+    for index in audit_indices:
+        positions = np.nonzero(session_idx == index)[0]
+        part = features.matrix(session_idx[positions], ticker_col[positions])
+        audit_baseline[index] = (positions, part, b0_composite.build(part, rules).values)
+
     structure_features.release(features)
     del rank_matrix
 
@@ -446,13 +492,12 @@ def execute(workspace_root: Path, snapshot_id: str, *, parent_d1_run_id: str,
                       SIGNAL_STATUS_ORDER.index("INSUFFICIENT_NEIGHBORS")).astype(np.int32)
 
     # -- audit -------------------------------------------------------------------------------------
-    step = max(1, len(eval_indices) // mutation_dates) if mutation_dates else 1
-    audit_indices = tuple(eval_indices[i] for i in range(0, len(eval_indices), step))[:mutation_dates]
     references = []
     for index in audit_indices:
-        positions = np.nonzero(session_idx == index)[0]
+        positions, coordinates, part_b0 = audit_baseline[index]
         references.append(MutationReference(
-            index, positions, signal.values[positions], b0.values[positions],
+            index, positions, signal.values[positions], coordinates, part_b0,
+            _max_ulp_gap(b0.values[positions], part_b0),
             query.values[positions], query.valid[positions]))
     mutation_report = future_query_mutation_audit(
         history, rules, references=references, neighbor_end=neighbor_end,
