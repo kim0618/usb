@@ -1,0 +1,25 @@
+{
+ "file": "strategy_e_max_m3_result_v1.json",
+ "run_id": "em3-9aef0165c1f0",
+ "file_sha256": "245d013e19bd1bcf293733288c9b52a9ef82b9dd8eec5b1720975da35393f667",
+ "canonical_sha256": "6446a9a5c8bdcbcd9ec096223d1587340af29cfd122012ee1d454a99e1b6fd02",
+ "recipe": "file_sha256 = sha256 of the runtime result.json bytes (the run's result digest)",
+ "runtime_artifacts": {
+  "B1_daily_returns.csv": "9d39d01bdccf0b9c7b1177ed9a39e0f9c647b724a0b964b3d091b8e54588e188",
+  "B1_trades.csv": "95d03874fbb27a111e731117575c2ae55405cad390379fee3f25d61d9a8602ae",
+  "B2_daily_returns.csv": "97f9d50cb87a998640d065bb87c73f09ff96a3dbdf20030c52342a38840d10a9",
+  "B2_trades.csv": "fee44b841fffb5ce348bc5ab0d1515d1e82c87809d8d024fda4894d8bd08b910",
+  "exposure_map.json": "d09ec86f229f4e0fb3df7a36545a3d95102cea54e388abe0af76c0f2e48c2fcb",
+  "result.json": "245d013e19bd1bcf293733288c9b52a9ef82b9dd8eec5b1720975da35393f667"
+ },
+ "repeat_check": {
+  "artifacts_identical": true,
+  "attempt": "repeat-2",
+  "first_result_digest": "245d013e19bd1bcf293733288c9b52a9ef82b9dd8eec5b1720975da35393f667",
+  "identical": true,
+  "this_result_digest": "245d013e19bd1bcf293733288c9b52a9ef82b9dd8eec5b1720975da35393f667"
+ },
+ "protocol_commit": "7e240a8",
+ "verdict": "E-MAX-M3 PASS — B2 SELECTED",
+ "m4": "M4 AUTHORIZED"
+}

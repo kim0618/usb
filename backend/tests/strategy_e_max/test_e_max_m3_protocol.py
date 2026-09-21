@@ -128,3 +128,77 @@ def test_checksum_file() -> None:
     recorded = json.loads((DOCS / "strategy_e_max_m3_rules_v1.sha256").read_text("utf-8"))
     assert recorded["canonical_sha256"] == m3.RULES_CANONICAL_SHA256
     assert recorded["file_sha256"] == hashlib.sha256((DOCS / "strategy_e_max_m3_rules_v1.json").read_bytes()).hexdigest()
+
+
+# -- committed M3 result (phase B) ---------------------------------------------------------------
+
+RESULT = DOCS / "strategy_e_max_m3_result_v1.json"
+
+
+@pytest.fixture(scope="module")
+def result():
+    return json.loads(RESULT.read_text(encoding="utf-8"))
+
+
+def test_result_checksum_and_repeat(result) -> None:
+    recorded = json.loads((DOCS / "strategy_e_max_m3_result_v1.sha256").read_text("utf-8"))
+    assert recorded["file_sha256"] == hashlib.sha256(RESULT.read_bytes()).hexdigest()
+    check = recorded["repeat_check"]
+    assert check["identical"] and check["artifacts_identical"]
+    assert check["first_result_digest"] == check["this_result_digest"] == recorded["file_sha256"]
+
+
+def test_b1_reproduced_m1_r1_and_invariants(result, rules) -> None:
+    pre = result["prechecks"]
+    assert pre["b1_reproduces_m1_r1"] == {"trades_csv": rules["upstream"]["m1_r1_trades_csv_sha256"],
+                                          "daily_returns_csv": rules["upstream"]["m1_r1_daily_returns_csv_sha256"]}
+    assert pre["invariants"] == {"same_trade_set": True, "zero_delta_at_1x": True,
+                                 "exact_1_5x_when_high": True, "pass": True}
+    assert result["identity"]["m3_rules"] == m3.RULES_CANONICAL_SHA256
+
+
+def test_exposure_map_only_on_high_breadth_broad_sessions(result) -> None:
+    exposure_map = result["high_breadth_exposure_map"]
+    assert set(exposure_map.values()) == {"3/2"}
+    assert all(day >= "2026-04-20" for day in exposure_map)
+    changed = result["changed_sessions"]["FULL_DEVELOPMENT"]
+    assert changed["exposure_changed_sessions"] == len(exposure_map) == \
+        result["opportunity"]["FULL_DEVELOPMENT"]["high_breadth_sessions"]
+    assert result["changed_sessions"]["LEGACY_NARROW"]["exposure_changed_sessions"] == 0
+
+
+def test_trade_funnel_identical_between_b1_and_b2(result) -> None:
+    f1 = result["variants"]["B1"]["evaluation"]["funnel"]
+    f2 = result["variants"]["B2"]["evaluation"]["funnel"]
+    for key in ("eligible_universe_rows", "H5_candidates", "selected_candidates", "valid_entries",
+                "valid_exact_exits", "standard_pnl_trades"):
+        assert f1[key]["count"] == f2[key]["count"]
+
+
+def test_verdict_and_m4_recompute(result, rules) -> None:
+    def summary(name):
+        ev = result["variants"][name]["evaluation"]
+        s = ev["scenarios"]["COST_10BP"]
+        return {"integrity": result["integrity"], "coverage": ev["funnel"]["standard_pnl_coverage"],
+                "mean_10bp": s["all_session_mean"], "pf_10bp": s["profit_factor"],
+                "mdd_10bp": s["maximum_drawdown"],
+                "top1_share_10bp": ev["concentration"]["cost_10bp"]["top1"]["share_of_total"]}
+    e2, e1 = m3.eligible(summary("B2"), rules), m3.eligible(summary("B1"), rules)
+    s1 = result["variants"]["B1"]["evaluation"]["scenarios"]["COST_10BP"]
+    s2 = result["variants"]["B2"]["evaluation"]["scenarios"]["COST_10BP"]
+    i = m3.improved(s2["cumulative_return"], s1["cumulative_return"], result["paired_b2_minus_b1"], rules)
+    assert (e2, e1, i) == (result["b2_eligibility"], result["b1_eligibility"], result["b2_improvement"])
+    assert m3.decide(e2, i, e1, rules) == result["verdict"]
+    assert (result["paired_b2_minus_b1"]["seed"], result["paired_b2_minus_b1"]["replicates"]) == (20260921, 10_000)
+
+
+def test_upstream_artifacts_unchanged() -> None:
+    import subprocess
+    for path in ("docs/backtest/strategy_e_candidate/strategy_e_v1_1_replay_result.json",
+                 "docs/backtest/strategy_e_max/strategy_e_max_m0_rules_v1.json",
+                 "docs/backtest/strategy_e_max/strategy_e_max_m1_result_v1.json",
+                 "docs/backtest/strategy_e_max/strategy_e_max_m2_result_v1.json",
+                 "docs/backtest/strategy_e_max/strategy_e_max_m3_rules_v1.json"):
+        frozen = subprocess.run(["git", "-C", str(ROOT), "show", f"7e240a8:{path}"],
+                                capture_output=True, check=True).stdout
+        assert (ROOT / path).read_bytes() == frozen
