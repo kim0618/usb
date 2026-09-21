@@ -1,0 +1,8 @@
+{
+  "file": "strategy_e_trading_rules_v1.json",
+  "canonical_sha256": "f1534f07688c801f2979491e447eefbb3e62b8045afb9c4ab302b90e4593d4b2",
+  "file_sha256": "85bb7f87d8c086ce6312bef833131c90cc1fc5b3b102de4f0d74c91e04bf13be",
+  "recipe": "canonical = sha256 of json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False)",
+  "frozen_at_kst": "2026-09-21",
+  "frozen_before": "any Strategy E trading backtest, paper trade, or live trade"
+}

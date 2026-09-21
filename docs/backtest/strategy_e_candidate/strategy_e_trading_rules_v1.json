@@ -1,0 +1,141 @@
+{
+  "declaration": {
+    "contract_id": "STRATEGY_E_TRADING_RULES_V1",
+    "stage": "TRADING_DEVELOPMENT",
+    "status": "PREREGISTERED",
+    "declared_at_kst": "2026-09-21",
+    "declared_before": "any Strategy E trading backtest, paper trade, or live trade",
+    "checksum_recipe": "sha256 of json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False)",
+    "scope": "E-D0 artifact integrity only; no signal implementation, execution optimization, or backtest"
+  },
+  "strategy": {
+    "id": "STRATEGY_E",
+    "name": "PREMARKET_OPEN_MOMENTUM_V1",
+    "stage": "TRADING_DEVELOPMENT"
+  },
+  "alpha": {
+    "hypothesis_id": "E1_H5",
+    "statement": "premarket_gap > 0 and premarket_rvol >= 3.0 and position_in_premarket_range >= 0.8 and return_0900_0925 > 0",
+    "predicates": [
+      {"feature": "premarket_gap", "operator": ">", "value": 0.0},
+      {"feature": "premarket_rvol", "operator": ">=", "value": 3.0},
+      {"feature": "position_in_premarket_range", "operator": ">=", "value": 0.8},
+      {"feature": "return_0900_0925", "operator": ">", "value": 0.0}
+    ],
+    "allowed_fields": [
+      "premarket_gap",
+      "premarket_rvol",
+      "position_in_premarket_range",
+      "return_0900_0925"
+    ],
+    "research_source": "e1_h5_confirmation_rules_v1.json hypothesis",
+    "research_rules_canonical_sha256": "d2a8b5f23a3c96c354a512d8adad22b5d194abb82eaa75fb35bef89534d511c3",
+    "frozen": true,
+    "additional_alpha_fields_forbidden": true
+  },
+  "decision": {
+    "signal_cutoff_et": "09:25",
+    "last_usable_bar_start_et": "09:24",
+    "post_cutoff_signal_inputs_forbidden": true,
+    "candidate_generation": "At 09:25 ET, generate a candidate exactly when the eligible row satisfies frozen E1_H5.",
+    "seal_required": true
+  },
+  "universe": {
+    "source": "e1_premarket_rules_v1.json universe",
+    "definition": "E0 declared PIT universe evaluated at D-1: latest CS reference snapshot as of D-1; XNAS/XNYS/XASE; close(D-1) >= 5 USD; median dollar volume over [D-21,D-2] >= 5,000,000 USD with at least 15 sessions; no split in (D-1,D]. Premarket requires at least 3 bars in [04:00,09:24], at least 50,000 USD premarket dollar volume, and a 09:30 open bar for label/execution availability.",
+    "tuning_forbidden": true,
+    "execution_or_risk_exclusions_are_not_alpha": true
+  },
+  "position_count": {
+    "common_risk_contract": "RiskConfig(version=risk_v1)",
+    "max_concurrent_positions": 3,
+    "max_new_symbols_per_day": 3,
+    "same_session_candidate_priority": "TBD — MUST BE FROZEN BEFORE E-D2 BACKTEST",
+    "no_result_based_selection": true
+  },
+  "entry": {
+    "models": [
+      {
+        "id": "E0_OFFICIAL_OPEN_PROXY",
+        "price": "open of the 09:30 ET one-minute aggregate bar",
+        "support": "present in the E1 Basic minute dataset",
+        "limitation": "research proxy only; not a guaranteed executable fill and carries no quote, imbalance, auction, spread, or impact information"
+      }
+    ],
+    "unsupported_models_excluded": ["first tradable minute fill model", "opening auction fill model"],
+    "selection_by_backtest_forbidden": true
+  },
+  "exit": {
+    "primary": {
+      "id": "OPEN_PLUS_5_MINUTES",
+      "price": "close of the 09:34 ET one-minute aggregate bar",
+      "horizon": "09:30 open to completion of the first five regular-session minutes",
+      "exact_bar_required": true
+    },
+    "secondary_robustness": "NONE",
+    "optimization_forbidden": true
+  },
+  "costs": {
+    "stress_grid_total_execution_cost_bp_round_trip": [5, 10, 15, 20],
+    "gross_return": "exit proxy / entry proxy - 1 before costs",
+    "commission_and_fees": "reported separately; UNKNOWN until a frozen schedule is registered",
+    "spread_proxy": "UNKNOWN; Stocks Basic has no bid/ask quote",
+    "slippage_proxy": "reported separately; UNKNOWN until a frozen proxy is registered",
+    "total_execution_cost": "commission_and_fees + spread_proxy + slippage_proxy; stress-grid totals are assumptions, not measurements",
+    "net_return": "gross_return - total_execution_cost",
+    "research_gross_edge_context_bp_approx": 17,
+    "observed_research_edge_is_not_a_parameter": true
+  },
+  "risk": {
+    "common_contract": "docs/TRADING_RISK_FOUNDATION.md and app.risk.config.RiskConfig(version=risk_v1)",
+    "per_position_planned_risk_pct": 0.005,
+    "max_daily_planned_risk_units": 3,
+    "base_capacity_pct": 0.8,
+    "max_symbol_exposure_pct": 0.6,
+    "max_concurrent_positions": 3,
+    "sector_concentration": "TBD — MUST BE FROZEN BEFORE E-D2 BACKTEST",
+    "low_price_liquidity": "Research universe floor remains close(D-1) >= 5 USD; any stricter execution eligibility is TBD and must not alter Alpha eligibility.",
+    "opening_volatility": "TBD — MUST BE FROZEN BEFORE E-D2 BACKTEST",
+    "missing_execution_data": "fail closed",
+    "abnormal_session": "fail closed unless an explicit behavior is frozen before E-D2"
+  },
+  "position_sizing": {
+    "policy": "TBD — MUST BE FROZEN BEFORE E-D2 BACKTEST",
+    "requirements": ["deterministic", "no Alpha-strength weighting", "compatible with common Risk V1 caps"],
+    "reason": "Risk V1 stop-based 1R sizing requires a structure stop, and Strategy E V1 has no frozen stop contract at E-D0."
+  },
+  "failure_behavior": {
+    "signal_feature_missing": "NO_TRADE",
+    "decision_seal_incomplete_or_invalid": "NO_TRADE",
+    "required_entry_price_unavailable": "NO_TRADE",
+    "required_exit_price_unavailable": "INVALID_EXECUTION_EXCLUDE_FROM_RETURN_WITH_COUNT",
+    "holiday": "NO_SESSION_NO_TRADE",
+    "shortened_session": "NO_TRADE_PENDING_EXPLICIT_FROZEN_POLICY",
+    "halt_at_entry_or_exit": "INVALID_EXECUTION_EXCLUDE_FROM_RETURN_WITH_COUNT",
+    "no_eligible_candidates": "NO_TRADE",
+    "duplicate_candidates": "DEDUPE_BY_SESSION_AND_SYMBOL_THEN_APPLY_ONE_CANDIDATE",
+    "unavailable_prices": "NO_TRADE_BEFORE_ENTRY_OR_INVALID_EXECUTION_AFTER_ENTRY"
+  },
+  "integrity": {
+    "research_rules": {
+      "e1_premarket_canonical_sha256": "951b973b1c848ef8d7b19e012365bee50bdec73cbea710431e8a9f4d47f67f02",
+      "e1_h5_confirmation_canonical_sha256": "d2a8b5f23a3c96c354a512d8adad22b5d194abb82eaa75fb35bef89534d511c3"
+    },
+    "historical_confirmation_run_id": "e1h5-d57b212da84c",
+    "historical_confirmation_artifact_status": "RUNTIME_ONLY_GITIGNORED_NOT_PRESENT_IN_CURRENT_WORKSPACE",
+    "historical_confirmation_repository_role": "Generated run payload under data/runtime; not a tracked or canonical repository source. Canonical repository provenance is the frozen declarations, checksums, implementation, tests, report, and commit record.",
+    "historical_confirmation_limitation": "The generated trade/event payload cannot be independently replay-audited in this workspace. This does not modify or re-estimate the frozen Alpha Contract.",
+    "serialization": "UTF-8 JSON; canonical checksum uses sorted keys, compact separators, ensure_ascii=false"
+  },
+  "no_retuning": {
+    "clause": "The H5 Alpha Contract must not change in response to Trading Backtest, Paper Trading, or Forward Validation results.",
+    "change_process": "Any Alpha change is a separate new research hypothesis and version, not a modification of Strategy E V1."
+  },
+  "stage_assertion": {
+    "alpha": "FROZEN",
+    "trading_contract": "PREREGISTERED",
+    "trading_backtest": "NOT_YET",
+    "paper": "NOT_YET",
+    "live": "NOT_APPROVED"
+  }
+}
