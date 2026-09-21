@@ -1,0 +1,72 @@
+{
+  "declaration": {
+    "contract_id": "STRATEGY_E_RISK_RULES_V1",
+    "version": "STRATEGY_E_RISK_V1",
+    "status": "FROZEN_BEFORE_ANY_STRATEGY_E_TRADING_BACKTEST",
+    "purpose": "deterministic normalized sizing and risk-accounting contract, not real-money sizing"
+  },
+  "common_risk_audit": {
+    "source": "RiskConfig(version=risk_v1)",
+    "max_new_symbols_per_day": 3,
+    "max_open_positions": 3,
+    "base_capacity_pct_of_account_equity": 0.8,
+    "max_symbol_exposure_pct_of_account_equity": 0.6,
+    "daily_planned_initial_risk_limit_r": 3,
+    "per_trade_planned_risk_pct_of_equity": 0.005,
+    "leverage": "NONE",
+    "cash_notional": "actual account sizing is capped by cash, base capacity, symbol capacity and stop-based 1R",
+    "sector_limit": "NONE",
+    "relationship": "Strategy E normalized weights are dimensionless backtest units and do not override or represent account-level Risk V1 sizing"
+  },
+  "selection": {
+    "candidate_priority": "CANONICAL_SYMBOL_ASCENDING",
+    "max_selected_candidates": 3,
+    "signal_strength_sizing": "FORBIDDEN",
+    "replacement_policy": "NONE",
+    "sequence": "freeze top-three selection before execution validation; never promote candidate four"
+  },
+  "sizing": {
+    "model": "EQUAL_WEIGHT_EXECUTABLE_V1",
+    "normalized_daily_gross_notional": 1.0,
+    "active_policy": "divide one exactly among records eligible for standard PnL",
+    "inactive_policy": "zero exposure",
+    "invalid_candidate_weight": 0,
+    "renormalize_over_executable_set": true,
+    "numeric_representation": "exact rational numerator/denominator; no rounding"
+  },
+  "exit_risk": {
+    "intratrade_stop": "NONE",
+    "profit_target": "NONE",
+    "partial_exit": "NONE",
+    "fixed_exit": "exact 09:34 ET aggregate close under E-D3",
+    "overnight_position": "NONE",
+    "invalid_exit_policy": "UNRESOLVED_EXIT / INVALID_FOR_STANDARD_PNL; no fallback liquidation or synthetic return",
+    "invalid_exit_reporting": "E-D6 must report frequency as a risk/data-quality metric"
+  },
+  "concentration_and_volatility": {
+    "sector_metadata": "NOT_RELIABLY_IDENTIFIABLE",
+    "sector_control": "NOT_ENFORCED",
+    "additional_opening_volatility_gate": "NONE",
+    "post_0925_risk_feature": "FORBIDDEN",
+    "diagnostic_only": "E-D6 may report available sector or volatility metadata without changing decisions"
+  },
+  "capacity": {
+    "market_impact_model": "NONE / NOT_YET_EXPLICITLY_MODELED",
+    "future_requirement": "real-dollar deployment requires position-notional versus liquidity capacity validation",
+    "real_account_capital": "NOT_SET",
+    "broker_buying_power": "NOT_SET",
+    "live_leverage": "NOT_SET",
+    "real_dollar_position_size": "NOT_SET"
+  },
+  "upstream": {
+    "e_d0_rules_canonical_sha256": "f1534f07688c801f2979491e447eefbb3e62b8045afb9c4ab302b90e4593d4b2",
+    "e_d1_signal_version": "STRATEGY_E_H5_SIGNAL_V1",
+    "e_d2_execution_rules_canonical_sha256": "d204b1dac9dd40530a7e03bebd36b32fd1950efde2e8b226a5eaedd5f196d041",
+    "e_d2_execution_version": "STRATEGY_E_EXECUTION_V1",
+    "e_d3_horizon_semantics_canonical_sha256": "f96f78f4bbd4758722ced07f758f8f0e5c10bb7f3e47d96b47642486a3f59603",
+    "e_d3_exit_rules_canonical_sha256": "f6f455641efebedfd65777ba4e00c47f1bc0adb60447e4c662d0908d9d38d58b",
+    "e_d3_exit_version": "STRATEGY_E_EXIT_V1",
+    "e_d4_cost_rules_canonical_sha256": "b2229fe5308df6b2b18f4eae8dfedf5d08b4af796ae24aab5ad7861ed3ec454c",
+    "common_risk_version": "risk_v1"
+  }
+}

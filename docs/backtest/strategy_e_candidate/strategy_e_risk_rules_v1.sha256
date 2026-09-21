@@ -1,0 +1,8 @@
+{
+  "file": "strategy_e_risk_rules_v1.json",
+  "canonical_sha256": "2e1e796d7e3563da4b1fd4d4a007314b49d3c3ac9a55e63519076b8ac8d104ee",
+  "file_sha256": "0cbbe907e02885e7ca62c7340510e2597edc9da75e5fd9ddf449b62d27ce112f",
+  "recipe": "canonical = sha256 of json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False)",
+  "frozen_at_kst": "2026-09-21",
+  "frozen_before": "any Strategy E historical trading backtest, portfolio return, or sizing comparison"
+}
