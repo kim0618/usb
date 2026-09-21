@@ -1,0 +1,35 @@
+{
+ "file": "strategy_e_v1_1_replay_result.json",
+ "run_id": "er3-e75ebe337b61",
+ "file_sha256": "2d50cca5cfe2ee4b284eb097c87afd2a51fd4b20c11dfa86e95752fa8a94b593",
+ "canonical_sha256": "1d28f9db7f365c7cb705b59638709e16cfadc080edd766103041aee9aca66983",
+ "recipe": "file_sha256 = sha256 of the runtime result.json bytes (the run's result digest); canonical = sha256 of json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False)",
+ "runtime_artifacts": {
+  "bootstrap.json": "b57a294967c592fd6739ed276be83d0db33ec96ec7e504b9daf287aea19b7ac4",
+  "buckets.json": "9e42a6f67a7cc3b7f6c05618d5f9b1c99da421d16df5d24ee4e69477e784b887",
+  "concentration.json": "e875d513ab4c82bd19a7d5db2cfdfa93bae4b72f81f5d8eef7c37133e2469ff2",
+  "cost_scenarios.json": "f8acbceb485e5868e6ff10b4b2fc33faae8eb5f7f82f9652d2f20c2d4a674b90",
+  "daily_returns.csv": "d0d3f82d0e610baf059e2df4b6d223f79e01de93cfb4c3eac13694c85a1db220",
+  "funnel.json": "2de0885789e297f874f4bc03fa15929aacf1dd7269ca24d6f98ee7c93924bee2",
+  "monthly.json": "f3bd80a283062113d9ec1670b41614d1b6058ab91602aa240ddab898785f4b1c",
+  "quarterly.json": "3516b25ef580a3d38349979fff21e08d9d3b4984da57b6612d6c9ecd82d46afb",
+  "result.json": "2d50cca5cfe2ee4b284eb097c87afd2a51fd4b20c11dfa86e95752fa8a94b593",
+  "structural_delta.json": "435e0180c65d3da200e315397822e86d5756a84beea14f1bedffd221e206f7cf",
+  "trades.csv": "e4670ec3bd2da5f971e5190ee3546e2b387fe5b533fdfbc7bad1b03a09d36fac"
+ },
+ "repeat_check": {
+  "artifacts_identical": true,
+  "attempt": "repeat-2",
+  "first_result_digest": "2d50cca5cfe2ee4b284eb097c87afd2a51fd4b20c11dfa86e95752fa8a94b593",
+  "identical": true,
+  "this_result_digest": "2d50cca5cfe2ee4b284eb097c87afd2a51fd4b20c11dfa86e95752fa8a94b593"
+ },
+ "e_d6_runtime_artifacts_byte_identical": [
+  "buckets.json",
+  "concentration.json",
+  "cost_scenarios.json",
+  "monthly.json",
+  "quarterly.json"
+ ],
+ "verdict": "E-R3 INCONCLUSIVE — STATISTICAL"
+}

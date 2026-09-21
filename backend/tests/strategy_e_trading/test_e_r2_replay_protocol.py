@@ -178,8 +178,15 @@ def test_protocol_loads_without_any_performance_entry_point(monkeypatch) -> None
                          (exits, "resolve_exit_batch"), (risk, "build_sizing_records")):
         monkeypatch.setattr(module, name, refuse)
     R.load_rules()
-    assert not (ROOT / R.RUNTIME_ROOT).exists(), "an E-R3 run exists before the protocol commit"
-    assert not list(DOCS.glob("*_r3_*")) and not list(DOCS.glob("E_R3_*"))
+    # E-R3 may exist now, but only as runs made from a HEAD that already contained the protocol,
+    # and no E-R3 result may be present in the protocol commit itself.
+    protocol_commit = "fa4258e"
+    for manifest in (ROOT / R.RUNTIME_ROOT).glob("**/run_manifest.json"):
+        head = json.loads(manifest.read_text(encoding="utf-8"))["git_head"]
+        assert _git("merge-base", "--is-ancestor", protocol_commit, head).returncode == 0, manifest
+    listed = _git("ls-tree", "-r", "--name-only", protocol_commit,
+                  "docs/backtest/strategy_e_candidate/").stdout.decode()
+    assert "E_R3_" not in listed and "replay_result" not in listed
 
 
 def test_protocol_checksum_file() -> None:
