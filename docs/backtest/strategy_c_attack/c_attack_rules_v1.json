@@ -1,0 +1,169 @@
+{
+  "rule_id": "c-attack-v0-right-tail-harvest-v1",
+  "study_id": "C-ATTACK-V0",
+  "declared_on": "2026-09-21",
+  "declared_at_kst": "2026-09-21T14:49:48+09:00",
+  "declared_before_results": true,
+  "trade_rows_simulated_at_declaration": 0,
+  "outcome_statistics_seen_at_declaration": "none for C-ATTACK. Prior knowledge from closed C studies is listed in prior_knowledge and is the reason for the hypothesis, not a tuning input.",
+  "status_of_c_family": "STRATEGY C DIRECTIONAL FAMILY = CLOSED (C_FAMILY_CLOSEOUT_V1.md). This declaration does not reopen it and changes no C rule, threshold, taxonomy, window or result.",
+  "question": "Can the right-tail frequency increase observed in C-M0 M_ONLY candidates be converted into realized, cost-aware, gap-aware, conservatively ordered positive expectancy with an asymmetric take-profit / stop-loss exit, better than matched high-volatility controls under the identical exit?",
+  "prior_knowledge": {
+    "c_m_gate_c2": "FAIL; 10D +15% MFE matched lift 1.358, 10D close excess -0.06pp (CI contains 0)",
+    "c_e0_m_only": "10D +15% MFE hit 30.28% vs matched control 20.07%; 5D close excess +0.319pp [-0.588, +1.075]; MAE5 excess -2.13pp",
+    "c_v2b": "volatility expansion; log-return downside >= upside; ~90% of sub-sample volatility excess vanishes when D-day true range is controlled",
+    "use": "motivation only; no threshold below was chosen from these numbers except that +15% / 10D was already the C headline tail metric"
+  },
+  "frozen_upstream": {
+    "c_m_rules": {"path": "docs/backtest/strategy_c/c_m_selection_rules_v1.json",
+                  "canonical_sha256": "c769aea5f25bcc46cfdc40a7d74fe325b5059f630714c007d1285cb2d9865d54"},
+    "c_e0_rules": {"path": "docs/backtest/strategy_c/v2/c_e0_rules_v1.json",
+                   "canonical_sha256": "48fc34cb06dd88b1bf3d6c5083366cf768fd269f355363a6d83789f2d0f62c71"},
+    "c_e0_taxonomy": {"path": "docs/backtest/strategy_c/v2/c_e0_event_taxonomy_v1.json",
+                      "canonical_sha256": "6ee5a16a9828d6b1d04d76f005117629fd84341399eeadb243c6b41567a45c6b"},
+    "c_m_baseline_run_id": "cmsel1-855b6a0ce64e3698fc74",
+    "c_m_candidates_primary_digest": "64e57203a5942633f83eb0ad28fc2dd382c9e289ae58ec3e978f626a47d96ccb",
+    "c_raw_digest": "adc4f1919dd835772262e2820d48c9a04904d5d1c953d8a97386728e08132c02",
+    "historical_snapshot": "USB-HIST-V1",
+    "c_e0_run_id": "ce01-234478e8f7ff27570e13",
+    "c_e0_event_store_digest_prefix": "bf4d744c73cf",
+    "c_e0_published_status_counts": {"EM": 2550, "M_ONLY": 3552, "EM_NEGATIVE_RISK": 222,
+                                     "EXCLUDED_MA_TARGET": 58, "UNKNOWN_FORM": 292,
+                                     "UNKNOWN_MAPPING": 6, "UNKNOWN_PIT": 0, "UNKNOWN_COVERAGE": 0}
+  },
+  "candidate": {
+    "primary_pool": "C-M0 M_ONLY",
+    "c_m0": "frozen C-M0 variant of c_m_selection_rules_v1.json, primary evaluation window (signal-date index 251..N-10 on the 501-session grid = 2025-09-18..2026-09-01, 240 dates). The run must reproduce candidates_primary digest 64e57203... before anything else.",
+    "m_only": "C-M0 primary candidate rows whose C-E0 status (c_e0_rules_v1 assignment order, W_PRIMARY) is M_ONLY. EM, EM_NEGATIVE_RISK, EXCLUDED_MA_TARGET and UNKNOWN_* rows are not traded in the primary test.",
+    "m_only_source": {
+      "accepted_A": "data/runtime/strategy_c/e0/runs/ce01-234478e8f7ff27570e13/candidate_status.parquet copied byte-for-byte from the PC that produced C-E0; its (signal_date, ticker) set must equal the reproduced C-M0 primary rows and its status counts must equal c_e0_published_status_counts exactly",
+      "accepted_B": "status recomputed with the unmodified strategy_c_e0 code (cohorts.assign) over an EDGAR submissions store; accepted only if status counts equal c_e0_published_status_counts exactly; the store digest is recorded",
+      "otherwise": "BLOCKED_M_ONLY_SOURCE: no outcome is computed and no gate value exists"
+    },
+    "secondary_descriptive": "all C-M0 primary candidates (every status) under the same exits; never a gate input",
+    "no_rule_changes": "no C-M threshold, bucket, eligibility, CA rule or C-E0 window/taxonomy is modified"
+  },
+  "entry": {
+    "rule": "buy at open(D+1), D = signal date. The candidate exists only after close(D).",
+    "price_basis": "split-normalized: raw price(t) / F(t), F(t) = cumulative price factor of splits executed <= t (C-M panel contract). Entry E = open(D+1)/F(D+1).",
+    "forbidden": ["close(D) entry", "premarket price", "any later or better price chosen after seeing the path"],
+    "no_entry_bar": "no bar or open <= 0 on D+1 -> NO_ENTRY (not a trade; counted per group)"
+  },
+  "exits": {
+    "pairs": {
+      "A": {"tp": 0.10, "sl": 0.05},
+      "B": {"tp": 0.15, "sl": 0.05},
+      "C": {"tp": 0.15, "sl": 0.07},
+      "D": {"tp": 0.20, "sl": 0.07},
+      "E": {"tp": 0.20, "sl": 0.10}
+    },
+    "primary_pair": "C",
+    "primary_pair_rationale": "+15% is the C headline tail metric already used before; -7% gives payoff ratio 2.14 without choosing from any C-ATTACK result",
+    "non_primary_pairs": "reported in every table; never a gate input; the best pair is never promoted",
+    "levels": "TP = E * (1 + tp), SL = E * (1 - sl), fixed at entry",
+    "max_holding_sessions": 10,
+    "holding_window": "sessions D+1..D+10 on the XNYS grid (D+1 is the entry session)",
+    "secondary_horizons_descriptive": [3, 5],
+    "per_session_order": [
+      "session without a bar for the ticker: no exit possible, continue (counted as missing_session)",
+      "sessions D+2..D+10: if open <= SL -> exit at open (SL_FIRST, gap_through_sl); elif open >= TP -> exit at open (TP_FIRST, gap_through_tp; resting limit fills at the better open)",
+      "then intraday: high >= TP and low <= SL -> AMBIGUOUS_SAME_BAR; low <= SL only -> SL_FIRST at SL; high >= TP only -> TP_FIRST at TP",
+      "D+1 (entry session): no gap rule (the open is the entry); intraday rule applies to the D+1 bar"
+    ],
+    "ambiguous_same_bar": {
+      "primary_conservative": "treated as SL_FIRST, exit at SL (stop-type exit costs apply)",
+      "optimistic_diagnostic": "treated as TP_FIRST, exit at TP; descriptive and used only for the INCONCLUSIVE rule, never to pass the gate"
+    },
+    "neither": "exit at close(D+10); state NEITHER",
+    "no_bar_on_d10": "if still open and the ticker has a later bar in the panel: exit at the first later open (if that open <= SL it is SL_FIRST gap_through_sl, if >= TP it is TP_FIRST gap_through_tp, else NEITHER with late_exit flag)",
+    "delisted_or_permanently_suspended": "if still open and the ticker has no bar after its last bar (last bar < D+10 or no bar on/after D+10): exit at last available close * (1 - 0.30) (delist haircut 30%, primary); state NEITHER with delisted flag. Sensitivity 0% and 100% haircut is descriptive.",
+    "stop_fill_realism": "intraday stop fills at exactly SL; the extra stop slippage in the cost model is the only adjustment"
+  },
+  "corporate_actions": {
+    "contract": "C-M PIT/corporate-action contract reused unchanged: split-normalized prices with F(t); candidate and control ticker-dates with split_flag or ca_suspect excluded by C-M0 eligibility; label_ca_suspect (split-normalized open(D+1)/close(D), close(t)/close(t-1), open(t)/close(t-1) for t in D+2..D+10 >= 3.0 or <= 1/3) excludes the trade for candidates AND controls, counted per group",
+    "ca_stress_descriptive": "label_ca_suspect candidate trades re-included at min(simulated return, -sl - costs); descriptive",
+    "pit_violations_required": 0
+  },
+  "costs": {
+    "model_id": "C_ATTACK_COST_V1",
+    "reason": "no common project cost model covers $3+ high-volatility names with stop exits; Strategy E COST grid (5-20bp, $5+ universe) is strategy-specific and explicitly not sufficient for lower-priced names",
+    "form": "net_return = gross_return - round_trip_cost; round_trip_cost = commission + spread_slippage(price bucket) + low_adv_add + stop_extra(if stop-type exit)",
+    "commission_round_trip": 0.0010,
+    "spread_slippage_round_trip_by_price_bucket": {
+      "note": "price bucket = C-M price_bucket of raw close(D) (edges 3,5,10,20,50,100), known at close(D)",
+      "0": 0.0060, "1": 0.0040, "2": 0.0025, "3": 0.0015, "4": 0.0015, "5": 0.0015
+    },
+    "low_adv_add_round_trip": {"adv20_bucket_0 (5M-20M)": 0.0010},
+    "stop_extra": {"value": 0.0020, "applies_to": "SL_FIRST intraday, SL_FIRST gap_through_sl, AMBIGUOUS treated as SL"},
+    "gross": "0 cost, diagnostic",
+    "stress_descriptive": "2x C_ATTACK_COST_V1",
+    "applied_to": "candidates and controls identically, each with its own buckets and exit type"
+  },
+  "matched_control": {
+    "population": "C-M0 eligible ticker-dates (hard filter + base history + CA exclusions) on the same signal date minus ALL C-M0 candidates (any C-E0 status), with a trade-valid entry (entry bar, not label_ca_suspect)",
+    "cell": ["signal_date", "price_bucket", "atr_bucket", "adv20_bucket"],
+    "min_controls_per_cell": 5,
+    "exit": "identical pair, ordering, gap, neither, delist and cost rules",
+    "base_for_a_candidate": "mean net return (and each rate) of the trade-valid controls in its cell",
+    "unmatched": "candidate trades in cells with < 5 controls are excluded from H2 and counted; they stay in H1"
+  },
+  "metrics_per_pair": ["n_trades", "win_rate (net > 0)", "tp_first_rate", "sl_first_rate", "neither_rate",
+                       "ambiguous_rate", "gap_through_sl_rate", "avg_winner", "avg_loser", "mean", "median",
+                       "expectancy (= mean net return per trade)", "profit_factor (sum gains / |sum losses|)",
+                       "cumulative_return (sleeve portfolio)", "max_drawdown (sleeve portfolio)",
+                       "longest_losing_streak", "longest_winning_streak",
+                       "top1/top5/top10 trade contribution (sum of top-k net returns / total net P&L)",
+                       "worst trade, p1, p5, loss beyond nominal SL", "trimmed mean (5% each side) descriptive"],
+  "capital_model": {
+    "per_trade": "equal notional",
+    "sleeve_portfolio": "capital 1.0, non-compounding; 10 sleeves (one per holding session); each signal date's trades share 1/10 of initial capital equally; each trade's P&L = weight * net return, booked on its exit session; equity = 1 + cumulative booked P&L; drawdown = equity / running peak - 1. At most 10 open cohorts -> gross exposure <= 100%, no infinite capital.",
+    "trade_order_for_streaks": "exit session, then signal date, then ticker",
+    "concurrency_report": ["signals per day", "open positions per session: max, median, p95"],
+    "portfolio_attack_simulation": "only if H1 and H2 both pass: capital 100, compounding, risk 0.5% of equity per trade (notional = 0.005 * equity / sl), gross exposure cap 100% (new entries skipped in signal_date, ticker order when exceeded). Descriptive, no sizing search, never a gate input."
+  },
+  "statistics": {
+    "bootstrap": "moving block bootstrap over the 240 signal dates, block length 10, 10000 replicates, seed 20260921 (C-E0 construction: per-date sums, dates are the resampling unit)",
+    "gate_statistic": "H2 = mean over matched candidate trades of (candidate net return - cell control mean net return), primary pair, conservative ordering; two-sided 95% percentile CI",
+    "reported": "H1 95%/99% CI, H2 99% CI, median, 5% trimmed mean; no multiplicity correction because there is exactly one gate statistic"
+  },
+  "hypotheses": {
+    "H1": "primary pair net expectancy (all trade-valid M_ONLY trades, conservative ordering) > 0",
+    "H2": "primary pair net expectancy of candidates > matched control net expectancy (gate statistic CI low > 0)",
+    "H3": "primary pair net profit factor > 1.10",
+    "H4": "sleeve-portfolio max drawdown of the primary pair (net, conservative) <= 25%"
+  },
+  "time_blocks": "4 consecutive blocks of the 240 signal dates (np.array_split; same as C-M/C-E0: 2025-09-18..12-11, 12-12..2026-03-11, 03-12..06-05, 06-08..09-01)",
+  "gate": {
+    "name": "GATE-C-ATTACK-V0",
+    "conditions": {
+      "1_h1_net_expectancy_point": "> 0",
+      "2_h2_excess_point": "> 0",
+      "3_h2_excess_ci95_low": "> 0",
+      "4_h3_profit_factor": "> 1.10",
+      "5_h4_sleeve_mdd": "<= 0.25",
+      "6_gap_aware": "satisfied only because conditions 1-5 are computed with gap-through exits at the open; recorded, not separately tested",
+      "7_conservative_ambiguity": "satisfied only because conditions 1-5 use AMBIGUOUS = SL_FIRST; recorded, not separately tested",
+      "8_time_stability": "H2 excess point > 0 in >= 3 of 4 blocks AND H1 point > 0 after removing the block with the largest net P&L",
+      "9_concentration": "sum of the top-10 trade net returns <= 50% of total net P&L (total must be > 0) AND H1 point > 0 after removing the 5 tickers with the largest total net P&L",
+      "10_sample": "trade-valid candidate trades >= 300 AND matched candidate trades >= 300 AND unique tickers >= 100",
+      "11_pit": "PIT violations == 0 including determinism and a detected positive control"
+    },
+    "decision": {
+      "BLOCKED_M_ONLY_SOURCE": "M_ONLY source not verified; no gate value",
+      "INCONCLUSIVE": "condition 10 or 11 fails (sample / data integrity), OR conditions 1-9 fail under conservative ordering, the primary pair AMBIGUOUS share of candidate trades > 0.25, and conditions 1-5, 8, 9 would all pass with AMBIGUOUS = TP_FIRST (minute ordering would decide)",
+      "PASS": "conditions 1-11 all pass",
+      "FAIL": "otherwise. Poor returns are never INCONCLUSIVE."
+    }
+  },
+  "after_pass": "minute ordering refinement (separate phase, subset with minute coverage, only AMBIGUOUS trades) -> execution cost -> portfolio risk sizing -> OOS / forward shadow -> paper -> live. No live trading from V0.",
+  "after_fail": "C Stable Directional = FAIL and C Attack Tail Harvest = FAIL: Strategy C long-side research ends. Volatility-neutral / options only under a new strategy ID.",
+  "prohibited": ["TP/SL grid refinement after results", "changing the primary pair", "changing holding period",
+                 "re-adding event presence, event quality or analog F3", "minute data in the primary gate",
+                 "dropping delisted or suspended names", "INCONCLUSIVE for poor returns"],
+  "outputs": {
+    "docs": "docs/backtest/strategy_c_attack/",
+    "code": "backend/app/backtest/strategy_c_attack/",
+    "tests": "backend/tests/strategy_c_attack/",
+    "runs": "data/runtime/strategy_c_attack/runs/<run_id>/"
+  }
+}
