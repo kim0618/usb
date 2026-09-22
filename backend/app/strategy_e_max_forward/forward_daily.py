@@ -95,9 +95,13 @@ def _forward_snapshots(root: Path, allowed: frozenset[str]) -> dict[date, frozen
     return out
 
 
-def eligible_universe(base: DailyBase, root: Path, session: date, calendar: MarketCalendar
+def eligible_universe(base: DailyBase, root: Path, session: date, calendar: MarketCalendar, *,
+                      forward_splits: tuple[SplitEvent, ...] | None = None
                       ) -> tuple[tuple[str, ...] | None, list[str]]:
-    """(eligible symbols, missing inputs). ``None`` when any required input is missing."""
+    """(eligible symbols, missing inputs). ``None`` when any required input is missing.
+
+    ``forward_splits`` replaces the verified ``splits_asof_<D>`` file (a caller that holds a split
+    list published before the session, e.g. a live runtime); executions after D are still ignored."""
     previous = calendar.previous_trading_day(session)
     window, cur = [], session
     for _ in range(context.REQUIRED_DAILY_SESSIONS):
@@ -123,7 +127,7 @@ def eligible_universe(base: DailyBase, root: Path, session: date, calendar: Mark
             missing.append(f"grouped daily {day.isoformat()}")
             continue
         close[k], volume[k] = rows
-    forward = _forward_splits(root, session)
+    forward = _forward_splits(root, session) if forward_splits is None else tuple(forward_splits)
     if forward is None:
         missing.append(f"splits_asof_{session.isoformat()}")
     if not usable:

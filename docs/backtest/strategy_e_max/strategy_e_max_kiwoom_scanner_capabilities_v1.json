@@ -10,7 +10,11 @@
     "rate_limit": {
       "measured": "HTTP 429 return_code 5 at 12 req/s: '허용된 API 요청 개수를 초과하였습니다[1700 ... 유량=5, API ID=usa20100]'; 30 calls at 3, 5 and 8 req/s all 200",
       "limit_per_api_id_per_second": 5,
-      "repository_limiter_per_second": 3.0
+      "repository_limiter_per_second": 3.0,
+      "per_api_id_independence": {
+        "measured_2026_09_22": "usa06011 + usa20100 + usa06012 + usa10100 each at 5/s concurrently for 30 s: 604 calls, 0 x 429, combined 20.1/s; usa06011 alone at 6/s: 1 x 429",
+        "verdict": "limits are per API ID; no global app-key throttle observed up to 20/s"
+      }
     },
     "usa10099_symbol_list": {
       "rows": {
@@ -47,7 +51,17 @@
       "session_pages": "strt_dt=<D> starts at 23:59 of D and pages backwards; 04:00 of D is reached on page 11-12",
       "vwap": "not provided (premarket dollar volume falls back to close x volume)",
       "premarket_pages_at_0925": "the latest 100 bars (07:46-09:25) are one page per symbol"
-    }
+    },
+    "chart_api_ids": {
+      "usa06010": "tick chart, 100 rows per page, minute-stamped cntr_tm; per-minute aggregate identical to usa06011 on every compared minute (10 symbols, 698 minutes)",
+      "usa06011": "1-minute chart",
+      "usa06012_to_06016": "daily / weekly / monthly / yearly (no intraday)",
+      "others_06000_06030": "1504 not supported on /api/us/chart"
+    },
+    "timestamp_safe_lanes": [
+      "usa06011",
+      "usa06010"
+    ]
   },
   "websocket": {
     "url": "wss://api.kiwoom.com:10000/api/us/websocket",
@@ -94,5 +108,9 @@
   "orders": {
     "repository": "no Kiwoom US order TR is implemented; KiwoomMarketDataClient allowlists market-data endpoints only (order_request_count stays 0); Settings refuses MARKET_DATA_PROVIDER=kiwoom unless BROKER_PROVIDER=simulation and KIWOOM_MODE=market_data_only",
     "real_order_sent": false
+  },
+  "symbol_codes": {
+    "rule": "use the Massive ticker when Kiwoom lists it (BH.A, UHAL.B); otherwise base + lowercase class (BRK.B -> BRKb, BF.B -> BFb, HEI.A -> HEIa)",
+    "coverage_2026_09_22": "2,561 / 2,561 canonical symbols mapped"
   }
 }
