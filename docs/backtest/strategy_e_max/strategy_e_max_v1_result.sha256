@@ -1,0 +1,26 @@
+{
+ "canonical_sha256": "e0595f81c268c36bd6649ccd7918bfd78df1bdae3f4178b9addaa451525d4226",
+ "file": "strategy_e_max_v1_result.json",
+ "file_sha256": "2f052e914d5ea4571d168a5c2beef85bffc8f6467c2e3486b5bc9e61080db9fd",
+ "protocol_commit": "dedae54",
+ "recipe": "file_sha256 = sha256 of the runtime result.json bytes (the run's result digest)",
+ "repeat_check": {
+  "artifacts_identical": true,
+  "attempt": "repeat-2",
+  "first_result_digest": "2f052e914d5ea4571d168a5c2beef85bffc8f6467c2e3486b5bc9e61080db9fd",
+  "identical": true,
+  "this_result_digest": "2f052e914d5ea4571d168a5c2beef85bffc8f6467c2e3486b5bc9e61080db9fd"
+ },
+ "run_id": "em6-92dbfc07dccf",
+ "runtime_artifacts": {
+  "S1_daily_returns.csv": "9d39d01bdccf0b9c7b1177ed9a39e0f9c647b724a0b964b3d091b8e54588e188",
+  "S1_trades.csv": "95d03874fbb27a111e731117575c2ae55405cad390379fee3f25d61d9a8602ae",
+  "S2_daily_returns.csv": "97f9d50cb87a998640d065bb87c73f09ff96a3dbdf20030c52342a38840d10a9",
+  "S2_exposure_map.json": "d09ec86f229f4e0fb3df7a36545a3d95102cea54e388abe0af76c0f2e48c2fcb",
+  "S2_trades.csv": "fee44b841fffb5ce348bc5ab0d1515d1e82c87809d8d024fda4894d8bd08b910",
+  "V1_daily_returns.csv": "7da259f5804eb8a87f9030f0cd054da8d1a0e49c143866831f83f7d5e148ed1d",
+  "V1_trades.csv": "1a5c2e3be5b7524ac75d56f26a3ac9db004df0c0629a44b287eda3e576c6452a",
+  "result.json": "2f052e914d5ea4571d168a5c2beef85bffc8f6467c2e3486b5bc9e61080db9fd"
+ },
+ "verdict": "E-MAX-M6 PASS — E-MAX V1 DEVELOPMENT CANDIDATE FROZEN"
+}

@@ -1,4 +1,4 @@
-"""E-MAX-M6 / E-MAX V1 protocol and composition tests (phase A). Synthetic sessions only."""
+"""E-MAX-M6 / E-MAX V1 protocol, composition, diagnostics and committed-result tests."""
 
 from __future__ import annotations
 
@@ -198,3 +198,100 @@ def test_no_further_optimization_path(rules) -> None:
     assert "NOT LIVE-LEVERAGE APPROVED" in rules["financing_and_live"]["label"]
     assert "3x leverage approved" in rules["pass_meaning"]["does_not_mean"]
     assert not any(k in rules for k in ("variants", "candidates"))
+
+
+# -- replay diagnostics (synthetic) --------------------------------------------------------------
+
+from app.backtest.strategy_e_max import v1_replay as V
+
+
+def test_drawdown_peak_trough_recovery() -> None:
+    sessions = ["d1", "d2", "d3", "d4", "d5", "d6", "d7"]
+    series = np.array([0.10, 0.0, -0.10, -0.05, 0.05, 0.12, 0.01])
+    out = V.drawdown(series, sessions)
+    assert out["peak_session_first"] == "d1" and out["peak_session_last"] == "d2"
+    assert out["trough_session"] == "d4" and out["recovery_session"] == "d6"
+    assert out["mdd"] == pytest.approx(0.9 * 0.95 - 1)
+    assert (out["sessions_peak_to_trough"], out["sessions_trough_to_recovery"],
+            out["underwater_sessions_peak_to_recovery"]) == (2, 2, 3)
+    assert V.drawdown(np.array([0.1, -0.2, 0.05]), ["a", "b", "c"])["recovery_session"] == "OPEN"
+
+
+def test_regime_breadth_and_quarter_splits(rules) -> None:
+    sessions = ["2026-04-16", "2026-04-17", "2026-04-20", "2026-07-01"]
+    series = np.array([-0.02, 0.01, 0.04, 0.03])
+    s3 = [{"session": d, "active": True, "breadth_multiplier": "3/2" if d == "2026-07-01" else "1/1",
+           "records": [{"standard_pnl": True}]} for d in sessions]
+    reg = V.regimes(series, sessions, s3, rules)
+    assert reg["LEGACY_NARROW"]["sessions"] == 2 and reg["BROAD_COVERAGE"]["sessions"] == 2
+    assert reg["LEGACY_NARROW"]["mdd_10bp"] == pytest.approx(-0.02)
+    assert reg["BROAD_COVERAGE"]["cumulative_10bp"] == pytest.approx(1.04 * 1.03 - 1)
+    bd = V.breadth_dependence(series, sessions, s3)
+    assert bd["high_breadth"]["sessions"] == 1 and bd["high_breadth"]["share_of_total"] == pytest.approx(0.5)
+    q = V.quarters(series, sessions, ("2026Q2", "2026Q3"))
+    assert q["2026Q2"]["sessions"] == 3 and q["2026Q3"]["share_of_total"] == pytest.approx(0.5)
+
+
+def test_first_difference() -> None:
+    assert V.first_difference({"a": [1, {"b": 2}]}, {"a": [1, {"b": 2}]}) is None
+    assert V.first_difference({"a": [1, {"b": 2}]}, {"a": [1, {"b": 3}]}) == "/a[1]/b: 2 != 3"
+
+
+# -- committed E-MAX V1 result (phase B) ----------------------------------------------------------
+
+RESULT = DOCS / "strategy_e_max_v1_result.json"
+
+
+@pytest.fixture(scope="module")
+def result():
+    return json.loads(RESULT.read_text(encoding="utf-8"))
+
+
+def test_result_checksum_and_repeat(result) -> None:
+    recorded = json.loads((DOCS / "strategy_e_max_v1_result.sha256").read_text("utf-8"))
+    assert recorded["file_sha256"] == hashlib.sha256(RESULT.read_bytes()).hexdigest()
+    check = recorded["repeat_check"]
+    assert check["identical"] and check["artifacts_identical"]
+    assert check["first_result_digest"] == check["this_result_digest"] == recorded["file_sha256"]
+    assert result["identity"]["v1_rules"] == v1.RULES_CANONICAL_SHA256
+
+
+def test_stage_identities_and_m5_exact_reproduction(result) -> None:
+    assert all(all(v.values()) for v in result["stage_identity"].values())
+    assert all(v["identical"] and v["first_difference"] is None for v in result["m5_identity"].values())
+    committed = json.loads((DOCS / "strategy_e_max_m5_result_v1.json").read_text("utf-8"))["variants"]["E20"]
+    assert result["sections"]["evaluation"] == committed["evaluation"]
+    assert result["independent_checks"]["pass"] and result["prechecks"]["in_process_deterministic"]
+
+
+def test_trade_set_exposure_and_cost_table(result) -> None:
+    f = result["funnel"]
+    assert (f["standard_trades"], f["high_breadth_sessions"], f["selected"]) == (480, 26, 501)
+    table = result["cost_table"]
+    assert table["COST_10BP"]["mdd_ceiling_pass"] and not table["COST_15BP"]["mdd_ceiling_pass"]
+    cumulative = [table[k]["cumulative"] for k in ("GROSS_0BP", "COST_05BP", "COST_10BP", "COST_15BP", "COST_20BP")]
+    assert cumulative == sorted(cumulative, reverse=True)
+    assert result["execution_cost_sensitivity"] == "HIGH"
+
+
+def test_gate_stop_b_and_verdict_recompute(result, rules) -> None:
+    assert v1.gate(result["verdict"]["summary"], rules) == result["gate"]
+    ev = result["sections"]["evaluation"]["scenarios"]["COST_10BP"]
+    ref = v1.e_base_reference()
+    assert v1.stop_b(result["sections"]["cagr"]["COST_10BP"], ev["maximum_drawdown"], ref["cagr_10bp"],
+                     ref["mdd_10bp"]) == {k: v for k, v in result["stop_b"]["authoritative_vs_e_base"].items()
+                                          if k != "reference"}
+    assert result["stop_b"]["diagnostic_vs_m5_e1"]["margin_cagr_minus_mdd_ratio"] < 0.02
+    assert v1.verdict(integrity=result["integrity"], reproducible=True, m5_identity=True,
+                      gate_checks=result["gate"], rules=rules) == result["verdict"]["label"]
+    assert result["verdict"]["label"] == "E-MAX-M6 PASS — E-MAX V1 DEVELOPMENT CANDIDATE FROZEN"
+
+
+def test_tail_breadth_and_regime_diagnostics(result) -> None:
+    assert result["sections"]["tail"]["top5"]["share_of_total"] > 0.8
+    assert result["breadth_dependence"]["high_breadth"]["sessions"] == 26
+    reg = result["coverage_regimes"]
+    assert reg["LEGACY_NARROW"]["cumulative_10bp"] < 0 < reg["BROAD_COVERAGE"]["cumulative_10bp"]
+    assert sum(b["positive"] for b in result["sections"]["blocks"]) == 2
+    assert result["drawdown"]["underwater_sessions_peak_to_recovery"] == \
+        result["sections"]["risk"]["recovery_duration_sessions"]
