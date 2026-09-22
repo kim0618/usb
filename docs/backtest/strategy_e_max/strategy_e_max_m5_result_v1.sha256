@@ -1,0 +1,26 @@
+{
+ "file": "strategy_e_max_m5_result_v1.json",
+ "run_id": "em5-7e65042026b5",
+ "file_sha256": "084c0d352cead4cf4142994d4232549d8b82f1f7687bed4cf885a3097be2f35b",
+ "canonical_sha256": "887cf25527a249d0814570afc9e8880a98c6c7825e2bc5dd10be5da5c8a4dbc3",
+ "recipe": "file_sha256 = sha256 of the runtime result.json bytes (the run's result digest)",
+ "runtime_artifacts": {
+  "E15_daily_returns.csv": "64aecff84666c013151a521f202343988b140e90eab545a7f47b79abe60dd58f",
+  "E15_trades.csv": "1e600f4575550226d11232d3d70d28682b41e25a00c4697f3c876e97991032d4",
+  "E1_daily_returns.csv": "97f9d50cb87a998640d065bb87c73f09ff96a3dbdf20030c52342a38840d10a9",
+  "E1_trades.csv": "fee44b841fffb5ce348bc5ab0d1515d1e82c87809d8d024fda4894d8bd08b910",
+  "E20_daily_returns.csv": "7da259f5804eb8a87f9030f0cd054da8d1a0e49c143866831f83f7d5e148ed1d",
+  "E20_trades.csv": "1a5c2e3be5b7524ac75d56f26a3ac9db004df0c0629a44b287eda3e576c6452a",
+  "result.json": "084c0d352cead4cf4142994d4232549d8b82f1f7687bed4cf885a3097be2f35b"
+ },
+ "repeat_check": {
+  "artifacts_identical": true,
+  "attempt": "repeat-2",
+  "first_result_digest": "084c0d352cead4cf4142994d4232549d8b82f1f7687bed4cf885a3097be2f35b",
+  "identical": true,
+  "this_result_digest": "084c0d352cead4cf4142994d4232549d8b82f1f7687bed4cf885a3097be2f35b"
+ },
+ "protocol_commit": "d413da0",
+ "verdict": "E-MAX-M5 PASS — 2.0X SELECTED",
+ "m6": "M6 AUTHORIZED"
+}

@@ -143,3 +143,106 @@ def test_checksum_file() -> None:
     recorded = json.loads((DOCS / "strategy_e_max_m5_rules_v1.sha256").read_text("utf-8"))
     assert recorded["canonical_sha256"] == m5.RULES_CANONICAL_SHA256
     assert recorded["file_sha256"] == hashlib.sha256((DOCS / "strategy_e_max_m5_rules_v1.json").read_bytes()).hexdigest()
+
+
+# -- replay diagnostics (synthetic) --------------------------------------------------------------
+
+from app.backtest.strategy_e_max import m5_replay as M5R
+
+
+def test_mdd_window_and_breadth_split() -> None:
+    sessions = ["d1", "d2", "d3", "d4", "d5"]
+    series = np.array([0.10, -0.05, -0.10, 0.02, 0.20])
+    replayed = [{"session": d, "active": True, "breadth_multiplier": "3/2" if d == "d3" else "1/1",
+                 "final_exposure_multiplier": "3/1" if d == "d3" else "2/1"} for d in sessions]
+    out = M5R.breadth_interaction(sessions, series, replayed)
+    assert out["mdd_window"]["from"] == "d2" and out["mdd_window"]["to"] == "d3"
+    assert out["mdd_window"]["sum_high_breadth_10bp"] == pytest.approx(-0.10)
+    assert out["mdd_window"]["sum_normal_10bp"] == pytest.approx(-0.05)
+    assert out["high_breadth"]["sessions"] == 1 and out["normal"]["final_exposure"] == ["2/1"]
+
+
+def test_tail_blocks_and_stop_b() -> None:
+    sessions = ["2026-01-02", "2026-01-05", "2026-01-06", "2026-01-07"]
+    series = np.array([0.03, -0.01, 0.01, 0.02])
+    t = M5R.tail(series, sessions)
+    assert t["top1"]["sessions"] == ["2026-01-02"] and t["top1"]["share_of_total"] == pytest.approx(0.6)
+    b = M5R.blocks(series, sessions, [{"block": 1, "first": "2026-01-02", "last": "2026-01-07", "trades": 4}])
+    assert b[0]["positive"] and b[0]["block_mdd_10bp"] == pytest.approx(-0.01)
+    assert M5R.stop_b(0.30, -0.40, 0.20, -0.20)["flagged"]
+    assert not M5R.stop_b(0.40, -0.30, 0.20, -0.20)["flagged"]
+
+
+# -- committed M5 result (phase B) ---------------------------------------------------------------
+
+RESULT = DOCS / "strategy_e_max_m5_result_v1.json"
+
+
+@pytest.fixture(scope="module")
+def result():
+    return json.loads(RESULT.read_text(encoding="utf-8"))
+
+
+def test_result_checksum_and_repeat(result) -> None:
+    recorded = json.loads((DOCS / "strategy_e_max_m5_result_v1.sha256").read_text("utf-8"))
+    assert recorded["file_sha256"] == hashlib.sha256(RESULT.read_bytes()).hexdigest()
+    check = recorded["repeat_check"]
+    assert check["identical"] and check["artifacts_identical"]
+    assert check["first_result_digest"] == check["this_result_digest"] == recorded["file_sha256"]
+
+
+def test_e1_reproduced_m4_x1_and_invariants(result, rules) -> None:
+    pre = result["prechecks"]
+    assert pre["e1_reproduces_m4_x1"] == {"trades_csv": rules["upstream"]["m4_x1_trades_csv_sha256"],
+                                          "daily_returns_csv": rules["upstream"]["m4_x1_daily_returns_csv_sha256"]}
+    assert pre["invariants"] == {"same_trade_set": True, "exact_scaling": True, "pass": True}
+    assert result["identity"]["m5_rules"] == m5.RULES_CANONICAL_SHA256
+
+
+def test_trade_set_and_concentration_identical_across_multipliers(result) -> None:
+    evs = [v["evaluation"] for v in result["variants"].values()]
+    assert {e["funnel"]["standard_pnl_trades"]["count"] for e in evs} == {480}
+    assert len({round(e["concentration"]["cost_10bp"]["top1"]["share_of_total"], 12) for e in evs}) == 1
+
+
+def test_mdd_is_from_the_compounded_series(result) -> None:
+    e1 = result["variants"]["E1"]["evaluation"]["scenarios"]["COST_10BP"]["maximum_drawdown"]
+    e20 = result["variants"]["E20"]["evaluation"]["scenarios"]["COST_10BP"]["maximum_drawdown"]
+    assert e20 != pytest.approx(2 * e1)
+
+
+def test_verdict_and_m6_recompute(result, rules) -> None:
+    candidates = []
+    for name in ("E15", "E20"):
+        v = result["variants"][name]
+        s = v["evaluation"]["scenarios"]["COST_10BP"]
+        summary = {"integrity": result["integrity"], "coverage": v["evaluation"]["funnel"]["standard_pnl_coverage"],
+                   "mean_10bp": s["all_session_mean"], "pf_10bp": s["profit_factor"],
+                   "mdd_10bp": s["maximum_drawdown"], "catastrophic": bool(v["catastrophic_sessions"]),
+                   "top1_share_10bp": v["evaluation"]["concentration"]["cost_10bp"]["top1"]["share_of_total"]}
+        assert m5.eligible(summary, rules) == v["eligibility"]
+        base = result["variants"]["E1"]["evaluation"]["scenarios"]["COST_10BP"]["cumulative_return"]
+        assert m5.improved(s["cumulative_return"], base, v["paired_vs_e1"], rules) == v["improvement"]
+        candidates.append({"id": name, "eligible_pass": v["eligibility"]["pass"],
+                           "improved_pass": v["improvement"]["pass"],
+                           "cagr_10bp": v["cagr"]["COST_10BP"], "mean_10bp": s["all_session_mean"]})
+    decided = m5.winner(candidates, rules)
+    assert {k: decided[k] for k in ("winner", "label", "pool")} == \
+        {k: result["verdict"][k] for k in ("winner", "label", "pool")}
+    assert m5.m6(result["variants"][decided["winner"]]["eligibility"], rules) == result["verdict"]["m6"]
+
+
+def test_paired_p_is_identical_across_candidates_as_declared(result) -> None:
+    assert result["variants"]["E15"]["paired_vs_e1"]["p_mean_le_zero"] == \
+        result["variants"]["E20"]["paired_vs_e1"]["p_mean_le_zero"]
+
+
+def test_upstream_artifacts_unchanged() -> None:
+    import subprocess
+    for path in ("docs/backtest/strategy_e_max/strategy_e_max_m0_rules_v1.json",
+                 "docs/backtest/strategy_e_max/strategy_e_max_m4_result_v1.json",
+                 "docs/backtest/strategy_e_max/strategy_e_max_m5_rules_v1.json",
+                 "docs/backtest/strategy_e_candidate/strategy_e_v1_1_replay_result.json"):
+        frozen = subprocess.run(["git", "-C", str(ROOT), "show", f"d413da0:{path}"],
+                                capture_output=True, check=True).stdout
+        assert (ROOT / path).read_bytes() == frozen
