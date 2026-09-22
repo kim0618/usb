@@ -118,3 +118,16 @@ def test_share_class_code_mapping() -> None:
 def test_listed_dotted_codes_are_kept() -> None:
     listing = {"BH.A": "NY", "UHAL.B": "NY", "BRKb": "NY"}
     assert FZ.kiwoom_code("BH.A", listing) == "BH.A" and FZ.kiwoom_code("BRK.B", listing) == "BRKb"
+
+
+def test_hash_lanes_are_stable_and_outcome_free() -> None:
+    symbols = [f"S{i}" for i in range(200)]
+    a, b = FZ.hash_lanes(symbols)
+    assert sorted(a + b) == sorted(symbols) and not set(a) & set(b)
+    assert FZ.hash_lanes(list(reversed(symbols))) == (a, b) and 60 < len(a) < 140
+
+
+def test_first_refresh_catches_up_to_0400() -> None:
+    cache = FZ.SymbolCache("X", "ND")
+    FZ.refresh(FakeLane(minute_rows(7, 30)), cache, D, lambda: at(7, 30, 20))      # started late: 3 pages back
+    assert min(cache.bars) == 4 * 60 and cache.complete_through == 7 * 60 + 29

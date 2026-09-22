@@ -1,219 +1,367 @@
-"""E-RT2 live dry run: single-app-key, full canonical universe, 09:24-cutoff finalization by 09:30.
+"""E-RT2 live capacity dry run: one app key, full canonical universe, 09:24-cutoff finalization by 09:30.
 
-    PYTHONPATH=backend .venv/bin/python -m app.dev.run_e_rt2_dryrun [--minute-share 1300]
+    # local: build the canonical-universe artifact from the US-B common store (Drive)
+    PYTHONPATH=backend .venv/bin/python -m app.dev.run_e_rt2_dryrun build-universe --session 2026-09-22 --out u.json
+    # server worker (systemd): read-only Kiwoom REST lanes usa06011 + usa06010
+    PYTHONPATH=backend python -m app.dev.run_e_rt2_dryrun run --universe u.json --out <run dir>
 
-Read-only Kiwoom market data (usa10099, usa06011, usa06010); no order, no account TR, no E enable,
-no return computed. Kiwoom calls stop at 09:29:45 ET, before Strategy A's first call at the open.
-Writes data/runtime/strategy_e_max/rt/dryrun/<session>.json.
+CAPACITY DRY RUN ONLY: no order, no SimBroker, no E enable, no return; no WebSocket is opened.
+Startup refuses unless STRATEGY_E_MAX_ENABLED is false, RT2_DRY_RUN=true, NO_ORDER_MODE=true,
+BROKER_PROVIDER=simulation and KIWOOM_MODE=market_data_only. Kiwoom calls stop at 09:29:45 ET,
+before Strategy A's first Kiwoom call at the 09:30 open. One run per session (fcntl lock + marker);
+a start after 09:25 ET records RESTARTED_AFTER_CUTOFF and makes no decision.
 """
 
 from __future__ import annotations
 
 import argparse
+import csv
 from datetime import date, datetime, timedelta
+import fcntl
 import gzip
+import hashlib
 import json
+import os
+from pathlib import Path
 import statistics
+import subprocess
 import threading
 import time
-from pathlib import Path
 
 import numpy as np
 
-from app.backtest.strategy_c_selection.panel import SplitEvent
-from app.backtest.strategy_e1_forward.seal import SEALED_FEATURES
-from app.backtest.strategy_e1_premarket.premarket import DECISION_LAST_BAR, premarket_block
-from app.backtest.workspace.discovery import resolve_workspace_root
-from app.core.config import get_settings
-from app.integrations.kiwoom.auth import KiwoomAuthClient
-from app.integrations.kiwoom.rate_limit import KiwoomRateLimits, RequestRateLimiter
-from app.market.calendar import MarketCalendar
-from app.strategy_e_max_forward import forward_daily as FD, storage as ST
-from app.strategy_e_max_rt import decision as DEC, finalizer as FZ
-from app.strategy_e_v1_1 import universe as U
-from app.strategy_e_v1_1.universe import DecisionFrame
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
-OUT = REPO_ROOT / "data/runtime/strategy_e_max/rt/dryrun"
-LANE_RATE = 4.9
+def now():
+    from app.strategy_e_max_rt.finalizer import ET
+    return datetime.now(ET)
 
 
 def log(text):
-    print(f"[{datetime.now(FZ.ET).strftime('%H:%M:%S')} ET] {text}", flush=True)
+    print(f"[{now().strftime('%H:%M:%S')} ET] {text}", flush=True)
 
 
-def now():
-    return datetime.now(FZ.ET)
+# -- local: canonical universe artifact -------------------------------------------------------------
 
-
-def wait_until(t):
-    while now() < t:
-        time.sleep(min(30.0, max(0.05, (t - now()).total_seconds())))
-
-
-def lane_clients(settings, auth):
-    out = []
-    for _ in range(2):
-        limits = KiwoomRateLimits()
-        limits.chart = RequestRateLimiter(LANE_RATE)
-        out.append(FZ.ChartLaneClient(base_url=settings.kiwoom_base_url, auth=auth, rate_limits=limits, max_retries=1))
-    return out
-
-
-def splits_through(root: Path, day: date) -> tuple[SplitEvent, ...]:
-    body = json.loads(gzip.decompress(ST.splits_asof_path(root, day).read_bytes()))
-    return tuple(SplitEvent(r["ticker"], date.fromisoformat(r["execution_date"]), float(r["split_from"]),
-                            float(r["split_to"])) for r in body["results"] if r["split_from"] != r["split_to"])
-
-
-def main(argv=None) -> int:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--minute-share", type=int, default=1300)
-    args = parser.parse_args(argv)
+def build_universe(session: date, out: Path) -> None:
+    from app.backtest.strategy_c_selection.panel import SplitEvent
+    from app.backtest.workspace.discovery import resolve_workspace_root
+    from app.market.calendar import MarketCalendar
+    from app.strategy_e_max_forward import forward_daily as FD, storage as ST
     cal = MarketCalendar("America/New_York")
-    session = now().date()
-    if cal.session(session) is None or now().time() >= FZ.REFRESH_B_AT:
-        raise SystemExit(f"{session} is not a session or it is past 09:20:40 ET")
     prev = cal.previous_trading_day(session)
     root = resolve_workspace_root(None)
-    report = {"session": session.isoformat(), "mode": "DRY_RUN_NO_ORDERS", "single_app_key": True,
-              "lanes": {"minute": FZ.MINUTE_API, "tick": FZ.TICK_API}, "lane_rate_per_s": LANE_RATE}
-
-    base = FD.load_base(root)
-    universe, missing = FD.eligible_universe(base, root, session, cal, forward_splits=splits_through(root, prev))
+    splits_path = ST.splits_asof_path(root, prev)
+    body = json.loads(gzip.decompress(splits_path.read_bytes()))
+    events = tuple(SplitEvent(r["ticker"], date.fromisoformat(r["execution_date"]), float(r["split_from"]),
+                              float(r["split_to"])) for r in body["results"] if r["split_from"] != r["split_to"])
+    universe, missing = FD.eligible_universe(FD.load_base(root), root, session, cal, forward_splits=events)
     if universe is None:
-        raise SystemExit(f"canonical universe inputs missing: {missing}")
-    report["universe"] = {"rows": len(universe), "provisional": "split executions on the session itself are "
-                          "not in the stored list (splits_asof_" + prev.isoformat() + " used)"}
-    grouped = json.loads(gzip.decompress(ST.grouped_path(root, prev).read_bytes()))["body"]["results"]
-    dv = {r["T"]: float(r["c"]) * float(r["v"]) for r in grouped if r.get("c") and r.get("v")}
-    close = {r["T"]: float(r["c"]) for r in grouped if r.get("c")}
+        raise SystemExit(f"inputs missing: {missing}")
+    grouped_path = ST.grouped_path(root, prev)
+    grouped = json.loads(gzip.decompress(grouped_path.read_bytes()))["body"]["results"]
+    rows = {r["T"]: r for r in grouped}
+    payload = {"format": "e-rt2-canonical-universe-v1", "session": session.isoformat(), "d_minus_1": prev.isoformat(),
+               "rule": "E0 daily eligibility via app.strategy_e_v1_1.universe.daily_eligibility (forward_daily)",
+               "inputs": {"grouped_daily_d_minus_1_sha256": ST.sha256_file(grouped_path),
+                          "splits_asof_d_minus_1_sha256": ST.sha256_file(splits_path),
+                          "note": "split executions on the session itself are not in this list (provisional)"},
+               "symbols": list(universe),
+               "close_d_minus_1": {s: float(rows[s]["c"]) for s in universe},
+               "dollar_volume_d_minus_1": {s: float(rows[s]["c"]) * float(rows[s]["v"]) for s in universe},
+               "spy_close_d_minus_1": float(rows["SPY"]["c"])}
+    payload["digest"] = hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
+    out.write_text(json.dumps(payload, sort_keys=True) + "\n", encoding="utf-8")
+    print(f"universe {len(universe)} digest {payload['digest']} -> {out}")
 
-    settings = get_settings()
-    auth = KiwoomAuthClient(base_url=settings.kiwoom_base_url, app_key=settings.kiwoom_app_key.get_secret_value(),
-                            app_secret=settings.kiwoom_app_secret.get_secret_value(), limiter=KiwoomRateLimits().auth)
-    minute_client, tick_client = lane_clients(settings, auth)
-    exch = {}
-    for ex in ("ND", "NY", "NA"):
-        for r in minute_client._collect("usa10099", "/api/us/stkinfo", {"stex_tp": ex}, row_key="list", max_pages=50):  # noqa: SLF001
-            exch.setdefault(str(r["stk_cd"]).strip(), ex)
-    mapped = [s for s in universe if FZ.kiwoom_code(s, exch) in exch]
-    unmapped = [s for s in universe if FZ.kiwoom_code(s, exch) not in exch]
-    report["kiwoom_mapping"] = {"mapped": len(mapped), "unmapped": len(unmapped), "unmapped_symbols": unmapped[:50],
-                                "share_class_rule": "X.Y -> X + lower(Y)",
-                                "share_class_mapped": [s for s in mapped if FZ.kiwoom_code(s, exch) != s]}
-    order = sorted(mapped, key=lambda s: (-dv.get(s, 0.0), s))
-    group_a, group_b = FZ.split_lanes(order, args.minute_share)
-    caches = {s: FZ.SymbolCache(s, exch[FZ.kiwoom_code(s, exch)], FZ.kiwoom_code(s, exch)) for s in order}
-    spy = FZ.SymbolCache("SPY", exch.get("SPY", "NA"))
-    minute_lane, tick_lane = FZ.Lane("minute", FZ.MINUTE_API, minute_client), FZ.Lane("tick", FZ.TICK_API, tick_client)
-    log(f"universe {len(universe)} mapped {len(mapped)} unmapped {len(unmapped)}; minute lane {len(group_a)}, tick lane {len(group_b)}")
 
-    at = lambda t: datetime.combine(session, t, tzinfo=FZ.ET)  # noqa: E731
-    wait_until(at(FZ.PREMARKET_START) + timedelta(seconds=5))
-    cycles, errors = 0, 0
-    while now() < at(FZ.REFRESH_B_AT):
-        cycles += 1
-        for cache in [spy] + [caches[s] for s in order]:
-            if now() >= at(FZ.REFRESH_B_AT):
-                break
-            try:
-                FZ.refresh(minute_lane, cache, session, now)
-            except Exception as error:  # a failed refresh leaves the cache as it was
-                errors += 1
-                if errors <= 5:
-                    log(f"refresh error {cache.symbol}: {error}")
-        log(f"cycle {cycles} done; minute-lane calls {minute_lane.calls} errors {errors}")
-    for cache in [spy] + [caches[s] for s in group_b]:          # the tick group last, in finalization order
-        if now() >= at(FZ.FINALIZE_AT):
-            break
-        try:
-            FZ.refresh(minute_lane, cache, session, now)
-        except Exception:
-            errors += 1
-    report["rolling"] = {"cycles": cycles, "minute_lane_calls": minute_lane.calls, "refresh_errors": errors}
+# -- server worker ----------------------------------------------------------------------------------
 
-    wait_until(at(FZ.FINALIZE_AT))
-    t0 = now()
-    deadline = at(FZ.DEADLINE)
-    fin_errors = {"minute": 0, "tick": 0}
+def safety_checks() -> dict:
+    from app.core.config import get_settings
+    s = get_settings()
+    checks = {"STRATEGY_E_MAX_ENABLED_false": os.environ.get("STRATEGY_E_MAX_ENABLED", "false").strip().lower()
+              in {"", "0", "false", "no"},
+              "RT2_DRY_RUN_true": os.environ.get("RT2_DRY_RUN") == "true",
+              "NO_ORDER_MODE_true": os.environ.get("NO_ORDER_MODE") == "true",
+              "broker_provider_simulation": s.broker_provider == "simulation",
+              "kiwoom_mode_market_data_only": s.kiwoom_mode == "market_data_only",
+              "kiwoom_credentials_present": bool(s.has_kiwoom_credentials)}
+    if not all(checks.values()):
+        raise SystemExit(f"E-RT2 safety check failed: {checks}")
+    return checks
 
-    def run(lane, group, fn, key):
-        for s in group:
-            if now() >= deadline:
-                return
-            try:
-                fn(lane, caches[s], session, now)
-            except Exception:
-                fin_errors[key] += 1
-    threads = [threading.Thread(target=run, args=(minute_lane, group_a, FZ.finalize_minute, "minute")),
-               threading.Thread(target=run, args=(tick_lane, group_b, FZ.finalize_ticks, "tick"))]
+
+def a_health() -> dict:
+    active = subprocess.run(["systemctl", "is-active", "usb-backend"], capture_output=True, text=True).stdout.strip()
     try:
-        FZ.finalize_minute(minute_lane, spy, session, now)
-    except Exception:
-        fin_errors["minute"] += 1
-    [t.start() for t in threads]
-    [t.join() for t in threads]
-    t1 = max((c.finalized_at for c in caches.values() if c.finalized_at), default=None)
-    calls_stopped_at = now()
-    audit = FZ.audit(caches, deadline)
-    tick_pages = [c.calls for s, c in caches.items() if s in set(group_b) and c.data_source]
-    report["finalization"] = {
-        "T0": t0.isoformat(), "T1": t1.isoformat() if t1 else None,
-        "T1_minus_T0_s": (t1 - t0).total_seconds() if t1 else None, "T1_before_0930": bool(t1 and t1.time() < FZ.dtime(9, 30)),
-        "kiwoom_calls_stopped_at": calls_stopped_at.isoformat(), "errors": fin_errors,
-        "minute_lane": {"calls": minute_lane.calls, "errors": minute_lane.errors,
-                        "latency_p50": statistics.median(minute_lane.latencies) if minute_lane.latencies else None,
-                        "latency_max": max(minute_lane.latencies) if minute_lane.latencies else None},
-        "tick_lane": {"calls": tick_lane.calls, "errors": tick_lane.errors,
-                      "latency_p50": statistics.median(tick_lane.latencies) if tick_lane.latencies else None,
-                      "latency_max": max(tick_lane.latencies) if tick_lane.latencies else None},
-        "tick_calls_per_symbol_incl_refresh": {"median": statistics.median(tick_pages) if tick_pages else None,
-                                               "max": max(tick_pages) if tick_pages else None},
-        "audit": {**audit, "unmapped_stale": len(unmapped), "total_stale": audit["stale"] + len(unmapped)}}
-    log(f"T0 {t0.time()} T1 {t1.time() if t1 else None} stale {audit['stale']} unmapped {len(unmapped)}")
-
-    # features from the finalized bars (no return is computed)
-    started = time.monotonic()
-    spy_pre = _block(spy)
-    spy_close = close.get("SPY", float("nan"))
-    spy_ret = spy_pre["pm_last_price"] / spy_close - 1 if spy_pre and spy_close == spy_close else float("nan")
-    rows, complete = {}, 0
-    for s, c in caches.items():
-        pre = _block(c)
-        if pre is None or pre["pm_bars"] < U.MIN_PREMARKET_BARS or pre["pm_dollar_volume"] < U.MIN_PREMARKET_DOLLAR_VOLUME:
-            continue
-        gap = pre["pm_last_price"] / close[s] - 1
-        span = pre["pm_high"] - pre["pm_low"]
-        rows[s] = {"premarket_gap": gap, "premarket_rvol": float("nan"),
-                   "position_in_premarket_range": (pre["pm_last_price"] - pre["pm_low"]) / span if span > 0 else float("nan"),
-                   "return_0900_0925": pre["return_0900_0925"], "return_last30m": pre["return_0855_0925"],
-                   "relative_strength_vs_spy": gap - spy_ret, "premarket_dollar_volume": pre["pm_dollar_volume"],
-                   "previous_day_dollar_volume": dv.get(s, float("nan")), "close_price": close[s],
-                   "spy_premarket_return": spy_ret, "pm_bars": pre["pm_bars"]}
-        complete += all(np.isfinite(rows[s][k]) for k in ("premarket_gap", "position_in_premarket_range"))
-    symbols = tuple(sorted(rows))
-    frame = DecisionFrame(session, symbols, {n: np.array([rows[s][n] for s in symbols], dtype=float) for n in SEALED_FEATURES}, {})
-    decision = DEC.decide_from_frame(frame, source_digest="dryrun", source="KIWOOM_NATIVE_DRYRUN", decided_at=now())
-    report["decision_compute"] = {
-        "seconds_incl_feature_build": round(time.monotonic() - started, 3), "premarket_rows": len(symbols),
-        "rows_with_gap_and_range": complete,
-        "rvol": "NOT COMPUTED: no same-source (Kiwoom) 20-session denominator exists; E-RT1 volume-semantics finding stands",
-        "h5_candidates_without_rvol": decision.h5_count}
-    report["orders_sent"] = 0
-    OUT.mkdir(parents=True, exist_ok=True)
-    path = OUT / f"{session.isoformat()}.json"
-    path.write_text(json.dumps(report, indent=1, default=str) + "\n", encoding="utf-8")
-    log(f"written {path}")
-    return 0
+        import httpx
+        health = httpx.get("http://127.0.0.1:8000/health", timeout=5).json().get("status")
+    except Exception as error:     # the check never fails the worker
+        health = f"unreachable: {type(error).__name__}"
+    return {"at": now().isoformat(), "usb_backend": active, "health": health}
 
 
-def _block(cache):
+def _premarket_block(cache):
+    from app.backtest.strategy_e1_premarket.premarket import DECISION_LAST_BAR, premarket_block
     items = sorted((m, b) for m, b in cache.bars.items() if 4 * 60 <= m <= 9 * 60 + 24)
     if not items:
         return None
     a = np.array([[m, *b, float("nan")] for m, b in items], dtype=float)
     return premarket_block(a[:, 0], a[:, 1], a[:, 2], a[:, 3], a[:, 4], a[:, 5], a[:, 6], DECISION_LAST_BAR)
+
+
+def run(universe_path: Path, out_root: Path) -> int:
+    from app.core.config import get_settings
+    from app.integrations.kiwoom.auth import KiwoomAuthClient
+    from app.integrations.kiwoom.rate_limit import KiwoomRateLimits, RequestRateLimiter
+    from app.market.calendar import MarketCalendar
+    from app.strategy_e_max_rt import finalizer as FZ
+
+    checks = safety_checks()
+    cal = MarketCalendar("America/New_York")
+    session = now().date()
+    window = cal.session(session)
+    art = json.loads(universe_path.read_text(encoding="utf-8"))
+    if window is None or art["session"] != session.isoformat():
+        raise SystemExit(f"{session}: not a session or universe artifact is for {art['session']}")
+    run_dir = out_root / session.isoformat()
+    run_dir.mkdir(parents=True, exist_ok=True)
+    lock = open(run_dir / "run.lock", "a+")
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        raise SystemExit("another E-RT2 worker holds this session's lock")
+    if (run_dir / "run.json").exists():
+        log("run.json exists for this session; nothing to do")
+        return 0
+    at = lambda t: datetime.combine(session, t, tzinfo=FZ.ET)  # noqa: E731
+    report = {"session": session.isoformat(), "mode": "E_RT2_CAPACITY_DRY_RUN_NO_ORDERS", "single_app_key": True,
+              "safety": checks, "universe_digest": art["digest"], "lanes": {"A": FZ.MINUTE_API, "B": FZ.TICK_API},
+              "websocket_opened": False, "calendar": {"open_et": window.market_open.isoformat()},
+              "started_at": now().isoformat(), "a_health": [a_health()]}
+    if now() >= at(FZ.FINALIZE_AT):
+        report["status"] = "RESTARTED_AFTER_CUTOFF"
+        (run_dir / "run.json").write_text(json.dumps(report, indent=1, default=str) + "\n")
+        log("started after 09:25 ET: no decision")
+        return 0
+
+    s = get_settings()
+    auth = KiwoomAuthClient(base_url=s.kiwoom_base_url, app_key=s.kiwoom_app_key.get_secret_value(),
+                            app_secret=s.kiwoom_app_secret.get_secret_value(), limiter=KiwoomRateLimits().auth)
+    clients = []
+    for _ in range(2):
+        limits = KiwoomRateLimits()
+        limits.chart = RequestRateLimiter(4.9)
+        clients.append(FZ.ChartLaneClient(base_url=s.kiwoom_base_url, auth=auth, rate_limits=limits, max_retries=1))
+    lane_a, lane_b = FZ.Lane("A", FZ.MINUTE_API, clients[0]), FZ.Lane("B", FZ.TICK_API, clients[1])
+    exch: dict[str, str] = {}
+    for ex in ("ND", "NY", "NA"):
+        for r in clients[0]._collect("usa10099", "/api/us/stkinfo", {"stex_tp": ex}, row_key="list", max_pages=50):  # noqa: SLF001
+            exch.setdefault(str(r["stk_cd"]).strip(), ex)
+    report["kiwoom_auth"] = "OK"
+    universe = art["symbols"]
+    codes = {sym: FZ.kiwoom_code(sym, exch) for sym in universe}
+    unmapped = [sym for sym in universe if codes[sym] not in exch]
+    report["universe"] = {"rows": len(universe), "mapped": len(universe) - len(unmapped), "unmapped": unmapped,
+                          "share_class_codes": {k: v for k, v in codes.items() if k != v}}
+    shard_a, shard_b = FZ.hash_lanes([sym for sym in universe if sym not in unmapped])
+    caches = {sym: FZ.SymbolCache(sym, exch[codes[sym]], codes[sym]) for sym in universe if sym not in unmapped}
+    spy = FZ.SymbolCache("SPY", exch.get("SPY", "NA"))
+    report["partition"] = {"method": "sha256(symbol) parity; the minute lane takes the tick shard from its end when "
+                                     "its own shard is done", "shard_A": len(shard_a), "shard_B": len(shard_b)}
+    log(f"universe {len(universe)} mapped {len(caches)} unmapped {len(unmapped)} shards A {len(shard_a)} B {len(shard_b)}")
+
+    while now() < at(FZ.PREMARKET_START) + timedelta(seconds=5):
+        time.sleep(5)
+    report["rolling_started_at"] = now().isoformat()
+    cycles, refresh_errors = 0, 0
+    order = [spy] + [caches[x] for x in shard_a + shard_b]
+    while now() < at(FZ.REFRESH_B_AT):
+        cycles += 1
+        for cache in order:
+            if now() >= at(FZ.REFRESH_B_AT):
+                break
+            try:
+                FZ.refresh(lane_a, cache, session, now)
+            except Exception as error:
+                refresh_errors += 1
+                cache.error = type(error).__name__
+            else:
+                cache.error = None
+        log(f"cycle {cycles}: lane A calls {lane_a.calls} errors {refresh_errors}")
+        if cycles == 1:
+            report["a_health"].append(a_health())
+    report["a_health"].append(a_health())
+    for cache in [caches[x] for x in shard_b]:                 # tick shard last, in its finalization order
+        if now() >= at(FZ.FINALIZE_AT):
+            break
+        try:
+            FZ.refresh(lane_a, cache, session, now)
+        except Exception:
+            refresh_errors += 1
+    incomplete_start = [x for x, c in caches.items() if c.complete_through is None]
+    report["rolling"] = {"cycles": cycles, "lane_A_calls": lane_a.calls, "errors": refresh_errors,
+                         "incomplete_start_symbols": len(incomplete_start),
+                         "incomplete_start_examples": incomplete_start[:20]}
+
+    while now() < at(FZ.FINALIZE_AT):
+        time.sleep(0.05)
+    t0, deadline = now(), at(FZ.DEADLINE)
+    taken, guard = set(), threading.Lock()
+
+    def claim(symbol: str) -> bool:
+        with guard:
+            if symbol in taken:
+                return False
+            taken.add(symbol)
+            return True
+
+    def worker_a() -> None:
+        for sym in ["SPY"] + shard_a + list(reversed(shard_b)):      # own shard, then the end of B
+            if now() >= deadline:
+                return
+            cache = spy if sym == "SPY" else caches[sym]
+            if not claim(sym):
+                continue
+            try:
+                FZ.finalize_minute(lane_a, cache, session, now)
+                cache.error = None
+            except Exception as error:
+                cache.error = type(error).__name__
+
+    def worker_b() -> None:
+        for sym in shard_b:
+            if now() >= deadline:
+                return
+            if not claim(sym):
+                continue
+            try:
+                FZ.finalize_ticks(lane_b, caches[sym], session, now)
+                caches[sym].error = None
+            except Exception as error:
+                caches[sym].error = type(error).__name__
+    before = {"A": lane_a.calls, "B": lane_b.calls}
+    threads = [threading.Thread(target=worker_a), threading.Thread(target=worker_b)]
+    [t.start() for t in threads]
+    report["a_health"].append(a_health())
+    [t.join() for t in threads]
+    stopped = now()
+    finalized = [c.finalized_at for c in caches.values() if c.finalized_at]
+    t1 = max(finalized) if finalized else None
+
+    statuses = {}
+    for sym, c in caches.items():
+        ok = c.finalized_at is not None and c.contiguous and c.finalized_at <= deadline and c.error is None
+        pm = [m for m in c.bars if 4 * 60 <= m <= 9 * 60 + 24]
+        statuses[sym] = "STALE" if not ok else ("SPARSE_NO_PREMARKET" if not pm else "FEATURE_COMPLETE")
+    for sym in unmapped:
+        statuses[sym] = "STALE"
+    violations = sum(1 for c in caches.values() if any(m > 9 * 60 + 24 for m in c.bars))
+
+    def lat(lane):
+        v = sorted(lane.latencies)
+        return {"p50": v[len(v) // 2], "p95": v[int(len(v) * 0.95)], "max": v[-1]} if v else None
+    fin_b = [c for c in caches.values() if c.data_source == "KIWOOM_" + FZ.TICK_API]
+    pages = sorted(c.final_pages for c in fin_b)
+    window_s = max((stopped - t0).total_seconds(), 1e-9)
+    lane_stats = {
+        "A": {"api": FZ.MINUTE_API, "total_calls": lane_a.calls, "finalization_calls": lane_a.calls - before["A"],
+              "errors": lane_a.errors, "attempts_incl_retries": sum(clients[0].request_counts.values()),
+              "latency_s": lat(lane_a)},
+        "B": {"api": FZ.TICK_API, "total_calls": lane_b.calls, "finalization_calls": lane_b.calls - before["B"],
+              "errors": lane_b.errors, "attempts_incl_retries": sum(clients[1].request_counts.values()),
+              "latency_s": lat(lane_b)},
+        "finalization_window_s": window_s,
+        "combined_finalization_calls_per_s": ((lane_a.calls - before["A"]) + (lane_b.calls - before["B"])) / window_s}
+    tick_pagination = {"symbols": len(fin_b), "1_page": sum(p == 1 for p in pages), "2_pages": sum(p == 2 for p in pages),
+                       "3plus_pages": sum(p >= 3 for p in pages), "max_pages": pages[-1] if pages else None,
+                       "avg_pages": statistics.mean(pages) if pages else None,
+                       "p95_pages": pages[int(len(pages) * 0.95)] if pages else None, "total_calls": sum(pages),
+                       "per_symbol": {c.symbol: {"pages": c.final_pages, "ticks_read": c.ticks_read,
+                                                 "last_relevant_tick": c.last_relevant_tick} for c in fin_b}}
+    counts = {k: sum(v == k for v in statuses.values()) for k in ("FEATURE_COMPLETE", "SPARSE_NO_PREMARKET", "STALE")}
+    capacity = {"T0": t0.isoformat(), "T1": t1.isoformat() if t1 else None,
+                "elapsed_s": (t1 - t0).total_seconds() if t1 else None,
+                "T1_before_0930": bool(t1 and t1 < at(FZ.dtime(9, 30))), "T1_before_092945": bool(t1 and t1 <= deadline),
+                "seconds_before_0930": (at(FZ.dtime(9, 30)) - t1).total_seconds() if t1 else None,
+                "kiwoom_calls_stopped_at": stopped.isoformat(), "status_counts": counts,
+                "finalized_by_lane": {"A": sum(c.data_source == "KIWOOM_" + FZ.MINUTE_API for c in caches.values()),
+                                      "B": len(fin_b)},
+                "tick_shard_taken_by_A": sum(1 for x in shard_b if caches[x].data_source == "KIWOOM_" + FZ.MINUTE_API)}
+    cutoff_audit = {"future_cutoff_violation_count": violations, "rule": "only bars / ticks stamped <= 09:24 ET are merged"}
+
+    from app.backtest.strategy_e1_forward.seal import SEALED_FEATURES
+    from app.strategy_e_max_rt import decision as DEC
+    from app.strategy_e_v1_1 import universe as U
+    from app.strategy_e_v1_1.universe import DecisionFrame
+    timings = {}
+    t = time.monotonic()
+    spy_pre = _premarket_block(spy)
+    spy_ret = spy_pre["pm_last_price"] / art["spy_close_d_minus_1"] - 1 if spy_pre else float("nan")
+    rows = {}
+    for sym, c in caches.items():
+        if statuses[sym] != "FEATURE_COMPLETE":
+            continue
+        pre = _premarket_block(c)
+        if pre["pm_bars"] < U.MIN_PREMARKET_BARS or pre["pm_dollar_volume"] < U.MIN_PREMARKET_DOLLAR_VOLUME:
+            continue
+        close = art["close_d_minus_1"][sym]
+        gap = pre["pm_last_price"] / close - 1
+        span = pre["pm_high"] - pre["pm_low"]
+        rows[sym] = {"premarket_gap": gap, "premarket_rvol": float("nan"),
+                     "position_in_premarket_range": (pre["pm_last_price"] - pre["pm_low"]) / span if span > 0 else float("nan"),
+                     "return_0900_0925": pre["return_0900_0925"], "return_last30m": pre["return_0855_0925"],
+                     "relative_strength_vs_spy": gap - spy_ret, "premarket_dollar_volume": pre["pm_dollar_volume"],
+                     "previous_day_dollar_volume": art["dollar_volume_d_minus_1"][sym], "close_price": close,
+                     "spy_premarket_return": spy_ret, "pm_bars": pre["pm_bars"]}
+    symbols = tuple(sorted(rows))
+    frame = DecisionFrame(session, symbols, {n: np.array([rows[x][n] for x in symbols], dtype=float)
+                                             for n in SEALED_FEATURES}, {})
+    timings["feature_build_s"] = time.monotonic() - t
+    t = time.monotonic()
+    decision = DEC.decide_from_frame(frame, source_digest=art["digest"], source="KIWOOM_NATIVE_RT2_DRYRUN", decided_at=now())
+    timings["h5_r1_top3_breadth_seal_s"] = time.monotonic() - t
+    timings["total_decision_s"] = timings["feature_build_s"] + timings["h5_r1_top3_breadth_seal_s"]
+    report.update(status="COMPLETE", capacity=capacity, cutoff_audit=cutoff_audit, decision_compute={
+        **timings, "premarket_rows": len(symbols), "h5_candidates": decision.h5_count,
+        "rvol": "NaN by design: no same-source denominator yet (next step: Kiwoom RVOL denominator audit)",
+        "top3_diagnostic": list(decision.selected)},
+        orders={"order_request_count": sum(c.order_request_count for c in clients),
+                "execution_orders": 0, "fills": 0, "simbroker_used": False})
+    report["a_health"].append(a_health())
+    report["finished_at"] = now().isoformat()
+    for name, body in (("capacity.json", capacity), ("lane_stats.json", lane_stats),
+                       ("tick_pagination.json", tick_pagination), ("cutoff_audit.json", cutoff_audit)):
+        (run_dir / name).write_text(json.dumps(body, indent=1, default=str) + "\n")
+    with (run_dir / "symbol_status.csv").open("w", newline="") as fh:
+        w = csv.writer(fh)
+        w.writerow(["symbol", "kiwoom_code", "lane", "last_complete_minute", "finalized_at", "final_pages", "status", "error"])
+        for sym in universe:
+            c = caches.get(sym)
+            last = max((m for m in c.bars if m <= 9 * 60 + 24), default=None) if c else None
+            w.writerow([sym, codes[sym], (c.data_source or "") if c else "",
+                        f"{last // 60:02d}:{last % 60:02d}" if last is not None else "",
+                        c.finalized_at.isoformat() if c and c.finalized_at else "", c.final_pages if c else 0,
+                        statuses[sym], (c.error or "") if c else "UNMAPPED"])
+    (run_dir / "run.json").write_text(json.dumps(report, indent=1, default=str) + "\n")
+    log(f"T0 {t0.time()} T1 {t1.time() if t1 else None} status {counts} violations {violations}")
+    return 0
+
+
+def main(argv=None) -> int:
+    parser = argparse.ArgumentParser(description="E-RT2 capacity dry run")
+    sub = parser.add_subparsers(dest="command", required=True)
+    b = sub.add_parser("build-universe")
+    b.add_argument("--session", type=date.fromisoformat, required=True)
+    b.add_argument("--out", type=Path, required=True)
+    r = sub.add_parser("run")
+    r.add_argument("--universe", type=Path, required=True)
+    r.add_argument("--out", type=Path, required=True)
+    args = parser.parse_args(argv)
+    if args.command == "build-universe":
+        build_universe(args.session, args.out)
+        return 0
+    return run(args.universe, args.out)
 
 
 if __name__ == "__main__":

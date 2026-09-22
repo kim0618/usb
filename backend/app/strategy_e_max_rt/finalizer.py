@@ -75,6 +75,10 @@ class SymbolCache:
     finalized_at: datetime | None = None
     data_source: str | None = None
     contiguous: bool | None = None
+    final_pages: int = 0
+    ticks_read: int = 0
+    last_relevant_tick: str | None = None
+    error: str | None = None
 
     def merge_minutes(self, rows: Sequence[Mapping[str, Any]], fetched_at: datetime, session: date,
                       cutoff: int | None = None) -> int | None:
@@ -143,10 +147,19 @@ def split_lanes(symbols_by_liquidity: Sequence[str], minute_share: int) -> tuple
     return list(symbols_by_liquidity[:minute_share]), list(symbols_by_liquidity[minute_share:])
 
 
+def hash_lanes(symbols: Sequence[str]) -> tuple[list[str], list[str]]:
+    """Outcome-free partition by a stable hash: even sha256 -> minute lane, odd -> tick lane;
+    each shard ordered by the hash so the order is fixed and unrelated to any market value."""
+    import hashlib
+    keyed = sorted((hashlib.sha256(s.encode()).hexdigest(), s) for s in symbols)
+    return ([s for h, s in keyed if int(h, 16) % 2 == 0], [s for h, s in keyed if int(h, 16) % 2 == 1])
+
+
 def finalize_minute(lane: Lane, cache: SymbolCache, session: date, now: Callable[[], datetime]) -> None:
     cutoff = 9 * 60 + 24
     page = lane.page(cache.code or cache.symbol, cache.exchange)
     cache.calls += 1
+    cache.final_pages += 1
     fetched = now()
     oldest = cache.merge_minutes(page.body.get("result_list", []), fetched, session, cutoff)
     need = cache.complete_through if cache.complete_through is not None else 4 * 60 - 1
@@ -161,6 +174,7 @@ def finalize_ticks(lane: Lane, cache: SymbolCache, session: date, now: Callable[
     for _ in range(MAX_TICK_PAGES):
         page = lane.page(cache.code or cache.symbol, cache.exchange, continuation)
         cache.calls += 1
+        cache.final_pages += 1
         rows = page.body.get("result_list", [])
         ticks.extend(rows)
         if rows:
@@ -172,16 +186,33 @@ def finalize_ticks(lane: Lane, cache: SymbolCache, session: date, now: Callable[
             break
         continuation = page
     fetched = now()
+    cache.ticks_read = len(ticks)
+    relevant = [r for r in ticks if minute_timestamp(r).date() == session and _minute_key(minute_timestamp(r)) <= cutoff]
+    cache.last_relevant_tick = relevant[0]["cntr_tm"] if relevant else None
     cache.merge_ticks(ticks, need_from, session, cutoff)
     cache.contiguous = reached and fetched.time() >= FINALIZE_AT
     cache.finalized_at, cache.data_source = fetched, "KIWOOM_" + TICK_API
 
 
-def refresh(lane: Lane, cache: SymbolCache, session: date, now: Callable[[], datetime]) -> None:
+def refresh(lane: Lane, cache: SymbolCache, session: date, now: Callable[[], datetime],
+            catch_up_pages: int = 6) -> None:
+    """Latest minute page; on a symbol's first refresh (worker started late or restarted) it pages
+    back until 04:00 of the session is covered, so a late start is caught up, not treated as empty."""
     page = lane.page(cache.code or cache.symbol, cache.exchange)
     cache.calls += 1
     fetched = now()
     oldest = cache.merge_minutes(page.body.get("result_list", []), fetched, session)
+    if cache.complete_through is None:
+        for _ in range(catch_up_pages):
+            if oldest is None or oldest == -1 or oldest <= 4 * 60 or not page.continuation:
+                break
+            page = lane.page(cache.code or cache.symbol, cache.exchange, page)
+            cache.calls += 1
+            older = cache.merge_minutes(page.body.get("result_list", []), fetched, session)
+            oldest = older if older is not None else oldest
+        if not (oldest is None or oldest == -1 or oldest <= 4 * 60 or not page.continuation):
+            cache.first_fetch = cache.first_fetch or fetched
+            return                                          # 04:00 not reached: stays incomplete
     through = min(_minute_key(fetched) - 1, 9 * 60 + 24)
     need = cache.complete_through if cache.complete_through is not None else 4 * 60 - 1
     if cache.complete_through is None or oldest is None or oldest <= need + 1 or oldest == -1:
