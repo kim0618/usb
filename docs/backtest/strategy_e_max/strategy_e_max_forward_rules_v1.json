@@ -1,0 +1,350 @@
+{
+  "declaration": {
+    "contract_id": "STRATEGY_E_MAX_FORWARD_RULES_V1",
+    "stage": "E-MAX-F0_FORWARD_SHADOW_PROTOCOL",
+    "status": "FROZEN_BEFORE_ANY_FORWARD_OBSERVATION",
+    "declared_at_kst": "2026-09-22",
+    "checksum_recipe": "sha256 of json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False)",
+    "question": "Does the frozen E-MAX V1, unchanged, behave on data created after it was frozen the way it did in development?",
+    "role": "a recording and evaluation contract for forward shadow evidence; forward data is never a selection or optimization dataset",
+    "no_forward_performance_in_f0": true
+  },
+  "upstream": {
+    "e_max_v1_rules_canonical_sha256": "b30a3e95d6333c17d736c4c4fa23f55a7f67ba4af328317379a86a4a37e89d0e",
+    "e_max_m6_protocol_commit": "dedae54",
+    "e_max_m6_result_commit": "0a439a3",
+    "e_max_m6_result_file_sha256": "2f052e914d5ea4571d168a5c2beef85bffc8f6467c2e3486b5bc9e61080db9fd",
+    "e_max_m6_verdict": "E-MAX-M6 PASS — E-MAX V1 DEVELOPMENT CANDIDATE FROZEN",
+    "e_max_m6_code_identity": "result.identity.code of the committed M6 result, recomputed from the committed sources (packages_and_m1_runner + m6_runner)",
+    "e_base_trading_v1_1_canonical_sha256": "b90573bde8809b0eadd03c9f6c5cae59bf115254b792237df92e0f6eaa1304b6",
+    "forward_feature_context_canonical_sha256": "78bb90b44b2d6eeec9fa945ef2fe7547178f525b4719cb81fc8171e14b5c3fad",
+    "e1_forward_protocol": "docs/backtest/strategy_e_candidate/E1_H5_FORWARD_PROTOCOL.md (boundary, layout, checkpoint policy reused)",
+    "development_tape_digest": "d12ff28a98cf9cc64cad86f595985fd5ae2308b555635501fa5729d4439222a4"
+  },
+  "boundary": {
+    "forward_holdout_start": "2026-09-17",
+    "development_last_session": "2026-09-16",
+    "gate": "app.backtest.strategy_e1_forward.layout.require_forward_session (every forward write path)",
+    "development": "sessions <= 2026-09-16, frozen; never re-run with forward data",
+    "forward": "sessions >= 2026-09-17, append-only; stored under market_data/forward/massive (Drive) and data/runtime/strategy_e_max/forward (repo), never under the development binding"
+  },
+  "strategies": {
+    "E_BASE_FORWARD": {
+      "strategy": "STRATEGY_E_TRADING_V1_1",
+      "role": "paired comparator",
+      "selection": "canonical symbol ascending, max 3 (the V1.1 decision seal's own selection)",
+      "exposure": "1.0x, equal weight 1/n over executable positions"
+    },
+    "E_MAX_FORWARD": {
+      "strategy": "STRATEGY_E_MAX_V1",
+      "role": "candidate under forward evidence",
+      "selection": "R1 premarket_rvol descending, ties symbol ascending, max 3, no replacement",
+      "breadth": "B2: universe_rows >= 100 and h5_rate >= 0.030741 -> 1.5, else 1.0, from the 09:25 seal only",
+      "global_multiplier": 2.0,
+      "final_exposure": {
+        "normal": 2.0,
+        "high_breadth": 3.0
+      }
+    },
+    "separation": "both are computed from the same 09:25 seal and the same exact bars, and are stored as separate strategy rows; they are never merged"
+  },
+  "decision_seal": {
+    "cutoff_et": "09:25",
+    "inputs": "the E-R1 forward feature context contract, verbatim: daily <= D-1, CS reference <= D-1, splits through D, minute bars starting <= 09:24 ET",
+    "base": "app.strategy_e_v1_1.decision.seal on the V1.1 DecisionFrame (H5 through Research's mask)",
+    "contents": [
+      "session",
+      "universe identity (symbols and eligible_count)",
+      "H5 feature rows",
+      "H5 mask / candidates",
+      "E-BASE selection",
+      "E-MAX R1 ordering",
+      "E-MAX max 3 selection",
+      "breadth state (universe_rows, h5_count, h5_rate, high_breadth, multiplier)",
+      "strategy digests (V1.1 rules, E-MAX V1 rules, forward rules)",
+      "V1.1 seal digest",
+      "decision digest over all of the above"
+    ],
+    "immutability": "written once; a second write is refused; reading re-derives the decision digest and refuses a tampered file; nothing after 09:25 enters",
+    "incomplete_context": "FEATURE_CONTEXT_INCOMPLETE: no seal, no H5 = False, the session is NOT_READY and never enters the forward timeline"
+  },
+  "evidence_modes": {
+    "LIVE": {
+      "evidence_class": "PRIMARY",
+      "rule": "seal written before 09:30:00 ET from inputs available by 09:25"
+    },
+    "RECONSTRUCTED": {
+      "evidence_class": "SECONDARY",
+      "rule": "seal built after the close from the same sources truncated at the same cutoffs"
+    },
+    "storage": "every seal, registry row and session row carries forward_mode and evidence_class; LIVE and RECONSTRUCTED are reported separately and never pooled without the split shown",
+    "live_availability_2026_09_22": "NOT AVAILABLE: Massive Stocks Basic serves no same-day session (403 PLAN_TIMEFRAME_NOT_INCLUDED, end is always T-1), so no 09:24 premarket bar exists at 09:25 from the bound source. A LIVE path needs a real-time premarket minute source; using another vendor (e.g. Kiwoom, whose volumes differ from Massive) changes the feature inputs and needs its own source-equivalence contract before any LIVE seal. Until then all forward evidence is RECONSTRUCTED / SECONDARY."
+  },
+  "shadow_execution": {
+    "entry": "exact 09:30 ET bar open through E-D2 (build_entry_records); ENTRY_INVALID, no backfill, candidate #4 never promoted",
+    "exit": "exact 09:34 ET bar close through E-D3 (resolve_exit_batch); UNRESOLVED_EXIT / INVALID_FOR_STANDARD_PNL; no other price",
+    "implementation": "app.strategy_e_max.capacity.execute(capacity=3) for both strategies; E-MAX then app.strategy_e_max.v1.compose (breadth, then global 2.0x)",
+    "no_fallback": true
+  },
+  "cost": {
+    "scenarios": {
+      "GROSS_0BP": "gross edge",
+      "COST_05BP": "low friction",
+      "COST_10BP": "primary official evidence",
+      "COST_15BP": "stress",
+      "COST_20BP": "severe stress"
+    },
+    "primary": "COST_10BP",
+    "all_always_recorded": true,
+    "scaling": "levered net = exposure x (gross - round-trip cost)",
+    "model_change": "forbidden in V1; a different cost model is a new version and contract"
+  },
+  "execution_friction": {
+    "wanted": [
+      "09:30 bid",
+      "09:30 ask",
+      "09:30 spread",
+      "09:30 nearby prints",
+      "09:30 volume",
+      "09:34 bid",
+      "09:34 ask",
+      "09:34 spread",
+      "09:34 nearby prints",
+      "09:34 volume"
+    ],
+    "availability_2026_09_22": {
+      "massive_stocks_basic": "quotes / NBBO NOT AVAILABLE (store requirement historical_quotes_spread = UNAVAILABLE on Basic); trades per print NOT AVAILABLE; 1-minute bar volume AVAILABLE",
+      "kiwoom_realtime": "FT 10-level quotes observed live (probe 2026-09-17), live only, no history; usable only by a LIVE capture of the sealed symbols, which does not exist yet",
+      "status": "09:30 / 09:34 bar volume RECORDED; bid, ask, spread and prints NOT AVAILABLE"
+    },
+    "forbidden": "bar high-low or any OHLC range is never recorded as a spread",
+    "observed_execution_friction_bp": "reserved name; computed only once quote or fill evidence exists, as a separate diagnostic; never replaces COST_10BP"
+  },
+  "registry": {
+    "layout": "data/runtime/strategy_e_max/forward/{seals,registry,sessions,checkpoints}/ (gitignored)",
+    "append_only": "one row set per (strategy, forward_mode, session); a session already present for that strategy and mode is refused, never replaced",
+    "position_fields": [
+      "strategy",
+      "strategy_version",
+      "forward_mode",
+      "evidence_class",
+      "session_date",
+      "decision_timestamp",
+      "decision_digest",
+      "universe_count",
+      "h5_count",
+      "h5_rate",
+      "high_breadth",
+      "symbol",
+      "rank",
+      "selected",
+      "entry_timestamp",
+      "entry_price",
+      "entry_valid",
+      "entry_reason",
+      "exit_timestamp",
+      "exit_price",
+      "exit_valid",
+      "exit_reason",
+      "base_weight",
+      "breadth_multiplier",
+      "global_multiplier",
+      "final_weight",
+      "gross_return",
+      "net_05bp",
+      "net_10bp",
+      "net_15bp",
+      "net_20bp",
+      "open_bar_volume_0930",
+      "close_bar_volume_0934",
+      "bid_0930",
+      "ask_0930",
+      "bid_0934",
+      "ask_0934",
+      "upstream_digests",
+      "forward_rules_digest"
+    ],
+    "rows": "every H5 candidate of the session (selected or not), per strategy; rank is the strategy's own priority",
+    "session_fields": [
+      "strategy",
+      "strategy_version",
+      "forward_mode",
+      "evidence_class",
+      "session_date",
+      "decision_digest",
+      "universe_count",
+      "h5_count",
+      "h5_rate",
+      "high_breadth",
+      "exposure",
+      "active",
+      "standard_trades",
+      "GROSS_0BP",
+      "COST_05BP",
+      "COST_10BP",
+      "COST_15BP",
+      "COST_20BP"
+    ],
+    "no_trade_sessions": "a READY session with no standard trade is recorded as a 0-return session (the E-D6 / E-MAX development convention); a NOT_READY session is not a 0 and is absent from the timeline"
+  },
+  "readiness": {
+    "states": [
+      "READY",
+      "NOT_READY"
+    ],
+    "reasons": [
+      "MISSING_DAILY_CONTEXT",
+      "MISSING_SPLITS_ASOF",
+      "MISSING_REFERENCE",
+      "MISSING_MINUTE",
+      "MISSING_RVOL_HISTORY",
+      "MISSING_SPY_CONTEXT",
+      "SESSION_NOT_CLOSED"
+    ],
+    "rule": "READY only when app.strategy_e_v1_1.context.require_complete would accept the session; any reason makes it NOT_READY (FEATURE_CONTEXT_INCOMPLETE)",
+    "universe": "the whole D-1 daily-eligible universe (E1 forward protocol section 13); a partial universe is NOT_READY"
+  },
+  "checkpoints": {
+    "values": [
+      250,
+      500,
+      1000,
+      2000
+    ],
+    "n_definition": "H5 observation rows over valid forward sessions, the E1 forward registry definition (app.backtest.strategy_e1_forward.checkpoint.CHECKPOINTS and registry.h5_count); both strategies share the same N because they share the seal",
+    "mode_split": "each checkpoint reports LIVE and RECONSTRUCTED separately",
+    "roles": {
+      "250": "early sanity: E-MAX 10 bp sign, paired delta vs E-BASE, R1 selection behaviour, breadth behaviour, tail concentration, data quality, friction availability; no promotion reading",
+      "500": "first decision checkpoint: is E-MAX worth continued forward verification; a one-shot 5-10 year untouched historical purchase may be reviewed here",
+      "1000": "per the E1 forward checkpoint contract: diagnostic",
+      "2000": "per the E1 forward checkpoint contract: the only checkpoint that may promote"
+    },
+    "restatement": "a PASS / FAIL / CONTINUE EVIDENCE statement is made only at a declared checkpoint, each recorded once",
+    "promotion_gate": "NOT DEFINED in F0; a forward gate for E-MAX (thresholds for its own metrics and for the paired delta) must be frozen as a separate contract before the N = 250 evaluation is first computed; development thresholds (M1 P <= 0.10 and so on) are not copied automatically"
+  },
+  "checkpoint_metrics": {
+    "e_max": [
+      "observations",
+      "trades",
+      "active sessions",
+      "coverage",
+      "mean trade",
+      "mean session",
+      "median",
+      "win rate",
+      "profit factor",
+      "cumulative",
+      "MDD",
+      "Sharpe",
+      "Sortino",
+      "Calmar",
+      "positive months",
+      "positive sequential blocks (E-D6 four-block rule)",
+      "unique symbols",
+      "top1 / top3 / top5 session contribution",
+      "top1 / top5 symbols",
+      "HHI"
+    ],
+    "paired_vs_e_base": [
+      "delta = E_MAX session return - E_BASE session return on the same session timeline",
+      "mean paired delta",
+      "median paired delta",
+      "positive delta rate",
+      "IID bootstrap 95% CI (10,000 replicates, seed 20260921)",
+      "P(delta <= 0)"
+    ],
+    "breadth": [
+      "high-breadth sessions",
+      "positive / negative high-breadth sessions",
+      "high-breadth contribution",
+      "normal contribution",
+      "3.0x exposure effect separated"
+    ],
+    "tail": [
+      "top1 / top3 / top5 session share"
+    ],
+    "costs": "every metric at 0 / 5 / 10 / 15 / 20 bp"
+  },
+  "forbidden": {
+    "rule_changes": [
+      "new H5",
+      "new ranking",
+      "new max positions (2, 4, 5 ...)",
+      "new breadth threshold",
+      "new exit",
+      "new exposure multiplier (2.1x, 2.5x, 3.5x ...)",
+      "symbol exclusion (ABSI, HIMS or any)",
+      "cost model change",
+      "development replay optimization"
+    ],
+    "in_response_to_forward_results": "any of the above; a change is E-MAX V2, a separate strategy, and never re-labels V1 forward evidence"
+  },
+  "historical_purchase": {
+    "f0": "no long historical purchase",
+    "plan": "development done -> forward evidence -> N = 500 decision point; if forward evidence holds there, review one 5-10 year untouched historical validation, ONE-SHOT; no further historical is required automatically after it"
+  },
+  "status_labels": {
+    "DEVELOPMENT": "FROZEN",
+    "FORWARD_SHADOW": "OBSERVATION",
+    "PAPER": "NOT APPROVED",
+    "LIVE": "NOT APPROVED"
+  },
+  "verdict_labels": {
+    "READY": "E-MAX-F0 PASS — FORWARD SHADOW READY",
+    "DATA": "E-MAX-F0 DATA COLLECTION REQUIRED",
+    "BLOCK": "E-MAX-F0 BLOCKED",
+    "UPSTREAM": "E-MAX-F0 BLOCKED — UPSTREAM INTEGRITY"
+  },
+  "verdict_rule": "UPSTREAM when a development artifact or the M6 provenance does not verify; BLOCK only when the frozen rule cannot be reproduced forward, a post-09:25 input is required, development/forward or E-BASE/E-MAX cannot be separated, or an immutable seal cannot be built; DATA when the path is sound but at least one closed forward session is NOT_READY for missing data; READY otherwise",
+  "storage": {
+    "forward_tree": "market_data/forward/massive/{grouped_daily/<year>/<D>.json.gz, reference/CS_<as_of>.json.gz, splits/splits_asof_<D>.json.gz, minute/<DIR>/...} (E1 forward layout), append-only, never inside the frozen USB-HIST-V1 binding",
+    "minute_pages": "either one page per session <SYMBOL>_<D>.json.gz (E1 layout) or Common Raw range pages <SYMBOL>_<start>_<end>.pNN.json.gz with start >= 2026-09-17 and a .request.json ledger written last",
+    "reserved_names": "a symbol equal to a DOS device name (CON, PRN, AUX, NUL, COM0-9, LPT0-9) is stored under directory _<SYMBOL>; file names keep the symbol. Found 2026-09-22: CON is D-1 daily-eligible for 2026-09-17 and has no minute directory in Common Raw (raw_fetch skips it), so without this rule every forward session would stay NOT_READY",
+    "development_isolation": "the development replay reads only the 2,152-file manifest through its symlink view, so forward files cannot enter it; the forward reader reads only dates >= 2026-09-17"
+  },
+  "collection": {
+    "start_policy": "F0 starts no large collection; running one is an operational decision",
+    "cadence": "RECONSTRUCTED batches: one minute request can cover up to 50 sessions (raw_fetch CHUNK_SESSIONS), so a weekly batch costs about one call per symbol per week instead of per session",
+    "per_input": {
+      "grouped_daily": {
+        "collector": "app.backtest.strategy_c_selection.raw_fetch.fetch_grouped",
+        "status": "needs extension (forward tree path)",
+        "calls": "1 per session"
+      },
+      "splits_asof": {
+        "collector": "app.backtest.strategy_c_selection.raw_fetch.fetch_splits",
+        "status": "needs extension (splits_asof_<D> naming, executions through D)",
+        "calls": "1 per session or per batch"
+      },
+      "reference": {
+        "collector": "app.backtest.historical_store.reference_fetch (daily CS snapshots)",
+        "status": "reusable; not limited to the 2-year window",
+        "calls": "about 6-12 pages per snapshot; the latest <= D-1 is enough"
+      },
+      "minute": {
+        "collector": "app.backtest.historical_store.raw_fetch (ledger resume, cooldown retry, NOT_AVAILABLE on 403, exact provider bytes, gzip mtime 0)",
+        "status": "needs extension (forward tree root, reserved-name directory)",
+        "calls": "one per symbol per batch, whole D-1 eligible universe (about 2,550) plus SPY"
+      },
+      "rvol_history": {
+        "collector": "none needed now",
+        "status": "2,549 of 2,550 D-1 eligible symbols have Common Raw pages through 2026-09-16 with >= 60 contiguous sessions for 2,544; CON needs a backfill under _CON"
+      },
+      "execution_quotes": {
+        "collector": "none",
+        "status": "needs new collector and a LIVE path (Kiwoom FT), not available on Massive Basic"
+      }
+    },
+    "new_collector_minimum": [
+      "source",
+      "date range",
+      "symbols",
+      "resume support",
+      "retry",
+      "dedup",
+      "checksum",
+      "manifest",
+      "PIT storage"
+    ]
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "file": "strategy_e_max_forward_rules_v1.json",
+  "canonical_sha256": "dd8ddf42f3fba3ef77a44d9e40bb6308290fda4c45b5a7df7ce268514b1cfbaa",
+  "file_sha256": "f08d3b6f76903fa866ae4d9bf962ac80fad32a840ebe65007538a9f4303c7afd",
+  "recipe": "canonical = sha256 of json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False)",
+  "frozen_at_kst": "2026-09-22",
+  "frozen_before": "any E-MAX forward observation"
+}
