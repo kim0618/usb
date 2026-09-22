@@ -1,0 +1,107 @@
+{
+  "declaration": {
+    "contract_id": "STRATEGY_E_MAX_M5_RULES_V1",
+    "version": "STRATEGY_E_MAX_M5_V1",
+    "namespace": "STRATEGY_E_MAX",
+    "stage": "E-MAX-M5_EXPOSURE_SCALING",
+    "status": "FROZEN_BEFORE_ANY_M5_PERFORMANCE_CALCULATION",
+    "declared_at_kst": "2026-09-22",
+    "checksum_recipe": "sha256 of json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False)",
+    "evidence_label": "E-MAX DEVELOPMENT (reused development data; not OOS)",
+    "question": "Which of the M0 global exposure multipliers 1.0x / 1.5x / 2.0x, applied on top of R1 + max 3 + B2 + X1, gives the highest compound growth inside the frozen risk envelope?",
+    "interpretation": "M5 tests how much risk to put on the existing E-MAX edge; a lower p-value from scaling is not new Alpha evidence"
+  },
+  "upstream": {
+    "m0_rules_canonical_sha256": "3ae07d755501e82c2b7ff2bd765d93f4353aa9319b34a3e6f59d0aad098082ac",
+    "m1_rules_canonical_sha256": "4556a4f3b8acb16c897ddfdfb392f82be39eb76286f67e35fed706dc7df64c79",
+    "m2_rules_canonical_sha256": "aabeddcd25c16daefe3e273b5df5e2e59d362a48820dd8188fe86c483f285a4b",
+    "m3_rules_canonical_sha256": "2efbf457654f7260adb703a3a6ea2cd83f0e222e880323994ebc7e43ac56d020",
+    "m4_protocol_commit": "362b978",
+    "m4_rules_canonical_sha256": "6b3405a787afbfa2d8a0639673de88d7d5b70dbcf79507f312193bcbc34c125c",
+    "m4_result_commit": "0c74c22",
+    "m4_result_file_sha256": "a4f5323bc20a4b9389b8fc6f14af8c37bc071cb9293b9f05417df0b70e056bf5",
+    "m4_winner": "X1",
+    "m4_m5_authorization": "M5 AUTHORIZED",
+    "m4_x1_trades_csv_sha256": "fee44b841fffb5ce348bc5ab0d1515d1e82c87809d8d024fda4894d8bd08b910",
+    "m4_x1_daily_returns_csv_sha256": "97f9d50cb87a998640d065bb87c73f09ff96a3dbdf20030c52342a38840d10a9",
+    "e_base_reference": {"cumulative_10bp": 0.0719, "cagr_10bp": 0.0371, "mdd_10bp": -0.1645, "source": "E-R3 result via M1 R0 (CAGR 3.71%, cumulative +7.19%, MDD -16.45%)"}
+  },
+  "dataset": {
+    "binding": "the E-R2 .. M4 development binding, unchanged (480 sessions 2024-10-16..2026-09-16)",
+    "forward_excluded_from": "2026-09-17",
+    "prechecks": "re-run through app.backtest.strategy_e_max.prepare before any return"
+  },
+  "configuration": "R1 ordering + max 3 + B2 breadth exposure + X1 (exact 09:30 open -> exact 09:34 close), the M4 carried configuration",
+  "variants": {
+    "comparator": {"id": "E1", "m0_id": "L1", "global_multiplier": 1.0, "normal_session": 1.0, "high_breadth_session": 1.5},
+    "candidates": [
+      {"id": "E15", "m0_id": "L2", "global_multiplier": 1.5, "normal_session": 1.5, "high_breadth_session": 2.25},
+      {"id": "E20", "m0_id": "L3", "global_multiplier": 2.0, "normal_session": 2.0, "high_breadth_session": 3.0}
+    ],
+    "declared_order": ["E15", "E20"],
+    "composition": "final session exposure = global multiplier x B2 breadth multiplier; B2 is neither removed nor replaced",
+    "weights": "equal weight over executable positions, scaled: e.g. E20 normal 3 positions 2/3 each; E20 high-breadth 3 positions 1 each; E15 high-breadth 2 positions 9/8 each",
+    "implementation": "app.strategy_e_max.exposure.apply_global on the X1 sessions of app.backtest.strategy_e_max.m4_replay",
+    "forbidden": ["any other multiplier (1.25, 1.75, 2.25 global, 2.5, 3.0 ...)", "alpha-strength or unequal sizing", "changes to R1, capacity, B2, entry, exit or cost", "clipping or flooring of session losses"]
+  },
+  "accounting": {
+    "cost_scaling": "levered net = exposure x (gross - round-trip cost); the net scenario return of each position is multiplied, never gross x leverage minus one cost",
+    "compounding": "equity_t = equity_(t-1) x (1 + session_return_t) over all 480 sessions (E-D6 equity_stats); MDD recomputed from the levered compounded series, never Base MDD x multiplier",
+    "catastrophic_rule": "a candidate with any COST_10BP session return <= -100% (equity <= 0) is ineligible (CATASTROPHIC_SESSION_LOSS); no clipping",
+    "concentration": "computed on levered PnL (normalized weight x trade return); a global scalar leaves shares unchanged relative to E1, B2 already makes session exposure non-uniform"
+  },
+  "financing": {
+    "FINANCING_COST": "NOT MODELED (margin interest, intraday financing)",
+    "BROKER_LEVERAGE_FEASIBILITY": "NOT VALIDATED (leverage rules, buying power, forced liquidation)",
+    "status": "research only; E20 high-breadth total exposure 3.0x is not a live authorization; Common Risk V1 has no leverage"
+  },
+  "e1_reproduction": "E1 must hash to the committed M4 X1 artifacts (trades and daily returns) before E15 / E20 are read",
+  "invariants": ["identical universe, H5, R1 order, selection, entries, exits and prices for E1 / E15 / E20", "E15 and E20 session returns are exactly 1.5x and 2.0x E1 in every scenario"],
+  "eligibility": {
+    "source": "M0 selection_rule.eligibility, verbatim values, plus the catastrophic rule above",
+    "min_coverage": 0.95,
+    "mean_session_10bp_gt": 0.0,
+    "profit_factor_10bp_gt": 1.0,
+    "mdd_10bp_ge": -0.35,
+    "top1_share_10bp_le": 0.7338
+  },
+  "improvement": {
+    "comparator": "E1 for each candidate separately (no hierarchy between E15 and E20; M0 defines none)",
+    "cumulative_10bp_gt_comparator": true,
+    "paired_mean_delta_gt": 0.0,
+    "paired_p_delta_le_zero_max": 0.10,
+    "paired": "delta_t = candidate - E1 COST_10BP session return, all 480 sessions; metrics.bootstrap_mean_ci, IID, 10,000 replicates, seed 20260921",
+    "scaling_caveat": "delta_t = (k - 1) x E1_t, so P(delta <= 0) equals the bootstrap probability that E1's mean is <= 0; it measures the E1 edge, not an exposure effect"
+  },
+  "winner": {
+    "rule": "among E15 / E20 passing every eligibility and improvement condition, the highest COST_10BP CAGR; exact ties by higher session mean, then declared order; none -> NO_USEFUL_ENHANCEMENT and E1 is kept",
+    "no_percentage_point_tie_band": "M0 declares none"
+  },
+  "m6_authorization": {
+    "source": "M0 stages and stop conditions",
+    "rule": "M6 is AUTHORIZED when the configuration carried out of M5 passes every M0 eligibility condition (and the catastrophic rule) and stop conditions A and D do not hold; stop B is reported and becomes decisive only at M6",
+    "stop_d": "every candidate of two consecutive executed stages below -35% MDD"
+  },
+  "diagnostics": {
+    "stop_b": "reported twice: vs the stage comparator E1 (the M2-M4 convention) and vs E-Base (M0 literal): flagged when |MDD| ratio > CAGR ratio",
+    "risk": ["minimum session / week / month / quarter", "maximum single-session loss", "MDD", "longest recovery", "longest losing run", "equity <= 0"],
+    "breadth_interaction": ["exposure by class (normal / high-breadth)", "summed session-return contribution by class", "MDD window (peak to trough) contribution by class"],
+    "tail": ["top1 / top3 / top5 session share of the summed session returns", "top1 / top5 symbols", "HHI"],
+    "blocks": "E-D6 four blocks: mean, compounded return, block MDD, positive block count",
+    "calendar": ["positive / negative months, best / worst month", "positive / negative quarters, best / worst quarter"],
+    "periods": {"FULL_DEVELOPMENT": ["2024-10-16", "2026-09-16"], "LEGACY_NARROW": ["2024-10-16", "2026-04-17"], "BROAD_COVERAGE": ["2026-04-20", "2026-09-16"]}
+  },
+  "reproducibility": {"repeat_runs": 2, "required": "identical result digest and byte-identical runtime artifacts"},
+  "verdict_labels": {
+    "E15": "E-MAX-M5 PASS — 1.5X SELECTED",
+    "E20": "E-MAX-M5 PASS — 2.0X SELECTED",
+    "NONE": "E-MAX-M5 NO_USEFUL_ENHANCEMENT",
+    "BLOCK": "E-MAX-M5 BLOCKED — INTEGRITY",
+    "M6_YES": "M6 AUTHORIZED",
+    "M6_NO": "M6 NOT AUTHORIZED"
+  },
+  "outputs": {
+    "runtime_root": "data/runtime/strategy_e_max/m5_runs/<run_id>/ (gitignored)",
+    "committed": ["E_MAX_M5_EXPOSURE_RESULT_V1.md", "strategy_e_max_m5_result_v1.json", "strategy_e_max_m5_result_v1.sha256"]
+  }
+}

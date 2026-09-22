@@ -1,0 +1,8 @@
+{
+  "file": "strategy_e_max_m5_rules_v1.json",
+  "canonical_sha256": "b2a89a713af448d7207006a22a3035f1ac22a8a0074d2fa23c8da2b029583647",
+  "file_sha256": "ff827b4f93f677c2a2cfd127408ab737f473abb9a0afd4501f0bd5b4f678b9d3",
+  "recipe": "canonical = sha256 of json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False)",
+  "frozen_at_kst": "2026-09-22",
+  "frozen_before": "any E-MAX-M5 performance calculation"
+}
