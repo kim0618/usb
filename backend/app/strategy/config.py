@@ -23,6 +23,14 @@ class StrategyConfig:
     premarket_volume_ratio_min: Decimal = Decimal("0.05")
     opening_range_minutes: int = 15
     entry_deadline_et: time = time(10, 30)
+    #: How far above the observed signal price the entry reference may be set, as a
+    #: fraction (0.0005 is 0.05%), in the same units as the gap thresholds above. It is
+    #: applied after the entry decision, so it never creates a signal the untoleranced
+    #: rule would not create; it moves only the price Risk sizes at, and with it the
+    #: ceiling that the unchanged execution cost model derives from that reference.
+    #: A higher reference means a smaller quantity at a higher limit, never extra risk.
+    #: At its default the strategy is byte-identical to the one that had no such field.
+    entry_reference_tolerance_pct: Decimal = Decimal("0")
     require_price_above_vwap: bool = True
     require_opening_range_breakout: bool = True
     max_entry_attempts_per_symbol: int = 1
@@ -44,10 +52,16 @@ class StrategyConfig:
             raise ValueError("invalid premarket gap thresholds")
         if self.premarket_volume_ratio_min < 0 or self.opening_range_minutes <= 0:
             raise ValueError("invalid volume/opening range configuration")
+        if self.entry_reference_tolerance_pct < 0:
+            raise ValueError("entry reference tolerance cannot be negative")
         if min(self.atr_period, self.max_entry_attempts_per_symbol,
-               self.max_pyramid_adds, self.max_holding_trading_days,
-               self.overnight_max_positions) < 1:
+               self.max_holding_trading_days, self.overnight_max_positions) < 1:
             raise ValueError("strategy count limits must be positive")
+        # 0 disables pyramiding: the add condition in evaluate_position needs
+        # add_count < max_pyramid_adds, which no position satisfies at 0, so no ADD
+        # decision (and no add intent) is ever produced. 1 is the V1 behaviour.
+        if self.max_pyramid_adds < 0:
+            raise ValueError("max_pyramid_adds cannot be negative")
 
 
 @dataclass(frozen=True)

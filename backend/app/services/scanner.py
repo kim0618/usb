@@ -4,9 +4,42 @@ from collections.abc import Sequence
 from datetime import date, datetime, timezone
 from collections.abc import Callable
 
-from app.repositories.scanner import ScannerCandidateData, ScannerSnapshotRepository
+from app.repositories.scanner import (
+    ScannerCandidateData, ScannerSnapshotRepository, ScannerUniverseInputData,
+)
 from app.scanner.domain import ScannerResult, ScannerRunStatus
 from app.scanner.scanner import QuantScanner
+
+UNIVERSE_OUTCOME_CANDIDATE = "SCANNER_CANDIDATE"
+UNIVERSE_OUTCOME_EXCLUDED = "EXCLUDED"
+UNIVERSE_OUTCOME_NOT_EVALUATED = "NOT_EVALUATED"
+
+
+def universe_inputs(universe: Sequence[object], result: ScannerResult) -> list[ScannerUniverseInputData]:
+    """Each provider universe row, in provider order, with what the scanner made of it.
+
+    ``universe`` holds the provider's rows (symbol, exchange_code, company_name,
+    market_cap); a symbol the scanner neither ranked nor excluded is NOT_EVALUATED rather
+    than silently dropped.
+    """
+    ranked = {candidate.symbol: candidate.rank for candidate in result.candidates}
+    excluded = {item.symbol: item.reason.value for item in result.excluded}
+    rows = []
+    for position, item in enumerate(universe, start=1):
+        symbol = str(getattr(item, "symbol")).strip().upper()
+        cap = getattr(item, "market_cap", None)
+        if symbol in ranked:
+            outcome, rank, reason = UNIVERSE_OUTCOME_CANDIDATE, ranked[symbol], None
+        elif symbol in excluded:
+            outcome, rank, reason = UNIVERSE_OUTCOME_EXCLUDED, None, excluded[symbol]
+        else:
+            outcome, rank, reason = UNIVERSE_OUTCOME_NOT_EVALUATED, None, None
+        rows.append(ScannerUniverseInputData(
+            position=position, symbol=symbol, exchange_code=getattr(item, "exchange_code", None),
+            company_name=getattr(item, "company_name", None),
+            market_cap=None if cap is None else repr(cap), outcome=outcome,
+            scanner_rank=rank, exclusion_reason=reason))
+    return rows
 
 
 class ScannerService:
@@ -42,9 +75,17 @@ class ScannerService:
         return self.persist_result(result, started_at=started_at)
 
     def persist_result(
-        self, result: ScannerResult, *, started_at: datetime | None = None
+        self, result: ScannerResult, *, started_at: datetime | None = None,
+        universe: Sequence[object] | None = None, universe_source: str | None = None,
+        universe_acquired_at: datetime | None = None,
     ) -> tuple[int, ScannerResult]:
-        """Persist an already-fetched immutable snapshot without another provider call."""
+        """Persist an already-fetched immutable snapshot without another provider call.
+
+        With ``universe`` the provider's universe rows are recorded in the same transaction
+        (``scanner_universe_inputs``, RECORDED_PAPER_UNIVERSE); without it nothing changes.
+        """
+        if universe is not None and (universe_source is None or universe_acquired_at is None):
+            raise ValueError("a recorded universe needs its source and acquisition time")
         session = self.repository.session
         if session.in_transaction():
             if session.new or session.dirty or session.deleted:
@@ -78,6 +119,10 @@ class ScannerService:
                     for candidate in result.candidates
                 ],
             )
+            if universe is not None:
+                self.repository.add_universe_inputs(
+                    run.id, universe_inputs(universe, result), source=str(universe_source),
+                    acquired_at=universe_acquired_at)  # type: ignore[arg-type]
             self.repository.complete_run(
                 run.id,
                 completed_at=self.clock(),

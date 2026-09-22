@@ -206,9 +206,19 @@ def previous_regular_close(calendar: MarketCalendar, symbol: str, trading_date: 
 
 def build_premarket_context(calendar: MarketCalendar, symbol: str, trading_date: date,
                             minute_bars: Sequence[MinuteBar], provider: MarketDataProvider,
-                            as_of: datetime) -> PremarketBuildResult:
+                            as_of: datetime, *,
+                            daily_volume_provider: MarketDataProvider | None = None,
+                            ) -> PremarketBuildResult:
+    """The canonical premarket context both paper and replay hand the engine.
+
+    ``daily_volume_provider`` names where the volume denominator's daily bars come from
+    when that is not ``provider`` itself. Paper passes nothing: its provider's daily bar is
+    the provider's whole-session volume. A replay whose provider derives its daily bar from
+    minute sums can pass a daily aggregate source instead (``PREMARKET_VOLUME_BASIS_V2``);
+    the previous close, the reference price and the premarket volume are unaffected.
+    """
     previous_close = previous_regular_close(calendar, symbol, trading_date, provider, as_of)
-    daily = [bar for bar in provider.get_daily_bars(
+    daily = [bar for bar in (daily_volume_provider or provider).get_daily_bars(
         [symbol], trading_date - timedelta(days=45), trading_date - timedelta(days=1)
     ) if bar.available_at <= as_of and bar.trading_date < trading_date]
     daily.sort(key=lambda bar: bar.trading_date)

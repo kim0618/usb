@@ -60,7 +60,7 @@ OBSERVER_VERSION = "entry_drift_observer_v2"
 # The schema revision this observer writes; a newer head needs review before writing.
 # Reviewed for 0017, the single step from the deployed 0016: it adds the independent
 # paper_entry_evaluations table and changes no column this observer reads or writes.
-OBSERVER_SCHEMA_REVISION = "20260916_0017"
+OBSERVER_SCHEMA_REVISION = "20260921_0018"
 TOLERANCES = tuple(Decimal(value) for value in (
     "0.00", "0.10", "0.25", "0.50", "0.75", "1.00", "1.50", "2.00"))
 MINUTE = timedelta(minutes=1)

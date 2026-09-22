@@ -41,7 +41,7 @@ Clock = Callable[[], datetime]
 
 SOURCE = "KIWOOM_USA06011"
 # The schema revision the collector writes; a newer head needs review before writing.
-HISTORY_SCHEMA_REVISION = "20260916_0017"
+HISTORY_SCHEMA_REVISION = "20260921_0018"
 # Reviewed for 0017, the single step from the deployed 0016: an added analytics table
 # only, and no column this collector reads or writes moved.
 # The meaning of a stored row: its window, completeness rules, and volume sum. A

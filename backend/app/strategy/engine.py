@@ -177,15 +177,36 @@ class StrategyV0Engine:
         if initial_stop >= price:
             return BarEvaluation(waiting, self._decision(waiting, DecisionType.NO_TRADE,
                                  StrategyReason.INVALID_MARKET_DATA, as_of), *ranges, vwap)
-        signalled = waiting.transition(StrategyPhase.ENTRY_SIGNALLED, entry_price=price,
+        reference = self.entry_reference_price(price)
+        signalled = waiting.transition(StrategyPhase.ENTRY_SIGNALLED, entry_price=reference,
                                        initial_stop=initial_stop, active_stop=initial_stop,
                                        highest_price_since_entry=price,
                                        entry_trading_date=state.trading_date,
                                        holding_day_number=1, last_market_as_of=as_of)
         return BarEvaluation(signalled, self._decision(signalled, DecisionType.ENTER,
                              StrategyReason.ABOVE_VWAP_AND_OR_BREAK, as_of,
-                             {"entry_price": str(price), "initial_stop": str(initial_stop)}),
+                             {"entry_price": str(reference), "initial_stop": str(initial_stop)}),
                              *ranges, vwap)
+
+    def entry_reference_price(self, price: Decimal) -> Decimal:
+        """The reference an approved entry is sized and limited at.
+
+        The tolerance is applied after the entry decision, never before it: the VWAP,
+        breakout and stop tests read the observed price, so no signal exists here that
+        the untoleranced rule would not have produced. What moves is the reference Risk
+        sizes at, and through it - by the same ``execution_price`` helper, unchanged -
+        the ceiling a fill is tested against. Both the approved risk and the ceiling are
+        derived from this one number, so the invariant that a fill at or below the
+        ceiling carries at most the approved risk is untouched: a higher reference buys
+        a smaller quantity at a higher limit.
+
+        ``highest_price_since_entry`` keeps the observed price, never this reference; a
+        fill replaces it with the fill price anyway.
+        """
+        tolerance = self.config.entry_reference_tolerance_pct
+        if not tolerance:
+            return price
+        return price * (Decimal("1") + tolerance)
 
     def evaluate_position(self, *, state: StrategyState, bars: Sequence[MinuteBar],
                           market_open: datetime, as_of: datetime, current_price: Decimal,

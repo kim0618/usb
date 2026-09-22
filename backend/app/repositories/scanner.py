@@ -3,12 +3,13 @@
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import date, datetime
+import hashlib
 from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models.scanner import ScannerCandidate, ScannerRun
+from app.models.scanner import ScannerCandidate, ScannerRun, ScannerUniverseInput
 
 
 @dataclass(frozen=True)
@@ -20,6 +21,30 @@ class ScannerCandidateData:
     observed_at: datetime
     available_at: datetime
     score_components: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class ScannerUniverseInputData:
+    """One recorded universe symbol: its provider ranking place and its scanner outcome."""
+
+    position: int
+    symbol: str
+    exchange_code: str | None
+    company_name: str | None
+    market_cap: str | None
+    outcome: str
+    scanner_rank: int | None = None
+    exclusion_reason: str | None = None
+
+
+def universe_checksum(items: Sequence[ScannerUniverseInputData]) -> str:
+    """One digest over the ordered universe and each symbol's outcome."""
+    lines = "\n".join(
+        f"{item.position}|{item.symbol}|{item.exchange_code or ''}|{item.market_cap or ''}|"
+        f"{item.outcome}|{item.scanner_rank if item.scanner_rank is not None else ''}|"
+        f"{item.exclusion_reason or ''}"
+        for item in sorted(items, key=lambda value: value.position))
+    return hashlib.sha256(lines.encode("utf-8")).hexdigest()
 
 
 class ScannerSnapshotRepository:
@@ -84,6 +109,28 @@ class ScannerSnapshotRepository:
         self.session.add_all(models)
         self.session.flush()
         return models
+
+    def add_universe_inputs(self, run_id: int, items: Sequence[ScannerUniverseInputData], *,
+                            source: str, acquired_at: datetime) -> list[ScannerUniverseInput]:
+        digest = universe_checksum(items)
+        models = [
+            ScannerUniverseInput(
+                scanner_run_id=run_id, position=item.position,
+                symbol=item.symbol.strip().upper(), exchange_code=item.exchange_code,
+                company_name=item.company_name, market_cap=item.market_cap, source=source,
+                acquired_at=acquired_at, outcome=item.outcome, scanner_rank=item.scanner_rank,
+                exclusion_reason=item.exclusion_reason, universe_checksum=digest)
+            for item in items
+        ]
+        self.session.add_all(models)
+        self.session.flush()
+        return models
+
+    def get_universe_inputs(self, run_id: int) -> list[ScannerUniverseInput]:
+        statement = (select(ScannerUniverseInput)
+                     .where(ScannerUniverseInput.scanner_run_id == run_id)
+                     .order_by(ScannerUniverseInput.position))
+        return list(self.session.scalars(statement))
 
     def get_candidates(self, run_id: int) -> list[ScannerCandidate]:
         nulls_last_rank = ScannerCandidate.rank.is_(None)

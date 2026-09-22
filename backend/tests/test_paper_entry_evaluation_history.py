@@ -652,7 +652,7 @@ def test_migration_0016_to_0017_roundtrip_preserves_business_rows(
         engine = create_engine(f"sqlite:///{path}")
         with engine.connect() as connection:
             assert connection.execute(text(
-                "SELECT version_num FROM alembic_version")).scalars().all() == ["20260916_0017"]
+                "SELECT version_num FROM alembic_version")).scalars().all() == ["20260921_0018"]
             # No backfill: a past session gains no invented evaluation row.
             assert connection.execute(text(
                 "SELECT count(*) FROM paper_entry_evaluations")).scalar() == 0
@@ -695,7 +695,7 @@ def test_the_fresh_head_holds_the_evaluation_grain(tmp_path: Path, monkeypatch: 
     assert fingerprint["unique_constraints"]["paper_entry_evaluations"] == [  # type: ignore[index]
         ("trading_date", "scanner_candidate_id")]
     head = ScriptDirectory.from_config(Config(PROJECT_ROOT / "alembic.ini")).get_current_head()
-    assert head == "20260916_0017"
+    assert head == "20260921_0018"
 
 
 # --- Trading safety ------------------------------------------------------------------------------

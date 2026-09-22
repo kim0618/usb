@@ -13,18 +13,19 @@ the result is ``storage``'s job and takes the writer lock.
 """
 
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date
 from decimal import Decimal
 import time
 
-from app.backtest.authority.contract import AUTHORITY_VERSION, AuthorityModes
+from app.backtest.authority.contract import AUTHORITY_VERSION, AuthorityModes, OvernightMode
 from app.backtest.baseline import analytics
 from app.backtest.baseline.config_snapshot import strategy_config_snapshot
 from app.backtest.baseline.contract import (
     AUTHORITY_LABEL, BASELINE_VERSION, PREMARKET_HISTORY_SESSIONS, RESULT_SCHEMA_VERSION,
     SETTLEMENT_SESSIONS, STARTING_CASH, STARTING_CASH_SOURCE, assert_baseline_modes,
-    authority_block, baseline_modes, starting_capital_block,
+    assert_research_overnight_modes, authority_block, baseline_modes,
+    research_authority_block, research_overnight_modes, starting_capital_block,
 )
 from app.backtest.baseline.coverage import (
     BaselineRange, SymbolMinuteCoverage, assert_covered, measured_sessions, plan_baseline_range,
@@ -47,6 +48,9 @@ from app.backtest.portfolio.ledger import LedgerEvent
 from app.backtest.portfolio.replay import MultiSymbolPortfolioReplay
 from app.backtest.portfolio.result import PortfolioReplayResult
 from app.backtest.replay.clock import TICK_EPSILON
+from app.backtest.replay.daily_volume import (
+    PREMARKET_VOLUME_BASES, PREMARKET_VOLUME_BASIS_V1,
+)
 from app.backtest.replay.dataset import DatasetIdentity, _complete_entry, _verify_entry
 from app.backtest.replay.position_replay import POSITION_REPLAY_VERSION
 from app.backtest.replay.session_replay import REPLAY_VERSION
@@ -125,16 +129,68 @@ class BaselinePlan:
     daily_scan_end: date
     coverage: tuple[SymbolMinuteCoverage, ...]
     scanner_config: ScannerConfig
+    #: None is the baseline authority. Anything else is a RESEARCH experiment's explicit
+    #: overnight declaration, set only by ``with_research_overnight``.
+    overnight_override: OvernightMode | None = None
+    #: Which daily volume the premarket gate divides by. V1 is every stored run's basis;
+    #: V2 is set only by ``with_premarket_volume_basis`` and makes the run an experiment.
+    premarket_volume_basis: str = PREMARKET_VOLUME_BASIS_V1
 
     @property
     def modes(self) -> AuthorityModes:
-        return baseline_modes(self.declared)
+        if self.overnight_override is None:
+            return baseline_modes(self.declared)
+        return research_overnight_modes(self.declared, self.overnight_override)
+
+    def assert_modes(self) -> None:
+        if self.overnight_override is None:
+            assert_baseline_modes(self.modes)
+        else:
+            assert_research_overnight_modes(self.modes)
+
+    def authority(self) -> dict[str, object]:
+        if self.overnight_override is None:
+            return authority_block(self.modes)
+        return research_authority_block(self.modes)
+
+    def authority_override_lines(self) -> tuple[str, ...]:
+        # Only an overnight experiment adds a line: the baseline keeps its old identity.
+        if self.overnight_override is None:
+            return ()
+        return (f"authority_override=overnight_mode:{OvernightMode.UNKNOWN_CLOSE.value}"
+                f"->{self.overnight_override.value}",)
 
     def portfolio_config(self) -> PortfolioConfig:
         return PortfolioConfig(starting_cash=self.inputs.starting_cash, universe=self.declared,
                                trading_dates=self.range.entry_sessions, top8_only=True,
                                settlement_sessions=SETTLEMENT_SESSIONS,
-                               benchmark_symbol=self.inputs.universe.benchmark_symbol)
+                               benchmark_symbol=self.inputs.universe.benchmark_symbol,
+                               premarket_volume_basis=self.premarket_volume_basis)
+
+
+def with_research_overnight(plan_: BaselinePlan, overnight: OvernightMode) -> BaselinePlan:
+    """The same plan as a RESEARCH experiment that declares ``overnight`` for every symbol.
+
+    The one path to a non-baseline overnight authority. The declaration is checked here
+    (``RESEARCH_OVERNIGHT_OVERRIDES``), enters the run identity as an
+    ``authority_override`` line and the authority block with source ASSUMED, and gives the
+    run an experiment id. The strategy, risk and execution configuration are untouched.
+    """
+    research_overnight_modes(plan_.declared, overnight)
+    return replace(plan_, overnight_override=overnight)
+
+
+def with_premarket_volume_basis(plan_: BaselinePlan, basis: str) -> BaselinePlan:
+    """The same plan with the premarket denominator read from ``basis``.
+
+    ``PREMARKET_VOLUME_BASIS_V2`` divides by the daily aggregate volume of the plan's own
+    verified daily tape (the store the scanner reads), the quantity paper reads from Kiwoom
+    ``acc_trde_qty``. The basis enters the portfolio config lines, so the run identity and
+    run id move; no strategy, risk or execution value changes.
+    """
+    if basis not in PREMARKET_VOLUME_BASES:
+        raise BaselineError(f"unknown premarket volume basis {basis}")
+    return replace(plan_, premarket_volume_basis=basis)
 
 
 # --- planning -----------------------------------------------------------------------------------
@@ -255,7 +311,7 @@ def baseline_identity(plan_: BaselinePlan, minute: Mapping[str, DatasetIdentity]
                       engine: StrategyV0Engine, risk: RiskConfig,
                       execution: ExecutionConfig) -> BaselineIdentity:
     modes = plan_.modes
-    assert_baseline_modes(modes)
+    plan_.assert_modes()
     snapshot = strategy_config_snapshot(engine.config, risk, execution)
     overrides = config_overrides(engine.config, risk, execution)
     portfolio = build_identity(
@@ -290,9 +346,12 @@ def baseline_identity(plan_: BaselinePlan, minute: Mapping[str, DatasetIdentity]
         *plan_.inputs.data_binding().identity_lines(),
         # Only an experiment adds lines: a default configuration keeps its old identity.
         *identity_lines(overrides),
+        *plan_.authority_override_lines(),
     ))
     digest = checksum("current_strategy_baseline", block)
-    prefix = EXPERIMENT_RUN_ID_PREFIX if overrides else RUN_ID_PREFIX
+    experiment = (overrides or plan_.overnight_override
+                  or plan_.premarket_volume_basis != PREMARKET_VOLUME_BASIS_V1)
+    prefix = EXPERIMENT_RUN_ID_PREFIX if experiment else RUN_ID_PREFIX
     return BaselineIdentity(f"{prefix}-{digest[:20]}", digest, block, portfolio, snapshot,
                             overrides)
 
@@ -349,7 +408,9 @@ def execute(plan_: BaselinePlan, *, engine: StrategyV0Engine | None = None,
         research_universe_checksum=plan_.inputs.universe.checksum,
         metadata_checksum=plan_.inputs.metadata.checksum,
         daily_checksums=tuple(sorted((item.symbol, str(item.checksum)) for item in plan_.daily)),
-        scanner_config_fingerprint=scanner_config_fingerprint(plan_.scanner_config))
+        scanner_config_fingerprint=scanner_config_fingerprint(plan_.scanner_config),
+        premarket_daily_bars=None if plan_.premarket_volume_basis == PREMARKET_VOLUME_BASIS_V1
+        else {symbol: store.bars(symbol) for symbol in plan_.required})
     if replay.identity().run_identity != identity.portfolio.run_identity:
         raise BaselineError("the replay's identity differs from the planned identity")
     stage(STAGE_REPLAY)
@@ -391,7 +452,7 @@ def build_document(plan_: BaselinePlan, identity: BaselineIdentity,
     curve = analytics.equity_curve(result)
     funnel = analytics.funnel(result, outcomes, scanner_days, plan_.not_scanned)
     accounting = analytics.accounting_checks(result, trades, curve)
-    authority = authority_block(modes)
+    authority = plan_.authority()
     mismatches = _authority_mismatches(result, authority)
     reconciliation_failures = [item for item in funnel["reconciliation"]  # type: ignore[union-attr]
                                if not item["ok"]]
@@ -473,6 +534,18 @@ def build_document(plan_: BaselinePlan, identity: BaselineIdentity,
     if identity.overrides:
         document["run"]["parameter_set"] = parameter_set_block(  # type: ignore[index]
             {key: dict(value) for key, value in identity.overrides.items()})
+    if plan_.premarket_volume_basis != PREMARKET_VOLUME_BASIS_V1:
+        document["run"]["premarket_volume_basis"] = {  # type: ignore[index]
+            "baseline": PREMARKET_VOLUME_BASIS_V1, "value": plan_.premarket_volume_basis,
+            "denominator": "daily aggregate volume of the plan's verified daily tape",
+            "note": "config.derived.premarket_volume_v1 describes the V1 denominator; this run "
+                    "replaced only that denominator"}
+    if plan_.overnight_override is not None:
+        document["run"]["authority_override"] = {  # type: ignore[index]
+            "overnight_mode": {"baseline": OvernightMode.UNKNOWN_CLOSE.value,
+                               "value": plan_.overnight_override.value},
+            "source": "ASSUMED", "label": "RESEARCH_EXPERIMENT_SENSITIVITY_ONLY",
+            "production_config_modified": False}
     if reconciliation_failures or mismatches:
         raise BaselineAccountingFailed(
             f"funnel reconciliation failures {len(reconciliation_failures)}, "
@@ -501,10 +574,17 @@ def _warnings(plan_: BaselinePlan, result: PortfolioReplayResult,
         "declared universe and every approval is ASSUMED; this is not Production history",
         f"market cap metadata comes from {plan_.inputs.metadata_source} and is applied to every "
         "scanner session unchanged",
-        "premarket volume ratio denominator is derived from Massive REGULAR minute bars; parity "
-        "with Kiwoom acc_trde_qty is UNKNOWN",
-        "overnight UNKNOWN_CLOSE: the closing review reads UNKNOWN suitability, so Day 2 and "
-        "overnight carry are unreachable in this run",
+        ("premarket volume ratio denominator is derived from Massive REGULAR minute bars; parity "
+         "with Kiwoom acc_trde_qty is UNKNOWN")
+        if plan_.premarket_volume_basis == PREMARKET_VOLUME_BASIS_V1 else
+        ("premarket volume ratio denominator is the Massive daily aggregate volume "
+         f"({plan_.premarket_volume_basis}), the basis of Kiwoom acc_trde_qty; the premarket "
+         "numerator still comes from the Massive minute tape and its parity with Kiwoom is UNKNOWN"),
+        ("overnight UNKNOWN_CLOSE: the closing review reads UNKNOWN suitability, so Day 2 and "
+         "overnight carry are unreachable in this run") if plan_.overnight_override is None else
+        (f"overnight {plan_.overnight_override.value}: a RESEARCH experiment declaration, not a "
+         "record; the closing review reads a declared suitability for every symbol, so Day 2 "
+         "is reachable on an assumption; sensitivity only, not Production history"),
         "trailing UNKNOWN_DEFAULT: TIGHT/WIDE trailing profiles are unreachable",
         "Risk sizing produces fractional share quantities; no lot rounding is applied",
         f"starting cash {plan_.inputs.starting_cash} USD is {STARTING_CASH_SOURCE}",

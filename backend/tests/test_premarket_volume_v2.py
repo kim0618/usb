@@ -1105,4 +1105,4 @@ def test_fresh_database_reaches_the_current_head_with_the_v2_contract(
     unique = fingerprint["unique_constraints"]["premarket_volume_sessions"]  # type: ignore[index]
     assert unique == [("symbol", "exchange", "trading_date", "source", "collector_version")]
     head = ScriptDirectory.from_config(Config(PROJECT_ROOT / "alembic.ini")).get_current_head()
-    assert head == HISTORY_SCHEMA_REVISION == OBSERVER_SCHEMA_REVISION == "20260916_0017"
+    assert head == HISTORY_SCHEMA_REVISION == OBSERVER_SCHEMA_REVISION == "20260921_0018"

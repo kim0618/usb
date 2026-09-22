@@ -146,8 +146,11 @@ class CommonSnapshot:
         table = pq.read_table(audit_path)
         audit: dict[str, dict[date, AuditRow]] = defaultdict(dict)
         for row in table.to_pylist():
-            audit[row["symbol"]][row["session_date"]] = AuditRow(
-                row["symbol"], row["session_date"], row["source"], int(row["regular_rows"]),
+            # The frozen audit stores session_date as an ISO string; every lookup is by date.
+            day = row["session_date"]
+            day = day if isinstance(day, date) else date.fromisoformat(day)
+            audit[row["symbol"]][day] = AuditRow(
+                row["symbol"], day, row["source"], int(row["regular_rows"]),
                 int(row["outside_rows"]), int(row["expected_regular_rows"]),
                 bool(row["regular_complete"]), bool(row["empty_session"]))
         return cls(root, snapshot_id, snapshot, digest, members, dict(audit))

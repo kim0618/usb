@@ -68,7 +68,9 @@ def _execute_scan(
             scanner,
             ScannerSnapshotRepository(session),
             provider_name="KIWOOM_REAL",
-        ).persist_result(result)
+        ).persist_result(result, universe=universe,
+                         universe_source="KIWOOM_REAL:usa20540+usa20550",
+                         universe_acquired_at=now)
     except Exception:
         LOGGER.exception(
             "Morning Scanner failed target_trading_date=%s kiwoom_order_requests=%d",

@@ -1,6 +1,6 @@
 """ORM and validation models."""
 
-from app.models.scanner import ScannerCandidate, ScannerRun
+from app.models.scanner import ScannerCandidate, ScannerRun, ScannerUniverseInput
 from app.models.research import GPTAnalysis, GPTCandidateAnalysis, GPTSource, HumanDecisionRecord
 from app.models.risk import DailySymbolState
 from app.models.execution import ExecutionFillRecord, ExecutionOrderRecord, ShadowTradeRecord
@@ -9,4 +9,4 @@ from app.models.runtime import RuntimeFailureRecord, RuntimeStateRecord
 from app.models.simulation import AccountDailyPerformanceRecord, SimulationAccountRecord, SimulationPositionRecord, SimulationTradeRecord
 from app.models.analytics import EntryDriftObservation, PaperEntryEvaluation, PremarketVolumeSession
 
-__all__ = ["ScannerCandidate", "ScannerRun", "GPTAnalysis", "GPTCandidateAnalysis", "GPTSource", "HumanDecisionRecord", "DailySymbolState", "ExecutionOrderRecord", "ExecutionFillRecord", "ShadowTradeRecord", "StrategyStateRecord", "PremarketDiagnosticRecord", "RuntimeStateRecord", "RuntimeFailureRecord", "SimulationAccountRecord", "SimulationPositionRecord", "SimulationTradeRecord", "AccountDailyPerformanceRecord", "EntryDriftObservation", "PremarketVolumeSession", "PaperEntryEvaluation"]
+__all__ = ["ScannerCandidate", "ScannerRun", "ScannerUniverseInput", "GPTAnalysis", "GPTCandidateAnalysis", "GPTSource", "HumanDecisionRecord", "DailySymbolState", "ExecutionOrderRecord", "ExecutionFillRecord", "ShadowTradeRecord", "StrategyStateRecord", "PremarketDiagnosticRecord", "RuntimeStateRecord", "RuntimeFailureRecord", "SimulationAccountRecord", "SimulationPositionRecord", "SimulationTradeRecord", "AccountDailyPerformanceRecord", "EntryDriftObservation", "PremarketVolumeSession", "PaperEntryEvaluation"]
