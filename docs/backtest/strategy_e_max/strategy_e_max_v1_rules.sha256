@@ -1,0 +1,8 @@
+{
+  "file": "strategy_e_max_v1_rules.json",
+  "canonical_sha256": "b30a3e95d6333c17d736c4c4fa23f55a7f67ba4af328317379a86a4a37e89d0e",
+  "file_sha256": "cf80205128bbc51cea59c6d79648c4aed2a39b37a3aeff84d5a5ce69f9781320",
+  "recipe": "canonical = sha256 of json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False)",
+  "frozen_at_kst": "2026-09-22",
+  "frozen_before": "the E-MAX-M6 integrated replay"
+}

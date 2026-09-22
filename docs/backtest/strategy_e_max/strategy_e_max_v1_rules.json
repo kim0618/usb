@@ -1,0 +1,148 @@
+{
+  "declaration": {
+    "contract_id": "STRATEGY_E_MAX_V1_RULES",
+    "strategy_id": "STRATEGY_E_MAX_V1",
+    "version": "STRATEGY_E_MAX_V1",
+    "namespace": "STRATEGY_E_MAX",
+    "stage": "E-MAX-M6_INTEGRATED_FROZEN_REPLAY",
+    "status": "FROZEN_BEFORE_M6_INTEGRATED_REPLAY",
+    "declared_at_kst": "2026-09-22",
+    "checksum_recipe": "sha256 of json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False)",
+    "evidence_label": "E-MAX DEVELOPMENT (reused development data; not OOS)",
+    "purpose": "freeze the M0-M5 survivors as one strategy, replay it end to end from the frozen source rules, and confirm identity, performance, risk and provenance; no ranking, capacity, breadth, exit or exposure is explored",
+    "disclosure": "M6 replays a configuration whose M5 numbers are already published. Every gate below is copied from M0 or M5; none is set or moved with knowledge of the M6 replay. A new variant, threshold or multiplier is a new version, not M6."
+  },
+  "upstream": {
+    "e_base": {
+      "alpha_h5_canonical_sha256": "f1534f07688c801f2979491e447eefbb3e62b8045afb9c4ab302b90e4593d4b2",
+      "trading_v1_1_canonical_sha256": "b90573bde8809b0eadd03c9f6c5cae59bf115254b792237df92e0f6eaa1304b6",
+      "replay_protocol_e_r2_canonical_sha256": "86b750ef664ef3c67d8560c5001940c77e792ceeab17a5d024690f939aa8045e",
+      "e_r3_result_file_sha256": "2d50cca5cfe2ee4b284eb097c87afd2a51fd4b20c11dfa86e95752fa8a94b593"
+    },
+    "stages": {
+      "M0": {"rules_canonical_sha256": "3ae07d755501e82c2b7ff2bd765d93f4353aa9319b34a3e6f59d0aad098082ac", "commit": "b05bbf6"},
+      "M1": {"rules_canonical_sha256": "4556a4f3b8acb16c897ddfdfb392f82be39eb76286f67e35fed706dc7df64c79", "protocol_commit": "058217f", "result_commit": "d5bdc6b", "result_file_sha256": "eac7dfd78635216ee77a01948c1e831ffff041dbb9e0e75fcd0bfee0360a2bed", "winner": "R1"},
+      "M2": {"rules_canonical_sha256": "aabeddcd25c16daefe3e273b5df5e2e59d362a48820dd8188fe86c483f285a4b", "protocol_commit": "cf5a6cb", "result_commit": "9dc80b1", "result_file_sha256": "d5402bf9d42333c63190615b4e7abaa639fc0fd9f4179bfdfeb1df96ed47b53c", "winner": "C1"},
+      "M3": {"rules_canonical_sha256": "2efbf457654f7260adb703a3a6ea2cd83f0e222e880323994ebc7e43ac56d020", "protocol_commit": "7e240a8", "result_commit": "7312f45", "result_file_sha256": "245d013e19bd1bcf293733288c9b52a9ef82b9dd8eec5b1720975da35393f667", "winner": "B2"},
+      "M4": {"rules_canonical_sha256": "6b3405a787afbfa2d8a0639673de88d7d5b70dbcf79507f312193bcbc34c125c", "protocol_commit": "362b978", "result_commit": "0c74c22", "result_file_sha256": "a4f5323bc20a4b9389b8fc6f14af8c37bc071cb9293b9f05417df0b70e056bf5", "winner": "X1"},
+      "M5": {"rules_canonical_sha256": "b2a89a713af448d7207006a22a3035f1ac22a8a0074d2fa23c8da2b029583647", "protocol_commit": "d413da0", "result_commit": "9d4b1f1", "result_file_sha256": "084c0d352cead4cf4142994d4232549d8b82f1f7687bed4cf885a3097be2f35b", "winner": "E20", "m6_authorization": "M6 AUTHORIZED"}
+    },
+    "stage_artifacts": {
+      "S1_R1_MAX3_X1_1X": {"source": "M1 R1 (= M2 C1 = M3 B1)", "trades_csv_sha256": "95d03874fbb27a111e731117575c2ae55405cad390379fee3f25d61d9a8602ae", "daily_returns_csv_sha256": "9d39d01bdccf0b9c7b1177ed9a39e0f9c647b724a0b964b3d091b8e54588e188"},
+      "S2_PLUS_B2": {"source": "M3 B2 (= M4 X1 = M5 E1)", "trades_csv_sha256": "fee44b841fffb5ce348bc5ab0d1515d1e82c87809d8d024fda4894d8bd08b910", "daily_returns_csv_sha256": "97f9d50cb87a998640d065bb87c73f09ff96a3dbdf20030c52342a38840d10a9", "exposure_map_json_sha256": "d09ec86f229f4e0fb3df7a36545a3d95102cea54e388abe0af76c0f2e48c2fcb"},
+      "S3_PLUS_GLOBAL_2X": {"source": "M5 E20", "trades_csv_sha256": "1a5c2e3be5b7524ac75d56f26a3ac9db004df0c0629a44b287eda3e576c6452a", "daily_returns_csv_sha256": "7da259f5804eb8a87f9030f0cd054da8d1a0e49c143866831f83f7d5e148ed1d"}
+    }
+  },
+  "dataset": {
+    "binding": "the E-R2 .. M5 development binding, unchanged: minute manifest docs/backtest/strategy_e_candidate/strategy_e_d6_development_tape_v1.json through the symlink view (no glob of the live store)",
+    "minute_tape_digest": "d12ff28a98cf9cc64cad86f595985fd5ae2308b555635501fa5729d4439222a4",
+    "minute_files": 2152,
+    "minute_symbols": 1902,
+    "sessions": 480,
+    "first_session": "2024-10-16",
+    "last_session": "2026-09-16",
+    "forward_excluded_from": "2026-09-17",
+    "prechecks": "app.backtest.strategy_e_max.prepare (the E-R3 prechecks: chain, binding, V1 reproduction, attribution, PIT poison) before any return"
+  },
+  "definition": {
+    "universe": "Trading V1.1 PIT universe sealed at 09:25 ET, unchanged",
+    "alpha": {"id": "H5", "rule": "premarket_gap > 0 AND premarket_rvol >= 3.0 AND position_in_premarket_range >= 0.8 AND return_0900_0925 > 0", "changes_forbidden": true},
+    "ranking": {"id": "R1", "rule": "premarket_rvol descending", "tie_break": "canonical symbol ascending", "implementation": "app.strategy_e_max.ranking.select('R1', ...)"},
+    "capacity": {"id": "C1", "max_selected": 3, "replacement": "NONE", "backfill_of_candidate_4": "forbidden"},
+    "entry": {"rule": "exact 09:30 ET bar open", "fallback": "NONE", "invalid": "ENTRY_INVALID (E-D2 contract)"},
+    "exit": {"id": "X1", "rule": "exact 09:34 ET bar close", "fallback": "NONE", "invalid": "UNRESOLVED_EXIT (E-D3 contract)", "x2_continuation": "not used"},
+    "execution_implementation": "app.strategy_e_max.capacity.execute(capacity=3): E-D2 entry, E-D3 exit, E-D5 classification, 1/n weights, E-D4 costs, all unmodified",
+    "breadth": {"id": "B2", "h5_rate": "H5 candidates / 09:25 universe rows", "high_breadth": "universe_rows >= 100 AND h5_rate >= 0.030741", "threshold": 0.030741, "min_universe_rows": 100, "high_multiplier": 1.5, "normal_multiplier": 1.0, "implementation": "app.strategy_e_max.breadth.multiplier / scale"},
+    "global_exposure": {"id": "E20", "m0_id": "L3", "multiplier": 2.0, "implementation": "app.strategy_e_max.exposure.apply_global"},
+    "composition": "session_exposure = global_multiplier x breadth_multiplier, applied in the M5 order: breadth.scale first, then exposure.apply_global",
+    "final_session_exposure": {"normal": 2.0, "high_breadth": 3.0},
+    "sizing": "equal weight over executable positions: final_weight_i = final_session_exposure / n; normal 3 positions 2/3 each, high-breadth 3 positions 1 each; alpha-strength sizing forbidden",
+    "cost": {"primary": "COST_10BP", "scenarios": ["GROSS_0BP", "COST_05BP", "COST_10BP", "COST_15BP", "COST_20BP"], "scaling": "levered net = exposure x (gross - round-trip cost); cost is notional-proportional"},
+    "equity": "equity_t = equity_(t-1) x (1 + session_return_t) over all 480 sessions, no-trade sessions at 0 (E-D6 equity_stats); MDD from the compounded levered series"
+  },
+  "pipeline": {
+    "order": ["PIT universe @ 09:25", "H5", "R1 premarket_rvol ranking", "max 3 selection", "exact 09:30 entry", "no backfill", "exact 09:34 exit", "10 bp cost (all five scenarios)", "equal-weight executable sizing", "B2 breadth multiplier", "global 2.0x multiplier", "session portfolio", "compounded equity"],
+    "runner": "app.dev.run_strategy_e_max_m6 replays every stage from the prepared source frames; no stage result file is read back as an input",
+    "stage_identities": {
+      "S1_R1_MAX3_X1_1X": "trades and daily-returns CSV bytes hash to upstream.stage_artifacts.S1_R1_MAX3_X1_1X",
+      "S2_PLUS_B2": "trades, daily-returns CSV and the high-breadth exposure map hash to upstream.stage_artifacts.S2_PLUS_B2",
+      "S3_PLUS_GLOBAL_2X": "trades and daily-returns CSV hash to upstream.stage_artifacts.S3_PLUS_GLOBAL_2X"
+    },
+    "m5_metric_identity": {
+      "source": "committed strategy_e_max_m5_result_v1.json, variants.E20 (authoritative values; never rounded constants)",
+      "sections": ["evaluation", "cagr", "calmar", "risk", "tail", "blocks", "calendar", "breadth_interaction", "extremes", "catastrophic_sessions"],
+      "rule": "each section of the M6 replay, after the canonical JSON round trip, equals the committed M5 section exactly; any difference is analysed and, if unexplained, BLOCKS"
+    },
+    "independent_checks": {
+      "record_recompute": "each session's scenario return equals the sum over SIZED records of Decimal(final weight) x record net return, within 1e-18 absolute (Decimal rounding of 1/n)",
+      "equal_weight": "every executable record of a session carries the same weight, equal to final_session_exposure / n",
+      "exposure_values": "every active session has exposure exactly 2 (normal) or 3 (high breadth)",
+      "cost_scaling": "for every active session and cost scenario c: (GROSS - c) session return equals exposure x c_bp / 10000 within 1e-18",
+      "selection": "every selected set is the first min(3, H5) of the R1 order; no NOT_SELECTED candidate is ever executed",
+      "breadth_map": "high breadth exactly on the sessions where universe_rows >= 100 and h5_rate >= 0.030741"
+    }
+  },
+  "gate": {
+    "source": "M0 selection_rule.eligibility and stop_conditions, M5 catastrophic rule; values verbatim",
+    "integrity": "E-R3 prechecks PASS, stage identities PASS, independent checks PASS, in-process deterministic, tape and daily inputs unchanged after the run",
+    "reproducibility": "two runs with identical result digest and byte-identical artifacts",
+    "m5_integrated_identity": "pipeline.m5_metric_identity PASS",
+    "min_coverage": 0.95,
+    "mean_session_10bp_gt": 0.0,
+    "profit_factor_10bp_gt": 1.0,
+    "mdd_10bp_ge": -0.35,
+    "top1_share_10bp_le": 0.7338,
+    "no_catastrophic_session": "no COST_10BP session return <= -100%",
+    "stop_conditions": {
+      "A": "M1-M4 all NO_USEFUL_ENHANCEMENT or skipped (checked from the committed verdicts)",
+      "B": "authoritative, decisive at M6: flagged when |MDD_10bp| / |MDD_10bp of E-Base| > CAGR_10bp / CAGR_10bp of E-Base (the M0 literal); E-Base values are read from the committed E-R3 result (COST_10BP cumulative_return and maximum_drawdown; CAGR = (1 + cumulative)^(252/480) - 1). If flagged, M6 cannot PASS",
+      "C": "the top1 concentration guard above",
+      "D": "every candidate of two consecutive executed stages below -35% MDD (M5 E15/E20 and M6 E-MAX V1)",
+      "E": "no variant outside the M0 budget; M6 declares none"
+    },
+    "stop_b_diagnostic": "also reported against the M5 stage comparator E1 (1.0x, the M2-M5 convention) from the committed M5 result; not decisive, its margin is disclosed"
+  },
+  "cost_risk_classification": {
+    "PRIMARY_MODELED": "COST_10BP",
+    "STRESS_WARNING": "COST_15BP",
+    "SEVERE_STRESS": "COST_20BP",
+    "rule": "EXECUTION COST SENSITIVITY = HIGH when COST_15BP MDD < -0.35; ELEVATED when only COST_20BP MDD < -0.35; LOW otherwise",
+    "verdict_effect": "none; the primary gate stays the M0 10 bp contract"
+  },
+  "diagnostics": {
+    "funnel": ["universe rows", "H5 candidates", "selected", "capacity skipped", "valid entries", "ENTRY_INVALID", "valid exact exits", "UNRESOLVED_EXIT", "standard trades", "active sessions", "high-breadth sessions"],
+    "cost_table": ["CAGR", "cumulative", "MDD", "Calmar", "Sharpe", "profit factor", "session mean", "MDD ceiling pass"],
+    "tail": ["top1 / top3 / top5 session share of summed session returns", "top1 / top5 / top10 symbols", "HHI (trade count)"],
+    "breadth_dependence": ["high-breadth sessions, trades, summed PnL and share", "normal sessions, trades, summed PnL and share"],
+    "coverage_regime": {"LEGACY_NARROW": ["2024-10-16", "2026-04-17"], "BROAD_COVERAGE": ["2026-04-20", "2026-09-16"], "metrics": ["cumulative", "session mean", "MDD", "trades", "summed PnL share"]},
+    "blocks": "E-D6 four blocks: mean, compounded, MDD, trades, positive count",
+    "calendar": ["positive / negative months and quarters, best / worst", "2026Q2 and 2026Q3 compounded return and summed-PnL share"],
+    "drawdown": ["MDD", "peak session (first and last at the peak value)", "trough session", "recovery session (first close at or above the peak equity) or OPEN", "sessions peak to recovery", "sessions trough to recovery", "longest underwater duration"],
+    "role": "diagnostics decide nothing"
+  },
+  "financing_and_live": {
+    "not_modeled": ["margin interest", "broker margin rules", "buying power", "forced liquidation", "real slippage", "NBBO spread", "market impact"],
+    "label": "HISTORICAL DEVELOPMENT CANDIDATE / NOT LIVE-LEVERAGE APPROVED",
+    "note": "high-breadth sessions require 3.0x gross exposure; Common Risk V1 allows no leverage"
+  },
+  "pass_meaning": {
+    "means": "E-MAX V1 DEVELOPMENT CANDIDATE FROZEN",
+    "does_not_mean": ["OOS validated", "forward validated", "paper approved", "live approved", "3x leverage approved"]
+  },
+  "no_further_optimization": {
+    "forbidden_on_this_development_data": ["2.1x", "1.9x", "any other multiplier", "new breadth threshold", "new ranking", "new exit", "new max positions", "symbol exclusion", "cost relaxation"],
+    "rule": "M6 is the end of E-MAX V1 development exploration",
+    "next_evidence": "forward / shadow evidence or new untouched historical data, chosen after M6"
+  },
+  "verdict_labels": {
+    "PASS": "E-MAX-M6 PASS — E-MAX V1 DEVELOPMENT CANDIDATE FROZEN",
+    "FAIL": "E-MAX-M6 FAIL",
+    "BLOCK": "E-MAX-M6 BLOCKED — INTEGRITY"
+  },
+  "verdict_rule": "BLOCK on any integrity, stage-identity, M5-identity or determinism failure; else FAIL when any economic gate, the MDD ceiling, the concentration guard or an authoritative stop condition fails; else PASS",
+  "reproducibility": {"repeat_runs": 2, "required": "identical result digest and byte-identical runtime artifacts"},
+  "outputs": {
+    "runtime_root": "data/runtime/strategy_e_max/m6_runs/<run_id>/ (gitignored)",
+    "committed": ["E_MAX_M6_INTEGRATED_RESULT_V1.md", "strategy_e_max_v1_result.json", "strategy_e_max_v1_result.sha256"]
+  }
+}
