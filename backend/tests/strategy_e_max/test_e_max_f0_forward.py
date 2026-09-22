@@ -249,7 +249,7 @@ def _inventory(universe=("AAA", "BBB")):
         day = CAL.previous_trading_day(day)
         inv.daily_sessions.add(day)
     inv.reference_dates = {date(2026, 7, 1)}
-    inv.splits_through = SESSION
+    inv.splits_asof = {SESSION}
     inv.minute_ranges = {s: [(date(2026, 5, 18), SESSION)] for s in (*universe, "SPY")}
     inv.eligible_universe[SESSION] = tuple(universe)
     return inv
@@ -258,7 +258,7 @@ def _inventory(universe=("AAA", "BBB")):
 def test_readiness_ready_and_each_reason() -> None:
     assert RD.assess(SESSION, _inventory(), today_et=date(2026, 9, 22), calendar=CAL)["state"] == "READY"
     inv = _inventory()
-    inv.splits_through = date(2026, 9, 16)
+    inv.splits_asof = set()
     inv.minute_ranges["BBB"] = [(date(2026, 5, 18), date(2026, 9, 16))]
     row = RD.assess(SESSION, inv, today_et=date(2026, 9, 17), calendar=CAL)
     assert row["state"] == "NOT_READY" and row["status"] == context.FEATURE_CONTEXT_INCOMPLETE

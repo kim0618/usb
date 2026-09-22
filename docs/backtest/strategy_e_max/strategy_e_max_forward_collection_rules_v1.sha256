@@ -1,0 +1,8 @@
+{
+  "file": "strategy_e_max_forward_collection_rules_v1.json",
+  "canonical_sha256": "f8d1797257519e85a55d5279193c8262cdbc9ad583a096dd1fa0df5d29ecd731",
+  "file_sha256": "7fc6430c39f843a3b107c1b1ca635d35c7c26d63f3f7ba7296c62b2f25e9bfb0",
+  "recipe": "canonical = sha256 of json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False)",
+  "frozen_at_kst": "2026-09-22",
+  "frozen_before": "the first E-MAX forward fetch"
+}

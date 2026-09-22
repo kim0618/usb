@@ -37,7 +37,8 @@ RESERVED = frozenset({"CON", "PRN", "AUX", "NUL", *(f"COM{d}" for d in "01234567
 
 
 def forward_minute_dir(symbol: str) -> str:
-    return f"_{symbol}" if symbol.upper() in RESERVED else symbol
+    from app.strategy_e_max_forward.storage import symbol_to_storage
+    return symbol_to_storage(symbol)
 
 
 @dataclass
@@ -45,11 +46,22 @@ class Inventory:
     daily_sessions: set[date] = field(default_factory=set)
     reference_dates: set[date] = field(default_factory=set)
     splits_through: date | None = None
+    splits_asof: set[date] = field(default_factory=set)
     minute_ranges: dict[str, list[tuple[date, date]]] = field(default_factory=dict)
     eligible_universe: dict[date, tuple[str, ...]] = field(default_factory=dict)
 
     def page_covers(self, symbol: str, day: date) -> bool:
         return any(a <= day <= b for a, b in self.minute_ranges.get(symbol, ()))
+
+    def first_collected(self, symbol: str) -> date | None:
+        ranges = self.minute_ranges.get(symbol)
+        return min(a for a, _ in ranges) if ranges else None
+
+
+#: RVOL needs up to 20 qualifying prior sessions; the page-level check asks for this many collected
+#: sessions ending D-1 (or all sessions since the symbol's first collected page). The exact per-session
+#: rule is the forward builder's (context.require_complete).
+HISTORY_WINDOW = 25
 
 
 def forward_sessions(until_exclusive: date, calendar: MarketCalendar) -> list[date]:
@@ -83,9 +95,10 @@ def assess(session: date, inventory: Inventory, *, today_et: date,
         reasons["MISSING_DAILY_CONTEXT"] = f"grouped daily missing for {len(absent)} of the 21 sessions ending D-1 ({absent[0].isoformat()}..)"
     if not any(d <= previous for d in inventory.reference_dates):
         reasons["MISSING_REFERENCE"] = "no CS reference snapshot dated on or before D-1"
-    if inventory.splits_through is None or inventory.splits_through < session:
+    if session not in inventory.splits_asof:
         through = inventory.splits_through.isoformat() if inventory.splits_through else "none"
-        reasons["MISSING_SPLITS_ASOF"] = f"split list covers executions through {through}, needs {session.isoformat()}"
+        reasons["MISSING_SPLITS_ASOF"] = (f"no verified splits_asof_{session.isoformat()} (frozen list covers "
+                                          f"executions through {through})")
     spy = []
     if previous not in inventory.daily_sessions:
         spy.append("SPY close(D-1)")
@@ -103,15 +116,28 @@ def assess(session: date, inventory: Inventory, *, today_et: date,
     else:
         eligible = len(universe)
         covered = sum(inventory.page_covers(s, session) for s in universe)
-        history = sum(inventory.page_covers(s, previous) for s in universe)
-        if covered < eligible:
-            reasons["MISSING_MINUTE"] = f"D minute page for {covered} of {eligible} eligible symbols"
-        if history < eligible:
-            reasons["MISSING_RVOL_HISTORY"] = f"minute history through D-1 for {history} of {eligible} eligible symbols"
-    return {"session": session.isoformat(), "state": READY if not reasons else NOT_READY,
+        window = _previous(session, HISTORY_WINDOW, market)
+        lacking = [s for s in universe if not _history_ok(inventory, s, window)]
+        history = eligible - len(lacking)
+        missing_minute = [s for s in universe if not inventory.page_covers(s, session)]
+        if missing_minute:
+            reasons["MISSING_MINUTE"] = (f"D minute page for {covered} of {eligible} eligible symbols "
+                                         f"(e.g. {', '.join(missing_minute[:5])})")
+        if lacking:
+            reasons["MISSING_RVOL_HISTORY"] = (f"collected minute history for the {HISTORY_WINDOW} sessions ending "
+                                               f"D-1 for {history} of {eligible} (missing {', '.join(lacking[:5])})")
+    missing_symbols = {"minute": missing_minute[:50], "rvol_history": lacking[:50]} if universe is not None else None
+    return {"session": session.isoformat(), "state": READY if not reasons else NOT_READY, "missing_symbols": missing_symbols,
             "status": None if not reasons else context.FEATURE_CONTEXT_INCOMPLETE,
             "reasons": {k: reasons[k] for k in REASONS if k in reasons},
             "eligible_universe": eligible, "minute_covered": covered, "history_covered": history}
+
+
+def _history_ok(inventory: Inventory, symbol: str, window: Sequence[date]) -> bool:
+    first = inventory.first_collected(symbol)
+    if first is None:
+        return False
+    return all(inventory.page_covers(symbol, d) for d in window if d >= first)
 
 
 # -- storage probe (read-only) ------------------------------------------------------------------------
@@ -126,77 +152,92 @@ def _dates_in(directory: Path, pattern: str) -> set[date]:
     return out
 
 
-def _minute_ranges(root: Path, symbols: Iterable[str] | None = None) -> dict[str, list[tuple[date, date]]]:
+def _raw_minute_ranges(root: Path) -> dict[str, list[tuple[date, date]]]:
+    """Common Raw (historical) pages: trusted as collected by historical_v2; read-only."""
     out: dict[str, list[tuple[date, date]]] = {}
-    for base, forward in ((root / RAW / "minute", False), (root / layout.MINUTE, True)):
-        if not base.exists():
+    base = root / RAW / "minute"
+    if not base.exists():
+        return out
+    with os.scandir(base) as dirs:
+        for d in dirs:
+            if not d.is_dir():
+                continue
+            with os.scandir(d.path) as files:
+                for f in files:
+                    m = PAGE.match(f.name)
+                    if m:
+                        out.setdefault(m["sym"], []).append((date.fromisoformat(m["a"]), date.fromisoformat(m["b"])))
+    return out
+
+
+def _verified_forward_ranges(root: Path, tree: str) -> dict[str, list[tuple[date, date]]]:
+    """Forward / RVOL-context ledgers that are COMPLETE and carry a PASS validation sidecar."""
+    from app.strategy_e_max_forward import storage as ST
+    out: dict[str, list[tuple[date, date]]] = {}
+    base = root / tree
+    if not base.exists():
+        return out
+    for ledger in base.glob("*/*.request.json"):
+        side = ST.read_sidecar(ledger)
+        if side is None or side.get("status") != ST.PASS:
             continue
-        with os.scandir(base) as dirs:
-            for d in dirs:
-                name = d.name[1:] if d.name.startswith("_") else d.name     # _CON: reserved-name directory
-                if not d.is_dir() or (symbols is not None and name not in symbols):
-                    continue
-                with os.scandir(d.path) as files:
-                    for f in files:
-                        m = PAGE.match(f.name)
-                        if m:
-                            out.setdefault(m["sym"], []).append((date.fromisoformat(m["a"]),
-                                                                 date.fromisoformat(m["b"])))
-                            continue
-                        m = FORWARD_PAGE.match(f.name) if forward else None
-                        if m:
-                            day = date.fromisoformat(m["d"])
-                            out.setdefault(m["sym"], []).append((day, day))
+        symbol = ST.storage_to_symbol(ledger.parent.name)
+        a, b = side["range"]
+        out.setdefault(symbol, []).append((date.fromisoformat(a), date.fromisoformat(b)))
+    return out
+
+
+def _verified_dates(directory: Path, pattern: str) -> set[date]:
+    from app.strategy_e_max_forward import storage as ST
+    out = set()
+    if directory.exists():
+        for path in directory.rglob(pattern):
+            if path.name.endswith(".validation.json") or not ST.verified(path):
+                continue
+            out.add(date.fromisoformat(re.findall(r"\d{4}-\d{2}-\d{2}", path.name)[-1]))
     return out
 
 
 def _splits_through(root: Path) -> date | None:
     ends = [date.fromisoformat(re.findall(r"\d{4}-\d{2}-\d{2}", p.name)[-1])
             for p in (root / RAW / "splits").glob("splits_*.json.gz")]
-    ends += list(_dates_in(root / layout.SPLITS, "splits_asof_*.json.gz"))
     return max(ends) if ends else None
 
 
-def eligible_universe_last_historical(root: Path, calendar: MarketCalendar) -> tuple[str, ...]:
-    """D-1 daily eligibility for D = 2026-09-17 from the frozen USB-HIST-V1 daily panel.
-
-    The split flag for (D-1, D] cannot be known without a split list through D, so it is taken as
-    False here: the count is the pre-split upper bound, labelled as such by the caller.
-    """
-    from app.backtest.strategy_e0_overnight.config import load_rules as load_e0_rules
-    from app.backtest.strategy_e0_overnight.dataset import load_daily_rows
-    from app.strategy_e_v1_1 import universe as U
-    _, history = load_daily_rows(root, load_e0_rules())
-    panel = history.panel
-    grid = list(panel.sessions)
-    factor = panel.split_arrays()[0]
-    membership = panel.membership()
-    ok = U.daily_eligibility(layout.FORWARD_HOLDOUT_START, grid, close=panel.close, volume=panel.volume,
-                             factor=factor, membership=membership[-1],
-                             split_in_window=np.zeros(len(panel.tickers), dtype=bool), calendar=calendar)
-    return tuple(sorted(t for t, e in zip(panel.tickers, ok) if e))
-
-
-def probe(root: Path, *, calendar: MarketCalendar) -> tuple[Inventory, dict[str, Any]]:
+def probe(root: Path, *, calendar: MarketCalendar, sessions: Sequence[date]) -> tuple[Inventory, dict[str, Any]]:
+    """Read-only inventory: frozen raw inputs plus verified forward files, and each forward session's
+    D-1 daily-eligible universe from ``forward_daily`` (None when its daily inputs are incomplete)."""
+    from app.strategy_e_max_forward import forward_daily as FD, storage as ST
     inv = Inventory()
     inv.daily_sessions = (_dates_in(root / RAW / "grouped_daily", "*.json.gz")
-                          | _dates_in(root / layout.GROUPED_DAILY, "*.json.gz"))
+                          | _verified_dates(root / layout.GROUPED_DAILY, "*.json.gz"))
     inv.reference_dates = (_dates_in(root / RAW / "reference_tickers", "CS_*.json.gz")
-                           | _dates_in(root / layout.REFERENCE, "CS_*.json.gz"))
+                           | _verified_dates(root / layout.REFERENCE, "CS_*.json.gz"))
     inv.splits_through = _splits_through(root)
-    inv.minute_ranges = _minute_ranges(root)
-    universe = eligible_universe_last_historical(root, calendar)
-    inv.eligible_universe[layout.FORWARD_HOLDOUT_START] = universe
+    inv.splits_asof = _verified_dates(root / layout.SPLITS, "splits_asof_*.json.gz")
+    ranges = _raw_minute_ranges(root)
+    for tree in (ST.MINUTE, ST.RVOL_CONTEXT):
+        for symbol, extra in _verified_forward_ranges(root, tree).items():
+            ranges.setdefault(symbol, []).extend(extra)
+    inv.minute_ranges = ranges
+    base = FD.load_base(root)
+    missing_inputs = {}
+    for session in sessions:
+        universe, missing = FD.eligible_universe(base, root, session, calendar)
+        if universe is not None:
+            inv.eligible_universe[session] = universe
+        else:
+            missing_inputs[session.isoformat()] = missing
     notes = {"forward_tree_exists": (root / layout.FORWARD_MARKET_DATA).exists(),
              "grouped_daily_last": max(inv.daily_sessions).isoformat() if inv.daily_sessions else None,
              "reference_last": max(inv.reference_dates).isoformat() if inv.reference_dates else None,
-             "splits_through": inv.splits_through.isoformat() if inv.splits_through else None,
+             "splits_frozen_through": inv.splits_through.isoformat() if inv.splits_through else None,
+             "splits_asof_verified": sorted(d.isoformat() for d in inv.splits_asof),
              "minute_symbols_with_pages": len(inv.minute_ranges),
              "minute_last_page_end": max(b for r in inv.minute_ranges.values() for _, b in r).isoformat()
              if inv.minute_ranges else None,
-             "eligible_universe_2026_09_17_pre_split_upper_bound": len(universe),
-             "eligible_with_history_through_2026_09_16": sum(inv.page_covers(s, layout.HISTORICAL_LAST_SESSION)
-                                                             for s in universe)}
+             "eligible_universe": {d.isoformat(): len(u) for d, u in sorted(inv.eligible_universe.items())},
+             "universe_inputs_missing": missing_inputs}
     return inv, notes
 
 

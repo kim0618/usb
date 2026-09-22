@@ -46,8 +46,8 @@ def main(argv: list[str] | None = None) -> int:
     calendar = MarketCalendar("America/New_York")
     today = datetime.now(context.ET).date()
     root = resolve_workspace_root(args.workspace_root)
-    inventory, notes = RD.probe(root, calendar=calendar)
     sessions = RD.forward_sessions(date_after(today), calendar)
+    inventory, notes = RD.probe(root, calendar=calendar, sessions=sessions)
     rows = RD.matrix(sessions, inventory, today_et=today, calendar=calendar)
     payload = {"today_et": today.isoformat(), "forward_holdout_start": layout.FORWARD_HOLDOUT_START.isoformat(),
                "preflight": pre, "inventory": notes, "sessions": rows, "summary": RD.summary(rows)}

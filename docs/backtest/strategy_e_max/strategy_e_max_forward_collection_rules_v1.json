@@ -1,0 +1,58 @@
+{
+  "declaration": {
+    "contract_id": "STRATEGY_E_MAX_FORWARD_COLLECTION_RULES_V1",
+    "stage": "E-MAX-F1_FORWARD_DATA_COLLECTION",
+    "status": "FROZEN_BEFORE_FIRST_FORWARD_FETCH",
+    "declared_at_kst": "2026-09-22",
+    "checksum_recipe": "sha256 of json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False)",
+    "scope": "DATA COLLECTION ONLY: raw forward market data and readiness; no forward return, no checkpoint, no rule change",
+    "upstream_forward_rules_canonical_sha256": "dd8ddf42f3fba3ef77a44d9e40bb6308290fda4c45b5a7df7ce268514b1cfbaa",
+    "upstream_e_max_v1_rules_canonical_sha256": "b30a3e95d6333c17d736c4c4fa23f55a7f67ba4af328317379a86a4a37e89d0e"
+  },
+  "boundary": {"forward_holdout_start": "2026-09-17", "development_last_session": "2026-09-16", "development_binding": "the 2,152-file development manifest and its symlink view; no forward path can appear in it"},
+  "source": {"provider": "MASSIVE", "plan": "Stocks Basic", "mode": "RECONSTRUCTED", "evidence_class": "SECONDARY", "kiwoom": "not a signal source in F1; never mixed into any input", "live": "not produced; no LIVE seal, no back-dated timestamp"},
+  "store": {
+    "root": "market_data/forward/massive (workspace, beside the frozen snapshot tree; strategy-independent)",
+    "grouped_daily": "grouped_daily/<year>/<D>.json.gz",
+    "splits_asof": "splits/splits_asof_<D>.json.gz (market-wide executions in [2026-09-01, D])",
+    "reference": "reference/CS_<as_of>.json.gz (development cadence: first XNYS session of each quarter; latest <= D-1 is used)",
+    "minute": "minute/<DIR>/<SYMBOL>_<start>_<end>.pNN.json.gz + .request.json, 04:00-20:00 ET, adjusted=false, exact provider bytes",
+    "rvol_context": "rvol_context/<DIR>/... pre-boundary minute history for symbols with no Common Raw directory (RVOL history only, never a forward observation)",
+    "manifests": "manifests/run_<run_id>.json, one immutable manifest per run (copy under data/runtime/strategy_e_max/forward/collection/manifests)",
+    "quarantine": "quarantine/<run_id>/ files that failed validation or were refused; kept, never deleted",
+    "strategy_outputs": "seals / registry / sessions stay under data/runtime/strategy_e_max/forward (strategy-specific)"
+  },
+  "symbol_path_mapping": {
+    "rule": "storage directory = _<SYMBOL> when SYMBOL is a DOS device name (CON, PRN, AUX, NUL, CONIN$, CONOUT$, COM0-9, LPT0-9), else SYMBOL; file names and every record keep SYMBOL",
+    "round_trip": "storage_to_symbol(symbol_to_storage(s)) == s for every symbol; no real ticker starts with '_' so there is no collision",
+    "example": {"CON": "_CON", "AAPL": "AAPL"}
+  },
+  "reuse": {
+    "grouped_daily": "app.backtest.strategy_c_selection.raw_fetch.fetch_grouped, unchanged, into staging; validated file moved to the forward name",
+    "splits_asof": "app.backtest.strategy_c_selection.raw_fetch.fetch_splits, unchanged, into staging; validated file moved to splits_asof_<D>",
+    "reference": "app.backtest.strategy_c_selection.raw_fetch.fetch_tickers, unchanged (the format of the quarterly CS_<date> seed files)",
+    "minute": "app.backtest.historical_store.raw_fetch.fetch_request, unchanged, through a request subclass whose paths point at the forward tree"
+  },
+  "order": ["reference", "grouped daily", "splits_asof", "D-1 daily-eligible universe", "SPY minute", "RVOL context", "minute", "readiness"],
+  "closed_sessions_only": "a session D is requested only when D < today (ET); Basic serves D after its ET date ends; an open session stays SESSION_NOT_CLOSED",
+  "minute_symbols": "union over collected closed sessions of the D-1 daily-eligible universe (E0 rule through app.strategy_e_v1_1.universe.daily_eligibility) plus SPY; each symbol is collected for every closed forward session so RVOL history stays contiguous",
+  "rate_limit": {"source": "app.integrations.massive.client BASIC_CALLS_PER_MINUTE = 5", "spacing_seconds": 13.0, "retries": "client bounded retries, raw_fetch 120 s cooldown on RATE_LIMITED, collector backoff 60/120/300/600/900 s on transient codes; NOT_AUTHORIZED stops the run"},
+  "locks": {"process": "fcntl lock data/runtime/strategy_e_max/forward/collection/collector.lock", "workspace": "shared writer lock state/writer.lock.json, held per batch of 20 requests (historical_v2 convention)"},
+  "validation": {
+    "grouped_daily": ["wrapper session = D", "adjusted=false", "no duplicate ticker", "every bar dated D (no future or past row)", "invalid OHLC and negative volume rows counted"],
+    "splits_asof": ["no execution after D", "request range equals the name", "malformed and duplicate rows counted"],
+    "reference": ["as_of matches", "rows present", "no duplicate ticker"],
+    "minute": ["symbol matches", "bars strictly increasing (no duplicate minute)", "session in the requested XNYS range", "04:00-20:00 ET", "finite positive OHLC, high >= low", "volume >= 0"],
+    "pass_required": "only PASS files count for readiness; a FAIL is quarantined and refetched later",
+    "split_pit_limit": "the splits endpoint filters by execution date only; it has no publication-time as-of view, so splits_asof_<D> means 'executions <= D as retrieved at retrieved_at' (admissible for RECONSTRUCTED only)"
+  },
+  "append_only": {"sidecar": "written once per file", "corrupt": "a file that no longer matches its sidecar stops the run; never overwritten", "manifest": "one immutable file per run", "resume": "a verified file costs zero calls; an interrupted minute request (ledger without sidecar) is validated on the next run"},
+  "readiness": {
+    "reasons": ["MISSING_DAILY_CONTEXT", "MISSING_SPLITS_ASOF", "MISSING_REFERENCE", "MISSING_MINUTE", "MISSING_RVOL_HISTORY", "MISSING_SPY_CONTEXT", "SESSION_NOT_CLOSED"],
+    "fail_closed": "FEATURE_CONTEXT_INCOMPLETE; never H5 = False",
+    "rvol_history_check": "page level: every session among the 25 XNYS sessions ending D-1 (from the symbol's first collected page) is covered by a Common Raw, RVOL-context or verified forward page; the exact per-session RVOL range belongs to the F2 feature builder"
+  },
+  "forbidden": ["forward return, CAGR, MDD, PF, Sharpe", "E-BASE versus E-MAX comparison", "checkpoint evaluation", "any change to H5, R1, max 3, B2, 2x / 3x, entry, exit or cost", "files under app.strategy_e_max or app.backtest.strategy_e_max (M6 code identity)"],
+  "verdict_labels": {"PASS": "E-MAX-F1 PASS — FORWARD DATA READY FOR FEATURE BUILD", "PARTIAL": "E-MAX-F1 PARTIAL — COLLECTION CONTINUES", "BLOCKED": "E-MAX-F1 BLOCKED — DATA SOURCE"},
+  "verdict_rule": "PASS when every closed forward session is READY; PARTIAL when the collector works but a closed session is still NOT_READY for data not yet collected; BLOCKED when the source cannot supply a required input at all"
+}
