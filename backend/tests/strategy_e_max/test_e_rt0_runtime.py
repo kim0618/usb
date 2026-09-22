@@ -199,7 +199,7 @@ def test_kiwoom_capacity_blocks_and_fails_closed(tmp_path) -> None:
 def test_runtime_default_source_is_the_gate() -> None:
     eng = RT.build_engine(lambda: None, config=CFG.RuntimeConfig(True, Path("/tmp/x"), Decimal(1)))
     assert isinstance(eng.decision_source, DEC.RealtimeSourceGate)
-    assert RT.kiwoom_capacity(D).requests_per_second == 3.0
+    assert RT.kiwoom_capacity(D).blockers()
 
 
 # -- runtime ------------------------------------------------------------------------------------

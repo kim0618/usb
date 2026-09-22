@@ -11,16 +11,16 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import date, datetime, timezone
 import json
 import logging
 from pathlib import Path
 from typing import Any
 
-from app.integrations.kiwoom.rate_limit import KiwoomRateLimits
 from app.market.calendar import MarketCalendar
 from app.market.provider import MarketDataProvider
-from app.strategy_e_max_rt import config as CFG, decision as DEC, engine as ENG
+from app.strategy_e_max_rt import config as CFG, decision as DEC, engine as ENG, kiwoom_capability as KC
 
 logger = logging.getLogger(__name__)
 READINESS_DIR = CFG.REPO_ROOT / "data/runtime/strategy_e_max/forward/collection/readiness"
@@ -39,19 +39,31 @@ def latest_universe_rows(directory: Path = READINESS_DIR) -> int | None:
     return None
 
 
-def kiwoom_capacity(session: date) -> DEC.SourceCapacity:
-    """The common provider's actual budget: per-symbol ``usa06011`` calls on the chart limiter."""
-    rows = latest_universe_rows()
-    return DEC.SourceCapacity(provider="KIWOOM_USA06011_REST", requests_per_second=KiwoomRateLimits().chart.requests_per_second,
-                              requests_per_symbol=1, universe_rows=rows if rows is not None else 10**6,
-                              rvol_history_same_source=False)
+@dataclass(frozen=True)
+class KiwoomMeasuredCapacity:
+    """The measured Kiwoom limits (E-RT1 capability manifest) applied to the canonical universe."""
+
+    universe_rows: int | None
+    source: str = "KIWOOM_NATIVE"
+
+    def blockers(self) -> list[str]:
+        if self.universe_rows is None:
+            return ["canonical D-1 universe size unknown in this runtime"]
+        out = KC.blockers(self.universe_rows)
+        out.append("RVOL denominator: no whole-universe 20-session premarket history from Kiwoom, and Kiwoom "
+                   "premarket volume is not the Massive development measure (irregular extra prints)")
+        return out
+
+
+def kiwoom_capacity(session: date) -> KiwoomMeasuredCapacity:
+    return KiwoomMeasuredCapacity(latest_universe_rows())
 
 
 def build_engine(provider_factory: Callable[[], MarketDataProvider], *, config: CFG.RuntimeConfig | None = None,
                  decision_source: DEC.DecisionSource | None = None,
                  calendar: MarketCalendar | None = None) -> ENG.Engine:
     config = config or CFG.from_env()
-    source = decision_source or DEC.RealtimeSourceGate(kiwoom_capacity, source="KIWOOM_USA06011_REST")
+    source = decision_source or DEC.RealtimeSourceGate(kiwoom_capacity, source="KIWOOM_NATIVE")
     return ENG.Engine(config, provider_factory, source, calendar or MarketCalendar("America/New_York"),
                       ENG.Store(config.state_dir, config.strategy_id))
 

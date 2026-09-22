@@ -1,0 +1,98 @@
+{
+  "declaration": {
+    "contract_id": "STRATEGY_E_MAX_KIWOOM_SCANNER_CAPABILITIES_V1",
+    "stage": "E-RT1_KIWOOM_NATIVE_FEASIBILITY",
+    "measured_at_kst": "2026-09-22 15:00-15:40 (ET 02:00-02:40, Kiwoom overnight session)",
+    "account": "the operator's real Kiwoom app key (market_data_only); no order or account TR was called",
+    "probe": "app.dev.run_e_rt1_kiwoom_probe (read-only; reproduces every figure below)"
+  },
+  "rest": {
+    "rate_limit": {
+      "measured": "HTTP 429 return_code 5 at 12 req/s: '허용된 API 요청 개수를 초과하였습니다[1700 ... 유량=5, API ID=usa20100]'; 30 calls at 3, 5 and 8 req/s all 200",
+      "limit_per_api_id_per_second": 5,
+      "repository_limiter_per_second": 3.0
+    },
+    "usa10099_symbol_list": {
+      "rows": {
+        "ND": 5189,
+        "NY": 5573,
+        "NA": 1937
+      },
+      "note": "exchange routing code per symbol (stex_tp)"
+    },
+    "usa20100_quote": {
+      "fields_relevant": [
+        "cur_prc",
+        "base_close_pric",
+        "pre_open_pric",
+        "pre_high_pric",
+        "pre_low_pric",
+        "acc_trde_qty"
+      ],
+      "one_symbol_per_call": true,
+      "limit": "a snapshot at call time: a pass over 2,550 symbols at 5/s takes 510 s and includes prints after 09:24, so it cannot give the 09:24-cutoff values"
+    },
+    "rankings": {
+      "usa20530": 1000,
+      "usa20540": 1000,
+      "usa20550": 1000,
+      "page_rows": 20,
+      "note": "every ranking stops at 1,000 rows; with about 12,700 listings a positive-change population can exceed it, so a ranking cannot prove false_negative = 0"
+    },
+    "condition_search_us": "NOT AVAILABLE in the repository's allowlisted US endpoints; no US condition-search TR was found (unverified with Kiwoom)",
+    "usa06011_minute": {
+      "page_rows": 100,
+      "extended_hours": "04:00-20:00 plus overnight on the ET business-day timeline (hours 24-27)",
+      "timestamp": "ET bar start (cntr_tm, bus_dt)",
+      "session_pages": "strt_dt=<D> starts at 23:59 of D and pages backwards; 04:00 of D is reached on page 11-12",
+      "vwap": "not provided (premarket dollar volume falls back to close x volume)",
+      "premarket_pages_at_0925": "the latest 100 bars (07:46-09:25) are one page per symbol"
+    }
+  },
+  "websocket": {
+    "url": "wss://api.kiwoom.com:10000/api/us/websocket",
+    "fe_trade": {
+      "cum_volume_fid": "13 (resets each business day; delta equals FID 15 volume, probe 2026-09-17)",
+      "time": "minute resolution (seconds always 00)",
+      "session_fid_290": {
+        "premarket": "1",
+        "regular": "0",
+        "overnight": "4"
+      },
+      "open_high_low_fids_16_17_18": "fixed during premarket, not usable as premarket range"
+    },
+    "subscription_limit": {
+      "measured": "REG beyond 200 items in one session refused: return_code 105115 '등록 종목이 허용 개수(200)를 초과했습니다'",
+      "per_session": 200,
+      "second_session": "two sessions of the same key once held 200 + 200 = 400 registrations"
+    },
+    "sessions_per_app_key": {
+      "measured": "6 two-session trials with registrations: in 4 the second LOGIN closed the first session (SYSTEM notice, then 1000 'Bye'); in 2 both sessions stayed; without registrations the first session stayed",
+      "reliable_concurrent_subscribing_sessions": 1,
+      "note": "non-deterministic; a design that needs more than one subscribing session per key would lose sessions at random, and every loss is a premarket gap (FEATURE_CONTEXT_INCOMPLETE)"
+    },
+    "max_realtime_symbols_per_app_key": 200
+  },
+  "source_compatibility_sample": {
+    "sample": "15 symbols x 3 sessions (2026-09-17, 09-18, 09-21), Kiwoom usa06011 vs Massive forward minute, frozen premarket_block on both",
+    "pm_volume_ratio_kiwoom_over_massive": {
+      "median": 0.669,
+      "min": 0.44,
+      "max": 47.128
+    },
+    "outliers": "2026-09-21 AAPL 07:00 bar 760,207 (Kiwoom) vs 2,311 (Massive); 16:00 bar 9,387,048 vs 792,257: Kiwoom carries prints the consolidated tape does not, irregularly",
+    "per_symbol_dollar_ratio_spread_max_over_min": "1.13 (ALB) to 76.84 (AMD) across 3 sessions",
+    "pm_last_price_within_0.1pct": "30 / 42",
+    "pm_high_within_0.1pct": "27 / 42",
+    "pm_low_within_0.1pct": "18 / 42",
+    "position_ge_0.8_agree": "30 / 42",
+    "return_0900_0925_sign_agree": "35 / 42",
+    "open_0930_within_0.1pct": "26 / 42",
+    "close_0934_within_0.1pct": "42 / 42",
+    "meaning": "KIWOOM_NATIVE_EVIDENCE is a different measurement of the same rule, not Massive development evidence; premarket volume and range semantics differ irregularly"
+  },
+  "orders": {
+    "repository": "no Kiwoom US order TR is implemented; KiwoomMarketDataClient allowlists market-data endpoints only (order_request_count stays 0); Settings refuses MARKET_DATA_PROVIDER=kiwoom unless BROKER_PROVIDER=simulation and KIWOOM_MODE=market_data_only",
+    "real_order_sent": false
+  }
+}
