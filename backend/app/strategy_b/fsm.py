@@ -31,7 +31,7 @@ from app.strategy_b.eligibility import EligibilityDecision, IneligibleReason, ev
 from app.strategy_b.errors import InvalidTransition, PointInTimeViolation
 from app.strategy_b.features import SessionTape
 from app.strategy_b.models import (
-    TERMINAL_CANDIDATE_STATES, Availability, CandidateState, FeatureSnapshot,
+    AVAILABILITY_DELAY, TERMINAL_CANDIDATE_STATES, Availability, CandidateState, FeatureSnapshot,
 )
 from app.strategy_b.scanner import ScanDecision
 from app.strategy_b.scope import ScopeDecision
@@ -233,8 +233,26 @@ def _setup_ready(candidate: Candidate, tick: Tick, config: StrategyBConfig) -> C
 
 
 def _entry_signalled(candidate: Candidate, tick: Tick, config: StrategyBConfig) -> Candidate:
+    """The signal TTL bounds the *order's working window*, not our own tick budget.
+
+    The other two TTLs bound how long we keep looking: ``candidate_ttl_minutes`` for a setup and
+    ``setup_ttl_minutes`` for a trigger. Both are decisions we make, so both expire on the tick
+    that passes them (``elapsed >= ttl``).
+
+    A signal is different: it stands for an order working in the market. B-E0 declares its window
+    over the *bar that fills it*, ``next_actual_bar.open_time <= signal_at + signal_ttl_minutes``,
+    inclusive. A bar opening exactly at that boundary is only observable one minute later
+    (``AVAILABILITY_DELAY``), so the candidate has to survive that extra tick or the last minute
+    of its own declared window could never fill. Hence ``> ttl + one bar`` here against
+    ``>= ttl`` there: the two are bounding different things, and the bar window is still exactly
+    ``signal_ttl_minutes`` wide.
+
+    A silent tape still cannot stretch anything: ``_elapsed`` is wall-clock, so the window closes
+    on time whether or not bars arrive.
+    """
     setup, signalled_at = candidate.setup, candidate.signal_at  # the state guarantees both
-    if _elapsed(signalled_at, tick.as_of) >= config.candidate.signal_ttl_minutes:
+    fill_window = config.candidate.signal_ttl_minutes + AVAILABILITY_DELAY / timedelta(minutes=1)
+    if _elapsed(signalled_at, tick.as_of) > fill_window:
         return _drop(candidate, tick, CandidateState.EXPIRED, DropReason.SIGNAL_TTL)
 
     price = tick.snapshot.price

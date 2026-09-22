@@ -49,6 +49,11 @@ class CostModel:
         return raw * (1 - self.slippage_bps_per_side / BPS)
 
     def fee(self, price: float, shares: int) -> float:
+        """Commission on ``price``, which callers pass as the raw, pre-slippage price.
+
+        That is Strategy A's commission notional basis (SimBroker charges raw * quantity), so
+        both strategies' books charge the same commission for the same fill.
+        """
         return price * shares * self.fee_bps_per_side / BPS
 
 

@@ -157,7 +157,10 @@ class Portfolio:
         if decision.refusal is not None:
             return DropReason.SIZE_ZERO
 
-        fee = self.costs.fee(price, decision.shares)
+        # Commission is charged on the pre-slippage reference price, as Strategy A's accounting
+        # does (SimBroker._make_fill: raw * quantity * commission_bps). B-E0 V1
+        # commission_notional_basis = PRE_SLIPPAGE_REFERENCE_PRICE; the rate is unchanged.
+        fee = self.costs.fee(raw_price, decision.shares)
         self.equity -= fee
         assert self.session_date is not None
         trade = Trade(symbol=symbol, setup=setup, session_date=self.session_date, entered_at=at,
@@ -181,7 +184,7 @@ class Portfolio:
             raise KeyError(f"{symbol} has no open trade")
         for event in events:
             price = self.costs.sell_price(event.price)
-            fee = self.costs.fee(price, event.shares)
+            fee = self.costs.fee(event.price, event.shares)  # pre-slippage basis, as at entry
             trade.legs.append(TradeLeg(event.reason, event.at, price, event.shares, fee))
             self.equity += (price - trade.entry_price) * event.shares - fee
         if position.is_open:

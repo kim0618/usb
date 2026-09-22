@@ -77,7 +77,8 @@ class SessionTape:
         """Memoize an index derived from the whole tape (for example halt gap events).
 
         ``build`` must be a pure function of the tape; its result is itself queried with an
-        as-of cut, never read whole.
+        as-of cut, never read whole, or holds only values that do not depend on ``as_of``
+        (``rvol._share_factors``).
         """
         if key not in self._memo:
             self._memo[key] = build(self)

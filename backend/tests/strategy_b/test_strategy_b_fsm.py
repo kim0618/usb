@@ -125,8 +125,12 @@ def test_each_ttl_expires_its_own_state() -> None:
     assert (setup_expired.state, setup_expired.drop_reason) == (CandidateState.EXPIRED,
                                                                 DropReason.SETUP_TTL)
 
+    # The signal TTL bounds the order's working window, so it also allows the one extra tick in
+    # which a bar opening on the boundary becomes observable: alive at 9:54, gone at 9:55.
     signalled = advance(armed, tick(tape, et(9, 51)), CONFIG)
-    signal_expired = advance(signalled, tick(tape, et(9, 53)), CONFIG)
+    assert advance(signalled, tick(tape, et(9, 54)), CONFIG).state is (
+        CandidateState.ENTRY_SIGNALLED)
+    signal_expired = advance(signalled, tick(tape, et(9, 55)), CONFIG)
     assert (signal_expired.state, signal_expired.drop_reason) == (CandidateState.EXPIRED,
                                                                   DropReason.SIGNAL_TTL)
 

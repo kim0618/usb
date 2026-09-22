@@ -1,0 +1,121 @@
+# Strategy B (REALTIME_MOMENTUM_V1) E0 backtest contract checksum.
+#
+# canonical: sha256 of json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False) UTF-8
+#            = app.backtest.strategy_c_selection.rules.canonical_checksum (existing US-B recipe)
+# file:      sha256 of the file bytes (informational; the canonical value is the gate)
+#
+# status:    FROZEN. Frozen at 2026-09-22T10:42:25+09:00; the contract is a declaration.
+# declared:  (pending), repo main at 1ba0773 (was 758e9b1 when drafting began; the three commits
+#            in between are another session's Strategy E work and touch nothing this contract reads)
+# results:   0. No B backtest has been run against data. The four-month minute collection is still in
+#            progress, so no result exists that any of these numbers could have been fitted to. Every
+#            supersession below happened before any B result existed, which is what makes it legitimate
+#            rather than post-hoc fitting.
+#
+# history (each line: the checksum that was replaced, and why)
+#   2026-09-21 09:20  15e71a0e5aa01cb31f5ffbb5267742795352dc6d218d52fd0bb48e961c58ee4e
+#       First draft. Superseded the same day, before any result, by the common-capital revision:
+#       - initial capital moved from an assumed 10000 USD to the common A/B/C/D value 7428.92 USD
+#         (app.dev.bootstrap_paper_account.PAPER_INITIAL_CASH), with the A-baseline conflict recorded
+#         rather than hidden: A's own backtest baseline still runs at 10000 (ASSUMED_RESEARCH), so USD
+#         comparisons with A stay invalid until A is re-run. The capital-invariance derivation was
+#         added to show the verdict metric survives the change.
+#       - the derived 1R = 50 USD and 2000 USD position cap were deleted; they were parroting the old
+#         capital. Sizing is declared as ratios of current realised equity, which is what the engine
+#         actually does (Portfolio.enter passes self.equity), with the first-trade dollar values marked
+#         as display only.
+#       - costs restated as all-in per side (BASE 25, STRESS_30 30, STRESS_50 50; round trip is twice
+#         each) with commission held at 10 and only the execution cost moving, because the commission
+#         is a published schedule and the spread is the unmeasured quantity. The earlier levels were
+#         stated as slippage alone, which left the round-trip figure ambiguous.
+#       - the NEXT_BAR_OPEN fill rule and its signal-TTL deadline were written out, with the seven edge
+#         cases registered for test. No fill becomes EXPIRED / SIGNAL_TTL, never an account refusal,
+#         which is what the code already does; no enum, state or rule was added.
+#       - the lift gate was made fully deterministic before results: cohorts by exact state and drop
+#         reason, exclusion list, anchor and endpoint price definitions, the sparse-tape "last actual
+#         close at or before the deadline" rule reused from F0 9.1, two separately counted missing-data
+#         outcomes, the estimator, and the three lift outcomes with their thresholds.
+#       - the verdict became a ranked, exhaustive decision order over PASS / BORDERLINE / FAIL /
+#         INSUFFICIENT_SAMPLE / DATASET_NOT_READY / ERROR, so BORDERLINE cannot be defined after the
+#         fact. The statistics block pins the reused C-E0 tool, block length 1, replicates, seed and the
+#         percentile method.
+#       - the universe became an immutable artifact with its own sha256 and no hardcoded count. The
+#         3883-versus-3855 question was resolved as symbols versus contiguous missing-session runs
+#         (3883 - 29 fully covered + 1 SPCX split = 3855, cross-checked by 29 x 104 + 21 = 3037), CON
+#         was corrected from "absent from the universe" to "planned but skipped at fetch", and the
+#         PIT statement was corrected: the union is a forward-looking superset and safety comes from
+#         the per-session S(D) re-filter, which the readiness gate now checks.
+#       - a STRICT dataset readiness gate, the forbidden flag list, run identity, artifacts and the
+#         scope boundary against changing Strategy A or any strategy logic were added.
+#   2026-09-21 10:05  66c3faceda6e50d4af527a010c5e9a499806ae64fe7d9c66becf878f9becd54f
+#       The NEXT_BAR_OPEN deadline was wrong and the runner's tests caught it before any result.
+#       The draft said the next actual bar could open as late as S + 3 minutes. Deriving it from
+#       the code instead: the engine first asks the account at S + 2, fsm._entry_signalled expires
+#       at elapsed >= signal_ttl_minutes, and a bar is available one minute after it opens, so the
+#       latest reachable bar opens at S + signal_ttl_minutes - 1. At the declared TTL of 2 that is
+#       S + 1 and nothing else: under NEXT_BAR_OPEN a single quiet minute after the signal bar
+#       loses the trade outright. The contract now carries the formula, its derivation, the test
+#       that pins it, and the consequence, which is the largest single risk to reaching the
+#       30-trade sample gate on a sparse universe.
+#   2026-09-21 12:40  73c4dd95038148a1b517b20e16e76ab557de397e92de76850e374f61a8ae7bfc
+#       signal_ttl_minutes was not yet a committed term of this contract: the draft described the
+#       fill deadline it observed but never declared the TTL, its units, its anchor or its boundary.
+#       The new draft commits signal_ttl_minutes = 2 as RESEARCH_DEFAULT_PRECOMMITTED, in wall-clock
+#       minutes, anchored at ENTRY_SIGNALLED, with an inclusive expiry
+#       (next_actual_bar.open_time <= signal_at + signal_ttl_minutes), actual observed bars only,
+#       same session only, synthetic bars never fillable. The value needed no code edit: the F0
+#       config has carried 2 since its declaration and signal_ttl_bars exists nowhere.
+#       Recording the declared window also made a disagreement explicit rather than leaving it
+#       implied. The declared window admits a next actual bar at S+1, S+2 or S+3; the engine
+#       reaches only S+1, because it asks the account one tick after the signal and the FSM expires
+#       at elapsed >= ttl, leaving a single attempting tick. That also under-delivers against
+#       B-F0 8.3's own sentence that the TTL gives the engine two ticks. The gap is carried as
+#       implementation_gap.status = OPEN_BEFORE_FREEZE with both resolutions named, and the edge
+#       case table now reports declared against measured per case. No strategy logic was changed.
+#   2026-09-21 14:20  3747eeeb0dff131d3f9d0351a2be74502be64de30346bc7dd3228cafad4b53a7
+#       Signal TTL contract semantics unchanged. The implementation gap was resolved and the
+#       contract's evidence and status updated to match. This is NOT a threshold change: no
+#       scanner gate, score weight, setup parameter, risk ratio, cost number, capital figure,
+#       lift definition or entry session moved, and signal_ttl_minutes is still 2.
+#       fsm._entry_signalled now expires on elapsed > signal_ttl_minutes + AVAILABILITY_DELAY
+#       instead of elapsed >= signal_ttl_minutes, because a bar opening exactly on the declared
+#       inclusive boundary is observable only one minute after it opens, so the last minute of
+#       the declared window could never fill. The edge-case table now agrees on every row.
+#   2026-09-21 15:10  9492c8120ad1a0a64dc61d8c1ebccfcf810c45219f1dc805275c8ad177eab56b
+#       Documentation clarification only. The f0_prose_note said B-F0 8.3's "two ticks" sentence was
+#       left for the user to amend; it has since been corrected in the F0 document, so the note now
+#       records that correction instead of predicting it. No strategy threshold, no canonical rule,
+#       no contract term and no code changed. The F0 rules JSON was not touched and its canonical
+#       checksum a082b998... and file checksum were verified unchanged.
+#   2026-09-21 18:30  7208926e91ad7f10181621def6881d3d36fe8cd8b5262cb3bf2746ef11421f16
+#       The data adapter decisions D1 to D6 were approved and recorded, before any B result: scope
+#       from the universe artifact only, grouped daily as B-E0's daily authority, IPO_WARMUP from
+#       the first grouped-daily appearance, delisting and ticker-change filters NOT_APPLIED, minute
+#       gaps excluded as pairs, and warmup gaps excluded from the RVOL baseline. The readiness gate
+#       was pre-registered with its four statuses, the POLICY versus DATA_QUALITY split (only the
+#       latter is counted), limits of 0.5% overall and 2% per session, and strictly-greater-blocks.
+#       The readiness check "split records present for every symbol" was corrected: the dump covers
+#       every ticker and a symbol without records has no split. No strategy threshold changed.
+#   2026-09-22 09:40  5f7a2472f06d691a602a7b441f6c29dbc5534f0a1f355bf3f04bf25891267b24
+#       Dataset evidence recorded; no rule, threshold or policy changed. The 30 symbols held only as
+#       legacy parquet (A research universe V2 29 + SPCX) were fetched into Common Raw (30 requests,
+#       57 calls, 0 failures, 2,250,131 rows), the mirror grew by exactly their 87 files with 0 changed
+#       or removed, and the preflight moved from DATASET_NOT_READY to PASS_WITH_WARNINGS on dataset
+#       digest ca1ce9d0... The evidence block binds the authoritative run to that digest.
+#   2026-09-22 10:55  a1f2605b6bc7082b0a9704fe0a623d8fc1ab494602d74da1f9be4b1d8f3f0bb6
+#       Execution accounting parity clarification before freeze; no B-E0 result exists. The A/B
+#       execution differential failed only because B charged commission on the after-slippage
+#       price while Strategy A's SimBroker charges it on the raw price. The commission notional
+#       basis is now declared machine-readable (costs.commission_notional_basis =
+#       PRE_SLIPPAGE_REFERENCE_PRICE) and B's Portfolio passes the raw price to CostModel.fee.
+#       The differential's field classes and numeric tolerance (rel 1e-12, abs 1e-12) are
+#       preregistered in execution_parity. No threshold, cost rate, slippage, capital, TTL,
+#       entry, exit, sizing, lift or sample rule changed.
+#   2026-09-22 10:42  fc3db6cb7ca366e921cdfcedd754a8a2f6bf15f2eec24c5b23071f334bddba52
+#       DRAFT final pre-freeze. The user approved the freeze; the only edit is the added
+#       contract_state = FROZEN and freeze block (frozen_at, source commit, the bound
+#       universe, dataset and preflight identity). No rule, threshold or policy changed.
+#   2026-09-22 10:42  6e3d69af924b89a20ab5c7ab52f26043d37bc6330db58c5b1a41fc796f461f04  FROZEN authoritative contract
+canonical  6e3d69af924b89a20ab5c7ab52f26043d37bc6330db58c5b1a41fc796f461f04  b_e0_contract_v1.json
+file       ba6d76329b31d7fc04f57fe36ce39cbbcdf178939f4fdcd56b7f0858592447da  b_e0_contract_v1.json
+frozen     6e3d69af924b89a20ab5c7ab52f26043d37bc6330db58c5b1a41fc796f461f04  b_e0_contract_v1.json

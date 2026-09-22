@@ -12,9 +12,10 @@ Status: ``FULL`` with ``lookback_sessions`` profiles, ``PARTIAL`` with at least
 rescaled with ``split_adjustment`` using only splits executed by today.
 
 Profiles are built once per past session (``build_volume_profile``) and each RVOL query is
-O(lookback × log n). The caller decides which past sessions to pass (for example, whether
-an ``API_LOSS_SUSPECT`` session belongs in the baseline); this module only refuses ones that
-are not strictly earlier than today.
+O(lookback × log n). The split share factor of each profile does not move with ``as_of``, so it
+is computed once per tape (``_share_factors``) instead of once per query. The caller decides
+which past sessions to pass (for example, whether an ``API_LOSS_SUSPECT`` session belongs in the
+baseline); this module only refuses ones that are not strictly earlier than today.
 """
 
 from bisect import bisect_right
@@ -80,6 +81,18 @@ def build_volume_profile(tape: SessionTape, scope: AggregationScope) -> VolumePr
     return VolumeProfile(tape.boundaries.session_date, scope, curves)
 
 
+def _share_factors(tape: SessionTape, splits: Sequence[SplitRecord]) -> dict[date, float]:
+    """Split share factors by observed session date, memoized on today's tape.
+
+    A factor depends only on the split records, the observed date and today's date (the tape's),
+    never on ``as_of``, and ``split_adjustment`` still decides which splits are known by today.
+    The memo is keyed by the exact split records, so different records never share factors, and
+    it lives as long as the one-day tape. A record set ``split_adjustment`` refuses is never
+    stored, so it raises on every query as before.
+    """
+    return tape.derived(("rvol_share_factors", tuple(splits)), lambda _: {})
+
+
 def time_of_day_rvol(tape: SessionTape, as_of: datetime, history: Sequence[VolumeProfile], *,
                      splits: Sequence[SplitRecord], config: RvolConfig) -> RvolResult:
     today = tape.boundaries.session_date
@@ -108,9 +121,13 @@ def time_of_day_rvol(tape: SessionTape, as_of: datetime, history: Sequence[Volum
     numerator = tape.volume(tape.first_index_at_or_after(anchor), tape.cut(as_of))
     baseline = 0.0
     adjusted = False
+    factors = _share_factors(tape, splits)
     for profile in used:
-        factor = split_adjustment(splits, observed_date=profile.session_date, current_date=today,
-                                  recent_split_calendar_days=0).share_factor
+        factor = factors.get(profile.session_date)
+        if factor is None:
+            factor = factors[profile.session_date] = split_adjustment(
+                splits, observed_date=profile.session_date, current_date=today,
+                recent_split_calendar_days=0).share_factor
         adjusted = adjusted or factor != 1
         baseline += profile.curves[session].at(elapsed) * factor
     baseline /= len(used)

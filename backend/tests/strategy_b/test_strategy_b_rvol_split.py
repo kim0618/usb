@@ -95,6 +95,24 @@ def test_rvol_ignores_a_split_after_today() -> None:
     assert with_future.split_adjusted is False
 
 
+def test_rvol_share_factor_memo_on_a_reused_tape_matches_fresh_tapes() -> None:
+    dates = past_session_dates(20)
+    split_day = dates[10]
+    history = [flat_volume_profile(d, 1000.0 if d < split_day else 100.0) for d in dates]
+    reverse = (SplitRecord(execution_date=split_day, split_from=10, split_to=1),)
+    future, _ = future_split_leak_case()
+    shared = today_tape()
+    for splits in ((), reverse, (future,), reverse + (future,), ()):
+        for as_of in (et(9, 31), et(9, 35), et(9, 40)):
+            memoized = time_of_day_rvol(shared, as_of, history, splits=splits, config=RvolConfig())
+            fresh = time_of_day_rvol(today_tape(), as_of, history, splits=splits, config=RvolConfig())
+            assert memoized == fresh
+    bad = (SplitRecord(split_day, 1, 2), SplitRecord(split_day, 10, 1))
+    for _ in range(2):
+        with pytest.raises(ValueError, match="share execution_date"):
+            time_of_day_rvol(shared, et(9, 35), history, splits=bad, config=RvolConfig())
+
+
 def test_premarket_and_regular_rvol_scope_counts_premarket_volume() -> None:
     scope = AggregationScope.PREMARKET_AND_REGULAR
     config = RvolConfig(scope=scope)
