@@ -28,6 +28,7 @@ from app.services.position_management_runtime import (
 from app.services.simulation_runtime import (
     activate_operator_simulation_runtime, clear_active_sim_broker,
 )
+from app.strategy_e_max_rt import runtime as strategy_e_max_runtime
 
 
 settings = get_settings()
@@ -63,8 +64,17 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
             # second control loop: it starts after the minute driver so a process
             # that cannot manage a stop never begins deciding overnight carries.
             start_end_of_day_runtime(runtime, provider_factory)
+        # Strategy E-MAX V1: a separate virtual book, off unless STRATEGY_E_MAX_ENABLED is set.
+        # It shares only the market-data provider; it never raises into A's startup.
+        strategy_e_max_runtime.start_from_env(getattr(
+            _app.state, "position_market_data_provider_factory",
+            lambda: market_factory.build_kiwoom_provider(current)))
         yield
     finally:
+        try:
+            await strategy_e_max_runtime.stop()
+        except Exception:  # E's shutdown must not block A's owners from draining
+            logger.exception("E-MAX runtime stop failed")
         # Ownership is released without saving; every durable figure was already
         # committed by the execution transaction that produced it. It is released
         # whatever the cadence owner did, because a task that failed to stop
