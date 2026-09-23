@@ -2,7 +2,8 @@ import { EmptyState } from "@/components/ui";
 import { formatKrw, formatSignedKrw, formatSignedUsd, formatUsd, usdToDisplayKrw } from "@/lib/format";
 import type { DailyPerformance } from "@/types/api";
 
-const pnlTone = (value: string) => {
+/** Strategy A's PnL tone, exported so every screen colours money the same way. */
+export const pnlTone = (value: string) => {
   const amount = Number(value);
   return amount < 0 ? "text-danger" : amount > 0 ? "text-success" : "text-foreground-secondary";
 };
@@ -30,6 +31,13 @@ export const SummaryIcon = ({ type }: { type: "wallet" | "layers" | "cash" | "tr
 };
 
 const SignedMoney = ({ value }: { value: string }) => <>{formatSignedUsd(value)}<span className="mt-0.5 block text-xs">{formatSignedKrw(usdToDisplayKrw(value))}</span></>;
+
+/** A signed amount on a card: USD primary, KRW secondary, Strategy A's tone. A missing value is a
+ *  dash, never a converted zero. */
+export function SignedMoneyValue({ value, note }: { value?: string | null; note?: string }) {
+  if (value == null) return <span className="text-foreground-secondary">-{note && <span className="mt-1 block text-xs font-medium text-muted">{note}</span>}</span>;
+  return <span className={pnlTone(value)}><SignedMoney value={value}/></span>;
+}
 
 /** The cumulative-return card value. Both numbers come from the backend: the strategy's own
  *  cumulative PnL and the baseline equity that PnL was measured from. The percentage is their

@@ -7,8 +7,9 @@
  *  books; the card labels which book the figures come from. */
 
 import Link from "next/link";
+import { CumulativePerformance, SignedMoneyValue, UsdCardValue } from "@/components/daily-performance";
 import { EmptyState, MetricCard, StatusBadge } from "@/components/ui";
-import { currency, dash, etTime, signedDecimal } from "@/lib/format";
+import { formatKrw, formatUsd, dash, etTime, usdToDisplayKrw } from "@/lib/format";
 import {
   bootstrapLabel, emptyLabel, evidenceLabel, OFFICIAL, PROVISIONAL, STRATEGY_E,
   type BootstrapState, type StrategyAccount, type StrategyEquity, type StrategyPosition,
@@ -23,18 +24,19 @@ const RUNTIME_TONE: Readonly<Record<string, "success" | "warning" | "danger" | "
 
 export type StrategyBundle = { row: StrategyRow; status: StrategyStatus; account: StrategyAccount; equity: StrategyEquity };
 
+/** Every money figure on these screens renders through Strategy A's own formatters (USD primary,
+ *  KRW secondary through lib/fx's single fixed rate) and Strategy A's own PnL tone. */
 function usd(value: string | null | undefined) {
-  return value == null ? "-" : currency(value, "USD");
-}
-
-function signedUsd(value: string | null | undefined) {
-  return value == null ? "-" : `${value.startsWith("-") ? "" : "+"}${currency(value, "USD")}`;
+  return formatUsd(value);
 }
 
 /** One card per strategy: what it is, what it is doing, and its own money. */
 export function StrategyCard({ bundle, href }: { bundle: StrategyBundle; href?: string }) {
   const { row, status, account } = bundle;
   const empty = emptyLabel(account);
+  // A book with no session has no PnL to show; "-" and the reason below, never a converted zero.
+  const books = account.books;
+  const settled = books ? (books[account.evidence_status || ""]?.sessions ?? 0) > 0 : true;
   const runtime = status.runtime_status || row.runtime_status || "UNKNOWN";
   return <article className="panel p-5" data-strategy={row.strategy_id}>
     <header className="mb-4 flex flex-wrap items-start justify-between gap-2">
@@ -51,10 +53,11 @@ export function StrategyCard({ bundle, href }: { bundle: StrategyBundle; href?: 
       </div>
     </header>
     <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm sm:grid-cols-3">
-      <Field label="초기 자본" value={usd(account.initial_equity)}/>
-      <Field label="현재 자산" value={usd(account.current_equity)}/>
-      <Field label="오늘 손익" value={signedUsd(account.today_pnl)}/>
-      <Field label="누적 손익" value={signedUsd(account.total_pnl)}/>
+      <Field label="초기 자본" value={<UsdCardValue value={account.initial_equity}/>}/>
+      <Field label="현재 자산" value={<UsdCardValue value={account.current_equity}/>}/>
+      <Field label="오늘 손익" value={<SignedMoneyValue value={settled ? account.today_pnl : null}/>}/>
+      <Field label="누적 수익" value={<CumulativePerformance pnl={settled ? account.total_pnl : null}
+        baseline={account.initial_equity} note={settled ? undefined : undefined}/>}/>
       <Field label="보유 포지션" value={String(account.open_positions)}/>
       <Field label="오늘 청산" value={account.closed_trades_today == null ? "-" : String(account.closed_trades_today)}/>
       <Field label="최근 결정" value={status.last_decision ? status.last_decision.slice(0, 12) : "-"}/>
@@ -66,7 +69,7 @@ export function StrategyCard({ bundle, href }: { bundle: StrategyBundle; href?: 
   </article>;
 }
 
-function Field({ label, value }: { label: string; value: string }) {
+function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return <div><dt className="label">{label}</dt><dd className="mt-0.5 font-medium tabular-nums text-foreground">{value}</dd></div>;
 }
 
@@ -185,7 +188,7 @@ export function StrategyTrades({ trades }: { trades: StrategyTrade[] }) {
       <td>{dash(trade.status)}</td>
       <td className="tabular-nums">{usd(trade.entry_price)}</td>
       <td className="tabular-nums">{usd(trade.exit_price)}</td>
-      <td className="tabular-nums">{trade.net_pnl == null ? "-" : signedDecimal(trade.net_pnl)}</td>
+      <td className="tabular-nums"><SignedMoneyValue value={trade.net_pnl}/></td>
       <td>{trade.evidence_status ? evidenceLabel(trade.evidence_status) : "-"}</td>
     </tr>)}
   </tbody></table>;
@@ -231,6 +234,7 @@ export function EquitySparkline({ equity, height = 64 }: { equity: StrategyEquit
   const max = Math.max(...values, Number(equity.baseline ?? values[0]));
   const span = max - min || 1;
   const width = 320;
+  const last = points[points.length - 1].equity;
   const path = values.map((value, i) => {
     const x = (i / (values.length - 1)) * width;
     const y = height - ((value - min) / span) * height;
@@ -243,7 +247,8 @@ export function EquitySparkline({ equity, height = 64 }: { equity: StrategyEquit
         className="text-primary"/>
     </svg>
     <figcaption className="mt-1 flex justify-between text-[11px] text-muted">
-      <span>{points[0].date}</span><span>{usd(points[points.length - 1].equity)}</span>
+      <span>{points[0].date}</span>
+      <span>{formatUsd(last)} <span className="text-muted">≈&nbsp;{formatKrw(usdToDisplayKrw(last))}</span></span>
     </figcaption>
   </figure>;
 }

@@ -327,3 +327,85 @@ describe("cumulative return value", () => {
     expect(page).not.toMatch(/books\[[^\]]*PROVISIONAL[^\]]*\][^\n]*\+/);
   });
 });
+
+describe("money is rendered the way Strategy A renders it", () => {
+  it("shows USD and KRW on every dashboard money field of Strategy A", async () => {
+    const { formatKrw, usdToDisplayKrw } = await import("../lib/format");
+    render(<StrategyCard bundle={bundle()}/>);
+    const card = screen.getByText("Strategy A").closest("[data-strategy]") as HTMLElement;
+    expect(within(card).getByText("$10,000.00")).toBeInTheDocument();          // 초기 자본 USD
+    expect(within(card).getByText(formatKrw(usdToDisplayKrw("10000")))).toBeInTheDocument();
+    expect(within(card).getByText("$10,240.55")).toBeInTheDocument();          // 현재 자산 USD
+    expect(within(card).getByText(formatKrw(usdToDisplayKrw("10240.55")))).toBeInTheDocument();
+    expect(within(card).getByText("+$120.25")).toBeInTheDocument();            // 오늘 손익 USD
+    expect(within(card).getAllByText(/^\+₩/).length).toBeGreaterThan(1);       // 손익의 KRW 보조선
+    expect(within(card).getByText("누적 수익")).toBeInTheDocument();            // 상세 화면과 같은 용어
+  });
+
+  it("uses Strategy A's own fixed rate, never a number typed into a component", async () => {
+    const { FX_CONFIG } = await import("../lib/fx");
+    const { formatKrw, usdToDisplayKrw } = await import("../lib/format");
+    render(<StrategyCard bundle={bundle()}/>);
+    const card = screen.getByText("Strategy A").closest("[data-strategy]") as HTMLElement;
+    expect(within(card).getByText(formatKrw(10000 * FX_CONFIG.usdKrw))).toBeInTheDocument();
+    for (const path of ["components/strategy-runtime.tsx", "app/strategy-e/page.tsx",
+                        "components/daily-performance.tsx"]) {
+      expect(readFileSync(path, "utf8"), path).not.toMatch(/1,?346(\.\d+)?/);
+    }
+  });
+
+  it("colours a gain, a loss and a flat day with the existing tone classes", () => {
+    const gain = bundle();
+    const { unmount } = render(<StrategyCard bundle={gain}/>);
+    expect(screen.getByText("+$120.25").closest("span")?.className).toContain("text-success");
+    unmount();
+    const loss = bundle({ account: { ...bundle().account, today_pnl: "-45.10", total_pnl: "-90.20" } });
+    const second = render(<StrategyCard bundle={loss}/>);
+    expect(screen.getByText("-$45.10").closest("span")?.className).toContain("text-danger");
+    second.unmount();
+    const flat = bundle({ account: { ...bundle().account, today_pnl: "0", total_pnl: "0" } });
+    render(<StrategyCard bundle={flat}/>);
+    expect(screen.getAllByText("+$0.00")[0].closest("span")?.className).toContain("text-foreground-secondary");
+  });
+
+  it("keeps a dash for Strategy E while its book holds no session", () => {
+    render(<StrategyCard bundle={eBundle()}/>);
+    const card = screen.getByText("Strategy E-MAX V1").closest("[data-strategy]") as HTMLElement;
+    expect(within(card).queryByText(/₩0$/)).not.toBeInTheDocument();           // no converted zero
+    expect(within(card).queryByText("+$0.00")).not.toBeInTheDocument();
+    expect(within(card).getAllByText("-").length).toBeGreaterThan(1);
+    expect(within(card).getByText(/RVOL 부트스트랩 중/)).toBeInTheDocument();
+  });
+
+  it("shows USD and KRW for Strategy E once its own book has a session", async () => {
+    const { formatKrw, usdToDisplayKrw } = await import("../lib/format");
+    const settled = eBundle({ account: { ...eBundle().account, current_equity: "10120.00",
+      today_pnl: "120.00", total_pnl: "130.00", empty_reason: null,
+      books: { [PROVISIONAL]: { present: true, initial_equity: "10000", equity: "10120.00",
+                                realized_pnl: "120.00", sessions: 1 },
+               [OFFICIAL]: { present: false, initial_equity: null, equity: null,
+                             realized_pnl: null, sessions: 0 } } } });
+    render(<StrategyCard bundle={settled}/>);
+    const card = screen.getByText("Strategy E-MAX V1").closest("[data-strategy]") as HTMLElement;
+    expect(within(card).getByText("$10,120.00")).toBeInTheDocument();
+    expect(within(card).getByText(formatKrw(usdToDisplayKrw("10120.00")))).toBeInTheDocument();
+    expect(within(card).getByText("+$120.00")).toBeInTheDocument();            // 오늘 손익
+    expect(within(card).getByText("+$130.00")).toBeInTheDocument();            // 누적 수익
+    expect(within(card).getByText("+1.30%")).toBeInTheDocument();              // 130 / 10,000 baseline
+    expect(within(card).getByText("+$130.00").className).toContain("text-success");
+  });
+
+  it("reads only the active book, so provisional and official never add up", () => {
+    const both = eBundle({ account: { ...eBundle().account, evidence_status: OFFICIAL,
+      current_equity: "9950.00", today_pnl: "-20.00", total_pnl: "-50.00", empty_reason: null,
+      books: { [PROVISIONAL]: { present: true, initial_equity: "10000", equity: "10120.00",
+                                realized_pnl: "120.00", sessions: 3 },
+               [OFFICIAL]: { present: true, initial_equity: "10000", equity: "9950.00",
+                             realized_pnl: "-50.00", sessions: 1 } } } });
+    render(<StrategyCard bundle={both}/>);
+    const card = screen.getByText("Strategy E-MAX V1").closest("[data-strategy]") as HTMLElement;
+    expect(within(card).getByText("-$50.00")).toBeInTheDocument();
+    expect(within(card).queryByText("+$70.00")).not.toBeInTheDocument();       // 120 - 50 never appears
+    expect(within(card).queryByText("+$120.00")).not.toBeInTheDocument();
+  });
+});
