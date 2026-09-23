@@ -60,6 +60,14 @@ CREATE TABLE IF NOT EXISTS kiwoom_premarket_sessions (
   PRIMARY KEY (symbol, session)
 );
 CREATE INDEX IF NOT EXISTS idx_symbol_session ON kiwoom_premarket_sessions (symbol, session);
+CREATE TABLE IF NOT EXISTS kiwoom_collection_state (
+  symbol TEXT PRIMARY KEY,
+  staged_count INTEGER NOT NULL,
+  oldest_session TEXT,
+  history_exhausted INTEGER NOT NULL,
+  last_pass_at TEXT NOT NULL,
+  last_error TEXT
+);
 """
 
 
@@ -201,6 +209,26 @@ class RvolStore:
         pending = {s: n for s, n in need.items() if n}
         return {"symbols_needing_history": len(pending), "sessions_needed_total": sum(pending.values()),
                 "already_complete": len(symbols) - len(pending), "per_symbol": pending}
+
+    # -- collection state (which symbols still have something to fetch)
+    def note_pass(self, symbol: str, *, staged_count: int, oldest_session: str | None,
+                  history_exhausted: bool, error: str | None) -> None:
+        """What a collector pass found, so the next pass does not re-walk a finished symbol."""
+        self.connection.execute(
+            "INSERT OR REPLACE INTO kiwoom_collection_state VALUES (?,?,?,?,?,?)",
+            (symbol, staged_count, oldest_session, int(history_exhausted),
+             datetime.now(timezone.utc).isoformat(timespec="seconds"), error))
+        self.connection.commit()
+
+    def exhausted_symbols(self) -> set[str]:
+        """Symbols whose Kiwoom history ran out before the frozen window; not worth re-walking."""
+        return {row[0] for row in self.connection.execute(
+            "SELECT symbol FROM kiwoom_collection_state WHERE history_exhausted=1")}
+
+    def collection_state(self) -> dict[str, dict[str, Any]]:
+        return {row[0]: {"staged_count": row[1], "oldest_session": row[2], "history_exhausted": bool(row[3]),
+                         "last_pass_at": row[4], "last_error": row[5]}
+                for row in self.connection.execute("SELECT * FROM kiwoom_collection_state")}
 
     def attempted(self, symbol: str, sessions: Sequence[date]) -> list[date]:
         """Prior sessions this store has never recorded for the symbol (collection gaps, not rule NaN)."""
