@@ -70,6 +70,12 @@ def build(args) -> int:
             log(f"{out.name} already present and D-1 identity holds ({payload['symbol_count']} symbols)")
             return 0
         log(f"{out.name} exists but is not usable ({why}); rebuilding")
+    if args.base and not args.base.exists():
+        # Not transient: the base slice is exported once from the frozen panel on the workstation.
+        log(f"BASE_SLICE_MISSING {args.base}: export it with "
+            f"'run_e_universe export-base --out {args.base.name}' and stage it here. "
+            f"E will record NO_DECISION (UNIVERSE_NOT_AVAILABLE); Strategy A keeps running.")
+        return 1
     root = _root(args)
     previous = cal.previous_trading_day(session)
     deadline = time.monotonic() + args.max_seconds

@@ -149,7 +149,7 @@ def _e_status() -> dict[str, Any]:
         "last_update": (record or {}).get("_updated_at"),
         "detail": {
             "market_data_source": "KIWOOM",
-            "rvol_threshold": (record or {}).get("rvol_threshold_frozen"),
+            "rvol_threshold": (record or {}).get("rvol_threshold_frozen") or RB.frozen_rvol_threshold(),
             "rvol_window": (record or {}).get("rvol_window"),
             "canonical_universe": (record or {}).get("canonical_universe"),
             "rvol_ready": (record or {}).get("rvol_ready"),

@@ -208,3 +208,24 @@ def test_a_and_e_accounts_are_never_summed(client, e_runtime) -> None:
     assert a["source"] != e["source"]
     assert a["strategy_id"] == A and e["strategy_id"] == E
     assert "합산하지 않는다" in e["separate_books"]
+
+
+def test_bootstrap_from_the_store_alone_never_claims_completion(client, e_runtime) -> None:
+    """Before the first pass report exists the store knows the walked symbols, not the universe."""
+    import sqlite3
+    store = e_runtime["rvol"] / "kiwoom_premarket.sqlite3"
+    connection = sqlite3.connect(store)
+    connection.executescript(
+        "CREATE TABLE kiwoom_collection_state (symbol TEXT PRIMARY KEY, staged_count INTEGER,"
+        " oldest_session TEXT, history_exhausted INTEGER, last_pass_at TEXT, last_error TEXT);"
+        "INSERT INTO kiwoom_collection_state VALUES ('AAPL',20,'2026-08-24',0,'x',NULL),"
+        " ('MSFT',20,'2026-08-24',0,'x',NULL);")
+    connection.commit()
+    connection.close()
+    (e_runtime["universe"] / "universe_2026-09-23.json").write_text(json.dumps({
+        "format": "e-canonical-universe-v2", "target_session": "2026-09-23", "asof_session": "2026-09-22",
+        "symbols": ["AAPL"], "symbol_count": 2561, "source": "MASSIVE"}), encoding="utf-8")
+    bootstrap = client.get(f"/api/v1/strategies/{E}/status").json()["detail"]["bootstrap"]
+    assert bootstrap["status"] == "RUNNING"                    # 2 walked symbols are not 2,561
+    assert bootstrap["symbols"] == 2561 and bootstrap["ready"] == 2
+    assert bootstrap["source"] == "store"

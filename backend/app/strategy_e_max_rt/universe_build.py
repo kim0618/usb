@@ -27,13 +27,16 @@ import gzip
 import hashlib
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 import numpy as np
 
-from app.backtest.strategy_c_selection.panel import SplitEvent
+#: deployment (the API) can import this module without the research packages.
+
 from app.market.calendar import MarketCalendar
-from app.strategy_e_max_forward import forward_daily as FD, storage as ST
+
+if TYPE_CHECKING:                      # the build path needs the forward package; the identity check
+    from app.strategy_e_max_forward import forward_daily as FD      # does not, so a reader-only
 
 ARTIFACT_FORMAT = "e-canonical-universe-v2"
 SLICE_FORMAT = "e-universe-base-slice-v1"
@@ -53,8 +56,9 @@ def rules_version() -> str:
 # -- the base slice --------------------------------------------------------------------------------
 
 def export_base_slice(root: Path, out: Path, *, sessions: int = 60, snapshots: int = 3,
-                      base: FD.DailyBase | None = None) -> dict[str, Any]:
+                      base: "FD.DailyBase | None" = None) -> dict[str, Any]:
     """Write the tail of the frozen daily base that forward sessions read."""
+    from app.strategy_e_max_forward import forward_daily as FD, storage as ST
     base = base if base is not None else FD.load_base(root)
     keep = base.sessions[-sessions:]
     start = len(base.sessions) - len(keep)
@@ -81,7 +85,9 @@ def export_base_slice(root: Path, out: Path, *, sessions: int = 60, snapshots: i
             "splits": len(base.splits), "bytes": out.stat().st_size, "sha256": ST.sha256_file(out)}
 
 
-def load_base_slice(path: Path) -> FD.DailyBase:
+def load_base_slice(path: Path) -> "FD.DailyBase":
+    from app.backtest.strategy_c_selection.panel import SplitEvent
+    from app.strategy_e_max_forward import forward_daily as FD
     payload = np.load(path, allow_pickle=True)
     meta = json.loads(payload["meta"][0])
     if meta["format"] != SLICE_FORMAT:
@@ -104,9 +110,11 @@ def digest_of(payload: dict[str, Any]) -> str:
     return hashlib.sha256(json.dumps(body, sort_keys=True).encode()).hexdigest()
 
 
-def build(session: date, *, base: FD.DailyBase, root: Path,
+def build(session: date, *, base: "FD.DailyBase", root: Path,
           calendar: MarketCalendar | None = None) -> dict[str, Any]:
     """The canonical universe artifact for ``session``; raises when a required input is missing."""
+    from app.backtest.strategy_c_selection.panel import SplitEvent
+    from app.strategy_e_max_forward import forward_daily as FD, storage as ST
     cal = calendar or MarketCalendar("America/New_York")
     previous = cal.previous_trading_day(session)
     splits_path = ST.splits_asof_path(root, previous)

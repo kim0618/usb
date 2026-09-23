@@ -15,6 +15,7 @@ from datetime import date, datetime, timezone
 import json
 import os
 from pathlib import Path
+import re
 import sqlite3
 from typing import Any
 
@@ -25,6 +26,7 @@ UNIVERSE_ENV = "STRATEGY_E_UNIVERSE_DIR"
 DEFAULT_PAPER_RUN = REPO_ROOT / "data/runtime/strategy_e_max/paper/run"
 DEFAULT_RVOL = REPO_ROOT / "data/runtime/strategy_e_max/rvol"
 DEFAULT_UNIVERSE = REPO_ROOT / "data/runtime/strategy_e_max/rt2"
+H5_RULES = REPO_ROOT / "docs/backtest/strategy_e_candidate/e1_h5_confirmation_rules_v1.json"
 STRATEGY_ID = "STRATEGY_E_MAX_V1"
 PROVISIONAL = "PROVISIONAL_RVOL_BOOTSTRAP"
 OFFICIAL = "OFFICIAL_KIWOOM_PAPER"
@@ -41,6 +43,14 @@ def rvol_dir() -> Path:
 
 def universe_dir() -> Path:
     return Path(os.environ.get(UNIVERSE_ENV, str(DEFAULT_UNIVERSE)))
+
+
+def frozen_rvol_threshold() -> float | None:
+    """The H5 RVOL bound as the frozen rules state it, so no screen has to hardcode 3.0."""
+    body = _json(H5_RULES) or {}
+    text = ((body.get("hypothesis") or {}).get("thresholds_frozen") or {}).get("premarket_rvol") or ""
+    match = re.fullmatch(r">=\s*([0-9.]+)", text.strip())
+    return float(match.group(1)) if match else None
 
 
 def _json(path: Path) -> dict[str, Any] | None:
@@ -118,12 +128,18 @@ def bootstrap() -> dict[str, Any]:
     root = rvol_dir()
     body = _json(root / "passes" / "coverage_latest.json")
     if body is None:
+        # The collector has not finished a pass yet; the store knows how many symbols it has walked,
+        # but not how many the canonical universe holds, so the denominator comes from the artifact
+        # and completion is never claimed from this side.
         body = _store_coverage(root / "kiwoom_premarket.sqlite3")
+        if body is not None:
+            body["symbols"] = universe().get("symbol_count") or body.get("symbols")
     if body is None:
         return {"available": False, "status": "UNKNOWN", "reason": "no coverage report and no store yet"}
     total = int(body.get("symbols") or 0)
     ready = int(body.get("fully_ready") or 0)
-    complete = total > 0 and ready >= total - int(body.get("history_exhausted") or 0)
+    complete = (body.get("source") != "store" and total > 0
+                and ready >= total - int(body.get("history_exhausted") or 0))
     return {"available": True, "status": "COMPLETE" if complete else "RUNNING",
             "symbols": total, "ready": ready,
             "partial": int(body.get("partially_ready") or 0), "zero": int(body.get("zero_history") or 0),
@@ -131,6 +147,7 @@ def bootstrap() -> dict[str, Any]:
             "target_sessions": int(body.get("window") or 0), "minimum_sessions": int(body.get("minimum") or 0),
             "percent": round(100.0 * ready / total, 1) if total else None,
             "last_update": body.get("at") or _mtime(root / "passes" / "coverage_latest.json"),
+            "source": body.get("source") or "collector_report",
             "estimated_completion": None,
             "estimate_note": "런타임이 신뢰할 수 있는 완료 예정 시각을 제공하지 않는다"}
 
