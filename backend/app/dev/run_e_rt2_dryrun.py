@@ -115,7 +115,50 @@ def _premarket_block(cache):
     return premarket_block(a[:, 0], a[:, 1], a[:, 2], a[:, 3], a[:, 4], a[:, 5], a[:, 6], DECISION_LAST_BAR)
 
 
-def run(universe_path: Path, out_root: Path) -> int:
+def _paper_stage(decision, session, record, out_root: Path, cal, now, at, log, equity: str,
+                 provider_factory=None, interval: float = 10.0) -> dict:
+    """Frozen entry/exit through the common RT0 engine: SimBroker only, E's own virtual book.
+
+    The 09:25 decision is seeded into the engine state instead of being re-derived, because the
+    full-universe cutoff finishes seconds before 09:30. Provisional and official evidence keep
+    separate books, so a provisional session is never summed into the official record.
+    """
+    from datetime import time as dtime
+    from decimal import Decimal
+    from app.core.config import get_settings
+    from app.market.factory import build_kiwoom_provider
+    from app.strategy_e_max_rt import config as CFG, engine as ENG, paper as PAPER
+    state_dir = out_root / "paper_state" / record["paper_evidence_status"]
+    config = CFG.RuntimeConfig(enabled=True, state_dir=state_dir, initial_equity=Decimal(equity))
+    engine_store = ENG.Store(state_dir, CFG.STRATEGY_ID)
+    factory = provider_factory or (lambda: build_kiwoom_provider(get_settings()))
+    engine = ENG.Engine(config, factory, PAPER.FixedDecision(decision), cal, engine_store)
+    book = engine_store.load_book(config.initial_equity)
+    state = engine_store.load_session(session) or engine.new_state(session, Decimal(book["equity"]))
+    if ENG.Phase(state["phase"]) is ENG.Phase.WAITING:
+        state["decision"] = decision.to_json()
+        state["phase"] = ENG.Phase.DECIDED
+        state["events"].append({"at": now().isoformat(), "event": "DECISION_SEEDED_FROM_0925_CUTOFF"})
+        engine_store.save_session(state)
+    log(f"paper: book={state_dir} equity={book['equity']} selected={list(decision.selected)}")
+    deadline = at(dtime(9, 50))
+    while now() < deadline:
+        state = engine.tick(now())
+        if ENG.Phase(state["phase"]) in ENG.TERMINAL:
+            break
+        time.sleep(interval)
+    entries = state.get("entries", {})
+    exits = state.get("exits", {})
+    return {"ran": True, "phase": state["phase"], "book_dir": str(state_dir),
+            "evidence_status": record["paper_evidence_status"],
+            "entries": len(entries), "fills": sum(1 for e in entries.values() if e.get("status") == "FILLED"),
+            "exits": len(exits), "summary": state.get("summary"),
+            "mode": "SIMULATION_VIRTUAL_ONLY", "live_margin_approved": CFG.LIVE_MARGIN_APPROVED,
+            "real_orders": 0}
+
+
+def run(universe_path: Path, out_root: Path, *, paper: bool = False,
+        rvol_store_path: Path | None = None, equity: str = "10000") -> int:
     from app.core.config import get_settings
     from app.integrations.kiwoom.auth import KiwoomAuthClient
     from app.integrations.kiwoom.rate_limit import KiwoomRateLimits, RequestRateLimiter
@@ -126,9 +169,25 @@ def run(universe_path: Path, out_root: Path) -> int:
     cal = MarketCalendar("America/New_York")
     session = now().date()
     window = cal.session(session)
+    if universe_path.is_dir():                       # a directory of daily artifacts
+        universe_path = universe_path / f"universe_{session.isoformat()}.json"
+    if window is None:
+        log(f"{session}: not a trading session")
+        return 0
+    if not universe_path.exists():
+        log(f"UNIVERSE_NOT_AVAILABLE for {session}: {universe_path} is missing; no decision (fail closed)")
+        run_dir = out_root / session.isoformat()
+        run_dir.mkdir(parents=True, exist_ok=True)
+        (run_dir / "run.json").write_text(json.dumps(
+            {"session": session.isoformat(), "status": "NO_DECISION",
+             "reason": "UNIVERSE_NOT_AVAILABLE",
+             "detail": "the canonical D-1 eligible universe artifact for this session was not staged; "
+                       "the run refuses to decide on a stale universe because that would change the "
+                       "B2 denominator", "at": now().isoformat()}, indent=1) + "\n")
+        return 0
     art = json.loads(universe_path.read_text(encoding="utf-8"))
-    if window is None or art["session"] != session.isoformat():
-        raise SystemExit(f"{session}: not a session or universe artifact is for {art['session']}")
+    if art["session"] != session.isoformat():
+        raise SystemExit(f"{session}: universe artifact is for {art['session']}")
     run_dir = out_root / session.isoformat()
     run_dir.mkdir(parents=True, exist_ok=True)
     lock = open(run_dir / "run.lock", "a+")
@@ -301,7 +360,7 @@ def run(universe_path: Path, out_root: Path) -> int:
     t = time.monotonic()
     spy_pre = _premarket_block(spy)
     spy_ret = spy_pre["pm_last_price"] / art["spy_close_d_minus_1"] - 1 if spy_pre else float("nan")
-    store = RvolStore(Path(os.environ.get("E_RVOL_STORE", RVOL_STORE_DEFAULT)))
+    store = RvolStore(rvol_store_path or Path(os.environ.get("E_RVOL_STORE", RVOL_STORE_DEFAULT)))
     denominators = store.preload(list(caches), session)
     rows, rvol_unknown = {}, []
     for sym, c in caches.items():
@@ -332,11 +391,11 @@ def run(universe_path: Path, out_root: Path) -> int:
     decision = DEC.decide_from_frame(frame, source_digest=art["digest"], source="KIWOOM_NATIVE_RT2_DRYRUN", decided_at=now())
     timings["h5_r1_top3_breadth_seal_s"] = time.monotonic() - t
     timings["total_decision_s"] = timings["feature_build_s"] + timings["h5_r1_top3_breadth_seal_s"]
+    from app.strategy_e_max_rt import paper as PAPER
+    for sym in rvol_unknown:                        # eligible row without a same-source denominator
+        statuses[sym] = AV.RVOL_HISTORY_INSUFFICIENT
     for sym in caches:
-        if sym in rvol_unknown or statuses[sym] in (AV.MARKET_DATA_UNAVAILABLE, AV.STALE):
-            h5_by_symbol[sym] = AV.H5_UNKNOWN
-        else:
-            h5_by_symbol[sym] = AV.H5_TRUE if sym in decision.candidates else AV.H5_FALSE
+        h5_by_symbol[sym] = AV.h5_status(statuses[sym], sym in decision.candidates)
     availability = AV.diagnostics(statuses, h5_by_symbol, decision.universe_rows, decision.candidates) | {
         "rvol_denominator_source": "KIWOOM_NATIVE store (E-RT3); Massive is never mixed in",
         "rvol_ready_rows": len(symbols) - len(rvol_unknown),
@@ -345,13 +404,36 @@ def run(universe_path: Path, out_root: Path) -> int:
         "h5_unknown_due_to_rvol": len(rvol_unknown),
         "enable_blocked_while_rvol_missing": bool(rvol_unknown)}
     (run_dir / "availability.json").write_text(json.dumps(availability, indent=1) + "\n")
+    staged_counts = {s: store.staged_count(s, session) for s in symbols}
+    coverage = store.coverage(list(caches), session)
+    bootstrap_complete = coverage["zero_history"] == 0 and coverage["partially_ready"] == 0
+    record = PAPER.session_record(
+        session, states=statuses, h5_by_symbol=h5_by_symbol, eligible_rows=decision.universe_rows,
+        candidates=decision.candidates, selected=decision.selected,
+        rvol_ready_rows=len(symbols) - len(rvol_unknown), rvol_missing_rows=len(rvol_unknown),
+        bootstrap_complete=bootstrap_complete, coverage=coverage, decision_digest=decision.digest,
+        extra={"universe_digest": art["digest"], "paper": bool(paper)})
+    (run_dir / "session_record.json").write_text(json.dumps(record, indent=1) + "\n")
+    PAPER.write_evidence(run_dir / "rvol_evidence.csv", PAPER.evidence_rows(
+        session, features=rows, denominators=denominators, staged_counts=staged_counts,
+        states=statuses))
+    log(f"session record: status={record['paper_evidence_status']} rvol_ready={record['rvol_ready']} "
+        f"rvol_missing={record['rvol_missing']} h5_true={record['h5_true']} selected={record['selected']}")
+    paper_summary = {"ran": False, "reason": "paper stage not requested"}
+    if paper:
+        paper_summary = _paper_stage(decision, session, record, out_root, cal, now, at, log, equity)
+    record["paper_runtime"] = paper_summary
+    (run_dir / "session_record.json").write_text(json.dumps(record, indent=1, default=str) + "\n")
     report.update(status="COMPLETE", capacity=capacity, cutoff_audit=cutoff_audit,
         availability=availability, decision_compute={
         **timings, "premarket_rows": len(symbols), "h5_candidates": decision.h5_count,
         "rvol": f"{len(symbols) - len(rvol_unknown)}/{len(symbols)} rows had a Kiwoom-native denominator",
         "top3_diagnostic": list(decision.selected)},
+        session_record=record,
         orders={"order_request_count": sum(c.order_request_count for c in clients),
-                "execution_orders": 0, "fills": 0, "simbroker_used": False})
+                "execution_orders": paper_summary.get("entries", 0), "fills": paper_summary.get("fills", 0),
+                "simbroker_used": bool(paper_summary.get("ran")), "real_orders": 0,
+                "mode": "SIMULATION_VIRTUAL_ONLY"})
     report["a_health"].append(a_health())
     report["finished_at"] = now().isoformat()
     for name, body in (("capacity.json", capacity), ("lane_stats.json", lane_stats),
@@ -379,13 +461,17 @@ def main(argv=None) -> int:
     b.add_argument("--session", type=date.fromisoformat, required=True)
     b.add_argument("--out", type=Path, required=True)
     r = sub.add_parser("run")
-    r.add_argument("--universe", type=Path, required=True)
+    r.add_argument("--universe", type=Path, required=True, help="artifact file or a directory of them")
     r.add_argument("--out", type=Path, required=True)
+    r.add_argument("--paper", action="store_true", help="run the frozen entry/exit as simulation-only paper")
+    r.add_argument("--rvol-store", type=Path)
+    r.add_argument("--equity", default="10000")
     args = parser.parse_args(argv)
     if args.command == "build-universe":
         build_universe(args.session, args.out)
         return 0
-    return run(args.universe, args.out)
+    return run(args.universe, args.out, paper=args.paper, rvol_store_path=args.rvol_store,
+               equity=args.equity)
 
 
 if __name__ == "__main__":

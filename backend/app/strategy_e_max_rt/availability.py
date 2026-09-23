@@ -32,7 +32,11 @@ FEATURE_COMPLETE = "FEATURE_COMPLETE"
 SPARSE_NO_PREMARKET = "SPARSE_NO_PREMARKET"
 MARKET_DATA_UNAVAILABLE = "MARKET_DATA_UNAVAILABLE"
 STALE = "STALE"
-STATES = (FEATURE_COMPLETE, SPARSE_NO_PREMARKET, MARKET_DATA_UNAVAILABLE, STALE)
+#: The source served the symbol, but its Kiwoom RVOL history is short of the frozen minimum, so the
+#: frozen H5 cannot be evaluated for it. It is a preparation gap, not a market fact and not a signal.
+RVOL_HISTORY_INSUFFICIENT = "RVOL_HISTORY_INSUFFICIENT"
+STATES = (FEATURE_COMPLETE, SPARSE_NO_PREMARKET, MARKET_DATA_UNAVAILABLE, STALE,
+          RVOL_HISTORY_INSUFFICIENT)
 
 H5_TRUE, H5_FALSE, H5_UNKNOWN = "H5_TRUE", "H5_FALSE", "H5_UNKNOWN"
 #: A source refusal seen on every lane for a symbol; a transport failure is not this.
@@ -68,7 +72,7 @@ def classify(outcome: SymbolOutcome) -> str:
 
 def h5_status(state: str, h5_true: bool | None) -> str:
     """H5 for a symbol; an unavailable or stale symbol is UNKNOWN, never a silent False."""
-    if state in (MARKET_DATA_UNAVAILABLE, STALE):
+    if state in (MARKET_DATA_UNAVAILABLE, STALE, RVOL_HISTORY_INSUFFICIENT):
         return H5_UNKNOWN
     return H5_TRUE if h5_true else H5_FALSE
 
@@ -93,6 +97,7 @@ def diagnostics(states: Mapping[str, str], h5_by_symbol: Mapping[str, str],
         "sparse_no_premarket": counts[SPARSE_NO_PREMARKET],
         "market_data_unavailable": counts[MARKET_DATA_UNAVAILABLE],
         "stale": counts[STALE],
+        "rvol_history_insufficient": counts[RVOL_HISTORY_INSUFFICIENT],
         "market_data_unavailable_symbols": sorted(unavailable),
         "market_data_unavailable_share": (len(unavailable) / total) if total else 0.0,
         "h5_true": sum(1 for v in h5_by_symbol.values() if v == H5_TRUE),
