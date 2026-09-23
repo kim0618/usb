@@ -404,26 +404,32 @@ def run(universe_path: Path, out_root: Path, *, paper: bool = False,
         "h5_unknown_due_to_rvol": len(rvol_unknown),
         "enable_blocked_while_rvol_missing": bool(rvol_unknown)}
     (run_dir / "availability.json").write_text(json.dumps(availability, indent=1) + "\n")
-    staged_counts = {s: store.staged_count(s, session) for s in symbols}
-    coverage = store.coverage(list(caches), session)
-    bootstrap_complete = coverage["zero_history"] == 0 and coverage["partially_ready"] == 0
-    record = PAPER.session_record(
-        session, states=statuses, h5_by_symbol=h5_by_symbol, eligible_rows=decision.universe_rows,
-        candidates=decision.candidates, selected=decision.selected,
-        rvol_ready_rows=len(symbols) - len(rvol_unknown), rvol_missing_rows=len(rvol_unknown),
-        bootstrap_complete=bootstrap_complete, coverage=coverage, decision_digest=decision.digest,
-        extra={"universe_digest": art["digest"], "paper": bool(paper)})
-    (run_dir / "session_record.json").write_text(json.dumps(record, indent=1) + "\n")
-    PAPER.write_evidence(run_dir / "rvol_evidence.csv", PAPER.evidence_rows(
-        session, features=rows, denominators=denominators, staged_counts=staged_counts,
-        states=statuses))
-    log(f"session record: status={record['paper_evidence_status']} rvol_ready={record['rvol_ready']} "
-        f"rvol_missing={record['rvol_missing']} h5_true={record['h5_true']} selected={record['selected']}")
-    paper_summary = {"ran": False, "reason": "paper stage not requested"}
-    if paper:
-        paper_summary = _paper_stage(decision, session, record, out_root, cal, now, at, log, equity)
-    record["paper_runtime"] = paper_summary
-    (run_dir / "session_record.json").write_text(json.dumps(record, indent=1, default=str) + "\n")
+    record, paper_summary = {}, {"ran": False, "reason": "paper stage not requested"}
+    try:                                    # the capacity evidence is written even if this fails
+        staged_counts = {s: store.staged_count(s, session) for s in symbols}
+        coverage = store.coverage(list(caches), session)
+        bootstrap_complete = coverage["zero_history"] == 0 and coverage["partially_ready"] == 0
+        record = PAPER.session_record(
+            session, states=statuses, h5_by_symbol=h5_by_symbol, eligible_rows=decision.universe_rows,
+            candidates=decision.candidates, selected=decision.selected,
+            rvol_ready_rows=len(symbols) - len(rvol_unknown), rvol_missing_rows=len(rvol_unknown),
+            bootstrap_complete=bootstrap_complete, coverage=coverage, decision_digest=decision.digest,
+            extra={"universe_digest": art["digest"], "paper": bool(paper)})
+        (run_dir / "session_record.json").write_text(json.dumps(record, indent=1) + "\n")
+        PAPER.write_evidence(run_dir / "rvol_evidence.csv", PAPER.evidence_rows(
+            session, features=rows, denominators=denominators, staged_counts=staged_counts,
+            states=statuses))
+        log(f"session record: status={record['paper_evidence_status']} rvol_ready={record['rvol_ready']} "
+            f"rvol_missing={record['rvol_missing']} h5_true={record['h5_true']} selected={record['selected']}")
+        if paper:
+            paper_summary = _paper_stage(decision, session, record, out_root, cal, now, at, log, equity)
+        record["paper_runtime"] = paper_summary
+        (run_dir / "session_record.json").write_text(json.dumps(record, indent=1, default=str) + "\n")
+    except Exception as error:
+        log(f"SESSION_RECORD_FAILED {type(error).__name__}: {error}")
+        record = {"session": session.isoformat(), "error": f"{type(error).__name__}: {error}",
+                  "paper_evidence_status": "PROVISIONAL_RVOL_BOOTSTRAP"}
+        (run_dir / "session_record.json").write_text(json.dumps(record, indent=1, default=str) + "\n")
     report.update(status="COMPLETE", capacity=capacity, cutoff_audit=cutoff_audit,
         availability=availability, decision_compute={
         **timings, "premarket_rows": len(symbols), "h5_candidates": decision.h5_count,
