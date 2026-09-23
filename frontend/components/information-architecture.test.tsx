@@ -41,6 +41,7 @@ describe("Final information architecture", () => {
     ]);
     expect(strategyTabs).toEqual([
       { href: "/shadow", label: "전략 A · 기존 전략" },
+      { href: "/strategy-e", label: "전략 E-MAX V1" },
       { href: "/strategy-b", label: "전략 B · 실시간 모멘텀" },
       { href: "/strategy-compare", label: "전략 A/B 비교" },
     ]);
@@ -147,7 +148,9 @@ describe("Screen chrome is not repeated", () => {
     expect(() => statSync("components/mock-data-notice.tsx")).toThrow();
     const badge = source("components/mock-badge.tsx");
     expect(badge).toContain("MockBadge");
-    ["app/dashboard/page.tsx", "app/trading-b/page.tsx", "app/strategy-b/page.tsx", "app/strategy-compare/page.tsx"]
+    ["app/trading-b/page.tsx", "app/strategy-b/page.tsx", "app/strategy-compare/page.tsx"]
       .forEach(path => expect(source(path).match(/<MockBadge/g)?.length ?? 0, path).toBe(1));
+    // The dashboard reads the live per-strategy API, so it carries no mock marker at all.
+    expect(source("app/dashboard/page.tsx")).not.toContain("MockBadge");
   });
 });

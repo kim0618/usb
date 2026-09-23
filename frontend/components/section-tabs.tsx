@@ -25,6 +25,7 @@ export const tradingTabs: SectionTab[] = [
  *  inside this group instead of as new top-level menu entries. */
 export const strategyTabs: SectionTab[] = [
   { href: "/shadow", label: "전략 A · 기존 전략" },
+  { href: "/strategy-e", label: "전략 E-MAX V1" },
   { href: "/strategy-b", label: "전략 B · 실시간 모멘텀" },
   { href: "/strategy-compare", label: "전략 A/B 비교" },
 ];

@@ -186,8 +186,16 @@ def run(universe_path: Path, out_root: Path, *, paper: bool = False,
                        "B2 denominator", "at": now().isoformat()}, indent=1) + "\n")
         return 0
     art = json.loads(universe_path.read_text(encoding="utf-8"))
-    if art["session"] != session.isoformat():
-        raise SystemExit(f"{session}: universe artifact is for {art['session']}")
+    from app.strategy_e_max_rt import universe_build as UB
+    usable, why = UB.d_minus_1_identity(art, session, cal)
+    if not usable:                                   # a stale universe is never reused
+        log(f"UNIVERSE_NOT_AVAILABLE for {session}: {why}")
+        run_dir = out_root / session.isoformat()
+        run_dir.mkdir(parents=True, exist_ok=True)
+        (run_dir / "run.json").write_text(json.dumps(
+            {"session": session.isoformat(), "status": "NO_DECISION", "reason": "UNIVERSE_NOT_AVAILABLE",
+             "detail": why, "artifact": universe_path.name, "at": now().isoformat()}, indent=1) + "\n")
+        return 0
     run_dir = out_root / session.isoformat()
     run_dir.mkdir(parents=True, exist_ok=True)
     lock = open(run_dir / "run.lock", "a+")

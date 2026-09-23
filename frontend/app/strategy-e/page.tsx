@@ -1,0 +1,50 @@
+"use client";
+
+import { ErrorState, LoadingState, PageHeader } from "@/components/ui";
+import {
+  BootstrapProgress, EquitySparkline, EvidenceBooks, StrategyCard, StrategyEStatus,
+  StrategyPositions, StrategyTrades, UniversePanel,
+} from "@/components/strategy-runtime";
+import { useApi } from "@/hooks/use-api";
+import { evidenceLabel, strategiesApi, STRATEGY_E } from "@/lib/strategies";
+
+async function load() {
+  const [rows, status, account, positions, trades, equity] = await Promise.all([
+    strategiesApi.list(), strategiesApi.status(STRATEGY_E), strategiesApi.account(STRATEGY_E),
+    strategiesApi.positions(STRATEGY_E), strategiesApi.trades(STRATEGY_E), strategiesApi.equity(STRATEGY_E),
+  ]);
+  const row = rows.find(item => item.strategy_id === STRATEGY_E) || status;
+  return { row, status, account, positions, trades, equity };
+}
+
+/** Strategy E-MAX V1: the frozen rule's realtime state, its evidence grade and its own book. */
+export default function StrategyEPage() {
+  const state = useApi(load, 60_000);
+  const header = <PageHeader eyebrow="전략" title="Strategy E-MAX V1"
+    description="09:25 결정 · 09:30 진입 · 09:34 청산. 시장 데이터는 Kiwoom, 주문은 시뮬레이션 전용입니다."/>;
+
+  if (state.loading) return <>{header}<LoadingState/></>;
+  if (!state.data) return <>{header}<ErrorState message={state.error || "Strategy E 상태 조회 실패"} retry={state.refresh}/></>;
+
+  const { row, status, account, positions, trades, equity } = state.data;
+  return <div className="trading-screen">
+    {header}
+    <div className="mb-7"><StrategyCard bundle={{ row, status, account, equity }}/></div>
+    <StrategyEStatus status={status}/>
+    <BootstrapProgress state={status.detail?.bootstrap}/>
+    <UniversePanel universe={status.detail?.universe}/>
+    <EvidenceBooks equity={equity}/>
+    <section aria-labelledby="e-equity-title" className="panel mb-7 p-5">
+      <h2 id="e-equity-title" className="mb-3 font-semibold">자산 추이 · {evidenceLabel(equity.current_book)}</h2>
+      <EquitySparkline equity={equity} height={96}/>
+    </section>
+    <section aria-labelledby="e-positions-title" className="mb-7">
+      <h2 id="e-positions-title" className="mb-3 font-semibold">보유 포지션</h2>
+      <StrategyPositions positions={positions}/>
+    </section>
+    <section aria-labelledby="e-trades-title" className="mb-7">
+      <h2 id="e-trades-title" className="mb-3 font-semibold">거래 기록</h2>
+      <StrategyTrades trades={trades}/>
+    </section>
+  </div>;
+}

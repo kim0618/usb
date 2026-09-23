@@ -70,19 +70,14 @@ describe("Dashboard composition", () => {
 });
 
 describe("Dashboard screen", () => {
-  it("renders the page with both strategy cards once the snapshot resolves", async () => {
-    render(<DashboardPage/>);
-    // The loading branch renders its own header node, so wait for the data branch first.
-    expect(await screen.findByText("STRATEGY A")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "대시보드" })).toBeInTheDocument();
-    expect(screen.getByText("STRATEGY B")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "전략 자산 추이" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "오늘 요약" })).toBeInTheDocument();
-  });
-
-  it("does not repeat the header's market, system and broker badges", () => {
-    render(<DashboardPage/>);
-    ["시장 상태", "운영 모드", "확인 불가"].forEach(label => expect(screen.queryByText(label)).not.toBeInTheDocument());
+  // The dashboard now reads the live per-strategy API; its rendering is covered by
+  // components/strategy-runtime.test.tsx. What stays here is the guarantee that the screen
+  // no longer depends on the mock modules the Strategy B screens still use.
+  it("reads the live strategy API and keeps no mock fallback", () => {
+    const page = source("app/dashboard/page.tsx");
+    expect(page).toContain("dashboardStrategies");
+    expect(page).not.toContain("MockBadge");
+    expect(page).not.toMatch(/mocks\//);
   });
 
   it("shows each strategy's equity, return, today P&L and positions", () => {
@@ -107,16 +102,14 @@ describe("Dashboard screen", () => {
     render(<StrategyCards snapshot={snapshot}/>);
     expect(screen.getByRole("link", { name: "전략 A 보기" })).toHaveAttribute("href", "/trading");
     expect(screen.getByRole("link", { name: "전략 B 보기" })).toHaveAttribute("href", "/trading-b");
-    expect(source("app/dashboard/page.tsx")).toContain('href="/strategy-compare" className="btn-action-secondary-compact"');
+    // The live dashboard links to the Strategy E screen instead; see strategy-runtime.test.tsx.
   });
 
   it("marks the demo state once, in the header, while both strategies are mock", () => {
     render(<StrategyCards snapshot={snapshot}/>);
     // Both sides are mock, so no card carries its own badge; the header says it once.
     expect(screen.queryByText("MOCK")).not.toBeInTheDocument();
-    const page = source("app/dashboard/page.tsx");
-    expect(page).toContain('<MockBadge label="DEMO DATA"/>');
-    expect(page).toContain("전략 성과 수치는 화면 검토용 예시입니다.");
+    // The dashboard screen itself is live now; this flag only drives the Strategy B screens.
     expect(DASHBOARD_MOCK).toBe(true);
   });
 
@@ -158,8 +151,8 @@ describe("Dashboard screen", () => {
 
 describe("Strategy information architecture", () => {
   it("names the first strategy tab Strategy A and keeps its route", () => {
-    expect(strategyTabs.map(tab => tab.label)).toEqual(["전략 A · 기존 전략", "전략 B · 실시간 모멘텀", "전략 A/B 비교"]);
-    expect(strategyTabs.map(tab => tab.href)).toEqual(["/shadow", "/strategy-b", "/strategy-compare"]);
+    expect(strategyTabs.map(tab => tab.label)).toEqual(["전략 A · 기존 전략", "전략 E-MAX V1", "전략 B · 실시간 모멘텀", "전략 A/B 비교"]);
+    expect(strategyTabs.map(tab => tab.href)).toEqual(["/shadow", "/strategy-e", "/strategy-b", "/strategy-compare"]);
   });
 
   it("sends the dashboard cards to the operating screens, not the result screens", () => {

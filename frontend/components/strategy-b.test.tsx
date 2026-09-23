@@ -205,7 +205,7 @@ describe("Strategy B screen sections", () => {
     const { navigationItems } = await import("./app-shell");
     expect(navigationItems).toHaveLength(5);
     expect(navigationItems.find(item => item.label === "트레이딩")!.activePaths).toEqual(["/trading", "/trading-b"]);
-    expect(navigationItems.find(item => item.label === "전략")!.activePaths).toEqual(["/shadow", "/strategy-b", "/strategy-compare"]);
+    expect(navigationItems.find(item => item.label === "전략")!.activePaths).toEqual(["/shadow", "/strategy-b", "/strategy-compare", "/strategy-e"]);
   });
 
   it("never reaches the Backend, Kiwoom, a socket, or an order path", () => {
