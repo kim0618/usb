@@ -22,6 +22,7 @@ A (symbol, session) the facts classify as a data-quality exclusion (D5) is withh
 handed to the engine, and it is logged. It is never imputed and never replayed as a quiet day.
 """
 
+from array import array
 from collections.abc import Sequence
 from datetime import date
 import statistics
@@ -33,13 +34,26 @@ from app.strategy_b.config import StrategyBConfig
 from app.strategy_b.corporate_actions import PriorSessionAudit, derive_corporate_action_flags
 from app.strategy_b.features import SessionTape
 from app.strategy_b.models import CorporateActionFlag
-from app.strategy_b.rvol import VolumeProfile, build_volume_profile
+from app.strategy_b.rvol import CumulativeVolumeCurve, VolumeProfile, build_volume_profile
 from app.strategy_b.scope import ScopeDecision
 from app.strategy_b.session import SessionBoundaries
 from app.strategy_b.sparse_session import validate_sparse_session
 from app.strategy_b.split_adjustment import SplitRecord, known_splits
 
 SOURCE_VERSION = "b-e0-local-session-source-v1"
+
+
+def compact_profile(profile: VolumeProfile) -> VolumeProfile:
+    """The same profile with each curve held as float64 ``array`` instead of a tuple of floats.
+
+    Representation only. A Python float is an IEEE double and ``array('d')`` stores exactly that
+    double, so every elapsed-second and cumulative-volume value is bit-identical; ``rvol`` only
+    ever bisects ``elapsed_seconds`` and indexes ``cumulative``, and both behave the same on an
+    array. The saving is the per-value object: 8 bytes instead of about 32.
+    """
+    return VolumeProfile(profile.session_date, profile.scope, {
+        session: CumulativeVolumeCurve(array("d", curve.elapsed_seconds), array("d", curve.cumulative))
+        for session, curve in profile.curves.items()})
 
 
 class MissingSessionInput(ValueError):
@@ -171,9 +185,20 @@ class LocalSessionSource:
         return SessionTape(symbol, self.boundaries(day), list(self._load(symbol, day)))
 
     def _profile(self, symbol: str, day: date) -> VolumeProfile:
+        """D's baseline profile for one past session, built once and kept compact.
+
+        A warmup session's bars are needed only to build its profile, so they are read from the
+        cache and dropped instead of being held in ``_bars`` until the end of the call. Holding
+        them was the replay's memory peak (every symbol's twenty warmup tapes alive at once).
+        Bars the source already holds (D, or D-1 for the audit) are reused, not reread.
+        """
         key = (symbol, day)
         if key not in self._profiles:
-            self._profiles[key] = build_volume_profile(self._tape(symbol, day), self.config.rvol.scope)
+            bars = self._bars.get(key)
+            if bars is None:
+                bars = self.cache.bars(symbol, day, self.boundaries(day))
+            tape = SessionTape(symbol, self.boundaries(day), list(bars))
+            self._profiles[key] = compact_profile(build_volume_profile(tape, self.config.rvol.scope))
         return self._profiles[key]
 
     def _previous_session(self, session: date) -> date:

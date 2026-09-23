@@ -104,6 +104,13 @@ def _parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", required=True)
     _no_abbrev = {"allow_abbrev": False}
 
+    reb = sub.add_parser("rebind-code", **_no_abbrev,
+                         help="bind a SEMANTIC_PRESERVING implementation change to the frozen contract")
+    reb.add_argument("--reason", required=True)
+    reb.add_argument("--equivalence", type=Path, required=True,
+                     help="old-vs-new equivalence report whose verdict must be EQUIVALENT")
+    reb.add_argument("--benchmark", type=Path, required=True)
+    reb.add_argument("--dry-run", action="store_true")
     frz = sub.add_parser("freeze", **_no_abbrev,
                          help="evaluate the 15 preconditions and, only if all pass, freeze")
     frz.add_argument("--universe", type=Path, default=DEFAULT_UNIVERSE)
@@ -198,6 +205,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "freeze":
         return _freeze(args, contract)
+
+    if args.command == "rebind-code":
+        return _rebind_code(args, contract)
 
     contract, universe = _load(args)
     spec = contract.run(args.label or contract.authoritative_label)
@@ -459,6 +469,80 @@ def bound_code_digest(bound) -> str | None:
     bound without editing a frozen file. No such record exists and no command writes one yet."""
     records = [row for row in _ledger_records(bound.contract_sha256) if row.get("code_digest")]
     return records[-1]["code_digest"] if records else bound.code_digest
+
+
+REBIND_CLASSIFICATION = "SEMANTIC_PRESERVING_IMPLEMENTATION_OPTIMIZATION"
+#: A rebind may never move these: they are the strategy's own rules and formulas, and a change to
+#: them is a new contract version, not an implementation of the frozen one.
+REBIND_FORBIDDEN_PREFIXES = ("app/strategy_b/",)
+
+
+def _rebind_code(args: argparse.Namespace, contract: Contract) -> int:
+    """Append a CODE_REBIND record: the frozen contract, unchanged, now runs on new code.
+
+    Nothing in the contract or its checksum ledger is edited. The record carries the old and new
+    digest, the exact files that moved, and the digests of the evidence that the move preserved
+    every result: an EQUIVALENT old-versus-new report, the memory benchmark, and a fresh A/B
+    execution differential. A move that touches the pure strategy layer is refused outright.
+    """
+    from datetime import datetime
+    import hashlib
+    import subprocess
+    from zoneinfo import ZoneInfo
+
+    from app.backtest.strategy_b_e0 import code_identity, execution_differential
+    from app.backtest.strategy_b_e0.code_identity import changed_files
+    from app.strategy_b.config import StrategyBConfig
+
+    bound = require_frozen(contract, args.contract.parent / f"{args.contract.stem}.sha256")
+    old = bound_code_digest(bound)
+    records = [row for row in _ledger_records(bound.contract_sha256) if row.get("code_files")]
+    if not records:
+        raise SystemExit("no code record for this contract in the freeze ledger")
+    code = code_identity.identity(BACKEND_ROOT)
+    if code["code_digest"] == old:
+        print(json.dumps({"rebind": "NOT_NEEDED", "code_digest": old}))
+        return 0
+    moved = changed_files(records[-1]["code_files"], code["files"])
+    forbidden = [f for f in moved if f.startswith(REBIND_FORBIDDEN_PREFIXES)]
+    if forbidden:
+        raise SystemExit(f"REBIND_REFUSED: the pure strategy layer moved: {forbidden}")
+    equivalence = json.loads(args.equivalence.read_text(encoding="utf-8"))
+    if equivalence.get("verdict") != "EQUIVALENT":
+        raise SystemExit(f"REBIND_REFUSED: equivalence verdict {equivalence.get('verdict')}")
+    config = StrategyBConfig()
+    if config.fingerprint() != contract.raw["freeze"].get("config_fingerprint"):
+        raise SystemExit("REBIND_REFUSED: the strategy config fingerprint moved")
+    differential = execution_differential.run(contract, contract.run(
+        contract.authoritative_label).cost_level, config)
+    if differential.verdict != execution_differential.PASS:
+        raise SystemExit(f"REBIND_REFUSED: execution differential {differential.verdict}")
+    sha = lambda path: hashlib.sha256(path.read_bytes()).hexdigest()  # noqa: E731
+    record = {
+        "format": "b-e0-freeze-ledger-v1", "record": "CODE_REBIND",
+        "classification": REBIND_CLASSIFICATION,
+        "contract_sha256": bound.contract_sha256,
+        "rebound_at": datetime.now(ZoneInfo("Asia/Seoul")).isoformat(timespec="seconds"),
+        "source_head": subprocess.run(["git", "-C", str(REPO_ROOT), "rev-parse", "HEAD"],
+                                      capture_output=True, text=True, check=True).stdout.strip(),
+        "reason": args.reason,
+        "old_code_digest": old, "code_digest": code["code_digest"],
+        "modified_files": moved,
+        "equivalence_artifact": str(args.equivalence), "equivalence_digest": sha(args.equivalence),
+        "memory_benchmark_artifact": str(args.benchmark), "memory_benchmark_digest": sha(args.benchmark),
+        "execution_differential": {"verdict": differential.verdict, **differential.maxima()},
+        "config_fingerprint": config.fingerprint(),
+        "strategy_semantic_change": False, "contract_change": False,
+        "dataset_change": False, "universe_change": False,
+        "code_files": dict(code["files"]),
+    }
+    summary = {k: v for k, v in record.items() if k != "code_files"}
+    print(json.dumps(summary, indent=1, ensure_ascii=False))
+    if args.dry_run:
+        return 0
+    with FREEZE_LEDGER.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(record, sort_keys=True, ensure_ascii=False) + "\n")
+    return 0
 
 
 def _changed_code(code: dict) -> list[str]:

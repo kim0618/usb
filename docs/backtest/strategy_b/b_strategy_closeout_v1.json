@@ -1,0 +1,61 @@
+{
+ "record": "STRATEGY_CLOSEOUT",
+ "strategy": "B",
+ "strategy_id": "REALTIME_MOMENTUM_V1",
+ "track": "HOD_BREAKOUT",
+ "decision": "NO_GO",
+ "status": "CLOSED",
+ "reason": "INSUFFICIENT_EDGE",
+ "decided_on": "2026-09-23",
+ "document": "docs/backtest/strategy_b/B_FINAL_CLOSEOUT_V1.md",
+ "e0": {
+  "contract_sha256": "6e3d69af924b89a20ab5c7ab52f26043d37bc6330db58c5b1a41fc796f461f04",
+  "run_id": "be0-995dec075c1f4aea610a",
+  "verdict": "FAIL",
+  "return_pct": -25.72,
+  "mean_net_r": -0.3545,
+  "profit_factor": 0.446,
+  "win_rate": 0.3151,
+  "mdd_pct": 25.72,
+  "trades": 219,
+  "positive_months": "0/5"
+ },
+ "e0_diagnostics": {
+  "DIAG_ZERO_COST": {"run_id": "be0-766076888a43fc695ee1", "mean_net_r": -0.0642, "profit_factor": 0.753,
+                     "return_pct": -10.05, "conclusion": "COST_DOMINATED = NO"},
+  "CF_SIGNAL_BAR": {"run_id": "be0-aa1fc6f27988b957ec62", "mean_net_r": -0.3317, "profit_factor": 0.487,
+                    "return_pct": -24.75, "conclusion": "ENTRY_DELAY_DOMINATED = NO"},
+  "signal_decomposition": {"signals": 382, "mfe30_median_pct": 1.84, "mae30_median_pct": -1.85,
+                           "ret30_median_pct": -0.09, "first_touch_1pct_up": 183, "first_touch_1pct_down": 185},
+  "cause": "MIXED: SIGNAL_EDGE_WEAK primary, SUBSET_EDGE candidate, partial EXIT_CAPTURE"
+ },
+ "e1a": {
+  "contract_sha256": "b919fc54a65e61d50adf0a56d1c7c7430209339ed5f3ec7c5b0761a7e3505418",
+  "contract_state": "FROZEN",
+  "hypothesis": "volume_acceleration >= 1.0, evaluated once at each episode's first E0 ENTRY_SIGNALLED opportunity",
+  "discovery_diagnostic": {"run_id": "be0-4d0d4c3cf92c55c45a8a", "in_sample": true, "verdict": "WEAK_IMPROVEMENT",
+                           "return_pct": -3.03, "mean_net_r": -0.1042, "profit_factor": 0.815, "win_rate": 0.4615,
+                           "mdd_pct": 4.06, "trades": 91, "positive_months": "1/5",
+                           "h1": {"opportunities": 388, "pass": 138, "filtered": 250, "pass_rate": 0.356}},
+  "independent_validation": "NOT_RUN",
+  "independent_validation_status": "INDEPENDENT_VALIDATION_CANCELLED_BY_RESEARCH_CLOSEOUT",
+  "planned_window": ["2026-01-02", "2026-05-15"],
+  "dataset_status": "DATASET_NOT_COLLECTED",
+  "collection_estimate_not_spent": "about 4,000 requests, 14 to 16 hours at 5 Massive calls per minute, about 2.5 GB"
+ },
+ "kiwoom_feasibility": {
+  "broad_scanner": "FAST_ENOUGH_FOR_STAGE1",
+  "prevalidation": "PASS_WITH_LIMITATIONS",
+  "ranking_refresh": "<= 60 s (19 of 19 regular-session intervals changed)",
+  "note": "closure reason is strategy edge, not a Kiwoom implementation blocker",
+  "open_blockers": ["subscription unit of the 200 limit", "Kiwoom/Massive minute volume 0.70x",
+                    "realtime VWAP parity", "realtime RVOL baseline", "order and fill path",
+                    "reconnect state recovery", "shared WS gateway"]
+ },
+ "first_pullback": "NOT_PURSUED / CLOSED_WITH_STRATEGY_B; a future attempt starts a new research track with its own preregistration",
+ "additional_collection": "NOT_STARTED",
+ "development": "NOT_STARTED / WILL_NOT_START",
+ "paper_trading": "NOT_STARTED",
+ "live_trading": "NOT_STARTED",
+ "frozen_artifacts_protected": true
+}

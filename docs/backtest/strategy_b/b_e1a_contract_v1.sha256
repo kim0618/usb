@@ -1,0 +1,23 @@
+# Strategy B (REALTIME_MOMENTUM_V1) E1-A contract checksum.
+#
+# canonical: sha256 of json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False) UTF-8
+#            = app.backtest.strategy_c_selection.rules.canonical_checksum (existing US-B recipe)
+# file:      sha256 of the file bytes (informational; the canonical value is the gate)
+#
+# status:    FROZEN. Frozen at 2026-09-22T16:28:20+09:00; the contract is a declaration.
+# parent:    b-e0-contract-v1 FROZEN 6e3d69af924b89a20ab5c7ab52f26043d37bc6330db58c5b1a41fc796f461f04 (authoritative result FAIL)
+# results:   0 for the validation window 2026-01-02..2026-05-15. The dataset is not collected (run blocker, not a freeze blocker).
+#
+# history (each line: the checksum that was replaced, and why)
+#   2026-09-22 16:35  31d4e43464e980c76a08bf1f708a0d5d098b17195efdb9960155b5b9d279e006
+#       First draft. H1 as a signal-condition conjunct with re-arming in SETUP_READY. Superseded before
+#       freeze by user decision: H1 is evaluated once at each episode's first E0 signal opportunity and a
+#       failing episode ends (outcome H1_FILTERED_OUT in the experiment layer, shared FSM unchanged); the
+#       missing dataset was reclassified from an open item to a run blocker. No threshold, window or
+#       inherited term changed.
+#   2026-09-22 16:28  de1d5c2fb8d92a02a5a2542847f7edf0ecf545ac0ad75485e349a7aeeb13c577
+#       DRAFT final pre-freeze. The only edit at freeze is contract_state = FROZEN and the freeze block.
+#   2026-09-22 16:28  b919fc54a65e61d50adf0a56d1c7c7430209339ed5f3ec7c5b0761a7e3505418  FROZEN authoritative contract
+canonical  b919fc54a65e61d50adf0a56d1c7c7430209339ed5f3ec7c5b0761a7e3505418  b_e1a_contract_v1.json
+file       20de813b57283049881263e36a5cb2e0ce16474202af186d3dbab6bf23458047  b_e1a_contract_v1.json
+frozen     b919fc54a65e61d50adf0a56d1c7c7430209339ed5f3ec7c5b0761a7e3505418  b_e1a_contract_v1.json

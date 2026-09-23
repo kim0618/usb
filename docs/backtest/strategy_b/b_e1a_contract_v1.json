@@ -1,0 +1,805 @@
+{
+ "strategy_id": "REALTIME_MOMENTUM_V1",
+ "contract_id": "b-e1a-contract-v1",
+ "schema_version": 1,
+ "phase": "E1-A",
+ "contract_state": "FROZEN",
+ "declared_on": "2026-09-22",
+ "declared_before_results": true,
+ "results_at_declaration": 0,
+ "results_at_declaration_meaning": "no B result exists for the validation window. The hypothesis itself was found in B-E0's discovery window (2026-05-18..2026-09-16); that sample is never reused to validate it.",
+ "document": "docs/backtest/strategy_b/B_E1A_PREREGISTRATION_V1.md",
+ "threshold_status": "PRE_REGISTERED_ECONOMIC",
+ "ai_enabled": false,
+ "change_policy": "any edit changes the canonical checksum and makes this a different study; post-result changes go to b_e1a_contract_v2.json with a new declaration",
+ "parent": {
+  "contract_id": "b-e0-backtest-contract-v1",
+  "contract_sha256": "6e3d69af924b89a20ab5c7ab52f26043d37bc6330db58c5b1a41fc796f461f04",
+  "contract_state": "FROZEN",
+  "authoritative_result": "FAIL",
+  "authoritative_run_id": "be0-995dec075c1f4aea610a",
+  "relationship": "B-E1-A is B-E0 V1 plus exactly one pre-registered gate (H1). Everything else is inherited unchanged; B-E0's FAIL is not revisited."
+ },
+ "hypothesis": {
+  "id": "H1",
+  "name": "VOLUME_ACCELERATION_CONFIRMATION",
+  "statement": "HOD_BREAKOUT signals whose recent participation is not decelerating have a positive net expectancy that B-E0's unfiltered signals do not.",
+  "economic_rationale": "a breakout that trades on at least as much volume as the minutes before it is being bought by new participants; a breakout on fading volume is the last buyers exhausting, which B-E0's symmetric post-signal excursions (MFE30 +1.84% vs MAE30 -1.85%) are consistent with.",
+  "origin": {
+   "source": "B-E0 BASE exploratory signal decomposition (382 ENTRY_SIGNALLED, same discovery sample)",
+   "artifact": "data/runtime/strategy_b_e0/analysis/signal_edge_decomposition_v1.json",
+   "observation": "signals in the top two volume_acceleration quintiles (lower edge 0.90) had positive 30-minute median return in 4 of 5 months; the rest were negative in 5 of 5",
+   "status": "EXPLORATORY_NOT_VALIDATED"
+  },
+  "feature": {
+   "name": "volume_acceleration",
+   "implementation": "app.strategy_b.features.volume_acceleration via compute_feature_snapshot (existing, unchanged)",
+   "definition": "sum of actual-bar volume in the last clock window (as_of - W, as_of] divided by the sum in the window before it (as_of - 2W, as_of - W], W = features.volume_acceleration_window_minutes",
+   "window_minutes": 5,
+   "window_source": "app.strategy_b.config.FeatureConfig.volume_acceleration_window_minutes default, unchanged",
+   "scope": "FeatureConfig.dollar_volume_scope (SESSION_LOCAL), unchanged",
+   "evaluated_at": "the same tick at which B-E0 evaluates the HOD_BREAKOUT signal condition (the moment the signal bar becomes available), from the same FeatureSnapshot"
+  },
+  "threshold": {
+   "operator": ">=",
+   "value": 1.0,
+   "inclusive": true,
+   "reason": "1.0 is the point where the last five minutes traded at least as much as the five before: participation holding or rising. It is chosen for its meaning, not from the data.",
+   "rejected_alternatives": "0.90 (the discovery-sample quintile edge) and every searched value are not used; no threshold was optimized",
+   "discovery_period": "2026-05-18..2026-09-16 (B-E0); never used for B-E1-A validation"
+  },
+  "unavailable_value_rule": "if volume_acceleration is not AVAILABLE (INSUFFICIENT_HISTORY in the first 2W minutes of the scope, ZERO_BASELINE when the earlier window traded nothing, NO_DATA) H1 FAILS for that episode",
+  "gate_semantics": {
+   "form": "FIRST_SIGNAL_SINGLE_EVALUATION",
+   "unit": "candidate episode: one candidate from its opening by the B-E0 engine to its terminal state",
+   "evaluation_point": "the first tick at which B-E0 rules would record ENTRY_SIGNALLED for the episode (its first E0 signal opportunity), from that tick's FeatureSnapshot",
+   "evaluations_per_episode": 1,
+   "on_pass": "the episode proceeds exactly as under B-E0 from that ENTRY_SIGNALLED onward (fill, exit, accounting unchanged)",
+   "on_fail": "the episode ends in B-E1-A at that tick. It never signals again, even if volume_acceleration later reaches 1.0.",
+   "new_episode_rule": "a new episode for the same symbol exists only if B-E0's own lifecycle and re-detection rules open one; its first E0 signal opportunity is evaluated once, independently",
+   "fail_record": "the experiment layer records outcome H1_FILTERED_OUT with the tick, the volume_acceleration value or its unavailability status, and the episode id",
+   "shared_fsm_change": "none. No state, DropReason enum value or transition is added to app.strategy_b; H1_FILTERED_OUT exists only in the B-E1-A experiment/result layer.",
+   "reason": "the H1 pattern was found at each candidate's first ENTRY_SIGNALLED in the discovery sample. Waiting in SETUP_READY for a later bar to pass H1 would be a timing strategy the discovery sample never scored.",
+   "superseded_draft_rule": "draft 31d4e434 used a signal-condition conjunct with re-arming; replaced before freeze by user decision 2026-09-22"
+  },
+  "lift_gate_application": {
+   "definition": "inherited lift_gate block, unchanged",
+   "treatment_cohort": "episodes that reached ENTRY_SIGNALLED in B-E1-A, i.e. whose first E0 signal passed H1",
+   "h1_filtered_out": "episodes ended by H1 reached no ENTRY_SIGNALLED in B-E1-A and formed a setup, so they belong to neither cohort; they are counted and reported",
+   "control_cohort": "inherited definition unchanged (no-setup CANDIDATE_TTL expiries); H1 never touches those episodes"
+  },
+  "kiwoom_compatibility": {
+   "verdict": "PASS_WITH_SEMANTIC_DIFFERENCE",
+   "reason": "same-source ratio: the Kiwoom/Massive minute-volume level difference (about 0.70x) cancels in the ratio when uniform; small caps with Kiwoom-only small-print minutes do not fully cancel",
+   "source": "docs/backtest/strategy_b/B_E1_RESEARCH_PLAN_DRAFT.md section 4"
+  }
+ },
+ "excluded_hypotheses": {
+  "H2_overextension_avoidance": "excluded from this experiment (user decision 2026-09-22); may become E1-B",
+  "H3_exit_stop_structure": "excluded from this experiment (user decision 2026-09-22)",
+  "reason": "one change per experiment so the result is attributable"
+ },
+ "run_window": {
+  "calendar": "XNYS",
+  "role": "INDEPENDENT_VALIDATION",
+  "scope_start": "2026-01-02",
+  "scope_end": "2026-05-15",
+  "scope_sessions": 93,
+  "warmup_start": "2025-12-03",
+  "warmup_sessions": 20,
+  "warmup_reason": "rvol.lookback_sessions needs 20 prior regular sessions before the first scope session (inherited)",
+  "early_close_sessions_in_window": 0,
+  "overlap_with_discovery": "none: the last validation session 2026-05-15 is before B-E0's first scope session 2026-05-18; the validation warmup ends 2025-12-31"
+ },
+ "universe": {
+  "source_of_truth": "IMMUTABLE_ARTIFACT",
+  "construction": "identical to B-E0: app.backtest.strategy_b_e0.build_universe over this window (per-session S(D) from grouped daily through D-1 and the CS reference snapshot dated strictly before D)",
+  "inputs_available_without_collection": {
+   "grouped_daily": "present 2024-09-16..2026-09-16 (502 sessions)",
+   "cs_reference_snapshots": [
+    "2025-10-01",
+    "2026-01-02",
+    "2026-04-01"
+   ],
+   "pit_note": "D = 2026-01-02 uses the 2025-10-01 snapshot (strictly before D)"
+  },
+  "artifact_path": "data/runtime/strategy_b_e1a/b_e1a_run_universe_v1.json",
+  "artifact_sha256": "PENDING_NOT_BUILT",
+  "no_hardcoded_count": "counts are read from the artifact"
+ },
+ "dataset": {
+  "status": "DATASET_NOT_COLLECTED",
+  "freeze_relationship": "not a freeze blocker (user decision 2026-09-22). It is a hard blocker of every authoritative B-E1-A run: until the dataset is collected, identified by digest and passes the inherited readiness gate, a run ends DATASET_NOT_READY.",
+  "finding": "2026-09-22 read-only scan of the Common Raw minute store: B-universe symbols' minute ledgers start 2026-04 (3,293 symbols, B-E0 warmup) or later; the 166 symbols with data from 2024-09 are the A/C research sets selected on whole-period data, which would be look-ahead as a B universe. The validation window and its warmup (2025-12-03..2026-05-15) are not in the store for the B universe.",
+  "consequence": "collection is outside this contract's approval and starts only after a separate user approval. The dataset digest it produces is recorded by an append-only binding record, not by editing this frozen contract.",
+  "collection_estimate_if_approved": "about 4,000 per-symbol requests, 15 to 20 hours at the measured Massive rate, 2.5 to 3 GB on Drive, scaled from B-E0 (3,855 requests, about 14 h, mirror 2.31 GB for 2026-04-20..2026-09-16). Estimate only.",
+  "dataset_digest": "PENDING_NOT_COLLECTED",
+  "adapter": "identical to B-E0 data_adapter decisions D1..D6 (copied below)"
+ },
+ "data_adapter": {
+  "design": "docs/backtest/strategy_b/B_E0_DATA_ADAPTER_DESIGN_V1.md",
+  "decisions": {
+   "D1_scope_authority": "IMMUTABLE_UNIVERSE_ARTIFACT",
+   "D1_rule": "membership comes from the universe artifact only; evaluate_research_scope, reference snapshot membership and ticker metadata are never consulted at runtime",
+   "D2_daily_authority": "MASSIVE_GROUPED_DAILY",
+   "D2_rule": "the D-1 HYBRID-S audit and the first-appearance count read grouped daily; no per-symbol daily is collected. Strategy A's daily authority is unchanged.",
+   "D3_ipo_warmup_source": "FIRST_APPEARANCE_PROXY",
+   "D3_rule": "prior_sessions_since_listing = grid sessions strictly before D since the ticker's first grouped-daily row; IPO_WARMUP when below corporate_actions.ipo_warmup_sessions",
+   "D4_delisting_event_filter": "NOT_APPLIED",
+   "D4_ticker_change_event_filter": "NOT_APPLIED",
+   "D4_rule": "no point-in-time source exists; the flags are not estimated and the omission is published as a limitation",
+   "D5_minute_gap_policy": "PAIR_EXCLUSION",
+   "D5_rule": "a scope pair whose regular tape is empty while grouped daily shows volume (HYBRID-S API_LOSS_SUSPECT + MINUTE_TAPE_EMPTY) is withheld from the replay and recorded; never imputed, never replayed as a quiet day",
+   "D6_warmup_gap_policy": "BASELINE_EXCLUSION",
+   "D6_rule": "the same gap, when it falls in an RVOL lookback, is left out of the baseline instead of entering as zero volume; the remaining profiles still count toward FULL / PARTIAL / UNKNOWN"
+  },
+  "exclusion_classes": {
+   "POLICY_EXCLUSION": "a declared rule removes an otherwise sound pair (IPO_WARMUP proxy, the universe's own exclusions such as CON); never counted by the quality gate",
+   "DATA_QUALITY_EXCLUSION": "the data cannot support the pair (minute gap against grouped volume, corrupt input, unresolved source gap); the only class the quality gate counts"
+  },
+  "readiness": {
+   "statuses": [
+    "PASS",
+    "PASS_WITH_WARNINGS",
+    "DATASET_NOT_READY",
+    "DATA_QUALITY_BLOCKED"
+   ],
+   "runnable": [
+    "PASS",
+    "PASS_WITH_WARNINGS"
+   ],
+   "overall_quality_exclusion_limit": 0.005,
+   "session_quality_exclusion_limit": 0.02,
+   "comparison": "STRICTLY_GREATER_BLOCKS",
+   "comparison_meaning": "a ratio exactly at a limit does not block; strictly above it does",
+   "overall_ratio": "DATA_QUALITY_EXCLUSION pairs / required scope pairs",
+   "session_ratio": "DATA_QUALITY_EXCLUSION pairs on a session / universe members in scope that session",
+   "order": "any blocking check -> DATASET_NOT_READY; else quality gate -> DATA_QUALITY_BLOCKED; else any warning -> PASS_WITH_WARNINGS; else PASS",
+   "blocking_checks": [
+    "contract, rules or universe checksum mismatch",
+    "contract/config disagreement",
+    "universe window or sessions disagree with the calendar",
+    "a universe symbol's fetch range not covered by COMPLETE ledgers",
+    "a mirrored file whose sha256 differs from its source record",
+    "grouped daily missing for a cache session",
+    "splits dump missing or unreadable",
+    "an early-close session in the window (engine limitation, see engine_limitations)",
+    "a conflicting split record for a universe symbol"
+   ],
+   "run_mapping": "DATASET_NOT_READY and DATA_QUALITY_BLOCKED both end the run with verdict DATASET_NOT_READY"
+  },
+  "split_policy": {
+   "source": "the single splits dump; a symbol without records has no split",
+   "conflicting_duplicates": "a (ticker, date) with more than one distinct ratio is dropped for every symbol and reported; it blocks only when the ticker is a universe member",
+   "identical_duplicates": "collapsed to one record"
+  },
+  "dataset_digest": "sha256 over the sorted (relative path, file sha256) of every mirrored file: minute ledgers and pages, grouped daily, splits",
+  "mirror_integrity": "minute pages are checked against their ledger's file_sha256; grouped daily and splits against the C raw freeze manifest",
+  "engine_limitations": [
+   "run_session raises on an early-close session (the detection grid includes the close minute, which is classified AFTER). This window has none; the readiness gate blocks any window that does. Not fixed here."
+  ]
+ },
+ "runs": [
+  {
+   "label": "BASE",
+   "fill_scenario": "NEXT_BAR_OPEN",
+   "cost_level": "BASE",
+   "h1_gate": true,
+   "verdict_input": true,
+   "question": "does B-E0 + H1 pass B-E0's own PASS gate on independent data"
+  },
+  {
+   "label": "CONTROL_E0_RULES",
+   "fill_scenario": "NEXT_BAR_OPEN",
+   "cost_level": "BASE",
+   "h1_gate": false,
+   "verdict_input": false,
+   "question": "diagnostic: the same window under B-E0 rules, so the H1 increment is measured on the same data"
+  },
+  {
+   "label": "DIAG_ZERO_COST",
+   "fill_scenario": "NEXT_BAR_OPEN",
+   "cost_level": "ZERO_COST",
+   "h1_gate": true,
+   "verdict_input": false,
+   "question": "diagnostic: gross edge of the gated signals"
+  }
+ ],
+ "run_policy": {
+  "authoritative_runs_for_verdict": 1,
+  "authoritative_label": "BASE",
+  "mode_default": "STRICT",
+  "forbidden_flags": [
+   "--allow-partial",
+   "--ignore-checksum",
+   "--skip-missing",
+   "--force"
+  ],
+  "forbidden_flags_reason": "no option may produce an authoritative artifact from incomplete or unverified inputs",
+  "permitted_research_flags": [
+   "--preflight-only"
+  ],
+  "rerun_allowed_for": [
+   "a defect in engine or run code, fixed and committed",
+   "a dataset correction"
+  ],
+  "rerun_not_allowed_for": [
+   "an unsatisfying result",
+   "a parameter the result suggests"
+  ],
+  "ledger": "every execution, including discarded ones, is listed in B_E1A_RESULTS_V1.md with run_id, timestamp, reason and whether it fed the verdict",
+  "diagnostic_runs": "permitted, must be labelled DIAGNOSTIC in the ledger and can never be cited as evidence for the verdict"
+ },
+ "live_parity_gate": {
+  "status": "SEPARATE_GATE",
+  "stage1_kiwoom_ranking": "excluded from B-E1-A (user decision 2026-09-22); the historical run scans the whole artifact universe as B-E0 did",
+  "rule": "NO KIWOOM REPRODUCTION = NO PROMOTION. A B-E1-A PASS is a historical research result only; production-track promotion requires the separate live-parity gate (Stage-1 ranking coverage, realtime feature parity, subscription capacity, order path).",
+  "evidence_so_far": [
+   "docs/backtest/strategy_b/B_KIWOOM_BROAD_SCANNER_PREVALIDATION.md",
+   "regular-session ranking probe scheduled on the server 2026-09-22 22:35 KST"
+  ]
+ },
+ "implementation": {
+  "status": "NOT_IMPLEMENTED",
+  "requirement": "the H1 conjunct is added without changing any other B-E0 behaviour; with the gate disabled the E1-A engine must reproduce B-E0 run be0-995dec075c1f4aea610a's core artifacts byte-for-byte on the B-E0 window before any E1-A run",
+  "code_identity": "the implementation is bound later by an append-only CODE_BINDING record (code digest, equivalence evidence) in the B-E1-A freeze ledger; this frozen contract is not edited for it, and B-E0's frozen code binding is not touched"
+ },
+ "artifacts": {
+  "root": "backtest/strategy_b/<run_id>/",
+  "required": [
+   "identity.json",
+   "run_manifest.json",
+   "trades.jsonl",
+   "candidates.jsonl",
+   "sessions.jsonl",
+   "metrics.json",
+   "gate_result.json"
+  ],
+  "optional": [
+   "equity_curve.jsonl",
+   "daily_metrics.jsonl",
+   "lift.json"
+  ],
+  "store_convention": "the existing engine store and workspace safe_write contract, append-only",
+  "gate_result_states": [
+   "PASS",
+   "BORDERLINE",
+   "FAIL",
+   "INSUFFICIENT_SAMPLE",
+   "DATASET_NOT_READY",
+   "ERROR"
+  ],
+  "candidates_reason": "the drop reason distribution of candidates that never entered is the only evidence for whether the rules were too tight, and it must be read before anyone proposes changing a rule",
+  "results_document": "docs/backtest/strategy_b/B_E1A_RESULTS_V1.md"
+ },
+ "limitations_to_publish": [
+  "CON is in the planned symbol set but cannot be stored (a DOS device name no Windows-backed store can hold as a directory), so it is skipped at fetch time and excluded from the run universe. Unrelated to momentum, but stated.",
+  "No spread filter and no measured spread anywhere: Basic has no quotes. All costs are declared values.",
+  "halt_inferred UNKNOWN passes the eligibility gate (F0 6.3), so some entries may sit on a tape that was actually halted.",
+  "Minute volume from Massive measured about 0.70 of Kiwoom's REST minute volume on the same sessions. RVOL thresholds calibrated here do not automatically carry the same meaning in the realtime runtime and must be re-validated before deployment.",
+  "One four-month window, one market regime. No seasonality or regime generalisation may be claimed from this run.",
+  "Premarket prices disagree between the two sources. Entry is REGULAR only, but return_* uses EXTENDED_DAY scope, so a premarket print can be the reference point of a regular-session return.",
+  "Symbols or sessions absent from the collected store are excluded from the universe and listed in the result.",
+  "Strategy A's existing baseline runs were produced at 10000 USD, not at the common capital, so USD comparisons with A are invalid until A is re-run.",
+  "The early-close EOD clamp is not exercised by this window, so this run provides no evidence about it.",
+  "DELISTING_WINDOW and SYMBOL_CHANGE are not applied (D4): no point-in-time source exists, so a candidate may be traded close to a delisting or through a ticker change.",
+  "IPO_WARMUP uses the first grouped-daily appearance, not an authoritative list_date (D3). A renamed seasoned stock can be read as new (conservative), and a reused ticker's new listing can be read as seasoned.",
+  "B-E0 uses grouped daily as its daily authority (D2), which Strategy A does not.",
+  "The H1 hypothesis was found by exploring B-E0's discovery sample; only this independent window can support it.",
+  "H1 is evaluated once, at each episode's first E0 signal opportunity; episodes that fail end, so B-E1-A trades a subset of B-E0's first signals and never a later one.",
+  "A historical PASS does not imply Kiwoom realtime reproducibility; the live-parity gate is separate."
+ ],
+ "units": "*_bps is basis points; *_r is R multiples net of costs; return_* and *_pct are percent points (5.0 = 5%); *_minutes is wall-clock",
+ "rules_binding": {
+  "file": "docs/backtest/strategy_b/b_fsm_rules_v1.json",
+  "canonical_checksum": "a082b998303d6a95ff2aa2ca3715700f1fe2ae8e10be1a3c192ec7c66660a451",
+  "note": "this contract adds no judgement rule; F0 is the sole authority on state transitions, setup, entry and exit"
+ },
+ "capital_policy": {
+  "policy": "COMMON_STRATEGY_INITIAL_CAPITAL",
+  "initial_capital_usd": "7428.92",
+  "currency": "USD",
+  "reference_strategy": "A",
+  "source_of_truth": "app.dev.bootstrap_paper_account.PAPER_INITIAL_CASH, mirrored as app.backtest.ui.fx.PAPER_INITIAL_CASH_USD",
+  "source_meaning": "the paper account's bootstrap cash, which stands for KRW 10,000,000 at the fixed research rate USD_KRW = 10000000 / 7428.92",
+  "independent_accounts": true,
+  "independent_accounts_meaning": "A, B, C and D each start from this amount in a separate simulated account. They do not share, divide or transfer capital, and no run models more than one strategy's account.",
+  "comparison_rule": "no strategy is given a capital advantage over another; per-strategy returns are compared at the same starting capital",
+  "conflict_on_record": {
+   "fact": "app.backtest.baseline.contract.STARTING_CASH is Decimal('10000') with STARTING_CASH_SOURCE 'ASSUMED_RESEARCH', and that module explicitly considered and rejected PAPER_INITIAL_CASH as a backtest contract",
+   "consequence": "Strategy A's existing baseline runs were produced at 10000 USD, so they are not yet at the common capital. Until A's baseline is re-run at 7428.92, any A-to-B comparison of USD amounts is invalid; comparisons must use R multiples or percentages, which this contract shows are invariant to the capital level.",
+   "not_resolved_here": "this contract does not change Strategy A. Re-running A's baseline at the common capital is a separate, user-approved task."
+  },
+  "fx_modeled": false,
+  "fx_model": "NONE",
+  "fx_reason": "the simulated account is denominated in USD. A KRW funding conversion happens once per deposit, not per trade, so it cannot change per-trade expectancy or the R distribution. It is a deployment cost, recorded outside this study."
+ },
+ "sizing": {
+  "risk_per_trade_pct": 0.5,
+  "max_position_pct": 20.0,
+  "max_open_positions": 3,
+  "max_entries_per_symbol": 1,
+  "daily_loss_limit_r": 3.0,
+  "source": "app.strategy_b.config.RiskConfig defaults, read from code on 2026-09-21; this contract copies them and does not change them",
+  "equity_basis": "CURRENT_REALISED_EQUITY",
+  "equity_basis_evidence": "app.backtest.strategy_b.portfolio.Portfolio.enter calls position_size(self.equity, ...), and self.equity moves only on realised legs and fees; open positions are never marked to market",
+  "derived_at_initial_capital": {
+   "note": "these are the values at the first trade of the run only. Both are recomputed from current equity at every entry, so they drift as the account realises profit or loss.",
+   "risk_amount_usd": "37.1446",
+   "risk_amount_usd_display": "37.14",
+   "position_cap_usd": "1485.784",
+   "position_cap_usd_display": "1485.78",
+   "formula_risk": "current_equity * risk_per_trade_pct / 100",
+   "formula_cap": "current_equity * max_position_pct / 100",
+   "precision": "computed and applied in float by the engine as it is today; the display values are rounded for reporting only and are never an input"
+  },
+  "capital_invariance": {
+   "claim": "the verdict metric, mean net R per trade, is invariant to the initial capital level except through share rounding",
+   "derivation": "R multiple = (exit - entry) / (entry - initial_stop) does not contain share count. A fee is price * shares * bps, and 1R in cash is (entry - initial_stop) * shares, so fee expressed in R is price * bps / (entry - initial_stop): the share count cancels. Both the risk budget and the position cap scale linearly with equity, so which of the two binds is also capital-invariant.",
+   "residual": "floor() in position_size, which can differ by one share, and the SIZE_ZERO case when one share of risk exceeds the whole risk budget. Lowering capital from 10000 to 7428.92 makes SIZE_ZERO marginally more likely: it appears when the per-share stop distance exceeds 37.14 USD.",
+   "consequence": "the change of initial capital does not invalidate the verdict design; it changes USD-denominated reporting and the rounding residual only"
+  }
+ },
+ "costs": {
+  "model": "per side, applied to every entry and every exit leg",
+  "commission_bps_per_side": 10.0,
+  "execution_cost_bps_per_side": 15.0,
+  "base_all_in_cost_bps_per_side": 25.0,
+  "base_round_trip_cost_bps": 50.0,
+  "decomposition": {
+   "commission": "cash charged beside the notional (CostModel.fee)",
+   "execution_cost": "spread plus slippage, moving the fill price against the trade (CostModel.buy_price / sell_price)",
+   "why_two_parts_not_three": "app.backtest.strategy_b.costs.CostModel has one price knob and one cash knob. Strategy A's ExecutionConfig splits the price part into default_spread_bps 10 and default_slippage_bps 5; this contract folds that 10 + 5 into one execution_cost_bps_per_side of 15 and records the split here so the two strategies can still be reconciled."
+  },
+  "strategy_a_reference": {
+   "module": "app.execution.config.ExecutionConfig",
+   "commission_bps": 10,
+   "default_spread_bps": 10,
+   "default_slippage_bps": 5,
+   "fx_cost_bps": 0,
+   "all_in_per_side": 25.0,
+   "match": "B's base is numerically identical to A's assumption"
+  },
+  "status": "ASSUMED_CONSERVATIVE",
+  "unmeasurable": "Massive Basic has no quotes (NBBO returns 403), so no spread in this study is observed. Every cost number here is declared, not measured, and B-F0 4.2 already records that the spread gate is not applied.",
+  "commission_notional_basis": "PRE_SLIPPAGE_REFERENCE_PRICE",
+  "commission_notional_basis_detail": {
+   "rule": "commission = pre-slippage reference price (the raw fill price before execution cost) x shares x commission_bps_per_side / 10000, on every entry and every exit leg",
+   "authority": "Strategy A accounting: app.broker.sim.SimBroker._make_fill charges commission = raw * quantity * commission_bps / 10000, where raw is the bar open before execution_price applies spread and slippage",
+   "b_implementation": "app.backtest.strategy_b.portfolio.Portfolio.enter and .book pass the raw price to CostModel.fee",
+   "alignment_note": "Execution-semantics alignment before freeze. Before 2026-09-22 B charged commission on the after-slippage price. No strategy threshold, cost rate, slippage, entry or exit rule changed; no B-E0 result existed when this was decided, so it is not result-driven tuning.",
+   "rate_unchanged": true
+  }
+ },
+ "cost_sensitivity": {
+  "definition": "each level is stated as all-in cost per side; the round trip is twice that. Commission is held at 10 bps per side in every level and only the execution cost moves, because the broker's commission is a known schedule while the spread is the unmeasured quantity.",
+  "levels": [
+   {
+    "name": "BASE",
+    "all_in_bps_per_side": 25.0,
+    "round_trip_bps": 50.0,
+    "commission_bps_per_side": 10.0,
+    "execution_cost_bps_per_side": 15.0
+   },
+   {
+    "name": "STRESS_30",
+    "all_in_bps_per_side": 30.0,
+    "round_trip_bps": 60.0,
+    "commission_bps_per_side": 10.0,
+    "execution_cost_bps_per_side": 20.0
+   },
+   {
+    "name": "STRESS_50",
+    "all_in_bps_per_side": 50.0,
+    "round_trip_bps": 100.0,
+    "commission_bps_per_side": 10.0,
+    "execution_cost_bps_per_side": 40.0
+   },
+   {
+    "name": "ZERO_COST",
+    "all_in_bps_per_side": 0.0,
+    "round_trip_bps": 0.0,
+    "commission_bps_per_side": 0.0,
+    "execution_cost_bps_per_side": 0.0
+   }
+  ],
+  "f0_consistency": "B-F0 fixes only the shape of the fill model (8.3) and explicitly defers the numbers to E0, so no F0 number is contradicted by this table"
+ },
+ "signal_ttl": {
+  "signal_ttl_minutes": 2,
+  "status": "RESEARCH_DEFAULT_PRECOMMITTED",
+  "status_meaning": "committed before any B result existed and not chosen by looking at one. Changing it after the freeze does not amend B-E0 V1; it creates a new contract version.",
+  "already_in_code": "app.strategy_b.config.CandidateConfig.signal_ttl_minutes has been 2 since the F0 declaration, documented there as wall-clock minutes. This contract confirms that value rather than changing it, so no config edit was needed.",
+  "units": "WALL_CLOCK_MINUTES",
+  "units_rule": "B's time contract: *_minutes is wall-clock, *_bars is actual observed non-synthetic bars. A silent tape cannot stretch a TTL (fsm._elapsed is a plain wall-clock difference).",
+  "old_name_forbidden": "the bar-based predecessor of this field was removed without an alias and must never be reintroduced. The repository already guards this: tests/strategy_b/test_strategy_b_contracts.py::test_old_clock_field_names_appear_nowhere_in_the_package_or_its_tests fails if the old name appears anywhere in the package or its tests, so no further test was added here.",
+  "anchor": "ENTRY_SIGNALLED",
+  "anchor_detail": "signal_at is the tick at which ENTRY_SIGNALLED was recorded, which is the signal bar's timestamp plus AVAILABILITY_DELAY (1 minute)",
+  "expiry": "signal_expiry = signal_at + signal_ttl_minutes",
+  "boundary": "INCLUSIVE",
+  "boundary_rule": "a next actual bar whose open time is <= signal_expiry is eligible to fill; strictly later is expired"
+ },
+ "execution_model": {
+  "primary": "NEXT_BAR_OPEN",
+  "primary_is_verdict_input": true,
+  "primary_reason": "it is the fill the realtime path B is designed for actually produces. The runtime reacts to completed minute bars (AVAILABILITY_DELAY 1 minute; the Kiwoom probe measured bar arrival about 0.25s after the minute closes), so an order leaves after the signal bar has closed and fills near the next bar's open.",
+  "counterfactual": "SIGNAL_BAR",
+  "counterfactual_reason": "SIGNAL_BAR models a resting stop order, which the runtime does not have. It is kept as a counterfactual that prices the execution feature, never as an estimate of B.",
+  "fill_rule": {
+   "statement": "a signal fills at the open of the first actual bar that becomes available strictly after the signal bar, provided that bar arrives before the signal TTL expires; otherwise there is no fill",
+   "steps": [
+    "the signal bar S is the actual bar whose high first reached trigger_price (B-F0 8.1)",
+    "signal_at is the tick at which ENTRY_SIGNALLED was recorded, which is S.timestamp + AVAILABILITY_DELAY (1 minute)",
+    "signal_expiry = signal_at + candidate.signal_ttl_minutes",
+    "let N be the first actual bar of the same session with N.timestamp > S.timestamp",
+    "if N exists and N becomes available at or before signal_expiry, the raw fill price is N.open",
+    "otherwise no fill is produced on that tick, and the candidate leaves on its own signal TTL"
+   ],
+   "declared_window": {
+    "rule": "next_actual_bar.open_time <= signal_expiry",
+    "at_the_declared_ttl": "with signal_at = S + 1 and signal_ttl_minutes = 2, signal_expiry = S + 3, so the declared window admits a next actual bar opening at S + 1, S + 2 or S + 3",
+    "worked_example": "a signal bar at 10:00 is recorded at signal_at 10:01 and expires at 10:03. A next actual bar opening 10:01 or 10:02 fills; one opening 10:04 does not."
+   },
+   "implementation_gap": {
+    "status": "RESOLVED",
+    "resolved_on": "2026-09-21",
+    "was": "the engine reached only the bar opening one minute after the signal bar. Two mechanics narrowed it: the account is asked only from the tick after the signal (B-F0 8.3), and fsm._entry_signalled expired on _elapsed(signal_at, tick) >= signal_ttl_minutes, which left a single attempting tick.",
+    "fix": "fsm._entry_signalled now expires on _elapsed(signal_at, tick) > signal_ttl_minutes + AVAILABILITY_DELAY. A bar opening exactly on the declared boundary is observable only one minute later, so without that minute the last minute of the declared window could never fill. No threshold, no rule and no other state changed; the other two TTLs keep >= ttl because they bound our own search, not an order's working window.",
+    "measured_after": "with the signal bar at 10:00 the signal is recorded at 10:01, the window closes at 10:03, and the next actual bar fills when it opens at 10:01, 10:02 or 10:03 and not at 10:04",
+    "f0_prose_note": "B-F0 8.3 used to say 'signal TTL 2분은 엔진에게 두 tick을 준다'. The engine now gets three fill-attempt ticks, one of which exists only so a boundary bar can be observed, so that sentence was imprecise. It was corrected on 2026-09-21 in B_F0_FSM_RULES_V1.md (its new section 14 records the correction): the TTL is the signal's validity window over the next actual bar's open, the boundary is inclusive, and the engine's tick count need not equal the TTL's minute count. Prose only. The rules JSON was not touched and its canonical checksum a082b998... and file checksum are unchanged, which is checked rather than asserted: b_fsm_rules_v1.sha256 covers the JSON alone.",
+    "verified_by": "tests/strategy_b/test_strategy_b_e0_fill_and_lift.py::test_the_declared_fill_window_is_what_the_engine_actually_reaches and ::test_the_window_tracks_the_ttl_with_no_off_by_one"
+   },
+   "no_fill_outcome": {
+    "state": "EXPIRED",
+    "drop_reason": "SIGNAL_TTL",
+    "mechanism": "the engine returns the candidate unchanged when there is no bar to fill at, and the FSM's own signal TTL ends it. No new state, reason or rule is introduced, and DropReason.SIGNAL_TTL already exists.",
+    "not_an_engine_refusal": "a FillOutcome refusal carries only SIZE_ZERO, MAX_POSITIONS or DAILY_LOSS_LIMIT (ENGINE_DROP_REASONS). A missing bar is not an account refusal and must never be recorded as one."
+   },
+   "constraints": [
+    "actual observed bars only; synthetic clock bars can never be a fill price (SessionTape rejects synthetic bars at construction, and require_actual_bars guards the pattern path)",
+    "the same trading session only; a SessionTape holds one day, so a fill can never land on the next day's bar",
+    "availability respected: the bar must satisfy available_at <= the tick being processed",
+    "the price drift check of B-F0 8.2 still applies to the resulting fill"
+   ],
+   "implementation": "app.backtest.strategy_b.engine._next_available_bar and app.backtest.strategy_b.costs.signal_fill implement exactly this; the contract documents existing behaviour and changes no code path"
+  },
+  "edge_cases_to_test": [
+   {
+    "case": "the next actual bar opens one minute after the signal bar (S + 1)",
+    "declared": "fill at that bar's open",
+    "measured": "fill",
+    "agree": true
+   },
+   {
+    "case": "a quiet minute, then the next actual bar opens at S + 2, inside the declared window",
+    "declared": "fill at that bar's open",
+    "measured": "fill",
+    "agree": true
+   },
+   {
+    "case": "the next actual bar opens exactly at signal_expiry (S + 3)",
+    "declared": "fill, because the boundary is inclusive",
+    "measured": "fill, on the tick after it becomes observable",
+    "agree": true
+   },
+   {
+    "case": "the next actual bar opens after signal_expiry (S + 4)",
+    "declared": "no fill; EXPIRED with SIGNAL_TTL",
+    "measured": "no fill",
+    "agree": true
+   },
+   {
+    "case": "the next actual bar belongs to a later session",
+    "declared": "no fill",
+    "measured": "no fill; unreachable by construction because a tape holds one session",
+    "agree": true,
+    "reason_note": "the recorded reason is SIGNAL_TTL. DropReason has no SESSION_END member and none was added, so no separate session-boundary reason exists."
+   },
+   {
+    "case": "a synthetic clock bar sits between the signal bar and the next actual bar",
+    "declared": "the synthetic bar is ignored and only the actual bar may fill",
+    "measured": "holds by construction: SessionTape rejects synthetic bars at build time, so no tape can offer one as a fill source",
+    "agree": true
+   },
+   {
+    "case": "the signal bar is the last actual bar of the session",
+    "declared": "no fill; EXPIRED with SIGNAL_TTL",
+    "measured": "no fill",
+    "agree": true
+   },
+   {
+    "case": "the tape is silent for the whole window",
+    "declared": "no fill; wall-clock, so silence cannot extend the window",
+    "measured": "no fill",
+    "agree": true
+   }
+  ]
+ },
+ "execution_parity": {
+  "gate": "EXECUTION_EQUIVALENCE",
+  "purpose": "B's account and the A-compatible SimBroker must book the same fill identically before any authoritative B-E0 run",
+  "implementation": "app.backtest.strategy_b_e0.execution_differential",
+  "version": "b-e0-execution-differential-v1",
+  "fixtures": [
+   {
+    "label": "win",
+    "symbol": "AAA",
+    "entry_open": 12.34,
+    "initial_stop": 11.9,
+    "exit_open": 13.1
+   },
+   {
+    "label": "loss",
+    "symbol": "BBB",
+    "entry_open": 5.07,
+    "initial_stop": 4.88,
+    "exit_open": 4.9
+   },
+   {
+    "label": "position_cap",
+    "symbol": "CCC",
+    "entry_open": 48.215,
+    "initial_stop": 47.6,
+    "exit_open": 49.0
+   }
+  ],
+  "fields": [
+   "accepted",
+   "fill_timestamp_entry",
+   "fill_price_entry",
+   "quantity",
+   "notional_entry",
+   "commission_entry",
+   "spread_plus_slippage_entry",
+   "fx_cost_entry",
+   "position_quantity",
+   "position_average_price",
+   "account_after_entry",
+   "fill_timestamp_exit",
+   "fill_price_exit",
+   "commission_exit",
+   "gross_pnl",
+   "net_pnl",
+   "net_r",
+   "final_cash",
+   "position_state_after_exit"
+  ],
+  "exact_fields": [
+   "accepted",
+   "fill_timestamp_entry",
+   "quantity",
+   "position_quantity",
+   "fill_timestamp_exit",
+   "position_state_after_exit"
+  ],
+  "numeric_parity_fields": [
+   "fill_price_entry",
+   "notional_entry",
+   "commission_entry",
+   "spread_plus_slippage_entry",
+   "fx_cost_entry",
+   "position_average_price",
+   "account_after_entry",
+   "fill_price_exit",
+   "commission_exit",
+   "gross_pnl",
+   "net_pnl",
+   "net_r",
+   "final_cash"
+  ],
+  "rel_tol": "1E-12",
+  "abs_tol": "1E-12",
+  "formula": "abs(a - b) <= max(abs_tol, rel_tol * max(abs(a), abs(b)))",
+  "tolerance_reason": "B is float and A is Decimal. After the commission basis alignment the measured differences are float representation only: max relative 7.8e-14, max absolute 4e-13 USD, and no field needs abs_tol. rel_tol 1e-12 admits that and nothing wider; a different cost formula differs by 1e-6 relative or more.",
+  "verdict_rule": "PASS only when every field of every fixture passes in its mode; otherwise the authoritative run is refused",
+  "not_allowed": "weakening the gate by accepting B-only execution semantics"
+ },
+ "statistics": {
+  "tool": "app.backtest.strategy_c_e0.stats.block_indices and stats.percentiles",
+  "tool_reason": "the moving block bootstrap and percentile interval already used by C-E0; no new dependency is introduced",
+  "resample_unit": "trading session",
+  "block_length": 1,
+  "block_length_reason": "block_indices with block = 1 reduces to an independent resample of sessions, which is the unit this contract declares. C-E0 used block 10 over 490 dates to carry date-to-date dependence; this window has 84 sessions, where 10-session blocks would leave about 8 effective blocks and an interval too coarse to mean anything. B's clustering is within a session (up to three concurrent positions on one day's move), and that is exactly what a session block holds together.",
+  "replicates": 10000,
+  "seed": 20260921,
+  "interval_method": "PERCENTILE",
+  "interval_method_detail": "stats.percentiles, the two-sided percentile interval of the bootstrap distribution; not BCa",
+  "confidence": 0.95,
+  "empty_resample_handling": "a resample that draws no trades yields NaN and is carried through np.nanpercentile exactly as stats.percentiles already does"
+ },
+ "verdict": {
+  "primary_metric": "mean net R per closed trade, costs deducted",
+  "metric_authority": "AGENTS.md 7절: 비용 차감 후 Net R을 공식 성과로 사용",
+  "sample_gate": {
+   "min_closed_trades": 30,
+   "min_sessions_with_at_least_one_trade": 20,
+   "meaning": "MINIMUM_EVALUABLE_SAMPLE, not a performance target. These numbers say when a verdict is allowed to be computed at all; they say nothing about what a good result looks like.",
+   "reason": "30 trades drawn from a handful of days is one market episode, not a sample. Both gates must hold."
+  },
+  "thresholds": {
+   "min_mean_net_r": 0.1,
+   "min_mean_net_r_reason": "1R is 0.5% of equity. 0.10R per trade is a modest edge that still leaves room for the costs this study cannot measure (spread, queue position, partial fills)."
+  },
+  "decision_order": [
+   {
+    "rank": 1,
+    "outcome": "DATASET_NOT_READY",
+    "condition": "the dataset readiness preflight did not pass"
+   },
+   {
+    "rank": 2,
+    "outcome": "ERROR",
+    "condition": "the run did not complete, or an artifact failed its own validation"
+   },
+   {
+    "rank": 3,
+    "outcome": "INSUFFICIENT_SAMPLE",
+    "condition": "closed_trades < 30 or sessions_with_trades < 20"
+   },
+   {
+    "rank": 4,
+    "outcome": "FAIL",
+    "condition": "the 95% CI upper bound of mean net R is <= 0"
+   },
+   {
+    "rank": 5,
+    "outcome": "PASS",
+    "condition": "mean net R >= 0.10 AND the 95% CI lower bound > 0 AND lift_gate == LIFT_PASS"
+   },
+   {
+    "rank": 6,
+    "outcome": "BORDERLINE",
+    "condition": "none of the above; that is, the sample gate passed, the result is not significantly non-positive, and it did not meet every PASS condition"
+   }
+  ],
+  "decision_order_note": "the ranks are evaluated in order and the first match wins, so the outcomes are mutually exclusive and exhaustive by construction",
+  "consequences": {
+   "PASS": "B-V1 proceeds to the realtime adapter. The rules are not re-tuned on the way.",
+   "FAIL": "B-V1 is closed. Any successor is b_fsm_rules_v2.json with its own declaration.",
+   "BORDERLINE": "treated as FAIL for the purpose of touching V1: no rule is relaxed to reach a verdict. The permitted responses are to extend the period with the same rules or to close B.",
+   "INSUFFICIENT_SAMPLE": "the only permitted responses are to extend the period with the same rules (the paid 5 to 10 year data already planned) or to close B. Loosening a threshold to manufacture trades is not one of them.",
+   "DATASET_NOT_READY": "fix the data, then run. No verdict may be computed from a partial dataset.",
+   "ERROR": "no verdict. The failed run is recorded in the ledger."
+  }
+ },
+ "lift_gate": {
+  "name": "NO_SETUP_CONTROL",
+  "hypothesis_source": "B-F0 2절: 같은 scanner gate를 통과했지만 셋업이 성립하지 않은 종목과 비교해 기대값 우위가 없으면 B-V1은 기각이다",
+  "treatment_cohort": {
+   "population": "every candidate that reached ENTRY_SIGNALLED at least once, whether or not the account filled it",
+   "anchor_minute": "the tick at which ENTRY_SIGNALLED was first recorded for that candidate",
+   "one_anchor_per": "candidate",
+   "reason": "filled trades are filtered by account capacity (three open positions and one entry per symbol per day), which is a fact about the wallet and not about the setup. Using signals keeps the comparison about the breakout."
+  },
+  "control_cohort": {
+   "population": "candidates that reached QUALIFIED, spent their life in WATCHING without ever reaching SETUP_READY, and ended as EXPIRED with drop_reason CANDIDATE_TTL",
+   "anchor_minute": "the tick at which EXPIRED was recorded",
+   "one_anchor_per": "candidate",
+   "excluded_states_and_reasons": [
+    "REJECTED with INELIGIBLE: left for an eligibility reason (halt inferred, VERY_SPARSE or UNKNOWN sparse status, corporate action flag, scope), which is a different population",
+    "EXPIRED with SCORE_BELOW_THRESHOLD: never qualified",
+    "EXPIRED with SETUP_TTL: a setup did form, so it is not a no-setup control",
+    "EXPIRED with SIGNAL_TTL: a signal did form, so it belongs to the treatment cohort",
+    "CANCELLED with SETUP_INVALIDATED or PRICE_DRIFT: a setup did form",
+    "CANCELLED or refused with SIZE_ZERO, MAX_POSITIONS, DAILY_LOSS_LIMIT: account capacity, not a statement about the symbol",
+    "any candidate whose session is missing from the dataset"
+   ],
+   "reason": "the control must be the same population minus the setup, so every exclusion above removes a candidate that either formed a setup or left for a reason unrelated to the hypothesis"
+  },
+  "measure": {
+   "horizon_minutes": 30,
+   "horizon_reason": "equal to exit.time_stop_minutes, so the window is the one B itself would hold a position for",
+   "reference_price": "the close of the last actual bar at or before the anchor minute",
+   "endpoint_price": "the close of the last actual bar at or before horizon_end",
+   "horizon_end": "min(anchor_minute + 30 wall-clock minutes, that session's EOD exit time)",
+   "eod_definition": "min(15:55 ET, regular_close - exit.eod_min_margin_minutes), the same clamp F0 9절 fixes",
+   "value": "forward_return = endpoint_price / reference_price - 1, expressed in percent points",
+   "sparse_tape_rule": "no bar is required to exist at exactly anchor + 30 minutes. Both prices are the last actual bar at or before their instant, which is the same 'last actual close before the deadline' convention F0 9.1 fixes for time stop and EOD fills.",
+   "missing_bar_handling": "if no actual bar exists at or before the anchor minute the anchor is impossible and the candidate is dropped from both cohorts and counted as DROPPED_NO_REFERENCE_BAR. If a reference bar exists but no later bar exists at or before horizon_end, the endpoint is the reference bar itself and the forward return is 0.0; these are counted as ZERO_BY_NO_FORWARD_BAR and reported separately, because a cohort made mostly of them would be a silent tape and not an outcome.",
+   "synthetic_bars": "never used, for either price",
+   "analysis_only": true,
+   "analysis_only_reason": "the forward return reads bars after the decision. It is a measurement of what followed, never an input to any decision, and no code path may feed it back into the FSM, the scanner or sizing.",
+   "cost_free": "forward return is a price relative and carries no fee or slippage; it measures the move, not a tradable result"
+  },
+  "comparison": {
+   "statistic": "mean(treatment forward_return) - mean(control forward_return)",
+   "aggregation": "per session, the sum of each cohort's forward returns and each cohort's count; the difference of the two means is recomputed inside every bootstrap draw, exactly as stats.difference does, never as the difference of two independently drawn intervals",
+   "resampling": "the same session block bootstrap, block length, replicates, seed and percentile method declared in the statistics block",
+   "min_treatment_anchors": 30,
+   "min_control_anchors": 30,
+   "outcomes": [
+    {
+     "rank": 1,
+     "outcome": "LIFT_INSUFFICIENT",
+     "condition": "treatment anchors < 30 or control anchors < 30"
+    },
+    {
+     "rank": 2,
+     "outcome": "LIFT_PASS",
+     "condition": "the 95% CI lower bound of the difference is > 0"
+    },
+    {
+     "rank": 3,
+     "outcome": "LIFT_FAIL",
+     "condition": "otherwise"
+    }
+   ],
+   "effect_on_verdict": "only LIFT_PASS permits a PASS; LIFT_FAIL and LIFT_INSUFFICIENT both leave the verdict at BORDERLINE or below"
+  },
+  "robustness_not_a_gate": "the score distribution of both cohorts is reported, and a score-matched comparison is run alongside using the same bootstrap. A disagreement between the raw and matched difference is recorded as a limitation. It is never used to pick the friendlier number, and the raw difference declared above is the gate."
+ },
+ "scope_boundaries": {
+  "this_contract_does_not_change": [
+   "strategy logic",
+   "the candidate FSM",
+   "HOD_BREAKOUT detection",
+   "entry and exit rules",
+   "any threshold in StrategyBConfig",
+   "Strategy A logic, baseline, UI or execution semantics"
+  ],
+  "runner_prohibition": "the runner orchestrates; it never decides. Any judgement it appears to make is a defect."
+ },
+ "inherited_from_parent": {
+  "blocks": [
+   "units",
+   "rules_binding",
+   "capital_policy",
+   "sizing",
+   "costs",
+   "cost_sensitivity",
+   "signal_ttl",
+   "execution_model",
+   "execution_parity",
+   "statistics",
+   "verdict",
+   "lift_gate",
+   "scope_boundaries",
+   "data_adapter (decisions, readiness, split policy)",
+   "run_policy",
+   "artifacts"
+  ],
+  "rule": "copied from the FROZEN B-E0 contract without edits; a test compares them"
+ },
+ "freeze": {
+  "frozen_at": "2026-09-22T16:28:20+09:00",
+  "freeze_reason": "user decisions 2026-09-22 applied (first-signal single H1 evaluation; freeze before data collection) and every consistency check passed",
+  "pre_freeze_checksum": "de1d5c2fb8d92a02a5a2542847f7edf0ecf545ac0ad75485e349a7aeeb13c577",
+  "superseded_drafts": [
+   "31d4e43464e980c76a08bf1f708a0d5d098b17195efdb9960155b5b9d279e006"
+  ],
+  "source_commit": "84c3010aa0ef477c0bf9fd110601380fee61a3e2",
+  "source_commit_meaning": "git HEAD at freeze; no B-E1-A code exists yet, the implementation is bound later by a CODE_BINDING record",
+  "consistency_checks": {
+   "inherited_blocks_identical_to_frozen_e0": true,
+   "adapter_decisions_and_readiness_identical": true,
+   "run_policy_identical_except_ledger": true,
+   "parent_is_frozen_e0": true,
+   "scope_sessions_match_calendar": true,
+   "warmup_matches_calendar": true,
+   "no_early_close_in_scope": true,
+   "no_overlap_with_discovery": true,
+   "h1_threshold_1_0_inclusive": true,
+   "h1_first_signal_single_evaluation": true,
+   "h1_unavailable_fails": true,
+   "h2_h3_excluded": true,
+   "exactly_one_verdict_run_BASE_with_h1": true,
+   "control_is_e0_rules_same_costs": true,
+   "run_cost_levels_exist": true,
+   "dataset_not_collected_is_run_blocker": true,
+   "stage1_ranking_excluded_live_parity_separate": true,
+   "implementation_not_started": true
+  },
+  "binds": {
+   "parent_contract_sha256": "6e3d69af924b89a20ab5c7ab52f26043d37bc6330db58c5b1a41fc796f461f04",
+   "scope": [
+    "2026-01-02",
+    "2026-05-15"
+   ],
+   "warmup_start": "2025-12-03",
+   "dataset_status_at_freeze": "DATASET_NOT_COLLECTED",
+   "universe_status_at_freeze": "NOT_BUILT"
+  },
+  "post_freeze_bindings": "universe sha256, dataset digest and code digest are recorded later as append-only records in data/runtime/strategy_b_e1a/freeze/b_e1a_freeze_ledger.jsonl; this file is never edited for them",
+  "meaning": "from frozen_at on, every term of this contract is fixed: threshold, gate timing, validation window, scope. A result, good or bad, never edits it; a change is b_e1a_contract_v2.json or a separate experiment."
+ }
+}

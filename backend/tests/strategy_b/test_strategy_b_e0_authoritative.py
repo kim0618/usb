@@ -310,10 +310,16 @@ def test_no_bypass_flag_exists_on_the_run_command(flag, tmp_path):
 
 
 @pytest.mark.skipif(not REAL_UNIVERSE.is_file(), reason="needs the local universe artifact")
-def test_the_frozen_contract_with_no_dataset_is_refused_before_any_output(tmp_path):
+def test_the_frozen_contract_refuses_a_run_before_writing_anything(tmp_path):
+    """Whichever guard fires first, nothing is written.
+
+    The code-digest guard runs before the dataset is touched, so once another session edits a file
+    inside the frozen closure (app/strategy/* are in it) this refuses on the digest rather than on
+    the missing mirror. Both are refusals before any artifact exists, which is what this pins.
+    """
     from app.backtest.strategy_b_e0.mirror import MirrorFailed
     from app.dev.run_strategy_b_e0 import main
-    with pytest.raises(MirrorFailed):
+    with pytest.raises((runner.RunRefused, MirrorFailed)):
         main(["run", "--universe", str(REAL_UNIVERSE), "--dataset", str(tmp_path),
               "--out", str(tmp_path / "out"), "--smoke-sessions", "1"])
     assert not (tmp_path / "out").exists()
