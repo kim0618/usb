@@ -1,0 +1,20 @@
+{
+ "symbols": 2561,
+ "window": 20,
+ "minimum": 5,
+ "fully_ready": 0,
+ "partially_ready": 0,
+ "zero_history": 2561,
+ "distribution": {
+  "0": 2561,
+  "1-4": 0,
+  "5-19": 0,
+  "20+": 0
+ },
+ "missing_staged_sessions_total": 51220,
+ "session": "2026-09-22",
+ "universe_digest": "691d20a236423b83a6dadf60d043a95ca9f5977fbe6de47f791c297dd9bae6cc",
+ "store": "../data/runtime/strategy_e_max/rvol/kiwoom_premarket.sqlite3",
+ "plan_to_window": 51220,
+ "symbols_below_minimum": 2561
+}

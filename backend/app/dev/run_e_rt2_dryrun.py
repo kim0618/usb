@@ -30,6 +30,11 @@ import time
 
 import numpy as np
 
+from app.strategy_e_max_rt import availability as AV
+from app.strategy_e_max_rt.rvol_store import RvolStore
+
+RVOL_STORE_DEFAULT = "data/runtime/strategy_e_max/rvol/kiwoom_premarket.sqlite3"
+
 
 def now():
     from app.strategy_e_max_rt.finalizer import ET
@@ -249,13 +254,11 @@ def run(universe_path: Path, out_root: Path) -> int:
     finalized = [c.finalized_at for c in caches.values() if c.finalized_at]
     t1 = max(finalized) if finalized else None
 
-    statuses = {}
+    statuses = {}                                    # E-RT2.1 contract: a refusal is its own state
     for sym, c in caches.items():
-        ok = c.finalized_at is not None and c.contiguous and c.finalized_at <= deadline and c.error is None
-        pm = [m for m in c.bars if 4 * 60 <= m <= 9 * 60 + 24]
-        statuses[sym] = "STALE" if not ok else ("SPARSE_NO_PREMARKET" if not pm else "FEATURE_COMPLETE")
+        statuses[sym] = AV.classify(AV.outcome_from_cache(c, deadline=deadline))
     for sym in unmapped:
-        statuses[sym] = "STALE"
+        statuses[sym] = AV.MARKET_DATA_UNAVAILABLE   # in Kiwoom's listing walk, no chart code to ask with
     violations = sum(1 for c in caches.values() if any(m > 9 * 60 + 24 for m in c.bars))
 
     def lat(lane):
@@ -298,9 +301,11 @@ def run(universe_path: Path, out_root: Path) -> int:
     t = time.monotonic()
     spy_pre = _premarket_block(spy)
     spy_ret = spy_pre["pm_last_price"] / art["spy_close_d_minus_1"] - 1 if spy_pre else float("nan")
-    rows = {}
+    store = RvolStore(Path(os.environ.get("E_RVOL_STORE", RVOL_STORE_DEFAULT)))
+    denominators = store.preload(list(caches), session)
+    rows, rvol_unknown = {}, []
     for sym, c in caches.items():
-        if statuses[sym] != "FEATURE_COMPLETE":
+        if statuses[sym] != AV.FEATURE_COMPLETE:
             continue
         pre = _premarket_block(c)
         if pre["pm_bars"] < U.MIN_PREMARKET_BARS or pre["pm_dollar_volume"] < U.MIN_PREMARKET_DOLLAR_VOLUME:
@@ -308,13 +313,18 @@ def run(universe_path: Path, out_root: Path) -> int:
         close = art["close_d_minus_1"][sym]
         gap = pre["pm_last_price"] / close - 1
         span = pre["pm_high"] - pre["pm_low"]
-        rows[sym] = {"premarket_gap": gap, "premarket_rvol": float("nan"),
+        denominator = denominators.get(sym)
+        if denominator is None:                      # E-RT3: no same-source history -> H5 is UNKNOWN
+            rvol_unknown.append(sym)
+        rows[sym] = {"premarket_gap": gap,
+                     "premarket_rvol": (pre["pm_dollar_volume"] / denominator) if denominator else float("nan"),
                      "position_in_premarket_range": (pre["pm_last_price"] - pre["pm_low"]) / span if span > 0 else float("nan"),
                      "return_0900_0925": pre["return_0900_0925"], "return_last30m": pre["return_0855_0925"],
                      "relative_strength_vs_spy": gap - spy_ret, "premarket_dollar_volume": pre["pm_dollar_volume"],
                      "previous_day_dollar_volume": art["dollar_volume_d_minus_1"][sym], "close_price": close,
                      "spy_premarket_return": spy_ret, "pm_bars": pre["pm_bars"]}
     symbols = tuple(sorted(rows))
+    h5_by_symbol = {}
     frame = DecisionFrame(session, symbols, {n: np.array([rows[x][n] for x in symbols], dtype=float)
                                              for n in SEALED_FEATURES}, {})
     timings["feature_build_s"] = time.monotonic() - t
@@ -322,9 +332,23 @@ def run(universe_path: Path, out_root: Path) -> int:
     decision = DEC.decide_from_frame(frame, source_digest=art["digest"], source="KIWOOM_NATIVE_RT2_DRYRUN", decided_at=now())
     timings["h5_r1_top3_breadth_seal_s"] = time.monotonic() - t
     timings["total_decision_s"] = timings["feature_build_s"] + timings["h5_r1_top3_breadth_seal_s"]
-    report.update(status="COMPLETE", capacity=capacity, cutoff_audit=cutoff_audit, decision_compute={
+    for sym in caches:
+        if sym in rvol_unknown or statuses[sym] in (AV.MARKET_DATA_UNAVAILABLE, AV.STALE):
+            h5_by_symbol[sym] = AV.H5_UNKNOWN
+        else:
+            h5_by_symbol[sym] = AV.H5_TRUE if sym in decision.candidates else AV.H5_FALSE
+    availability = AV.diagnostics(statuses, h5_by_symbol, decision.universe_rows, decision.candidates) | {
+        "rvol_denominator_source": "KIWOOM_NATIVE store (E-RT3); Massive is never mixed in",
+        "rvol_ready_rows": len(symbols) - len(rvol_unknown),
+        "rvol_missing_rows": len(rvol_unknown),
+        "rvol_missing_examples": sorted(rvol_unknown)[:10],
+        "h5_unknown_due_to_rvol": len(rvol_unknown),
+        "enable_blocked_while_rvol_missing": bool(rvol_unknown)}
+    (run_dir / "availability.json").write_text(json.dumps(availability, indent=1) + "\n")
+    report.update(status="COMPLETE", capacity=capacity, cutoff_audit=cutoff_audit,
+        availability=availability, decision_compute={
         **timings, "premarket_rows": len(symbols), "h5_candidates": decision.h5_count,
-        "rvol": "NaN by design: no same-source denominator yet (next step: Kiwoom RVOL denominator audit)",
+        "rvol": f"{len(symbols) - len(rvol_unknown)}/{len(symbols)} rows had a Kiwoom-native denominator",
         "top3_diagnostic": list(decision.selected)},
         orders={"order_request_count": sum(c.order_request_count for c in clients),
                 "execution_orders": 0, "fills": 0, "simbroker_used": False})
