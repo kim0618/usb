@@ -100,7 +100,7 @@ describe("Trading layout", () => {
     expect(screen.queryByText("현재 세션 손익 상세")).toBeNull();
     expect(screen.queryByText("실현 손익")).toBeNull();
     expect(section.parentElement?.className ?? "").not.toContain("xl:grid-cols-2");
-    ["총 자산", "투자 중", "보유 현금", "평가 손익", "직전 거래일 손익"].forEach(label => expect(screen.getAllByText(new RegExp(label)).length).toBeGreaterThan(0));
+    ["총 자산", "투자 중", "보유 현금", "누적 수익", "직전 거래일 손익"].forEach(label => expect(screen.getAllByText(new RegExp(label)).length).toBeGreaterThan(0));
   });
 
   it("keeps the daily P&L section below the entry board", async () => {

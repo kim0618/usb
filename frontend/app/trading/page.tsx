@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { EmptyState, ErrorState, LoadingState, MetricCard, StatusBadge } from "@/components/ui";
-import { DailyPerformanceTable, PreviousSessionPerformance } from "@/components/daily-performance";
+import { CumulativePerformance, DailyPerformanceTable, PreviousSessionPerformance, SummaryIcon } from "@/components/daily-performance";
 import { EntryStatusBoard } from "@/components/entry-status-board";
 import { TradingTabs } from "@/components/section-tabs";
 import { useApi } from "@/hooks/use-api";
@@ -29,15 +29,6 @@ const isOpenOrder = (status: string) => status === "PENDING" || status === "PART
 const historyFilters: Array<{ value: TradingHistoryEventType; label: string }> = [{ value: "TRADE", label: "청산" }, { value: "ORDER", label: "주문" }, { value: "FILL", label: "체결" }];
 const historyEmptyLabel: Readonly<Record<TradingHistoryEventType, string>> = { ORDER: "주문 내역이 없습니다.", FILL: "체결 내역이 없습니다.", TRADE: "청산 내역이 없습니다." };
 const historyRowTone = (row: TradingHistoryRow) => row.eventType === "TRADE" && row.rawSource.net_pnl.startsWith("-") ? "bg-danger-soft" : row.eventType === "ORDER" && row.status === "REJECTED" ? "bg-danger-soft" : row.eventType === "ORDER" && (row.status === "CANCELLED" || row.status === "PARTIALLY_FILLED") ? "bg-warning-soft" : "";
-const SummaryIcon = ({ type }: { type: "wallet" | "layers" | "cash" | "trend" | "pulse" }) => {
-  const common = { fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
-  if (type === "wallet") return <svg viewBox="0 0 24 24" {...common}><path d="M4 7.5h15a1 1 0 0 1 1 1v10H5a2 2 0 0 1-2-2v-11a2 2 0 0 1 2-2h12v4"/><path d="M16 12h4v3h-4a1.5 1.5 0 0 1 0-3Z"/></svg>;
-  if (type === "layers") return <svg viewBox="0 0 24 24" {...common}><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5M3 16l9 5 9-5"/></svg>;
-  if (type === "cash") return <svg viewBox="0 0 24 24" {...common}><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 9a2 2 0 0 1-2 2v2a2 2 0 0 1 2 2M17 9a2 2 0 0 0 2 2v2a2 2 0 0 0-2 2"/><circle cx="12" cy="12" r="2.5"/></svg>;
-  if (type === "trend") return <svg viewBox="0 0 24 24" {...common}><path d="M4 18V6M4 18h16M7 15l4-4 3 2 5-6"/><path d="M16 7h3v3"/></svg>;
-  return <svg viewBox="0 0 24 24" {...common}><path d="M3 12h4l2-6 4 12 2-6h6"/><circle cx="12" cy="12" r="9" opacity=".35"/></svg>;
-};
-
 export default function TradingPage() {
   const [historyFilter, setHistoryFilter] = useState<TradingHistoryEventType>("TRADE");
   const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null);
@@ -53,6 +44,15 @@ export default function TradingPage() {
   const o = overview.data; const account = o.account; const capacity = o.entry_capacity ?? null;
   const pendingOrders = orders.data?.filter(order => isOpenOrder(order.status)).length || 0;
   const history = composeTradingHistory(orders.data || [], fills.data || [], trades.data || []);
+  // The cumulative figure is the API's own strategy-scoped one; the baseline it was measured from
+  // is recovered from the same row (closing equity minus that cumulative), never recomputed here.
+  const latestDay = dailyPerformance.data?.[0];
+  const cumulative = latestDay?.strategy_cumulative_pnl != null
+    ? { pnl: latestDay.strategy_cumulative_pnl,
+        baseline: String(Number(latestDay.closing_equity) - Number(latestDay.strategy_cumulative_pnl)), note: undefined }
+    : { pnl: null, baseline: null,
+        note: latestDay?.performance_scope === "SYSTEM_VALIDATION_PRE_FIX" ? "시스템 검증 기간 — 전략 성과 제외"
+              : latestDay ? "전략 성과 집계 전" : undefined };
   const visibleHistory = history.filter(row => row.eventType === historyFilter);
 
   return <div className="trading-screen">
@@ -61,7 +61,7 @@ export default function TradingPage() {
       <MetricCard accent="primary" icon={<SummaryIcon type="wallet"/>} label={`총 자산${account?.currency ? ` (${account.currency})` : ""}`} meta="계좌" value={accountCardValue(account, "equity")}/>
       <MetricCard accent="indigo" icon={<SummaryIcon type="layers"/>} label="투자 중" meta="포지션" value={accountCardValue(account, "invested_notional")}/>
       <MetricCard accent="gold" icon={<SummaryIcon type="cash"/>} label="보유 현금" meta="주문 가능" value={accountCardValue(account, "cash")}/>
-      <MetricCard accent="green" icon={<SummaryIcon type="trend"/>} label="평가 손익" meta="평가" value={accountCardValue(account, "unrealized_pnl", true)}/>
+      <MetricCard accent="green" icon={<SummaryIcon type="trend"/>} label="누적 수익" meta="전략 성과" value={<CumulativePerformance pnl={cumulative.pnl} baseline={cumulative.baseline} note={cumulative.note}/>}/>
       <MetricCard accent="bluegreen" icon={<SummaryIcon type="pulse"/>} label="직전 거래일 손익" meta="완료 세션" value={<PreviousSessionPerformance row={dailyPerformance.data?.[0]}/>}/>
     </section>
     {o.availability === "NO_ACTIVE_SIM_BROKER" && <div className="mb-4 rounded-lg border border-line bg-surface-alt px-4 py-2.5 text-xs text-muted"><span className="font-medium text-foreground-secondary">가상매매 계좌 연결 대기 중</span><span className="ml-2">연결 후 실시간 자산 및 포지션이 표시됩니다.</span></div>}

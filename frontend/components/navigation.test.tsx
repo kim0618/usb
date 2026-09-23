@@ -114,7 +114,7 @@ describe("Stage 9.10 navigation", () => {
   it("renders the portfolio-centered Korean trading hierarchy", () => {
     const trading = source("app/trading/page.tsx");
     const board = source("components/entry-status-board.tsx");
-    ["계좌 요약", "총 자산", "투자 중", "보유 현금", "평가 손익", "직전 거래일 손익", "현재 보유 종목", "<EntryStatusBoard"].forEach(label => expect(trading).toContain(label));
+    ["계좌 요약", "총 자산", "투자 중", "보유 현금", "누적 수익", "직전 거래일 손익", "현재 보유 종목", "<EntryStatusBoard"].forEach(label => expect(trading).toContain(label));
     expect(board).toContain("진입 평가");
     ["오늘의 운영 요약", "미국 시장", "오늘 승인 종목", "매매 현황", "시스템 보기 →"].forEach(label => expect(trading).not.toContain(label));
     // Entry candidates come from the backend's current-run authority, never a frontend APPROVE filter.

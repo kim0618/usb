@@ -259,3 +259,71 @@ describe("operating tabs come from the registry", () => {
     ["api.trading", "api.entryBoard", "계좌 요약", "현재 보유 종목"].forEach(m => expect(trading).toContain(m));
   });
 });
+
+describe("summary cards are the same five on A and E", () => {
+  const order = ["총 자산", "투자 중", "보유 현금", "누적 수익", "직전 거래일 손익"];
+  const positions = (source: string) => order.map(label => source.indexOf(label));
+
+  it("keeps the same card order on both screens and drops 평가 손익 from the summary", () => {
+    for (const path of ["app/trading/page.tsx", "app/strategy-e/page.tsx"]) {
+      const source = readFileSync(path, "utf8");
+      const at = positions(source);
+      expect(at.every(index => index >= 0), path).toBe(true);
+      expect(at, path).toEqual([...at].sort((a, b) => a - b));       // declared in the required order
+      expect(source, path).not.toContain('label="평가 손익"');
+      expect(source, path).toContain("CumulativePerformance");
+    }
+  });
+
+  it("keeps the per-position unrealized column on Strategy A's holdings table", () => {
+    const trading = readFileSync("app/trading/page.tsx", "utf8");
+    expect(trading).toContain("pnlTone(position.unrealized_pnl)");
+    expect(trading).toContain("signedDecimal(position.unrealized_pnl)");
+  });
+
+  it("reuses the existing PnL tone classes and adds none", async () => {
+    const source = readFileSync("components/daily-performance.tsx", "utf8");
+    const classes = new Set((source.match(/text-(danger|success|foreground-secondary|muted)/g) || []));
+    expect([...classes].sort()).toEqual(["text-danger", "text-foreground-secondary", "text-muted", "text-success"]);
+    expect(source).not.toMatch(/text-(profit|loss|gain|positive|negative)/);
+  });
+});
+
+describe("cumulative return value", () => {
+  it("shows the backend cumulative with its own return percentage", async () => {
+    const { CumulativePerformance } = await import("./daily-performance");
+    render(<CumulativePerformance pnl="80.478546" baseline="7428.92"/>);
+    const value = screen.getByText(/^\+\$80\.47/);
+    expect(value).toBeInTheDocument();
+    expect(screen.getByText("+1.08%")).toBeInTheDocument();
+    expect(value.className).toContain("text-success");
+  });
+
+  it("uses the loss tone below zero and the neutral tone at zero", async () => {
+    const { CumulativePerformance } = await import("./daily-performance");
+    const { unmount } = render(<CumulativePerformance pnl="-12.5" baseline="1000"/>);
+    expect(screen.getByText(/^-\$12\.5/).className).toContain("text-danger");
+    expect(screen.getByText("-1.25%")).toBeInTheDocument();
+    unmount();
+    render(<CumulativePerformance pnl="0" baseline="1000"/>);
+    expect(screen.getByText(/^\+\$0\.00/).className).toContain("text-foreground-secondary");
+  });
+
+  it("shows a dash and a reason instead of a manufactured zero", async () => {
+    const { CumulativePerformance, SessionPerformance } = await import("./daily-performance");
+    const { unmount } = render(<CumulativePerformance pnl={null} baseline="10000" note="PROVISIONAL · RVOL 부트스트랩 중"/>);
+    expect(screen.getByText(/^-/)).toBeInTheDocument();
+    expect(screen.getByText("PROVISIONAL · RVOL 부트스트랩 중")).toBeInTheDocument();
+    expect(screen.queryByText(/\$0(\.00)?$/)).not.toBeInTheDocument();
+    unmount();
+    render(<SessionPerformance session={null} pnl={null}/>);
+    expect(screen.getByText("-")).toBeInTheDocument();
+  });
+
+  it("never adds the provisional and official books together", () => {
+    const page = readFileSync("app/strategy-e/page.tsx", "utf8");
+    expect(page).toContain("account.books?.[account.evidence_status");     // the active book only
+    expect(page).toContain("PROVISIONAL과 OFFICIAL 누적은 합산하지 않습니다");
+    expect(page).not.toMatch(/books\[[^\]]*PROVISIONAL[^\]]*\][^\n]*\+/);
+  });
+});
