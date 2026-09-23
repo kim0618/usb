@@ -151,8 +151,10 @@ describe("Dashboard screen", () => {
 
 describe("Strategy information architecture", () => {
   it("names the first strategy tab Strategy A and keeps its route", () => {
-    expect(strategyTabs.map(tab => tab.label)).toEqual(["전략 A · 기존 전략", "전략 E-MAX V1", "전략 B · 실시간 모멘텀", "전략 A/B 비교"]);
-    expect(strategyTabs.map(tab => tab.href)).toEqual(["/shadow", "/strategy-e", "/strategy-b", "/strategy-compare"]);
+    // Strategy E moved to the operating group (registry-driven trading tabs); the result group
+    // keeps A's shadow screen, Strategy B's research screens and the A/B comparison.
+    expect(strategyTabs.map(tab => tab.label)).toEqual(["전략 A · 기존 전략", "전략 B · 실시간 모멘텀", "전략 A/B 비교"]);
+    expect(strategyTabs.map(tab => tab.href)).toEqual(["/shadow", "/strategy-b", "/strategy-compare"]);
   });
 
   it("sends the dashboard cards to the operating screens, not the result screens", () => {

@@ -204,8 +204,9 @@ describe("Strategy B screen sections", () => {
   it("keeps Strategy B inside the trading and strategy groups, never as a new top-level menu", async () => {
     const { navigationItems } = await import("./app-shell");
     expect(navigationItems).toHaveLength(5);
-    expect(navigationItems.find(item => item.label === "트레이딩")!.activePaths).toEqual(["/trading", "/trading-b"]);
-    expect(navigationItems.find(item => item.label === "전략")!.activePaths).toEqual(["/shadow", "/strategy-b", "/strategy-compare", "/strategy-e"]);
+    // Strategy E's screen is an operating one, so it highlights 트레이딩; Strategy B keeps both groups.
+    expect(navigationItems.find(item => item.label === "트레이딩")!.activePaths).toEqual(["/trading", "/trading-b", "/strategy-e"]);
+    expect(navigationItems.find(item => item.label === "전략")!.activePaths).toEqual(["/shadow", "/strategy-b", "/strategy-compare"]);
   });
 
   it("never reaches the Backend, Kiwoom, a socket, or an order path", () => {

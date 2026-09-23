@@ -15,9 +15,9 @@ import { FX_CONFIG, FX_MODE_LABELS, formatFxRate } from "@/lib/fx";
 type NavigationItem = { href: string; icon: string; label: string; activePaths: string[] };
 export const navigationItems: NavigationItem[] = [
   { href: "/dashboard", icon: "▦", label: "대시보드", activePaths: ["/dashboard"] },
-  { href: "/trading", icon: "↗", label: "트레이딩", activePaths: ["/trading", "/trading-b"] },
+  { href: "/trading", icon: "↗", label: "트레이딩", activePaths: ["/trading", "/trading-b", "/strategy-e"] },
   { href: "/candidates", icon: "◎", label: "종목 분석", activePaths: ["/candidates", "/research", "/adoption"] },
-  { href: "/shadow", icon: "≋", label: "전략", activePaths: ["/shadow", "/strategy-b", "/strategy-compare", "/strategy-e"] },
+  { href: "/shadow", icon: "≋", label: "전략", activePaths: ["/shadow", "/strategy-b", "/strategy-compare"] },
   { href: "/runtime", icon: "⚠", label: "시스템", activePaths: ["/runtime", "/settings"] },
 ];
 

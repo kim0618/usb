@@ -1,6 +1,7 @@
 "use client";
 
 import { ErrorState, LoadingState, PageHeader } from "@/components/ui";
+import { TradingTabs } from "@/components/section-tabs";
 import {
   BootstrapProgress, EquitySparkline, EvidenceBooks, StrategyCard, StrategyEStatus,
   StrategyPositions, StrategyTrades, UniversePanel,
@@ -23,11 +24,12 @@ export default function StrategyEPage() {
   const header = <PageHeader eyebrow="전략" title="Strategy E-MAX V1"
     description="09:25 결정 · 09:30 진입 · 09:34 청산. 시장 데이터는 Kiwoom, 주문은 시뮬레이션 전용입니다."/>;
 
-  if (state.loading) return <>{header}<LoadingState/></>;
-  if (!state.data) return <>{header}<ErrorState message={state.error || "Strategy E 상태 조회 실패"} retry={state.refresh}/></>;
+  if (state.loading) return <><TradingTabs/>{header}<LoadingState/></>;
+  if (!state.data) return <><TradingTabs/>{header}<ErrorState message={state.error || "Strategy E 상태 조회 실패"} retry={state.refresh}/></>;
 
   const { row, status, account, positions, trades, equity } = state.data;
   return <div className="trading-screen">
+    <TradingTabs/>
     {header}
     <div className="mb-7"><StrategyCard bundle={{ row, status, account, equity }}/></div>
     <StrategyEStatus status={status}/>

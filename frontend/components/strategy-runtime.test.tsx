@@ -223,3 +223,39 @@ describe("dashboard route", () => {
     expect(() => readFileSync("app/strategy-e/page.tsx", "utf8")).not.toThrow();
   });
 });
+
+describe("operating tabs come from the registry", () => {
+  const rows = [
+    { ...aRow },
+    { ...eRow },
+    { strategy_id: "STRATEGY_B", display_name: "Strategy B", version: "E1-A", enabled: false,
+      mode: "RESEARCH_CLOSED", market_data_source: "KIWOOM", runtime_status: "NOT_RUNNING",
+      paper_status: null, evidence_status: null, session: null },
+  ];
+
+  it("shows only the enabled paper strategies and never invents one while loading", async () => {
+    const { TradingTabs } = await import("./section-tabs");
+    const { operatingTabs } = await import("../lib/strategies");
+    expect(operatingTabs(rows).map(tab => tab.href)).toEqual(["/trading", "/strategy-e"]);
+    vi.stubGlobal("fetch", vi.fn(async () => new Promise(() => {})));       // never resolves
+    render(<TradingTabs/>);
+    expect(screen.getByRole("navigation", { name: "트레이딩 화면" })).toBeInTheDocument();
+    expect(screen.queryAllByRole("link")).toHaveLength(0);                  // no placeholder tab
+  });
+
+  it("keeps the closed strategy's own screen reachable by URL", () => {
+    expect(() => readFileSync("app/trading-b/page.tsx", "utf8")).not.toThrow();
+    expect(() => readFileSync("app/strategy-b/page.tsx", "utf8")).not.toThrow();
+  });
+
+  it("puts the E operating tab on the Strategy E screen", () => {
+    const page = readFileSync("app/strategy-e/page.tsx", "utf8");
+    expect(page).toContain("<TradingTabs/>");
+  });
+
+  it("leaves Strategy A's screen and its data calls untouched", () => {
+    const trading = readFileSync("app/trading/page.tsx", "utf8");
+    expect(trading).toContain("<TradingTabs/>");
+    ["api.trading", "api.entryBoard", "계좌 요약", "현재 보유 종목"].forEach(m => expect(trading).toContain(m));
+  });
+});

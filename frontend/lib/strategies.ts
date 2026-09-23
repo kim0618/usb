@@ -9,6 +9,7 @@ import { apiFetch } from "@/lib/api";
 
 export const STRATEGY_A = "STRATEGY_A";
 export const STRATEGY_E = "STRATEGY_E_MAX_V1";
+export const STRATEGY_B = "STRATEGY_B";
 export const PROVISIONAL = "PROVISIONAL_RVOL_BOOTSTRAP";
 export const OFFICIAL = "OFFICIAL_KIWOOM_PAPER";
 
@@ -71,6 +72,22 @@ export type StrategyEquity = {
   books?: Record<string, { points: Array<{ date: string; equity: string | null }>; baseline: string | null }>;
   note?: string;
 };
+
+/** Where each strategy's operating screen lives. The route and its label are a frontend concern;
+ *  which of them is actually operating is the registry's answer, never a hardcoded pair here. */
+export const OPERATING_ROUTES: Readonly<Record<string, { href: string; label: string }>> = {
+  [STRATEGY_A]: { href: "/trading", label: "전략 A · 기존 전략" },
+  [STRATEGY_E]: { href: "/strategy-e", label: "전략 E · E-MAX V1" },
+  [STRATEGY_B]: { href: "/trading-b", label: "전략 B · 실시간 모멘텀" },
+};
+
+/** The operating tabs: registry rows that are enabled, run as paper, and have a screen.
+ *  A closed research strategy keeps its route and its screens; it just stops being a tab. */
+export function operatingTabs(rows: readonly StrategyRow[]): Array<{ href: string; label: string; strategy_id: string }> {
+  return rows
+    .filter(row => row.enabled && row.mode === "SIMULATION_PAPER" && OPERATING_ROUTES[row.strategy_id])
+    .map(row => ({ strategy_id: row.strategy_id, ...OPERATING_ROUTES[row.strategy_id] }));
+}
 
 export const strategiesApi = {
   list: () => apiFetch<StrategyRow[]>("/api/v1/strategies"),

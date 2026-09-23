@@ -3,7 +3,8 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { StrategyTabs, TradingTabs, strategyTabs, tradingTabs } from "./section-tabs";
+import { StrategyTabs, TradingTabs, strategyTabs } from "./section-tabs";
+import { OPERATING_ROUTES, operatingTabs } from "../lib/strategies";
 import { isNavigationActive, navigationItems } from "./app-shell";
 import { SETUP_META } from "../lib/strategy-b";
 import { mockCandidates, mockPositions } from "../mocks/strategy-b";
@@ -34,24 +35,43 @@ describe("Final information architecture", () => {
     expect(group("/strategy-compare")).toBe("전략");
   });
 
-  it("splits operating screens from result screens in the tab groups", () => {
-    expect(tradingTabs).toEqual([
-      { href: "/trading", label: "전략 A · 기존 전략" },
-      { href: "/trading-b", label: "전략 B · 실시간 모멘텀" },
+  it("derives the operating tabs from the registry and keeps the result tabs fixed", () => {
+    const registry = [
+      { strategy_id: "STRATEGY_A", enabled: true, mode: "SIMULATION_PAPER" },
+      { strategy_id: "STRATEGY_E_MAX_V1", enabled: true, mode: "SIMULATION_PAPER" },
+      { strategy_id: "STRATEGY_B", enabled: false, mode: "RESEARCH_CLOSED" },
+    ] as never;
+    expect(operatingTabs(registry)).toEqual([
+      { strategy_id: "STRATEGY_A", href: "/trading", label: "전략 A · 기존 전략" },
+      { strategy_id: "STRATEGY_E_MAX_V1", href: "/strategy-e", label: "전략 E · E-MAX V1" },
     ]);
+    expect(OPERATING_ROUTES.STRATEGY_B.href).toBe("/trading-b");      // the closed strategy keeps its screen
     expect(strategyTabs).toEqual([
       { href: "/shadow", label: "전략 A · 기존 전략" },
-      { href: "/strategy-e", label: "전략 E-MAX V1" },
       { href: "/strategy-b", label: "전략 B · 실시간 모멘텀" },
       { href: "/strategy-compare", label: "전략 A/B 비교" },
     ]);
   });
 
-  it("renders the trading tabs with the current operating route active", () => {
+  it("renders the operating tabs the registry returns, with the current route active", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, status: 200, json: async () => [
+      { strategy_id: "STRATEGY_A", display_name: "Strategy A", version: "V0", enabled: true,
+        mode: "SIMULATION_PAPER", market_data_source: "KIWOOM", runtime_status: "RUNNING",
+        paper_status: "PAPER", evidence_status: null, session: null },
+      { strategy_id: "STRATEGY_E_MAX_V1", display_name: "Strategy E-MAX V1", version: "V1", enabled: true,
+        mode: "SIMULATION_PAPER", market_data_source: "KIWOOM", runtime_status: "COMPLETE",
+        paper_status: "PROVISIONAL_RVOL_BOOTSTRAP", evidence_status: "PROVISIONAL_RVOL_BOOTSTRAP", session: null },
+      { strategy_id: "STRATEGY_B", display_name: "Strategy B", version: "E1-A", enabled: false,
+        mode: "RESEARCH_CLOSED", market_data_source: "KIWOOM", runtime_status: "NOT_RUNNING",
+        paper_status: null, evidence_status: null, session: null },
+    ] }) as Response));
+    pathname = "/strategy-e";
     render(<TradingTabs/>);
+    expect(await screen.findByRole("link", { name: "전략 E · E-MAX V1" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("navigation", { name: "트레이딩 화면" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "전략 A · 기존 전략" })).toHaveAttribute("href", "/trading");
-    expect(screen.getByRole("link", { name: "전략 B · 실시간 모멘텀" })).toHaveAttribute("aria-current", "page");
+    expect(screen.queryByRole("link", { name: /전략 B/ })).not.toBeInTheDocument();   // closed: hidden
+    pathname = "/trading-b";
   });
 
   it("renders the strategy tabs on the result routes", () => {
