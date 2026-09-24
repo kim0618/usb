@@ -85,8 +85,13 @@ def _pass(store: RvolStore, lane: BS.Lane, work: list[tuple[str, str, str]], *, 
     def progress(result: BS.SymbolResult) -> None:
         results.append(result)
         staged = store.staged_count(result.symbol, before)
+        # A walk that ended at the page cap without reaching the target cannot get further on the
+        # next pass either: it would start from today again and stop at the same place. Record it
+        # so the symbol stops being re-queued; the frozen rule already has a denominator for it
+        # once it holds the minimum number of staged sessions.
+        error = result.error or ("HISTORY_PAGE_LIMIT" if result.page_limited and staged < target else None)
         store.note_pass(result.symbol, staged_count=staged, oldest_session=result.oldest_session,
-                        history_exhausted=bool(result.exhausted and staged < target), error=result.error)
+                        history_exhausted=bool(result.exhausted and staged < target), error=error)
         if len(results) % 25 == 0:
             done = sum(r.pages for r in results)
             log(f"{label} {len(results)}/{len(work)} pages={done} last={result.symbol} staged={staged}")
@@ -136,7 +141,7 @@ def _prepare(args):
 
 
 def _queue(store, mapped, liquidity, codes, exch, *, before: date, target: int, skip_exhausted: bool):
-    exhausted = store.exhausted_symbols() if skip_exhausted else set()
+    exhausted = store.unreachable_symbols() if skip_exhausted else set()
     need = [s for s in mapped if s not in exhausted and store.staged_count(s, before) < target]
     need.sort(key=lambda s: -float(liquidity.get(s, 0.0)))          # most liquid first: the likely candidates
     fresh = [s for s in mapped if s not in need]                    # only today's row is missing for these

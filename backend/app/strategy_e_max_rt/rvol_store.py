@@ -226,7 +226,7 @@ class RvolStore:
         for them (the frozen rule simply leaves their RVOL undefined)."""
         return {row[0] for row in self.connection.execute(
             "SELECT symbol FROM kiwoom_collection_state WHERE history_exhausted=1 "
-            "OR last_error IN ('MARKET_DATA_UNAVAILABLE','INVALID_SYMBOL')")}
+            "OR last_error IN ('MARKET_DATA_UNAVAILABLE','INVALID_SYMBOL','HISTORY_PAGE_LIMIT')")}
 
     def exhausted_symbols(self) -> set[str]:
         """Symbols whose Kiwoom history ran out before the frozen window; not worth re-walking."""

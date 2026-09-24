@@ -288,3 +288,16 @@ def test_unreachable_symbols_are_exceptions_not_unfinished_work(tmp_path) -> Non
     pending = [s for s in ("DONE", "EXHAUSTED", "REFUSED", "SLOW")
                if s not in store.unreachable_symbols() and store.staged_count(s, D) < RS.RVOL_WINDOW]
     assert pending == ["SLOW"]                                        # only the one still collecting
+
+
+def test_a_walk_that_ends_at_the_page_cap_is_not_requeued_forever(tmp_path) -> None:
+    """The illiquid tail stops at MAX_PAGES; re-walking it writes nothing, so it must settle."""
+    store = RS.RvolStore(tmp_path / "s.sqlite3")
+    store.note_pass("CAPPED", staged_count=18, oldest_session="2026-03-05",
+                    history_exhausted=False, error="HISTORY_PAGE_LIMIT")
+    store.note_pass("SLOW", staged_count=18, oldest_session="2026-08-26",
+                    history_exhausted=False, error=None)
+    assert "CAPPED" in store.unreachable_symbols() and "SLOW" not in store.unreachable_symbols()
+    for n in range(18):                                        # the frozen rule already answers for it
+        store.put(RS.SessionRecord("CAPPED", D - timedelta(days=n + 1), 100.0, 3, True))
+    assert store.denominator("CAPPED", D) == 100.0             # >= RVOL_MINIMUM staged sessions

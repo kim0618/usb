@@ -50,6 +50,7 @@ class SymbolResult:
     sessions_written: int = 0
     staged_written: int = 0
     exhausted: bool = False
+    page_limited: bool = False
     rate_limited: int = 0
     oldest_session: str | None = None
     error: str | None = None
@@ -96,6 +97,7 @@ def collect_symbol(lane: Lane, symbol: str, code: str, exchange: str, *, store: 
                 break
     except Exception as exc:                                   # a refusal ends this symbol, not the run
         result.error = getattr(exc, "code", None) or type(exc).__name__
+    result.page_limited = result.pages >= max_pages and not result.exhausted
     result.seconds = round(time.monotonic() - started, 2)
     ordered = sorted(acc)
     writable = ordered[1:] if (ordered and not result.exhausted) else ordered
