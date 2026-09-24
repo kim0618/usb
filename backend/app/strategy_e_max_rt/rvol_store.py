@@ -220,6 +220,14 @@ class RvolStore:
              datetime.now(timezone.utc).isoformat(timespec="seconds"), error))
         self.connection.commit()
 
+    def unreachable_symbols(self) -> set[str]:
+        """Symbols collection can never advance: Kiwoom's history ran out, or the source refuses
+        them. They are recorded exceptions, not unfinished work, so a promotion gate must not wait
+        for them (the frozen rule simply leaves their RVOL undefined)."""
+        return {row[0] for row in self.connection.execute(
+            "SELECT symbol FROM kiwoom_collection_state WHERE history_exhausted=1 "
+            "OR last_error IN ('MARKET_DATA_UNAVAILABLE','INVALID_SYMBOL')")}
+
     def exhausted_symbols(self) -> set[str]:
         """Symbols whose Kiwoom history ran out before the frozen window; not worth re-walking."""
         return {row[0] for row in self.connection.execute(

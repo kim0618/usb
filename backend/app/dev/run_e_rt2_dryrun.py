@@ -31,7 +31,7 @@ import time
 import numpy as np
 
 from app.strategy_e_max_rt import availability as AV
-from app.strategy_e_max_rt.rvol_store import RvolStore
+from app.strategy_e_max_rt.rvol_store import RVOL_WINDOW, RvolStore
 
 RVOL_STORE_DEFAULT = "data/runtime/strategy_e_max/rvol/kiwoom_premarket.sqlite3"
 
@@ -416,7 +416,15 @@ def run(universe_path: Path, out_root: Path, *, paper: bool = False,
     try:                                    # the capacity evidence is written even if this fails
         staged_counts = {s: store.staged_count(s, session) for s in symbols}
         coverage = store.coverage(list(caches), session)
-        bootstrap_complete = coverage["zero_history"] == 0 and coverage["partially_ready"] == 0
+        # "complete" means nothing is left that collection could fix. A symbol whose Kiwoom history
+        # is exhausted, or that the source refuses, is a recorded exception and never becomes
+        # collectable, so it must not hold the evidence grade at PROVISIONAL forever.
+        unreachable = store.unreachable_symbols()
+        pending = sorted(s for s in caches
+                         if s not in unreachable and store.staged_count(s, session) < RVOL_WINDOW)
+        bootstrap_complete = not pending
+        coverage = coverage | {"unreachable": len(unreachable), "pending_collection": len(pending),
+                               "pending_examples": pending[:10]}
         record = PAPER.session_record(
             session, states=statuses, h5_by_symbol=h5_by_symbol, eligible_rows=decision.universe_rows,
             candidates=decision.candidates, selected=decision.selected,

@@ -270,3 +270,21 @@ def test_decision_reads_the_store_and_unavailable_rows_stay_unknown(tmp_path) ->
     diagnostics = AV.diagnostics({s: AV.FEATURE_COMPLETE for s in symbols}, h5,
                                  decided.universe_rows, decided.candidates)
     assert diagnostics["h5_unknown"] == 1 and diagnostics["breadth_denominator_eligible_rows"] == 2
+
+
+def test_unreachable_symbols_are_exceptions_not_unfinished_work(tmp_path) -> None:
+    """A promotion gate must not wait for history that can never arrive."""
+    store = RS.RvolStore(tmp_path / "s.sqlite3")
+    store.note_pass("DONE", staged_count=20, oldest_session="2026-08-24", history_exhausted=False, error=None)
+    store.note_pass("EXHAUSTED", staged_count=5, oldest_session="2026-04-08", history_exhausted=True, error=None)
+    store.note_pass("REFUSED", staged_count=0, oldest_session=None, history_exhausted=False,
+                    error="MARKET_DATA_UNAVAILABLE")
+    store.note_pass("SLOW", staged_count=18, oldest_session="2026-08-26", history_exhausted=False, error=None)
+    assert store.unreachable_symbols() == {"EXHAUSTED", "REFUSED"}
+    assert store.exhausted_symbols() == {"EXHAUSTED"}                 # the narrower set is unchanged
+    for symbol, staged in (("DONE", 20), ("EXHAUSTED", 5), ("SLOW", 18)):   # the rows the counts come from
+        for n in range(staged):
+            store.put(RS.SessionRecord(symbol, D - timedelta(days=n + 1), 100.0, 3, True))
+    pending = [s for s in ("DONE", "EXHAUSTED", "REFUSED", "SLOW")
+               if s not in store.unreachable_symbols() and store.staged_count(s, D) < RS.RVOL_WINDOW]
+    assert pending == ["SLOW"]                                        # only the one still collecting
