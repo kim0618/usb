@@ -1,0 +1,82 @@
+{
+  "format": "e-kiwoom-rvol-calibration-k0-v1",
+  "declared_at": "2026-09-24",
+  "purpose": "Quantify the source translation between the Massive RVOL the frozen E-MAX V1 was developed on and the Kiwoom-native RVOL the realtime runtime computes. One research axis only: the RVOL threshold.",
+  "frozen_and_not_under_study": {
+    "h5_non_rvol_conditions": ["premarket_gap > 0", "position_in_premarket_range >= 0.8", "return_0900_0925 > 0"],
+    "ranking": "R1 premarket_rvol DESC, ties by symbol ascending",
+    "selection": "max 3, no backfill",
+    "breadth": "B2 contract unchanged",
+    "exposure": "unchanged",
+    "entry": "09:30 open",
+    "exit": "09:34",
+    "cost_model": "unchanged, primary 10bp",
+    "reference_threshold": "Massive RVOL >= 3.0 (E-MAX V1, not retroactively modified)"
+  },
+  "kiwoom_rvol_semantics": {
+    "numerator": "today pm_dollar_volume from Kiwoom minute bars in [04:00, 09:24] ET",
+    "denominator": "rolling median of the prior staged sessions' pm_dollar_volume",
+    "window": 20,
+    "minimum": 5,
+    "source": "KIWOOM",
+    "mixing": "forbidden; a Massive numerator with a Kiwoom denominator (or the reverse) is never computed"
+  },
+  "overlap_rule": {
+    "join_key": ["symbol", "session"],
+    "membership": "a row enters the comparison only when both the Massive development store and the Kiwoom historical store hold that symbol and session and both produce a finite RVOL",
+    "reporting": "overlap symbols, sessions and rows are reported, with the session range; a partial range is never described as a two-year validation",
+    "leakage": "each side's denominator uses only sessions strictly before the row's own session, as the frozen implementation does"
+  },
+  "sufficiency_gate": {
+    "minimum_overlap_sessions": 10,
+    "minimum_overlap_rows": 5000,
+    "minimum_decision_sessions_with_candidates": 5,
+    "on_failure": "E-KIWOOM-CAL INCONCLUSIVE - INSUFFICIENT OVERLAP"
+  },
+  "acceptance_limits_declared_before_results": {
+    "note": "Every limit below must hold for the translation to be accepted. They are fixed here and are not adjusted to the outcome.",
+    "rvol_spearman_min": 0.85,
+    "rvol_pearson_min": 0.70,
+    "median_ratio_band": [0.8, 1.25],
+    "ratio_p10_p90_band": [0.4, 2.5],
+    "threshold_3p0_jaccard_min": 0.8,
+    "threshold_3p0_recall_min": 0.8,
+    "threshold_3p0_precision_min": 0.8,
+    "h5_candidate_count_median_relative_distortion_max": 0.2,
+    "top3_set_agreement_min": 0.8,
+    "b2_high_breadth_state_agreement_min": 0.9
+  },
+  "verdicts": {
+    "accepted": "KIWOOM_RVOL_3P0_TRANSLATION_ACCEPTED",
+    "rejected": "KIWOOM_RVOL_RECALIBRATION_REQUIRED",
+    "insufficient": "E-KIWOOM-CAL INCONCLUSIVE - INSUFFICIENT OVERLAP"
+  },
+  "threshold_candidates": {
+    "rule": "derived from the distribution only, never from a return; no grid search",
+    "maximum_count": 3,
+    "candidates": [
+      {"id": "K3.0", "definition": "3.0 unchanged"},
+      {"id": "K_MAP", "definition": "the Kiwoom threshold whose pass rate over the overlap rows equals the Massive pass rate at 3.0 (quantile match)"},
+      {"id": "K_ROBUST", "optional": true, "definition": "3.0 scaled by the median of the per-row Kiwoom/Massive RVOL ratio, rounded to two decimals"}
+    ],
+    "forbidden": "any enumeration such as 2.0, 2.1, 2.2 ..., and any candidate chosen by looking at performance"
+  },
+  "k1_authorization": {
+    "condition": "K1 runs only when K0 returns KIWOOM_RVOL_RECALIBRATION_REQUIRED",
+    "data_sufficiency_first": "before any performance number, the exact fields the Kiwoom store lacks are reported, with the minimum extra collection; re-collecting the whole history is forbidden",
+    "hybrid_label": "a Massive feature frame carrying a Kiwoom RVOL column is labelled SOURCE_TRANSLATION_DIAGNOSTIC and is never called a Kiwoom-native backtest",
+    "primary_cost_bp": 10,
+    "selection_rule_order": ["source translation consistency", "integrity and coverage",
+                             "no material risk degradation", "paired improvement evidence",
+                             "concentration not worsened"],
+    "higher_cagr_alone_is_not_a_reason": true
+  },
+  "versioning": {
+    "retain": "STRATEGY_E_MAX_V1 and all its artifacts stay unchanged",
+    "on_threshold_change": "preregister STRATEGY_E_MAX_V2_KIWOOM as a separate contract"
+  },
+  "paper_runtime": {
+    "threshold_during_this_study": 3.0,
+    "automatic_change": "forbidden; the paper configuration is not touched until a V2 contract is separately approved"
+  }
+}
