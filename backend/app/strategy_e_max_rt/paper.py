@@ -159,7 +159,9 @@ class ListingMinuteProvider:
 
     def get_minute_bars(self, symbols, start=None, end=None, session=None):
         from app.core.exceptions import MarketDataError
-        from app.integrations.kiwoom.mapping import map_minute_bar
+        # via app.market.kiwoom: importing the mapping module first hits a partially initialized
+        # app.market package (app.market.__init__ -> kiwoom -> mapping).
+        from app.market.kiwoom import map_minute_bar
         received_at = self._clock()
         out = []
         for symbol in sorted(set(symbols)):
