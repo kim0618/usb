@@ -192,3 +192,55 @@ def test_paper_stage_touches_no_strategy_a_state() -> None:
     source = inspect.getsource(_paper_stage)
     for banned in ("usb_paper_trading", "strategy_states", "RiskEngine", "usb-backend", "submit_real"):
         assert banned not in source
+
+
+class FakeChartClient:
+    """Records what Kiwoom was actually asked for."""
+
+    def __init__(self, rows=None, refuse=()):
+        self.asked, self.rows, self.refuse = [], rows or {}, set(refuse)
+
+    def minute_chart(self, symbol, exchange, start=None):
+        from types import SimpleNamespace
+        from app.core.exceptions import MarketDataError
+        self.asked.append((symbol, exchange))
+        if symbol in self.refuse:
+            raise MarketDataError("MARKET_DATA_UNAVAILABLE", "rejected")
+        return SimpleNamespace(rows=self.rows.get(symbol, []))
+
+
+def chart_row(t: str, price: float, volume: int = 1000):
+    h, m = t.split(":")
+    return {"cntr_tm": f"20260923{int(h):02d}{int(m):02d}00", "bus_dt": "20260923",
+            "open_pric": str(price), "high_pric": str(price), "low_pric": str(price),
+            "cur_prc": str(price), "trde_qty": str(volume)}
+
+
+def test_entry_asks_kiwoom_with_the_listing_code_and_exchange() -> None:
+    """The common provider uppercases and defaults to one exchange; E must not inherit that."""
+    client = FakeChartClient(rows={"BRKb": [chart_row("09:30", 500.0)], "CRH": [chart_row("09:30", 90.0)]})
+    provider = PAPER.ListingMinuteProvider(client, codes={"BRK.B": "BRKb", "CRH": "CRH"},
+                                           exchanges={"BRKb": "NY", "CRH": "NY"})
+    bars = provider.get_minute_bars(["BRK.B", "CRH"], start=at("09:29"), end=at("09:31"))
+    assert sorted(client.asked) == [("BRKb", "NY"), ("CRH", "NY")]      # not BRK.B, not ND
+    assert {bar.symbol for bar in bars} == {"BRK.B", "CRH"}             # returned under the decision's name
+
+
+def test_a_refused_symbol_leaves_the_others_trading() -> None:
+    client = FakeChartClient(rows={"AAA": [chart_row("09:30", 10.0)]}, refuse={"PS"})
+    provider = PAPER.ListingMinuteProvider(client, codes={}, exchanges={"AAA": "ND", "PS": "ND"})
+    bars = provider.get_minute_bars(["AAA", "PS"], start=at("09:29"), end=at("09:31"))
+    assert [bar.symbol for bar in bars] == ["AAA"]
+    assert provider.failures == {"PS": "MARKET_DATA_UNAVAILABLE"}       # recorded, not swallowed silently
+
+
+def test_a_transport_failure_is_not_treated_as_a_refusal() -> None:
+    from app.core.exceptions import MarketDataError
+
+    class Timeouts(FakeChartClient):
+        def minute_chart(self, symbol, exchange, start=None):
+            raise MarketDataError("PROVIDER_TIMEOUT", "timed out")
+
+    provider = PAPER.ListingMinuteProvider(Timeouts(), codes={}, exchanges={})
+    with pytest.raises(MarketDataError):
+        provider.get_minute_bars(["AAA"], start=at("09:29"), end=at("09:31"))

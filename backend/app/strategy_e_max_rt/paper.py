@@ -19,7 +19,7 @@ the realtime paper run needs while the Kiwoom RVOL history is still being collec
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 import json
 import math
 from pathlib import Path
@@ -137,6 +137,55 @@ def write_evidence(path: Path, rows: Sequence[Mapping[str, Any]]) -> int:
         writer.writeheader()
         writer.writerows(rows)
     return len(rows)
+
+
+class ListingMinuteProvider:
+    """Minute bars for E's execution path, asked for the way Kiwoom's own listing spells them.
+
+    The common provider uppercases the symbol and routes every name to one default exchange, which
+    Kiwoom rejects for NYSE listings and for share classes (it lists BRK.B as BRKb). E already
+    resolves both from ``usa10099`` for the 09:25 cutoff, so the entry and exit reuse that mapping
+    and return the bars under the canonical symbol the decision holds.
+    """
+
+    def __init__(self, client, codes: Mapping[str, str], exchanges: Mapping[str, str],
+                 clock=None):
+        self.client, self.codes, self.exchanges = client, dict(codes), dict(exchanges)
+        self._clock = clock or (lambda: datetime.now(timezone.utc))
+        #: symbol -> refusal code. A symbol the source will not serve is left without bars, which the
+        #: engine already reads as "no 09:30 bar" (ENTRY_INVALID) for that symbol alone. Nothing is
+        #: substituted for it and the other selections still trade.
+        self.failures: dict[str, str] = {}
+
+    def get_minute_bars(self, symbols, start=None, end=None, session=None):
+        from app.core.exceptions import MarketDataError
+        from app.integrations.kiwoom.mapping import map_minute_bar
+        received_at = self._clock()
+        out = []
+        for symbol in sorted(set(symbols)):
+            code = self.codes.get(symbol, symbol)
+            exchange = self.exchanges.get(code) or self.exchanges.get(symbol) or "ND"
+            try:
+                history = self.client.minute_chart(code, exchange, start)
+            except MarketDataError as error:
+                if getattr(error, "code", "") not in {"MARKET_DATA_UNAVAILABLE", "INVALID_SYMBOL"}:
+                    raise                       # a transport failure is not a refusal; let it surface
+                self.failures[symbol] = error.code
+                continue
+            for row in history.rows:
+                try:
+                    bar = map_minute_bar(symbol, row, received_at)
+                except MarketDataError as error:
+                    if error.code in {"FUTURE_DATA", "OUTSIDE_SESSION"}:
+                        continue
+                    raise
+                if ((start is None or bar.timestamp >= start) and (end is None or bar.timestamp <= end)
+                        and (session is None or bar.session == session)):
+                    out.append(bar)
+        return sorted(out, key=lambda bar: (bar.timestamp, bar.symbol))
+
+    def get_daily_bars(self, symbols, start=None, end=None):
+        raise NotImplementedError("E's execution path reads minute bars only")
 
 
 class FixedDecision:

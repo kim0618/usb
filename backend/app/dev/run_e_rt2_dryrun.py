@@ -132,7 +132,8 @@ def _paper_stage(decision, session, record, out_root: Path, cal, now, at, log, e
     config = CFG.RuntimeConfig(enabled=True, state_dir=state_dir, initial_equity=Decimal(equity))
     engine_store = ENG.Store(state_dir, CFG.STRATEGY_ID)
     factory = provider_factory or (lambda: build_kiwoom_provider(get_settings()))
-    engine = ENG.Engine(config, factory, PAPER.FixedDecision(decision), cal, engine_store)
+    provider = factory()
+    engine = ENG.Engine(config, lambda: provider, PAPER.FixedDecision(decision), cal, engine_store)
     book = engine_store.load_book(config.initial_equity)
     state = engine_store.load_session(session) or engine.new_state(session, Decimal(book["equity"]))
     if ENG.Phase(state["phase"]) is ENG.Phase.WAITING:
@@ -150,6 +151,7 @@ def _paper_stage(decision, session, record, out_root: Path, cal, now, at, log, e
     entries = state.get("entries", {})
     exits = state.get("exits", {})
     return {"ran": True, "phase": state["phase"], "book_dir": str(state_dir),
+            "source_refusals": dict(getattr(provider, "failures", {})),
             "evidence_status": record["paper_evidence_status"],
             "entries": len(entries), "fills": sum(1 for e in entries.values() if e.get("status") == "FILLED"),
             "exits": len(exits), "summary": state.get("summary"),
@@ -438,7 +440,12 @@ def run(universe_path: Path, out_root: Path, *, paper: bool = False,
         log(f"session record: status={record['paper_evidence_status']} rvol_ready={record['rvol_ready']} "
             f"rvol_missing={record['rvol_missing']} h5_true={record['h5_true']} selected={record['selected']}")
         if paper:
-            paper_summary = _paper_stage(decision, session, record, out_root, cal, now, at, log, equity)
+            # the entry and exit ask Kiwoom with the same code and exchange the cutoff used
+            entry_client = FZ.ChartLaneClient(base_url=s.kiwoom_base_url, auth=auth,
+                                              rate_limits=KiwoomRateLimits(), max_retries=1)
+            paper_summary = _paper_stage(
+                decision, session, record, out_root, cal, now, at, log, equity,
+                provider_factory=lambda: PAPER.ListingMinuteProvider(entry_client, codes, exch))
         record["paper_runtime"] = paper_summary
         (run_dir / "session_record.json").write_text(json.dumps(record, indent=1, default=str) + "\n")
     except Exception as error:
