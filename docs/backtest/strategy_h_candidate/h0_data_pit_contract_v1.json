@@ -1,0 +1,90 @@
+{
+  "contract_id": "STRATEGY_H_H0_DATA_PIT_V1",
+  "declared_on": "2026-09-27",
+  "document": "docs/backtest/strategy_h_candidate/H0_DATA_PIT_PREREGISTRATION_V1.md",
+  "freeze_timing": "before_h0_pilot_results",
+  "strategy": {
+    "name": "AI QUANTAMENTAL RE-RATING",
+    "market": "US_EQUITIES",
+    "status": "CANDIDATE_PREVALIDATION",
+    "stage": "H0_DATA_PIT_FEASIBILITY"
+  },
+  "horizons": {
+    "minimum_history_years": 5,
+    "preferred_history_years": [7, 10],
+    "primary_return": "3M",
+    "secondary_returns": ["1M", "6M"],
+    "h0_returns_computed": false
+  },
+  "universe": {
+    "venues": ["NYSE", "NASDAQ", "AMEX_XASE"],
+    "security_focus": "COMMON_STOCK",
+    "initial_exclusions": [
+      "ETF", "ETN", "FUND", "PREFERRED", "WARRANT", "SPAC_SHELL", "OTC",
+      "EXTREME_PENNY", "HALT_OR_DELISTING_RISK", "INSUFFICIENT_DATA"
+    ],
+    "survivorship_rule": "current_listings_alone_forbidden",
+    "stable_issuer_identifier_required": true
+  },
+  "market_cap_lanes_usd": [
+    {"lane": "MICRO", "minimum": null, "maximum_exclusive": 500000000, "role": "INITIAL_EXCLUSION"},
+    {"lane": "H_SMALL", "minimum": 500000000, "maximum_exclusive": 2000000000, "role": "AGGRESSIVE"},
+    {"lane": "H_MID", "minimum": 2000000000, "maximum_exclusive": 10000000000, "role": "PRIMARY"},
+    {"lane": "H_UPPER_MID", "minimum": 10000000000, "maximum_exclusive": 50000000000, "role": "PRIMARY"},
+    {"lane": "H_LARGE", "minimum": 50000000000, "maximum_exclusive": null, "role": "SECONDARY"}
+  ],
+  "historical_market_cap": {
+    "required": true,
+    "preferred_formula": "split_consistent_historical_close_x_pit_shares_outstanding",
+    "current_market_cap_for_backtest": "FORBIDDEN",
+    "current_market_cap_for_ingestion_pilot": "NOT_VALID_FOR_BACKTEST",
+    "unresolved_is_h0_blocker": true
+  },
+  "pit": {
+    "eligibility": "knowledge_time_lte_decision_time",
+    "sec_knowledge_time_preference": "acceptanceDateTime",
+    "date_only_policy": "available_next_eligible_market_session",
+    "future_filings_forbidden": true,
+    "later_restatement_backfill_forbidden": true,
+    "latest_only_companyfacts_history_forbidden": true,
+    "knowledge_history": "append_only",
+    "amendments_overwrite_original": false,
+    "unknown_remains_unknown": true
+  },
+  "required_canonical_fields": [
+    "revenue", "gross_profit", "operating_income", "net_income", "eps_diluted",
+    "operating_cash_flow", "capex", "cash", "total_debt", "assets", "equity",
+    "shares_outstanding"
+  ],
+  "required_fact_metadata": [
+    "ticker", "stable_issuer_id", "taxonomy_tag", "value", "unit", "start_or_instant",
+    "end", "report_period", "fiscal_period", "fiscal_year", "form", "accession",
+    "filing_date", "knowledge_time", "amendment_status", "source"
+  ],
+  "analyst_revision": {
+    "h0_required": false,
+    "missing_status": "H4_REVISION_DEFERRED"
+  },
+  "planned_sequence": {
+    "H1": "VALUE",
+    "H2": "VALUE_PLUS_GROWTH",
+    "H3": "VALUE_PLUS_QUALITY",
+    "H4": "VALUE_PLUS_GROWTH_PLUS_QUALITY_PLUS_REVISION",
+    "H5": "COMPOSITE_QUANTAMENTAL_CANDIDATE"
+  },
+  "pilot": {
+    "target_issuers_min": 30,
+    "target_issuers_max": 100,
+    "selection": "deterministic_equal_lane_with_industry_diversity",
+    "full_us_download": false
+  },
+  "verdicts": ["PASS", "INCONCLUSIVE", "FAIL"],
+  "readiness": ["READY_FOR_H0", "READY_WITH_LIMITATIONS", "BLOCKED"],
+  "no_post_hoc_factor_tuning": true,
+  "prohibitions": [
+    "ALPHA_OPTIMIZATION", "FACTOR_WEIGHT_TUNING", "GPT_STOCK_PICKING",
+    "ENTRY_EXIT_OPTIMIZATION", "BROKER_INTEGRATION", "PAPER_TRADING",
+    "AUTOMATIC_EXECUTION", "POST_HOC_UNIVERSE_CHANGE", "POST_HOC_LANE_CHANGE",
+    "FUTURE_DATA_LEAKAGE", "REOPEN_STRATEGIES_B_C_D_F_G", "MODIFY_A_E_PAPER", "PUSH"
+  ]
+}
