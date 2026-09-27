@@ -1,0 +1,48 @@
+{
+  "contract_id": "STRATEGY_H_H0_5_HISTORICAL_UNIVERSE_MARKET_CAP_V1",
+  "declared_on": "2026-09-27",
+  "freeze_timing": "before_h0_5_pilot_results",
+  "parent_h0": "INCONCLUSIVE",
+  "h1": "NOT_AUTHORIZED",
+  "decision_sessions": ["2021-06-30", "2022-06-30", "2023-06-30", "2024-06-28", "2025-06-30"],
+  "identity": {
+    "security_id_priority": ["share_class_figi", "composite_figi", "UNKNOWN"],
+    "company_id": "zero_padded_cik_or_UNKNOWN",
+    "ticker_is_permanent_id": false,
+    "cik_proves_same_security": false
+  },
+  "eligible": {
+    "market": "stocks",
+    "locale": "us",
+    "type": "CS",
+    "primary_exchanges": ["XNYS", "XNAS", "XASE"],
+    "current_state_backfill": "FORBIDDEN",
+    "missing_state": "UNKNOWN_INELIGIBLE"
+  },
+  "filing_availability": "first_xnys_regular_open_at_or_after_acceptance_if_preopen_else_next_session_open",
+  "shares": {
+    "primary_sec_concept": "dei:EntityCommonStockSharesOutstanding",
+    "unit": "shares",
+    "max_staleness_calendar_days": 135,
+    "weighted_average_for_market_cap": "FORBIDDEN",
+    "current_shares_fallback": "FORBIDDEN",
+    "multi_class_unallocated": "UNKNOWN"
+  },
+  "market_cap": {
+    "formula": "unadjusted_regular_close_at_T_x_raw_reported_pit_shares_at_T",
+    "adjusted_price_x_raw_shares": "FORBIDDEN",
+    "current_market_cap_fallback": "FORBIDDEN",
+    "non_trading_date": "UNKNOWN",
+    "missing_component": "UNKNOWN",
+    "synthetic_split_rollforward": "FORBIDDEN"
+  },
+  "lanes_usd": [
+    {"lane": "MICRO", "min_inclusive": null, "max_exclusive": 500000000, "eligible": false},
+    {"lane": "H_SMALL", "min_inclusive": 500000000, "max_exclusive": 2000000000, "eligible": true},
+    {"lane": "H_MID", "min_inclusive": 2000000000, "max_exclusive": 10000000000, "eligible": true},
+    {"lane": "H_UPPER_MID", "min_inclusive": 10000000000, "max_exclusive": 50000000000, "eligible": true},
+    {"lane": "H_LARGE", "min_inclusive": 50000000000, "max_exclusive": null, "eligible": true}
+  ],
+  "returns_computed": false,
+  "verdicts": ["PASS", "INCONCLUSIVE", "FAIL"]
+}
