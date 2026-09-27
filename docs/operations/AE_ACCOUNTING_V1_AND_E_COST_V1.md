@@ -90,3 +90,14 @@ straddles the accounting change). `usb-e-paper` runs as a timer and picks the co
 run. No DB migration.
 After: health, `/api/v1/strategies/{cards,performance,portfolio}` show official 0 / legacy 3 per
 strategy, then set `AE_OFFICIAL_PAPER_START` to the next session and restart `usb-backend`.
+
+## 7. Deployment record (2026-09-27 KST)
+
+- Deployed backend `df4d55a` (usb-backend tree + E runner tree `/root/usb_runtime/strategy_e_paper/src`)
+  and frontend `2bd9265` (built on the server's deployed frontend source, crypto files unchanged).
+- Pre-deploy: A open positions 0, open trades 0. V0 digests unchanged after deploy (E paper_state
+  3 files, A trades digest b65d0d55, A cash 7509.398546...).
+- `AE_OFFICIAL_PAPER_START=2026-09-28` in `/etc/systemd/system/usb-backend.service.d/ae-official-paper.conf`;
+  runtime record `/root/usb_runtime/ae_official_paper_v1.json`; rollback `/root/usb_runtime/backups/ae_v1_20260927`.
+- OFFICIAL PAPER V1: start_session 2026-09-28, accounting V1, paper_evaluation AE_PAPER_V1, A and E.
+  Everything before it is V0 / PRE-GATE.
