@@ -57,7 +57,7 @@ FIELD_SPECS: dict[str, FieldSpec] = {
         "StockholdersEquity", "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest",
     ), ("USD",), "instant"),
     "shares_outstanding": FieldSpec((
-        "EntityCommonStockSharesOutstanding", "CommonStocksIncludingAdditionalPaidInCapitalMember",
+        "EntityCommonStockSharesOutstanding",
     ), ("shares",), "instant"),
 }
 
