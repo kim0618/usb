@@ -61,9 +61,12 @@ def test_next_bar_known_cost_and_closed_trade_r() -> None:
     assert trade.gross_pnl == Decimal("96.850")
     # Direct expected values, not execution helpers: entry 2.5 + exit (1.1+0.55+1.1).
     assert trade.total_cost == Decimal("5.250")
-    assert trade.net_pnl == Decimal("91.600")
+    # Spread and slippage are in the fill prices already; net takes the commissions
+    # 1.00 + 1.10 once, and is exactly the cash the round trip moved.
+    assert trade.net_pnl == Decimal("94.750")
+    assert trade.net_pnl == broker.cash - Decimal("10000")
     assert trade.gross_r == Decimal("0.96850")
-    assert trade.net_r == Decimal("0.916")
+    assert trade.net_r == Decimal("0.9475")
 
 
 def test_multiple_buy_weighted_average_partial_sells_cash_and_mtm() -> None:
@@ -193,7 +196,9 @@ def test_execution_persistence_decimal_roundtrip_and_atomic_no_trade(tmp_path) -
         stored = session.scalar(select(ExecutionFillRecord))
         assert stored and stored.total_cost == Decimal("2.500")
         trade = session.scalar(select(ShadowTradeRecord))
-        assert trade and trade.net_r == Decimal("-0.025") and trade.is_control
+        # An open trade has realised only its commission (1.00 of the 2.50 all-in cost;
+        # the 1.50 of spread and slippage is in the fill price and still unrealised).
+        assert trade and trade.net_r == Decimal("-0.01") and trade.is_control
         ExecutionRepository(session).persist_no_trade(
             ShadowResult("BBB", ShadowVariant.A), record_id="NO-BBB-A")
         assert session.scalar(select(func.count()).select_from(ShadowTradeRecord)) == 2

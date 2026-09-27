@@ -100,20 +100,28 @@ def evidence_status(record: dict[str, Any] | None) -> str | None:
 
 # -- the books ------------------------------------------------------------------------------------
 
-def book_dir(status: str) -> Path:
-    return paper_run_dir() / "paper_state" / status / STRATEGY_ID
+#: Book roots by accounting version. V0 is the tree the runner wrote before 2026-09-27 (A's 25 bp
+#: execution, costs charged twice); it is read as legacy and never written again. V1 is the E cost
+#: contract under ACCOUNTING_V1. The two are never merged.
+BOOK_ROOTS = {"V1": "paper_state_v1", "V0": "paper_state"}
+CURRENT = "V1"
+LEGACY = "V0"
 
 
-def book(status: str) -> dict[str, Any] | None:
-    return _json(book_dir(status) / "book.json")
+def book_dir(status: str, accounting: str = CURRENT) -> Path:
+    return paper_run_dir() / BOOK_ROOTS[accounting] / status / STRATEGY_ID
 
 
-def engine_session(status: str, session: str) -> dict[str, Any] | None:
-    return _json(book_dir(status) / "sessions" / f"{session}.json")
+def book(status: str, accounting: str = CURRENT) -> dict[str, Any] | None:
+    return _json(book_dir(status, accounting) / "book.json")
 
 
-def engine_sessions(status: str) -> list[dict[str, Any]]:
-    directory = book_dir(status) / "sessions"
+def engine_session(status: str, session: str, accounting: str = CURRENT) -> dict[str, Any] | None:
+    return _json(book_dir(status, accounting) / "sessions" / f"{session}.json")
+
+
+def engine_sessions(status: str, accounting: str = CURRENT) -> list[dict[str, Any]]:
+    directory = book_dir(status, accounting) / "sessions"
     try:
         paths = sorted(directory.glob("*.json"))
     except OSError:

@@ -80,7 +80,7 @@ def test_provisional_and_official_evidence_never_share_a_book() -> None:
     body = record()
     assert "never summed into the official record" in body["promotion_rule"]
     source = inspect.getsource(_paper_stage)
-    assert 'out_root / "paper_state" / record["paper_evidence_status"]' in source
+    assert 'out_root / PAPER_STATE_V1 / record["paper_evidence_status"]' in source
 
 
 # -- the equivalence artifact ---------------------------------------------------------------------
@@ -162,7 +162,7 @@ def test_paper_stage_enters_and_exits_the_frozen_way_in_simulation_only(tmp_path
     assert summary["entries"] == 2 and summary["fills"] == 2 and summary["exits"] == 2
     assert summary["real_orders"] == 0 and summary["live_margin_approved"] is False
     assert summary["mode"] == "SIMULATION_VIRTUAL_ONLY"
-    book = json.loads((tmp_path / "paper_state" / PAPER.PROVISIONAL / "STRATEGY_E_MAX_V1" / "book.json")
+    book = json.loads((tmp_path / "paper_state_v1" / PAPER.PROVISIONAL / "STRATEGY_E_MAX_V1" / "book.json")
                       .read_text())
     assert book["live_margin_approved"] is False and D.isoformat() in book["sessions"]
 
@@ -170,7 +170,7 @@ def test_paper_stage_enters_and_exits_the_frozen_way_in_simulation_only(tmp_path
 def test_provisional_and_official_books_are_separate_files(tmp_path) -> None:
     run_stage(tmp_path, ["AAA"], status=PAPER.PROVISIONAL)
     run_stage(tmp_path, ["AAA"], status=PAPER.OFFICIAL)
-    root = tmp_path / "paper_state"
+    root = tmp_path / "paper_state_v1"
     provisional = json.loads((root / PAPER.PROVISIONAL / "STRATEGY_E_MAX_V1" / "book.json").read_text())
     official = json.loads((root / PAPER.OFFICIAL / "STRATEGY_E_MAX_V1" / "book.json").read_text())
     assert set(provisional["sessions"]) == set(official["sessions"]) == {D.isoformat()}
@@ -181,7 +181,7 @@ def test_a_selected_symbol_without_a_0930_bar_is_not_backfilled(tmp_path) -> Non
     bars = [bar("AAA", t, 100.0) for t in ("09:30", "09:34", "09:35")]
     bars += [bar("BBB", t, 50.0) for t in ("09:34", "09:35")]        # no 09:30 bar for BBB
     decision, summary = run_stage(tmp_path, ["AAA", "BBB"], bars=bars)
-    state = json.loads((tmp_path / "paper_state" / PAPER.PROVISIONAL / "STRATEGY_E_MAX_V1" /
+    state = json.loads((tmp_path / "paper_state_v1" / PAPER.PROVISIONAL / "STRATEGY_E_MAX_V1" /
                         "sessions" / f"{D.isoformat()}.json").read_text())
     assert state["entries"]["BBB"]["status"] == "ENTRY_INVALID"
     assert state["executable"] == ["AAA"]                            # nobody takes BBB's slot

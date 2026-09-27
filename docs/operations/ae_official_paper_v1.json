@@ -1,0 +1,61 @@
+{
+ "declaration": {
+  "contract_id": "AE_OFFICIAL_PAPER_V1",
+  "paper_evaluation_version": "AE_PAPER_V1",
+  "accounting_version": "V1",
+  "declared_at_kst": "2026-09-27",
+  "status": "FROZEN_BEFORE_OFFICIAL_START",
+  "checksum_recipe": "sha256 of json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False)"
+ },
+ "gate": {
+  "contract_id": "AE_PAPER_EVALUATION_GATE_V1",
+  "canonical_sha256": "7a139d6b389cd547cd4384801697680279949f81d96c5765919059560eddd2dd",
+  "thresholds_changed": false
+ },
+ "accounting": {
+  "V1": "app.broker.accounting: spread and slippage are inside the fill price, commission and FX are cash charges subtracted once; net_pnl = gross_pnl(fill prices) - cash charges; for a closed book, equity delta = sum(net_pnl)",
+  "V0": "net_pnl = gross_pnl - total_cost (price-embedded spread and slippage charged a second time); rows written this way are LEGACY and never enter official metrics"
+ },
+ "cost_contracts": {
+  "STRATEGY_A": {
+   "execution_version": "execution_v0",
+   "spread_bps_per_leg": 10,
+   "slippage_bps_per_leg": 5,
+   "commission_bps_per_leg": 10,
+   "fx_bps_per_leg": 0,
+   "source": "docs/SIM_BROKER_SHADOW.md (execution_v0); docs/paper/A_PAPER_BACKTEST_PARITY_AUDIT_V1.md",
+   "changed_by_this_contract": false
+  },
+  "STRATEGY_E_MAX_V1": {
+   "execution_version": "e_cost_v1_round_trip",
+   "cost_contract_version": "STRATEGY_E_COST_V1:COST_10BP",
+   "official_round_trip_bp": 10,
+   "stress_round_trip_bp": [
+    5,
+    15,
+    20
+   ],
+   "diagnostic": "GROSS_0BP",
+   "application": "raw-price fills; the round-trip total is charged once, on the entry fill, on entry notional",
+   "source": "strategy_e_cost_rules_v1.json (b2229fe5...) + strategy_e_max_v1_rules.json definition.cost.primary (b30a3e95...)"
+  }
+ },
+ "official_start": {
+  "setting": "AE_OFFICIAL_PAPER_START (ET session date, YYYY-MM-DD) in the usb-backend environment",
+  "rule": "set to the first XNYS session that runs after ACCOUNTING_V1 and the E cost contract are deployed and verified; one date for A and E",
+  "unset_means": "NOT_STARTED: official metrics are empty and no gate clock runs",
+  "counts_from_start": [
+   "operating sessions",
+   "closed trades",
+   "PF",
+   "MDD",
+   "divergence",
+   "error rate"
+  ],
+  "before_start": "LEGACY (V0) or PRE_OFFICIAL rows, shown for reference only"
+ },
+ "books": {
+  "STRATEGY_A": "paper DB account; official = trades entered and daily rows on or after the start; each must detect as V1",
+  "STRATEGY_E_MAX_V1": "run/paper_state_v1/OFFICIAL_KIWOOM_PAPER (V1); run/paper_state is legacy V0, read-only"
+ }
+}

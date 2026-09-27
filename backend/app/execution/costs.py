@@ -7,10 +7,18 @@ the same ``ExecutionConfig``.
 
 from decimal import Decimal
 
-from app.execution.config import ExecutionConfig
+from app.execution.config import ExecutionConfig, RoundTripCostConfig
 from app.execution.domain import OrderSide
 
 BPS = Decimal("10000")
+
+
+def commission_bps(config: ExecutionConfig, side: OrderSide) -> Decimal:
+    """The cash-charge rate one fill pays. Per leg under ``execution_v0``; under a round-trip
+    contract the whole total is paid by the entry (BUY) fill and the exit pays none."""
+    if isinstance(config, RoundTripCostConfig):
+        return config.round_trip_cost_bps if side is OrderSide.BUY else Decimal("0")
+    return config.commission_bps
 
 
 def execution_price(raw: Decimal, side: OrderSide, config: ExecutionConfig) -> Decimal:
@@ -22,4 +30,4 @@ def execution_price(raw: Decimal, side: OrderSide, config: ExecutionConfig) -> D
 def buy_effective_price(raw: Decimal, config: ExecutionConfig) -> Decimal:
     """Per-share cash a BUY costs: its execution price plus commission and FX cost."""
     return (execution_price(raw, OrderSide.BUY, config)
-            + raw * (config.commission_bps + config.fx_cost_bps) / BPS)
+            + raw * (commission_bps(config, OrderSide.BUY) + config.fx_cost_bps) / BPS)

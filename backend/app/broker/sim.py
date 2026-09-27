@@ -7,13 +7,14 @@ from decimal import Decimal
 from math import isfinite
 from uuid import uuid4
 
+from app.broker.accounting import fill_cash_charges, fill_cash_flow, net_pnl
 from app.broker.contract import Broker
 from app.broker.domain import (
     OrderStatus, RejectionReason, SimAccount, SimFill, SimOrder, SimPosition,
     TradeResult, TradeStatus,
 )
 from app.execution.config import ExecutionConfig
-from app.execution.costs import execution_price
+from app.execution.costs import commission_bps, execution_price
 from app.execution.domain import OrderIntent, OrderSide
 from app.market.domain import MinuteBar
 from app.market.symbols import normalize_symbol
@@ -68,8 +69,7 @@ class SimBroker(Broker):
         if (intent.side is OrderSide.BUY and intent.max_execution_price is not None
                 and fill.fill_price > intent.max_execution_price):
             return self._reject(order, RejectionReason.PRICE_ABOVE_LIMIT)
-        debit = fill.fill_price * quantity + fill.commission + fill.fx_cost
-        if intent.side is OrderSide.BUY and debit > self.cash:
+        if intent.side is OrderSide.BUY and -fill_cash_flow(fill) > self.cash:
             return self._reject(order, RejectionReason.INSUFFICIENT_CASH)
         position = self._positions.get(intent.symbol)
         if intent.side is OrderSide.SELL and (position is None or intent.quantity > position.quantity):
@@ -176,7 +176,7 @@ class SimBroker(Broker):
         spread = raw * quantity * self.config.default_spread_bps / bps
         slippage = raw * quantity * self.config.default_slippage_bps / bps
         fill_price = execution_price(raw, order.side, self.config)
-        commission = raw * quantity * self.config.commission_bps / bps
+        commission = raw * quantity * commission_bps(self.config, order.side) / bps
         fx = raw * quantity * self.config.fx_cost_bps / bps
         self._sequence += 1
         return SimFill(self._scoped_id("FILL"), order.id, order.symbol, order.side, quantity,
@@ -185,17 +185,20 @@ class SimBroker(Broker):
 
     def _apply_buy(self, intent: OrderIntent, fill: SimFill) -> None:
         notional = fill.fill_price * fill.quantity
-        self.cash -= notional + fill.commission + fill.fx_cost
+        self.cash += fill_cash_flow(fill)
         position = self._positions.get(intent.symbol)
         if position is None:
             if intent.risk_amount <= 0:
                 raise ValueError("initial planned risk must be positive")
             self._positions[intent.symbol] = SimPosition(intent.symbol, fill.quantity, fill.fill_price,
                 notional, Decimal("0"), fill.filled_at, fill.filled_at)
+            # Spread and slippage are already in the fill price; the entry's realised
+            # PnL is only the cash charges it paid beside the notional.
+            opening = net_pnl(Decimal("0"), fill_cash_charges(fill))
             self._trades[intent.symbol] = TradeResult(
                 f"TRADE-{intent.symbol}-{fill.filled_at.isoformat()}", intent.symbol, fill.filled_at, None,
-                fill.quantity, fill.quantity, fill.fill_price, None, Decimal("0"), -fill.total_cost,
-                intent.risk_amount, Decimal("0"), -fill.total_cost / intent.risk_amount,
+                fill.quantity, fill.quantity, fill.fill_price, None, Decimal("0"), opening,
+                intent.risk_amount, Decimal("0"), opening / intent.risk_amount,
                 fill.total_cost, _entry_notional=notional,
             )
         else:
@@ -209,7 +212,7 @@ class SimBroker(Broker):
             trade._entry_notional += notional
             trade.average_entry_price = trade._entry_notional / trade.total_quantity
             trade.total_cost += fill.total_cost
-            trade.net_pnl -= fill.total_cost
+            trade.net_pnl -= fill_cash_charges(fill)
             trade.net_r = trade.net_pnl / trade.planned_initial_risk
 
     def _apply_sell(self, intent: OrderIntent, fill: SimFill) -> None:
@@ -219,20 +222,23 @@ class SimBroker(Broker):
         position.cost_basis = position.average_price * position.quantity
         position.realized_pnl += gross
         position.updated_at = fill.filled_at
-        self.cash += fill.fill_price * fill.quantity - fill.commission - fill.fx_cost
+        self.cash += fill_cash_flow(fill)
         trade = self._trades[intent.symbol]
+        # The charges paid so far are carried by the trade's own (persisted) gross/net
+        # pair, so a restarted broker closes the trade on the same figures.
+        charges = trade.gross_pnl - trade.net_pnl + fill_cash_charges(fill)
         trade._sold_quantity += fill.quantity
         trade._exit_notional += fill.fill_price * fill.quantity
         trade.average_exit_price = trade._exit_notional / trade._sold_quantity
         trade.gross_pnl += gross
         trade.total_cost += fill.total_cost
-        trade.net_pnl = trade.gross_pnl - trade.total_cost
+        trade.net_pnl = net_pnl(trade.gross_pnl, charges)
         trade.gross_r = trade.gross_pnl / trade.planned_initial_risk
         trade.net_r = trade.net_pnl / trade.planned_initial_risk
         if position.quantity == 0:
             # Exact lifecycle totals avoid repeating-Decimal weighted-average residue.
             trade.gross_pnl = trade._exit_notional - trade._entry_notional
-            trade.net_pnl = trade.gross_pnl - trade.total_cost
+            trade.net_pnl = net_pnl(trade.gross_pnl, charges)
             trade.gross_r = trade.gross_pnl / trade.planned_initial_risk
             trade.net_r = trade.net_pnl / trade.planned_initial_risk
             trade.exit_time = fill.filled_at

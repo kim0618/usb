@@ -115,6 +115,10 @@ def _premarket_block(cache):
     return premarket_block(a[:, 0], a[:, 1], a[:, 2], a[:, 3], a[:, 4], a[:, 5], a[:, 6], DECISION_LAST_BAR)
 
 
+#: Root of the ACCOUNTING_V1 / E cost contract books (see app.strategy_e_max_rt.cost).
+PAPER_STATE_V1 = "paper_state_v1"
+
+
 def _paper_stage(decision, session, record, out_root: Path, cal, now, at, log, equity: str,
                  provider_factory=None, interval: float = 10.0) -> dict:
     """Frozen entry/exit through the common RT0 engine: SimBroker only, E's own virtual book.
@@ -128,13 +132,18 @@ def _paper_stage(decision, session, record, out_root: Path, cal, now, at, log, e
     from app.core.config import get_settings
     from app.market.factory import build_kiwoom_provider
     from app.strategy_e_max_rt import config as CFG, engine as ENG, paper as PAPER
-    state_dir = out_root / "paper_state" / record["paper_evidence_status"]
+    from app.strategy_e_max_rt import cost as COST
+    # ACCOUNTING_V1 books live under their own root. The legacy ``paper_state`` tree (V0 accounting,
+    # A's 25 bp-per-leg execution) is kept exactly as written and is never appended to.
+    state_dir = out_root / PAPER_STATE_V1 / record["paper_evidence_status"]
     config = CFG.RuntimeConfig(enabled=True, state_dir=state_dir, initial_equity=Decimal(equity))
     engine_store = ENG.Store(state_dir, CFG.STRATEGY_ID)
     factory = provider_factory or (lambda: build_kiwoom_provider(get_settings()))
     provider = factory()
-    engine = ENG.Engine(config, lambda: provider, PAPER.FixedDecision(decision), cal, engine_store)
-    book = engine_store.load_book(config.initial_equity)
+    execution = COST.official_execution()
+    engine = ENG.Engine(config, lambda: provider, PAPER.FixedDecision(decision), cal, engine_store,
+                        execution=execution)
+    book = engine_store.load_book(config.initial_equity, execution)
     state = engine_store.load_session(session) or engine.new_state(session, Decimal(book["equity"]))
     if ENG.Phase(state["phase"]) is ENG.Phase.WAITING:
         state["decision"] = decision.to_json()

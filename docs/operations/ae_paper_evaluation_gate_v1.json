@@ -1,0 +1,69 @@
+{
+ "declaration": {
+  "contract_id": "AE_PAPER_EVALUATION_GATE_V1",
+  "status": "FROZEN_BEFORE_EVALUATION",
+  "declared_at_kst": "2026-09-27",
+  "checksum_recipe": "sha256 of json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False)",
+  "question": "Does each operating strategy, unchanged, earn a cost-adjusted positive result in paper with acceptable drawdown, divergence and operational reliability?",
+  "observed_before_freeze": {
+   "STRATEGY_A": "14 daily rows (2026-09-08..2026-09-25), 3 closed trades",
+   "STRATEGY_E_MAX_V1": "1 completed OFFICIAL session (2026-09-25), 3 closed trades",
+   "note": "thresholds below were set from development frequency and risk, not from these rows; no metric of these rows was computed before this freeze"
+  },
+  "scope": "operational paper gate for A and E; it does not replace or define the E-MAX forward promotion gate (E_MAX_F0 section 13), which stays NOT DEFINED until its own contract",
+  "verdicts": [
+   "PASS",
+   "INCONCLUSIVE",
+   "FAIL"
+  ]
+ },
+ "common": {
+  "evidence_book": {
+   "STRATEGY_A": "PAPER_DB account of the active runtime",
+   "STRATEGY_E_MAX_V1": "OFFICIAL_KIWOOM_PAPER only; PROVISIONAL_RVOL_BOOTSTRAP is never counted"
+  },
+  "operating_session": "a scheduled XNYS session on which the strategy's runtime was expected to decide (A: a daily performance row; E: a session record)",
+  "error_session": "A: none recorded by this layer (runtime incidents are entered by the operator); E: session phase ERROR, or NO_DECISION caused by missing data (not a legitimate no-candidate day)",
+  "operational_error_rate": {
+   "pass_max": 0.05,
+   "fail_above": 0.2,
+   "fail_needs_min_sessions": 20
+  },
+  "accounting": {
+   "single_convention": "all trades evaluated together must share one accounting convention; a mix is INCONCLUSIVE (ACCOUNTING_MIXED) until the rows are restated by an explicit, separate decision",
+   "TOTAL_COST_DEDUCTED_V0": "conservative (charges spread and slippage twice): a PASS under V0 stands, a PnL-based FAIL under V0 is not final and reads INCONCLUSIVE (ACCOUNTING_V0_OVERCHARGED)",
+   "CASH_CHARGES_ONLY_V1": "cash-true: PASS and FAIL are both final"
+  },
+  "no_change_on_result": "none of these thresholds, and no A or E rule, may change in response to paper results; a change is a new contract version evaluated on sessions after its own freeze"
+ },
+ "strategies": {
+  "STRATEGY_A": {
+   "min_operating_sessions": 60,
+   "min_closed_trades": 30,
+   "expectancy_gt": 0,
+   "pf_min": 1.2,
+   "mdd_floor": -0.08,
+   "net_pnl_gt": 0,
+   "divergence": {
+    "metric": "share of evaluated sessions whose paper entry decision differs from the recorded-session replay (A paper/backtest true parity differential)",
+    "max": 0.05,
+    "source": "external: A parity runner; PENDING until supplied"
+   },
+   "rationale": "A paper traded 3 times in its first 14 sessions and the A V2 baseline 37 times over two years; 30 trades is the smallest sample on which PF and expectancy mean anything, so A may stay INCONCLUSIVE for months. A risks a fixed fraction per trade, and its V2 baseline MDD was 2.94%, so 8% is a failure, not noise."
+  },
+  "STRATEGY_E_MAX_V1": {
+   "min_operating_sessions": 60,
+   "min_closed_trades": 60,
+   "expectancy_gt": 0,
+   "pf_min": 1.1,
+   "mdd_floor": -0.3,
+   "net_pnl_gt": 0,
+   "divergence": {
+    "metric": "mean over completed sessions of (paper session return - the session's recorded net_10bp fixed-cost view)",
+    "min": -0.002,
+    "source": "computed from E engine session summaries"
+   },
+   "rationale": "E-MAX V1 development traded about one session in two with up to three names at 2.0x/3.0x exposure; its 10bp development MDD was -29.9%, so -30% is the ceiling, and 60 trades is about 30 active sessions. Divergence allows realised costs 20bp per session worse than the 10bp development scenario before it fails."
+  }
+ }
+}

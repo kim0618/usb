@@ -8,8 +8,14 @@ Lifecycle per XNYS session (ET):
     any step --exception--> ERROR (fail closed for this strategy only)
 
 Common components reused: ``MarketDataProvider`` (the runtime's provider), ``MarketCalendar``,
-``SimBroker`` with ``ExecutionConfig`` (A's order / fill / cost convention: next-bar open), and
-``OrderIntent``. Nothing of A's strategy, risk engine, lifecycle services or tables is used.
+``SimBroker`` (A's order / fill convention: next-bar open) and ``OrderIntent``. Nothing of A's
+strategy, risk engine, lifecycle services or tables is used.
+
+Cost and accounting (2026-09-27): the broker runs E's own frozen cost contract
+(``cost.official_execution``: raw-price fills, COST_10BP charged once per round trip), not A's
+``execution_v0``, and PnL follows ACCOUNTING_V1 (``app.broker.accounting``). A book records the
+execution version it was opened with, and the engine refuses to append to a book opened under a
+different one, so a legacy V0 book is never continued with V1 trades.
 
 Fill semantics (no look-ahead):
 
@@ -40,6 +46,7 @@ from zoneinfo import ZoneInfo
 
 from app.broker.sim import SimBroker
 from app.execution.config import ExecutionConfig
+from app.strategy_e_max_rt import cost as COST
 from app.execution.domain import IntentType, OrderIntent, OrderSide
 from app.market.calendar import MarketCalendar
 from app.market.domain import MarketSession, MinuteBar
@@ -101,12 +108,15 @@ class Store:
     def save_session(self, state: Mapping[str, Any]) -> None:
         self._write(self.session_path(date.fromisoformat(state["session"])), state)
 
-    def load_book(self, initial_equity: Decimal) -> dict[str, Any]:
+    def load_book(self, initial_equity: Decimal, execution: ExecutionConfig | None = None) -> dict[str, Any]:
         path = self.dir / "book.json"
         if path.exists():
             return json.loads(path.read_text(encoding="utf-8"))
-        return {"strategy_id": self.dir.name, "initial_equity": str(initial_equity), "equity": str(initial_equity),
+        book = {"strategy_id": self.dir.name, "initial_equity": str(initial_equity), "equity": str(initial_equity),
                 "realized_pnl": "0", "sessions": {}, "live_margin_approved": CFG.LIVE_MARGIN_APPROVED}
+        if execution is not None:
+            book |= {"execution_version": execution.version, **_cost_record(execution)}
+        return book
 
     def save_book(self, book: Mapping[str, Any]) -> None:
         self._write(self.dir / "book.json", book)
@@ -121,7 +131,7 @@ class Engine:
     decision_source: DEC.DecisionSource
     calendar: MarketCalendar
     store: Store
-    execution: ExecutionConfig = field(default_factory=ExecutionConfig)
+    execution: ExecutionConfig = field(default_factory=COST.official_execution)
 
     # ---- helpers
     def key(self, session: date, symbol: str, action: str) -> str:
@@ -131,7 +141,8 @@ class Engine:
         return {"strategy_id": self.config.strategy_id, "session": session.isoformat(), "phase": Phase.WAITING,
                 "equity_at_open": str(equity), "decision": None, "entries": {}, "exits": {}, "keys": [],
                 "events": [], "mode": "SIMULATION_VIRTUAL_ONLY", "risk_profile": self.config.profile.name,
-                "live_margin_approved": CFG.LIVE_MARGIN_APPROVED}
+                "live_margin_approved": CFG.LIVE_MARGIN_APPROVED,
+                "execution_version": self.execution.version, **_cost_record(self.execution)}
 
     @staticmethod
     def _event(state: dict[str, Any], now: datetime, text: str) -> None:
@@ -162,7 +173,13 @@ class Engine:
             return {"strategy_id": self.config.strategy_id, "phase": Phase.DISABLED, "session": session.isoformat()}
         if self.calendar.session(session) is None:
             return {"strategy_id": self.config.strategy_id, "phase": Phase.IDLE, "session": session.isoformat()}
-        book = self.store.load_book(self.config.initial_equity)
+        book = self.store.load_book(self.config.initial_equity, self.execution)
+        if book.get("execution_version") != self.execution.version:
+            # A book opened under another execution/accounting version (a legacy V0 book has none)
+            # is never continued: its equity and every figure in it mean something else.
+            return {"strategy_id": self.config.strategy_id, "phase": Phase.ERROR, "session": session.isoformat(),
+                    "error": "BOOK_EXECUTION_VERSION_MISMATCH", "book_version": book.get("execution_version"),
+                    "engine_version": self.execution.version}
         state = self.store.load_session(session) or self.new_state(session, Decimal(book["equity"]))
         if Phase(state["phase"]) in TERMINAL:
             return state
@@ -252,6 +269,7 @@ class Engine:
                 "raw_market_price": str(fill[0].raw_market_price) if fill else None,
                 "fill_price": str(fill[0].fill_price) if fill else None,
                 "fill_cost": str(fill[0].total_cost) if fill else None,
+                "commission": str(fill[0].commission) if fill else None,
                 "fill_semantics": "SimBroker next-bar open: the 09:30 bar open, submitted after the bar existed",
                 "development_proxy": {"entry": "exact 09:30 bar open", "value": found[symbol].open},
                 "bar_volume": found[symbol].volume, "bid": None, "ask": None, "spread": None,
@@ -302,6 +320,7 @@ class Engine:
                 "raw_market_price": str(exit_raw) if exit_raw else None,
                 "fill_price": str(fill[0].fill_price) if fill else None,
                 "fill_cost": str(fill[0].total_cost) if fill else None,
+                "commission": str(fill[0].commission) if fill else None,
                 "exit_flag": "ON_TIME_0935_OPEN" if after[0].timestamp == exit_proxy + MINUTE else "LATE_UNRESOLVED_EXIT",
                 "development_proxy": {"exit": "exact 09:34 bar close", "value": proxy.close if proxy else None,
                                       "status": "VALID" if proxy else "UNRESOLVED_EXIT"},
@@ -318,19 +337,30 @@ class Engine:
         broker = self._broker(state)
         trades = [t for t in (broker.get_trade(s) for s in state["entries"]) if t is not None]
         realized = sum((t.net_pnl for t in trades), Decimal(0))
+        gross = sum((t.gross_pnl for t in trades), Decimal(0))
         views = {f"net_{bp:02d}bp": str(sum((Decimal(x["fixed_bp_views"][f"net_{bp:02d}bp"])
                                              for x in state["exits"].values() if x.get("fixed_bp_views")),
                                             Decimal(0))) for bp in COST_BP}
         equity = Decimal(book["equity"]) + realized
         state["summary"] = {"sim_realized_pnl": str(realized), "equity_after": str(equity),
+                            "sim_gross_pnl": str(gross), "sim_cost": str(gross - realized),
                             "fixed_bp_session_return_views": views,
                             "gross_exposure": state["decision"]["final_exposure"] if state["decision"] else "0"}
         book["sessions"][session.isoformat()] = {"sim_realized_pnl": str(realized), "equity_after": str(equity),
+                                                 "sim_gross_pnl": str(gross), "sim_cost": str(gross - realized),
                                                  "phase": Phase.COMPLETE}
         book["equity"] = str(equity)
         book["realized_pnl"] = str(Decimal(book["realized_pnl"]) + realized)
         self.store.save_book(book)
         self._event(state, now, f"COMPLETE realized={realized}")
+
+
+def _cost_record(execution: ExecutionConfig) -> dict[str, str]:
+    """Accounting and cost identity stamped on a book and on each session state."""
+    contract = getattr(execution, "cost_contract", None)
+    if contract:
+        return COST.record()
+    return {"accounting_version": COST.ACCOUNTING_VERSION, "cost_contract_version": execution.version}
 
 
 def _fixed_views(weight: Decimal, gross: Decimal | None) -> dict[str, str] | None:

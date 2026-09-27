@@ -51,7 +51,7 @@ def write_session(run: Path, session: str, **over) -> None:
 
 
 def write_book(run: Path, status: str, session: str, *, equity="10120.00", entries=None, exits=None) -> None:
-    root = run / "paper_state" / status / E
+    root = run / "paper_state_v1" / status / E
     (root / "sessions").mkdir(parents=True, exist_ok=True)
     (root / "book.json").write_text(json.dumps({
         "strategy_id": E, "initial_equity": "10000", "equity": equity, "realized_pnl": "120.00",
