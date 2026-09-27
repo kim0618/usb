@@ -1,0 +1,895 @@
+{
+  "declaration": {
+    "strategy_id": "REGULAR_TO_AFTER_HOURS_V0",
+    "research_id": "f0-regular-after-v0",
+    "phase": "PRE_VALIDATION",
+    "gate_name": "F0_REGULAR_AFTER_PREVALIDATION",
+    "rules_version": "F0_REGULAR_AFTER_RULES_V1",
+    "declared_at_kst": "2026-09-27",
+    "declared_before": "F0_RESULT_EXECUTION: no F0 feature value, label, return, MFE/MAE, baseline, bucket, hypothesis result, bootstrap or tail statistic had been computed or read",
+    "checksum_recipe": "sha256 of json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False)",
+    "final_gate": false,
+    "question": "Using only regular-session information of session D (bars starting before 16:00 ET) and daily/reference information through D-1, can the probability of a large same-day after-hours excursion and the expected after-hours return from 16:05 to 17:00 ET be raised meaningfully above the execution-eligible baseline of the same PIT universe?",
+    "promotion_claim": "PASS means only 'Strategy F - PROMOTED TO DEVELOPMENT' (next: F-D0..F-D6). It is not an alpha approval, not a trading rule, not an execution or cost claim and not a Paper Trading approval.",
+    "readiness_audit": "F0 PREVALIDATION READINESS AUDIT 2026-09-27 = READY_WITH_LIMITATIONS",
+    "results_forbidden_to_change_rules": true
+  },
+  "frozen_inputs": {
+    "minute_authority": "MASSIVE_TICKER_AGGREGATE adjusted=false, Common Raw provider pages (usb-common-raw-v1), window 04:00-20:00 ET",
+    "minute_store": "Drive 1_US-B market_data/raw/massive/minute (canonical). A local copy (data/runtime/strategy_b_e0/mirror/...) may be read only when every page's sha256 equals the Drive ledger file_sha256; any mismatch is a critical integrity failure.",
+    "minute_legacy_parquet": "NOT_USED (no legacy session lies inside the primary window except for 30 symbols; the primary reads Common Raw only so all symbols share one storage form)",
+    "daily_authority": "MASSIVE_GROUPED_DAILY adjusted=false",
+    "daily_reference_split_root": "data/runtime/strategy_c/raw (STRATEGY_C_RAW_FREEZE_V1, byte-identical to Drive raw/massive grouped_daily, reference_tickers CS_*, splits_2024-09-16_2026-09-16)",
+    "panel_loader": "app.backtest.strategy_c_selection.panel.load_panel (imported unmodified), allowed exchanges XNAS/XNYS/XASE, split range 2024-09-16..2026-09-16",
+    "calendar": "app.market.calendar.MarketCalendar('America/New_York') (XNYS)",
+    "timestamp_convention": "bar t = UTC epoch ms of the bar START; converted to America/New_York with zoneinfo; minute-of-day m = hour*60+minute of the bar start",
+    "network": "no Provider API call is allowed in F0"
+  },
+  "research_window": {
+    "primary_first_session": "2026-04-20",
+    "primary_last_session": "2026-09-16",
+    "primary_session_count": 104,
+    "primary_sessions": [
+      "2026-04-20",
+      "2026-04-21",
+      "2026-04-22",
+      "2026-04-23",
+      "2026-04-24",
+      "2026-04-27",
+      "2026-04-28",
+      "2026-04-29",
+      "2026-04-30",
+      "2026-05-01",
+      "2026-05-04",
+      "2026-05-05",
+      "2026-05-06",
+      "2026-05-07",
+      "2026-05-08",
+      "2026-05-11",
+      "2026-05-12",
+      "2026-05-13",
+      "2026-05-14",
+      "2026-05-15",
+      "2026-05-18",
+      "2026-05-19",
+      "2026-05-20",
+      "2026-05-21",
+      "2026-05-22",
+      "2026-05-26",
+      "2026-05-27",
+      "2026-05-28",
+      "2026-05-29",
+      "2026-06-01",
+      "2026-06-02",
+      "2026-06-03",
+      "2026-06-04",
+      "2026-06-05",
+      "2026-06-08",
+      "2026-06-09",
+      "2026-06-10",
+      "2026-06-11",
+      "2026-06-12",
+      "2026-06-15",
+      "2026-06-16",
+      "2026-06-17",
+      "2026-06-18",
+      "2026-06-22",
+      "2026-06-23",
+      "2026-06-24",
+      "2026-06-25",
+      "2026-06-26",
+      "2026-06-29",
+      "2026-06-30",
+      "2026-07-01",
+      "2026-07-02",
+      "2026-07-06",
+      "2026-07-07",
+      "2026-07-08",
+      "2026-07-09",
+      "2026-07-10",
+      "2026-07-13",
+      "2026-07-14",
+      "2026-07-15",
+      "2026-07-16",
+      "2026-07-17",
+      "2026-07-20",
+      "2026-07-21",
+      "2026-07-22",
+      "2026-07-23",
+      "2026-07-24",
+      "2026-07-27",
+      "2026-07-28",
+      "2026-07-29",
+      "2026-07-30",
+      "2026-07-31",
+      "2026-08-03",
+      "2026-08-04",
+      "2026-08-05",
+      "2026-08-06",
+      "2026-08-07",
+      "2026-08-10",
+      "2026-08-11",
+      "2026-08-12",
+      "2026-08-13",
+      "2026-08-14",
+      "2026-08-17",
+      "2026-08-18",
+      "2026-08-19",
+      "2026-08-20",
+      "2026-08-21",
+      "2026-08-24",
+      "2026-08-25",
+      "2026-08-26",
+      "2026-08-27",
+      "2026-08-28",
+      "2026-08-31",
+      "2026-09-01",
+      "2026-09-02",
+      "2026-09-03",
+      "2026-09-04",
+      "2026-09-08",
+      "2026-09-09",
+      "2026-09-10",
+      "2026-09-11",
+      "2026-09-14",
+      "2026-09-15",
+      "2026-09-16"
+    ],
+    "early_close_sessions_in_window": [],
+    "early_close_rule": "any early-close session is excluded from every F0 sample (none exists in the primary window)",
+    "long_history_sample": {
+      "description": "the 30 MINUTE_UNIVERSE_V1 symbols with ~2 years (Common Raw + legacy parquet) and the U1 136-symbol cohort",
+      "status": "DIAGNOSTIC_ONLY",
+      "reason": "hindsight-selected large caps / gapped cohort, not a PIT universe",
+      "can_change_verdict": false
+    }
+  },
+  "universe": {
+    "contract": "STRATEGY_E_TRADING_UNIVERSE_V1_1",
+    "function": "app.strategy_e_v1_1.universe.daily_eligibility (imported unmodified)",
+    "call": "for session index d of D in the panel grid: daily_eligibility(D, grid[:d], close=panel.close[:d], volume=panel.volume[:d], factor=F[:d], membership=panel.membership()[d-1], split_in_window=F[d] != F[d-1]) with F = panel.split_arrays()[0] (exactly as app.backtest.strategy_e_r3.build.daily_sessions)",
+    "criteria_as_frozen_in_contract": {
+      "security_type": "CS",
+      "primary_exchanges": [
+        "XASE",
+        "XNAS",
+        "XNYS"
+      ],
+      "membership": "latest quarterly CS snapshot dated <= D-1",
+      "min_close_D_minus_1": 5.0,
+      "daily_window_sessions": 20,
+      "min_median_dollar_volume": 5000000.0,
+      "min_present_sessions": 15,
+      "split_exclusion": "split executing in (D-1, D]",
+      "information": "grouped daily rows through D-1 only; a row dated D or later raises UniverseContractError"
+    },
+    "thresholds_changed_for_f": false,
+    "ticker_suspect_flag": {
+      "name": "TICKER_SUSPECT",
+      "rule": "set for (symbol, D) when the symbol's composite_figi in the latest CS snapshot dated <= D-1 differs from its composite_figi in the snapshot immediately before that one (both non-null)",
+      "use": "DIAGNOSTIC_ONLY; rows are not removed; counts and a with/without-flag split are reported",
+      "can_change_verdict": false
+    },
+    "limitations": [
+      "LIST_DATE_UNAVAILABLE",
+      "TICKER_REUSE_NOT_DETECTED_BY_CONTRACT",
+      "REFERENCE_QUARTERLY_CADENCE",
+      "SPLIT_ANNOUNCEMENT_DATE_UNAVAILABLE",
+      "DOS_RESERVED_SYMBOLS_WITHOUT_MINUTE (CON)"
+    ]
+  },
+  "information_cutoff": {
+    "feature_cutoff_et": "15:59:59",
+    "feature_bar_rule": "a session-D bar may enter a feature only if its start minute m satisfies 570 <= m < 960",
+    "prior_session_minute_rule": "regular bars (570 <= m < 960) of primary-window sessions strictly before D may enter the RVOL denominator only",
+    "daily_rule": "grouped daily rows dated <= D-1 only",
+    "reference_rule": "CS snapshots dated <= D-1 only",
+    "forbidden_feature_inputs": [
+      "bar with m >= 960 on session D (includes the 16:00 bar)",
+      "any bar of a session after D",
+      "after-hours price",
+      "after-hours volume",
+      "official close of D (grouped daily row of D)",
+      "grouped daily/reference/splits dated >= D except the split-execution flag for (D-1, D] used by the universe contract"
+    ],
+    "bar_1600_classification": "POSTMARKET; it carries the closing-auction price and is never a regular feature input",
+    "sec_news_in_signal": false
+  },
+  "regular_session": {
+    "feature_window_minutes": [
+      570,
+      960
+    ],
+    "regular_close_proxy": "close of the bar with m == 959 (15:59)",
+    "missing_1559_bar": "row status FEATURE_INVALID_NO_1559; the row enters neither the baseline nor any H",
+    "no_substitution": "the 16:00 bar open and the official close are never used as the regular close",
+    "vw_rule": "every regular bar of D with v > 0 must carry a finite vw; otherwise status VWAP_UNAVAILABLE and every feature that uses vw is NaN (no fallback price)"
+  },
+  "features": {
+    "notation": "reg = bars of D with 570 <= m < 960; c1559 = close of bar m=959; DV(S) = sum over bars in S of v*vw; H_reg/L_reg = max high/min low over reg; P(t) = prevailing price at minute t = close of the last reg bar with t-10 <= m < t (NaN if none); prev_close = grouped daily close of D-1 (raw; the universe excludes splits in (D-1, D]); all ratios are simple returns as fractions; NaN inputs give NaN; no imputation",
+    "definitions": {
+      "day_return": {
+        "formula": "c1559 / prev_close - 1",
+        "inputs": [
+          "reg:m=959",
+          "daily:D-1:close"
+        ],
+        "window": [
+          959,
+          960
+        ]
+      },
+      "regular_dollar_volume": {
+        "formula": "DV(reg)",
+        "inputs": [
+          "reg:v",
+          "reg:vw"
+        ],
+        "window": [
+          570,
+          960
+        ]
+      },
+      "regular_RVOL": {
+        "formula": "regular_dollar_volume(D) / median(regular_dollar_volume(S)) over the most recent up-to-20 primary-window sessions S < D whose regular_dollar_volume is finite and > 0; NaN when fewer than 5 such sessions",
+        "inputs": [
+          "reg:v",
+          "reg:vw",
+          "prior_primary_sessions_reg:v,vw"
+        ],
+        "window": [
+          570,
+          960
+        ],
+        "denominator_window": 20,
+        "denominator_minimum": 5,
+        "denominator_floor_session": "2026-04-20",
+        "warmup_note": "sessions before the 6th primary session have no RVOL; the denominator never reads minutes before 2026-04-20 for any symbol"
+      },
+      "close_vs_VWAP": {
+        "formula": "c1559 / VWAP_reg - 1, VWAP_reg = DV(reg) / sum(v over reg)",
+        "inputs": [
+          "reg:m=959",
+          "reg:v",
+          "reg:vw"
+        ],
+        "window": [
+          570,
+          960
+        ]
+      },
+      "position_in_day_range": {
+        "formula": "(c1559 - L_reg) / (H_reg - L_reg); NaN when H_reg == L_reg",
+        "inputs": [
+          "reg:h",
+          "reg:l",
+          "reg:m=959"
+        ],
+        "window": [
+          570,
+          960
+        ]
+      },
+      "distance_to_day_high": {
+        "formula": "c1559 / H_reg - 1",
+        "inputs": [
+          "reg:h",
+          "reg:m=959"
+        ],
+        "window": [
+          570,
+          960
+        ]
+      },
+      "return_1500_1600": {
+        "formula": "c1559 / P(900) - 1",
+        "inputs": [
+          "reg:close[890,900)",
+          "reg:m=959"
+        ],
+        "window": [
+          890,
+          960
+        ]
+      },
+      "return_1530_1600": {
+        "formula": "c1559 / P(930) - 1",
+        "inputs": [
+          "reg:close[920,930)",
+          "reg:m=959"
+        ],
+        "window": [
+          920,
+          960
+        ]
+      },
+      "return_1545_1600": {
+        "formula": "c1559 / P(945) - 1",
+        "inputs": [
+          "reg:close[935,945)",
+          "reg:m=959"
+        ],
+        "window": [
+          935,
+          960
+        ]
+      },
+      "volume_1500_1600": {
+        "formula": "DV(bars with 900 <= m < 960) (dollar volume)",
+        "inputs": [
+          "reg:v",
+          "reg:vw"
+        ],
+        "window": [
+          900,
+          960
+        ]
+      },
+      "last30m_volume_share": {
+        "formula": "DV(bars with 930 <= m < 960) / regular_dollar_volume",
+        "inputs": [
+          "reg:v",
+          "reg:vw"
+        ],
+        "window": [
+          570,
+          960
+        ]
+      },
+      "last15m_return": {
+        "formula": "ALIAS of return_1545_1600 (identical value); reported once in single-feature analysis and marked ALIAS",
+        "inputs": [
+          "reg:close[935,945)",
+          "reg:m=959"
+        ],
+        "window": [
+          935,
+          960
+        ],
+        "alias_of": "return_1545_1600"
+      },
+      "last15m_volume_share": {
+        "formula": "DV(bars with 945 <= m < 960) / regular_dollar_volume",
+        "inputs": [
+          "reg:v",
+          "reg:vw"
+        ],
+        "window": [
+          570,
+          960
+        ]
+      },
+      "relative_strength_vs_SPY": {
+        "formula": "day_return(symbol, D) - day_return(SPY, D), SPY computed with the identical formula and cutoff; NaN when SPY's day_return is NaN",
+        "inputs": [
+          "reg:m=959",
+          "daily:D-1:close",
+          "SPY:reg:m=959",
+          "SPY:daily:D-1:close"
+        ],
+        "window": [
+          959,
+          960
+        ]
+      }
+    },
+    "missing_data_policy": "a row with a 15:59 bar is feature-valid; an individual NaN feature makes the row ineligible for every H that reads that feature (counted as FEATURE_MISSING_<name>) but keeps it in the baseline",
+    "volume_unit": "all volume features are dollar volume sum(v*vw)"
+  },
+  "execution": {
+    "primary_decision_time_et": "16:05",
+    "primary_entry": {
+      "eligibility": "a bar with m == 965 (16:05) exists on D",
+      "price": "open of the 16:05 bar",
+      "if_missing": "NO_TRADE",
+      "no_substitution": "a later bar (16:06, 16:07, ...) is never used as the primary entry"
+    },
+    "exit_rule": "for target minute T: the bar with the largest m in [T-10, T-1] on D; exit price = its close; none -> UNRESOLVED_EXIT (excluded from that horizon's realized sample); no older bar, no bar at or after T",
+    "exit_age_seconds": "T*60 - (m_exit + 1)*60 (0 when the exit bar is the T-1 bar); recorded per row",
+    "primary_exit": {
+      "target_et": "17:00",
+      "target_minute": 1020,
+      "lookback_minutes": 10,
+      "window_minutes": [
+        1010,
+        1020
+      ]
+    },
+    "secondary_horizons": {
+      "H1630": {
+        "target_minute": 990,
+        "window_minutes": [
+          980,
+          990
+        ]
+      },
+      "H1800": {
+        "target_minute": 1080,
+        "window_minutes": [
+          1070,
+          1080
+        ]
+      },
+      "H2000": {
+        "target_minute": 1200,
+        "window_minutes": [
+          1190,
+          1200
+        ]
+      }
+    },
+    "secondary_decision_diagnostic": {
+      "decision_time_et": "16:15",
+      "entry": "open of the bar with m == 975; missing -> NO_TRADE",
+      "exit": "same 17:00 rule"
+    },
+    "secondary_can_change_verdict": false,
+    "gross_return": "exit_price / entry_price - 1",
+    "path": {
+      "MFE": "max(high over bars with 965 <= m <= m_exit) / entry - 1",
+      "MAE": "min(low over bars with 965 <= m <= m_exit) / entry - 1",
+      "note": "the path never reads a bar after the exit bar"
+    },
+    "net_return": "gross_return - cost_bp / 10000 (round trip subtracted once)"
+  },
+  "samples": {
+    "baseline": "every (symbol, D) with D in the primary sessions, symbol eligible under the universe contract, a 15:59 bar, a 16:05 bar and a resolved 17:00 exit",
+    "hypothesis_sample": "baseline rows whose required features are finite and satisfy every threshold of the H",
+    "baseline_includes_h_rows": true,
+    "status_codes": [
+      "NOT_ELIGIBLE",
+      "NO_MINUTE",
+      "FEATURE_INVALID_NO_1559",
+      "VWAP_UNAVAILABLE",
+      "NO_TRADE",
+      "UNRESOLVED_EXIT",
+      "RESOLVED"
+    ],
+    "coverage_report_required": "per session and in total: eligible, NO_MINUTE, FEATURE_INVALID_NO_1559, VWAP_UNAVAILABLE, NO_TRADE, UNRESOLVED_EXIT, RESOLVED; exit_age_seconds distribution"
+  },
+  "hypotheses": {
+    "H1": {
+      "name": "STRONG_REGULAR_MOMENTUM",
+      "all": [
+        [
+          "day_return",
+          ">=",
+          0.03
+        ],
+        [
+          "position_in_day_range",
+          ">=",
+          0.8
+        ]
+      ]
+    },
+    "H2": {
+      "name": "CLOSING_STRENGTH",
+      "all": [
+        [
+          "return_1530_1600",
+          ">=",
+          0.01
+        ],
+        [
+          "close_vs_VWAP",
+          ">=",
+          0.005
+        ]
+      ]
+    },
+    "H3": {
+      "name": "VOLUME_PLUS_STRENGTH",
+      "all": [
+        [
+          "regular_RVOL",
+          ">=",
+          2.0
+        ],
+        [
+          "position_in_day_range",
+          ">=",
+          0.8
+        ]
+      ]
+    },
+    "H4": {
+      "name": "RELATIVE_STRENGTH",
+      "all": [
+        [
+          "relative_strength_vs_SPY",
+          ">=",
+          0.02
+        ],
+        [
+          "return_1530_1600",
+          ">=",
+          0.005
+        ],
+        [
+          "regular_dollar_volume",
+          ">=",
+          20000000.0
+        ]
+      ]
+    },
+    "H5": {
+      "name": "AGGRESSIVE_TAIL_SETUP",
+      "all": [
+        [
+          "day_return",
+          ">=",
+          0.05
+        ],
+        [
+          "regular_RVOL",
+          ">=",
+          2.0
+        ],
+        [
+          "position_in_day_range",
+          ">=",
+          0.9
+        ],
+        [
+          "return_1530_1600",
+          ">=",
+          0.01
+        ]
+      ]
+    },
+    "comparison": "inclusive (>=) on the unrounded float feature",
+    "frozen": "no threshold is relaxed, tightened or added after any F0 result"
+  },
+  "single_feature_analysis": {
+    "features": [
+      "day_return",
+      "regular_RVOL",
+      "regular_dollar_volume",
+      "close_vs_VWAP",
+      "position_in_day_range",
+      "distance_to_day_high",
+      "return_1500_1600",
+      "return_1530_1600",
+      "return_1545_1600",
+      "volume_1500_1600",
+      "last30m_volume_share",
+      "last15m_volume_share",
+      "relative_strength_vs_SPY"
+    ],
+    "alias_reported_once": {
+      "last15m_return": "return_1545_1600"
+    },
+    "buckets": "Q1..Q5 pooled over the baseline rows with a finite value; edges = numpy.quantile(values, [0.2, 0.4, 0.6, 0.8]) (method 'linear'); bucket = numpy.searchsorted(edges, x, side='right') + 1",
+    "edges_from": "feature values only; no outcome is read to form edges",
+    "per_bucket_metrics": [
+      "N",
+      "mean",
+      "median",
+      "win_rate",
+      "P(return>=+1%)",
+      "P(return>=+2%)",
+      "P(MFE>=+3%)",
+      "P(return<=-2%)",
+      "mean MFE",
+      "mean MAE"
+    ],
+    "monotonicity_report": "whether bucket means and P(MFE>=+3%) are monotone over Q1..Q5 and the Q5-Q1 difference",
+    "use": "DIAGNOSTIC_ONLY; never used to search or change a threshold",
+    "can_change_verdict": false
+  },
+  "outcome_metrics": {
+    "central": [
+      "mean_return",
+      "median_return",
+      "win_rate (gross return > 0)"
+    ],
+    "positive_tail_thresholds": [
+      0.005,
+      0.01,
+      0.02,
+      0.03,
+      0.05
+    ],
+    "negative_tail_thresholds": [
+      -0.005,
+      -0.01,
+      -0.02,
+      -0.03
+    ],
+    "path": [
+      "MFE distribution",
+      "MAE distribution"
+    ],
+    "mfe_thresholds": [
+      0.02,
+      0.03,
+      0.05
+    ],
+    "primary_tail_endpoint": "P(MFE >= +0.03)",
+    "supporting_metrics": [
+      "P(return>=+0.02)",
+      "P(return>=+0.03)",
+      "P(MFE>=+0.02)",
+      "P(MFE>=+0.05)",
+      "all other listed tails"
+    ],
+    "return_basis": "gross unless a cost scenario is named",
+    "tail_inclusive": "P(x >= k) and P(x <= k) are inclusive"
+  },
+  "gates": {
+    "sample": {
+      "min_trades": 300,
+      "min_unique_symbols": 100,
+      "min_unique_sessions": 60,
+      "fail_label": "INSUFFICIENT_SAMPLE"
+    },
+    "statistical": {
+      "bootstrap": "session-cluster: draw the 104 primary sessions with replacement; each replicate pools every baseline and H row of the drawn sessions (a session drawn k times counts k times)",
+      "iterations": 5000,
+      "seed": 2026092701,
+      "rng": "numpy.random.default_rng(seed).integers(0, 104, size=(5000, 104)); the same draw matrix is used for every H and every endpoint",
+      "ci_method": "percentile, numpy.percentile method 'linear'",
+      "primary_endpoint": "tail_lift = P_H(MFE>=0.03) - P_base(MFE>=0.03)",
+      "pass_condition": "99% CI (0.5th percentile) lower bound of tail_lift > 0",
+      "also_reported": [
+        "95% and 99% CI of tail_lift",
+        "95% and 99% CI of mean_lift = mean_H(gross) - mean_base(gross)"
+      ],
+      "multiplicity_note": "the 99% level is the declared strong-evidence standard for five simultaneous hypotheses"
+    },
+    "tail": {
+      "primary": "P(MFE>=0.03)",
+      "min_absolute_lift": 0.02,
+      "min_relative_lift": 1.5,
+      "relative_lift": "P_H / P_base (P_base == 0 -> relative condition passes only if P_H > 0)",
+      "requires_statistical_pass": true
+    },
+    "mean_median": {
+      "mean_lift_gross": "> 0",
+      "min_median_gross_return": -0.0025
+    },
+    "downside": {
+      "metric": "P(gross return <= -0.02)",
+      "fail_if_absolute_worsening_at_least": 0.02,
+      "fail_if_ratio_above": 1.5,
+      "ratio_rule": "fail if P_H > 1.5 * P_base (with P_base == 0, any P_H > 0 fails)",
+      "also_reported": [
+        "MAE distribution H vs baseline"
+      ]
+    },
+    "extreme_removal": {
+      "removals": [
+        "top1",
+        "top5",
+        "top1pct"
+      ],
+      "ranking": "H trades ranked by gross return descending (ties: symbol ascending, then session ascending); only trades with gross return > 0 are removable",
+      "top1pct_count": "ceil(0.01 * H trades)",
+      "baseline": "unchanged (the removed trades also leave the baseline)",
+      "pass_condition": "after top1pct removal: mean_lift > 0 and tail_lift(P(MFE>=0.03)) > 0"
+    },
+    "concentration": {
+      "basis": "per-ticker sum of H net returns at the primary cost scenario (50 bp)",
+      "share": "ticker share = its sum / sum of all positive ticker sums; tickers with sum <= 0 have share 0",
+      "metrics": [
+        "top1_share",
+        "top5_share",
+        "top10_share",
+        "HHI over positive shares",
+        "unique_symbols"
+      ],
+      "max_top1_share": 0.15,
+      "max_top5_share": 0.4,
+      "no_positive_sum": "gate FAIL",
+      "leave_top10_tickers": "drop the 10 tickers with the largest sums from both H and baseline; aggregate mean_lift (gross) must stay > 0"
+    },
+    "time_consistency": {
+      "blocks": 4,
+      "partition": "numpy.array_split of the 104 primary sessions in chronological order (26 each)",
+      "per_block": [
+        "N",
+        "mean",
+        "mean_lift",
+        "P(MFE>=0.03)",
+        "tail_lift",
+        "median",
+        "win_rate"
+      ],
+      "min_blocks_mean_lift_positive": 3,
+      "min_blocks_tail_lift_positive": 3,
+      "empty_block": "a block with no H trade counts as not positive"
+    },
+    "cost": {
+      "label": "cost stress assumption (not a cost estimate: no quote/spread data)",
+      "round_trip_bp_grid": [
+        10,
+        20,
+        30,
+        50,
+        75,
+        100
+      ],
+      "primary_bp": 50,
+      "break_even_cost_bp": "10000 * mean gross return of H",
+      "pass_condition": "break_even_cost_bp >= 50"
+    },
+    "pit": {
+      "required": [
+        "PIT-1",
+        "PIT-2",
+        "PIT-3"
+      ],
+      "pass_condition": "all three pass before any outcome is computed"
+    }
+  },
+  "matched_control": {
+    "status": "REPORTED (not one of the verdict gates); cannot overturn the verdict",
+    "method": "coarsened exact matching, same session only; reuse app.backtest.strategy_e1_h5_confirm.matching conventions (cell ids, match rate, unmatched counted) with F cell variables",
+    "cell_variables": {
+      "prev_close_bucket": {
+        "source": "grouped close D-1",
+        "edges": [
+          5.0,
+          10.0,
+          20.0,
+          50.0,
+          100.0,
+          null
+        ]
+      },
+      "median_dollar_volume_20_bucket": {
+        "source": "median(close*volume) of the 20 grouped rows before D (the universe window)",
+        "edges": [
+          5000000.0,
+          20000000.0,
+          50000000.0,
+          200000000.0,
+          null
+        ]
+      },
+      "regular_dollar_volume_bucket": {
+        "source": "regular_dollar_volume of D",
+        "edges": [
+          0.0,
+          5000000.0,
+          20000000.0,
+          100000000.0,
+          null
+        ]
+      }
+    },
+    "edge_semantics": "lower-inclusive, upper-exclusive; None = open upper end",
+    "control_pool": "baseline rows of the same session and cell that are not in the H",
+    "estimand": "mean over matched H rows of (H outcome - mean control outcome of its session-cell) for gross return and for 1[MFE>=0.03]; match rate reported",
+    "forbidden_matching_inputs": [
+      "any bar with m >= 960",
+      "after-hours liquidity"
+    ],
+    "diagnostic_matching": "a variant adding 16:00-16:04 activity may be reported as DIAGNOSTIC_ONLY"
+  },
+  "event_diagnostic": {
+    "source": "C-E0 SEC EDGAR submissions store data/runtime/strategy_c/e0/raw (acceptanceDateTime = true UTC, C_E0_RESULTS_V1)",
+    "ticker_to_cik": "cik of the latest CS snapshot dated <= D-1",
+    "event": "EVENT when a form 8-K with item 2.02 of that CIK was accepted in [D-1 16:00 ET, D 17:00 ET)",
+    "non_event": "NON_EVENT only when the CIK is in the store and the store's coverage of that CIK includes D",
+    "unknown": "UNKNOWN_EVENT_STATUS otherwise (never treated as NON_EVENT)",
+    "use": "DIAGNOSTIC_ONLY stratification; never a feature; cannot change the verdict"
+  },
+  "auction_diagnostic_1600": {
+    "outputs": [
+      "15:55-15:59 movement",
+      "16:00 bar open/close vs c1559",
+      "16:00-16:04 observed movement"
+    ],
+    "use": "DIAGNOSTIC_ONLY; never a feature; cannot change a threshold or the verdict"
+  },
+  "pit_audits": {
+    "order": "PIT audits run on features and H masks before any outcome (entry/exit/return/MFE/MAE) is computed; a failure halts the run with no verdict (fail-closed)",
+    "PIT-1": {
+      "name": "FEATURE_CUTOFF_POISON",
+      "action": "replace every bar with m >= 960 on D and every bar of sessions after D by finite positive noise (seed 2026092711) and add synthetic bars at every empty minute in [960, 1200)",
+      "must_be_identical": [
+        "all regular features (bit-identical, NaN positions equal)",
+        "H1-H5 masks",
+        "feature-valid status"
+      ]
+    },
+    "PIT-2": {
+      "name": "DAILY_REFERENCE_POISON",
+      "audit_sessions": "12 sessions at indices round(linspace(0, 103, 12)) of the primary list",
+      "action": "overwrite grouped daily rows dated >= D, reference snapshots dated >= D and split events executing after D (seed 2026092712)",
+      "must_be_identical": [
+        "universe eligibility of D",
+        "prev_close",
+        "features",
+        "H masks"
+      ]
+    },
+    "PIT-3": {
+      "name": "SYNTHETIC_LEAK_DETECTION",
+      "action": "a test-only feature variant that reads the 16:05 bar open inside day_return is run through PIT-1",
+      "must": "PIT-1 reports a difference; if the planted leak is not detected the audit is invalid and the run halts"
+    }
+  },
+  "integrity": {
+    "critical": [
+      "page sha256 mismatch against its ledger",
+      "duplicate timestamps with different values",
+      "invalid OHLC (h < max(o,c,l) or l > min(o,c,h)) or non-positive price in a bar used by F0",
+      "non-minute-aligned timestamp",
+      "rules checksum mismatch"
+    ],
+    "non_critical_reported": [
+      "identical duplicate timestamps (deduplicated, counted)",
+      "bars after 20:00 ET (ignored, counted)",
+      "TICKER_SUSPECT counts"
+    ],
+    "critical_effect": "no PASS; verdict INCONCLUSIVE with reason DATA_INTEGRITY"
+  },
+  "verdict": {
+    "vocabulary": [
+      "PASS",
+      "INCONCLUSIVE",
+      "FAIL"
+    ],
+    "borderline": "NOT USED",
+    "per_hypothesis_labels": [
+      "H_PASS",
+      "INSUFFICIENT_SAMPLE",
+      "UNDERPOWERED",
+      "H_FAIL"
+    ],
+    "per_hypothesis_order": [
+      "INSUFFICIENT_SAMPLE if the sample gate fails",
+      "H_PASS if sample, tail, statistical, mean/median, downside, extreme-removal, concentration, time-consistency and cost gates all pass",
+      "UNDERPOWERED if every gate except the statistical 99% CI condition passes on point estimates and the 99% CI half-width of tail_lift is >= 0.02",
+      "H_FAIL otherwise"
+    ],
+    "PASS": "at least one H_PASS, PIT-1..3 pass and no critical integrity failure",
+    "INCONCLUSIVE": "no H_PASS and (every H is INSUFFICIENT_SAMPLE, or any H is UNDERPOWERED, or the baseline has fewer than 60 sessions with a resolved row [EXECUTION_RESOLUTION_INSUFFICIENT], or a critical integrity failure)",
+    "FAIL": "none of the INCONCLUSIVE conditions holds and no H is H_PASS",
+    "cannot_rescue": [
+      "secondary horizons 16:30/18:00/20:00",
+      "16:15 decision diagnostic",
+      "single-feature analysis",
+      "matched control",
+      "event diagnostic",
+      "16:00 auction diagnostic",
+      "long-history sample"
+    ]
+  },
+  "promotion": {
+    "on_PASS": "Strategy F - PROMOTED TO DEVELOPMENT",
+    "next_sequence": [
+      "F-D0 Trading Preregistration",
+      "F-D1 Signal Contract",
+      "F-D2 Execution",
+      "F-D3 Exit",
+      "F-D4 Cost",
+      "F-D5 Risk/Sizing",
+      "F-D6 Trading Backtest"
+    ],
+    "paper_trading": "not authorized by F0; considered only after a Trading Backtest PASS"
+  },
+  "run_identity": {
+    "prefix": "f0",
+    "components": [
+      "rules canonical checksum",
+      "code digest of app.backtest.strategy_f0_regular_after",
+      "minute read-set digest (ledger file_sha256 of every page read)",
+      "daily/reference/splits read-set digest",
+      "primary session list",
+      "git HEAD (recorded, not hashed)"
+    ],
+    "reproduction": "two runs with the same identity must produce byte-identical result artifacts"
+  },
+  "prohibitions": [
+    "no Provider API call",
+    "no threshold, window, horizon, cost or gate change after any F0 result",
+    "no universe re-selection",
+    "no feature added or removed on the basis of results",
+    "no A/E code, signal, runtime or configuration change",
+    "no optimizer or threshold search"
+  ]
+}

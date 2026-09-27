@@ -1,0 +1,11 @@
+{
+  "file": "f0_regular_after_rules_v1.json",
+  "canonical_sha256": "3b980aa46f27f1a138478c87cfcd7c510ef9e710044e1e76ff6374e2a0118fd0",
+  "file_sha256": "50bb45714bd081fab0c5ef38c56505d126d045a53fd0b5e135045e6e311c12ad",
+  "document": "F0_REGULAR_AFTER_PREREGISTRATION_V1.md",
+  "document_file_sha256": "082f42a792e8bfbac12514e6e231a3437012987071bf7e9d7619a6e4aee28da6",
+  "recipe": "canonical = sha256 of json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False); same recipe as C-M, C-E0, EQM-V0, D, C-4 and E0",
+  "frozen_at_kst": "2026-09-27T15:24:16+09:00",
+  "frozen_before": "F0_RESULT_EXECUTION",
+  "frozen_before_detail": "no F0 feature value, label, return, MFE/MAE, baseline, bucket, hypothesis result, bootstrap or tail statistic had been computed or read"
+}
