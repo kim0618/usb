@@ -28,7 +28,7 @@ export default function DashboardPage() {
     <section aria-labelledby="dashboard-curve-title" className="mb-7">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h2 id="dashboard-curve-title" className="font-semibold">전략 자산 추이</h2>
-        <Link href="/strategy-e" className="btn-action-secondary-compact">Strategy E 상세</Link>
+        <Link href="/strategy-compare" className="btn-action-secondary-compact">A/E 성과 비교</Link>
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
         {state.data.map(({ row, equity }) => <div key={row.strategy_id} className="panel p-4" data-equity={row.strategy_id}>

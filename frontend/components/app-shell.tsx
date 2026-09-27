@@ -17,7 +17,7 @@ export const navigationItems: NavigationItem[] = [
   { href: "/dashboard", icon: "▦", label: "대시보드", activePaths: ["/dashboard"] },
   { href: "/trading", icon: "↗", label: "트레이딩", activePaths: ["/trading", "/trading-b", "/strategy-e"] },
   { href: "/candidates", icon: "◎", label: "종목 분석", activePaths: ["/candidates", "/research", "/adoption"] },
-  { href: "/shadow", icon: "≋", label: "전략", activePaths: ["/shadow", "/strategy-b", "/strategy-compare"] },
+  { href: "/strategy-compare", icon: "≋", label: "전략", activePaths: ["/strategy-compare", "/shadow", "/strategy-history", "/strategy-b"] },
   { href: "/runtime", icon: "⚠", label: "시스템", activePaths: ["/runtime", "/settings"] },
 ];
 

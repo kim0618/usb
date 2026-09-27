@@ -33,32 +33,35 @@ describe("Final information architecture", () => {
     expect(group("/shadow")).toBe("전략");
     expect(group("/strategy-b")).toBe("전략");
     expect(group("/strategy-compare")).toBe("전략");
+    expect(group("/strategy-history")).toBe("전략");
   });
 
   it("derives the operating tabs from the registry and keeps the result tabs fixed", () => {
     const registry = [
-      { strategy_id: "STRATEGY_A", enabled: true, mode: "SIMULATION_PAPER" },
-      { strategy_id: "STRATEGY_E_MAX_V1", enabled: true, mode: "SIMULATION_PAPER" },
-      { strategy_id: "STRATEGY_B", enabled: false, mode: "RESEARCH_CLOSED" },
+      { strategy_id: "STRATEGY_A", display_name: "Strategy A", variant_label: "기존 전략", enabled: true, mode: "SIMULATION_PAPER" },
+      { strategy_id: "STRATEGY_E_MAX_V1", display_name: "Strategy E", variant_label: "E-MAX V1", enabled: true, mode: "SIMULATION_PAPER" },
+      { strategy_id: "STRATEGY_B", display_name: "Strategy B", variant_label: "실시간 모멘텀", enabled: false, mode: "RESEARCH_CLOSED" },
     ] as never;
+    // Labels are the registry's own display_name + variant; no strategy name is typed into the tab code.
     expect(operatingTabs(registry)).toEqual([
-      { strategy_id: "STRATEGY_A", href: "/trading", label: "전략 A · 기존 전략" },
-      { strategy_id: "STRATEGY_E_MAX_V1", href: "/strategy-e", label: "전략 E · E-MAX V1" },
+      { strategy_id: "STRATEGY_A", href: "/trading", label: "Strategy A · 기존 전략" },
+      { strategy_id: "STRATEGY_E_MAX_V1", href: "/strategy-e", label: "Strategy E · E-MAX V1" },
     ]);
-    expect(OPERATING_ROUTES.STRATEGY_B.href).toBe("/trading-b");      // the closed strategy keeps its screen
+    expect(Object.keys(OPERATING_ROUTES)).toEqual(["STRATEGY_A", "STRATEGY_E_MAX_V1"]);   // B is not operating
     expect(strategyTabs).toEqual([
-      { href: "/shadow", label: "전략 A · 기존 전략" },
-      { href: "/strategy-b", label: "전략 B · 실시간 모멘텀" },
-      { href: "/strategy-compare", label: "전략 A/B 비교" },
+      { href: "/strategy-compare", label: "A/E 성과 비교" },
+      { href: "/shadow", label: "A 섀도 변형" },
+      { href: "/strategy-history", label: "연구 이력" },
     ]);
+    expect(source("lib/strategies.ts")).not.toMatch(/전략 [AE] ·/);
   });
 
   it("renders the operating tabs the registry returns, with the current route active", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, status: 200, json: async () => [
-      { strategy_id: "STRATEGY_A", display_name: "Strategy A", version: "V0", enabled: true,
+      { strategy_id: "STRATEGY_A", display_name: "Strategy A", variant_label: "기존 전략", version: "V0", enabled: true,
         mode: "SIMULATION_PAPER", market_data_source: "KIWOOM", runtime_status: "RUNNING",
         paper_status: "PAPER", evidence_status: null, session: null },
-      { strategy_id: "STRATEGY_E_MAX_V1", display_name: "Strategy E-MAX V1", version: "V1", enabled: true,
+      { strategy_id: "STRATEGY_E_MAX_V1", display_name: "Strategy E", variant_label: "E-MAX V1", version: "E-MAX V1", enabled: true,
         mode: "SIMULATION_PAPER", market_data_source: "KIWOOM", runtime_status: "COMPLETE",
         paper_status: "PROVISIONAL_RVOL_BOOTSTRAP", evidence_status: "PROVISIONAL_RVOL_BOOTSTRAP", session: null },
       { strategy_id: "STRATEGY_B", display_name: "Strategy B", version: "E1-A", enabled: false,
@@ -67,18 +70,20 @@ describe("Final information architecture", () => {
     ] }) as Response));
     pathname = "/strategy-e";
     render(<TradingTabs/>);
-    expect(await screen.findByRole("link", { name: "전략 E · E-MAX V1" })).toHaveAttribute("aria-current", "page");
+    expect(await screen.findByRole("link", { name: "Strategy E · E-MAX V1" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("navigation", { name: "트레이딩 화면" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "전략 A · 기존 전략" })).toHaveAttribute("href", "/trading");
-    expect(screen.queryByRole("link", { name: /전략 B/ })).not.toBeInTheDocument();   // closed: hidden
+    expect(screen.getByRole("link", { name: "Strategy A · 기존 전략" })).toHaveAttribute("href", "/trading");
+    expect(screen.queryByRole("link", { name: /Strategy B|전략 B/ })).not.toBeInTheDocument();   // closed: hidden
     pathname = "/trading-b";
   });
 
-  it("renders the strategy tabs on the result routes", () => {
-    pathname = "/strategy-b";
+  it("renders the strategy tabs on the result routes, with no closed strategy among them", () => {
+    pathname = "/strategy-compare";
     render(<StrategyTabs/>);
     expect(screen.getByRole("navigation", { name: "전략 화면" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "전략 B · 실시간 모멘텀" })).toHaveAttribute("href", "/strategy-b");
+    expect(screen.getByRole("link", { name: "A/E 성과 비교" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "연구 이력" })).toHaveAttribute("href", "/strategy-history");
+    expect(screen.queryByRole("link", { name: /전략 B|Strategy B|A\/B/ })).not.toBeInTheDocument();
     pathname = "/trading-b";
   });
 
@@ -91,36 +96,27 @@ describe("Final information architecture", () => {
   });
 });
 
-describe("Strategy B screen responsibilities", () => {
+describe("Closed Strategy B screens", () => {
+  // B closed on 2026-09-23. Its old routes stay reachable by URL but render only a CLOSED notice:
+  // no mock figure, no scanner, no position, so B can never read as a running strategy. B's
+  // components, mocks and research code stay in the repository untouched.
   const tradingB = () => source("app/trading-b/page.tsx");
   const performanceB = () => source("app/strategy-b/page.tsx");
 
-  it("puts the scanner, positions and today's trades on the trading screen", () => {
-    ["<StrategyBScanner", "<StrategyBPositions", "<StrategyBTrades", "<StrategyBTradingOverview"].forEach(marker => expect(tradingB()).toContain(marker));
+  it("render the closed notice and nothing from the B mock module", () => {
+    [tradingB(), performanceB()].forEach(page => {
+      expect(page).toContain("<ClosedStrategyNotice");
+      expect(page).not.toMatch(/strategy-b-source|mocks\/|StrategyB(Scanner|Positions|Trades|Performance|EquityCurve)/);
+    });
   });
 
-  it("keeps period statistics off the trading screen", () => {
-    const rendered = tradingB() + source("components/strategy-b-overview.tsx");
-    ["Profit Factor", "최대 낙폭", "기대값", "평균 R", "총 수익률", "StrategyBPerformance", "StrategyBEquityCurve"]
-      .forEach(metric => expect(rendered).not.toContain(metric));
+  it("titles each screen with the registry name and CLOSED", () => {
+    [tradingB(), performanceB()].forEach(page => expect(page).toContain("`${row.display_name} · CLOSED`"));
   });
 
-  it("keeps the scanner, positions and today's trades off the performance screen", () => {
-    ["<StrategyBScanner", "<StrategyBPositions", "<StrategyBTrades", "실시간 스캐너"].forEach(marker => expect(performanceB()).not.toContain(marker));
-  });
-
-  it("puts the result statistics on the performance screen", () => {
-    expect(performanceB()).toContain("<StrategyBPerformance");
-    expect(performanceB()).toContain("<StrategyBEquityCurve");
-    expect(performanceB()).toContain("<StrategyBSetupPerformance");
-    expect(performanceB()).toContain("<StrategyBDailyPnl");
-    const performance = source("components/strategy-b-performance.tsx");
-    ["Profit Factor", "최대 낙폭", "기대값", "평균 R", "총 수익률"].forEach(metric => expect(performance).toContain(metric));
-  });
-
-  it("titles each screen for its role", () => {
-    expect(tradingB()).toContain('title="전략 B · 실시간 모멘텀"');
-    expect(performanceB()).toContain('title="전략 B · 성과"');
+  it("keeps B's research-era components in the repository", () => {
+    ["components/strategy-b-scanner.tsx", "components/strategy-b-performance.tsx", "lib/strategy-b.ts"]
+      .forEach(path => expect(() => statSync(path)).not.toThrow());
   });
 });
 
@@ -168,9 +164,8 @@ describe("Screen chrome is not repeated", () => {
     expect(() => statSync("components/mock-data-notice.tsx")).toThrow();
     const badge = source("components/mock-badge.tsx");
     expect(badge).toContain("MockBadge");
-    ["app/trading-b/page.tsx", "app/strategy-b/page.tsx", "app/strategy-compare/page.tsx"]
-      .forEach(path => expect(source(path).match(/<MockBadge/g)?.length ?? 0, path).toBe(1));
-    // The dashboard reads the live per-strategy API, so it carries no mock marker at all.
-    expect(source("app/dashboard/page.tsx")).not.toContain("MockBadge");
+    // Every operating and result screen now reads the live API; none carries a mock marker.
+    ["app/dashboard/page.tsx", "app/trading-b/page.tsx", "app/strategy-b/page.tsx", "app/strategy-compare/page.tsx",
+     "app/strategy-history/page.tsx"].forEach(path => expect(source(path), path).not.toContain("MockBadge"));
   });
 });

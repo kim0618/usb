@@ -196,6 +196,26 @@ describe("dashboard route", () => {
     [`/api/v1/strategies/${STRATEGY_E}/status`]: eBundle().status,
     [`/api/v1/strategies/${STRATEGY_E}/account`]: eBundle().account,
     [`/api/v1/strategies/${STRATEGY_E}/equity`]: eBundle().equity,
+    "/api/v1/strategies/cards": [
+      { strategy_id: STRATEGY_A, display_name: "Strategy A", short_name: "A", variant_label: "기존 전략", version: "V0",
+        research_lifecycle: "PASSED_TO_PAPER", lifecycle: "PAPER", operational_status: "WAITING_SIGNAL",
+        runtime_status: "RUNNING", evidence_status: null, currency: "USD", equity: "7509.40", initial_equity: "7428.92",
+        open_positions: 0, today_realized_pnl: "0", today_unrealized_pnl: "0", net_pnl: null,
+        equity_change: "80.4785", trades: 0, last_signal_at: null, last_trade_at: "2026-09-22T19:52:00+00:00",
+        official: { trades: 0, net_pnl: null, accounting_versions: [] },
+        legacy: { trades: 3, net_pnl: "72.3555", accounting_versions: ["V0"] },
+        paper_clock: { paper_evaluation_version: "AE_PAPER_V1", accounting_version: "V1", official_paper_start: null,
+                       status: "NOT_STARTED", gate_contract: "AE_PAPER_EVALUATION_GATE_V1" },
+        na: { last_signal_at: "A 원장(simulation_trades)은 신호 시각을 기록하지 않는다" } },
+      { strategy_id: STRATEGY_E, display_name: "Strategy E", short_name: "E", variant_label: "E-MAX V1", version: "E-MAX V1",
+        research_lifecycle: "PASSED_TO_PAPER", lifecycle: "PAPER", operational_status: "DATA_ERROR",
+        runtime_status: "ERROR", evidence_status: "OFFICIAL_KIWOOM_PAPER", currency: "USD", equity: "9876.85",
+        initial_equity: "10000", open_positions: 0, today_realized_pnl: "0", today_unrealized_pnl: "0",
+        net_pnl: null, equity_change: "-123.1542", trades: 0,
+        official: { trades: 0, net_pnl: null, accounting_versions: [] },
+        legacy: { trades: 3, net_pnl: "-123.1542", accounting_versions: ["V0"] },
+        last_signal_at: "2026-09-25T09:29:26-04:00", last_trade_at: "2026-09-25T09:35:00-04:00", na: {} },
+    ],
   };
 
   it("renders both strategies from the live API", async () => {
@@ -210,6 +230,21 @@ describe("dashboard route", () => {
     expect(screen.getAllByText("Strategy E-MAX V1").length).toBeGreaterThan(0);
     expect(document.querySelectorAll("[data-strategy]")).toHaveLength(2);
     expect(screen.getByRole("heading", { name: "대시보드" })).toBeInTheDocument();
+    // The card's ledger side: research and operations on separate words, trade count, last signal.
+    const eFields = document.querySelector(`[data-operating-fields="${STRATEGY_E}"]`) as HTMLElement;
+    expect(eFields.textContent).toContain("Research: PASSED TO PAPER · Operations: DATA ERROR");
+    expect(eFields.textContent).toContain("공식 Net PnL (V1)");
+    expect(eFields.textContent).toContain("공식 거래 수0");                    // official starts empty
+    expect(document.querySelector(`[data-legacy-summary="${STRATEGY_E}"]`)!.textContent)
+      .toContain("Legacy Paper (V0, 공식 평가 제외): 거래 3건");
+    expect(screen.getAllByText("DATA ERROR").length).toBeGreaterThan(0);
+    const aFields = document.querySelector(`[data-operating-fields="${STRATEGY_A}"]`) as HTMLElement;
+    expect(aFields.textContent).toContain("WAITING SIGNAL");
+    expect(aFields.textContent).toContain("Official Paper: 시작 전");
+    // The account's latest session is labelled as such, never as the calendar day.
+    expect(screen.getAllByText("최근 세션 손익").length).toBe(2);
+    expect(screen.queryByText("오늘 손익")).not.toBeInTheDocument();
+    expect(aFields.querySelector("[title*='simulation_trades']")).not.toBeNull();   // a reason, not a zero
   });
 
   it("has no mock import and no mock fallback left on the dashboard", () => {
@@ -339,7 +374,7 @@ describe("money is rendered the way Strategy A renders it", () => {
     expect(within(card).getByText(formatKrw(usdToDisplayKrw("10240.55")))).toBeInTheDocument();
     expect(within(card).getByText("+$120.25")).toBeInTheDocument();            // 오늘 손익 USD
     expect(within(card).getAllByText(/^\+₩/).length).toBeGreaterThan(1);       // 손익의 KRW 보조선
-    expect(within(card).getByText("누적 수익")).toBeInTheDocument();            // 상세 화면과 같은 용어
+    expect(within(card).getByText("계좌 누적 수익")).toBeInTheDocument();       // 계좌 전체 기간(레거시 포함), 공식 Net PnL과 구분
   });
 
   it("uses Strategy A's own fixed rate, never a number typed into a component", async () => {

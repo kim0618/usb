@@ -1,27 +1,35 @@
 "use client";
 
-import { MockBadge } from "@/components/mock-badge";
+import { GatePanel, PerformanceTable, PortfolioPanel } from "@/components/ae-operations";
 import { StrategyTabs } from "@/components/section-tabs";
-import { StrategyCompareView } from "@/components/strategy-compare";
 import { ErrorState, LoadingState, PageHeader } from "@/components/ui";
 import { useApi } from "@/hooks/use-api";
-import { STRATEGY_B_MOCK, strategyCompareSource } from "@/lib/strategy-b-source";
+import { strategiesApi } from "@/lib/strategies";
 
-/** Strategy A vs Strategy B over one common period, demo state.
+async function load() {
+  const [rows, board, portfolio] = await Promise.all([
+    strategiesApi.list(), strategiesApi.performance(), strategiesApi.portfolio(),
+  ]);
+  return { rows, board, portfolio };
+}
+
+/** Strategy A and Strategy E side by side, from their own paper books, plus the A+E portfolio view.
  *
- *  The figures come from lib/strategy-b-source.ts (mock module). The common period is a
- *  stored field, so the real screen can replace it with the Backend's own calculation. */
+ *  Before 2026-09-27 this route compared A with the closed Strategy B from a mock module. It now
+ *  reads GET /strategies/performance and /strategies/portfolio; the old A/B components stay in the
+ *  repository for their tests but no screen renders them. */
 export default function StrategyComparePage() {
-  const comparison = useApi(strategyCompareSource.comparison);
-  const header = <PageHeader title="전략 A/B 비교" description="동일 기간 · 동일 초기 자본 기준 성과 비교"
-    actions={STRATEGY_B_MOCK ? <MockBadge/> : undefined}/>;
-
-  if (comparison.loading) return <><StrategyTabs/>{header}<LoadingState/></>;
-  if (!comparison.data) return <><StrategyTabs/>{header}<ErrorState message={comparison.error || "전략 비교 조회 실패"} retry={comparison.refresh}/></>;
-
+  const state = useApi(load, 60_000);
+  const header = <PageHeader title="A/E 성과 비교" description="공식 Paper(V1)만 게이트와 합산에 쓰입니다. 레거시(V0) 기록은 맨 아래에 참고용으로 따로 둡니다."/>;
+  if (state.loading) return <><StrategyTabs/>{header}<LoadingState/></>;
+  if (!state.data) return <><StrategyTabs/>{header}<ErrorState message={state.error || "A/E 성과 조회 실패"} retry={state.refresh}/></>;
+  const { rows, board, portfolio } = state.data;
   return <>
     <StrategyTabs/>
     {header}
-    <StrategyCompareView comparison={comparison.data}/>
+    <PerformanceTable board={board} rows={rows} book="official"/>
+    <GatePanel gate={board.gate} rows={rows}/>
+    <PortfolioPanel view={portfolio} rows={rows}/>
+    <PerformanceTable board={board} rows={rows} book="legacy"/>
   </>;
 }

@@ -9,10 +9,10 @@
 import Link from "next/link";
 import { CumulativePerformance, SignedMoneyValue, UsdCardValue } from "@/components/daily-performance";
 import { EmptyState, MetricCard, StatusBadge } from "@/components/ui";
-import { formatKrw, formatUsd, dash, etTime, usdToDisplayKrw } from "@/lib/format";
+import { formatKrw, formatSignedUsd, formatUsd, dash, etTime, usdToDisplayKrw } from "@/lib/format";
 import {
-  bootstrapLabel, emptyLabel, evidenceLabel, OFFICIAL, PROVISIONAL, STRATEGY_E,
-  type BootstrapState, type StrategyAccount, type StrategyEquity, type StrategyPosition,
+  bootstrapLabel, emptyLabel, evidenceLabel, OFFICIAL, OPERATION_LABELS, PROVISIONAL, RESEARCH_LABELS, STRATEGY_E,
+  type BootstrapState, type StrategyAccount, type StrategyCardData, type StrategyEquity, type StrategyPosition,
   type StrategyRow, type StrategyStatus, type StrategyTrade, type UniverseState,
 } from "@/lib/strategies";
 
@@ -22,7 +22,11 @@ const RUNTIME_TONE: Readonly<Record<string, "success" | "warning" | "danger" | "
   NO_ACTIVE_SIM_BROKER: "warning", ERROR: "danger",
 };
 
-export type StrategyBundle = { row: StrategyRow; status: StrategyStatus; account: StrategyAccount; equity: StrategyEquity };
+export type StrategyBundle = { row: StrategyRow; status: StrategyStatus; account: StrategyAccount; equity: StrategyEquity; card?: StrategyCardData };
+
+const OPERATION_TONE: Readonly<Record<string, "success" | "warning" | "danger" | "neutral">> = {
+  RUNNING: "success", POSITION_OPEN: "success", WAITING_SIGNAL: "neutral", PAUSED: "warning", DATA_ERROR: "danger",
+};
 
 /** Every money figure on these screens renders through Strategy A's own formatters (USD primary,
  *  KRW secondary through lib/fx's single fixed rate) and Strategy A's own PnL tone. */
@@ -44,9 +48,12 @@ export function StrategyCard({ bundle, href }: { bundle: StrategyBundle; href?: 
         <h3 className="text-lg font-semibold text-foreground">
           {href ? <Link href={href} className="hover:text-primary">{row.display_name}</Link> : row.display_name}
         </h3>
-        <p className="mt-1 text-xs text-muted">{row.version} · {row.mode} · {row.market_data_source}</p>
+        <p className="mt-1 text-xs text-muted">{row.variant_label || row.version} · {row.mode} · {row.market_data_source}</p>
       </div>
       <div className="flex flex-wrap items-center gap-1.5">
+        {bundle.card && <StatusBadge value={bundle.card.operational_status}
+          label={OPERATION_LABELS[bundle.card.operational_status] || bundle.card.operational_status}
+          tone={OPERATION_TONE[bundle.card.operational_status] ?? "neutral"}/>}
         <StatusBadge value={runtime} tone={RUNTIME_TONE[runtime] ?? "neutral"}/>
         {row.evidence_status && <StatusBadge value={row.evidence_status} label={evidenceLabel(row.evidence_status)}
           tone={row.evidence_status === OFFICIAL ? "success" : "warning"}/>}
@@ -55,18 +62,47 @@ export function StrategyCard({ bundle, href }: { bundle: StrategyBundle; href?: 
     <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm sm:grid-cols-3">
       <Field label="초기 자본" value={<UsdCardValue value={account.initial_equity}/>}/>
       <Field label="현재 자산" value={<UsdCardValue value={account.current_equity}/>}/>
-      <Field label="오늘 손익" value={<SignedMoneyValue value={settled ? account.today_pnl : null}/>}/>
-      <Field label="누적 수익" value={<CumulativePerformance pnl={settled ? account.total_pnl : null}
+      {/* The account's latest completed session, not the calendar day: A's newest daily row and E's
+          newest engine session. "오늘 실현손익" below is the calendar day in ET. */}
+      <Field label="최근 세션 손익" value={<SignedMoneyValue value={settled ? account.today_pnl : null}/>}/>
+      <Field label="계좌 누적 수익" value={<CumulativePerformance pnl={settled ? account.total_pnl : null}
         baseline={account.initial_equity} note={settled ? undefined : undefined}/>}/>
       <Field label="보유 포지션" value={String(account.open_positions)}/>
-      <Field label="오늘 청산" value={account.closed_trades_today == null ? "-" : String(account.closed_trades_today)}/>
+      <Field label="최근 세션 청산" value={account.closed_trades_today == null ? "-" : String(account.closed_trades_today)}/>
       <Field label="최근 결정" value={status.last_decision ? status.last_decision.slice(0, 12) : "-"}/>
       <Field label="세션" value={dash(status.session)}/>
       <Field label="갱신" value={status.last_update ? etTime(status.last_update) : "-"}/>
     </dl>
+    {bundle.card && <OperatingFields card={bundle.card}/>}
     {empty && <p className="mt-4 rounded-lg border border-line bg-surface-alt px-3 py-2 text-xs text-foreground-secondary"
       data-empty-reason="">{empty}</p>}
   </article>;
+}
+
+/** The ledger-side figures of a card (GET /strategies/cards). Research and operations are two lines,
+ *  never one status; a value the ledger does not record is "-" with the backend's reason. */
+function OperatingFields({ card }: { card: StrategyCardData }) {
+  const na = (key: string) => card.na?.[key];
+  return <div className="mt-4 border-t border-line pt-3" data-operating-fields={card.strategy_id}>
+    <p className="mb-2 text-[11px] text-muted">
+      Research: {RESEARCH_LABELS[card.research_lifecycle] || card.research_lifecycle} · Operations: {OPERATION_LABELS[card.operational_status] || card.operational_status}
+      {card.paper_clock && <> · Official Paper: {card.paper_clock.official_paper_start ? `${card.paper_clock.official_paper_start}부터` : "시작 전"}</>}
+    </p>
+    <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm sm:grid-cols-3">
+      <Field label="오늘 실현손익" value={<SignedMoneyValue value={card.today_realized_pnl}/>}/>
+      <Field label="오늘 미실현손익" value={card.today_unrealized_pnl == null
+        ? <span className="text-foreground-secondary" title={na("today_unrealized_pnl")}>-</span>
+        : <SignedMoneyValue value={card.today_unrealized_pnl}/>}/>
+      <Field label="공식 Net PnL (V1)" value={<SignedMoneyValue value={card.official?.net_pnl ?? card.net_pnl}/>}/>
+      <Field label="공식 거래 수" value={String(card.official?.trades ?? card.trades)}/>
+      <Field label="최근 신호" value={card.last_signal_at ? etTime(card.last_signal_at)
+        : <span className="text-foreground-secondary" title={na("last_signal_at")}>-</span>}/>
+      <Field label="최근 거래" value={card.last_trade_at ? etTime(card.last_trade_at) : "-"}/>
+    </dl>
+    {card.legacy && card.legacy.trades > 0 && <p className="mt-3 text-[11px] text-muted" data-legacy-summary={card.strategy_id}>
+      Legacy Paper (V0, 공식 평가 제외): 거래 {card.legacy.trades}건 · Net {card.legacy.net_pnl == null ? "-" : formatSignedUsd(card.legacy.net_pnl)}
+    </p>}
+  </div>;
 }
 
 function Field({ label, value }: { label: string; value: React.ReactNode }) {

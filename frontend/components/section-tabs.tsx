@@ -19,12 +19,12 @@ export const analysisTabs: SectionTab[] = [
 /** Operating screens are derived from the strategy registry (see lib/strategies.ts), so a strategy
  *  appears here by being enabled in the backend rather than by being written into this file. */
 
-/** Result screens: how each strategy performed. Strategy B and the A/B comparison live
- *  inside this group instead of as new top-level menu entries. */
+/** Result screens. The A/E comparison is the group's landing screen; A's shadow variants keep their
+ *  own tab; closed research (B, C, D) is reachable only through the research history. */
 export const strategyTabs: SectionTab[] = [
-  { href: "/shadow", label: "전략 A · 기존 전략" },
-  { href: "/strategy-b", label: "전략 B · 실시간 모멘텀" },
-  { href: "/strategy-compare", label: "전략 A/B 비교" },
+  { href: "/strategy-compare", label: "A/E 성과 비교" },
+  { href: "/shadow", label: "A 섀도 변형" },
+  { href: "/strategy-history", label: "연구 이력" },
 ];
 
 export const systemTabs: SectionTab[] = [

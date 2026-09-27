@@ -17,8 +17,9 @@ describe("Stage 9.10 navigation", () => {
   it("defines exactly five top-level menu entries, dashboard first", () => {
     expect(navigationItems.map(item => item.label)).toEqual(["대시보드", "트레이딩", "종목 분석", "전략", "시스템"]);
     expect(navigationItems).toHaveLength(5);
-    // Strategy B and the A/B comparison stay inside the 전략 group, never as their own menus.
-    expect(navigationItems.some(item => item.href === "/strategy-b" || item.href === "/strategy-compare")).toBe(false);
+    // The 전략 menu lands on the A/E comparison; a closed strategy's route is never a menu of its own.
+    expect(navigationItems.find(item => item.label === "전략")!.href).toBe("/strategy-compare");
+    expect(navigationItems.some(item => item.href === "/strategy-b" || item.href === "/trading-b")).toBe(false);
     const shell = source("components/app-shell.tsx");
     ["후보 종목", "GPT 분석", "설정"].forEach(label => expect(shell).not.toContain(`label: "${label}"`));
   });
@@ -32,6 +33,7 @@ describe("Stage 9.10 navigation", () => {
     ["/shadow", "전략"],
     ["/strategy-b", "전략"],
     ["/strategy-compare", "전략"],
+    ["/strategy-history", "전략"],
     ["/runtime", "시스템"],
     ["/settings", "시스템"],
   ])("maps %s to the %s group", (route, label) => {

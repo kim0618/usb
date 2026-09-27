@@ -20,10 +20,13 @@ async function load() {
   return { row, status, account, positions, trades, equity };
 }
 
-/** Strategy E-MAX V1: the frozen rule's realtime state, its evidence grade and its own book. */
+/** Strategy E (E-MAX V1): the frozen rule's realtime state, its evidence grade and its own book. */
 export default function StrategyEPage() {
   const state = useApi(load, 60_000);
-  const header = <PageHeader eyebrow="전략" title="Strategy E-MAX V1"
+  // The name is the registry's (display_name + variant), so this screen never says "B" or any
+  // label the backend did not send. Until the registry answers, the header waits with a neutral title.
+  const row = state.data?.row;
+  const header = <PageHeader eyebrow={row?.variant_label || "전략"} title={row ? row.display_name : "전략 상태"}
     description="09:25 결정 · 09:30 진입 · 09:34 청산. 시장 데이터는 Kiwoom, 주문은 시뮬레이션 전용입니다."/>;
 
   if (state.loading) return <><TradingTabs/>{header}<LoadingState/></>;

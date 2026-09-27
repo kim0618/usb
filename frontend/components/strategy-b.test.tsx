@@ -179,14 +179,14 @@ describe("Strategy B screen sections", () => {
     expect(screen.getByText("-6.2%")).toBeInTheDocument();
   });
 
-  it("marks both Strategy B screens with one small badge, not a warning bar", () => {
+  it("no longer renders B's mock figures on B's old routes, now that B is closed", () => {
     render(<MockBadge/>);
-    expect(screen.getByText("MOCK")).toBeInTheDocument();
+    expect(screen.getByText("MOCK")).toBeInTheDocument();          // the badge itself is kept for the components
     ["app/strategy-b/page.tsx", "app/trading-b/page.tsx"].forEach(path => {
       const page = source(path);
-      expect(page).toContain("STRATEGY_B_MOCK ? <MockBadge/>");
-      expect(page).toContain("strategyBSource");
-      expect(page).not.toContain("@/lib/api");
+      expect(page).toContain("<ClosedStrategyNotice");
+      expect(page).not.toContain("strategyBSource");
+      expect(page).not.toContain("MockBadge");
       expect(page).not.toContain("eyebrow=");
     });
   });
@@ -204,9 +204,10 @@ describe("Strategy B screen sections", () => {
   it("keeps Strategy B inside the trading and strategy groups, never as a new top-level menu", async () => {
     const { navigationItems } = await import("./app-shell");
     expect(navigationItems).toHaveLength(5);
-    // Strategy E's screen is an operating one, so it highlights 트레이딩; Strategy B keeps both groups.
+    // Strategy E's screen is an operating one, so it highlights 트레이딩. B's old routes still light
+    // their group (they now show a CLOSED notice), but B is never a menu of its own.
     expect(navigationItems.find(item => item.label === "트레이딩")!.activePaths).toEqual(["/trading", "/trading-b", "/strategy-e"]);
-    expect(navigationItems.find(item => item.label === "전략")!.activePaths).toEqual(["/shadow", "/strategy-b", "/strategy-compare"]);
+    expect(navigationItems.find(item => item.label === "전략")!.activePaths).toEqual(["/strategy-compare", "/shadow", "/strategy-history", "/strategy-b"]);
   });
 
   it("never reaches the Backend, Kiwoom, a socket, or an order path", () => {

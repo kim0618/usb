@@ -158,18 +158,18 @@ describe("Comparison screen", () => {
     expect(within(second).getByText("-6.15%")).toBeInTheDocument();
   });
 
-  it("marks the comparison screen with one small badge and keeps it off the Backend", () => {
+  it("compares A and E from the live API, no longer the closed Strategy B mock", () => {
     const page = source("app/strategy-compare/page.tsx");
-    expect(page).toContain("STRATEGY_B_MOCK ? <MockBadge/>");
-    expect(page).toContain("strategyCompareSource");
-    expect(page).not.toContain("@/lib/api");
+    expect(page).toContain("strategiesApi.performance");
+    expect(page).toContain("strategiesApi.portfolio");
+    expect(page).not.toMatch(/strategyCompareSource|STRATEGY_B_MOCK|MockBadge|mocks\//);
   });
 
-  it("trims the screen chrome to a title, one line and the badge", () => {
+  it("trims the screen chrome to a title and one line", () => {
     const page = source("app/strategy-compare/page.tsx");
     expect(page).not.toContain("eyebrow=");
     expect(page).not.toContain("STRATEGY COMPARISON");
     expect(page).not.toContain("MockDataNotice");
-    expect(page).toContain('description="동일 기간 · 동일 초기 자본 기준 성과 비교"');
+    expect(page).toContain('title="A/E 성과 비교"');
   });
 });
