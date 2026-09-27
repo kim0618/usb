@@ -1,0 +1,227 @@
+{
+  "strategy": "STRATEGY_G_CANDIDATE",
+  "version": "g0-after-premarket-v1",
+  "research_type": "ALPHA_PREVALIDATION",
+  "declaration": {
+    "research_id": "g0-after-premarket-v1",
+    "gate_name": "G0_AFTER_PREMARKET_PREVALIDATION",
+    "declared_at_kst": "2026-09-27",
+    "declared_after": "the returns-free coverage, pairing and integrity audit (data/runtime/strategy_g_candidate/coverage_audit.json): bar counts, anchor availability and traded value only",
+    "declared_before": "any G0 feature value, label, baseline, bucket, hypothesis result, bootstrap or cost figure was computed",
+    "checksum_recipe": "sha256 of json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False)",
+    "question": "Using only DAY T 16:00-20:00 ET after-hours price and volume structure (plus DAY T regular-session context), can the stocks that make a large upward move in the DAY T+1 premarket be selected statistically?",
+    "promotion_claim": "PASS means only that an after-hours -> next premarket Strategy G research track is worth opening. It is not a trading rule, not a paper-trading approval and not an execution claim.",
+    "independence": "G is a separate candidate. Strategy F (regular -> same-day after-hours) is not found in this repository; no F file, feature, threshold or result enters G, and no G result is to be used for F. A and E rules, papers, cost assumptions, gates and runtime are not touched."
+  },
+  "frozen_inputs": {
+    "daily_snapshot_id": "USB-HIST-V1",
+    "daily_authority": "MASSIVE_GROUPED_DAILY adjusted=false",
+    "daily_loader": "app.backtest.strategy_e0_overnight.dataset.load_daily_rows (imported unmodified; it imports app.backtest.strategy_d_analog.source.load_daily_history unmodified, which verifies every frozen file against its sha256)",
+    "daily_loader_declaration": "e0_overnight_rules_v1.json canonical 078aa79231f075a4eee33ff7924dc6185c23b389ab69b1e0c3d0cc92cfb38752; G reuses only the PIT universe machinery and requires its parameters to equal the G universe values below at runtime",
+    "grid": {"first_session": "2024-09-17", "last_session": "2026-09-16", "sessions": 501, "usable_source_sessions": "2024-10-15..2026-09-15 (480; the first 20 are the liquidity warmup and the last has no T+1 on the grid)"},
+    "minute_authority": "MASSIVE_TICKER_AGGREGATE adjusted=false, window 04:00-20:00 ET",
+    "minute_sources": [
+      "Drive common raw pages market_data/raw/massive/minute (3,889 symbol folders)",
+      "Drive legacy normalized Parquet market_data/normalized/minute/massive (read by the E0 loader, which prefers it over raw for a session both carry)",
+      "USB-HIST-V2 local staging data/runtime/common_hist/v2_staging (174 symbols A..AMSWA, two-year window, all ledgers COMPLETE); used only for sessions the Drive tape does not carry"
+    ],
+    "minute_sources_excluded": "market_data/forward/massive (Strategy E-MAX forward evidence, sessions after the grid) is not read",
+    "no_new_collection": "G0 issues no provider API call and takes no writer lock",
+    "coverage_audit_facts": {
+      "pairs": 500, "pair_kinds": {"normal_overnight": 388, "weekend_gap": 91, "holiday_gap": 21},
+      "paired_daily_pit_rows_any_after_bar": 241337,
+      "entry_0800_first_print_within_15m_share": 0.4697, "entry_0700_within_15m_share": 0.4683,
+      "entry_0400_within_15m_share": 0.4219, "entry_0800_exact_bar_share": 0.2545,
+      "rows_after_bars_1601_ge3_and_entry0800": 91327,
+      "sample_concentration": "2026Q2+2026Q3 hold 73% of paired PIT rows (broad minute collection starts 2026-04-20); earlier quarters are the 30-symbol V1 tape plus the 174-symbol staging"
+    }
+  },
+  "information_cutoff": {
+    "signal_information": "DAY T bars with start <= 19:59 ET (after-hours window 16:01-19:59) and DAY T daily values known at the T close",
+    "excluded_from_features": "every bar of DAY T+1 (premarket included) and any bar of T after 19:59; next-premarket confirmation is not part of G0",
+    "closing_cross_bar": "the 16:00 ET bar carries closing-cross prints (coverage: AAPL median 16:00 volume 672k vs 5k at 16:01) and is excluded from every after-hours feature; its traded value is reported separately",
+    "reference_price": "official close of T from the frozen grouped daily panel",
+    "price_at_clock_time": "close of the last after-hours print at or before that time; with no print since 16:01 the official close is carried"
+  },
+  "source_session": "DAY T, an XNYS session on the frozen grid that is not an early close",
+  "target_session": "DAY T+1 = MarketCalendar().next_trading_day(T) (exchange_calendars XNYS); the grid successor must equal it or the study stops",
+  "weekend_policy": "Friday -> Monday pairs are INCLUDED in the primary and reported separately as weekend_gap",
+  "holiday_policy": "pairs spanning a weekday holiday are INCLUDED in the primary and reported separately as holiday_gap",
+  "corporate_action_policy": "a split executing in (T, T+1] (split factor at T+1 differs from T in the frozen splits) excludes the row; a FIGI change for the ticker between the CS snapshots as of T and as of T+1 (ticker reuse or change) excludes the row; listing/delisting boundaries are handled by requiring CS membership at T, a daily open at T+1 and a T+1 entry print. Every exclusion is counted and reported; nothing is adjusted silently.",
+  "early_close_policy": "source sessions that close at 13:00 (5 on the grid) are EXCLUDED: the 16:00-20:00 window is not their after-hours",
+  "entry_time": "08:00 ET",
+  "exit_time": "09:25 ET",
+  "primary": {
+    "label_set": "E0800",
+    "exit": "0925",
+    "label": "E0800:0925:R",
+    "entry_price": "open of the first T+1 print in [08:00, 08:14] (bar start)",
+    "exit_price": "close of the last T+1 print in [entry bar, 09:24], i.e. the price as of 09:25; the entry bar itself counts",
+    "basis": "08:00 is kept as the prompt's candidate: coverage shows 07:00 no better (46.8% vs 47.0% within 15m) and 04:00 worse (42.2%); a 15-minute entry window because the exact 08:00 bar exists on only 25.5% of rows. Frozen before any return."
+  },
+  "label_sets": {
+    "E0800": {"entry_minute_et": 480, "entry_window_minutes": 15,
+              "exit_last_bar_minute_et": {"0900": 539, "0915": 554, "0925": 564}},
+    "E0700": {"entry_minute_et": 420, "entry_window_minutes": 15,
+              "exit_last_bar_minute_et": {"0925": 564}},
+    "E0800S": {"entry_minute_et": 480, "entry_window_minutes": 1,
+               "exit_last_bar_minute_et": {"0925": 564}}
+  },
+  "secondary_diagnostics": {
+    "list": ["E0800:0900 (08:00 -> 09:00)", "E0800:0915 (08:00 -> 09:15)", "E0700:0925 (07:00 -> 09:25)",
+             "E0800S:0925 (strict: exact 08:00 bar only)", "04:00 execution availability (coverage only, no return)"],
+    "rule": "diagnostics only. The primary is not re-chosen after seeing which entry or exit performs best, and no diagnostic can produce a PASS."
+  },
+  "universe": {
+    "point_in_time": true,
+    "daily_pit": {
+      "membership": "ticker in the latest CS reference snapshot dated on or before T (ETF, fund, warrant, unit and test symbols are excluded by the CS reference)",
+      "allowed_primary_exchanges": ["XNAS", "XNYS", "XASE"],
+      "min_close_at_T": 5.0,
+      "min_median_dollar_volume": 5000000.0,
+      "dollar_volume_window": "median close*volume over [T-20, T-1], at least 15 sessions present",
+      "requires_open_at_T_plus_1": true,
+      "corporate_action_exclusion": "rows with a split executing in (T, T+1] are excluded and counted (split factor changes between T and T+1)"
+    },
+    "identity_guard": "rows whose FIGI in the latest CS snapshot as of T differs from the one as of T+1 are excluded and counted (ticker reuse / change between the two sessions)",
+    "duplicates": "identical duplicate minutes are dropped to one copy; a symbol-day with conflicting duplicates is excluded; both counted",
+    "after_hours_requirements": {
+      "min_after_bars_1601_1959": 3,
+      "min_after_dollar_volume": 10000.0,
+      "basis": "three prints is the minimum that defines an after-hours range and a last price (median after bars 16:01-19:59 is 3); the $10k floor removes only token prints (130,092 of 132,123 rows with >= 3 bars keep it). Chosen from counts only."
+    },
+    "next_premarket_requirement": "an entry print exists on T+1 in the primary entry window. This is a label-existence filter (not knowable at T 20:00); the share of signal rows without it is reported per hypothesis as the fill rate",
+    "not_available": ["point-in-time market cap", "ticker-change event table (the FIGI guard is used instead)", "event classification"]
+  },
+  "price_threshold": 5.0,
+  "liquidity_threshold": {"regular_median_dollar_volume": 5000000.0, "after_dollar_volume": 10000.0, "after_bars": 3},
+  "feature_parameters": {"after_rvol_window_sessions": 20, "after_rvol_min_sessions": 10},
+  "feature_definitions": {
+    "after_return_1600_2000": "P(20:00) / close(T) - 1",
+    "after_return_1600_1700": "P(17:00) / close(T) - 1",
+    "after_return_1700_1800": "P(18:00) / P(17:00) - 1",
+    "after_return_1800_2000": "P(20:00) / P(18:00) - 1",
+    "after_volume": "sum of share volume 16:01-19:59",
+    "after_dollar_volume": "sum of vwap*volume 16:01-19:59 (close when vwap is missing)",
+    "after_rvol": "after_dollar_volume / mean after_dollar_volume over the previous 20 grid sessions on which the symbol has a tape (a tape session without an after print counts 0); undefined with fewer than 10 such sessions or a zero mean. Dollar volume is split-invariant.",
+    "after_high / after_low": "max high / min low of 16:01-19:59 prints, extended to include close(T)",
+    "position_in_after_range": "(P(20:00) - after_low) / (after_high - after_low); undefined when the range is zero",
+    "distance_to_after_high": "P(20:00) / after_high - 1 (<= 0)",
+    "last30m_after_return": "P(20:00) / P(19:30) - 1 (0 when nothing printed 19:30-19:59)",
+    "last30m_after_volume_share": "dollar volume 19:30-19:59 / after_dollar_volume",
+    "after_high_return": "after_high / close(T) - 1",
+    "after_low_return": "after_low / close(T) - 1",
+    "after_peak_retention": "(P(20:00) - close(T)) / (after_high - close(T)); undefined when after_high == close(T)",
+    "regular_day_return": "E0 day_return at T (split-normalized close(T)/close(T-1) - 1)",
+    "regular_rvol": "E0 rvol at T (volume / median of the prior 20 sessions, split-normalized)",
+    "regular_dollar_volume": "close(T) * volume(T)",
+    "close_vs_regular_vwap": "close(T) / regular-session VWAP from 09:30-15:59 minute bars - 1",
+    "position_in_regular_range": "E0 clv at T = (close - low) / (high - low)",
+    "relative_strength_vs_spy": "regular_day_return - (SPY close(T)/close(T-1) - 1)",
+    "availability": "all of the above read only DAY T data up to 19:59 ET and daily values through T; the after_rvol denominator reads strictly earlier sessions"
+  },
+  "labels": {
+    "R": "exit_price / entry_price - 1 (gross, no cost)",
+    "MFE": "max high over [entry bar, exit last bar] / entry_price - 1",
+    "MAE": "min low over [entry bar, exit last bar] / entry_price - 1",
+    "after_close_to_entry": "entry_price / P(20:00 of T) - 1 (the move already made before the entry)",
+    "probability_thresholds_up": [0.005, 0.01, 0.02, 0.03, 0.05],
+    "probability_thresholds_down": [-0.005, -0.01, -0.02, -0.03],
+    "execution_limitation": "prints, not fills. No quote, spread or depth is available; no number is a net return except the declared cost grid"
+  },
+  "buckets": {
+    "after_return_1600_2000": [null, -0.05, -0.02, -0.005, 0.005, 0.02, 0.05, 0.10, null],
+    "after_return_1600_1700": [null, -0.01, -0.002, 0.002, 0.01, null],
+    "after_return_1700_1800": [null, -0.01, -0.002, 0.002, 0.01, null],
+    "after_return_1800_2000": [null, -0.01, -0.002, 0.002, 0.01, null],
+    "after_volume": [0.0, 1000.0, 10000.0, 100000.0, 1000000.0, null],
+    "after_dollar_volume": [10000.0, 50000.0, 250000.0, 1000000.0, 5000000.0, 25000000.0, null],
+    "after_rvol": [0.0, 0.5, 1.0, 2.0, 3.0, 5.0, 10.0, null],
+    "position_in_after_range": [0.0, 0.2, 0.5, 0.8, 0.95, 1.0],
+    "distance_to_after_high": [null, -0.05, -0.02, -0.01, -0.005, 0.0],
+    "last30m_after_return": [null, -0.005, 0.0, 1e-09, 0.005, null],
+    "last30m_after_volume_share": [0.0, 1e-09, 0.1, 0.3, 0.6, 1.0],
+    "after_high_return": [0.0, 0.005, 0.01, 0.02, 0.05, 0.10, null],
+    "after_low_return": [null, -0.10, -0.05, -0.02, -0.01, -0.005, 0.0],
+    "after_peak_retention": [null, 0.0, 0.5, 0.8, 1.0],
+    "regular_day_return": [null, -0.05, -0.02, 0.0, 0.02, 0.05, null],
+    "regular_rvol": [0.0, 0.5, 1.0, 2.0, 3.0, 5.0, null],
+    "regular_dollar_volume": [5000000.0, 20000000.0, 100000000.0, 500000000.0, null],
+    "close_vs_regular_vwap": [null, -0.02, -0.005, 0.005, 0.02, null],
+    "position_in_regular_range": [0.0, 0.2, 0.5, 0.8, 1.0],
+    "relative_strength_vs_spy": [null, -0.03, -0.01, 0.0, 0.01, 0.03, null],
+    "close_price": [5.0, 10.0, 20.0, 50.0, 200.0, null],
+    "after_close_to_entry": [null, -0.02, -0.005, 0.005, 0.02, 0.05, null],
+    "note": "fixed edges declared before any result; the purpose is monotonicity and distribution/tail shift, not threshold search"
+  },
+  "H1": "After Momentum: after_return_1600_2000 > 0 and distance_to_after_high >= -0.005",
+  "H2": "After Volume Continuation: after_return_1600_2000 > 0 and after_rvol >= 3.0",
+  "H3": "Sustained After Strength: after_return_1600_2000 > 0 and position_in_after_range >= 0.8 and last30m_after_return > 0",
+  "H4": "Regular + After Confirmation: relative_strength_vs_spy > 0 and after_return_1600_2000 > 0 and after_peak_retention >= 0.8",
+  "H5": "Aggressive After Tail: after_return_1600_2000 >= 0.02 and after_rvol >= 3.0 and distance_to_after_high >= -0.01 and last30m_after_return > 0",
+  "hypotheses": {
+    "count_limit": 5,
+    "thresholds_basis": "domain values on declared bucket edges: 0.5% / 1% from the after high is 'near the high', RVOL 3 is the conventional unusual-volume cut, 0.8 of range / retention is 'held most of the move', 2% is a strong after-hours move for a $5+ liquid stock. No optimizer, no sweep.",
+    "H1": {"name": "After Momentum", "conditions": [["after_return_1600_2000", ">", 0.0], ["distance_to_after_high", ">=", -0.005]]},
+    "H2": {"name": "After Volume Continuation", "conditions": [["after_return_1600_2000", ">", 0.0], ["after_rvol", ">=", 3.0]]},
+    "H3": {"name": "Sustained After Strength", "conditions": [["after_return_1600_2000", ">", 0.0], ["position_in_after_range", ">=", 0.8], ["last30m_after_return", ">", 0.0]]},
+    "H4": {"name": "Regular + After Confirmation", "conditions": [["relative_strength_vs_spy", ">", 0.0], ["after_return_1600_2000", ">", 0.0], ["after_peak_retention", ">=", 0.8]]},
+    "H5": {"name": "Aggressive After Tail", "conditions": [["after_return_1600_2000", ">=", 0.02], ["after_rvol", ">=", 3.0], ["distance_to_after_high", ">=", -0.01], ["last30m_after_return", ">", 0.0]]}
+  },
+  "cost": {
+    "grid_bp_round_trip": [10, 20, 30, 50, 75, 100],
+    "definition": "round-trip cost in basis points of entry notional, subtracted once per trade from the gross return (entry + exit together)",
+    "break_even_cost_bp": "gross mean return of the candidate in bp",
+    "realistic_premarket_cost_bp": 50,
+    "basis": "premarket spreads are wider than the regular-session costs used by E (E's cost contract is not used); 50bp round trip is declared as the realistic stress point"
+  },
+  "cost_grid": [10, 20, 30, 50, 75, 100],
+  "bootstrap": {
+    "method": "two-way cluster bootstrap: whole source sessions and, separately, whole tickers are resampled; candidate and baseline are recomputed on the same drawn clusters; the gate reads the weaker (lower) of the two 95% intervals",
+    "reason": "rows of one evening share the market move, rows of one ticker share its news and float; naive IID over symbol-sessions would overstate precision on both axes",
+    "resamples": 10000,
+    "seed": 20260927,
+    "metrics": ["mean lift", "P(R >= 2%) lift", "P(R >= 3%) lift", "P(MFE >= 3%) lift"],
+    "reused": "app.backtest.strategy_e0_overnight.stats.session_bootstrap is the same session-cluster design; G's implementation adds the symbol axis and tail metrics"
+  },
+  "bootstrap_method": "two-way cluster (session and symbol), 10,000 resamples, seed 20260927, weaker interval gates",
+  "neutralization": {
+    "method": "coarsened exact matching with the E1-H5 estimators imported unchanged (app.backtest.strategy_e1_h5_confirm.matching.session_demeaned as primary, same_session as secondary). Infrastructure only: no E threshold or rule is used.",
+    "cells": {
+      "close_price": [5.0, 10.0, 20.0, 50.0, 200.0, null],
+      "regular_dollar_volume": [5000000.0, 20000000.0, 100000000.0, 500000000.0, null],
+      "after_dollar_volume": [10000.0, 100000.0, 1000000.0, 10000000.0, null],
+      "premarket_dollar_before_entry": [0.0, 25000.0, 250000.0, 2500000.0, null]
+    },
+    "premarket_liquidity_note": "T+1 premarket traded value from 04:00 to the entry minute is known at the entry time; it is a control, never a signal feature",
+    "outputs": ["raw lift", "matched lift", "matched N and match rate", "balance (bucket shares of candidate vs control)"]
+  },
+  "neutralization_method": "session-demeaned coarsened exact matching on price x regular dollar volume x after dollar volume x pre-entry premarket dollar volume",
+  "extreme_removal_rules": ["original", "remove top 1 trade", "remove top 5 trades", "remove top 1% of trades"],
+  "regime": {
+    "spy_t_day": "SPY close(T)/close(T-1) - 1 positive vs negative",
+    "volatility": "cross-sectional median of 20-session realized daily volatility through T, split at its own median",
+    "risk_on": "share of daily PIT universe rows with regular_day_return > 0 at T >= 0.5 (risk-on) vs < 0.5",
+    "use": "diagnostic only; no regime is added to a hypothesis"
+  },
+  "event_classification": "UNAVAILABLE: the only event store (SEC EDGAR, C-E0) covers the Strategy C candidate CIKs only; no earnings/guidance/offering/FDA/M&A/news classification exists for the G universe and none is fetched",
+  "pass_gate": {
+    "evaluated_on": "E0800:0925:R, each of H1..H5 separately; PASS if at least one hypothesis meets all twelve",
+    "sample": {"min_rows": 1000, "min_sessions": 100, "min_symbols": 200},
+    "mean": {"min_mean_lift": 0.0020},
+    "median": {"min_candidate_median": -0.0010},
+    "tail": {"min_p_ge_2pct_lift_pp": 0.02, "min_p_ge_3pct_lift_pp": 0.015, "min_p_mfe_ge_3pct_lift_pp": 0.03,
+             "rule": "any one of the three"},
+    "extreme_removal": {"min_mean_lift_after_top1pct": 0.0010},
+    "concentration": {"max_top1_share": 0.15, "max_top5_share": 0.40},
+    "downside": {"max_p_le_minus_2pct_ratio": 1.5},
+    "bootstrap": {"mean_lift_ci_low_above": 0.0, "rule": "the lower of the session-cluster and symbol-cluster 95% CI lows"},
+    "time": {"min_rows_per_month": 20, "min_months": 8, "min_positive_month_share": 0.65},
+    "neutralization": {"min_matched_mean_lift": 0.0010, "min_match_rate": 0.70},
+    "cost": {"min_break_even_cost_bp": 50},
+    "execution": {"min_median_entry_bar_dollar": 10000.0, "min_entry_fill_rate": 0.60,
+                  "entry_fill_rate": "signal rows with a primary entry print / all signal rows of the hypothesis"},
+    "verdict_rule": "PASS: some hypothesis meets all 12. INCONCLUSIVE: some hypothesis meets 1-11 but not 12 (statistical pass, execution inconclusive), or meets the sample criterion with the weaker bootstrap mean-lift CI low > 0 and a positive gross mean. FAIL otherwise. The gate is not relaxed after results."
+  },
+  "fail_policy": "on FAIL the G0 study ends. No re-tuning on this data (RVOL, entry/exit minute, range cut). A new structural idea is recorded as NEW CANDIDATE IDEA only."
+}
