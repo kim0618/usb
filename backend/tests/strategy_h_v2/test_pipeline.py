@@ -46,7 +46,7 @@ def _rich_facts():
 def test_eligible_candidate_gets_change_evidence_and_priority():
     result = assemble_candidate(
         ROW, run_id="RUN-1", generated_at=GENERATED_AT, data_cutoff=CUTOFF,
-        facts=_rich_facts(), split_dates=(), market=GOOD_MARKET,
+        facts=_rich_facts(), facts_fetched=True, split_dates=(), market=GOOD_MARKET,
         days_since_latest_filing=5, price_context={},
     )
     assert result.eligibility.status == EligibilityStatus.ELIGIBLE
@@ -57,9 +57,10 @@ def test_eligible_candidate_gets_change_evidence_and_priority():
 
 
 def test_ineligible_candidate_skips_e2_and_e3():
+    row = UniverseRow(**{**ROW.__dict__, "cik": None})
     result = assemble_candidate(
-        ROW, run_id="RUN-1", generated_at=GENERATED_AT, data_cutoff=CUTOFF,
-        facts=[], split_dates=(), market=GOOD_MARKET,
+        row, run_id="RUN-1", generated_at=GENERATED_AT, data_cutoff=CUTOFF,
+        facts=[], facts_fetched=False, split_dates=(), market=GOOD_MARKET,
         days_since_latest_filing=None, price_context={},
     )
     assert result.eligibility.status == EligibilityStatus.INELIGIBLE
@@ -68,10 +69,25 @@ def test_ineligible_candidate_skips_e2_and_e3():
     assert result.evidence.research_priority == {"state": None}
 
 
+def test_data_not_ready_candidate_skips_e2_and_e3_but_is_not_ineligible():
+    """The D1.1 fix, exercised end-to-end: a security with no local fundamentals at all must come
+    back DATA_NOT_READY, not INELIGIBLE, and still gets no wasted E2/E3 effort."""
+    result = assemble_candidate(
+        ROW, run_id="RUN-1", generated_at=GENERATED_AT, data_cutoff=CUTOFF,
+        facts=[], facts_fetched=False, split_dates=(), market=GOOD_MARKET,
+        days_since_latest_filing=None, price_context={},
+    )
+    assert result.eligibility.status == EligibilityStatus.DATA_NOT_READY
+    assert result.eligibility.status != EligibilityStatus.INELIGIBLE
+    assert result.change_evidence == ()
+    assert result.priority is None
+    assert result.evidence.eligibility["status"] == "DATA_NOT_READY"
+
+
 def test_evidence_stub_is_reproducible_for_same_inputs():
     kwargs = dict(
         row=ROW, run_id="RUN-1", generated_at=GENERATED_AT, data_cutoff=CUTOFF,
-        facts=_rich_facts(), split_dates=(), market=GOOD_MARKET,
+        facts=_rich_facts(), facts_fetched=True, split_dates=(), market=GOOD_MARKET,
         days_since_latest_filing=5, price_context={"return_1m": 0.03},
     )
     first = assemble_candidate(**kwargs)
@@ -79,10 +95,24 @@ def test_evidence_stub_is_reproducible_for_same_inputs():
     assert first.evidence.model_dump() == second.evidence.model_dump()
 
 
+def test_evidence_stub_is_reproducible_across_a_fresh_rerun():
+    """Rerun idempotence at the acquisition-consumer boundary: calling the pipeline twice on
+    identical cached facts (as a rerun after an acquisition pass would) must not change the
+    result, even though a new companyfacts fetch happened in between conceptually."""
+    kwargs = dict(
+        row=ROW, run_id="RUN-2", generated_at=GENERATED_AT, data_cutoff=CUTOFF,
+        facts=_rich_facts(), facts_fetched=True, split_dates=(), market=GOOD_MARKET,
+        days_since_latest_filing=5, price_context={},
+    )
+    before = assemble_candidate(**kwargs)
+    after = assemble_candidate(**{**kwargs, "facts": _rich_facts()})
+    assert before.evidence.model_dump() == after.evidence.model_dump()
+
+
 def test_unknown_fields_include_unresolvable_change_metrics():
     result = assemble_candidate(
         ROW, run_id="RUN-1", generated_at=GENERATED_AT, data_cutoff=CUTOFF,
-        facts=_rich_facts(), split_dates=(), market=GOOD_MARKET,
+        facts=_rich_facts(), facts_fetched=True, split_dates=(), market=GOOD_MARKET,
         days_since_latest_filing=5, price_context={},
     )
     # total_debt only has one instant fact in the fixture -> UNKNOWN trend, must be surfaced.

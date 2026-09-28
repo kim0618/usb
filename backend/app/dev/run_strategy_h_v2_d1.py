@@ -1,13 +1,16 @@
-"""Execute the Strategy H-V2 D1 pipeline against real local repository data.
+"""Execute the Strategy H-V2 D1/D1.1 pipeline against real local repository data.
 
 PIPELINE VALIDATION, not alpha evaluation: no forward return is read or computed anywhere in this
-script. See `docs/backtest/strategy_h_v2/H_V2_D1_UNIVERSE_CHANGE_ENGINE_V1.md`.
+script. See `docs/backtest/strategy_h_v2/H_V2_D1_UNIVERSE_CHANGE_ENGINE_V1.md` and
+`docs/backtest/strategy_h_v2/H_V2_D1_1_UNIVERSE_DATA_COVERAGE_V1.md`.
 
 Universe -> E1 Eligibility -> E2 Change Detection -> E3 Research Priority -> Candidate Evidence
-Stub, for the current dated CS reference snapshot. Local companyfacts coverage is limited to the
-CIKs H0 and PV2C already downloaded (`data/runtime/strategy_h/h0/raw` and
-`.../h_pv2c/sec_raw`); every other security legitimately reports `INSUFFICIENT_FUNDAMENTALS` rather
-than a fabricated value. No new SEC network calls are made by this script.
+Stub, for the current dated CS reference snapshot. Local companyfacts/submissions coverage is
+whatever `data/runtime/strategy_h/h0`, `.../h_pv2c`, and `.../strategy_h_v2/d1_1` (D1.1's
+acquisition output) currently hold; a CIK with nothing in any of them correctly reports
+`DATA_NOT_READY`, never a fabricated fundamentals value and never `INELIGIBLE`. No new SEC network
+calls are made by this script - acquisition is a separate step
+(`app.dev.acquire_strategy_h_v2_fundamentals`).
 """
 
 from __future__ import annotations
@@ -36,11 +39,13 @@ SPLITS = Path("data/runtime/strategy_b_e0/mirror/market_data/raw/massive/splits/
 FACTS_ROOTS = [
     Path("data/runtime/strategy_h/h0/raw"),
     Path("data/runtime/strategy_h/h_pv2c/sec_raw"),
+    Path("data/runtime/strategy_h_v2/d1_1/sec_raw"),  # D1.1 acquisition output
 ]
 SUBMISSION_ROOTS = [
     Path("data/runtime/strategy_h/h_pv2c/sec_raw/submissions"),
     Path("data/runtime/strategy_c/e0/raw/submissions"),
     Path("data/runtime/strategy_h/h0_5/sec_raw/submissions"),
+    Path("data/runtime/strategy_h_v2/d1_1/sec_raw/submissions"),  # D1.1 acquisition output
 ]
 OUTPUT_ROOT = Path("data/runtime/strategy_h_v2/d1")
 
@@ -156,22 +161,28 @@ def main() -> None:
         split_dates_by_ticker[row["ticker"]].append(date.fromisoformat(row["execution_date"]))
 
     facts_cache: dict[str, list] = {}
+    facts_fetched_cache: dict[str, bool] = {}
     submission_cache: dict[str, dict[str, datetime] | None] = {}
 
-    def facts_for(cik: str | None) -> list:
+    def facts_for(cik: str | None) -> tuple[list, bool]:
+        """Returns (facts, facts_fetched). `facts_fetched` is True whenever a local companyfacts
+        document exists for this CIK, independently of whether any canonical field resolved from
+        it - the D1.1 distinction `eligibility.py` needs (§3 of the D1.1 brief)."""
         if cik is None:
-            return []
+            return [], False
         if cik not in facts_cache:
             root = find_facts_root(cik)
             if root is None:
                 facts_cache[cik] = []
+                facts_fetched_cache[cik] = False
             else:
                 doc = read_facts(root, cik)
                 sub = find_submission_doc(cik)
+                facts_fetched_cache[cik] = doc is not None
                 facts_cache[cik] = (
                     extract_companyfacts(doc, acceptance_index(sub)) if doc and sub else []
                 )
-        return facts_cache[cik]
+        return facts_cache[cik], facts_fetched_cache[cik]
 
     def latest_filing_date(cik: str | None) -> date | None:
         if cik is None:
@@ -187,6 +198,7 @@ def main() -> None:
     eligibility_counts: Counter = Counter()
     ineligible_reasons: Counter = Counter()
     unknown_status_reasons: Counter = Counter()
+    data_not_ready_reasons: Counter = Counter()
     eligible_soft_reasons: Counter = Counter()
     priority_counts: Counter = Counter()
     change_state_counts: dict[str, Counter] = defaultdict(Counter)
@@ -196,13 +208,13 @@ def main() -> None:
     evidence_out_dir.mkdir(parents=True, exist_ok=True)
 
     for i, row in enumerate(universe):
-        facts = facts_for(row.cik)
-        facts_coverage_hist[len(facts) > 0] += 1
+        facts, facts_fetched = facts_for(row.cik)
+        facts_coverage_hist[facts_fetched] += 1
         series = market_by_ticker.get(row.ticker, {})
         market = market_snapshot(series)
         result = assemble_candidate(
             row, run_id=run_id, generated_at=generated_at, data_cutoff=data_cutoff,
-            facts=facts, split_dates=split_dates_by_ticker.get(row.ticker, ()),
+            facts=facts, facts_fetched=facts_fetched, split_dates=split_dates_by_ticker.get(row.ticker, ()),
             market=market, days_since_latest_filing=days_since(latest_filing_date(row.cik), data_cutoff.date()),
             price_context=price_context_of(series, spy_series),
         )
@@ -210,6 +222,7 @@ def main() -> None:
         target = {
             EligibilityStatus.INELIGIBLE: ineligible_reasons,
             EligibilityStatus.UNKNOWN: unknown_status_reasons,
+            EligibilityStatus.DATA_NOT_READY: data_not_ready_reasons,
             EligibilityStatus.ELIGIBLE: eligible_soft_reasons,
         }[result.eligibility.status]
         for reason in result.eligibility.reasons:
@@ -231,11 +244,13 @@ def main() -> None:
         "universe_count": len(universe),
         "market_quality": market_quality,
         "distinct_priced_tickers": len(market_by_ticker),
-        "universe_rows_with_local_fundamentals": facts_coverage_hist.get(True, 0),
-        "unique_ciks_with_local_fundamentals": sum(1 for v in facts_cache.values() if v),
+        "universe_rows_with_fetched_companyfacts": facts_coverage_hist.get(True, 0),
+        "unique_ciks_with_fetched_companyfacts": sum(1 for v in facts_fetched_cache.values() if v),
+        "unique_ciks_with_resolved_facts": sum(1 for v in facts_cache.values() if v),
         "eligibility_counts": dict(eligibility_counts),
         "ineligible_reason_counts": dict(ineligible_reasons),
         "unknown_status_reason_counts": dict(unknown_status_reasons),
+        "data_not_ready_reason_counts": dict(data_not_ready_reasons),
         "eligible_soft_reason_counts": dict(eligible_soft_reasons),
         "priority_counts": dict(priority_counts),
         "change_state_counts": {k: dict(v) for k, v in change_state_counts.items()},

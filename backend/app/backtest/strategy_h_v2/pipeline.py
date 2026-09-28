@@ -1,8 +1,11 @@
-"""H-V2 D1 pipeline: wires Universe -> E1 -> E2 -> E3 -> Candidate Evidence Stub for one security.
+"""H-V2 D1/D1.1 pipeline: wires Universe -> E1 -> E2 -> E3 -> Candidate Evidence Stub for one
+security.
 
 Pure functions only; no file I/O and no network access. `app.dev.run_strategy_h_v2_d1` supplies
 real repository data (reference snapshot, local daily bars, local SEC companyfacts/submissions)
-and writes run artifacts under `data/runtime/strategy_h_v2/d1/{run_id}/`.
+and writes run artifacts under `data/runtime/strategy_h_v2/d1/{run_id}/`. D1.1 added the
+`facts_fetched`/`earliest_fact_age_days` inputs so E1 can tell "not fetched yet" apart from "this
+company is ineligible" (`eligibility.py`'s `CandidateStatus.DATA_NOT_READY`).
 """
 
 from __future__ import annotations
@@ -87,11 +90,17 @@ def assemble_candidate(
     generated_at: datetime,
     data_cutoff: datetime,
     facts: Sequence[CanonicalFact] | None,
+    facts_fetched: bool,
     split_dates: Sequence[date],
     market: MarketSnapshot | None,
     days_since_latest_filing: int | None,
     price_context: dict[str, Any],
 ) -> CandidateResult:
+    """`facts_fetched` must reflect whether the caller found a local companyfacts document for this
+    CIK at all (`app.dev.run_strategy_h_v2_d1.find_facts_root(cik) is not None`), independently of
+    `facts` itself - an empty `facts` list means two different things depending on it: "never
+    fetched" (`DATA_NOT_READY`) versus "fetched, but SEC has nothing usable" (still `DATA_NOT_READY`,
+    with a different reason once §14's IPO/normalization distinction applies)."""
     if data_cutoff.tzinfo is None or generated_at.tzinfo is None:
         raise ValueError("generated_at/data_cutoff must be timezone-aware")
     decision = data_cutoff.date()
@@ -102,6 +111,10 @@ def assemble_candidate(
     )
     coverage = canonical_coverage(facts, data_cutoff)
     resolved_count = sum(1 for status in coverage.values() if status == "OK")
+    ambiguous_count = sum(1 for status in coverage.values() if status == "AMBIGUOUS")
+    earliest_fact_age_days = (
+        (data_cutoff.date() - min(f.end for f in facts)).days if facts else None
+    )
     equity_resolution = resolve_fact(facts, "equity", data_cutoff) if facts else None
     negative_equity = (
         equity_resolution.fact.value < 0
@@ -111,6 +124,9 @@ def assemble_candidate(
     fundamentals = FundamentalsCoverage(
         resolved_field_count=resolved_count,
         total_field_count=len(FIELD_SPECS),
+        ambiguous_field_count=ambiguous_count,
+        facts_fetched=facts_fetched,
+        earliest_fact_age_days=earliest_fact_age_days,
         negative_equity=negative_equity,
         material_dilution=dilution_material,
     )
@@ -138,7 +154,8 @@ def assemble_candidate(
 
     by_metric = {ce.metric: ce for ce in change_evidence}
     unknown_fields = sorted({
-        *(reason.value for reason in eligibility.reasons if eligibility.status == EligibilityStatus.UNKNOWN),
+        *(reason.value for reason in eligibility.reasons
+          if eligibility.status in (EligibilityStatus.UNKNOWN, EligibilityStatus.DATA_NOT_READY)),
         *(metric for metric, ce in by_metric.items() if ce.state == cd.ChangeState.UNKNOWN),
     })
 
@@ -175,8 +192,11 @@ def assemble_candidate(
         research_priority={"state": priority.value if priority is not None else None},
         data_quality={
             "resolved_canonical_fields": resolved_count,
+            "ambiguous_canonical_fields": ambiguous_count,
             "total_canonical_fields": len(FIELD_SPECS),
             "canonical_field_coverage": coverage,
+            "facts_fetched": facts_fetched,
+            "earliest_fact_age_days": earliest_fact_age_days,
         },
         unknown_fields=unknown_fields,
     )
