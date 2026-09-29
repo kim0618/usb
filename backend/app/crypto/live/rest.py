@@ -15,8 +15,11 @@ convenience:
   an error: a signed URL contains the signature and, for a mistake upstream, could contain more.
 
 Clock: signed requests carry `timestamp`, and Binance rejects one that is outside `recvWindow` of
-*its* clock. The local clock in this environment has been observed seconds off, so the offset to
-the exchange is measured once with the public time endpoint and applied to every signed request.
+*its* clock - and, in the other direction, one that is more than a second in its future whatever
+`recvWindow` says. The local clock in this environment has been observed seconds off, so the
+offset to the exchange is measured with the public time endpoint (`sync_clock`, which the LIVE
+runtime calls before the first account read) and applied to every signed request. A `-1021`
+nevertheless re-measures the offset and repeats the request once, for reads only.
 """
 from __future__ import annotations
 
@@ -78,6 +81,9 @@ class RestTelemetry:
     last_error: str | None = None
     last_request_ms: int | None = None
     clock_offset_ms: int = 0
+    #: How many times a -1021 forced the offset to be re-measured. Non-zero means this machine's
+    #: clock drifted far enough for Binance to refuse a signed read, which is worth seeing.
+    clock_resyncs: int = 0
     #: Every registry name this client has actually called, in call order, deduplicated. The
     #: safety report reads it to show that no trading endpoint was touched during a read-only run.
     called: list[str] = field(default_factory=list)
@@ -88,7 +94,7 @@ class RestTelemetry:
                 "rate_limited": self.rate_limited, "used_weight_1m": self.used_weight_1m,
                 "order_count_1m": self.order_count_1m, "last_error": self.last_error,
                 "last_request_ms": self.last_request_ms, "clock_offset_ms": self.clock_offset_ms,
-                "endpoints_called": list(self.called)}
+                "clock_resyncs": self.clock_resyncs, "endpoints_called": list(self.called)}
 
 
 class BinanceFuturesClient:
@@ -154,6 +160,25 @@ class BinanceFuturesClient:
         if endpoint.security == TRADE and not self.trading_enabled:
             raise TradingDisabled(
                 f"{endpoint.name} is a TRADE endpoint and this client is not armed for trading")
+        try:
+            return self._dispatch(endpoint, params)
+        except BinanceError as exc:
+            if not exc.is_clock_skew or endpoint.security == TRADE:
+                raise
+            # -1021 is a statement about *this* machine's clock, and Binance refuses a timestamp
+            # more than a second in its future whatever `recvWindow` says. Re-measuring the
+            # offset and asking once more turns a drifted clock into a recoverable condition
+            # instead of a dead panel.
+            #
+            # A TRADE endpoint is never retried, and that is the reason the branch is written as
+            # an exclusion rather than a preference: the first request may have reached the
+            # matching engine before the clock check, and a second one would be a second order.
+            self.telemetry.clock_resyncs += 1
+            self.sync_clock()
+            return self._dispatch(endpoint, params)
+
+    def _dispatch(self, endpoint: Endpoint, params: dict[str, Any] | None = None) -> Any:
+        """One request, exactly as asked. Gates and retries belong to `call`."""
         request_params = dict(params or {})
         headers: dict[str, str] = {}
         if endpoint.signed:

@@ -172,6 +172,42 @@ def test_the_clock_offset_is_measured_and_applied_to_signed_requests() -> None:
     assert int(params["timestamp"]) > int(_time.time() * 1000) + 4_000
 
 
+def test_a_read_refused_for_clock_skew_remeasures_the_offset_and_asks_once_more() -> None:
+    """Binance refuses a timestamp in its own future whatever `recvWindow` says, so a machine
+    whose clock runs fast gets -1021 on a read that is otherwise fine. One re-measure and one
+    repeat is the difference between a recoverable clock and a dead LIVE panel."""
+    client, fake = make_client()
+    fake.fail_once("GET", "/fapi/v3/account", 400, -1021,
+                   "Timestamp for this request was 1000ms ahead of the server's time.")
+    payload = client.call("account")
+    assert payload["assets"][0]["asset"] == "USDT"
+    assert client.telemetry.clock_resyncs == 1
+    assert fake.count("/fapi/v1/time") == 1  # the offset was re-measured, not guessed
+    assert fake.count("/fapi/v3/account") == 2
+
+
+def test_a_read_refused_twice_for_clock_skew_gives_up_rather_than_looping() -> None:
+    client, fake = make_client()
+    fake.fail("GET", "/fapi/v3/account", 400, -1021, "Timestamp for this request was ahead.")
+    with pytest.raises(BinanceError) as caught:
+        client.call("account")
+    assert caught.value.is_clock_skew
+    assert fake.count("/fapi/v3/account") == 2  # one attempt, one retry, and no third
+
+
+def test_a_trade_refused_for_clock_skew_is_never_repeated() -> None:
+    """The retry is deliberately excluded here: the first order may have reached the matching
+    engine before the clock was checked, and a second request would be a second position."""
+    client, fake = make_client(trading_enabled=True)
+    fake.fail_once("POST", "/fapi/v1/order", 400, -1021, "Timestamp for this request was ahead.")
+    with pytest.raises(BinanceError) as caught:
+        client.call("new_order", {"symbol": SYMBOL, "side": "BUY", "type": "MARKET",
+                                  "quantity": "0.001"})
+    assert caught.value.is_clock_skew
+    assert fake.count("/fapi/v1/order") == 1
+    assert client.telemetry.clock_resyncs == 0
+
+
 def test_a_binance_error_is_surfaced_with_its_code_and_without_the_credential() -> None:
     client, fake = make_client()
     fake.fail("GET", "/fapi/v3/account", 401, -2015, f"Invalid API-key for {KEY}")

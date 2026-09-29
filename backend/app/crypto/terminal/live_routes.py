@@ -97,6 +97,16 @@ class LiveRuntime:
                                           # V1 never arms this. Both this and the environment
                                           # flag would have to change for an order to be sent.
                                           trading_enabled=False)
+            try:
+                # Before the first signed read, not lazily on its failure. Binance refuses a
+                # timestamp more than a second in its own future, so a machine whose clock runs
+                # fast - a WSL host resuming from sleep does - would otherwise serve a panel
+                # blocked on CLOCK_SKEW while the key, the IP and the account were all fine.
+                client.sync_clock()
+            except BinanceError as exc:
+                # Not fatal: the account read that follows reports an unreachable exchange as a
+                # blocker with its own message, and that is a better error than a dead route.
+                self.error = f"clock sync failed: {exc.message}"
             root = Path(os.environ.get(LIVE_ROOT_ENV, "data/runtime/crypto/live"))
             mirror = LiveMirror(path=default_path(config.fingerprint, root),
                                 account_fingerprint=config.fingerprint)

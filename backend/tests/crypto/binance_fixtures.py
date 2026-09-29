@@ -152,6 +152,8 @@ class FakeBinance:
             ("POST", "/fapi/v1/leverage"): SET_LEVERAGE,
         }
         self.errors: dict[tuple[str, str], tuple[int, dict[str, Any]]] = {}
+        #: Failures that are served once and then forgotten, for testing a retry.
+        self.transient: dict[tuple[str, str], list[tuple[int, dict[str, Any]]]] = {}
         self.routes.update(overrides.pop("routes", {}))
 
     def count(self, path: str) -> int:
@@ -160,12 +162,21 @@ class FakeBinance:
     def fail(self, method: str, path: str, status: int, code: int, msg: str) -> None:
         self.errors[(method, path)] = (status, {"code": code, "msg": msg})
 
+    def fail_once(self, method: str, path: str, status: int, code: int, msg: str) -> None:
+        """Refuse the next call to this path, then answer normally. A permanent `fail` cannot
+        tell a retry apart from a give-up; this can."""
+        self.transient.setdefault((method, path), []).append((status, {"code": code, "msg": msg}))
+
     def transport(self) -> httpx.MockTransport:
         def handler(request: httpx.Request) -> httpx.Response:
             parsed = urlparse(str(request.url))
             params = dict(parse_qsl(parsed.query))
             key = (request.method, parsed.path)
             self.calls.append((request.method, parsed.path, params))
+            queued = self.transient.get(key)
+            if queued:
+                status, body = queued.pop(0)
+                return httpx.Response(status, json=body)
             if key in self.errors:
                 status, body = self.errors[key]
                 return httpx.Response(status, json=body)
