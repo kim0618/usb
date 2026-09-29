@@ -1,0 +1,294 @@
+{
+  "run": "binance_live_execution_v1",
+  "date_utc": "2026-09-29",
+  "verdict": "LIVE_EXECUTION_PARTIAL",
+  "partial_reason": "binance futures user data stream delivered no frames for any of the four real fills; every other acceptance condition passed",
+  "api_key_fingerprint": "487ea08e",
+  "head_at_validation": "10ec8721fe20fdc9b83268967ce23425f0eee55f",
+  "lineage": [
+    "read_only_validation_v2 (READ_ONLY_PASS)",
+    "balance_recheck_v1 (BALANCE_SYNC_PASS)",
+    "execution_precheck (EXECUTION_PRECHECK_PASS)",
+    "live_execution_v1 (this run)"
+  ],
+  "operator_model": "every order button was pressed by the user; no order was generated, repeated or retried by the agent",
+  "gates": {
+    "BINANCE_LIVE_TRADING_ENABLED": "true (process only)",
+    "BINANCE_LIVE_CLIENT_ARMED": "true (process only)",
+    "BINANCE_LIVE_MAX_QTY": "0.001",
+    "armed_as_read_by_the_app": true,
+    "dotenv_modified": false,
+    "note": "the three variables were injected into the validation server process only; .env still reads BINANCE_LIVE_TRADING_ENABLED=false and does not contain the other two"
+  },
+  "start_state": {
+    "walletBalance": "374.62997700",
+    "availableBalance": "374.55505894",
+    "position": "FLAT",
+    "positionRisk_rows": 0,
+    "open_orders": 0,
+    "position_mode": "ONE_WAY",
+    "margin_mode": "CROSSED",
+    "leverage": "20",
+    "minQty": "0.001",
+    "stepSize": "0.001",
+    "min_notional": "50",
+    "maker": "0.000200",
+    "taker": "0.000500",
+    "clock_offset_ms": -1489,
+    "rejections_1021": 0,
+    "key_permissions_expected_matched": true,
+    "ipRestrict": true
+  },
+  "orders": [
+    {
+      "n": 1, "intent": "OPEN", "side": "LONG", "orderId": 1149465137574,
+      "order_side": "BUY", "type": "MARKET", "qty": "0.001", "reduceOnly": false,
+      "status": "FILLED", "executedQty": "0.001", "fill_price": "84339.90",
+      "quoteQty": "84.33990", "commission": "0.04216995", "commission_asset": "USDT",
+      "realizedPnl": "0", "maker": false, "time_ms": 1790687792218,
+      "clientOrderId_prefix": "usbm-open"
+    },
+    {
+      "n": 2, "intent": "CLOSE", "side": "LONG", "orderId": 1149467909367,
+      "order_side": "SELL", "type": "MARKET", "qty": "0.001", "reduceOnly": true,
+      "status": "FILLED", "executedQty": "0.001", "fill_price": "84391.10",
+      "quoteQty": "84.39110", "commission": "0.04219555", "commission_asset": "USDT",
+      "realizedPnl": "0.05120000", "maker": false, "time_ms": 1790688020634,
+      "clientOrderId_prefix": "usbm-close",
+      "qty_source": "re-read from binance positionRisk immediately before the click, never a cached quantity"
+    },
+    {
+      "n": 3, "intent": "OPEN", "side": "SHORT", "orderId": 1149469756077,
+      "order_side": "SELL", "type": "MARKET", "qty": "0.001", "reduceOnly": false,
+      "status": "FILLED", "executedQty": "0.001", "fill_price": "84397.40",
+      "quoteQty": "84.39740", "commission": "0.04219870", "commission_asset": "USDT",
+      "realizedPnl": "0", "maker": false, "time_ms": 1790688191616,
+      "clientOrderId_prefix": "usbm-open"
+    },
+    {
+      "n": 4, "intent": "CLOSE", "side": "SHORT", "orderId": 1149470237949,
+      "order_side": "BUY", "type": "MARKET", "qty": "0.001", "reduceOnly": true,
+      "status": "FILLED", "executedQty": "0.001", "fill_price": "84420.10",
+      "quoteQty": "84.42010", "commission": "0.04221005", "commission_asset": "USDT",
+      "realizedPnl": "-0.02270000", "maker": false, "time_ms": 1790688277430,
+      "clientOrderId_prefix": "usbm-close",
+      "qty_source": "re-read from binance positionRisk immediately before the click, never a cached quantity"
+    }
+  ],
+  "order_budget": {
+    "allowed": 4,
+    "sent": 4,
+    "rest_trade_requests": 4,
+    "distinct_binance_orderIds": 4,
+    "userTrades_rows": 4,
+    "all_taker": true,
+    "effective_taker_rate_every_fill": "0.00050000",
+    "account_taker_rate": "0.000500"
+  },
+  "accounting": {
+    "long_round_trip": {
+      "gross_price_pnl": "0.05120000",
+      "binance_realizedPnl": "0.05120000",
+      "agree": true,
+      "entry_commission": "0.04216995",
+      "close_commission": "0.04219555",
+      "total_commission": "0.08436550",
+      "net": "-0.03316550",
+      "wallet_before": "374.62997700",
+      "wallet_after": "374.59681150",
+      "observed_change": "-0.03316550",
+      "identity_holds": true
+    },
+    "short_round_trip": {
+      "gross_price_pnl": "-0.02270000",
+      "binance_realizedPnl": "-0.02270000",
+      "agree": true,
+      "entry_commission": "0.04219870",
+      "close_commission": "0.04221005",
+      "total_commission": "0.08440875",
+      "net": "-0.10710875",
+      "wallet_before": "374.59681150",
+      "wallet_after": "374.48970275",
+      "observed_change": "-0.10710875",
+      "identity_holds": true
+    },
+    "whole_validation": {
+      "realized_pnl_sum": "0.02850000",
+      "commission_sum": "-0.16877425",
+      "total": "-0.14027425",
+      "wallet_start": "374.62997700",
+      "wallet_end": "374.48970275",
+      "wallet_change": "-0.14027425",
+      "income_sum": "-0.14027425",
+      "funding": "0",
+      "all_three_sources_agree": true,
+      "sources": ["GET /fapi/v1/userTrades", "GET /fapi/v1/income", "GET /fapi/v3/account"]
+    }
+  },
+  "position_risk_actual_shape": {
+    "endpoint": "GET /fapi/v3/positionRisk",
+    "fields_returned": [
+      "adl", "askNotional", "bidNotional", "breakEvenPrice", "entryPrice", "initialMargin",
+      "isolatedMargin", "isolatedWallet", "liquidationPrice", "maintMargin", "marginAsset",
+      "markPrice", "notional", "openOrderInitialMargin", "positionAmt", "positionInitialMargin",
+      "positionSide", "symbol", "unRealizedProfit", "updateTime"
+    ],
+    "fields_the_model_reads": [
+      "symbol", "positionSide", "positionAmt", "entryPrice", "breakEvenPrice", "markPrice",
+      "unRealizedProfit", "liquidationPrice", "isolatedMargin", "notional", "initialMargin",
+      "maintMargin", "adl", "updateTime"
+    ],
+    "all_required_fields_present": true,
+    "shape_mismatch": 0,
+    "code_changes_required": 0,
+    "leverage_in_row": false,
+    "marginType_in_row": false,
+    "leverage_source": "GET /fapi/v1/symbolConfig (as designed; V3 drops both)",
+    "long_observed": {
+      "positionAmt": "0.001",
+      "liquidationPrice_wire": "0",
+      "liquidation_price_parsed": null,
+      "note": "a '0' liquidation price is normalised to null rather than shown as a price of zero"
+    },
+    "short_observed": {
+      "positionAmt": "-0.001",
+      "mapped_side": "SHORT",
+      "mapped_qty": "0.001",
+      "mapped_signed_qty": "-0.001",
+      "liquidationPrice_wire": "457123.15444087",
+      "liquidation_price_parsed": "457123.15444087",
+      "notional_sign": "negative, preserved"
+    },
+    "fields_not_read_harmless": [
+      "askNotional", "bidNotional", "isolatedWallet", "marginAsset",
+      "openOrderInitialMargin", "positionInitialMargin"
+    ]
+  },
+  "paper_live_isolation": {
+    "round_trips_performed": 2,
+    "performed_while_holding": ["LONG 0.001", "SHORT 0.001"],
+    "paper_financial_fields_compared": 19,
+    "paper_fields_changed": 0,
+    "paper_ledger_sha256_before": "bee6d45a7478b22147cb98bdc448f8285f741f24ae0c03d46cc9c6e350642da5",
+    "paper_ledger_sha256_after": "bee6d45a7478b22147cb98bdc448f8285f741f24ae0c03d46cc9c6e350642da5",
+    "paper_ledger_event_count_before": 1,
+    "paper_ledger_event_count_after": 1,
+    "paper_reset_count": 0,
+    "live_position_visible_in_paper": false,
+    "live_restored_from_binance_not_cache": true,
+    "market_tape_growth_records": 851,
+    "market_tape_is_a_financial_field": false,
+    "paper_run": "isolated scratch run; the production paper account was not touched"
+  },
+  "auto_isolation": {
+    "auto_orders": 0,
+    "all_orders_carry_manual_prefix": true,
+    "prefix": "usbm-",
+    "research_or_paper_modules_importing_live_orders": 0,
+    "auto_available_in_session": false,
+    "only_path_reaching_the_router": "POST /api/crypto/binance/order"
+  },
+  "live_mirror": {
+    "LIVE_ORDER_INTENT": 8,
+    "LIVE_ORDER_SENT": 4,
+    "LIVE_ORDER_RESULT": 4,
+    "LIVE_RECONCILE": 30,
+    "LIVE_STREAM_STATE": 1,
+    "errors_or_refusals": 0,
+    "secret_hits": 0
+  },
+  "user_data_stream": {
+    "status": "NO_FRAMES_RECEIVED",
+    "listen_key_issued": true,
+    "connected": true,
+    "connects": 1,
+    "reconnects": 0,
+    "messages": 0,
+    "account_events": 0,
+    "last_event_type": null,
+    "last_error": null,
+    "ping_pong": "healthy for the whole run",
+    "independent_listener_used": true,
+    "independent_listener_url_form": "wss://fstream.binance.com/ws/<listenKey>",
+    "independent_listener_frames": 0,
+    "evidence": "the independent listener was CONNECTED at 1790687941322 and logged idle at 1790688001 and 1790688031; the close filled at 1790688020634 between them, and no frame arrived. the LONG entry at 1790687792218 was missed while the app socket was the only connection, so shared-listenKey contention is not the cause",
+    "conclusion": "not an application-code defect; cause unidentified",
+    "functional_impact": "the stream is CHANGE_SIGNAL_ONLY by design and REST is the authority; LIVE_RECONCILE ran 30 times and every figure matched binance. the remaining impact is that a fill reaches the screen on the next poll rather than immediately",
+    "rest_fallback_intact": true
+  },
+  "end_state": {
+    "position": "FLAT",
+    "positionRisk_rows": 0,
+    "open_orders": 0,
+    "walletBalance": "374.48970275",
+    "availableBalance": "374.41481034",
+    "position_mode": "ONE_WAY",
+    "margin_mode": "CROSSED",
+    "leverage": "20",
+    "position_mode_changed": false,
+    "margin_mode_changed": false,
+    "leverage_changed": false,
+    "key_permissions_unchanged": true,
+    "enableWithdrawals": false
+  },
+  "relock": {
+    "armed_server_stopped": true,
+    "diagnostic_listener_stopped": true,
+    "frontend_stopped": true,
+    "dotenv_BINANCE_LIVE_TRADING_ENABLED": "false",
+    "dotenv_BINANCE_LIVE_CLIENT_ARMED_present": false,
+    "dotenv_BINANCE_LIVE_MAX_QTY_present": false,
+    "fresh_process_trading_enabled": false,
+    "fresh_process_client_armed": false,
+    "fresh_process_max_open_qty": null,
+    "fresh_process_armed": false,
+    "verdict": "RELOCKED"
+  },
+  "secret_audit": {
+    "files_checked": 1606,
+    "scope": "tracked repo files + scratchpad artifacts + server logs + live mirror + six frontend API responses",
+    "api_key_full_hits": 0,
+    "api_secret_full_hits": 0,
+    "partial_16char_hits": 0,
+    "public_ip_full_hits": 0,
+    "other_credential_hits": 0
+  },
+  "regression": {
+    "binance_live_tests": "119 passed",
+    "crypto_regression": "507 passed, 23 skipped",
+    "frontend_vitest": "557 passed, 1 failed",
+    "frontend_vitest_failure": "compactEquityUsd expects $8K but Node 20.20.2 / ICU 78.2 renders $8.0K; an ICU version difference unrelated to crypto",
+    "tsc": "0 errors",
+    "eslint": "0 errors, 5 pre-existing warnings",
+    "excluded_suites": "d5_4, d5_5, d6, d6c, expert_execution_e1 research-contract suites require data/runtime artifacts that are absent on this machine"
+  },
+  "operational_changes": {
+    "rsync": 0,
+    "systemd": 0,
+    "nginx": 0,
+    "prod_access": 0,
+    "prod_deploy": 0,
+    "transfer_api": 0,
+    "withdrawal": 0,
+    "leverage_change": 0,
+    "margin_mode_change": 0,
+    "position_mode_change": 0,
+    "paper_orders": 0,
+    "push": 0
+  },
+  "code_changes_during_validation": [],
+  "limitations": [
+    "the user data stream delivered no frames and the cause is unidentified",
+    "only one size was exercised: 0.001 BTC at 20x CROSSED in ONE_WAY mode",
+    "partial fills, large quantities, ISOLATED margin, hedge mode and near-liquidation behaviour were not exercised",
+    "a real liquidation price was observed on the SHORT only; the LONG returned '0' because the notional was small against the balance",
+    "no funding event occurred in the window, so the LIVE funding path is still unmeasured",
+    "GET /fapi/v1/openOrders is not in the endpoint registry and was checked with a diagnostic call outside the application"
+  ],
+  "next": {
+    "environment": "the next session runs on the company PC; the public IP will differ and must be re-checked against the binance trusted IP list before anything else",
+    "priority_1": "binance live user data stream diagnostic",
+    "priority_2": "leverage and margin policy review; 20x CROSSED is the account's current setting, not a decided production default",
+    "principle_held": "REST remains the authority for balance, position and fills whether or not the stream is fixed"
+  }
+}
