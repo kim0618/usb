@@ -49,6 +49,16 @@ def valid_source_ids(package: AIResearchInputV1) -> set[str]:
     return ids
 
 
+def valid_evidence_ids(package: AIResearchInputV1) -> set[str]:
+    """The chunk IDs that actually exist *in this candidate's package*.
+
+    Built per-candidate on purpose (D3.1 §2.1): because another company's chunks are simply absent
+    from this set, a cross-company citation is rejected by the same check that rejects an invented
+    chunk index.
+    """
+    return {chunk.evidence_id for chunk in package.chunks}
+
+
 def cross_check_fundamental_change_states(
     content: dict[str, Any], package: AIResearchInputV1,
 ) -> list[str]:
@@ -114,7 +124,11 @@ def assemble_and_validate(
     }
     try:
         validated = HResearchInterpretationV1.model_validate(
-            full_record, context={"valid_source_ids": valid_source_ids(package)},
+            full_record,
+            context={
+                "valid_source_ids": valid_source_ids(package),
+                "valid_evidence_ids": valid_evidence_ids(package),
+            },
         )
     except ValidationError as error:
         return None, [str(err["msg"]) + " @ " + ".".join(str(p) for p in err["loc"])

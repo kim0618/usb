@@ -10,6 +10,8 @@ from app.backtest.strategy_h_v2.research.schema import (
     CompetitiveDimension,
     CompetitiveStatus,
     Confidence,
+    ConflictResolution,
+    EvidenceConflictV1,
     CatalystCandidate,
     FutureBusinessItem,
     FutureBusinessStage,
@@ -92,6 +94,49 @@ def test_orphan_source_id_rejected_via_context():
              "evidence_id": "SEC:1:NOT-REAL:CHUNK:0", "confidence": "HIGH"},
             context={"valid_source_ids": {"SEC:1:A-1"}},
         )
+
+
+def test_material_claim_without_evidence_id_is_rejected():
+    """D3.1 §2.1: citing a document without saying which chunk is not an audit trail."""
+    with pytest.raises(ValidationError):
+        Claim(text="Revenue grew 12%.", claim_type=ClaimType.FACT, source_id="SEC:1:A-1",
+              evidence_id=None, confidence=Confidence.HIGH)
+
+
+def test_nonexistent_evidence_id_rejected_via_context():
+    """Regression test for a real D3 pilot defect: ACA/V1 cited `...:EX-99.1:CHUNK:13` on a
+    document that only has chunks 0-11. The source existed, so the source check passed."""
+    with pytest.raises(ValidationError) as exc:
+        Claim.model_validate(
+            {"text": "X", "claim_type": "INTERPRETATION", "source_id": "SEC:1:A-1",
+             "evidence_id": "SEC:1:A-1:CHUNK:13", "confidence": "MEDIUM"},
+            context={"valid_source_ids": {"SEC:1:A-1"},
+                     "valid_evidence_ids": {"SEC:1:A-1:CHUNK:0", "SEC:1:A-1:CHUNK:1"}},
+        )
+    assert "unknown evidence_id" in str(exc.value)
+
+
+def test_cross_company_evidence_id_rejected():
+    """The valid set is built per candidate, so another issuer's chunk is simply not in it."""
+    with pytest.raises(ValidationError):
+        Claim.model_validate(
+            {"text": "X", "claim_type": "FACT", "source_id": "SEC:1:A-1",
+             "evidence_id": "SEC:999:B-1:CHUNK:0", "confidence": "HIGH"},
+            context={"valid_source_ids": {"SEC:1:A-1"},
+                     "valid_evidence_ids": {"SEC:1:A-1:CHUNK:0"}},
+        )
+
+
+def test_evidence_id_from_a_different_source_is_rejected():
+    """Source and evidence must agree even when both exist in the package."""
+    with pytest.raises(ValidationError) as exc:
+        Claim.model_validate(
+            {"text": "X", "claim_type": "FACT", "source_id": "SEC:1:A-1",
+             "evidence_id": "SEC:1:A-2:CHUNK:0", "confidence": "HIGH"},
+            context={"valid_source_ids": {"SEC:1:A-1", "SEC:1:A-2"},
+                     "valid_evidence_ids": {"SEC:1:A-1:CHUNK:0", "SEC:1:A-2:CHUNK:0"}},
+        )
+    assert "does not belong to source" in str(exc.value)
 
 
 def test_known_source_id_accepted_via_context():
@@ -217,3 +262,89 @@ def test_competitive_supported_status_requires_claims():
 def test_competitive_unknown_status_needs_no_claims():
     dim = CompetitiveDimension(dimension="pricing_power", status=CompetitiveStatus.UNKNOWN, claims=[])
     assert dim.status == CompetitiveStatus.UNKNOWN
+
+
+def test_sources_list_rejects_an_evidence_id():
+    """Regression test for the second defect the D3.1 §3 regression exposed: `sources` lists were
+    the one citation path with no integrity check, so the model filled them with chunk IDs and the
+    failure surfaced far away in the top-level coverage check."""
+    with pytest.raises(ValidationError) as exc:
+        RiskItem.model_validate(
+            {"category": "CUSTOMER", "description": "Concentration",
+             "sources": ["SEC:1:A-1:CHUNK:3"]},
+            context={"valid_source_ids": {"SEC:1:A-1"}},
+        )
+    assert "is an evidence_id" in str(exc.value)
+
+
+def test_sources_list_rejects_an_orphan_source_id():
+    with pytest.raises(ValidationError):
+        CatalystCandidate.model_validate(
+            {"type": "earnings", "description": "Next print", "expected_time": None,
+             "timing_confidence": "MEDIUM", "materiality_candidate": "MEDIUM",
+             "sources": ["SEC:1:NOT-REAL"]},
+            context={"valid_source_ids": {"SEC:1:A-1"}},
+        )
+
+
+def test_sources_list_accepts_a_known_source_id():
+    CatalystCandidate.model_validate(
+        {"type": "earnings", "description": "Next print", "expected_time": None,
+         "timing_confidence": "MEDIUM", "materiality_candidate": "MEDIUM",
+         "sources": ["SEC:1:A-1"]},
+        context={"valid_source_ids": {"SEC:1:A-1"}},
+    )
+
+
+def test_code_owned_state_guidance_reaches_the_prompt_schema():
+    """The rule "copy the bare state token" lived only in a Python docstring, which never reaches
+    the JSON Schema embedded in the prompt - so the model wrote the whole rendered object into the
+    field and tripped the numeric-mutation cross-check."""
+    field = HResearchInterpretationV1.model_json_schema()["$defs"][
+        "FundamentalChangeInterpretation"]["properties"]["code_owned_state"]
+    assert "verbatim" in field.get("description", "")
+
+
+# --- evidence conflicts (D3.1 §2.2) --------------------------------------------------------------
+
+def _conflict(**overrides) -> EvidenceConflictV1:
+    kwargs = dict(
+        topic="segment revenue restatement",
+        evidence_ids=["SEC:1:A-1:CHUNK:0", "SEC:1:A-2:CHUNK:0"],
+        description="The 10-K and the later 8-K state different segment revenue.",
+        resolution_status=ConflictResolution.UNRESOLVED,
+        confidence=Confidence.MEDIUM,
+    )
+    kwargs.update(overrides)
+    return EvidenceConflictV1(**kwargs)
+
+
+def test_conflict_needs_two_sides():
+    with pytest.raises(ValidationError):
+        _conflict(evidence_ids=["SEC:1:A-1:CHUNK:0"])
+
+
+def test_conflict_evidence_must_exist_in_the_package():
+    with pytest.raises(ValidationError):
+        EvidenceConflictV1.model_validate(
+            _conflict().model_dump(mode="json"),
+            context={"valid_evidence_ids": {"SEC:1:A-1:CHUNK:0"}},
+        )
+
+
+def test_unresolved_conflict_is_preserved_not_rejected():
+    """An UNRESOLVED conflict is a legitimate research outcome - the schema must round-trip it
+    rather than force the model to resolve or drop it."""
+    output = HResearchInterpretationV1(**_base_kwargs(
+        evidence_conflicts=[_conflict()], sources=["SEC:1:A-1", "SEC:1:A-2"],
+    ))
+    restored = HResearchInterpretationV1.model_validate_json(output.model_dump_json())
+    assert restored.evidence_conflicts[0].resolution_status is ConflictResolution.UNRESOLVED
+    assert restored.evidence_conflicts[0].evidence_ids == ["SEC:1:A-1:CHUNK:0", "SEC:1:A-2:CHUNK:0"]
+
+
+def test_conflict_sources_must_appear_in_the_top_level_sources_list():
+    with pytest.raises(ValidationError) as exc:
+        HResearchInterpretationV1(**_base_kwargs(evidence_conflicts=[_conflict()],
+                                                  sources=["SEC:1:A-1"]))
+    assert "SEC:1:A-2" in str(exc.value)

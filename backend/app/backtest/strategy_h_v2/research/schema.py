@@ -128,10 +128,21 @@ class Claim(BaseModel):
 
     @model_validator(mode="after")
     def _material_claim_needs_a_source(self) -> "Claim":
-        if self.claim_type != ClaimType.UNKNOWN and self.source_id is None:
+        """D3.1 §2.1/R4: a material (non-UNKNOWN) claim needs BOTH a source and the specific
+        evidence chunk it came from. D3 only required `source_id`, which let a claim cite a real
+        document with an invented chunk pointer - one such case really occurred in the D3 pilot
+        (ACA/V1 cited `...:EX-99.1:CHUNK:13` on a 12-chunk document)."""
+        if self.claim_type == ClaimType.UNKNOWN:
+            return self
+        if self.source_id is None:
             raise ValueError(
                 f"claim_type={self.claim_type.value} requires source_id - "
                 "only UNKNOWN claims may omit a source"
+            )
+        if self.evidence_id is None:
+            raise ValueError(
+                f"claim_type={self.claim_type.value} requires evidence_id - "
+                "only UNKNOWN claims may omit the specific evidence chunk"
             )
         return self
 
@@ -141,6 +152,45 @@ class Claim(BaseModel):
         if valid_ids is not None and self.source_id is not None and self.source_id not in valid_ids:
             raise ValueError(f"orphan source_id {self.source_id!r} not present in the input package")
         return self
+
+    @model_validator(mode="after")
+    def _evidence_known_and_consistent(self, info: ValidationInfo) -> "Claim":
+        """Rejects a nonexistent chunk, a chunk belonging to another company's package (the valid
+        set is built per-candidate), and a source/evidence pair that disagree with each other."""
+        if self.evidence_id is None:
+            return self
+        if self.source_id is not None and not self.evidence_id.startswith(f"{self.source_id}:"):
+            raise ValueError(
+                f"evidence_id {self.evidence_id!r} does not belong to source {self.source_id!r}"
+            )
+        valid_evidence = (info.context or {}).get("valid_evidence_ids")
+        if valid_evidence is not None and self.evidence_id not in valid_evidence:
+            raise ValueError(
+                f"unknown evidence_id {self.evidence_id!r} - not an evidence chunk in this "
+                "candidate's input package"
+            )
+        return self
+
+
+def _check_source_ids(values: list[str], info: ValidationInfo, what: str) -> None:
+    """The `sources` lists on catalysts, risks, invalidations and future-business items were the
+    one citation path with no integrity check at all: `Claim` was validated against the package but
+    these plain `list[str]` fields were not. The D3.1 regression caught the model filling them with
+    evidence chunk IDs instead of source IDs, which then failed far away in the top-level coverage
+    check with an error that pointed at the wrong thing (D3.1 §2.1, "wrong source/evidence
+    relationship")."""
+    valid_ids = (info.context or {}).get("valid_source_ids")
+    if valid_ids is None:
+        return
+    for value in values:
+        if value in valid_ids:
+            continue
+        if ":CHUNK:" in value:
+            raise ValueError(
+                f"{what} cites {value!r}, which is an evidence_id - this field takes source_id "
+                f"values (the part before ':CHUNK:'), not chunk IDs"
+            )
+        raise ValueError(f"{what} cites orphan source_id {value!r} not present in the input package")
 
 
 class BusinessModel(BaseModel):
@@ -158,10 +208,21 @@ class FundamentalChangeInterpretation(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     metric: str
-    code_owned_state: str
-    """Copied verbatim from the evidence bundle's `fundamental_changes[metric]['state']` -
-    cross-checked against the actual input package by `validate_research_output`, not by this
-    model alone (a schema-level check cannot see the input package)."""
+    code_owned_state: str = Field(
+        description=(
+            "The bare state token copied verbatim from the FACTS block's "
+            "fundamental_changes[metric].state (for example 'IMPROVING'). Not a summary, not the "
+            "whole object, and never with current_value or confidence appended."
+        ),
+    )
+    """Cross-checked against the actual input package by `validate.py`, not by this model alone (a
+    schema-level check cannot see the input package).
+
+    The `description=` above is not decoration: the prompt embeds this model's JSON Schema, and a
+    plain docstring never reaches it. Without it the D3.1 regression showed the model writing the
+    whole rendered object ("state=IMPROVING, current_value=0.236, confidence=MEDIUM") into this
+    field and failing the cross-check - a formatting failure that looked like a numeric mutation.
+    """
     explanation: list[Claim] = Field(default_factory=list)
     durability_relevant: bool
 
@@ -236,6 +297,11 @@ class FutureBusinessItem(BaseModel):
             )
         return self
 
+    @model_validator(mode="after")
+    def _sources_are_source_ids(self, info: ValidationInfo) -> "FutureBusinessItem":
+        _check_source_ids(self.sources, info, f"future_business item {self.name!r}")
+        return self
+
 
 class CompetitiveDimension(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -281,6 +347,11 @@ class CatalystCandidate(BaseModel):
             raise ValueError("a catalyst candidate must cite at least one source (D3 brief §6/§14)")
         return value
 
+    @model_validator(mode="after")
+    def _sources_are_source_ids(self, info: ValidationInfo) -> "CatalystCandidate":
+        _check_source_ids(self.sources, info, f"catalyst {self.type!r}")
+        return self
+
 
 class RiskItem(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -296,6 +367,11 @@ class RiskItem(BaseModel):
             raise ValueError("a risk item must be evidence-supported, not a generic template entry")
         return value
 
+    @model_validator(mode="after")
+    def _sources_are_source_ids(self, info: ValidationInfo) -> "RiskItem":
+        _check_source_ids(self.sources, info, f"risk {self.category.value}")
+        return self
+
 
 class InvalidationCandidate(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -309,6 +385,11 @@ class InvalidationCandidate(BaseModel):
         if not value:
             raise ValueError("an invalidation candidate must cite the evidence that would break the thesis")
         return value
+
+    @model_validator(mode="after")
+    def _sources_are_source_ids(self, info: ValidationInfo) -> "InvalidationCandidate":
+        _check_source_ids(self.sources, info, "invalidation candidate")
+        return self
 
 
 class WhyNowCandidate(BaseModel):
@@ -325,6 +406,65 @@ class WhyNowCandidate(BaseModel):
     def _no_banned_language(cls, value: str) -> str:
         _banned_language_check(value)
         return value
+
+
+class ConflictResolution(StrEnum):
+    """Whether the official record itself settles the disagreement."""
+
+    RESOLVED = "RESOLVED"
+    """A later official source supersedes the earlier one and says so."""
+    UNRESOLVED = "UNRESOLVED"
+    """Both sources stand; the record does not reconcile them."""
+    UNKNOWN = "UNKNOWN"
+    """It cannot be determined from the collected evidence which reading holds."""
+
+
+class EvidenceConflictV1(BaseModel):
+    """A material disagreement *between official sources* (D3.1 §2.2).
+
+    D3 had no way to say "the 10-K and the 8-K disagree", so the model's only options were to pick
+    one silently or drop the topic. Both destroy the audit trail. An UNRESOLVED conflict is a
+    legitimate, preservable research outcome - it is not a failure to be repaired away.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    topic: str
+    evidence_ids: list[str]
+    description: str
+    resolution_status: ConflictResolution
+    confidence: Confidence
+
+    @field_validator("topic", "description")
+    @classmethod
+    def _no_banned_language(cls, value: str) -> str:
+        _banned_language_check(value)
+        return value
+
+    @field_validator("evidence_ids")
+    @classmethod
+    def _needs_two_sides(cls, value: list[str]) -> list[str]:
+        if len(value) < 2:
+            raise ValueError(
+                "a conflict must cite at least two evidence chunks - the two sides that disagree"
+            )
+        return value
+
+    @model_validator(mode="after")
+    def _evidence_known(self, info: ValidationInfo) -> "EvidenceConflictV1":
+        valid_evidence = (info.context or {}).get("valid_evidence_ids")
+        if valid_evidence is None:
+            return self
+        unknown = [eid for eid in self.evidence_ids if eid not in valid_evidence]
+        if unknown:
+            raise ValueError(
+                f"unknown evidence_id {sorted(unknown)} in conflict {self.topic!r} - "
+                "not evidence chunks in this candidate's input package"
+            )
+        return self
+
+    def cited_source_ids(self) -> set[str]:
+        return {eid.split(":CHUNK:")[0] for eid in self.evidence_ids if ":CHUNK:" in eid}
 
 
 def _iter_claims(model: BaseModel) -> list[Claim]:
@@ -370,6 +510,7 @@ class HResearchInterpretationV1(BaseModel):
     why_now_candidate: WhyNowCandidate
     risks: list[RiskItem] = Field(default_factory=list)
     invalidation_candidates: list[InvalidationCandidate] = Field(default_factory=list)
+    evidence_conflicts: list[EvidenceConflictV1] = Field(default_factory=list)
     open_questions: list[str] = Field(default_factory=list)
     unknown_fields: list[str] = Field(default_factory=list)
     sources: list[str] = Field(default_factory=list)
@@ -387,6 +528,8 @@ class HResearchInterpretationV1(BaseModel):
         cited = {claim.source_id for claim in _iter_claims(self) if claim.source_id}
         for candidate in (*self.catalyst_candidates, *self.risks, *self.invalidation_candidates):
             cited.update(candidate.sources)
+        for conflict in self.evidence_conflicts:
+            cited.update(conflict.cited_source_ids())
         missing = cited - set(self.sources)
         if missing:
             raise ValueError(
