@@ -1,0 +1,385 @@
+{
+ "record": "CRYPTO_D6_PREFREEZE_QC_V1",
+ "computed_utc": "2026-09-28",
+ "declaration": "Feature values, episode counts and volatility only. Forward returns: NOT computed. PnL: NOT computed.",
+ "inputs": "data/runtime/crypto/d5/grid_v1.npz via app.crypto.research.dataset.load (same files/checksums as D5, D5.1)",
+ "episode_rule": "non-overlapping: 240min hold + 60min cooldown; OOS = folds F1..F9 (2022-01-01..2026-09-23)",
+ "volatility_cutoffs_used": {
+  "source": "D5.1 contract sec8 (F1 train)",
+  "low_below": 0.0007592730942805516,
+  "high_above": 0.0010924950359531157
+ },
+ "candidate_definition_scan": [
+  {
+   "name": "C1(D5.2 as-is): D1&U&HIGHvol",
+   "ep_all": 711,
+   "ep_oos": 455,
+   "min_fold": 11,
+   "folds_ge20": 7,
+   "by_fold": {
+    "1": 142,
+    "2": 63,
+    "3": 22,
+    "4": 12,
+    "5": 73,
+    "6": 40,
+    "7": 51,
+    "8": 11,
+    "9": 41
+   },
+   "by_year": {
+    "2022": 205,
+    "2023": 34,
+    "2024": 113,
+    "2025": 62,
+    "2026": 41
+   },
+   "days": 195
+  },
+  {
+   "name": "A1: D1&U&notLOWvol",
+   "ep_all": 1895,
+   "ep_oos": 1405,
+   "min_fold": 26,
+   "folds_ge20": 9,
+   "by_fold": {
+    "1": 339,
+    "2": 227,
+    "3": 110,
+    "4": 26,
+    "5": 163,
+    "6": 148,
+    "7": 125,
+    "8": 83,
+    "9": 184
+   },
+   "by_year": {
+    "2022": 566,
+    "2023": 136,
+    "2024": 311,
+    "2025": 208,
+    "2026": 184
+   },
+   "days": 549
+  },
+  {
+   "name": "A2: D1&U (no vol gate)",
+   "ep_all": 5213,
+   "ep_oos": 4567,
+   "min_fold": 410,
+   "folds_ge20": 9,
+   "by_fold": {
+    "1": 503,
+    "2": 492,
+    "3": 449,
+    "4": 421,
+    "5": 425,
+    "6": 410,
+    "7": 507,
+    "8": 510,
+    "9": 850
+   },
+   "by_year": {
+    "2022": 995,
+    "2023": 870,
+    "2024": 835,
+    "2025": 1017,
+    "2026": 850
+   },
+   "days": 1476
+  },
+  {
+   "name": "A3: D2&U&notLOW",
+   "ep_all": 2518,
+   "ep_oos": 1772,
+   "min_fold": 42,
+   "folds_ge20": 9,
+   "by_fold": {
+    "1": 446,
+    "2": 277,
+    "3": 143,
+    "4": 42,
+    "5": 202,
+    "6": 195,
+    "7": 153,
+    "8": 99,
+    "9": 215
+   },
+   "by_year": {
+    "2022": 723,
+    "2023": 185,
+    "2024": 397,
+    "2025": 252,
+    "2026": 215
+   },
+   "days": 599
+  },
+  {
+   "name": "A4: D1&Uq&notLOW",
+   "ep_all": 1094,
+   "ep_oos": 817,
+   "min_fold": 20,
+   "folds_ge20": 9,
+   "by_fold": {
+    "1": 188,
+    "2": 124,
+    "3": 61,
+    "4": 20,
+    "5": 95,
+    "6": 84,
+    "7": 88,
+    "8": 49,
+    "9": 108
+   },
+   "by_year": {
+    "2022": 312,
+    "2023": 81,
+    "2024": 179,
+    "2025": 137,
+    "2026": 108
+   },
+   "days": 460
+  },
+  {
+   "name": "B1: D1&X&notLOW",
+   "ep_all": 1102,
+   "ep_oos": 910,
+   "min_fold": 23,
+   "folds_ge20": 9,
+   "by_fold": {
+    "1": 192,
+    "2": 122,
+    "3": 95,
+    "4": 23,
+    "5": 125,
+    "6": 98,
+    "7": 81,
+    "8": 58,
+    "9": 116
+   },
+   "by_year": {
+    "2022": 314,
+    "2023": 118,
+    "2024": 223,
+    "2025": 139,
+    "2026": 116
+   },
+   "days": 460
+  },
+  {
+   "name": "B2: D1&(U|X)&notLOW",
+   "ep_all": 1978,
+   "ep_oos": 1475,
+   "min_fold": 31,
+   "folds_ge20": 9,
+   "by_fold": {
+    "1": 352,
+    "2": 240,
+    "3": 120,
+    "4": 31,
+    "5": 169,
+    "6": 155,
+    "7": 128,
+    "8": 90,
+    "9": 190
+   },
+   "by_year": {
+    "2022": 592,
+    "2023": 151,
+    "2024": 324,
+    "2025": 218,
+    "2026": 190
+   },
+   "days": 558
+  },
+  {
+   "name": "B3: D2&X2&U&notLOW",
+   "ep_all": 1936,
+   "ep_oos": 1413,
+   "min_fold": 36,
+   "folds_ge20": 9,
+   "by_fold": {
+    "1": 330,
+    "2": 221,
+    "3": 112,
+    "4": 36,
+    "5": 175,
+    "6": 158,
+    "7": 122,
+    "8": 80,
+    "9": 179
+   },
+   "by_year": {
+    "2022": 551,
+    "2023": 148,
+    "2024": 333,
+    "2025": 202,
+    "2026": 179
+   },
+   "days": 570
+  },
+  {
+   "name": "C: D1 only",
+   "ep_all": 6229,
+   "ep_oos": 5455,
+   "min_fold": 479,
+   "folds_ge20": 9,
+   "by_fold": {
+    "1": 629,
+    "2": 600,
+    "3": 563,
+    "4": 504,
+    "5": 479,
+    "6": 492,
+    "7": 587,
+    "8": 592,
+    "9": 1009
+   },
+   "by_year": {
+    "2022": 1229,
+    "2023": 1067,
+    "2024": 971,
+    "2025": 1179,
+    "2026": 1009
+   },
+   "days": 1504
+  }
+ ],
+ "score_threshold_scan": {
+  "37": {
+   "ep_all": 2635,
+   "ep_oos": 1876,
+   "by_fold": {
+    "1": 472,
+    "2": 305,
+    "3": 158,
+    "4": 48,
+    "5": 215,
+    "6": 198,
+    "7": 158,
+    "8": 99,
+    "9": 223
+   },
+   "by_year": {
+    "2022": 777,
+    "2023": 206,
+    "2024": 413,
+    "2025": 257,
+    "2026": 223
+   },
+   "min_fold": 48,
+   "folds_ge20": 9,
+   "days": 605,
+   "bars_frac": 0.08507474946607524
+  },
+  "50": {
+   "ep_all": 2074,
+   "ep_oos": 1498,
+   "by_fold": {
+    "1": 355,
+    "2": 234,
+    "3": 123,
+    "4": 40,
+    "5": 184,
+    "6": 157,
+    "7": 132,
+    "8": 83,
+    "9": 190
+   },
+   "by_year": {
+    "2022": 589,
+    "2023": 163,
+    "2024": 341,
+    "2025": 215,
+    "2026": 190
+   },
+   "min_fold": 40,
+   "folds_ge20": 9,
+   "days": 572,
+   "bars_frac": 0.0405033267619517
+  },
+  "62": {
+   "ep_all": 1775,
+   "ep_oos": 1290,
+   "by_fold": {
+    "1": 300,
+    "2": 199,
+    "3": 109,
+    "4": 32,
+    "5": 159,
+    "6": 133,
+    "7": 120,
+    "8": 74,
+    "9": 164
+   },
+   "by_year": {
+    "2022": 499,
+    "2023": 141,
+    "2024": 292,
+    "2025": 194,
+    "2026": 164
+   },
+   "min_fold": 32,
+   "folds_ge20": 9,
+   "days": 542,
+   "bars_frac": 0.02732188817698921
+  },
+  "75": {
+   "ep_all": 870,
+   "ep_oos": 643,
+   "by_fold": {
+    "1": 156,
+    "2": 89,
+    "3": 47,
+    "4": 20,
+    "5": 94,
+    "6": 65,
+    "7": 69,
+    "8": 31,
+    "9": 72
+   },
+   "by_year": {
+    "2022": 245,
+    "2023": 67,
+    "2024": 159,
+    "2025": 100,
+    "2026": 72
+   },
+   "min_fold": 20,
+   "folds_ge20": 9,
+   "days": 342,
+   "bars_frac": 0.008340520781994414
+  }
+ },
+ "stop_and_sizing": {
+  "sigma4h_pct": [
+   1.180443094606316,
+   1.48762152474427,
+   2.9697580121666607
+  ],
+  "k2.5_dist_pct": [
+   2.95110773651579,
+   3.7190538118606744,
+   7.424395030416651
+  ],
+  "notional_over_equity": [
+   0.06734555631524729,
+   0.13444280221808017,
+   0.16942790476503516
+  ],
+  "capped_share": 0.0
+ },
+ "feature_spearman_hourly_sample": {
+  "E3_vs_A1": -0.034,
+  "E3_vs_OI1h": -0.011,
+  "E3_vs_RV24h": 0.116,
+  "A1_vs_OI1h": 0.019,
+  "A1_vs_RV24h": 0.006,
+  "OI1h_vs_RV24h": -0.003
+ },
+ "decisions_driven_by_this_qc": [
+  "volatility moved from HARD FILTER (D5.2 C1 used HIGH-only) to SCORE component with LOW excluded, because the HIGH-only definition yields only 455 OOS episodes with 11 in the smallest fold and 7/9 judgeable folds",
+  "LONG_ENTRY_MIN_SCORE = 50 is the mid-point of the 0-100 scale; sample adequacy was confirmed at 37/50/62/75 (all 9/9 folds >= 20 episodes) so sample size did not select the threshold",
+  "stop multiplier k = 2.5 gives median stop distance 3.72 pct; risk-budget sizing then implies notional/equity median 0.134 and never hits the 1.0x cap"
+ ]
+}
