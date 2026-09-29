@@ -24,6 +24,28 @@ The availability vocabulary is deliberately narrow. A blanket "contains a negati
 admit "Consensus does not expect growth", which is an assertion about consensus and exactly what
 the rule exists to stop. Only statements about the EVIDENCE's availability qualify; statements
 about the expectation's CONTENT never do, whichever way they point.
+
+D4.3R's audit-alignment pass (§D) found and deliberately left open one coverage gap in this same,
+unchanged rule: the referent list named "consensus", "analysts", "sell-side", "wall street" and "the
+street", but not bare "market". "The market expects X." named no OTHER consensus referent and
+carried no absence language, so it fell through to NEUTRAL - a real detection gap for a sentence the
+rule's own stated principle ("analyst / consensus / market expectation" cannot be asserted without a
+source) was always meant to cover. This is that closure, added as two narrowly SCOPED patterns rather
+than by widening `_REFERENT` itself: `_MARKET_VERB` catches "market expects"/"market is expecting"
+with the verb directly at "market"'s side, and `_MARKET_EXPECTATION_SUBJECT` catches "market
+expectations/consensus/estimates/views" as a bare attributed subject even when no listed verb follows
+("Market expectations imply..."). Both require direct adjacency rather than `_REFERENT`'s
+whole-sentence, position-independent search, because "market" - unlike "consensus" or "analysts" - is
+common enough in D4's own approved vocabulary (price reactions, milestones) that an unscoped pairing
+produced a real false positive during this closure's own validation: a sentence about an "operational
+milestone, not a financial target" that separately mentioned a "market-expectation gap" paired the
+unrelated word "target" with "market" purely because both sat somewhere in one sentence. One absence
+phrase ("insufficient evidence") is added for the same reason the market patterns are: once "market"
+can trigger ASSERTED, an honest sentence like "There is insufficient evidence to determine what the
+market expects" needs a matching absence phrase or it flips from NEUTRAL to wrongly ASSERTED instead
+of ABSENCE - the exact D4.1 failure mode this rule exists to prevent. Ordinary uses of the word
+"market" that attribute nothing ("the company serves the US market", "market share increased") are
+untouched: they still produce no trigger and classify NEUTRAL, exactly as before.
 """
 
 from __future__ import annotations
@@ -31,7 +53,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import re
 
-CONSENSUS_LANGUAGE_CONTRACT_VERSION = "h_v2_d4_consensus_language_v2"
+CONSENSUS_LANGUAGE_CONTRACT_VERSION = "h_v2_d4_consensus_language_v2_1"
 
 #: V1's eleven substrings, copied verbatim from commit 8a54895. V2 must still reject every one of
 #: them in an asserting sentence; `test_consensus_language.py` proves it phrase by phrase, so the
@@ -68,7 +90,7 @@ _EXPECTATION_VERB = re.compile(
 #: A number attributed to a consensus noun without any verb: "consensus estimates of $5.00",
 #: "analyst expectations around 20% growth". The quantification is the attribution.
 _QUANTIFIED_NOUN = re.compile(
-    r"\b(consensus|analysts?|sell[-\s]side|wall\s+street|the\s+street)\b[^.;]{0,40}?"
+    r"\b(consensus|analysts?|sell[-\s]side|wall\s+street|the\s+street|market)\b[^.;]{0,40}?"
     r"\b(expectations?|estimates?|forecasts?|projections?|numbers?|views?|targets?)\b"
     r"[^.;]{0,20}?\b(of|for|at|around|near|above|below|versus|vs\.?)\b[^.;]{0,20}?"
     r"[-+$]?\d",
@@ -83,8 +105,38 @@ _COMPARISON = re.compile(
     r"(?:"
     r"(?:analysts?\'?|wall\s+street|the\s+street|street|sell[-\s]side)\s+"
     r"(?:consensus|estimates?|expectations?|forecasts?|numbers?)"
+    r"|market\s+(?:consensus|estimates?|expectations?|forecasts?|numbers?)"
     r"|consensus(?:\s+(?:estimates?|expectations?|forecasts?|numbers?))?"
     r")\b",
+    re.IGNORECASE,
+)
+
+#: "Market expectations imply...", "market's consensus suggests...": the referent + expectation-noun
+#: PAIR is itself the attribution, independent of which verb (if any) follows - unlike
+#: `_EXPECTATION_VERB`, which needs a listed verb, this catches "imply", "suggest" and any other verb
+#: the model chooses once the noun phrase alone already names whose expectation is being stated.
+#: Scoped to "market" only: "consensus"/"analysts" already get this coverage from `_QUANTIFIED_NOUN`
+#: and `_EXPECTATION_VERB`, and widening this pattern to every referent is not this gap's scope.
+#: Deliberately requires DIRECT adjacency ("market" then whitespace then the noun), not a gap-bridged
+#: search: this rule's own error message names "the market" and, three words later inside a quoted
+#: trigger, "Consensus" - a `[^.;]{0,15}` gap would bridge that punctuation boundary and make the
+#: rule's own explanation of itself misclassify as ASSERTED.
+_MARKET_EXPECTATION_SUBJECT = re.compile(
+    r"\bmarket'?s?\s+(expectations?|consensus|estimates?|views?)\b",
+    re.IGNORECASE,
+)
+
+#: "The market expects X.", "The market is expecting X.": unlike `_REFERENT`+`_EXPECTATION_VERB`'s
+#: whole-sentence, unscoped search (fine for rare words like "consensus"/"analysts", where an
+#: unrelated verb elsewhere in the same sentence is not a realistic collision), "market" is common
+#: enough in D4's own approved vocabulary (price reactions, milestones, market caps) that the same
+#: unscoped pairing produced a real false positive: "...not a financial target, and says little
+#: about the size of the market-expectation gap" paired the unrelated "target" with "market" purely
+#: because both appeared somewhere in one sentence. So "market" is deliberately NOT added to
+#: `_REFERENT` - this pattern requires the verb directly at "market"'s side (at most one copula
+#: between them), not merely present anywhere in the same sentence.
+_MARKET_VERB = re.compile(
+    r"\bmarket\b\s*(?:is\s+|are\s+|was\s+|were\s+)?" + _EXPECTATION_VERB.pattern,
     re.IGNORECASE,
 )
 
@@ -93,6 +145,11 @@ _COMPARISON = re.compile(
 # Every entry is about the AVAILABILITY of the evidence. Nothing here is about which way an
 # expectation points, because a rule that accepted "does not expect" would have a hole the exact
 # size of the thing it is guarding.
+#
+# "insufficient evidence" was added alongside the "market" referent above: without it, "There is
+# insufficient evidence to determine what the market expects" would flip from NEUTRAL (pre-R2, no
+# referent matched at all) to wrongly ASSERTED (post-R2, "market" + "expects" now trigger) instead of
+# ABSENCE, which is exactly the D4.1 failure mode this rule exists to prevent.
 
 _ABSENCE = re.compile(
     r"("
@@ -108,6 +165,7 @@ _ABSENCE = re.compile(
     r"\bcannot\s+be\s+determined\b|\bcould\s+not\s+be\s+determined\b|"
     r"\bnot\s+in\s+the\s+(current\s+)?(evidence|source)\b|\bnot\s+part\s+of\s+the\s+evidence\b|"
     r"\bno\s+[^.;]{0,40}\bcoverage\b|\bnot\s+covered\b|\bnot\s+collected\b|\bnot\s+retrievable\b|"
+    r"\binsufficient\s+evidence\b|"
     r"\bSOURCE_NOT_AVAILABLE\b|\black(s|ing)?\b|\bwithout\s+(any\s+)?(a\s+)?(consensus|analyst)\b"
     r")",
     re.IGNORECASE,
@@ -155,6 +213,11 @@ def classify_sentence(sentence: str) -> ConsensusFinding:
         triggers.append("quantified consensus figure")
     if _COMPARISON.search(sentence):
         triggers.append("comparison against consensus")
+    if _MARKET_EXPECTATION_SUBJECT.search(sentence):
+        triggers.append("market expectation noun phrase")
+    market_verb = _MARKET_VERB.search(sentence)
+    if market_verb:
+        triggers.append(f"market ... {market_verb.group(1).strip()}")
     for phrase in V1_BANNED_SUBSTRINGS:
         if phrase in lowered:
             triggers.append(phrase)
