@@ -1,0 +1,2242 @@
+{
+ "contract_sha256": "db2cb57f86ff6eb2c8c5a7c39cdece624a0fab505e11ed9e53a3860334e5cbe4",
+ "decisions": [
+  {
+   "buckets": {
+    "f_basis": {
+     "bucket": "B1",
+     "valid_fraction": 1.0
+    },
+    "f_drop1h": {
+     "bucket": "B5",
+     "valid_fraction": 1.0
+    },
+    "f_oi1h": {
+     "bucket": "B1",
+     "valid_fraction": 1.0
+    }
+   },
+   "category_scores": [
+    {
+     "detail": {
+      "bucket": "B1",
+      "cutoffs": [
+       -0.000475451643614555,
+       0.00012709815432785371,
+       0.0008576320470483622,
+       0.0013474041259827984
+      ],
+      "value": -0.002697346194775463
+     },
+     "input": "f_basis",
+     "level": "B1",
+     "max": 25,
+     "name": "market_structure",
+     "points": 25
+    },
+    {
+     "detail": {
+      "bucket": "B1",
+      "cutoffs": [
+       -0.020417105930167517,
+       -0.00750204271721629,
+       0.006615105001106514,
+       0.01826875565587116
+      ],
+      "value": -0.1469653554078576
+     },
+     "input": "f_oi1h",
+     "level": "B1",
+     "max": 25,
+     "name": "positioning",
+     "points": 25
+    },
+    {
+     "detail": {
+      "high_above": 0.0010924950359531157,
+      "label": "HIGH",
+      "low_below": 0.0007592730942805516,
+      "value": 0.0045245444701830706
+     },
+     "input": "f_rv24h",
+     "level": "HIGH",
+     "max": 25,
+     "name": "volatility_exhaustion",
+     "points": 25
+    },
+    {
+     "detail": {
+      "bucket": "B5",
+      "cutoffs": [
+       -0.010435697275569032,
+       -0.0036801506102310815,
+       0.003463284755786055,
+       0.009487767355580878
+      ],
+      "value": 0.034319906767958486
+     },
+     "input": "f_drop1h",
+     "level": "B5",
+     "max": 25,
+     "name": "price_exhaustion",
+     "points": 0
+    }
+   ],
+   "contract_hash": "db2cb57f86ff6eb2c8c5a7c39cdece624a0fab505e11ed9e53a3860334e5cbe4",
+   "data_age": {
+    "bar_age_ms": 0,
+    "ms_to_funding": 7140000,
+    "oi_age_ms": 360000
+   },
+   "decision": "LONG",
+   "decision_bar_ts_ms": 1621432800000,
+   "entry_allowed": true,
+   "entry_intent": "ENTRY_INTENT_LONG",
+   "features": {
+    "f_basis": -0.002697346194775463,
+    "f_drop1h": 0.034319906767958486,
+    "f_oi1h": -0.1469653554078576,
+    "f_rv24h": 0.0045245444701830706
+   },
+   "filter_pass": true,
+   "golden_label": "2021-05-19T14:00:00Z",
+   "hard_filters": [
+    {
+     "id": "H1",
+     "name": "DATA_STALE",
+     "observed": {
+      "bar_age_ms": 0
+     },
+     "reason": "H1_OK",
+     "status": "PASS",
+     "threshold": "last 1m bar close older than 90s"
+    },
+    {
+     "id": "H2",
+     "name": "OI_STALE",
+     "observed": {
+      "oi_age_ms": 360000
+     },
+     "reason": "H2_OK",
+     "status": "PASS",
+     "threshold": "last OI record older than 15min"
+    },
+    {
+     "id": "H3",
+     "name": "INSUFFICIENT_HISTORY",
+     "observed": {
+      "features_without_cutoffs": {},
+      "min_valid_fraction": 0.5
+     },
+     "reason": "H3_OK",
+     "status": "PASS",
+     "threshold": "bucket window valid fraction < 0.5"
+    },
+    {
+     "id": "H4",
+     "name": "FEATURE_NAN",
+     "observed": {
+      "nan_features": []
+     },
+     "reason": "H4_OK",
+     "status": "PASS",
+     "threshold": "any of the 4 features is NaN"
+    },
+    {
+     "id": "H5",
+     "name": "VOL_LOW",
+     "observed": {
+      "label": "HIGH"
+     },
+     "reason": "H5_OK",
+     "status": "PASS",
+     "threshold": "volatility label == LOW"
+    },
+    {
+     "id": "H6",
+     "name": "SPREAD_WIDE",
+     "observed": null,
+     "reason": "H6_NO_HISTORICAL_ORDERBOOK",
+     "status": "NOT_EVALUATED",
+     "threshold": "(ask-bid)/mid > 5bp"
+    },
+    {
+     "id": "H7",
+     "name": "DEPTH_SHORT",
+     "observed": null,
+     "reason": "H7_NO_HISTORICAL_ORDERBOOK",
+     "status": "NOT_EVALUATED",
+     "threshold": "qty > SAFE_MAX from sizing.max_entry()"
+    },
+    {
+     "id": "H8",
+     "name": "COOLDOWN",
+     "observed": null,
+     "reason": "H8_NO_PRIOR_EXIT",
+     "status": "PASS",
+     "threshold": "< 60min since last exit"
+    },
+    {
+     "id": "H9",
+     "name": "POSITION_OPEN",
+     "observed": {
+      "position_open": false
+     },
+     "reason": "H9_FLAT",
+     "status": "PASS",
+     "threshold": "auto position already open"
+    },
+    {
+     "id": "H10",
+     "name": "DAILY_LOSS_GUARD",
+     "observed": {
+      "day_realized_pnl_pct": 0.0,
+      "day_utc": null
+     },
+     "reason": "H10_OK",
+     "status": "PASS",
+     "threshold": "UTC-day realized pnl <= -2.0% of capital"
+    },
+    {
+     "id": "H11",
+     "name": "CONSECUTIVE_LOSS",
+     "observed": {
+      "consecutive_losses": 0,
+      "ms_since_last_loss": null
+     },
+     "reason": "H11_OK",
+     "status": "PASS",
+     "threshold": ">= 4 consecutive losing trades -> 24h block"
+    },
+    {
+     "id": "H12",
+     "name": "FUNDING_WINDOW",
+     "observed": {
+      "ms_to_funding": 7140000
+     },
+     "reason": "H12_OK",
+     "status": "PASS",
+     "threshold": "< 5min to next funding settlement"
+    },
+    {
+     "id": "H13",
+     "name": "LEDGER_DIVERGENCE",
+     "observed": {
+      "trigger": null
+     },
+     "reason": "H13_OK",
+     "status": "PASS",
+     "threshold": "recovery refused -> EMERGENCY_STOP"
+    }
+   ],
+   "long_score": 75,
+   "market_context": {
+    "ask": null,
+    "bar_close_ms": 1621432860000,
+    "bid": null,
+    "entry_reference_price": 35450.0,
+    "equity": 7440.48,
+    "mark": 35545.34,
+    "next_funding_ts_ms": 1621440000000,
+    "position_open": false,
+    "safe_max_qty": null
+   },
+   "mode": "HISTORICAL",
+   "notes": {},
+   "reason_codes": [
+    "H6_NO_HISTORICAL_ORDERBOOK",
+    "H7_NO_HISTORICAL_ORDERBOOK",
+    "SHORT_DISABLED_FOR_V1"
+   ],
+   "required_inputs_available": {
+    "buckets": true,
+    "entry_reference_price": true,
+    "equity": true,
+    "features": true,
+    "next_funding_ts": true,
+    "oi_record_ts": true,
+    "quote": false,
+    "safe_max_qty": false
+   },
+   "schema": "D6B_DECISION_V1",
+   "short_score": null,
+   "short_state": "SHORT_DISABLED_FOR_V1",
+   "sizing": {
+    "feasible": true,
+    "final_notional": 354.5,
+    "final_qty": 0.01,
+    "leverage": 1.0,
+    "reason": "FEASIBLE",
+    "risk_limited_notional": 372.024,
+    "safe_max_cap_qty": null,
+    "stop_distance": 0.1,
+    "stop_price": 31905.0,
+    "theoretical_notional": 372.024
+   },
+   "strategy_id": "FDN-V1",
+   "strategy_name": "FORCED_DELEVERAGING_NORMALIZATION_V1",
+   "strategy_version": "V1",
+   "timestamp_ms": 1621432860000,
+   "volatility_label": "HIGH"
+  },
+  {
+   "buckets": {
+    "f_basis": {
+     "bucket": "B1",
+     "valid_fraction": 1.0
+    },
+    "f_drop1h": {
+     "bucket": "B1",
+     "valid_fraction": 1.0
+    },
+    "f_oi1h": {
+     "bucket": "B2",
+     "valid_fraction": 1.0
+    }
+   },
+   "category_scores": [
+    {
+     "detail": {
+      "bucket": "B1",
+      "cutoffs": [
+       -0.0007848538962807794,
+       -0.0006040087848932174,
+       -0.00034810824834732303,
+       -0.00017032625397952474
+      ],
+      "value": -0.0008458520198679764
+     },
+     "input": "f_basis",
+     "level": "B1",
+     "max": 25,
+     "name": "market_structure",
+     "points": 25
+    },
+    {
+     "detail": {
+      "bucket": "B2",
+      "cutoffs": [
+       -0.01465886446662168,
+       -0.0035381086018411168,
+       0.0064920199392409055,
+       0.015226135842320142
+      ],
+      "value": -0.005769931788082161
+     },
+     "input": "f_oi1h",
+     "level": "negative",
+     "max": 25,
+     "name": "positioning",
+     "points": 12
+    },
+    {
+     "detail": {
+      "high_above": 0.0010924950359531157,
+      "label": "HIGH",
+      "low_below": 0.0007592730942805516,
+      "value": 0.0016540264869111254
+     },
+     "input": "f_rv24h",
+     "level": "HIGH",
+     "max": 25,
+     "name": "volatility_exhaustion",
+     "points": 25
+    },
+    {
+     "detail": {
+      "bucket": "B1",
+      "cutoffs": [
+       -0.006773548737415247,
+       -0.0022997891292135366,
+       0.002243844615641599,
+       0.00641137076624485
+      ],
+      "value": -0.02705563855885984
+     },
+     "input": "f_drop1h",
+     "level": "B1",
+     "max": 25,
+     "name": "price_exhaustion",
+     "points": 25
+    }
+   ],
+   "contract_hash": "db2cb57f86ff6eb2c8c5a7c39cdece624a0fab505e11ed9e53a3860334e5cbe4",
+   "data_age": {
+    "bar_age_ms": 0,
+    "ms_to_funding": 28740000,
+    "oi_age_ms": 360000
+   },
+   "decision": "LONG",
+   "decision_bar_ts_ms": 1655107200000,
+   "entry_allowed": true,
+   "entry_intent": "ENTRY_INTENT_LONG",
+   "features": {
+    "f_basis": -0.0008458520198679764,
+    "f_drop1h": -0.02705563855885984,
+    "f_oi1h": -0.005769931788082161,
+    "f_rv24h": 0.0016540264869111254
+   },
+   "filter_pass": true,
+   "golden_label": "2022-06-13T08:00:00Z",
+   "hard_filters": [
+    {
+     "id": "H1",
+     "name": "DATA_STALE",
+     "observed": {
+      "bar_age_ms": 0
+     },
+     "reason": "H1_OK",
+     "status": "PASS",
+     "threshold": "last 1m bar close older than 90s"
+    },
+    {
+     "id": "H2",
+     "name": "OI_STALE",
+     "observed": {
+      "oi_age_ms": 360000
+     },
+     "reason": "H2_OK",
+     "status": "PASS",
+     "threshold": "last OI record older than 15min"
+    },
+    {
+     "id": "H3",
+     "name": "INSUFFICIENT_HISTORY",
+     "observed": {
+      "features_without_cutoffs": {},
+      "min_valid_fraction": 0.5
+     },
+     "reason": "H3_OK",
+     "status": "PASS",
+     "threshold": "bucket window valid fraction < 0.5"
+    },
+    {
+     "id": "H4",
+     "name": "FEATURE_NAN",
+     "observed": {
+      "nan_features": []
+     },
+     "reason": "H4_OK",
+     "status": "PASS",
+     "threshold": "any of the 4 features is NaN"
+    },
+    {
+     "id": "H5",
+     "name": "VOL_LOW",
+     "observed": {
+      "label": "HIGH"
+     },
+     "reason": "H5_OK",
+     "status": "PASS",
+     "threshold": "volatility label == LOW"
+    },
+    {
+     "id": "H6",
+     "name": "SPREAD_WIDE",
+     "observed": null,
+     "reason": "H6_NO_HISTORICAL_ORDERBOOK",
+     "status": "NOT_EVALUATED",
+     "threshold": "(ask-bid)/mid > 5bp"
+    },
+    {
+     "id": "H7",
+     "name": "DEPTH_SHORT",
+     "observed": null,
+     "reason": "H7_NO_HISTORICAL_ORDERBOOK",
+     "status": "NOT_EVALUATED",
+     "threshold": "qty > SAFE_MAX from sizing.max_entry()"
+    },
+    {
+     "id": "H8",
+     "name": "COOLDOWN",
+     "observed": null,
+     "reason": "H8_NO_PRIOR_EXIT",
+     "status": "PASS",
+     "threshold": "< 60min since last exit"
+    },
+    {
+     "id": "H9",
+     "name": "POSITION_OPEN",
+     "observed": {
+      "position_open": false
+     },
+     "reason": "H9_FLAT",
+     "status": "PASS",
+     "threshold": "auto position already open"
+    },
+    {
+     "id": "H10",
+     "name": "DAILY_LOSS_GUARD",
+     "observed": {
+      "day_realized_pnl_pct": 0.0,
+      "day_utc": null
+     },
+     "reason": "H10_OK",
+     "status": "PASS",
+     "threshold": "UTC-day realized pnl <= -2.0% of capital"
+    },
+    {
+     "id": "H11",
+     "name": "CONSECUTIVE_LOSS",
+     "observed": {
+      "consecutive_losses": 0,
+      "ms_since_last_loss": null
+     },
+     "reason": "H11_OK",
+     "status": "PASS",
+     "threshold": ">= 4 consecutive losing trades -> 24h block"
+    },
+    {
+     "id": "H12",
+     "name": "FUNDING_WINDOW",
+     "observed": {
+      "ms_to_funding": 28740000
+     },
+     "reason": "H12_OK",
+     "status": "PASS",
+     "threshold": "< 5min to next funding settlement"
+    },
+    {
+     "id": "H13",
+     "name": "LEDGER_DIVERGENCE",
+     "observed": {
+      "trigger": null
+     },
+     "reason": "H13_OK",
+     "status": "PASS",
+     "threshold": "recovery refused -> EMERGENCY_STOP"
+    }
+   ],
+   "long_score": 87,
+   "market_context": {
+    "ask": null,
+    "bar_close_ms": 1655107260000,
+    "bid": null,
+    "entry_reference_price": 24722.0,
+    "equity": 7440.48,
+    "mark": 24737.98,
+    "next_funding_ts_ms": 1655136000000,
+    "position_open": false,
+    "safe_max_qty": null
+   },
+   "mode": "HISTORICAL",
+   "notes": {},
+   "reason_codes": [
+    "H6_NO_HISTORICAL_ORDERBOOK",
+    "H7_NO_HISTORICAL_ORDERBOOK",
+    "SHORT_DISABLED_FOR_V1"
+   ],
+   "required_inputs_available": {
+    "buckets": true,
+    "entry_reference_price": true,
+    "equity": true,
+    "features": true,
+    "next_funding_ts": true,
+    "oi_record_ts": true,
+    "quote": false,
+    "safe_max_qty": false
+   },
+   "schema": "D6B_DECISION_V1",
+   "short_score": null,
+   "short_state": "SHORT_DISABLED_FOR_V1",
+   "sizing": {
+    "feasible": true,
+    "final_notional": 568.606,
+    "final_qty": 0.023,
+    "leverage": 1.0,
+    "reason": "FEASIBLE",
+    "risk_limited_notional": 580.7415087933788,
+    "safe_max_cap_qty": null,
+    "stop_distance": 0.06406017037992749,
+    "stop_price": 23138.304467867434,
+    "theoretical_notional": 580.7415087933788
+   },
+   "strategy_id": "FDN-V1",
+   "strategy_name": "FORCED_DELEVERAGING_NORMALIZATION_V1",
+   "strategy_version": "V1",
+   "timestamp_ms": 1655107260000,
+   "volatility_label": "HIGH"
+  },
+  {
+   "buckets": {
+    "f_basis": {
+     "bucket": "B3",
+     "valid_fraction": 1.0
+    },
+    "f_drop1h": {
+     "bucket": "B1",
+     "valid_fraction": 1.0
+    },
+    "f_oi1h": {
+     "bucket": "B5",
+     "valid_fraction": 1.0
+    }
+   },
+   "category_scores": [
+    {
+     "detail": {
+      "bucket": "B3",
+      "cutoffs": [
+       -0.000709956237528253,
+       -0.0005731503845806785,
+       -0.00037440263166228506,
+       -0.00022792304815038024
+      ],
+      "value": -0.0005437159572725392
+     },
+     "input": "f_basis",
+     "level": "B3",
+     "max": 25,
+     "name": "market_structure",
+     "points": 0
+    },
+    {
+     "detail": {
+      "bucket": "B5",
+      "cutoffs": [
+       -0.011119963817821158,
+       -0.0026081880119127395,
+       0.003101554422149988,
+       0.009122901994168224
+      ],
+      "value": 0.016320251184897216
+     },
+     "input": "f_oi1h",
+     "level": "B5",
+     "max": 25,
+     "name": "positioning",
+     "points": 0
+    },
+    {
+     "detail": {
+      "high_above": 0.0010924950359531157,
+      "label": "HIGH",
+      "low_below": 0.0007592730942805516,
+      "value": 0.0030250284617458047
+     },
+     "input": "f_rv24h",
+     "level": "HIGH",
+     "max": 25,
+     "name": "volatility_exhaustion",
+     "points": 25
+    },
+    {
+     "detail": {
+      "bucket": "B1",
+      "cutoffs": [
+       -0.003772089280040269,
+       -0.0011759327153733068,
+       0.0011987839491307995,
+       0.00369302932798643
+      ],
+      "value": -0.009150486797674162
+     },
+     "input": "f_drop1h",
+     "level": "B1",
+     "max": 25,
+     "name": "price_exhaustion",
+     "points": 25
+    }
+   ],
+   "contract_hash": "db2cb57f86ff6eb2c8c5a7c39cdece624a0fab505e11ed9e53a3860334e5cbe4",
+   "data_age": {
+    "bar_age_ms": 0,
+    "ms_to_funding": 21540000,
+    "oi_age_ms": 360000
+   },
+   "decision": "HOLD",
+   "decision_bar_ts_ms": 1668016800000,
+   "entry_allowed": false,
+   "entry_intent": "NO_ENTRY_INTENT",
+   "features": {
+    "f_basis": -0.0005437159572725392,
+    "f_drop1h": -0.009150486797674162,
+    "f_oi1h": 0.016320251184897216,
+    "f_rv24h": 0.0030250284617458047
+   },
+   "filter_pass": true,
+   "golden_label": "2022-11-09T18:00:00Z",
+   "hard_filters": [
+    {
+     "id": "H1",
+     "name": "DATA_STALE",
+     "observed": {
+      "bar_age_ms": 0
+     },
+     "reason": "H1_OK",
+     "status": "PASS",
+     "threshold": "last 1m bar close older than 90s"
+    },
+    {
+     "id": "H2",
+     "name": "OI_STALE",
+     "observed": {
+      "oi_age_ms": 360000
+     },
+     "reason": "H2_OK",
+     "status": "PASS",
+     "threshold": "last OI record older than 15min"
+    },
+    {
+     "id": "H3",
+     "name": "INSUFFICIENT_HISTORY",
+     "observed": {
+      "features_without_cutoffs": {},
+      "min_valid_fraction": 0.5
+     },
+     "reason": "H3_OK",
+     "status": "PASS",
+     "threshold": "bucket window valid fraction < 0.5"
+    },
+    {
+     "id": "H4",
+     "name": "FEATURE_NAN",
+     "observed": {
+      "nan_features": []
+     },
+     "reason": "H4_OK",
+     "status": "PASS",
+     "threshold": "any of the 4 features is NaN"
+    },
+    {
+     "id": "H5",
+     "name": "VOL_LOW",
+     "observed": {
+      "label": "HIGH"
+     },
+     "reason": "H5_OK",
+     "status": "PASS",
+     "threshold": "volatility label == LOW"
+    },
+    {
+     "id": "H6",
+     "name": "SPREAD_WIDE",
+     "observed": null,
+     "reason": "H6_NO_HISTORICAL_ORDERBOOK",
+     "status": "NOT_EVALUATED",
+     "threshold": "(ask-bid)/mid > 5bp"
+    },
+    {
+     "id": "H7",
+     "name": "DEPTH_SHORT",
+     "observed": null,
+     "reason": "H7_NO_HISTORICAL_ORDERBOOK",
+     "status": "NOT_EVALUATED",
+     "threshold": "qty > SAFE_MAX from sizing.max_entry()"
+    },
+    {
+     "id": "H8",
+     "name": "COOLDOWN",
+     "observed": null,
+     "reason": "H8_NO_PRIOR_EXIT",
+     "status": "PASS",
+     "threshold": "< 60min since last exit"
+    },
+    {
+     "id": "H9",
+     "name": "POSITION_OPEN",
+     "observed": {
+      "position_open": false
+     },
+     "reason": "H9_FLAT",
+     "status": "PASS",
+     "threshold": "auto position already open"
+    },
+    {
+     "id": "H10",
+     "name": "DAILY_LOSS_GUARD",
+     "observed": {
+      "day_realized_pnl_pct": 0.0,
+      "day_utc": null
+     },
+     "reason": "H10_OK",
+     "status": "PASS",
+     "threshold": "UTC-day realized pnl <= -2.0% of capital"
+    },
+    {
+     "id": "H11",
+     "name": "CONSECUTIVE_LOSS",
+     "observed": {
+      "consecutive_losses": 0,
+      "ms_since_last_loss": null
+     },
+     "reason": "H11_OK",
+     "status": "PASS",
+     "threshold": ">= 4 consecutive losing trades -> 24h block"
+    },
+    {
+     "id": "H12",
+     "name": "FUNDING_WINDOW",
+     "observed": {
+      "ms_to_funding": 21540000
+     },
+     "reason": "H12_OK",
+     "status": "PASS",
+     "threshold": "< 5min to next funding settlement"
+    },
+    {
+     "id": "H13",
+     "name": "LEDGER_DIVERGENCE",
+     "observed": {
+      "trigger": null
+     },
+     "reason": "H13_OK",
+     "status": "PASS",
+     "threshold": "recovery refused -> EMERGENCY_STOP"
+    }
+   ],
+   "long_score": 50,
+   "market_context": {
+    "ask": null,
+    "bar_close_ms": 1668016860000,
+    "bid": null,
+    "entry_reference_price": 16916.0,
+    "equity": 7440.48,
+    "mark": 16916.0,
+    "next_funding_ts_ms": 1668038400000,
+    "position_open": false,
+    "safe_max_qty": null
+   },
+   "mode": "HISTORICAL",
+   "notes": {},
+   "reason_codes": [
+    "H6_NO_HISTORICAL_ORDERBOOK",
+    "H7_NO_HISTORICAL_ORDERBOOK",
+    "M1_MARKET_STRUCTURE_BELOW_MIN",
+    "SHORT_DISABLED_FOR_V1"
+   ],
+   "required_inputs_available": {
+    "buckets": true,
+    "entry_reference_price": true,
+    "equity": true,
+    "features": true,
+    "next_funding_ts": true,
+    "oi_record_ts": true,
+    "quote": false,
+    "safe_max_qty": false
+   },
+   "schema": "D6B_DECISION_V1",
+   "short_score": null,
+   "short_state": "SHORT_DISABLED_FOR_V1",
+   "sizing": {
+    "feasible": true,
+    "final_notional": 355.236,
+    "final_qty": 0.021,
+    "leverage": 1.0,
+    "reason": "FEASIBLE",
+    "risk_limited_notional": 372.024,
+    "safe_max_cap_qty": null,
+    "stop_distance": 0.1,
+    "stop_price": 15224.4,
+    "theoretical_notional": 372.024
+   },
+   "strategy_id": "FDN-V1",
+   "strategy_name": "FORCED_DELEVERAGING_NORMALIZATION_V1",
+   "strategy_version": "V1",
+   "timestamp_ms": 1668016860000,
+   "volatility_label": "HIGH"
+  },
+  {
+   "buckets": {
+    "f_basis": {
+     "bucket": "B1",
+     "valid_fraction": 1.0
+    },
+    "f_drop1h": {
+     "bucket": "B1",
+     "valid_fraction": 1.0
+    },
+    "f_oi1h": {
+     "bucket": "B1",
+     "valid_fraction": 1.0
+    }
+   },
+   "category_scores": [
+    {
+     "detail": {
+      "bucket": "B1",
+      "cutoffs": [
+       -0.000580329143647873,
+       -0.00048766317086137436,
+       -0.0003471834501842963,
+       -0.00023119613365789606
+      ],
+      "value": -0.0008673226082684948
+     },
+     "input": "f_basis",
+     "level": "B1",
+     "max": 25,
+     "name": "market_structure",
+     "points": 25
+    },
+    {
+     "detail": {
+      "bucket": "B1",
+      "cutoffs": [
+       -0.005657630007012137,
+       -0.0012458395566721236,
+       0.0023596595095227713,
+       0.006505950109840161
+      ],
+      "value": -0.26375029576874276
+     },
+     "input": "f_oi1h",
+     "level": "B1",
+     "max": 25,
+     "name": "positioning",
+     "points": 25
+    },
+    {
+     "detail": {
+      "high_above": 0.0010924950359531157,
+      "label": "HIGH",
+      "low_below": 0.0007592730942805516,
+      "value": 0.002352964081774091
+     },
+     "input": "f_rv24h",
+     "level": "HIGH",
+     "max": 25,
+     "name": "volatility_exhaustion",
+     "points": 25
+    },
+    {
+     "detail": {
+      "bucket": "B1",
+      "cutoffs": [
+       -0.0021960622370656322,
+       -0.0007261345602286085,
+       0.0006995381975016812,
+       0.0021484162141199186
+      ],
+      "value": -0.0563556570000987
+     },
+     "input": "f_drop1h",
+     "level": "B1",
+     "max": 25,
+     "name": "price_exhaustion",
+     "points": 25
+    }
+   ],
+   "contract_hash": "db2cb57f86ff6eb2c8c5a7c39cdece624a0fab505e11ed9e53a3860334e5cbe4",
+   "data_age": {
+    "bar_age_ms": 0,
+    "ms_to_funding": 7140000,
+    "oi_age_ms": 360000
+   },
+   "decision": "LONG",
+   "decision_bar_ts_ms": 1692309600000,
+   "entry_allowed": true,
+   "entry_intent": "ENTRY_INTENT_LONG",
+   "features": {
+    "f_basis": -0.0008673226082684948,
+    "f_drop1h": -0.0563556570000987,
+    "f_oi1h": -0.26375029576874276,
+    "f_rv24h": 0.002352964081774091
+   },
+   "filter_pass": true,
+   "golden_label": "2023-08-17T22:00:00Z",
+   "hard_filters": [
+    {
+     "id": "H1",
+     "name": "DATA_STALE",
+     "observed": {
+      "bar_age_ms": 0
+     },
+     "reason": "H1_OK",
+     "status": "PASS",
+     "threshold": "last 1m bar close older than 90s"
+    },
+    {
+     "id": "H2",
+     "name": "OI_STALE",
+     "observed": {
+      "oi_age_ms": 360000
+     },
+     "reason": "H2_OK",
+     "status": "PASS",
+     "threshold": "last OI record older than 15min"
+    },
+    {
+     "id": "H3",
+     "name": "INSUFFICIENT_HISTORY",
+     "observed": {
+      "features_without_cutoffs": {},
+      "min_valid_fraction": 0.5
+     },
+     "reason": "H3_OK",
+     "status": "PASS",
+     "threshold": "bucket window valid fraction < 0.5"
+    },
+    {
+     "id": "H4",
+     "name": "FEATURE_NAN",
+     "observed": {
+      "nan_features": []
+     },
+     "reason": "H4_OK",
+     "status": "PASS",
+     "threshold": "any of the 4 features is NaN"
+    },
+    {
+     "id": "H5",
+     "name": "VOL_LOW",
+     "observed": {
+      "label": "HIGH"
+     },
+     "reason": "H5_OK",
+     "status": "PASS",
+     "threshold": "volatility label == LOW"
+    },
+    {
+     "id": "H6",
+     "name": "SPREAD_WIDE",
+     "observed": null,
+     "reason": "H6_NO_HISTORICAL_ORDERBOOK",
+     "status": "NOT_EVALUATED",
+     "threshold": "(ask-bid)/mid > 5bp"
+    },
+    {
+     "id": "H7",
+     "name": "DEPTH_SHORT",
+     "observed": null,
+     "reason": "H7_NO_HISTORICAL_ORDERBOOK",
+     "status": "NOT_EVALUATED",
+     "threshold": "qty > SAFE_MAX from sizing.max_entry()"
+    },
+    {
+     "id": "H8",
+     "name": "COOLDOWN",
+     "observed": null,
+     "reason": "H8_NO_PRIOR_EXIT",
+     "status": "PASS",
+     "threshold": "< 60min since last exit"
+    },
+    {
+     "id": "H9",
+     "name": "POSITION_OPEN",
+     "observed": {
+      "position_open": false
+     },
+     "reason": "H9_FLAT",
+     "status": "PASS",
+     "threshold": "auto position already open"
+    },
+    {
+     "id": "H10",
+     "name": "DAILY_LOSS_GUARD",
+     "observed": {
+      "day_realized_pnl_pct": 0.0,
+      "day_utc": null
+     },
+     "reason": "H10_OK",
+     "status": "PASS",
+     "threshold": "UTC-day realized pnl <= -2.0% of capital"
+    },
+    {
+     "id": "H11",
+     "name": "CONSECUTIVE_LOSS",
+     "observed": {
+      "consecutive_losses": 0,
+      "ms_since_last_loss": null
+     },
+     "reason": "H11_OK",
+     "status": "PASS",
+     "threshold": ">= 4 consecutive losing trades -> 24h block"
+    },
+    {
+     "id": "H12",
+     "name": "FUNDING_WINDOW",
+     "observed": {
+      "ms_to_funding": 7140000
+     },
+     "reason": "H12_OK",
+     "status": "PASS",
+     "threshold": "< 5min to next funding settlement"
+    },
+    {
+     "id": "H13",
+     "name": "LEDGER_DIVERGENCE",
+     "observed": {
+      "trigger": null
+     },
+     "reason": "H13_OK",
+     "status": "PASS",
+     "threshold": "recovery refused -> EMERGENCY_STOP"
+    }
+   ],
+   "long_score": 100,
+   "market_context": {
+    "ask": null,
+    "bar_close_ms": 1692309660000,
+    "bid": null,
+    "entry_reference_price": 26184.2,
+    "equity": 7440.48,
+    "mark": 26183.3,
+    "next_funding_ts_ms": 1692316800000,
+    "position_open": false,
+    "safe_max_qty": null
+   },
+   "mode": "HISTORICAL",
+   "notes": {},
+   "reason_codes": [
+    "H6_NO_HISTORICAL_ORDERBOOK",
+    "H7_NO_HISTORICAL_ORDERBOOK",
+    "SHORT_DISABLED_FOR_V1"
+   ],
+   "required_inputs_available": {
+    "buckets": true,
+    "entry_reference_price": true,
+    "equity": true,
+    "features": true,
+    "next_funding_ts": true,
+    "oi_record_ts": true,
+    "quote": false,
+    "safe_max_qty": false
+   },
+   "schema": "D6B_DECISION_V1",
+   "short_score": null,
+   "short_state": "SHORT_DISABLED_FOR_V1",
+   "sizing": {
+    "feasible": true,
+    "final_notional": 392.763,
+    "final_qty": 0.015,
+    "leverage": 1.0,
+    "reason": "FEASIBLE",
+    "risk_limited_notional": 408.234806911601,
+    "safe_max_cap_qty": null,
+    "stop_distance": 0.09112990702935281,
+    "stop_price": 23798.036288362022,
+    "theoretical_notional": 408.234806911601
+   },
+   "strategy_id": "FDN-V1",
+   "strategy_name": "FORCED_DELEVERAGING_NORMALIZATION_V1",
+   "strategy_version": "V1",
+   "timestamp_ms": 1692309660000,
+   "volatility_label": "HIGH"
+  },
+  {
+   "buckets": {
+    "f_basis": {
+     "bucket": "B5",
+     "valid_fraction": 1.0
+    },
+    "f_drop1h": {
+     "bucket": "B2",
+     "valid_fraction": 1.0
+    },
+    "f_oi1h": {
+     "bucket": "B3",
+     "valid_fraction": 1.0
+    }
+   },
+   "category_scores": [
+    {
+     "detail": {
+      "bucket": "B5",
+      "cutoffs": [
+       -0.0004555860243947052,
+       0.00021883137513984956,
+       0.0007331491505510712,
+       0.001147114747566391
+      ],
+      "value": 0.0014770386805285085
+     },
+     "input": "f_basis",
+     "level": "B5",
+     "max": 25,
+     "name": "market_structure",
+     "points": 0
+    },
+    {
+     "detail": {
+      "bucket": "B3",
+      "cutoffs": [
+       -0.007971053644505397,
+       -0.002045630991109704,
+       0.003398857154719437,
+       0.008281626546483154
+      ],
+      "value": -0.00044409094423336626
+     },
+     "input": "f_oi1h",
+     "level": "negative",
+     "max": 25,
+     "name": "positioning",
+     "points": 12
+    },
+    {
+     "detail": {
+      "high_above": 0.0010924950359531157,
+      "label": "HIGH",
+      "low_below": 0.0007592730942805516,
+      "value": 0.0012558671886816917
+     },
+     "input": "f_rv24h",
+     "level": "HIGH",
+     "max": 25,
+     "name": "volatility_exhaustion",
+     "points": 25
+    },
+    {
+     "detail": {
+      "bucket": "B2",
+      "cutoffs": [
+       -0.00424660228850886,
+       -0.0013528014423499718,
+       0.0020437045777001116,
+       0.0058315539905718665
+      ],
+      "value": -0.00328729869197808
+     },
+     "input": "f_drop1h",
+     "level": "B2",
+     "max": 25,
+     "name": "price_exhaustion",
+     "points": 12
+    }
+   ],
+   "contract_hash": "db2cb57f86ff6eb2c8c5a7c39cdece624a0fab505e11ed9e53a3860334e5cbe4",
+   "data_age": {
+    "bar_age_ms": 0,
+    "ms_to_funding": 14340000,
+    "oi_age_ms": 360000
+   },
+   "decision": "HOLD",
+   "decision_bar_ts_ms": 1709640000000,
+   "entry_allowed": false,
+   "entry_intent": "NO_ENTRY_INTENT",
+   "features": {
+    "f_basis": 0.0014770386805285085,
+    "f_drop1h": -0.00328729869197808,
+    "f_oi1h": -0.00044409094423336626,
+    "f_rv24h": 0.0012558671886816917
+   },
+   "filter_pass": true,
+   "golden_label": "2024-03-05T12:00:00Z",
+   "hard_filters": [
+    {
+     "id": "H1",
+     "name": "DATA_STALE",
+     "observed": {
+      "bar_age_ms": 0
+     },
+     "reason": "H1_OK",
+     "status": "PASS",
+     "threshold": "last 1m bar close older than 90s"
+    },
+    {
+     "id": "H2",
+     "name": "OI_STALE",
+     "observed": {
+      "oi_age_ms": 360000
+     },
+     "reason": "H2_OK",
+     "status": "PASS",
+     "threshold": "last OI record older than 15min"
+    },
+    {
+     "id": "H3",
+     "name": "INSUFFICIENT_HISTORY",
+     "observed": {
+      "features_without_cutoffs": {},
+      "min_valid_fraction": 0.5
+     },
+     "reason": "H3_OK",
+     "status": "PASS",
+     "threshold": "bucket window valid fraction < 0.5"
+    },
+    {
+     "id": "H4",
+     "name": "FEATURE_NAN",
+     "observed": {
+      "nan_features": []
+     },
+     "reason": "H4_OK",
+     "status": "PASS",
+     "threshold": "any of the 4 features is NaN"
+    },
+    {
+     "id": "H5",
+     "name": "VOL_LOW",
+     "observed": {
+      "label": "HIGH"
+     },
+     "reason": "H5_OK",
+     "status": "PASS",
+     "threshold": "volatility label == LOW"
+    },
+    {
+     "id": "H6",
+     "name": "SPREAD_WIDE",
+     "observed": null,
+     "reason": "H6_NO_HISTORICAL_ORDERBOOK",
+     "status": "NOT_EVALUATED",
+     "threshold": "(ask-bid)/mid > 5bp"
+    },
+    {
+     "id": "H7",
+     "name": "DEPTH_SHORT",
+     "observed": null,
+     "reason": "H7_NO_HISTORICAL_ORDERBOOK",
+     "status": "NOT_EVALUATED",
+     "threshold": "qty > SAFE_MAX from sizing.max_entry()"
+    },
+    {
+     "id": "H8",
+     "name": "COOLDOWN",
+     "observed": null,
+     "reason": "H8_NO_PRIOR_EXIT",
+     "status": "PASS",
+     "threshold": "< 60min since last exit"
+    },
+    {
+     "id": "H9",
+     "name": "POSITION_OPEN",
+     "observed": {
+      "position_open": false
+     },
+     "reason": "H9_FLAT",
+     "status": "PASS",
+     "threshold": "auto position already open"
+    },
+    {
+     "id": "H10",
+     "name": "DAILY_LOSS_GUARD",
+     "observed": {
+      "day_realized_pnl_pct": 0.0,
+      "day_utc": null
+     },
+     "reason": "H10_OK",
+     "status": "PASS",
+     "threshold": "UTC-day realized pnl <= -2.0% of capital"
+    },
+    {
+     "id": "H11",
+     "name": "CONSECUTIVE_LOSS",
+     "observed": {
+      "consecutive_losses": 0,
+      "ms_since_last_loss": null
+     },
+     "reason": "H11_OK",
+     "status": "PASS",
+     "threshold": ">= 4 consecutive losing trades -> 24h block"
+    },
+    {
+     "id": "H12",
+     "name": "FUNDING_WINDOW",
+     "observed": {
+      "ms_to_funding": 14340000
+     },
+     "reason": "H12_OK",
+     "status": "PASS",
+     "threshold": "< 5min to next funding settlement"
+    },
+    {
+     "id": "H13",
+     "name": "LEDGER_DIVERGENCE",
+     "observed": {
+      "trigger": null
+     },
+     "reason": "H13_OK",
+     "status": "PASS",
+     "threshold": "recovery refused -> EMERGENCY_STOP"
+    }
+   ],
+   "long_score": 49,
+   "market_context": {
+    "ask": null,
+    "bar_close_ms": 1709640060000,
+    "bid": null,
+    "entry_reference_price": 66723.2,
+    "equity": 7440.48,
+    "mark": 66722.33,
+    "next_funding_ts_ms": 1709654400000,
+    "position_open": false,
+    "safe_max_qty": null
+   },
+   "mode": "HISTORICAL",
+   "notes": {},
+   "reason_codes": [
+    "H6_NO_HISTORICAL_ORDERBOOK",
+    "H7_NO_HISTORICAL_ORDERBOOK",
+    "SCORE_BELOW_THRESHOLD",
+    "M1_MARKET_STRUCTURE_BELOW_MIN",
+    "SHORT_DISABLED_FOR_V1"
+   ],
+   "required_inputs_available": {
+    "buckets": true,
+    "entry_reference_price": true,
+    "equity": true,
+    "features": true,
+    "next_funding_ts": true,
+    "oi_record_ts": true,
+    "quote": false,
+    "safe_max_qty": false
+   },
+   "schema": "D6B_DECISION_V1",
+   "short_score": null,
+   "short_state": "SHORT_DISABLED_FOR_V1",
+   "sizing": {
+    "feasible": true,
+    "final_notional": 733.9552,
+    "final_qty": 0.011,
+    "leverage": 1.0,
+    "reason": "FEASIBLE",
+    "risk_limited_notional": 764.8594104933175,
+    "safe_max_cap_qty": null,
+    "stop_distance": 0.0486395270681252,
+    "stop_price": 63477.81510752807,
+    "theoretical_notional": 764.8594104933175
+   },
+   "strategy_id": "FDN-V1",
+   "strategy_name": "FORCED_DELEVERAGING_NORMALIZATION_V1",
+   "strategy_version": "V1",
+   "timestamp_ms": 1709640060000,
+   "volatility_label": "HIGH"
+  },
+  {
+   "buckets": {
+    "f_basis": {
+     "bucket": "B2",
+     "valid_fraction": 1.0
+    },
+    "f_drop1h": {
+     "bucket": "B1",
+     "valid_fraction": 1.0
+    },
+    "f_oi1h": {
+     "bucket": "B1",
+     "valid_fraction": 1.0
+    }
+   },
+   "category_scores": [
+    {
+     "detail": {
+      "bucket": "B2",
+      "cutoffs": [
+       -0.0005731520199466544,
+       -0.00048078156943880406,
+       -0.00033924682184061083,
+       -0.00021191284137991322
+      ],
+      "value": -0.000540937266857
+     },
+     "input": "f_basis",
+     "level": "B2",
+     "max": 25,
+     "name": "market_structure",
+     "points": 12
+    },
+    {
+     "detail": {
+      "bucket": "B1",
+      "cutoffs": [
+       -0.008849885396175594,
+       -0.002427347597866003,
+       0.0032005503769791943,
+       0.008394431976189397
+      ],
+      "value": -0.09983583156380682
+     },
+     "input": "f_oi1h",
+     "level": "B1",
+     "max": 25,
+     "name": "positioning",
+     "points": 25
+    },
+    {
+     "detail": {
+      "high_above": 0.0010924950359531157,
+      "label": "HIGH",
+      "low_below": 0.0007592730942805516,
+      "value": 0.0016765038879169942
+     },
+     "input": "f_rv24h",
+     "level": "HIGH",
+     "max": 25,
+     "name": "volatility_exhaustion",
+     "points": 25
+    },
+    {
+     "detail": {
+      "bucket": "B1",
+      "cutoffs": [
+       -0.005669189053489632,
+       -0.0018626409341390372,
+       0.00215254348096412,
+       0.00561249079396937
+      ],
+      "value": -0.02991378755811347
+     },
+     "input": "f_drop1h",
+     "level": "B1",
+     "max": 25,
+     "name": "price_exhaustion",
+     "points": 25
+    }
+   ],
+   "contract_hash": "db2cb57f86ff6eb2c8c5a7c39cdece624a0fab505e11ed9e53a3860334e5cbe4",
+   "data_age": {
+    "bar_age_ms": 0,
+    "ms_to_funding": 21540000,
+    "oi_age_ms": 360000
+   },
+   "decision": "LONG",
+   "decision_bar_ts_ms": 1722823200000,
+   "entry_allowed": true,
+   "entry_intent": "ENTRY_INTENT_LONG",
+   "features": {
+    "f_basis": -0.000540937266857,
+    "f_drop1h": -0.02991378755811347,
+    "f_oi1h": -0.09983583156380682,
+    "f_rv24h": 0.0016765038879169942
+   },
+   "filter_pass": true,
+   "golden_label": "2024-08-05T02:00:00Z",
+   "hard_filters": [
+    {
+     "id": "H1",
+     "name": "DATA_STALE",
+     "observed": {
+      "bar_age_ms": 0
+     },
+     "reason": "H1_OK",
+     "status": "PASS",
+     "threshold": "last 1m bar close older than 90s"
+    },
+    {
+     "id": "H2",
+     "name": "OI_STALE",
+     "observed": {
+      "oi_age_ms": 360000
+     },
+     "reason": "H2_OK",
+     "status": "PASS",
+     "threshold": "last OI record older than 15min"
+    },
+    {
+     "id": "H3",
+     "name": "INSUFFICIENT_HISTORY",
+     "observed": {
+      "features_without_cutoffs": {},
+      "min_valid_fraction": 0.5
+     },
+     "reason": "H3_OK",
+     "status": "PASS",
+     "threshold": "bucket window valid fraction < 0.5"
+    },
+    {
+     "id": "H4",
+     "name": "FEATURE_NAN",
+     "observed": {
+      "nan_features": []
+     },
+     "reason": "H4_OK",
+     "status": "PASS",
+     "threshold": "any of the 4 features is NaN"
+    },
+    {
+     "id": "H5",
+     "name": "VOL_LOW",
+     "observed": {
+      "label": "HIGH"
+     },
+     "reason": "H5_OK",
+     "status": "PASS",
+     "threshold": "volatility label == LOW"
+    },
+    {
+     "id": "H6",
+     "name": "SPREAD_WIDE",
+     "observed": null,
+     "reason": "H6_NO_HISTORICAL_ORDERBOOK",
+     "status": "NOT_EVALUATED",
+     "threshold": "(ask-bid)/mid > 5bp"
+    },
+    {
+     "id": "H7",
+     "name": "DEPTH_SHORT",
+     "observed": null,
+     "reason": "H7_NO_HISTORICAL_ORDERBOOK",
+     "status": "NOT_EVALUATED",
+     "threshold": "qty > SAFE_MAX from sizing.max_entry()"
+    },
+    {
+     "id": "H8",
+     "name": "COOLDOWN",
+     "observed": null,
+     "reason": "H8_NO_PRIOR_EXIT",
+     "status": "PASS",
+     "threshold": "< 60min since last exit"
+    },
+    {
+     "id": "H9",
+     "name": "POSITION_OPEN",
+     "observed": {
+      "position_open": false
+     },
+     "reason": "H9_FLAT",
+     "status": "PASS",
+     "threshold": "auto position already open"
+    },
+    {
+     "id": "H10",
+     "name": "DAILY_LOSS_GUARD",
+     "observed": {
+      "day_realized_pnl_pct": 0.0,
+      "day_utc": null
+     },
+     "reason": "H10_OK",
+     "status": "PASS",
+     "threshold": "UTC-day realized pnl <= -2.0% of capital"
+    },
+    {
+     "id": "H11",
+     "name": "CONSECUTIVE_LOSS",
+     "observed": {
+      "consecutive_losses": 0,
+      "ms_since_last_loss": null
+     },
+     "reason": "H11_OK",
+     "status": "PASS",
+     "threshold": ">= 4 consecutive losing trades -> 24h block"
+    },
+    {
+     "id": "H12",
+     "name": "FUNDING_WINDOW",
+     "observed": {
+      "ms_to_funding": 21540000
+     },
+     "reason": "H12_OK",
+     "status": "PASS",
+     "threshold": "< 5min to next funding settlement"
+    },
+    {
+     "id": "H13",
+     "name": "LEDGER_DIVERGENCE",
+     "observed": {
+      "trigger": null
+     },
+     "reason": "H13_OK",
+     "status": "PASS",
+     "threshold": "recovery refused -> EMERGENCY_STOP"
+    }
+   ],
+   "long_score": 87,
+   "market_context": {
+    "ask": null,
+    "bar_close_ms": 1722823260000,
+    "bid": null,
+    "entry_reference_price": 54446.3,
+    "equity": 7440.48,
+    "mark": 54453.06,
+    "next_funding_ts_ms": 1722844800000,
+    "position_open": false,
+    "safe_max_qty": null
+   },
+   "mode": "HISTORICAL",
+   "notes": {},
+   "reason_codes": [
+    "H6_NO_HISTORICAL_ORDERBOOK",
+    "H7_NO_HISTORICAL_ORDERBOOK",
+    "SHORT_DISABLED_FOR_V1"
+   ],
+   "required_inputs_available": {
+    "buckets": true,
+    "entry_reference_price": true,
+    "equity": true,
+    "features": true,
+    "next_funding_ts": true,
+    "oi_record_ts": true,
+    "quote": false,
+    "safe_max_qty": false
+   },
+   "schema": "D6B_DECISION_V1",
+   "short_score": null,
+   "short_state": "SHORT_DISABLED_FOR_V1",
+   "sizing": {
+    "feasible": true,
+    "final_notional": 544.463,
+    "final_qty": 0.01,
+    "leverage": 1.0,
+    "reason": "FEASIBLE",
+    "risk_limited_notional": 572.9553295497858,
+    "safe_max_cap_qty": null,
+    "stop_distance": 0.06493071637754505,
+    "stop_price": 50911.06273689327,
+    "theoretical_notional": 572.9553295497858
+   },
+   "strategy_id": "FDN-V1",
+   "strategy_name": "FORCED_DELEVERAGING_NORMALIZATION_V1",
+   "strategy_version": "V1",
+   "timestamp_ms": 1722823260000,
+   "volatility_label": "HIGH"
+  },
+  {
+   "buckets": {
+    "f_basis": {
+     "bucket": "B2",
+     "valid_fraction": 1.0
+    },
+    "f_drop1h": {
+     "bucket": "B4",
+     "valid_fraction": 1.0
+    },
+    "f_oi1h": {
+     "bucket": "B5",
+     "valid_fraction": 1.0
+    }
+   },
+   "category_scores": [
+    {
+     "detail": {
+      "bucket": "B2",
+      "cutoffs": [
+       -0.000541008246451824,
+       -0.0004612587973770843,
+       -0.00032901819089463656,
+       -0.000194247902619793
+      ],
+      "value": -0.0004821878911069888
+     },
+     "input": "f_basis",
+     "level": "B2",
+     "max": 25,
+     "name": "market_structure",
+     "points": 12
+    },
+    {
+     "detail": {
+      "bucket": "B5",
+      "cutoffs": [
+       -0.005937755892169773,
+       -0.0020210435509788738,
+       0.0018205425342307173,
+       0.005909292965109534
+      ],
+      "value": 0.008286911152930898
+     },
+     "input": "f_oi1h",
+     "level": "B5",
+     "max": 25,
+     "name": "positioning",
+     "points": 0
+    },
+    {
+     "detail": {
+      "high_above": 0.0010924950359531157,
+      "label": "HIGH",
+      "low_below": 0.0007592730942805516,
+      "value": 0.0013814469750883737
+     },
+     "input": "f_rv24h",
+     "level": "HIGH",
+     "max": 25,
+     "name": "volatility_exhaustion",
+     "points": 25
+    },
+    {
+     "detail": {
+      "bucket": "B4",
+      "cutoffs": [
+       -0.005743904269280441,
+       -0.001859676473044304,
+       0.0018475809900033724,
+       0.005499439386637306
+      ],
+      "value": 0.002616077197291844
+     },
+     "input": "f_drop1h",
+     "level": "B4",
+     "max": 25,
+     "name": "price_exhaustion",
+     "points": 0
+    }
+   ],
+   "contract_hash": "db2cb57f86ff6eb2c8c5a7c39cdece624a0fab505e11ed9e53a3860334e5cbe4",
+   "data_age": {
+    "bar_age_ms": 0,
+    "ms_to_funding": 14340000,
+    "oi_age_ms": 360000
+   },
+   "decision": "HOLD",
+   "decision_bar_ts_ms": 1738555200000,
+   "entry_allowed": false,
+   "entry_intent": "NO_ENTRY_INTENT",
+   "features": {
+    "f_basis": -0.0004821878911069888,
+    "f_drop1h": 0.002616077197291844,
+    "f_oi1h": 0.008286911152930898,
+    "f_rv24h": 0.0013814469750883737
+   },
+   "filter_pass": true,
+   "golden_label": "2025-02-03T04:00:00Z",
+   "hard_filters": [
+    {
+     "id": "H1",
+     "name": "DATA_STALE",
+     "observed": {
+      "bar_age_ms": 0
+     },
+     "reason": "H1_OK",
+     "status": "PASS",
+     "threshold": "last 1m bar close older than 90s"
+    },
+    {
+     "id": "H2",
+     "name": "OI_STALE",
+     "observed": {
+      "oi_age_ms": 360000
+     },
+     "reason": "H2_OK",
+     "status": "PASS",
+     "threshold": "last OI record older than 15min"
+    },
+    {
+     "id": "H3",
+     "name": "INSUFFICIENT_HISTORY",
+     "observed": {
+      "features_without_cutoffs": {},
+      "min_valid_fraction": 0.5
+     },
+     "reason": "H3_OK",
+     "status": "PASS",
+     "threshold": "bucket window valid fraction < 0.5"
+    },
+    {
+     "id": "H4",
+     "name": "FEATURE_NAN",
+     "observed": {
+      "nan_features": []
+     },
+     "reason": "H4_OK",
+     "status": "PASS",
+     "threshold": "any of the 4 features is NaN"
+    },
+    {
+     "id": "H5",
+     "name": "VOL_LOW",
+     "observed": {
+      "label": "HIGH"
+     },
+     "reason": "H5_OK",
+     "status": "PASS",
+     "threshold": "volatility label == LOW"
+    },
+    {
+     "id": "H6",
+     "name": "SPREAD_WIDE",
+     "observed": null,
+     "reason": "H6_NO_HISTORICAL_ORDERBOOK",
+     "status": "NOT_EVALUATED",
+     "threshold": "(ask-bid)/mid > 5bp"
+    },
+    {
+     "id": "H7",
+     "name": "DEPTH_SHORT",
+     "observed": null,
+     "reason": "H7_NO_HISTORICAL_ORDERBOOK",
+     "status": "NOT_EVALUATED",
+     "threshold": "qty > SAFE_MAX from sizing.max_entry()"
+    },
+    {
+     "id": "H8",
+     "name": "COOLDOWN",
+     "observed": null,
+     "reason": "H8_NO_PRIOR_EXIT",
+     "status": "PASS",
+     "threshold": "< 60min since last exit"
+    },
+    {
+     "id": "H9",
+     "name": "POSITION_OPEN",
+     "observed": {
+      "position_open": false
+     },
+     "reason": "H9_FLAT",
+     "status": "PASS",
+     "threshold": "auto position already open"
+    },
+    {
+     "id": "H10",
+     "name": "DAILY_LOSS_GUARD",
+     "observed": {
+      "day_realized_pnl_pct": 0.0,
+      "day_utc": null
+     },
+     "reason": "H10_OK",
+     "status": "PASS",
+     "threshold": "UTC-day realized pnl <= -2.0% of capital"
+    },
+    {
+     "id": "H11",
+     "name": "CONSECUTIVE_LOSS",
+     "observed": {
+      "consecutive_losses": 0,
+      "ms_since_last_loss": null
+     },
+     "reason": "H11_OK",
+     "status": "PASS",
+     "threshold": ">= 4 consecutive losing trades -> 24h block"
+    },
+    {
+     "id": "H12",
+     "name": "FUNDING_WINDOW",
+     "observed": {
+      "ms_to_funding": 14340000
+     },
+     "reason": "H12_OK",
+     "status": "PASS",
+     "threshold": "< 5min to next funding settlement"
+    },
+    {
+     "id": "H13",
+     "name": "LEDGER_DIVERGENCE",
+     "observed": {
+      "trigger": null
+     },
+     "reason": "H13_OK",
+     "status": "PASS",
+     "threshold": "recovery refused -> EMERGENCY_STOP"
+    }
+   ],
+   "long_score": 37,
+   "market_context": {
+    "ask": null,
+    "bar_close_ms": 1738555260000,
+    "bid": null,
+    "entry_reference_price": 93965.6,
+    "equity": 7440.48,
+    "mark": 93965.5,
+    "next_funding_ts_ms": 1738569600000,
+    "position_open": false,
+    "safe_max_qty": null
+   },
+   "mode": "HISTORICAL",
+   "notes": {},
+   "reason_codes": [
+    "H6_NO_HISTORICAL_ORDERBOOK",
+    "H7_NO_HISTORICAL_ORDERBOOK",
+    "SCORE_BELOW_THRESHOLD",
+    "SHORT_DISABLED_FOR_V1"
+   ],
+   "required_inputs_available": {
+    "buckets": true,
+    "entry_reference_price": true,
+    "equity": true,
+    "features": true,
+    "next_funding_ts": true,
+    "oi_record_ts": true,
+    "quote": false,
+    "safe_max_qty": false
+   },
+   "schema": "D6B_DECISION_V1",
+   "short_score": null,
+   "short_state": "SHORT_DISABLED_FOR_V1",
+   "sizing": {
+    "feasible": true,
+    "final_notional": 657.7592,
+    "final_qty": 0.007,
+    "leverage": 1.0,
+    "reason": "FEASIBLE",
+    "risk_limited_notional": 695.3302261431567,
+    "safe_max_cap_qty": null,
+    "stop_distance": 0.05350321128185884,
+    "stop_price": 88938.13864997336,
+    "theoretical_notional": 695.3302261431567
+   },
+   "strategy_id": "FDN-V1",
+   "strategy_name": "FORCED_DELEVERAGING_NORMALIZATION_V1",
+   "strategy_version": "V1",
+   "timestamp_ms": 1738555260000,
+   "volatility_label": "HIGH"
+  },
+  {
+   "buckets": {
+    "f_basis": {
+     "bucket": "B3",
+     "valid_fraction": 1.0
+    },
+    "f_drop1h": {
+     "bucket": "B4",
+     "valid_fraction": 1.0
+    },
+    "f_oi1h": {
+     "bucket": "B3",
+     "valid_fraction": 1.0
+    }
+   },
+   "category_scores": [
+    {
+     "detail": {
+      "bucket": "B3",
+      "cutoffs": [
+       -0.0006074176481504878,
+       -0.0005424264011512747,
+       -0.0004535994746222016,
+       -0.0003907223795154735
+      ],
+      "value": -0.0004548411395255414
+     },
+     "input": "f_basis",
+     "level": "B3",
+     "max": 25,
+     "name": "market_structure",
+     "points": 0
+    },
+    {
+     "detail": {
+      "bucket": "B3",
+      "cutoffs": [
+       -0.009303843766327091,
+       -0.0028510904950898924,
+       0.003196720468687175,
+       0.010349371072234867
+      ],
+      "value": -0.0013090946146014915
+     },
+     "input": "f_oi1h",
+     "level": "negative",
+     "max": 25,
+     "name": "positioning",
+     "points": 12
+    },
+    {
+     "detail": {
+      "high_above": 0.0010924950359531157,
+      "label": "LOW",
+      "low_below": 0.0007592730942805516,
+      "value": 0.0006445434421168851
+     },
+     "input": "f_rv24h",
+     "level": "LOW",
+     "max": 25,
+     "name": "volatility_exhaustion",
+     "points": 0
+    },
+    {
+     "detail": {
+      "bucket": "B4",
+      "cutoffs": [
+       -0.0050709612452966004,
+       -0.0017630557633609104,
+       0.0017333081492809654,
+       0.005066870263550527
+      ],
+      "value": 0.002319225062361596
+     },
+     "input": "f_drop1h",
+     "level": "B4",
+     "max": 25,
+     "name": "price_exhaustion",
+     "points": 0
+    }
+   ],
+   "contract_hash": "db2cb57f86ff6eb2c8c5a7c39cdece624a0fab505e11ed9e53a3860334e5cbe4",
+   "data_age": {
+    "bar_age_ms": 0,
+    "ms_to_funding": 21540000,
+    "oi_age_ms": 360000
+   },
+   "decision": "HOLD",
+   "decision_bar_ts_ms": 1775815200000,
+   "entry_allowed": false,
+   "entry_intent": "NO_ENTRY_INTENT",
+   "features": {
+    "f_basis": -0.0004548411395255414,
+    "f_drop1h": 0.002319225062361596,
+    "f_oi1h": -0.0013090946146014915,
+    "f_rv24h": 0.0006445434421168851
+   },
+   "filter_pass": false,
+   "golden_label": "2026-04-10T10:00:00Z",
+   "hard_filters": [
+    {
+     "id": "H1",
+     "name": "DATA_STALE",
+     "observed": {
+      "bar_age_ms": 0
+     },
+     "reason": "H1_OK",
+     "status": "PASS",
+     "threshold": "last 1m bar close older than 90s"
+    },
+    {
+     "id": "H2",
+     "name": "OI_STALE",
+     "observed": {
+      "oi_age_ms": 360000
+     },
+     "reason": "H2_OK",
+     "status": "PASS",
+     "threshold": "last OI record older than 15min"
+    },
+    {
+     "id": "H3",
+     "name": "INSUFFICIENT_HISTORY",
+     "observed": {
+      "features_without_cutoffs": {},
+      "min_valid_fraction": 0.5
+     },
+     "reason": "H3_OK",
+     "status": "PASS",
+     "threshold": "bucket window valid fraction < 0.5"
+    },
+    {
+     "id": "H4",
+     "name": "FEATURE_NAN",
+     "observed": {
+      "nan_features": []
+     },
+     "reason": "H4_OK",
+     "status": "PASS",
+     "threshold": "any of the 4 features is NaN"
+    },
+    {
+     "id": "H5",
+     "name": "VOL_LOW",
+     "observed": {
+      "label": "LOW"
+     },
+     "reason": "H5_VOL_LOW",
+     "status": "FAIL",
+     "threshold": "volatility label == LOW"
+    },
+    {
+     "id": "H6",
+     "name": "SPREAD_WIDE",
+     "observed": null,
+     "reason": "H6_NO_HISTORICAL_ORDERBOOK",
+     "status": "NOT_EVALUATED",
+     "threshold": "(ask-bid)/mid > 5bp"
+    },
+    {
+     "id": "H7",
+     "name": "DEPTH_SHORT",
+     "observed": null,
+     "reason": "H7_NO_HISTORICAL_ORDERBOOK",
+     "status": "NOT_EVALUATED",
+     "threshold": "qty > SAFE_MAX from sizing.max_entry()"
+    },
+    {
+     "id": "H8",
+     "name": "COOLDOWN",
+     "observed": null,
+     "reason": "H8_NO_PRIOR_EXIT",
+     "status": "PASS",
+     "threshold": "< 60min since last exit"
+    },
+    {
+     "id": "H9",
+     "name": "POSITION_OPEN",
+     "observed": {
+      "position_open": false
+     },
+     "reason": "H9_FLAT",
+     "status": "PASS",
+     "threshold": "auto position already open"
+    },
+    {
+     "id": "H10",
+     "name": "DAILY_LOSS_GUARD",
+     "observed": {
+      "day_realized_pnl_pct": 0.0,
+      "day_utc": null
+     },
+     "reason": "H10_OK",
+     "status": "PASS",
+     "threshold": "UTC-day realized pnl <= -2.0% of capital"
+    },
+    {
+     "id": "H11",
+     "name": "CONSECUTIVE_LOSS",
+     "observed": {
+      "consecutive_losses": 0,
+      "ms_since_last_loss": null
+     },
+     "reason": "H11_OK",
+     "status": "PASS",
+     "threshold": ">= 4 consecutive losing trades -> 24h block"
+    },
+    {
+     "id": "H12",
+     "name": "FUNDING_WINDOW",
+     "observed": {
+      "ms_to_funding": 21540000
+     },
+     "reason": "H12_OK",
+     "status": "PASS",
+     "threshold": "< 5min to next funding settlement"
+    },
+    {
+     "id": "H13",
+     "name": "LEDGER_DIVERGENCE",
+     "observed": {
+      "trigger": null
+     },
+     "reason": "H13_OK",
+     "status": "PASS",
+     "threshold": "recovery refused -> EMERGENCY_STOP"
+    }
+   ],
+   "long_score": 12,
+   "market_context": {
+    "ask": null,
+    "bar_close_ms": 1775815260000,
+    "bid": null,
+    "entry_reference_price": 71745.0,
+    "equity": 7440.48,
+    "mark": 71745.0,
+    "next_funding_ts_ms": 1775836800000,
+    "position_open": false,
+    "safe_max_qty": null
+   },
+   "mode": "HISTORICAL",
+   "notes": {},
+   "reason_codes": [
+    "H5_VOL_LOW",
+    "H6_NO_HISTORICAL_ORDERBOOK",
+    "H7_NO_HISTORICAL_ORDERBOOK",
+    "SCORE_BELOW_THRESHOLD",
+    "M1_MARKET_STRUCTURE_BELOW_MIN",
+    "M2_VOLATILITY_EXHAUSTION_BELOW_MIN",
+    "SHORT_DISABLED_FOR_V1"
+   ],
+   "required_inputs_available": {
+    "buckets": true,
+    "entry_reference_price": true,
+    "equity": true,
+    "features": true,
+    "next_funding_ts": true,
+    "oi_record_ts": true,
+    "quote": false,
+    "safe_max_qty": false
+   },
+   "schema": "D6B_DECISION_V1",
+   "short_score": null,
+   "short_state": "SHORT_DISABLED_FOR_V1",
+   "sizing": {
+    "feasible": true,
+    "final_notional": 1434.9,
+    "final_qty": 0.02,
+    "leverage": 1.0,
+    "reason": "FEASIBLE",
+    "risk_limited_notional": 1490.2980541361014,
+    "safe_max_cap_qty": null,
+    "stop_distance": 0.024963060172259,
+    "stop_price": 69954.02524794127,
+    "theoretical_notional": 1490.2980541361014
+   },
+   "strategy_id": "FDN-V1",
+   "strategy_name": "FORCED_DELEVERAGING_NORMALIZATION_V1",
+   "strategy_version": "V1",
+   "timestamp_ms": 1775815260000,
+   "volatility_label": "LOW"
+  }
+ ],
+ "declaration": "Inputs, features, category scores and decisions only. No forward return, no PnL, no trade simulation.",
+ "record": "CRYPTO_D6_B_GOLDEN_SNAPSHOTS_V1",
+ "source": "D2 canonical BTCUSDT (kline/mark/index/OI/funding) via app.crypto.research.dataset",
+ "strategy_id": "FDN-V1",
+ "timestamp_selection": "fixed stamps spread across the window, chosen without reference to any outcome"
+}

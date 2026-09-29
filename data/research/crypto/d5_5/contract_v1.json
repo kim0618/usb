@@ -1,0 +1,196 @@
+{
+  "record": "CRYPTO_D5_5_DIRECTION_CONFIRMATION_CONTRACT_V1",
+  "authority": "docs/crypto/CRYPTO_D5_5_DIRECTION_CONFIRMATION_CONTRACT_V1.md",
+  "created_utc": "2026-09-28",
+  "research_question": "after a large event, does entering only once price has actually shown a direction produce an edge after VIP0 taker cost, without being too late and while filtering enough false directions?",
+  "methodology_change": {
+    "from": "event -> immediate direction choice (D5.4)",
+    "to": "event -> WAIT -> confirmation -> entry",
+    "reason": "D5.4 entered at the shock and was a coin flip: C2 stopped 104 times and hit target 104 times, with event displacement 12 to 15 times the round-trip cost. The failure was absence of direction information at the event instant, not insufficient movement or excessive fees.",
+    "event_role": "TRADE_OPPORTUNITY_ACTIVATOR, not DIRECTION_PREDICTOR"
+  },
+  "scope": {
+    "symbol": "BTCUSDT", "venue": "bybit", "product": "linear_perpetual",
+    "execution": "taker_market_only", "maker_allowed": false, "limit_allowed": false,
+    "liquidation_data_allowed": false, "ml_allowed": false, "llm_decision_allowed": false,
+    "add_allowed": false, "reverse_allowed": false, "partial_close_research": false
+  },
+  "event_source": {
+    "name": "SHOCK",
+    "definition": "abs(z(disp15)) >= 10.0 AND z(oichg15) <= -2.5",
+    "inherited_from": "D5.4 E1 detector, C1 and C2 unioned; thresholds unchanged",
+    "direction_agnostic": true,
+    "code_reused": "app.crypto.research.d5_4.events",
+    "merge_cooldown_bars": 240,
+    "oos_events": 415,
+    "by_year": {"2022": 94, "2023": 157, "2024": 53, "2025": 58, "2026": 53},
+    "up_shocks": 199, "down_shocks": 216,
+    "single_source_rationale": "the variable under test is the confirmation logic; three candidates sharing one event set isolates it",
+    "excluded": {
+      "E2": "already rejected at the D5.4 cost-first stage; reintroduction banned",
+      "E3": "overlapping volatility condition would not give an independent comparison",
+      "E4": "a subset of E1 conditions; not an independent comparison"
+    }
+  },
+  "shock_window": {
+    "span": "[event.start - 14, event.end]",
+    "H": "max(mark_high) over the span", "L": "min(mark_low) over the span",
+    "P0": "close[event.start - 14], the pre-shock price",
+    "R": "(H - L) / ((H + L) / 2)",
+    "R_distribution_bp": {"p25": 165, "median": 218, "p75": 303},
+    "why_not_event_bars_only": "the event run is a median of 3 bars and its range is 54bp, a third of the displacement; a margin built on it would be 1.2x cost and would not filter"
+  },
+  "confirmation_common": {
+    "window_bars": 60,
+    "window_rationale": "four times the 15 minute shock window; 30m leaves A and C near the sample floor, 120m stops filtering (A 42.9%, C 75.2%)",
+    "no_trade_is_a_valid_outcome": true,
+    "max_one_trade_per_event": true,
+    "reverse_within_event": false,
+    "confirmation_basis": "close",
+    "min_margin_bp": 22.5,
+    "min_margin_rationale": "2x round-trip cost; anything narrower is not distinguishable from noise"
+  },
+  "candidates": [
+    {"id": "A", "name": "SHOCK_BREAKOUT_CONTINUATION", "sides": {"LONG": true, "SHORT": true},
+     "margin": "max(0.25 * R, 22.5bp)",
+     "confirm_long": "close > H * (1 + margin)", "confirm_short": "close < L * (1 - margin)",
+     "hypothesis": "leaving the shock range by a meaningful margin says the flow that made the shock is not finished; the breakout names the direction, the event does not",
+     "stop": "the broken level (H for LONG, L for SHORT)", "target": null, "max_hold_bars": 240,
+     "confirmation_rate": 0.330, "confirmed": 137, "long": 70, "short": 67, "no_trade": 278,
+     "median_time_to_confirm_min": 22, "median_confirm_distance_bp": 59.2,
+     "k_selection": "ladder {0.15, 0.25, 0.40} fixed in advance; at 0.15 17.1% of events fall back on the cost floor so the range-proportional rule stops binding, at 0.25 that share is 0.5%"},
+    {"id": "B", "name": "SHOCK_RETRACEMENT_CONFIRMATION", "sides": {"LONG": true, "SHORT": true},
+     "level_long": "L + 0.5 * (P0 - L)", "level_short": "H - 0.5 * (H - P0)",
+     "confirm_long": "close > level_long", "confirm_short": "close < level_short",
+     "hypothesis": "half the shock retraced means the forced flow has ended and normalisation is actually underway; D5.4 entered at the extreme, this enters once half the move is back",
+     "stop": "the shock extreme (L for LONG, H for SHORT)", "target": "P0", "max_hold_bars": 240,
+     "pre_trade_room_filter": "NO_TRADE when abs(P0 - entry)/entry < 22.5bp",
+     "confirmation_rate": 0.530, "confirmed": 220, "long": 115, "short": 105, "no_trade": 195,
+     "median_time_to_confirm_min": 10, "median_confirm_distance_bp": 99.3,
+     "k_selection": "0.5 is the standard half retracement and the middle of the ladder {0.382, 0.5, 0.618}",
+     "discarded_definition": "a bounce of k off the running low confirmed 99.0% of the time and was not a filter; replaced with a retracement measured from P0. Changed on confirmation frequency alone, never on returns."},
+    {"id": "C", "name": "POST_SHOCK_COMPRESSION_EXPANSION", "sides": {"LONG": true, "SHORT": true},
+     "stage_1": "first bar with rv15 < 0.5 * rv15[event.start]",
+     "stage_2": "compression range CH/CL over the 15 bars ending at that bar",
+     "confirm_long": "close > CH * (1 + 22.5bp)", "confirm_short": "close < CL * (1 - 22.5bp)",
+     "hypothesis": "shock, digestion, resolution: a breakout after volatility has halved says the market has chosen a direction",
+     "stop": "the opposite compression boundary", "target": null, "max_hold_bars": 240,
+     "confirmation_rate": 0.439, "confirmed": 182, "long": 93, "short": 89, "no_trade": 233,
+     "median_time_to_confirm_min": 32, "median_confirm_distance_bp": 29.5,
+     "compression_selection": "0.5 states that volatility halved; not searched"}
+  ],
+  "execution": {
+    "interpretation": "D6 I1 DECISION_EXECUTION_SEPARATION",
+    "confirmation_at": "t (close)", "entry_reference_price": "open[t+1]",
+    "qty_formula": "floor_to_step(target_notional / open[t+1], 0.001)",
+    "stop_and_target_basis": "actual fill price",
+    "order_type": "MARKET", "liquidity": "taker",
+    "reject_codes": ["EXECUTION_REJECT_QTY_BELOW_MIN", "EXECUTION_REJECT_NOTIONAL_BELOW_MIN",
+                     "EXECUTION_REJECT_ENGINE", "EXECUTION_REJECT_NO_EXIT_WINDOW",
+                     "EXECUTION_REJECT_ROOM_BELOW_COST"],
+    "reject_does_not_erase_confirmation": true
+  },
+  "exits": {
+    "symmetric_bracket_reused": false,
+    "reason": "D5.4's symmetric bracket was a coin flip; A and C deliberately have no target so the continuation hypothesis has open upside",
+    "stop_distance_clip": [0.003, 0.05],
+    "max_hold_bars": 240
+  },
+  "intrabar": {
+    "rule": "ADVERSE_FIRST", "stop_beats_target_in_same_bar": true,
+    "trigger_basis": "mark bar low and high",
+    "stop_fill": "min(stop, bar open) for LONG, max for SHORT",
+    "target_fill": "max(target, bar open) for LONG, min for SHORT",
+    "best_case_selection": false
+  },
+  "position": {
+    "max_concurrent": 1, "overlap_policy": "IGNORE_AND_LOG", "add": false, "reverse": false,
+    "reentry_cooldown_bars": 240, "per_candidate_account": "independent engine instance"
+  },
+  "risk": {
+    "leverage": 1.0, "leverage_optimisation": false,
+    "risk_budget_pct_of_equity": 0.5, "risk_budget_shared_across_candidates": true,
+    "notional_formula": "equity * 0.005 / stop_distance, capped at equity * 1.0",
+    "starting_capital_krw": "10000000", "fx_krw_per_usdt": "1344.00",
+    "primary_currency": "USDT", "qty_step": 0.001, "min_order_qty": 0.001,
+    "min_notional_usdt": 5
+  },
+  "costs": {
+    "primary_scenario": "VIP0_BASE", "taker_rate": 0.00055, "maker_used": false,
+    "fee_read_via": "app.crypto.paper.fees.load_scenarios",
+    "funding": "actual D2 rates on the 8h UTC grid, engine applied",
+    "orderbook": "SYNTHETIC", "spread_usdt": "0.10", "depth_btc_per_side": "5",
+    "claim_of_real_slippage": false,
+    "scenarios": {
+      "ZERO": "reference-price gross",
+      "VIP0_BASE": "engine result",
+      "VIP0_STRESS": "VIP0_BASE minus (0.0002537159730588128 - 0.0000011841571614073798) * entry notional"
+    }
+  },
+  "folds": {
+    "source": "D5.1 contract sec2 verbatim",
+    "boundaries_utc": ["2022-01-01", "2022-07-01", "2023-01-01", "2023-07-01", "2024-01-01",
+                       "2024-07-01", "2025-01-01", "2025-07-01", "2026-01-01", "2026-09-23"],
+    "attribution": "entry bar timestamp", "random_split": false,
+    "untouched_holdout": false, "evidence_class": "HISTORICAL_CONFIRMATION_NOT_TRUE_OOS"
+  },
+  "sample_gate": {"min_events": 200, "min_confirmed_trades": 60, "min_years": 5,
+                  "min_evaluable_folds": 5, "min_fold_trades": 5,
+                  "below_floor_is": "INCONCLUSIVE"},
+  "verdict_rules": {
+    "SURVIVE": [
+      {"id": "S1", "rule": "OOS VIP0_BASE net mean > 0 and 95% CI lower bound > 0"},
+      {"id": "S2", "rule": "edge_to_cost_ratio >= 2.0"},
+      {"id": "S3", "rule": "sample gate satisfied: events >= 200, confirmed trades >= 60, 5 years, evaluable folds >= 5"},
+      {"id": "S4", "rule": "judgeable folds: gross>0 in >= 2/3, net>0 in >= 1/2"},
+      {"id": "S5", "rule": "leave-one-year-out net > 0 for every year"},
+      {"id": "S6", "rule": "no single trade > 20% of total net sum"},
+      {"id": "S7", "rule": "profit factor > 1.3 and max drawdown < 20%"},
+      {"id": "S8", "rule": "VIP0_STRESS net > 0"},
+      {"id": "S9", "rule": "net > 0 in all sensitivity arms"},
+      {"id": "S10", "rule": "stop-out share below 50 percent"}
+    ],
+    "S10_rationale": "D5.4 found no direction information at the event instant; if confirmation supplied it, fewer than half the trades should end at the stop. This measures whipsaw directly.",
+    "WEAK": "S1 passes, at least one other fails",
+    "REJECT": "S1 fails",
+    "INCONCLUSIVE": "confirmed trades < 60",
+    "not_meaningful_counts_as_pass": false
+  },
+  "arms": {
+    "BASE": {"judging": true, "window_bars": 60},
+    "SENS-MARGIN": {"judging": false, "change": "A k 0.25->0.40, B k 0.5->0.618, C compression 0.5->0.35"},
+    "SENS-WINDOW": {"judging": false, "change": "window 60 -> 30 bars"},
+    "REF-120M": {"judging": false, "role": "REPORT_ONLY", "change": "window 60 -> 120 bars"}
+  },
+  "bootstrap": {"method": "moving_block", "block_days": 7, "iterations": 1000, "seed": 20260928},
+  "confirmation_quality_metrics": ["events", "confirmed", "no_trade", "confirmation_rate",
+                                   "time_to_confirmation", "confirmation_distance",
+                                   "false_confirmation_rate", "time_to_stop",
+                                   "long_confirmed", "short_confirmed", "execution_rejects"],
+  "d6_v2_gate": {"authorised_if": "at least one SURVIVE",
+                 "even_then": "design -> implementation -> historical -> shadow -> AUTO paper",
+                 "otherwise": "D6-V2 NOT AUTHORIZED"},
+  "liquidation_future": {"used_now": false, "collector_touched": false,
+                         "future_role": "confirmation filter candidate, verified separately once enough forward data exists"},
+  "prefreeze_computation": {
+    "returns_computed": false, "pnl_computed": false, "win_rate_computed": false,
+    "pf_computed": false, "mdd_computed": false, "fee_adjusted_result_computed": false,
+    "what_was_computed": ["event counts and year distribution", "shock window range statistics",
+                          "confirmation frequency, time to confirmation, confirmation distance"],
+    "path_after_confirmation_examined": false,
+    "record": "data/runtime/crypto/d5_5/prefreeze_qc_v1.json"
+  },
+  "prior_expectation": {
+    "verdict": "weighted towards SURVIVE 0",
+    "first_condition_expected_to_break": "S10 (stop-out share) - if confirmation creates no direction information, stop-outs land near 50%",
+    "what_this_experiment_newly_answers": "D5.4 showed there is no direction information at the event instant; this asks whether there is any in the price action after it. The two answers are independent.",
+    "structural_novelty": "A and C have no profit target, so a failure means trends do not continue rather than that a bracket was mis-sized"
+  },
+  "prohibitions": ["D5.4 threshold tuning", "D5.4 C1-SENS-TARGET reuse", "FDN-V1 tuning",
+                   "confirmation threshold brute force", "best observation window selection",
+                   "best breakout lookback selection", "best exit selection",
+                   "post-hoc single-side selection", "maker", "LIMIT", "ADD", "averaging down",
+                   "partial close research", "ML", "LLM decision", "liquidation forward data",
+                   "production server", "production paper account", "AUTO implementation",
+                   "deployment", "commit", "push"]
+}

@@ -1,0 +1,204 @@
+{
+  "record": "CRYPTO_D6_AUTO_STRATEGY_DESIGN_CONTRACT_V1",
+  "authority": "docs/crypto/CRYPTO_D6_AUTO_STRATEGY_DESIGN_CONTRACT_V1.md",
+  "note": "This file is a machine-readable copy. On any disagreement the markdown contract wins.",
+  "created_utc": "2026-09-28",
+  "verdict": "DESIGN_READY",
+  "scope": {
+    "symbol": "BTCUSDT",
+    "venue": "bybit",
+    "product": "linear_perpetual",
+    "execution": "taker_market_only",
+    "maker_allowed": false,
+    "liquidation_feature_allowed": false,
+    "ml_allowed": false,
+    "llm_decision_allowed": false
+  },
+  "candidates": [
+    {
+      "id": "CAND-1",
+      "name": "FORCED_DELEVERAGING_NORMALIZATION_V1",
+      "status": "DESIGNED",
+      "sides": {"LONG": "ENABLED", "SHORT": "SHORT_DISABLED_FOR_V1"},
+      "hypothesis": "perp discount to index + open interest contraction + non-low volatility marks forced deleveraging rather than information; the dislocation normalizes within hours",
+      "horizon_min": 240
+    },
+    {"id": "CAND-2", "name": "RELATIVE_VALUE_DISLOCATION", "status": "REJECTED",
+     "reason": "REPACKAGED_BASIS (spearman 0.719 vs G1, 0.825 vs E3) and sign reversal 2025/2026 (X1 gross -2.19 / -6.27 bp)"},
+    {"id": "CAND-3", "name": "TREND_CONFIRMATION", "status": "REJECTED",
+     "reason": "no supporting result: fold direction 4-7/9 and year sign reversals across A1/A2/A3/M1/M2/M3"}
+  ],
+  "features": [
+    {"id": "f_basis", "formula": "ln(C[t] / IDX[t])", "inherited_from": "D5 contract sec6 E3 fund_premium", "lookback_bars": 0, "inputs": ["kline_1m", "index_1m"], "pit": "bar_close"},
+    {"id": "f_oi1h", "formula": "ln(OI[t] / OI[t-60])", "inherited_from": "D5 contract sec6 D1 oi_chg_60", "lookback_bars": 60, "inputs": ["open_interest_5m"], "pit": "record_ts_plus_5min"},
+    {"id": "f_drop1h", "formula": "ln(C[t] / C[t-60])", "inherited_from": "D5 contract sec6 A1 trend_ret_60", "lookback_bars": 60, "inputs": ["kline_1m"], "pit": "bar_close"},
+    {"id": "f_rv24h", "formula": "std(ln(C[t]/C[t-1]) over t-1439..t, ddof=0)", "inherited_from": "D5 contract sec10 volatility regime", "lookback_bars": 1440, "inputs": ["kline_1m"], "pit": "bar_close"}
+  ],
+  "new_features_count": 0,
+  "bucketing": {
+    "rule": "D5 contract sec5 verbatim",
+    "quantiles": [0.10, 0.30, 0.70, 0.90],
+    "window_days": 30,
+    "window_span": "[D-30d, D)",
+    "min_valid_fraction": 0.5,
+    "applies_to": ["f_basis", "f_oi1h", "f_drop1h"]
+  },
+  "volatility_regime": {
+    "source": "D5.1 contract sec8, frozen on F1 train 2021-03-04..2022-01-01",
+    "low_below": 0.0007592730942805516,
+    "high_above": 0.0010924950359531157,
+    "recomputed_for_d6": false
+  },
+  "hard_filters": [
+    {"id": "H1", "name": "DATA_STALE", "threshold": "last 1m bar close older than 90s"},
+    {"id": "H2", "name": "OI_STALE", "threshold": "last OI record older than 15min"},
+    {"id": "H3", "name": "INSUFFICIENT_HISTORY", "threshold": "bucket window valid fraction < 0.5"},
+    {"id": "H4", "name": "FEATURE_NAN", "threshold": "any of the 4 features is NaN"},
+    {"id": "H5", "name": "VOL_LOW", "threshold": "volatility label == LOW"},
+    {"id": "H6", "name": "SPREAD_WIDE", "threshold": "(ask-bid)/mid > 5bp", "realtime_only": true},
+    {"id": "H7", "name": "DEPTH_SHORT", "threshold": "qty > SAFE_MAX from sizing.max_entry()", "realtime_only": true},
+    {"id": "H8", "name": "COOLDOWN", "threshold": "< 60min since last exit"},
+    {"id": "H9", "name": "POSITION_OPEN", "threshold": "auto position already open"},
+    {"id": "H10", "name": "DAILY_LOSS_GUARD", "threshold": "UTC-day realized pnl <= -2.0% of capital"},
+    {"id": "H11", "name": "CONSECUTIVE_LOSS", "threshold": ">= 4 consecutive losing trades -> 24h block"},
+    {"id": "H12", "name": "FUNDING_WINDOW", "threshold": "< 5min to next funding settlement"},
+    {"id": "H13", "name": "LEDGER_DIVERGENCE", "threshold": "recovery refused -> EMERGENCY_STOP"}
+  ],
+  "score": {
+    "scale_max": 100,
+    "weighting": "equal_by_category",
+    "weight_selection_method": "PREREGISTERED_EQUAL_WEIGHT_NOT_PNL_OPTIMIZED",
+    "long_components": [
+      {"name": "market_structure", "input": "f_basis", "direction": "lower_is_long", "max": 25, "levels": {"B1": 25, "B2": 12, "other": 0}, "rationale": "perp trading below index: selling pressure pushes price off the reference"},
+      {"name": "positioning", "input": "f_oi1h", "direction": "lower_is_long", "max": 25, "levels": {"B1": 25, "negative": 12, "other": 0}, "rationale": "open interest falling: positions are being closed"},
+      {"name": "volatility_exhaustion", "input": "f_rv24h", "direction": "higher_is_long", "max": 25, "levels": {"HIGH": 25, "MID": 12, "LOW": 0}, "rationale": "proxy for forcedness; LOW is already blocked by H5"},
+      {"name": "price_exhaustion", "input": "f_drop1h", "direction": "lower_is_long", "max": 25, "levels": {"B1": 25, "B2": 12, "other": 0}, "rationale": "price actually fell over the last hour"}
+    ],
+    "short_components": "DEFINED_BUT_DISABLED_IN_V1",
+    "mandatory_minimums": [
+      {"id": "M1", "component": "market_structure", "min": 12},
+      {"id": "M2", "component": "volatility_exhaustion", "min": 12}
+    ],
+    "thresholds": {
+      "LONG_ENTRY_MIN_SCORE": 50,
+      "SHORT_ENTRY_MIN_SCORE": null,
+      "SCORE_SEPARATION_MIN": 10
+    },
+    "states": ["LONG", "SHORT", "HOLD"],
+    "default_state": "HOLD"
+  },
+  "entry": {
+    "signal_observed_at": "close of 1m bar t (ts[t] + 60s)",
+    "decision_timestamp": "same instant, using only bars closed at or before t",
+    "earliest_legal_entry": "open[t+1]",
+    "order_type": "MARKET",
+    "liquidity": "taker",
+    "fill_side": "ask for LONG, walk the book, no mid fills",
+    "cooldown_min": 60
+  },
+  "exit": {
+    "primary": {"id": "X1", "type": "TIME", "minutes": 240},
+    "risk": {"id": "X2", "type": "VOLATILITY_ADJUSTED_STOP", "formula": "entry * (1 - clip(2.5 * f_rv24h * sqrt(240), 0.01, 0.10))", "price_basis": "mark", "same_bar_rule": "stop wins when both touched"},
+    "max_hold_min": 240,
+    "other_exits_allowed": false
+  },
+  "leverage": {
+    "auto_v1": 1.0,
+    "fixed": true,
+    "rationale": "isolated-margin engine: leverage setting alone sets liquidation distance (1x = no liquidation). LOW_LEVERAGE is a risk principle, not an edge.",
+    "manual_presets_changed": false,
+    "safe_max_changed": false,
+    "forbidden_for_auto": [20, 50]
+  },
+  "sizing": {
+    "risk_budget_pct_of_equity": 0.5,
+    "formula": "notional = equity * 0.005 / stop_dist; capped at equity * 1.0; capped at SAFE_MAX qty",
+    "max_notional_over_equity": 1.0,
+    "safe_max_role": "UPPER_BOUND_CONSTRAINT_ONLY",
+    "min_order_qty": 0.001,
+    "qty_step": 0.001,
+    "min_notional_usdt": 5,
+    "measured_notional_over_equity": {"p05": 0.067, "p50": 0.134, "p95": 0.169, "capped_share": 0.0}
+  },
+  "account_risk": {
+    "max_capital_allocation_per_position": 1.0,
+    "max_leverage": 1.0,
+    "max_loss_per_trade_pct": 0.5,
+    "daily_loss_guard_pct": 2.0,
+    "consecutive_loss_guard": 4,
+    "consecutive_loss_block_hours": 24,
+    "cooldown_min": 60,
+    "max_concurrent_positions": 1,
+    "emergency_stop_triggers": ["LEDGER_DIVERGENCE", "FEED_DOWN_5MIN", "SAFE_MAX_UNAVAILABLE"]
+  },
+  "costs": {
+    "source": "data/runtime/crypto/reference/fee_source_verification_v1.json",
+    "read_via": "app.crypto.paper.fees.load_scenarios",
+    "taker_rate": 0.00055,
+    "maker_rate": 0.0002,
+    "maker_used": false,
+    "tier_assumption": "OFFICIAL_PUBLIC_VIP0_TIER_ASSUMED",
+    "roundtrip_bp_approx": 11.0,
+    "micro_base": 1.1841571614073798e-06,
+    "micro_stress": 0.0002537159730588128,
+    "micro_source": "data/runtime/crypto/d5/realtime_cost_measurement_v1.json",
+    "funding": "actual settlements crossed while holding"
+  },
+  "datasets": [
+    {"name": "kline_1m", "source": "D2 bybit", "resolution": "1m", "coverage": "2021-02-01..2026-09-23", "pit": "bar_close"},
+    {"name": "mark_1m", "source": "D2 bybit", "resolution": "1m", "coverage": "2021-02-01..2026-09-23", "pit": "bar_close"},
+    {"name": "index_1m", "source": "D2 bybit", "resolution": "1m", "coverage": "2021-02-01..2026-09-23", "pit": "bar_close"},
+    {"name": "open_interest_5m", "source": "D2 bybit", "resolution": "5m", "coverage": "2021-02-01..2026-09-23", "pit": "record_ts_plus_5min"},
+    {"name": "funding", "source": "D2 bybit", "resolution": "8h", "coverage": "2021-02-01..2026-09-23", "pit": "settlement_ts"},
+    {"name": "orderbook", "source": "NONE_HISTORICAL", "resolution": null, "coverage": "realtime only", "pit": "synthetic in replay, flagged book_synthetic"}
+  ],
+  "validation": {
+    "plan": "docs/crypto/CRYPTO_D6_VALIDATION_PLAN_V1.md",
+    "folds": "D5.1 contract sec2 verbatim, F1..F9",
+    "oos": "2022-01-01..2026-09-23",
+    "untouched_holdout": false,
+    "selection_bias": "DECLARED: candidate derived from 1980 already-examined cells; only D6-D forward is out-of-sample",
+    "rolling_calibration": false,
+    "bootstrap": {"method": "moving_block", "block_days": 7, "iterations": 1000, "seed": 20260928},
+    "arms": ["A-MAIN", "A-NOSTOP", "A-SENS-1", "A-SENS-2", "A-SENS-3", "A-SENS-4", "A-SENS-5", "A-SENS-6", "A-REF-2h", "A-REF-8h"],
+    "judging_arm": "A-MAIN"
+  },
+  "verdict_gates": [
+    {"id": "G1", "rule": "OOS VIP0_BASE net mean > 0 and 95% CI lower bound > 0"},
+    {"id": "G2", "rule": "edge_to_cost_ratio >= 1.2"},
+    {"id": "G3", "rule": "judgeable folds: gross>0 in >= 2/3, net>0 in >= 1/2"},
+    {"id": "G4", "rule": "OOS trades >= 200 and judgeable folds >= 6 (fold trades >= 20 and days >= 20)"},
+    {"id": "G5", "rule": "leave-one-year-out net > 0 and no single year > 40% of total net sum"},
+    {"id": "G6", "rule": "no single trade > 10% of total net sum"},
+    {"id": "G7", "rule": "VIP0_STRESS net > 0 and net > 0 at taker +20%"},
+    {"id": "G8", "rule": "net > 0 in all six sensitivity arms"},
+    {"id": "G9", "rule": "trend 2/3 labels net>0, BOTH volatility labels (HIGH, MID) net>0, sessions 3/4 net>0"},
+    {"id": "G10", "rule": "profit factor > 1.3 and max drawdown < 15%"},
+    {"id": "G11", "rule": "NO_STOP arm sign consistent with research estimate (sanity check, not a pass condition)"}
+  ],
+  "manual_auto_isolation": {
+    "shared": ["read_only_market_data"],
+    "never_shared": ["active_position", "wallet_balance", "realized_pnl", "reset_anchor", "trade_stats", "ledger", "run_dir"],
+    "mechanism": "separate run_id, separate CRYPTO_PAPER_ROOT, separate process and port",
+    "one_session_per_run_dir": true
+  },
+  "auto_ui_contract": {
+    "chart": false,
+    "manual_order_buttons": false,
+    "fields": ["running_state", "strategy_version", "contract_sha256", "current_decision", "score_breakdown", "hold_reason", "position", "entry", "qty", "leverage", "unrealized_pnl", "expected_net_if_closed", "stop_price", "time_remaining", "realized_pnl", "fees", "funding", "trade_count", "win_rate", "profit_factor", "mdd", "cumulative_net_pnl", "recent_decisions", "recent_trades", "risk_blocks", "errors"]
+  },
+  "liquidation_integration": {
+    "v1_usage": "NONE",
+    "classification": "FORWARD_ONLY / FUTURE_V2",
+    "forward_start_utc": "2026-09-27T10:35:04.118Z",
+    "gate": "later of 6 months (2027-03-27) and 30 down events",
+    "v2_comparison": "AUTO V1 (proxy) vs AUTO V2 (proxy + liquidation flow)"
+  },
+  "promotion_path": ["D6-A", "D6-B", "D6-C", "D6-D", "D7"],
+  "prefreeze_computation": {
+    "returns_computed": false,
+    "pnl_computed": false,
+    "what_was_computed": ["feature values", "episode counts per fold and year", "feature-feature spearman", "entry-time volatility distribution"],
+    "record": "data/runtime/crypto/d6/prefreeze_qc_v1.json"
+  }
+}

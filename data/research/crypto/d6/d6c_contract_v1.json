@@ -1,0 +1,145 @@
+{
+  "record": "CRYPTO_D6_C_BACKTEST_CONTRACT_V1",
+  "authority": "docs/crypto/CRYPTO_D6_C_BACKTEST_CONTRACT_V1.md",
+  "created_utc": "2026-09-28",
+  "depends_on": {
+    "d6a_contract": "docs/crypto/CRYPTO_D6_AUTO_STRATEGY_DESIGN_CONTRACT_V1.md",
+    "d6a_sha256": "1a6bcaa51d9302850d14827618bcc5d32709f768f324f425e401fac8a622cc0d",
+    "i1_interpretation": "docs/crypto/CRYPTO_D6_EXECUTION_INTERPRETATION_I1_V1.md",
+    "i1_sha256": "03f076c879984829b4234357abb464c55cd435c491228832741b5b0958f72fc6"
+  },
+  "window": {
+    "input_start_ms": 1612137600000,
+    "sample_start_utc": "2021-03-04T00:00:00Z",
+    "end_exclusive_utc": "2026-09-23T00:00:00Z",
+    "oos_start_utc": "2022-01-01T00:00:00Z",
+    "untouched_holdout": false,
+    "evidence_class": "CONFIRMATION_NOT_TRUE_OOS"
+  },
+  "folds": {
+    "source": "D5.1 contract sec2 verbatim",
+    "attribution": "entry bar timestamp",
+    "boundaries_utc": ["2022-01-01", "2022-07-01", "2023-01-01", "2023-07-01", "2024-01-01",
+                       "2024-07-01", "2025-01-01", "2025-07-01", "2026-01-01", "2026-09-23"],
+    "train_used_for_judging": false
+  },
+  "execution_semantics": {
+    "interpretation": "I1 DECISION_EXECUTION_SEPARATION",
+    "decision_call": "d6.decision.decide(entry_reference_price=None)",
+    "signal_rule": "filter_pass and reason codes within {non-blocking} union {SIZING_ENTRY_PRICE_UNKNOWN}",
+    "entry_reference_price": "open[t+1]",
+    "qty_formula": "floor_to_step(target_notional / open[t+1], 0.001)",
+    "target_notional_formula": "equity * 0.005 / stop_distance, capped at equity * 1.0",
+    "equity_basis": "engine account equity at execution time (compounding)",
+    "stop_price_basis": "actual_fill_price * (1 - stop_distance)",
+    "order_type": "MARKET",
+    "liquidity": "taker",
+    "reject_codes": ["EXECUTION_REJECT_QTY_BELOW_MIN", "EXECUTION_REJECT_NOTIONAL_BELOW_MIN",
+                     "EXECUTION_REJECT_ENGINE"],
+    "safe_max": "NOT_EVALUATED_NO_HISTORICAL_ORDERBOOK",
+    "reject_counts_as_trade": false,
+    "reject_starts_cooldown": false
+  },
+  "account": {
+    "isolation": "dedicated in-memory D6-C account, no manual run_dir, no production paper account",
+    "starting_capital_krw": "10000000",
+    "fx_krw_per_usdt": "1344.00",
+    "fx_source": "D4 run_config.json recorded value",
+    "primary_currency": "USDT",
+    "krw_role": "DISPLAY_ONLY",
+    "leverage": 1.0,
+    "max_concurrent_positions": 1,
+    "risk_limit_source": "data/runtime/crypto/BTCUSDT/reference/risk_limit_1790128376.json"
+  },
+  "fill_model": {
+    "orderbook": "SYNTHETIC",
+    "source": "app.crypto.paper.historical.SyntheticBook",
+    "spread_usdt": "0.10",
+    "depth_btc_per_side": "5",
+    "tick": "0.10",
+    "flag": "book_synthetic",
+    "claim_of_real_orderbook": false,
+    "depth_impact_measure": "max order qty over depth per side"
+  },
+  "intrabar": {
+    "rule": "ADVERSE_FIRST",
+    "stop_trigger_basis": "mark low of the bar",
+    "stop_fill_price": "min(stop_price, bar open)",
+    "stop_beats_time_exit_in_same_bar": true,
+    "best_case_selection": false,
+    "ambiguity_counters": ["same_bar_stop_and_time_expiry", "gap_open_below_stop"]
+  },
+  "entry_exit": {
+    "time_exit_minutes": 240,
+    "time_exit_price": "open of the exit bar",
+    "max_hold_minutes": 240,
+    "overlapping_signal_policy": "IGNORE (H9 POSITION_OPEN)",
+    "add_or_average_down": false,
+    "reentry_cooldown_min": 60,
+    "other_exit_rules": false,
+    "unfinished_at_window_end": "EXCLUDE_AND_COUNT",
+    "missing_bar_during_hold": "EXCLUDE_AND_COUNT"
+  },
+  "costs": {
+    "primary_scenario": "VIP0_BASE",
+    "taker_rate": 0.00055,
+    "fee_read_via": "app.crypto.paper.fees.load_scenarios",
+    "maker_used": false,
+    "maker_rescue_scenario_banned": true,
+    "funding": "actual D2 rates on the 8h UTC grid, engine-applied, settlements crossed while holding only",
+    "scenarios": {
+      "ZERO": "reference-price gross, no fee, no funding, no spread",
+      "VIP0_BASE": "engine result (taker both sides + synthetic spread + funding)",
+      "VIP0_STRESS": "VIP0_BASE minus (0.0002537159730588128 - 0.0000011841571614073798) * entry notional",
+      "TAKER_PLUS_20PCT": "VIP0_BASE minus 0.2 * 0.00055 * (entry notional + exit notional)"
+    },
+    "stress_source": "D5 contract sec8 measured maximum"
+  },
+  "arms": {
+    "A-MAIN": {"judging": true, "score_threshold": 50, "hold_min": 240, "stop_k": 2.5, "oi_window_min": 60, "stop_enabled": true},
+    "A-NOSTOP": {"judging": false, "role": "G11_SANITY", "stop_enabled": false},
+    "A-SENS-1": {"judging": false, "role": "G8", "score_threshold": 37},
+    "A-SENS-2": {"judging": false, "role": "G8", "score_threshold": 62},
+    "A-SENS-3": {"judging": false, "role": "G8", "stop_k": 2.0},
+    "A-SENS-4": {"judging": false, "role": "G8", "stop_k": 3.0},
+    "A-SENS-5": {"judging": false, "role": "G8", "oi_window_min": 30},
+    "A-SENS-6": {"judging": false, "role": "G8", "oi_window_min": 120},
+    "A-REF-2h": {"judging": false, "role": "REPORT_ONLY", "hold_min": 120},
+    "A-REF-8h": {"judging": false, "role": "REPORT_ONLY", "hold_min": 480}
+  },
+  "metrics": {
+    "gross_bp": "(exit_reference_price / entry_reference_price - 1) * 1e4",
+    "net_bp": "engine realized net pnl for the trade / entry notional * 1e4",
+    "win": "net_bp > 0",
+    "profit_factor": "sum(positive net) / abs(sum(negative net)), INF when denominator is 0",
+    "mdd": "max drawdown of the trade-close equity curve",
+    "sharpe": "NOT_USED",
+    "edge_to_cost_ratio": "mean(gross_bp) / (mean(gross_bp) - mean(net_bp))",
+    "bootstrap": {"method": "moving_block", "block_days": 7, "iterations": 1000, "seed": 20260928}
+  },
+  "decompositions": {
+    "fold": ["trades", "net", "profit_factor", "mdd", "win_rate", "expectancy"],
+    "year": ["trades", "net", "profit_factor", "mdd"],
+    "volatility": ["HIGH", "MID"],
+    "trend": ["BULL", "BEAR", "SIDEWAYS"],
+    "session": ["00-06", "06-12", "12-18", "18-24"],
+    "regime_definitions": "D5 contract sec10 verbatim; volatility cutoffs frozen by D5.1 sec8",
+    "new_regime_search": false
+  },
+  "concentration": ["top_1_trade", "top_5_trades", "top_1_percent", "top_month", "top_year",
+                    "net_excluding_top_1", "net_excluding_top_5"],
+  "gates": {
+    "source": "D6-A contract sec13 verbatim",
+    "outcomes": ["PASS", "FAIL", "NOT_EVALUABLE"],
+    "not_evaluable_counts_as_pass": false,
+    "pass_requires": "G1..G10 all PASS",
+    "g11_is_sanity_only": true
+  },
+  "verdicts": ["PASS", "FAIL", "INCONCLUSIVE"],
+  "on_fail": "FDN-V1 CLOSED; no retry under this contract",
+  "d6d_authorization": "AUTHORIZED only on PASS",
+  "prohibitions": ["parameter tuning after results", "best fold selection", "best year selection",
+                   "threshold movement", "feature change", "hard filter change", "leverage change",
+                   "risk budget change", "fee change", "SHORT addition", "maker rescue scenario",
+                   "early stop before the full preregistered analysis", "deployment", "commit", "push"]
+}

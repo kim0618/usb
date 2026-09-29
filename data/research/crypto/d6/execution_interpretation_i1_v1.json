@@ -1,0 +1,73 @@
+{
+  "record": "CRYPTO_D6_EXECUTION_INTERPRETATION_I1_V1",
+  "authority": "docs/crypto/CRYPTO_D6_EXECUTION_INTERPRETATION_I1_V1.md",
+  "created_utc": "2026-09-28",
+  "amends": "docs/crypto/CRYPTO_D6_AUTO_STRATEGY_DESIGN_CONTRACT_V1.md",
+  "amends_sha256": "1a6bcaa51d9302850d14827618bcc5d32709f768f324f425e401fac8a622cc0d",
+  "contract_modified": false,
+  "ambiguity": {
+    "clause_entry": "D6-A 6.1: earliest legal entry = open[t+1]",
+    "clause_sizing": "D6-A 8: qty = floor_to_step(notional / entry_price, 0.001)",
+    "clause_pit": "D6-A 3 and validation plan 4 P1: a decision at bar t reads only bars closed at or before t",
+    "conflict": "reading entry_price as open[t+1] lets a future bar flip LONG to HOLD through the minimum-quantity test"
+  },
+  "chosen_interpretation": "DECISION_EXECUTION_SEPARATION",
+  "decision_time": {
+    "information": "bars closed at or before t only",
+    "produces": ["hard_filters", "long_score", "direction", "target_notional", "stop_distance",
+                 "strategy_intent"],
+    "target_notional_formula": "equity * 0.005 / stop_distance, capped at equity * 1.0",
+    "price_required": false,
+    "final_qty_required": false,
+    "uses_open_t_plus_1": false
+  },
+  "execution_time": {
+    "reference_price": "open[t+1]",
+    "final_qty_formula": "floor_to_step(target_notional / reference_price, 0.001)",
+    "order_type": "MARKET",
+    "liquidity": "taker",
+    "actual_entry_price": "average fill price returned by the paper engine (ask side for LONG)",
+    "stop_price_basis": "actual_entry_price * (1 - stop_distance)",
+    "may_change_score": false,
+    "may_change_direction": false,
+    "may_change_past_filter_verdicts": false
+  },
+  "execution_reject": {
+    "policy": "record EXECUTION_REJECT; never rewrite the signal as HOLD",
+    "codes": ["EXECUTION_REJECT_QTY_BELOW_MIN", "EXECUTION_REJECT_NOTIONAL_BELOW_MIN",
+              "EXECUTION_REJECT_SAFE_MAX", "EXECUTION_REJECT_ENGINE"],
+    "counts_as_trade": false,
+    "starts_cooldown": false
+  },
+  "rejected_interpretations": [
+    {"id": "R1", "description": "qty = target_notional / close[t] (D6-B provisional)",
+     "reason": "PIT-safe but sizes on a price other than the contracted entry price; the 0.5% risk identity breaks by the close-to-open gap, which is largest exactly when this strategy enters"},
+    {"id": "R2", "description": "qty = target_notional / open[t+1] computed inside the decision",
+     "reason": "violates the PIT clause: a future bar can flip the signal"},
+    {"id": "R3", "description": "record an unsizable signal as HOLD",
+     "reason": "mixes 'no signal' with 'signal not placed' in one statistic"}
+  ],
+  "effect_on_decision": {
+    "hard_filters": "none", "long_score": "none", "direction": "none",
+    "note": "sizing no longer participates in the direction at all"
+  },
+  "effect_on_execution": {
+    "entry_price": "open[t+1] as contracted",
+    "quantity": "derived at execution from target_notional",
+    "stop": "from the actual fill price",
+    "performance": "rejected executions are not trades and are reported separately"
+  },
+  "d6b_engine_usage": {
+    "call": "decision.decide(market with entry_reference_price=None)",
+    "signal_rule": "filter_pass and reason codes limited to the non-blocking set plus SIZING_ENTRY_PRICE_UNKNOWN",
+    "equivalence_test": "backend/tests/crypto/test_d6c_i1.py"
+  },
+  "contract_clause_status": {
+    "section_3_pit": "HONOURED",
+    "section_6_1_entry_open_t_plus_1": "HONOURED",
+    "section_8_qty_from_entry_price": "HONOURED at execution time",
+    "section_8_hold_on_unsizable": "RECORDED AS EXECUTION_REJECT INSTEAD OF HOLD (only textual difference, stated explicitly)",
+    "section_10_stop": "HONOURED",
+    "section_7_r1_risk_budget": "HONOURED and exact"
+  }
+}
