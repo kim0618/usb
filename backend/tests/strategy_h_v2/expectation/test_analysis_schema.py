@@ -129,7 +129,14 @@ def test_a_management_change_needs_the_two_documents_it_changed_between():
 
 
 def test_an_unrecognized_direction_is_rejected():
-    with pytest.raises(ValueError, match="direction must be one of"):
+    """`IMPROVED` is not one of the seven, and under V2 the rejection names all seven.
+
+    D4.1's live run failed on exactly this field with `INCREASED` and
+    `QUANTIFIED_AND_EXTENDED_TO_2027`, because the schema the model was shown said `"type":
+    "string"`. The value set did not change in V2; the error message and the schema now agree
+    about what it is.
+    """
+    with pytest.raises(ValueError, match="Input should be 'STRENGTHENED'"):
         ManagementSignalChangeV1(topic="ramp", direction="IMPROVED", confidence=Confidence.LOW,
                                   evidence_ids=[EVIDENCE_ID, EVIDENCE_ID])
 

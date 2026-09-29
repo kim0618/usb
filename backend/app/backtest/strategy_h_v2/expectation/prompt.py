@@ -36,7 +36,12 @@ from app.backtest.strategy_h_v2.expectation.evidence_schema import (
 )
 from app.backtest.strategy_h_v2.expectation.validate import METADATA_FIELDS
 
-PROMPT_VERSION = "h_v2_d4_expectation_gap_v1"
+PROMPT_VERSION = "h_v2_d4_expectation_gap_v2"
+#: V1, for attribution when reading D4.1's stored records. V2 changes the rendered JSON schema
+#: (three validator-enforced allow-lists are now enum members the model can read) and adds one
+#: paragraph below stating that saying consensus evidence is unavailable is never a violation.
+#: No instruction was removed and no prohibition was loosened.
+PROMPT_VERSION_V1 = "h_v2_d4_expectation_gap_v1"
 
 #: Bounds the D3 research output re-serialized into the user prompt. D3 outputs run large (the
 #: D3.3 batch's `final_output` blocks are 20-60KB each); the whole of it is the reality side of the
@@ -166,6 +171,13 @@ Where you would want such a sentence, write instead exactly this:
 The company's OWN prior guidance is a different thing and is legitimate evidence: a reported result \
 above the company's own guided range is ABOVE_COMPANY_GUIDANCE. It is NOT "a beat" and you must not \
 call it one - a beat is a statement about analyst estimates, which you do not have.
+
+SAYING THE EVIDENCE IS ABSENT IS NEVER A VIOLATION OF THIS RULE. The sentence above, and any other \
+sentence stating that consensus or analyst-expectation evidence is unavailable, not established, \
+not provided or not in the current source set, is explicitly permitted and is what this pipeline \
+expects to see. What is prohibited is attributing an expectation to analysts or the market - as a \
+verb ("analysts expect"), as a figure ("consensus estimates of $5.00") or as a comparison ("beat \
+consensus"). The prohibition is about asserting the expectation, never about reporting its absence.
 """
 
 NUMERIC_DISCIPLINE = """\

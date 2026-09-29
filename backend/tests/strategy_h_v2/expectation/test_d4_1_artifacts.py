@@ -19,7 +19,7 @@ import pytest
 
 from app.backtest.strategy_h_v2.expectation.analysis_schema import (
     BANNED_D4_FIELD_NAMES,
-    SCHEMA_VERSION as D4_SCHEMA_VERSION,
+    SCHEMA_VERSION_V1 as D4_SCHEMA_VERSION_V1,
 )
 from app.backtest.strategy_h_v2.expectation.d4_1_contract import (
     D4_1_HARD_BUDGET_USD,
@@ -27,8 +27,8 @@ from app.backtest.strategy_h_v2.expectation.d4_1_contract import (
     TIER_B_SAMPLE,
 )
 from app.backtest.strategy_h_v2.expectation.gap_contract import GAP_CONTRACT_VERSION
-from app.backtest.strategy_h_v2.expectation.prompt import PROMPT_VERSION
-from app.backtest.strategy_h_v2.expectation.validate import VALIDATION_CONTRACT_VERSION
+from app.backtest.strategy_h_v2.expectation.prompt import PROMPT_VERSION_V1
+from app.backtest.strategy_h_v2.expectation.validate import VALIDATION_CONTRACT_VERSION_V1
 from app.backtest.strategy_h_v2.research.telemetry_contract_v2 import checksum
 
 RUN_ROOT = Path("data/runtime/strategy_h_v2/d4_1")
@@ -135,11 +135,21 @@ def test_canonical_model_matches_the_requested_model():
 
 @HAS_RUN
 def test_frozen_versions_used_with_no_fallback():
+    """D4.1's records are pinned to the V1 literals they were produced under, not to whatever the
+    modules currently export.
+
+    This assertion used to read the live constants, which made it an assertion about today's code
+    rather than about a finished run. D4.2 bumped three of those constants - prompt, output schema
+    and validation contract - so the version-pinned form is now the only one that says what it
+    means: these artifacts came from Contract V1, and a later contract does not retroactively
+    reissue them. `gap_contract_version` is compared against the live constant on purpose: the gap
+    contract is unchanged by V2, and this line is where that would stop being true.
+    """
     for record in _records():
-        assert record["prompt_version"] == PROMPT_VERSION
-        assert record["schema_version_out"] == D4_SCHEMA_VERSION
+        assert record["prompt_version"] == PROMPT_VERSION_V1 == "h_v2_d4_expectation_gap_v1"
+        assert record["schema_version_out"] == D4_SCHEMA_VERSION_V1
         assert record["gap_contract_version"] == GAP_CONTRACT_VERSION
-        assert record["validation_contract_version"] == VALIDATION_CONTRACT_VERSION
+        assert record["validation_contract_version"] == VALIDATION_CONTRACT_VERSION_V1
 
 
 @HAS_RUN

@@ -46,17 +46,25 @@ from app.backtest.strategy_h_v2.expectation.guidance_arithmetic import (
     result_vs_range,
     state_disagrees_with_arithmetic,
 )
+from app.backtest.strategy_h_v2.expectation.consensus_language import (
+    asserted_consensus_findings,
+)
+from app.backtest.strategy_h_v2.expectation.d4_inputs import package_evidence_ids
 from app.backtest.strategy_h_v2.research.schema import FutureBusinessStage
 from app.backtest.strategy_h_v2.research.validate import (
     ExtractionError,
     extract_json_object,
     package_checksum,
-    valid_evidence_ids,
     valid_source_ids,
 )
 from app.backtest.strategy_h_v2.research import validation_v2
 
-VALIDATION_CONTRACT_VERSION = "h_v2_d4_validation_contract_v1"
+VALIDATION_CONTRACT_VERSION = "h_v2_d4_validation_contract_v2"
+#: V1, for attribution when reading D4.1's stored records. V2 differs in exactly two enforcement
+#: behaviours - the consensus check discriminates an asserted expectation from a stated absence
+#: instead of scanning for substrings, and the citable-evidence set is built from a D4-owned module
+#: instead of an uncommitted one. No rule was added, dropped or re-thresholded.
+VALIDATION_CONTRACT_VERSION_V1 = "h_v2_d4_validation_contract_v1"
 
 #: Metadata the orchestration layer fills in, never asked of the model - the D4 counterpart of
 #: `prompt_builder.METADATA_FIELDS`, including the four contract-residue fields code writes after
@@ -263,19 +271,19 @@ def check_consensus_not_fabricated(
                 f"to report @ market_expectation_evidence.{label}"
             )
     if bundle.consensus.status == EvidenceAvailability.SOURCE_NOT_AVAILABLE:
-        for phrase in ("analysts expect", "analysts estimate", "consensus expect",
-                       "consensus estimate", "wall street expect", "the street expect",
-                       "investors are pricing", "consensus assumes", "beat consensus",
-                       "missed consensus", "consensus forecast"):
-            for text in _every_text(analysis):
-                if phrase in text.lower():
-                    errors.append(
-                        f"text asserts a consensus expectation ({phrase!r}) while the expectation "
-                        "bundle reports consensus SOURCE_NOT_AVAILABLE - brief §18 requires "
-                        "'Available evidence does not establish consensus expectations.' instead "
-                        "@ market_expectation_evidence"
-                    )
-                    break
+        for text in _every_text(analysis):
+            for finding in asserted_consensus_findings(text):
+                errors.append(
+                    f"a sentence attributes an expectation to analysts or the market "
+                    f"({finding.trigger!r}) while the expectation bundle reports consensus "
+                    f"SOURCE_NOT_AVAILABLE, so there is no source that could support it: "
+                    f"{finding.sentence!r}. Remove the attribution, or state instead that the "
+                    "evidence for it is unavailable - a sentence saying consensus expectations "
+                    "are not available, not established or not in the source set is explicitly "
+                    "allowed here and is what this pipeline expects "
+                    "@ market_expectation_evidence"
+                )
+                break
     return errors
 
 
@@ -448,7 +456,7 @@ def assemble_and_validate_d4(
     }
     citable_sources = valid_source_ids(package) | {code_source_id(bundle.bundle_id)}
     citable_evidence = (
-        valid_evidence_ids(package) | set(bundle.valid_evidence_ids()) | set(code_facts)
+        package_evidence_ids(package) | set(bundle.valid_evidence_ids()) | set(code_facts)
     )
     try:
         analysis = HExpectationGapAnalysisV1.model_validate(

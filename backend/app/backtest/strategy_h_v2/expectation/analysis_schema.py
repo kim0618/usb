@@ -35,14 +35,25 @@ from app.backtest.strategy_h_v2.expectation.gap_contract import (
     Materiality,
     PricedInAssessment,
     RealizationStatus,
+    EvidenceAvailability,
     ResultVsCompanyGuidance,
     POSITIVE_STATES,
 )
+from app.backtest.strategy_h_v2.expectation.contract_v2 import (
+    ConflictOrigin,
+    ManagementSignalDirection,
+)
+from app.backtest.strategy_h_v2.expectation.d4_inputs import ConflictResolution
 from app.backtest.strategy_h_v2.expectation.guidance_arithmetic import GuidanceRange, GuidanceUnit
-from app.backtest.strategy_h_v2.research.schema import ConflictResolution, Confidence
+from app.backtest.strategy_h_v2.research.schema import Confidence
 from app.backtest.strategy_h_v2.research.schema_v2 import ClaimV2, _no_investment_language_v2
 
-SCHEMA_VERSION = "h_expectation_gap_analysis_v1"
+SCHEMA_VERSION = "h_expectation_gap_analysis_v2"
+#: V1, for reading D4.1's stored records. V2 differs from it in one way only: three fields
+#: whose values a field validator already restricted are now typed as the enums that restrict
+#: them, so the JSON schema shown to the model lists the members. No field was added, removed,
+#: renamed or given a new legal value.
+SCHEMA_VERSION_V1 = "h_expectation_gap_analysis_v1"
 
 #: Rejected by name, before Pydantic's generic extra-field error, so a repair round is told what it
 #: actually did. Every entry is a field brief §28 names, plus the lowercase decision tokens that
@@ -189,25 +200,23 @@ class ManagementSignalChangeV1(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     topic: str
-    direction: str
-    """STRENGTHENED / WEAKENED / INTRODUCED / WITHDRAWN / BROUGHT_FORWARD / DELAYED / UNCHANGED."""
+    direction: ManagementSignalDirection
+    """The same seven tokens V1 enforced, now typed as the enum that enforces them.
+
+    V1 declared this `str` and policed it in a field validator, so `content_only_schema()` rendered
+    `{"title": "Direction", "type": "string"}` and the model was never shown a member. D4.1 Tier A
+    measured the consequence on its first two live candidates: `"INCREASED"`,
+    `"QUANTIFIED_AND_EXTENDED_TO_2027"`, and a whole sentence with tonnages in it. Declaring the
+    enum changes no legal value - it makes the legal values readable.
+    """
     evidence_ids: list[str]
     confidence: Confidence
     claims: list[ClaimV2] = Field(default_factory=list)
 
-    @field_validator("topic", "direction")
+    @field_validator("topic")
     @classmethod
     def _no_banned_language(cls, value: str) -> str:
         return _no_investment_language_v2(value)
-
-    @field_validator("direction")
-    @classmethod
-    def _known_direction(cls, value: str) -> str:
-        allowed = {"STRENGTHENED", "WEAKENED", "INTRODUCED", "WITHDRAWN", "BROUGHT_FORWARD",
-                   "DELAYED", "UNCHANGED"}
-        if value not in allowed:
-            raise ValueError(f"direction must be one of {sorted(allowed)}, got {value!r}")
-        return value
 
     @field_validator("evidence_ids")
     @classmethod
@@ -233,8 +242,11 @@ class MarketExpectationEvidenceV1(BaseModel):
     management_signal_changes: list[ManagementSignalChangeV1] = Field(default_factory=list)
     price_reaction_reading: list[ClaimV2] = Field(default_factory=list)
     pre_event_positioning_reading: list[ClaimV2] = Field(default_factory=list)
-    consensus_status: str
-    estimate_revisions_status: str
+    consensus_status: EvidenceAvailability
+    """Copied from the code-owned bundle and checked against it by `validate.py`. Typed as the enum
+    for the `direction` reason: V1's `str` let the model write any token at all, and the only
+    feedback was a mismatch error naming a value it had not been offered."""
+    estimate_revisions_status: EvidenceAvailability
 
     @model_validator(mode="after")
     def _overall_state_follows_metrics(self) -> "MarketExpectationEvidenceV1":
@@ -352,21 +364,15 @@ class ExpectationConflictV1(BaseModel):
     evidence_ids: list[str]
     resolution_status: ConflictResolution
     materiality: Materiality
-    origin: str
-    """`D3_RESEARCH` (carried forward) or `D4_EXPECTATION` (found between expectation evidence)."""
+    origin: ConflictOrigin
+    """Carried forward from D3, or found by D4. Same exposure defect as `direction`: V1 typed it
+    `str` and checked the two tokens in a validator the model could not read."""
     confidence: Confidence
 
     @field_validator("topic", "description")
     @classmethod
     def _no_banned_language(cls, value: str) -> str:
         return _no_investment_language_v2(value)
-
-    @field_validator("origin")
-    @classmethod
-    def _known_origin(cls, value: str) -> str:
-        if value not in ("D3_RESEARCH", "D4_EXPECTATION"):
-            raise ValueError("origin must be D3_RESEARCH or D4_EXPECTATION")
-        return value
 
     @field_validator("evidence_ids")
     @classmethod
