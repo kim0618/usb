@@ -172,6 +172,42 @@ def test_the_clock_offset_is_measured_and_applied_to_signed_requests() -> None:
     assert int(params["timestamp"]) > int(_time.time() * 1000) + 4_000
 
 
+def test_a_read_refused_for_clock_skew_remeasures_the_offset_and_asks_once_more() -> None:
+    """Binance refuses a timestamp in its own future whatever `recvWindow` says, so a machine
+    whose clock runs fast gets -1021 on a read that is otherwise fine. One re-measure and one
+    repeat is the difference between a recoverable clock and a dead LIVE panel."""
+    client, fake = make_client()
+    fake.fail_once("GET", "/fapi/v3/account", 400, -1021,
+                   "Timestamp for this request was 1000ms ahead of the server's time.")
+    payload = client.call("account")
+    assert payload["assets"][0]["asset"] == "USDT"
+    assert client.telemetry.clock_resyncs == 1
+    assert fake.count("/fapi/v1/time") == 1  # the offset was re-measured, not guessed
+    assert fake.count("/fapi/v3/account") == 2
+
+
+def test_a_read_refused_twice_for_clock_skew_gives_up_rather_than_looping() -> None:
+    client, fake = make_client()
+    fake.fail("GET", "/fapi/v3/account", 400, -1021, "Timestamp for this request was ahead.")
+    with pytest.raises(BinanceError) as caught:
+        client.call("account")
+    assert caught.value.is_clock_skew
+    assert fake.count("/fapi/v3/account") == 2  # one attempt, one retry, and no third
+
+
+def test_a_trade_refused_for_clock_skew_is_never_repeated() -> None:
+    """The retry is deliberately excluded here: the first order may have reached the matching
+    engine before the clock was checked, and a second request would be a second position."""
+    client, fake = make_client(trading_enabled=True)
+    fake.fail_once("POST", "/fapi/v1/order", 400, -1021, "Timestamp for this request was ahead.")
+    with pytest.raises(BinanceError) as caught:
+        client.call("new_order", {"symbol": SYMBOL, "side": "BUY", "type": "MARKET",
+                                  "quantity": "0.001"})
+    assert caught.value.is_clock_skew
+    assert fake.count("/fapi/v1/order") == 1
+    assert client.telemetry.clock_resyncs == 0
+
+
 def test_a_binance_error_is_surfaced_with_its_code_and_without_the_credential() -> None:
     client, fake = make_client()
     fake.fail("GET", "/fapi/v3/account", 401, -2015, f"Invalid API-key for {KEY}")
@@ -403,9 +439,10 @@ def test_a_symbol_that_is_not_trading_blocks_live() -> None:
 # ------------------------------------------------------------------ orders
 
 def router(fake: FakeBinance | None = None, *, armed: bool = False,
-           tmp_path: Path | None = None) -> tuple[LiveOrderRouter, FakeBinance, LiveMirror | None]:
+           tmp_path: Path | None = None,
+           max_open_qty: str | None = None) -> tuple[LiveOrderRouter, FakeBinance, LiveMirror | None]:
     client, fake = make_client(fake, trading_enabled=armed)
-    config = make_config(trading_enabled=armed)
+    config = make_config(trading_enabled=armed, max_open_qty=max_open_qty)
     read = AccountReader(client, config)
     ledger = (LiveMirror(path=tmp_path / "live" / "binance_live_events.jsonl",
                          account_fingerprint=config.fingerprint) if tmp_path else None)
@@ -485,6 +522,101 @@ def test_arming_only_the_environment_flag_is_not_enough(tmp_path: Path) -> None:
     config = make_config(trading_enabled=True)                  # env flag on
     route = LiveOrderRouter(reader=AccountReader(client, config), client=client, config=config)
     assert route.armed is False
+
+
+def test_arming_only_the_client_is_not_enough_either() -> None:
+    """The mirror image of the test above. Both directions are asserted because a regression
+    that collapses the two gates into one reads correctly from whichever side is not tested."""
+    client, _ = make_client(trading_enabled=True)                                  # client armed
+    config = make_config(trading_enabled=False, client_armed=True)                 # env flag off
+    route = LiveOrderRouter(reader=AccountReader(client, config), client=client, config=config)
+    assert route.armed is False
+
+
+def test_the_two_arming_variables_are_separate_and_both_default_to_false() -> None:
+    """`BINANCE_LIVE_CLIENT_ARMED` must not be satisfied by `BINANCE_LIVE_TRADING_ENABLED`:
+    one variable would mean one mistake arms a real account."""
+    base = {"BINANCE_API_KEY": "k", "BINANCE_API_SECRET": "s"}
+    bare = load_config(base)
+    assert bare.trading_enabled is False and bare.client_armed is False and bare.armed is False
+
+    only_flag = load_config({**base, "BINANCE_LIVE_TRADING_ENABLED": "true"})
+    assert only_flag.trading_enabled is True and only_flag.client_armed is False
+    assert only_flag.armed is False
+
+    only_arm = load_config({**base, "BINANCE_LIVE_CLIENT_ARMED": "true"})
+    assert only_arm.trading_enabled is False and only_arm.client_armed is True
+    assert only_arm.armed is False
+
+    both = load_config({**base, "BINANCE_LIVE_TRADING_ENABLED": "true",
+                        "BINANCE_LIVE_CLIENT_ARMED": "true"})
+    assert both.armed is True
+    # A typo is not an affirmative, in either variable.
+    assert load_config({**base, "BINANCE_LIVE_TRADING_ENABLED": "ture",
+                        "BINANCE_LIVE_CLIENT_ARMED": "yes"}).armed is False
+
+
+def test_an_open_above_the_self_imposed_ceiling_is_refused_before_binance_is_asked() -> None:
+    """The exchange would accept 0.002 BTC on this account. `BINANCE_LIVE_MAX_QTY` is the
+    operator's own bound for a validation run, and it has to bite before the order is built:
+    the LIVE ticket's default size is larger than the size a minimum-order test may send."""
+    route, fake, _ = router(armed=True, max_open_qty="0.001")
+    fake.position_rows = POSITION_RISK_FLAT
+    with pytest.raises(OrderRefused) as caught:
+        route.plan(side="LONG", intent=orders.OPEN, qty="0.002")
+    assert caught.value.code == orders.QTY_ABOVE_LOCAL_MAXIMUM
+    assert fake.count("/fapi/v1/order") == 0
+
+
+def test_the_ceiling_also_bounds_an_open_sized_from_a_notional() -> None:
+    route, fake, _ = router(armed=True, max_open_qty="0.001")
+    fake.position_rows = POSITION_RISK_FLAT
+    with pytest.raises(OrderRefused) as caught:
+        # 835 USDT at the fixture's 83,500 is 0.01 BTC, ten times the ceiling.
+        route.plan(side="LONG", intent=orders.OPEN, notional_usdt="835")
+    assert caught.value.code == orders.QTY_ABOVE_LOCAL_MAXIMUM
+    assert fake.count("/fapi/v1/order") == 0
+
+
+def test_an_open_at_the_ceiling_exactly_is_allowed() -> None:
+    # 0.002 rather than 0.001 because the fixture's MIN_NOTIONAL is 100 USDT; the point of the
+    # test is the boundary being inclusive, not the particular size.
+    route, fake, _ = router(armed=True, max_open_qty="0.002")
+    fake.position_rows = POSITION_RISK_FLAT
+    plan = route.plan(side="LONG", intent=orders.OPEN, qty="0.002")
+    assert plan.qty == D("0.002") and plan.order_side == "BUY"
+
+
+def test_the_ceiling_never_blocks_a_close() -> None:
+    """A position may be larger than the ceiling - opened before it was set, or in the Binance
+    app - and it must still be closable. The ceiling bounds entries, not exits."""
+    route, fake, _ = router(armed=True, max_open_qty="0.001")
+    fake.position_rows = POSITION_RISK_LONG          # 0.015 BTC, fifteen times the ceiling
+    plan = route.plan(side="", intent=orders.CLOSE)
+    assert plan.qty == D("0.015") and plan.reduce_only is True and plan.order_side == "SELL"
+
+
+def test_no_ceiling_leaves_the_exchange_filters_as_the_only_bound() -> None:
+    route, fake, _ = router(armed=True)
+    fake.position_rows = POSITION_RISK_FLAT
+    plan = route.plan(side="LONG", intent=orders.OPEN, qty="0.002")
+    assert plan.qty == D("0.002")
+
+
+def test_a_malformed_ceiling_is_refused_rather_than_read_as_no_limit() -> None:
+    base = {"BINANCE_API_KEY": "k", "BINANCE_API_SECRET": "s"}
+    for bad in ("abc", "0", "-0.001", "nan"):
+        with pytest.raises(ValueError):
+            load_config({**base, "BINANCE_LIVE_MAX_QTY": bad})
+
+
+def test_the_gate_view_names_both_variables_and_the_ceiling() -> None:
+    route, _, _ = router(armed=True, max_open_qty="0.001")
+    view = route.gate_view()
+    assert view["env_flag_name"] == "BINANCE_LIVE_TRADING_ENABLED"
+    assert view["client_arm_env_name"] == "BINANCE_LIVE_CLIENT_ARMED"
+    assert view["max_open_qty"] == D("0.001")
+    assert view["armed"] is True
 
 
 def test_an_armed_router_sends_exactly_the_documented_market_order(tmp_path: Path) -> None:

@@ -50,6 +50,59 @@ def live(monkeypatch, tmp_path: Path):
     return TestClient(app), adapter, fake, mirror
 
 
+# ------------------------------------------------------------------ runtime construction
+
+def test_the_live_runtime_syncs_the_clock_before_the_first_account_read(monkeypatch, tmp_path: Path) -> None:
+    """The offset has to be measured while the adapter is being built. Measuring it only after a
+    signed read has already failed means the operator sees a CLOCK_SKEW panel on a machine whose
+    key, IP and account are all fine - which is exactly what a fast local clock produced."""
+    fake = FakeBinance()
+    fake.position_rows = POSITION_RISK_FLAT
+    monkeypatch.setenv("BINANCE_API_KEY", "test-api-key-0123456789")
+    monkeypatch.setenv("BINANCE_API_SECRET", "test-api-secret-abcdef")
+    monkeypatch.setenv("BINANCE_LIVE_TRADING_ENABLED", "false")
+    monkeypatch.setenv("CRYPTO_LIVE_USER_STREAM", "off")
+    monkeypatch.setenv(live_routes.LIVE_ROOT_ENV, str(tmp_path / "live"))
+
+    real = live_routes.BinanceFuturesClient
+
+    def with_fake_transport(**kwargs):
+        return real(transport=fake.transport(), **kwargs)
+
+    monkeypatch.setattr(live_routes, "BinanceFuturesClient", with_fake_transport)
+    runtime = live_routes.LiveRuntime()
+    adapter = runtime.build()
+
+    assert adapter is not None
+    assert fake.count("/fapi/v1/time") == 1
+    assert runtime.error is None
+    # The offset landed on the client the adapter will use, not on a throwaway: the fake's
+    # server time is a fixed past instant, so a synced client carries a large negative offset.
+    assert adapter.client.telemetry.clock_offset_ms != 0
+    assert adapter.client.telemetry.trade_requests == 0
+    runtime.shutdown()
+
+
+def test_a_clock_sync_that_fails_leaves_the_route_serving_rather_than_dead(monkeypatch, tmp_path: Path) -> None:
+    fake = FakeBinance()
+    fake.position_rows = POSITION_RISK_FLAT
+    fake.fail("GET", "/fapi/v1/time", 503, None, "Service unavailable.")
+    monkeypatch.setenv("BINANCE_API_KEY", "test-api-key-0123456789")
+    monkeypatch.setenv("BINANCE_API_SECRET", "test-api-secret-abcdef")
+    monkeypatch.setenv("CRYPTO_LIVE_USER_STREAM", "off")
+    monkeypatch.setenv(live_routes.LIVE_ROOT_ENV, str(tmp_path / "live"))
+
+    real = live_routes.BinanceFuturesClient
+    monkeypatch.setattr(live_routes, "BinanceFuturesClient",
+                        lambda **kwargs: real(transport=fake.transport(), **kwargs))
+    runtime = live_routes.LiveRuntime()
+    adapter = runtime.build()
+
+    assert adapter is not None
+    assert runtime.error is not None and "clock sync failed" in runtime.error
+    runtime.shutdown()
+
+
 # ------------------------------------------------------------------ without a key
 
 def test_status_without_a_key_tells_the_ui_to_stay_on_paper(no_key: TestClient) -> None:

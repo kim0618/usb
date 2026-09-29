@@ -152,6 +152,8 @@ class FakeBinance:
             ("POST", "/fapi/v1/leverage"): SET_LEVERAGE,
         }
         self.errors: dict[tuple[str, str], tuple[int, dict[str, Any]]] = {}
+        #: Failures that are served once and then forgotten, for testing a retry.
+        self.transient: dict[tuple[str, str], list[tuple[int, dict[str, Any]]]] = {}
         self.routes.update(overrides.pop("routes", {}))
 
     def count(self, path: str) -> int:
@@ -160,12 +162,21 @@ class FakeBinance:
     def fail(self, method: str, path: str, status: int, code: int, msg: str) -> None:
         self.errors[(method, path)] = (status, {"code": code, "msg": msg})
 
+    def fail_once(self, method: str, path: str, status: int, code: int, msg: str) -> None:
+        """Refuse the next call to this path, then answer normally. A permanent `fail` cannot
+        tell a retry apart from a give-up; this can."""
+        self.transient.setdefault((method, path), []).append((status, {"code": code, "msg": msg}))
+
     def transport(self) -> httpx.MockTransport:
         def handler(request: httpx.Request) -> httpx.Response:
             parsed = urlparse(str(request.url))
             params = dict(parse_qsl(parsed.query))
             key = (request.method, parsed.path)
             self.calls.append((request.method, parsed.path, params))
+            queued = self.transient.get(key)
+            if queued:
+                status, body = queued.pop(0)
+                return httpx.Response(status, json=body)
             if key in self.errors:
                 status, body = self.errors[key]
                 return httpx.Response(status, json=body)
@@ -191,10 +202,18 @@ def make_client(fake: FakeBinance | None = None, *, trading_enabled: bool = Fals
     return client, fake
 
 
-def make_config(*, trading_enabled: bool = False, credentials: bool = True) -> Any:
+def make_config(*, trading_enabled: bool = False, credentials: bool = True,
+                client_armed: bool | None = None, max_open_qty: str | None = None) -> Any:
     from app.crypto.live.credentials import load_config
 
-    env = {"BINANCE_LIVE_TRADING_ENABLED": "true" if trading_enabled else "false"}
+    # `client_armed` defaults to whatever `trading_enabled` is, so the existing callers that
+    # ask for an armed config still get one; a test that cares about the two gates separately
+    # passes them separately.
+    armed = trading_enabled if client_armed is None else client_armed
+    env = {"BINANCE_LIVE_TRADING_ENABLED": "true" if trading_enabled else "false",
+           "BINANCE_LIVE_CLIENT_ARMED": "true" if armed else "false"}
+    if max_open_qty is not None:
+        env["BINANCE_LIVE_MAX_QTY"] = max_open_qty
     if credentials:
         env.update({"BINANCE_API_KEY": "test-api-key-0123456789",
                     "BINANCE_API_SECRET": "test-api-secret-abcdef"})

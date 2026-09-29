@@ -31,7 +31,7 @@ from pydantic import BaseModel
 
 from ..live.account import AccountReader
 from ..live.adapter import BinanceLiveAdapter
-from ..live.credentials import LiveConfig, load_config, load_credentials
+from ..live.credentials import LiveConfig, client_armed, load_config, load_credentials
 from ..live.credentials import CredentialsMissing
 from ..live.endpoints import registry_view
 from ..live.mirror import LiveMirror, default_path
@@ -94,9 +94,22 @@ class LiveRuntime:
                 return None
             client = BinanceFuturesClient(credentials=credentials, base_url=config.base_url,
                                           recv_window_ms=config.recv_window_ms,
-                                          # V1 never arms this. Both this and the environment
-                                          # flag would have to change for an order to be sent.
-                                          trading_enabled=False)
+                                          # The second of the two gates, and a variable of its
+                                          # own (`BINANCE_LIVE_CLIENT_ARMED`) rather than a
+                                          # second reading of `BINANCE_LIVE_TRADING_ENABLED`:
+                                          # both must be set for an order to be sent, so arming
+                                          # a real account still takes two deliberate acts.
+                                          trading_enabled=client_armed())
+            try:
+                # Before the first signed read, not lazily on its failure. Binance refuses a
+                # timestamp more than a second in its own future, so a machine whose clock runs
+                # fast - a WSL host resuming from sleep does - would otherwise serve a panel
+                # blocked on CLOCK_SKEW while the key, the IP and the account were all fine.
+                client.sync_clock()
+            except BinanceError as exc:
+                # Not fatal: the account read that follows reports an unreachable exchange as a
+                # blocker with its own message, and that is a better error than a dead route.
+                self.error = f"clock sync failed: {exc.message}"
             root = Path(os.environ.get(LIVE_ROOT_ENV, "data/runtime/crypto/live"))
             mirror = LiveMirror(path=default_path(config.fingerprint, root),
                                 account_fingerprint=config.fingerprint)
