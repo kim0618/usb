@@ -22,6 +22,7 @@ import sys
 from app.backtest.strategy_h_v2.evidence.chunk_schema import AIResearchInputV1
 from app.backtest.strategy_h_v2.research.ledger import next_version, write_research_output
 from app.backtest.strategy_h_v2.research.prompt_builder import PROMPT_VERSION, build_repair_prompt, build_research_prompt
+from app.backtest.strategy_h_v2.research.repair import RepairRecord, classify_repair_reason
 from app.backtest.strategy_h_v2.research.validate import assemble_and_validate
 
 PACKAGES_DIR = Path("data/runtime/strategy_h_v2/d2_1/D2_1-20260928T072430Z/packages")
@@ -68,8 +69,10 @@ def call_opus(system_prompt: str, user_prompt: str) -> dict:
 def research_one(package: AIResearchInputV1, ticker: str) -> dict:
     system, user = build_research_prompt(package)
     call_log: list[dict] = []
+    repairs: list[RepairRecord] = []
     raw = call_opus(system, user)
-    call_log.append({"attempt": 0, "cost_usd": raw.get("total_cost_usd"), "is_error": raw.get("is_error")})
+    call_log.append({"attempt": 0, "cost_usd": raw.get("total_cost_usd"), "is_error": raw.get("is_error"),
+                      "canonical_model": raw.get("modelUsage", {}).get(MODEL, {}).get("canonicalModel")})
     if raw.get("is_error"):
         return {"ticker": ticker, "status": "MODEL_CALL_FAILED", "detail": raw.get("result"), "calls": call_log}
 
@@ -85,10 +88,17 @@ def research_one(package: AIResearchInputV1, ticker: str) -> dict:
     )
     attempt = 0
     while output is None and attempt < MAX_REPAIR_ATTEMPTS:
+        # Record WHY this round was needed before attempting the repair (D3.1 brief §13) - a repair
+        # count without an attributable cause is exactly the blind spot D3 left behind.
+        repairs.append(RepairRecord(attempt=attempt, reason=classify_repair_reason(errors),
+                                     errors=list(errors), rejected_output_preview=raw_text))
         attempt += 1
         repair_prompt = build_repair_prompt(raw_text, errors)
         raw = call_opus(system, repair_prompt)
-        call_log.append({"attempt": attempt, "cost_usd": raw.get("total_cost_usd"), "is_error": raw.get("is_error")})
+        call_log.append({"attempt": attempt, "cost_usd": raw.get("total_cost_usd"), "is_error": raw.get("is_error"),
+                          "canonical_model": raw.get("modelUsage", {}).get(MODEL, {}).get("canonicalModel")})
+        if repairs:
+            repairs[-1].cost_usd = raw.get("total_cost_usd") or 0.0
         if raw.get("is_error"):
             break
         raw_text = raw.get("result", "")
@@ -99,14 +109,19 @@ def research_one(package: AIResearchInputV1, ticker: str) -> dict:
 
     total_cost = sum(c["cost_usd"] or 0 for c in call_log)
     if output is None:
+        repairs.append(RepairRecord(attempt=attempt, reason=classify_repair_reason(errors),
+                                     errors=list(errors), rejected_output_preview=raw_text))
         return {
             "ticker": ticker, "status": "SCHEMA_VALIDATION_FAILED", "errors": errors,
-            "repair_attempts": attempt, "calls": call_log, "total_cost_usd": total_cost,
+            "repair_attempts": attempt, "repairs": [r.to_dict() for r in repairs],
+            "calls": call_log, "total_cost_usd": total_cost,
             "raw_output_preview": raw_text[:2000],
         }
     path = write_research_output(OUTPUT_ROOT, output)
     return {
         "ticker": ticker, "status": "OK", "repair_attempts": attempt, "calls": call_log,
+        "repairs": [r.to_dict() for r in repairs],
+        "repair_cost_usd": sum(r.cost_usd for r in repairs),
         "total_cost_usd": total_cost, "ledger_path": str(path),
         "research_completeness": output.research_completeness.value,
     }
