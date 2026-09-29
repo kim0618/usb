@@ -202,10 +202,18 @@ def make_client(fake: FakeBinance | None = None, *, trading_enabled: bool = Fals
     return client, fake
 
 
-def make_config(*, trading_enabled: bool = False, credentials: bool = True) -> Any:
+def make_config(*, trading_enabled: bool = False, credentials: bool = True,
+                client_armed: bool | None = None, max_open_qty: str | None = None) -> Any:
     from app.crypto.live.credentials import load_config
 
-    env = {"BINANCE_LIVE_TRADING_ENABLED": "true" if trading_enabled else "false"}
+    # `client_armed` defaults to whatever `trading_enabled` is, so the existing callers that
+    # ask for an armed config still get one; a test that cares about the two gates separately
+    # passes them separately.
+    armed = trading_enabled if client_armed is None else client_armed
+    env = {"BINANCE_LIVE_TRADING_ENABLED": "true" if trading_enabled else "false",
+           "BINANCE_LIVE_CLIENT_ARMED": "true" if armed else "false"}
+    if max_open_qty is not None:
+        env["BINANCE_LIVE_MAX_QTY"] = max_open_qty
     if credentials:
         env.update({"BINANCE_API_KEY": "test-api-key-0123456789",
                     "BINANCE_API_SECRET": "test-api-secret-abcdef"})
