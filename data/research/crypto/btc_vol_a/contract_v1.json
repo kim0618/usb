@@ -1,0 +1,27 @@
+{
+ "record": "CRYPTO_BTC_VOL_A_DERIBIT_FREE_AUDIT_CONTRACT_V1",
+ "contract_path": "docs/crypto/btc_vol_a/CRYPTO_BTC_VOL_A_DERIBIT_FREE_AUDIT_CONTRACT_V1.md",
+ "contract_sha256": "7ed5279083b2cc70ab584e57775d12a5fc18d1bdbf2d75e9010ea54759b6b2c2",
+ "frozen_before_any_option_price_was_read": true,
+ "permitted_before_freeze": [
+  "file existence",
+  "schema",
+  "date counts",
+  "signal counts"
+ ],
+ "forbidden_before_freeze": [
+  "implied volatility",
+  "premium",
+  "PnL",
+  "realized comparison"
+ ],
+ "primary_threshold": 0.75,
+ "primary_combo": {
+  "horizon_minutes": 720,
+  "threshold_bp": 100
+ },
+ "orders": 0,
+ "api_keys": 0,
+ "data_purchased": false,
+ "deployed": false
+}

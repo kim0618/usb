@@ -1,0 +1,45 @@
+{
+ "record": "CRYPTO_BTC_P2_DIRECTION_CONTRACT_V1",
+ "contract_path": "docs/crypto/btc_p2/CRYPTO_BTC_P2_DIRECTION_CONTRACT_V1.md",
+ "contract_sha256": "4d7ecbe8d565c2644c42aa035072a3331c56479f7b53b24c5cc0f4ca1f317693",
+ "seed": 20260928,
+ "frozen_before_any_direction_metric": true,
+ "permitted_before_freeze": [
+  "class counts",
+  "feature availability",
+  "missingness",
+  "base rates"
+ ],
+ "forbidden_before_freeze": [
+  "direction AUC",
+  "Brier",
+  "log loss",
+  "model outcome",
+  "PnL"
+ ],
+ "combos": [
+  {
+   "horizon_minutes": 240,
+   "threshold_bp": 100
+  },
+  {
+   "horizon_minutes": 720,
+   "threshold_bp": 100
+  },
+  {
+   "horizon_minutes": 720,
+   "threshold_bp": 200
+  },
+  {
+   "horizon_minutes": 1440,
+   "threshold_bp": 200
+  }
+ ],
+ "gate_quantile": 0.75,
+ "primary_target": "FIRST_TOUCH",
+ "primary_feature_set": "D2_ONLY",
+ "trading": {
+  "orders": 0,
+  "pnl_computed": false
+ }
+}

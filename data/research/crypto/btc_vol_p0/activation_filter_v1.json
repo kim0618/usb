@@ -1,0 +1,123 @@
+{
+ "record": "CRYPTO_BTC_VOL_P0_ACTIVATION_FILTER_V1",
+ "status": "READ_ONLY_ARITHMETIC",
+ "no_strategy_built": true,
+ "no_pnl_backtest": true,
+ "identity": "a symmetric directional bet capturing M and paying cost C breaks even at accuracy 0.5 + C / (2M)",
+ "cost_source": "Bybit USDT perpetual taker round trip, the figure D5 verified",
+ "caveat": "the measured accuracy comes from BTC-P2, where no cell reached STRONG_DIRECTION; these numbers say how far short a directional strategy would be, not that one exists",
+ "combos": {
+  "4H_100": {
+   "horizon_minutes": 240,
+   "threshold_bp": 100,
+   "states": {
+    "ungated": {
+     "n": 41400,
+     "mean_absolute_move_bp": 68.0,
+     "round_trip_cost_bp": 11.0,
+     "breakeven_accuracy": 0.5809,
+     "measured_balanced_accuracy": 0.5302,
+     "shortfall_pp": 5.06
+    },
+    "p1_high_state": {
+     "n": 274,
+     "mean_absolute_move_bp": 204.6,
+     "round_trip_cost_bp": 11.0,
+     "breakeven_accuracy": 0.5269,
+     "measured_balanced_accuracy": 0.4948,
+     "shortfall_pp": 3.21
+    }
+   },
+   "gate_effect": {
+    "move_multiple": 3.01,
+    "breakeven_accuracy_change_pp": -5.4,
+    "measured_accuracy_change_pp": -3.54,
+    "shortfall_change_pp": -1.85
+   }
+  },
+  "12H_100": {
+   "horizon_minutes": 720,
+   "threshold_bp": 100,
+   "states": {
+    "ungated": {
+     "n": 41400,
+     "mean_absolute_move_bp": 123.1,
+     "round_trip_cost_bp": 11.0,
+     "breakeven_accuracy": 0.5447,
+     "measured_balanced_accuracy": 0.5071,
+     "shortfall_pp": 3.76
+    },
+    "p1_high_state": {
+     "n": 1066,
+     "mean_absolute_move_bp": 255.4,
+     "round_trip_cost_bp": 11.0,
+     "breakeven_accuracy": 0.5215,
+     "measured_balanced_accuracy": 0.4944,
+     "shortfall_pp": 2.72
+    }
+   },
+   "gate_effect": {
+    "move_multiple": 2.07,
+    "breakeven_accuracy_change_pp": -2.32,
+    "measured_accuracy_change_pp": -1.27,
+    "shortfall_change_pp": -1.04
+   }
+  },
+  "12H_200": {
+   "horizon_minutes": 720,
+   "threshold_bp": 200,
+   "states": {
+    "ungated": {
+     "n": 41400,
+     "mean_absolute_move_bp": 123.1,
+     "round_trip_cost_bp": 11.0,
+     "breakeven_accuracy": 0.5447,
+     "measured_balanced_accuracy": 0.523,
+     "shortfall_pp": 2.17
+    },
+    "p1_high_state": {
+     "n": 50,
+     "mean_absolute_move_bp": 239.3,
+     "round_trip_cost_bp": 11.0,
+     "breakeven_accuracy": 0.523,
+     "measured_balanced_accuracy": 0.4897,
+     "shortfall_pp": 3.33
+    }
+   },
+   "gate_effect": {
+    "move_multiple": 1.94,
+    "breakeven_accuracy_change_pp": -2.17,
+    "measured_accuracy_change_pp": -3.33,
+    "shortfall_change_pp": 1.16
+   }
+  },
+  "24H_200": {
+   "horizon_minutes": 1440,
+   "threshold_bp": 200,
+   "states": {
+    "ungated": {
+     "n": 41400,
+     "mean_absolute_move_bp": 181.1,
+     "round_trip_cost_bp": 11.0,
+     "breakeven_accuracy": 0.5304,
+     "measured_balanced_accuracy": 0.5065,
+     "shortfall_pp": 2.38
+    },
+    "p1_high_state": {
+     "n": 253,
+     "mean_absolute_move_bp": 372.2,
+     "round_trip_cost_bp": 11.0,
+     "breakeven_accuracy": 0.5148,
+     "measured_balanced_accuracy": 0.4863,
+     "shortfall_pp": 2.85
+    }
+   },
+   "gate_effect": {
+    "move_multiple": 2.06,
+    "breakeven_accuracy_change_pp": -1.56,
+    "measured_accuracy_change_pp": -2.02,
+    "shortfall_change_pp": 0.47
+   }
+  }
+ }
+}

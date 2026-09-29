@@ -1,0 +1,22 @@
+{
+ "record": "CRYPTO_BTC_P1_LARGE_MOVE_PROBABILITY_CONTRACT_V1",
+ "contract_path": "docs/crypto/btc_p1/CRYPTO_BTC_P1_LARGE_MOVE_PROBABILITY_CONTRACT_V1.md",
+ "contract_sha256": "7ee69572cfe04081652ddeab6543371f0bbfa196b302721922e0fddb48857a76",
+ "frozen_before_any_performance_metric": true,
+ "permitted_before_freeze": [
+  "class frequency",
+  "feature availability",
+  "missing rate",
+  "target sample counts"
+ ],
+ "forbidden_before_freeze": [
+  "ROC AUC",
+  "Brier",
+  "log loss",
+  "PR AUC",
+  "calibration",
+  "lift",
+  "trading PnL"
+ ],
+ "seed": 20260928
+}

@@ -1,0 +1,195 @@
+{
+ "record": "CRYPTO_BTC_VOL_P0_REALIZED_VS_TRAILING_V1",
+ "status": "READ_ONLY_PROXY",
+ "proxy_warning": "implied volatility is not measured here. Trailing realised volatility is its main driver, so this ratio bounds how much of P1's forecast a volatility-tracking option price would already have charged for. It is a proxy and cannot settle the question.",
+ "reading": "a median ratio near 1.0 means the coming window is about as violent as the one just observed, so a straddle would already be priced for it; a ratio well above 1.0 means P1 sees something the recent tape does not show",
+ "no_pnl_backtest": true,
+ "combos": {
+  "4H_100": {
+   "horizon_minutes": 240,
+   "threshold_bp": 100,
+   "states": {
+    "unconditional": {
+     "n": 41400,
+     "median_trailing_bp": 91.69019422452538,
+     "median_forward_bp": 80.64481036767583,
+     "median_ratio": 0.8694561743818996,
+     "mean_ratio": 0.9852148859944035,
+     "share_ratio_above_one": 0.3710386473429952,
+     "ratio_quantiles": {
+      "0.25": 0.6697354667269206,
+      "0.5": 0.8694561743818996,
+      "0.75": 1.165979683253689,
+      "0.9": 1.5414939528235618
+     }
+    },
+    "p>=0.60": {
+     "n": 952,
+     "median_trailing_bp": 234.53092835102802,
+     "median_forward_bp": 221.02926545307184,
+     "median_ratio": 0.9287074009299932,
+     "mean_ratio": 1.0202837139515097,
+     "share_ratio_above_one": 0.43067226890756305,
+     "ratio_quantiles": {
+      "0.25": 0.7359472258294883,
+      "0.5": 0.9287074009299932,
+      "0.75": 1.205700910518437,
+      "0.9": 1.5734190329727662
+     }
+    },
+    "p>=0.70": {
+     "n": 340,
+     "median_trailing_bp": 269.47077054442957,
+     "median_forward_bp": 249.94131375868324,
+     "median_ratio": 0.9428499595807167,
+     "mean_ratio": 1.039931977063254,
+     "share_ratio_above_one": 0.43529411764705883,
+     "ratio_quantiles": {
+      "0.25": 0.7021640566681047,
+      "0.5": 0.9428499595807167,
+      "0.75": 1.2957908846013393,
+      "0.9": 1.6363576882680368
+     }
+    },
+    "p>=0.75": {
+     "n": 274,
+     "median_trailing_bp": 273.70192801824123,
+     "median_forward_bp": 264.98189300620896,
+     "median_ratio": 0.9537768130994067,
+     "mean_ratio": 1.0588004960714628,
+     "share_ratio_above_one": 0.45985401459854014,
+     "ratio_quantiles": {
+      "0.25": 0.711458730882081,
+      "0.5": 0.9537768130994067,
+      "0.75": 1.3600957010345947,
+      "0.9": 1.649989337719712
+     }
+    }
+   }
+  },
+  "12H_100": {
+   "horizon_minutes": 720,
+   "threshold_bp": 100,
+   "states": {
+    "unconditional": {
+     "n": 41400,
+     "median_trailing_bp": 158.81207495273642,
+     "median_forward_bp": 153.03622158331655,
+     "median_ratio": 0.9535288889110503,
+     "mean_ratio": 1.0435236715606306,
+     "share_ratio_above_one": 0.44857487922705314,
+     "ratio_quantiles": {
+      "0.25": 0.7432400826545486,
+      "0.5": 0.9535288889110503,
+      "0.75": 1.2165198021797503,
+      "0.9": 1.5759612498333295
+     }
+    },
+    "p>=0.60": {
+     "n": 11989,
+     "median_trailing_bp": 229.71980550890416,
+     "median_forward_bp": 219.07314139492638,
+     "median_ratio": 0.9542248924883384,
+     "mean_ratio": 1.0164142590414111,
+     "share_ratio_above_one": 0.4454082909333556,
+     "ratio_quantiles": {
+      "0.25": 0.7556851625755808,
+      "0.5": 0.9542248924883384,
+      "0.75": 1.182397899962269,
+      "0.9": 1.4733961411545562
+     }
+    },
+    "p>=0.70": {
+     "n": 2495,
+     "median_trailing_bp": 331.09967925463593,
+     "median_forward_bp": 278.39090479348357,
+     "median_ratio": 0.8770660716388019,
+     "mean_ratio": 0.9275506638747123,
+     "share_ratio_above_one": 0.34829659318637274,
+     "ratio_quantiles": {
+      "0.25": 0.6741772104416808,
+      "0.5": 0.8770660716388019,
+      "0.75": 1.106393620347172,
+      "0.9": 1.3668480601145072
+     }
+    },
+    "p>=0.75": {
+     "n": 1066,
+     "median_trailing_bp": 383.07855253857144,
+     "median_forward_bp": 319.76509747975064,
+     "median_ratio": 0.8534890993620446,
+     "mean_ratio": 0.9108531509187541,
+     "share_ratio_above_one": 0.31894934333958724,
+     "ratio_quantiles": {
+      "0.25": 0.6277555642856293,
+      "0.5": 0.8534890993620446,
+      "0.75": 1.0975951696445727,
+      "0.9": 1.3894081910742795
+     }
+    }
+   }
+  },
+  "24H_200": {
+   "horizon_minutes": 1440,
+   "threshold_bp": 200,
+   "states": {
+    "unconditional": {
+     "n": 41400,
+     "median_trailing_bp": 224.59419026677233,
+     "median_forward_bp": 224.5623627275847,
+     "median_ratio": 0.9874338659151993,
+     "mean_ratio": 1.0909277659921726,
+     "share_ratio_above_one": 0.4851207729468599,
+     "ratio_quantiles": {
+      "0.25": 0.7916443496924123,
+      "0.5": 0.9874338659151993,
+      "0.75": 1.2606381137966185,
+      "0.9": 1.645548067807807
+     }
+    },
+    "p>=0.60": {
+     "n": 2881,
+     "median_trailing_bp": 336.7353768859947,
+     "median_forward_bp": 312.64126724848245,
+     "median_ratio": 0.9738197853535903,
+     "mean_ratio": 1.059444644856446,
+     "share_ratio_above_one": 0.4658104824713641,
+     "ratio_quantiles": {
+      "0.25": 0.7661475833684162,
+      "0.5": 0.9738197853535903,
+      "0.75": 1.2106404959544894,
+      "0.9": 1.5831129398669332
+     }
+    },
+    "p>=0.70": {
+     "n": 361,
+     "median_trailing_bp": 523.1543964653209,
+     "median_forward_bp": 438.89863333774264,
+     "median_ratio": 0.8981853759285937,
+     "mean_ratio": 0.9568729997129404,
+     "share_ratio_above_one": 0.3545706371191136,
+     "ratio_quantiles": {
+      "0.25": 0.6596280194663253,
+      "0.5": 0.8981853759285937,
+      "0.75": 1.1059177788558627,
+      "0.9": 1.5292074184428157
+     }
+    },
+    "p>=0.75": {
+     "n": 253,
+     "median_trailing_bp": 581.3033007876205,
+     "median_forward_bp": 474.2185568928866,
+     "median_ratio": 0.8925579878593197,
+     "mean_ratio": 0.9330866845763353,
+     "share_ratio_above_one": 0.3438735177865613,
+     "ratio_quantiles": {
+      "0.25": 0.6435424355796482,
+      "0.5": 0.8925579878593197,
+      "0.75": 1.1059177788558627,
+      "0.9": 1.4500794913138195
+     }
+    }
+   }
+  }
+ }
+}

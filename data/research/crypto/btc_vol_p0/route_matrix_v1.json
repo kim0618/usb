@@ -1,0 +1,199 @@
+{
+ "record": "CRYPTO_BTC_VOL_P0_ROUTE_MATRIX_V1",
+ "audited_utc": "2026-09-28",
+ "status": "AUDIT_ONLY",
+ "orders_placed": 0,
+ "pnl_backtest": false,
+ "data_purchased": false,
+ "deployed": false,
+ "verdict": "ECONOMICALLY_UNPROMISING",
+ "vol_p1": "NOT_AUTHORIZED",
+ "p1_signal": {
+  "brier_skill": 0.18,
+  "roc_auc": 0.727,
+  "ece": 0.015,
+  "interpretation": "large-move / volatility probability, not direction"
+ },
+ "p2_state": {
+  "strong_direction_cells": 0,
+  "of": 64,
+  "btc_p3": "NOT_AUTHORIZED",
+  "direction_research": "CLOSED_PENDING_NEW_INFORMATION"
+ },
+ "routes": [
+  {
+   "id": "R1",
+   "name": "directionless long options (straddle)",
+   "direction_required": false,
+   "uses_p1": "directly",
+   "primary_cost": "premium plus the volatility risk premium",
+   "implementation": "HIGH",
+   "data": "IV series missing at the signal",
+   "capital_risk": "premium only, no liquidation",
+   "evidence": {
+    "breakeven_iv_4h": 1.2,
+    "breakeven_iv_12h": 0.865,
+    "breakeven_iv_24h": 0.891,
+    "assumed_iv_from_trailing_4h": 1.281,
+    "edge_pct_of_spot_before_fees": {
+     "4H_100": -0.138,
+     "12H_100": -0.503,
+     "24H_200": -0.916
+    }
+   },
+   "verdict": "ECONOMICALLY_UNPROMISING",
+   "reason": "negative under the assumption most generous to the buyer (implied equal to trailing realised); every excluded cost makes it worse"
+  },
+  {
+   "id": "R2",
+   "name": "relative volatility (term structure, IV percentile)",
+   "direction_required": false,
+   "uses_p1": "indirectly",
+   "primary_cost": "same as R1 plus complexity",
+   "implementation": "HIGH",
+   "data": "IV term structure missing",
+   "verdict": "DATA_MISSING",
+   "reason": "cannot be evaluated without an IV series; refining a base that is already negative is not assumed to change its sign"
+  },
+  {
+   "id": "R3a",
+   "name": "perpetual simultaneous long and short",
+   "direction_required": false,
+   "uses_p1": "none",
+   "primary_cost": "fees and funding",
+   "implementation": "LOW",
+   "data": "sufficient",
+   "verdict": "REJECTED_STRUCTURAL",
+   "reason": "delta neutral with no convexity; price exposure cancels and only cost remains"
+  },
+  {
+   "id": "R3b",
+   "name": "perpetual dual stop entry",
+   "direction_required": false,
+   "uses_p1": "as a gate",
+   "primary_cost": "two round trips on whipsaw plus stop gap",
+   "implementation": "LOW",
+   "data": "sufficient",
+   "capital_risk": "unbounded on gap, liquidation possible",
+   "evidence": {
+    "favourable_exceeds_adverse_share": {
+     "4H_100_all": 0.469,
+     "4H_100_high_state": 0.472,
+     "12H_100_high_state": 0.49,
+     "24H_200_high_state": 0.513
+    },
+    "whipsaw_rate_high_state": {
+     "4H_100": 0.421,
+     "12H_100": 0.494,
+     "24H_200": 0.348
+    }
+   },
+   "verdict": "REJECTED_NO_FOLLOWTHROUGH",
+   "reason": "after the trigger, favourable exceeds adverse only 47 to 51 percent of the time, and in the 4H high state the adverse side is larger; D5.5 found the same"
+  },
+  {
+   "id": "R4",
+   "name": "P1 as trade activation filter",
+   "direction_required": true,
+   "uses_p1": "as a gate",
+   "implementation": "LOW",
+   "data": "sufficient",
+   "evidence": {
+    "move_multiple": {
+     "4H_100": 3.01,
+     "12H_100": 2.07,
+     "12H_200": 1.94,
+     "24H_200": 2.06
+    },
+    "breakeven_accuracy_gated": {
+     "4H_100": 0.5269,
+     "12H_100": 0.5215,
+     "12H_200": 0.523,
+     "24H_200": 0.5148
+    },
+    "measured_accuracy_gated": {
+     "4H_100": 0.4948,
+     "12H_100": 0.4944,
+     "12H_200": 0.4897,
+     "24H_200": 0.4863
+    },
+    "shortfall_pp_gated": {
+     "4H_100": 3.21,
+     "12H_100": 2.72,
+     "12H_200": 3.33,
+     "24H_200": 2.85
+    }
+   },
+   "verdict": "NO_SIGNAL_TO_SWITCH_ON",
+   "reason": "the gate genuinely lowers the required accuracy by up to 5.4 points by tripling the move, but lowers measured accuracy by a comparable amount, and there is no directional signal to gate"
+  },
+  {
+   "id": "R5",
+   "name": "human direction plus P1 size filter",
+   "direction_required": true,
+   "uses_p1": "as a gate",
+   "implementation": "LOW",
+   "data": "sample far too small",
+   "evidence": {
+    "confirmed_user_completed_trades": 1,
+    "open": 1,
+    "required_accuracy_under_gate": "0.522 to 0.527",
+    "trades_needed_to_separate_0525_from_050": "roughly 1500 to 2000"
+   },
+   "verdict": "DESIGN_ONLY",
+   "reason": "years of trading would be needed to test whether a person clears the threshold"
+  },
+  {
+   "id": "VP",
+   "name": "direct volatility products",
+   "direction_required": false,
+   "uses_p1": "directly",
+   "implementation": "MEDIUM",
+   "data": "n/a",
+   "verdict": "HORIZON_MISMATCH",
+   "reason": "the only confirmed tradeable product is Deribit DVOL futures on a 30 day index, while P1 forecasts 4 to 24 hours"
+  }
+ ],
+ "exchange_access": {
+  "OKX": {
+   "korea": "RESTRICTED_FOR_DERIVATIVES",
+   "verified": "direct fetch",
+   "quote": "South Korea (specifically regarding our derivatives-related and P2P services)",
+   "source": "https://www.okx.com/en-us/help/risk-compliance-disclosure"
+  },
+  "Bybit": {
+   "korea": "NOT_ON_RESTRICTED_LIST",
+   "verified": "indirect"
+  },
+  "Deribit": {
+   "korea": "NOT_ON_RESTRICTED_LIST",
+   "verified": "indirect",
+   "note": "acquired by Coinbase, completed 2025-08-14"
+  },
+  "Binance": {
+   "korea": "UNKNOWN",
+   "verified": "no official statement found"
+  }
+ },
+ "free_data": {
+  "source": "data.binance.vision data/option/daily/EOHSummary/BTCUSDT/",
+  "verified": "direct S3 listing and file download",
+  "fields_sufficient": true,
+  "files": 147,
+  "window": "2023-05-18 to 2023-10-23",
+  "truncated": false,
+  "p1_high_state_episodes_in_window": {
+   "4H_100": 1,
+   "12H_100": 5,
+   "12H_200": 1,
+   "24H_200": 1
+  },
+  "verdict": "INSUFFICIENT"
+ },
+ "cheapest_decisive_next_step": {
+  "action": "collect the Tardis.dev free Deribit sample (first day of each month, no API key) for 2022-01 to 2026-09 and read ATM implied volatility at the P1 high state",
+  "cost_usd": 0,
+  "answers": "whether implied volatility at the signal sits clearly above the break-even of 120 percent (4H) or 86.5 percent (12H)",
+  "not_executed": true
+ }
+}

@@ -1,0 +1,31 @@
+{
+ "record": "CRYPTO_BTC_P2_UNGATED_NULL_V1",
+ "status": "POST_HOC_DIAGNOSTIC",
+ "feeds_any_gate": false,
+ "note": "the contract's permutation control covers the gated primary cells; this adds a null for the ungated reference cells so their AUC can be read against something",
+ "contract_sha256": "4d7ecbe8d565c2644c42aa035072a3331c56479f7b53b24c5cc0f4ca1f317693",
+ "by_combo": {
+  "4H_100": {
+   "n_rows": 15262,
+   "actual_auc": 0.5348382845109405,
+   "repetitions": 200,
+   "null_mean": 0.5000075863037371,
+   "null_std": 0.004790607349648636,
+   "null_p99": 0.5114270003726583,
+   "null_max": 0.5131152802522663,
+   "exceeds_p99": true,
+   "z_vs_null": 7.270622629875531
+  },
+  "12H_200": {
+   "n_rows": 13734,
+   "actual_auc": 0.5307218494358232,
+   "repetitions": 200,
+   "null_mean": 0.4993916854159099,
+   "null_std": 0.004327470317102079,
+   "null_p99": 0.5092685943811517,
+   "null_max": 0.5133343085687796,
+   "exceeds_p99": true,
+   "z_vs_null": 7.239833372420174
+  }
+ }
+}

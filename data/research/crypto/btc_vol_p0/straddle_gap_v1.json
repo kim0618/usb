@@ -1,0 +1,59 @@
+{
+ "record": "CRYPTO_BTC_VOL_P0_STRADDLE_GAP_V1",
+ "status": "READ_ONLY_PROXY_ARITHMETIC",
+ "no_pnl_backtest": true,
+ "no_option_data_used": true,
+ "assumption": "implied volatility is assumed equal to trailing realised volatility at the signal. Implied normally trades above realised, so this is the most generous assumption available to the option buyer.",
+ "excluded_costs": [
+  "option bid-ask spread",
+  "exchange option fees",
+  "exercise or settlement cost",
+  "slippage",
+  "the volatility risk premium"
+ ],
+ "interpretation": "a negative edge under the generous assumption cannot become positive under the real one; a positive edge here would still have to survive every excluded cost before it meant anything",
+ "combos": {
+  "4H_100": {
+   "horizon_minutes": 240,
+   "signals": 274,
+   "assumed_implied_vol_from_trailing": 1.2813,
+   "forward_realised_vol": 1.2405,
+   "forward_over_trailing": 0.9538,
+   "breakeven_implied_vol_mean_payoff": 1.2004,
+   "breakeven_implied_vol_median_payoff": 0.8506,
+   "headroom_mean_pp": -8.09,
+   "straddle_cost_pct_of_spot": 2.184,
+   "mean_payoff_pct_of_spot": 2.046,
+   "edge_pct_of_spot_before_fees": -0.138,
+   "verdict": "NEGATIVE_BEFORE_FEES"
+  },
+  "12H_100": {
+   "horizon_minutes": 720,
+   "signals": 1066,
+   "assumed_implied_vol_from_trailing": 1.0354,
+   "forward_realised_vol": 0.8643,
+   "forward_over_trailing": 0.8535,
+   "breakeven_implied_vol_mean_payoff": 0.865,
+   "breakeven_implied_vol_median_payoff": 0.644,
+   "headroom_mean_pp": -17.04,
+   "straddle_cost_pct_of_spot": 3.057,
+   "mean_payoff_pct_of_spot": 2.554,
+   "edge_pct_of_spot_before_fees": -0.503,
+   "verdict": "NEGATIVE_BEFORE_FEES"
+  },
+  "24H_200": {
+   "horizon_minutes": 1440,
+   "signals": 253,
+   "assumed_implied_vol_from_trailing": 1.111,
+   "forward_realised_vol": 0.9063,
+   "forward_over_trailing": 0.8926,
+   "breakeven_implied_vol_mean_payoff": 0.8915,
+   "breakeven_implied_vol_median_payoff": 0.7184,
+   "headroom_mean_pp": -21.95,
+   "straddle_cost_pct_of_spot": 4.638,
+   "mean_payoff_pct_of_spot": 3.722,
+   "edge_pct_of_spot_before_fees": -0.916,
+   "verdict": "NEGATIVE_BEFORE_FEES"
+  }
+ }
+}

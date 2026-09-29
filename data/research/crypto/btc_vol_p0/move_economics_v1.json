@@ -1,0 +1,447 @@
+{
+ "record": "CRYPTO_BTC_VOL_P0_MOVE_ECONOMICS_V1",
+ "status": "READ_ONLY_ARITHMETIC",
+ "no_pnl_backtest": true,
+ "no_orders": true,
+ "high_state_threshold": 0.75,
+ "straddle_approximation": "ATM straddle premium is about 0.798 * IV * sqrt(T) of spot (Brenner-Subrahmanyam); used to invert for a break-even implied volatility, not to price a trade",
+ "critical_distinction": "P1's strong targets are path-touch; a long option held to expiry pays on the endpoint. The two probabilities differ by a factor of roughly two in this data.",
+ "combos": {
+  "4H_100": {
+   "horizon_minutes": 240,
+   "threshold_bp": 100,
+   "horizon_years": 0.0004563084645220169,
+   "subsets": {
+    "all": {
+     "n": 41400,
+     "straddle_held_to_expiry": {
+      "definition": "a long ATM straddle held to expiry pays on the endpoint move, not on whether a level was touched",
+      "absolute_endpoint_move": {
+       "label": "abs endpoint return",
+       "n": 41400,
+       "mean": 0.006799914917302067,
+       "quantiles": {
+        "0.1": 0.000658198602503568,
+        "0.25": 0.001749256347898881,
+        "0.5": 0.0041093075834579,
+        "0.75": 0.008694120166557351,
+        "0.9": 0.015967414024290104,
+        "0.95": 0.02237326643318745
+       }
+      },
+      "share_endpoint_beyond_threshold": 0.20792270531400966,
+      "share_touch_beyond_threshold": 0.43816425120772945,
+      "mean_absolute_endpoint_move": 0.006799914917302067,
+      "breakeven_implied_vol_vs_mean_endpoint": 0.39896440904391167,
+      "breakeven_implied_vol_vs_median_endpoint": 0.24110117428710715
+     },
+     "closed_at_touch": {
+      "definition": "an intraday structure closed at the moment of touch captures the excursion, which requires being able to exit at that instant",
+      "max_excursion": {
+       "label": "max excursion either way",
+       "n": 41400,
+       "mean": 0.01197508826915939,
+       "quantiles": {
+        "0.1": 0.0035269193951792182,
+        "0.25": 0.005463139429642355,
+        "0.5": 0.008893727595260026,
+        "0.75": 0.014754174573582829,
+        "0.9": 0.023646205312392598,
+        "0.95": 0.03113903152552907
+       }
+      },
+      "mean_max_excursion": 0.01197508826915939,
+      "breakeven_implied_vol_vs_mean_excursion": 0.7026020285044137
+     },
+     "dual_stop_perpetual": {
+      "definition": "stops on both sides, the loser cancelled; whipsaw means both levels were reached, so the first fill was a false start",
+      "share_any_side_touched": 0.43816425120772945,
+      "share_both_sides_touched": 0.03601449275362319,
+      "whipsaw_rate_given_any_touch": 0.08219404630650497,
+      "round_trip_cost_bp": 11.0,
+      "expected_cost_bp_per_signal": 11.904134509371554,
+      "note": "the entry itself is a stop order, so it is filled at or through the trigger; the gap between trigger and fill is not modelled here and makes the real cost higher, never lower"
+     }
+    },
+    "p1_high_state": {
+     "n": 274,
+     "straddle_held_to_expiry": {
+      "definition": "a long ATM straddle held to expiry pays on the endpoint move, not on whether a level was touched",
+      "absolute_endpoint_move": {
+       "label": "abs endpoint return",
+       "n": 274,
+       "mean": 0.020458838916792482,
+       "quantiles": {
+        "0.1": 0.0024125358601642666,
+        "0.25": 0.0073700794235277145,
+        "0.5": 0.014497317674978416,
+        "0.75": 0.029494026363797998,
+        "0.9": 0.04610721683461652,
+        "0.95": 0.05649267839419821
+       }
+      },
+      "share_endpoint_beyond_threshold": 0.6678832116788321,
+      "share_touch_beyond_threshold": 0.9890510948905109,
+      "mean_absolute_endpoint_move": 0.020458838916792482,
+      "breakeven_implied_vol_vs_mean_endpoint": 1.2003603982446864,
+      "breakeven_implied_vol_vs_median_endpoint": 0.8505861983953239
+     },
+     "closed_at_touch": {
+      "definition": "an intraday structure closed at the moment of touch captures the excursion, which requires being able to exit at that instant",
+      "max_excursion": {
+       "label": "max excursion either way",
+       "n": 274,
+       "mean": 0.03675923290096486,
+       "quantiles": {
+        "0.1": 0.014551431793574331,
+        "0.25": 0.019506030062857782,
+        "0.5": 0.03141022614212963,
+        "0.75": 0.05001449787830986,
+        "0.9": 0.06592245434863928,
+        "0.95": 0.07683707203913276
+       }
+      },
+      "mean_max_excursion": 0.03675923290096486,
+      "breakeven_implied_vol_vs_mean_excursion": 2.156736637090114
+     },
+     "dual_stop_perpetual": {
+      "definition": "stops on both sides, the loser cancelled; whipsaw means both levels were reached, so the first fill was a false start",
+      "share_any_side_touched": 0.9890510948905109,
+      "share_both_sides_touched": 0.41605839416058393,
+      "whipsaw_rate_given_any_touch": 0.42066420664206644,
+      "round_trip_cost_bp": 11.0,
+      "expected_cost_bp_per_signal": 15.627306273062732,
+      "note": "the entry itself is a stop order, so it is filled at or through the trigger; the gap between trigger and fill is not modelled here and makes the real cost higher, never lower"
+     }
+    }
+   }
+  },
+  "12H_100": {
+   "horizon_minutes": 720,
+   "threshold_bp": 100,
+   "horizon_years": 0.0013689253935660506,
+   "subsets": {
+    "all": {
+     "n": 41400,
+     "straddle_held_to_expiry": {
+      "definition": "a long ATM straddle held to expiry pays on the endpoint move, not on whether a level was touched",
+      "absolute_endpoint_move": {
+       "label": "abs endpoint return",
+       "n": 41400,
+       "mean": 0.012314651322883478,
+       "quantiles": {
+        "0.1": 0.0011918216127441929,
+        "0.25": 0.003214079970987299,
+        "0.5": 0.007850046597193405,
+        "0.75": 0.016437403617871882,
+        "0.9": 0.02867853753975513,
+        "0.95": 0.03905437611217615
+       }
+      },
+      "share_endpoint_beyond_threshold": 0.41741545893719806,
+      "share_touch_beyond_threshold": 0.7679227053140096,
+      "mean_absolute_endpoint_move": 0.012314651322883478,
+      "breakeven_implied_vol_vs_mean_endpoint": 0.41714992360421344,
+      "breakeven_implied_vol_vs_median_endpoint": 0.2659146615238462
+     },
+     "closed_at_touch": {
+      "definition": "an intraday structure closed at the moment of touch captures the excursion, which requires being able to exit at that instant",
+      "max_excursion": {
+       "label": "max excursion either way",
+       "n": 41400,
+       "mean": 0.021392266728901585,
+       "quantiles": {
+        "0.1": 0.006769579296270045,
+        "0.25": 0.01041065604686861,
+        "0.5": 0.01666999608951858,
+        "0.75": 0.026693363878021042,
+        "0.9": 0.04065605941266816,
+        "0.95": 0.053380051415342314
+       }
+      },
+      "mean_max_excursion": 0.021392266728901585,
+      "breakeven_implied_vol_vs_mean_excursion": 0.7246475923439095
+     },
+     "dual_stop_perpetual": {
+      "definition": "stops on both sides, the loser cancelled; whipsaw means both levels were reached, so the first fill was a false start",
+      "share_any_side_touched": 0.7679227053140096,
+      "share_both_sides_touched": 0.1520289855072464,
+      "whipsaw_rate_given_any_touch": 0.19797433316557625,
+      "round_trip_cost_bp": 11.0,
+      "expected_cost_bp_per_signal": 13.17771766482134,
+      "note": "the entry itself is a stop order, so it is filled at or through the trigger; the gap between trigger and fill is not modelled here and makes the real cost higher, never lower"
+     }
+    },
+    "p1_high_state": {
+     "n": 1066,
+     "straddle_held_to_expiry": {
+      "definition": "a long ATM straddle held to expiry pays on the endpoint move, not on whether a level was touched",
+      "absolute_endpoint_move": {
+       "label": "abs endpoint return",
+       "n": 1066,
+       "mean": 0.0255357782408694,
+       "quantiles": {
+        "0.1": 0.0030323980656642435,
+        "0.25": 0.00810429550876271,
+        "0.5": 0.01901268707051279,
+        "0.75": 0.0347793244375883,
+        "0.9": 0.06020429173291347,
+        "0.95": 0.07386175816363416
+       }
+      },
+      "share_endpoint_beyond_threshold": 0.6904315196998124,
+      "share_touch_beyond_threshold": 0.9868667917448405,
+      "mean_absolute_endpoint_move": 0.0255357782408694,
+      "breakeven_implied_vol_vs_mean_endpoint": 0.8650060536069306,
+      "breakeven_implied_vol_vs_median_endpoint": 0.6440410492368004
+     },
+     "closed_at_touch": {
+      "definition": "an intraday structure closed at the moment of touch captures the excursion, which requires being able to exit at that instant",
+      "max_excursion": {
+       "label": "max excursion either way",
+       "n": 1066,
+       "mean": 0.04453781272737461,
+       "quantiles": {
+        "0.1": 0.01732525144821606,
+        "0.25": 0.024270265591029794,
+        "0.5": 0.035862890009785486,
+        "0.75": 0.060305789839461554,
+        "0.9": 0.08360009162065785,
+        "0.95": 0.102866020409901
+       }
+      },
+      "mean_max_excursion": 0.04453781272737461,
+      "breakeven_implied_vol_vs_mean_excursion": 1.5086862542505846
+     },
+     "dual_stop_perpetual": {
+      "definition": "stops on both sides, the loser cancelled; whipsaw means both levels were reached, so the first fill was a false start",
+      "share_any_side_touched": 0.9868667917448405,
+      "share_both_sides_touched": 0.4878048780487805,
+      "whipsaw_rate_given_any_touch": 0.49429657794676807,
+      "round_trip_cost_bp": 11.0,
+      "expected_cost_bp_per_signal": 16.437262357414447,
+      "note": "the entry itself is a stop order, so it is filled at or through the trigger; the gap between trigger and fill is not modelled here and makes the real cost higher, never lower"
+     }
+    }
+   }
+  },
+  "12H_200": {
+   "horizon_minutes": 720,
+   "threshold_bp": 200,
+   "horizon_years": 0.0013689253935660506,
+   "subsets": {
+    "all": {
+     "n": 41400,
+     "straddle_held_to_expiry": {
+      "definition": "a long ATM straddle held to expiry pays on the endpoint move, not on whether a level was touched",
+      "absolute_endpoint_move": {
+       "label": "abs endpoint return",
+       "n": 41400,
+       "mean": 0.012314651322883478,
+       "quantiles": {
+        "0.1": 0.0011918216127441929,
+        "0.25": 0.003214079970987299,
+        "0.5": 0.007850046597193405,
+        "0.75": 0.016437403617871882,
+        "0.9": 0.02867853753975513,
+        "0.95": 0.03905437611217615
+       }
+      },
+      "share_endpoint_beyond_threshold": 0.18990338164251208,
+      "share_touch_beyond_threshold": 0.3982850241545894,
+      "mean_absolute_endpoint_move": 0.012314651322883478,
+      "breakeven_implied_vol_vs_mean_endpoint": 0.41714992360421344,
+      "breakeven_implied_vol_vs_median_endpoint": 0.2659146615238462
+     },
+     "closed_at_touch": {
+      "definition": "an intraday structure closed at the moment of touch captures the excursion, which requires being able to exit at that instant",
+      "max_excursion": {
+       "label": "max excursion either way",
+       "n": 41400,
+       "mean": 0.021392266728901585,
+       "quantiles": {
+        "0.1": 0.006769579296270045,
+        "0.25": 0.01041065604686861,
+        "0.5": 0.01666999608951858,
+        "0.75": 0.026693363878021042,
+        "0.9": 0.04065605941266816,
+        "0.95": 0.053380051415342314
+       }
+      },
+      "mean_max_excursion": 0.021392266728901585,
+      "breakeven_implied_vol_vs_mean_excursion": 0.7246475923439095
+     },
+     "dual_stop_perpetual": {
+      "definition": "stops on both sides, the loser cancelled; whipsaw means both levels were reached, so the first fill was a false start",
+      "share_any_side_touched": 0.3982850241545894,
+      "share_both_sides_touched": 0.020676328502415457,
+      "whipsaw_rate_given_any_touch": 0.051913396809994544,
+      "round_trip_cost_bp": 11.0,
+      "expected_cost_bp_per_signal": 11.57104736490994,
+      "note": "the entry itself is a stop order, so it is filled at or through the trigger; the gap between trigger and fill is not modelled here and makes the real cost higher, never lower"
+     }
+    },
+    "p1_high_state": {
+     "n": 50,
+     "straddle_held_to_expiry": {
+      "definition": "a long ATM straddle held to expiry pays on the endpoint move, not on whether a level was touched",
+      "absolute_endpoint_move": {
+       "label": "abs endpoint return",
+       "n": 50,
+       "mean": 0.023930959161860152,
+       "quantiles": {
+        "0.1": 0.0024851114353927396,
+        "0.25": 0.0068938522364046795,
+        "0.5": 0.017945539906624508,
+        "0.75": 0.030297452581002915,
+        "0.9": 0.0520413137546977,
+        "0.95": 0.06028452084904107
+       }
+      },
+      "share_endpoint_beyond_threshold": 0.48,
+      "share_touch_beyond_threshold": 0.84,
+      "mean_absolute_endpoint_move": 0.023930959161860152,
+      "breakeven_implied_vol_vs_mean_endpoint": 0.8106439658259069,
+      "breakeven_implied_vol_vs_median_endpoint": 0.6078922094346341
+     },
+     "closed_at_touch": {
+      "definition": "an intraday structure closed at the moment of touch captures the excursion, which requires being able to exit at that instant",
+      "max_excursion": {
+       "label": "max excursion either way",
+       "n": 50,
+       "mean": 0.04370045348589976,
+       "quantiles": {
+        "0.1": 0.017885705439302214,
+        "0.25": 0.022857561185721437,
+        "0.5": 0.034790869150310155,
+        "0.75": 0.06287764311901314,
+        "0.9": 0.08351380550364092,
+        "0.95": 0.08568119961980575
+       }
+      },
+      "mean_max_excursion": 0.04370045348589976,
+      "breakeven_implied_vol_vs_mean_excursion": 1.4803213144360543
+     },
+     "dual_stop_perpetual": {
+      "definition": "stops on both sides, the loser cancelled; whipsaw means both levels were reached, so the first fill was a false start",
+      "share_any_side_touched": 0.84,
+      "share_both_sides_touched": 0.12,
+      "whipsaw_rate_given_any_touch": 0.14285714285714285,
+      "round_trip_cost_bp": 11.0,
+      "expected_cost_bp_per_signal": 12.571428571428571,
+      "note": "the entry itself is a stop order, so it is filled at or through the trigger; the gap between trigger and fill is not modelled here and makes the real cost higher, never lower"
+     }
+    }
+   }
+  },
+  "24H_200": {
+   "horizon_minutes": 1440,
+   "threshold_bp": 200,
+   "horizon_years": 0.0027378507871321013,
+   "subsets": {
+    "all": {
+     "n": 41400,
+     "straddle_held_to_expiry": {
+      "definition": "a long ATM straddle held to expiry pays on the endpoint move, not on whether a level was touched",
+      "absolute_endpoint_move": {
+       "label": "abs endpoint return",
+       "n": 41400,
+       "mean": 0.01811352492747004,
+       "quantiles": {
+        "0.1": 0.0018018466512891079,
+        "0.25": 0.004954797400555683,
+        "0.5": 0.01218781333941027,
+        "0.75": 0.024577517293266876,
+        "0.9": 0.0416719553553491,
+        "0.95": 0.05567630138315388
+       }
+      },
+      "share_endpoint_beyond_threshold": 0.32316425120772946,
+      "share_touch_beyond_threshold": 0.6334299516908213,
+      "mean_absolute_endpoint_move": 0.01811352492747004,
+      "breakeven_implied_vol_vs_mean_endpoint": 0.4338684036643092,
+      "breakeven_implied_vol_vs_median_endpoint": 0.291931423557937
+     },
+     "closed_at_touch": {
+      "definition": "an intraday structure closed at the moment of touch captures the excursion, which requires being able to exit at that instant",
+      "max_excursion": {
+       "label": "max excursion either way",
+       "n": 41400,
+       "mean": 0.031015849907137533,
+       "quantiles": {
+        "0.1": 0.010503605892275959,
+        "0.25": 0.015905514500636486,
+        "0.5": 0.024963720132425593,
+        "0.75": 0.0384462502459042,
+        "0.9": 0.05793992296211559,
+        "0.95": 0.07494009885977558
+       }
+      },
+      "mean_max_excursion": 0.031015849907137533,
+      "breakeven_implied_vol_vs_mean_excursion": 0.7429143328747507
+     },
+     "dual_stop_perpetual": {
+      "definition": "stops on both sides, the loser cancelled; whipsaw means both levels were reached, so the first fill was a false start",
+      "share_any_side_touched": 0.6334299516908213,
+      "share_both_sides_touched": 0.05927536231884058,
+      "whipsaw_rate_given_any_touch": 0.0935784014643075,
+      "round_trip_cost_bp": 11.0,
+      "expected_cost_bp_per_signal": 12.029362416107382,
+      "note": "the entry itself is a stop order, so it is filled at or through the trigger; the gap between trigger and fill is not modelled here and makes the real cost higher, never lower"
+     }
+    },
+    "p1_high_state": {
+     "n": 253,
+     "straddle_held_to_expiry": {
+      "definition": "a long ATM straddle held to expiry pays on the endpoint move, not on whether a level was touched",
+      "absolute_endpoint_move": {
+       "label": "abs endpoint return",
+       "n": 253,
+       "mean": 0.03721773161881253,
+       "quantiles": {
+        "0.1": 0.005444873615326218,
+        "0.25": 0.012364294330518666,
+        "0.5": 0.029993328076666437,
+        "0.75": 0.05023036296213057,
+        "0.9": 0.08401390159382918,
+        "0.95": 0.10417604930109829
+       }
+      },
+      "share_endpoint_beyond_threshold": 0.6363636363636364,
+      "share_touch_beyond_threshold": 0.9090909090909091,
+      "mean_absolute_endpoint_move": 0.03721773161881253,
+      "breakeven_implied_vol_vs_mean_endpoint": 0.8914663418698954,
+      "breakeven_implied_vol_vs_median_endpoint": 0.7184221417592821
+     },
+     "closed_at_touch": {
+      "definition": "an intraday structure closed at the moment of touch captures the excursion, which requires being able to exit at that instant",
+      "max_excursion": {
+       "label": "max excursion either way",
+       "n": 253,
+       "mean": 0.061976277304770726,
+       "quantiles": {
+        "0.1": 0.02108743204219472,
+        "0.25": 0.03113327884754935,
+        "0.5": 0.05123332547394466,
+        "0.75": 0.08504431728935258,
+        "0.9": 0.12354620156184719,
+        "0.95": 0.14929251726898438
+       }
+      },
+      "mean_max_excursion": 0.061976277304770726,
+      "breakeven_implied_vol_vs_mean_excursion": 1.4845011452463415
+     },
+     "dual_stop_perpetual": {
+      "definition": "stops on both sides, the loser cancelled; whipsaw means both levels were reached, so the first fill was a false start",
+      "share_any_side_touched": 0.9090909090909091,
+      "share_both_sides_touched": 0.31620553359683795,
+      "whipsaw_rate_given_any_touch": 0.34782608695652173,
+      "round_trip_cost_bp": 11.0,
+      "expected_cost_bp_per_signal": 14.826086956521738,
+      "note": "the entry itself is a stop order, so it is filled at or through the trigger; the gap between trigger and fill is not modelled here and makes the real cost higher, never lower"
+     }
+    }
+   }
+  }
+ }
+}

@@ -1,0 +1,291 @@
+{
+ "record": "CRYPTO_BTC_VOL_P0_SIGNAL_SHAPE_V1",
+ "status": "READ_ONLY_DESCRIPTIVE",
+ "source": "P1 per-fold validation predictions plus the D2 research grid",
+ "no_model_fitted": true,
+ "no_threshold_optimised": true,
+ "no_pnl_computed": true,
+ "note": "frequency and timing decide which instrument could carry the signal; they are not evidence that any instrument would profit",
+ "combos": {
+  "4H_100": {
+   "horizon_minutes": 240,
+   "threshold_bp": 100,
+   "span_years": 4.72,
+   "large_move_quantiles": {
+    "0.5": 0.24632148651726227,
+    "0.75": 0.3647816601116502,
+    "0.9": 0.4673631016294132,
+    "0.95": 0.5129549101909306,
+    "0.99": 0.6678805818337703
+   },
+   "states": {
+    "p>=0.60": {
+     "hours_in_state": 952,
+     "share_of_hours": 0.022995169082125604,
+     "episodes": 328,
+     "episodes_per_year": 69.452112369864,
+     "median_episode_hours": 1.0,
+     "max_episode_hours": 50.0,
+     "mean_episode_hours": 2.902439024390244
+    },
+    "p>=0.65": {
+     "hours_in_state": 478,
+     "share_of_hours": 0.011545893719806763,
+     "episodes": 202,
+     "episodes_per_year": 42.77233749607478,
+     "median_episode_hours": 1.0,
+     "max_episode_hours": 21.0,
+     "mean_episode_hours": 2.366336633663366
+    },
+    "p>=0.70": {
+     "hours_in_state": 340,
+     "share_of_hours": 0.00821256038647343,
+     "episodes": 145,
+     "episodes_per_year": 30.70291552936061,
+     "median_episode_hours": 1.0,
+     "max_episode_hours": 17.0,
+     "mean_episode_hours": 2.3448275862068964
+    },
+    "p>=0.75": {
+     "hours_in_state": 274,
+     "share_of_hours": 0.006618357487922705,
+     "episodes": 127,
+     "episodes_per_year": 26.891519118819293,
+     "median_episode_hours": 1.0,
+     "max_episode_hours": 17.0,
+     "mean_episode_hours": 2.15748031496063
+    }
+   },
+   "time_to_touch_all": {
+    "rows": 41400,
+    "touch_rate": 0.43816425120772945,
+    "median_minutes": 99.0,
+    "quartiles_minutes": {
+     "0.1": 23.0,
+     "0.25": 50.0,
+     "0.5": 99.0,
+     "0.75": 162.0,
+     "0.9": 207.0
+    },
+    "share_touched_in_first_quarter": 0.2995589856670342,
+    "share_touched_in_last_quarter": 0.18776185226019845
+   },
+   "time_to_touch_high_state": {
+    "rows": 274,
+    "touch_rate": 0.9890510948905109,
+    "median_minutes": 27.0,
+    "share_touched_in_first_quarter": 0.7601476014760148
+   }
+  },
+  "12H_100": {
+   "horizon_minutes": 720,
+   "threshold_bp": 100,
+   "span_years": 4.72,
+   "large_move_quantiles": {
+    "0.5": 0.5241186670003448,
+    "0.75": 0.611544993034891,
+    "0.9": 0.6772411887722327,
+    "0.95": 0.7104862704086462,
+    "0.99": 0.8067924000672071
+   },
+   "states": {
+    "p>=0.60": {
+     "hours_in_state": 11989,
+     "share_of_hours": 0.2895893719806763,
+     "episodes": 1791,
+     "episodes_per_year": 379.2339428488611,
+     "median_episode_hours": 2.0,
+     "max_episode_hours": 343.0,
+     "mean_episode_hours": 6.694025683975433
+    },
+    "p>=0.65": {
+     "hours_in_state": 7315,
+     "share_of_hours": 0.17669082125603866,
+     "episodes": 1484,
+     "episodes_per_year": 314.2284596246286,
+     "median_episode_hours": 2.0,
+     "max_episode_hours": 145.0,
+     "mean_episode_hours": 4.929245283018868
+    },
+    "p>=0.70": {
+     "hours_in_state": 2495,
+     "share_of_hours": 0.06026570048309179,
+     "episodes": 688,
+     "episodes_per_year": 145.68004058069036,
+     "median_episode_hours": 2.0,
+     "max_episode_hours": 96.0,
+     "mean_episode_hours": 3.626453488372093
+    },
+    "p>=0.75": {
+     "hours_in_state": 1066,
+     "share_of_hours": 0.025748792270531402,
+     "episodes": 351,
+     "episodes_per_year": 74.32223000555568,
+     "median_episode_hours": 1.0,
+     "max_episode_hours": 93.0,
+     "mean_episode_hours": 3.037037037037037
+    }
+   },
+   "time_to_touch_all": {
+    "rows": 41400,
+    "touch_rate": 0.7679227053140096,
+    "median_minutes": 199.0,
+    "quartiles_minutes": {
+     "0.1": 36.0,
+     "0.25": 87.0,
+     "0.5": 199.0,
+     "0.75": 377.0,
+     "0.9": 550.0
+    },
+    "share_touched_in_first_quarter": 0.4634499245093105,
+    "share_touched_in_last_quarter": 0.10707096124811273
+   },
+   "time_to_touch_high_state": {
+    "rows": 1066,
+    "touch_rate": 0.9868667917448405,
+    "median_minutes": 53.0,
+    "share_touched_in_first_quarter": 0.8450570342205324
+   }
+  },
+  "12H_200": {
+   "horizon_minutes": 720,
+   "threshold_bp": 200,
+   "span_years": 4.72,
+   "large_move_quantiles": {
+    "0.5": 0.22739135693017135,
+    "0.75": 0.34287518265958156,
+    "0.9": 0.39355277046121706,
+    "0.95": 0.42605561855230745,
+    "0.99": 0.5865633503343832
+   },
+   "states": {
+    "p>=0.60": {
+     "hours_in_state": 360,
+     "share_of_hours": 0.008695652173913044,
+     "episodes": 147,
+     "episodes_per_year": 31.126404019420757,
+     "median_episode_hours": 2.0,
+     "max_episode_hours": 26.0,
+     "mean_episode_hours": 2.4489795918367347
+    },
+    "p>=0.65": {
+     "hours_in_state": 164,
+     "share_of_hours": 0.003961352657004831,
+     "episodes": 71,
+     "episodes_per_year": 15.033841397135197,
+     "median_episode_hours": 1.0,
+     "max_episode_hours": 26.0,
+     "mean_episode_hours": 2.3098591549295775
+    },
+    "p>=0.70": {
+     "hours_in_state": 97,
+     "share_of_hours": 0.0023429951690821255,
+     "episodes": 53,
+     "episodes_per_year": 11.222444986593878,
+     "median_episode_hours": 1.0,
+     "max_episode_hours": 10.0,
+     "mean_episode_hours": 1.830188679245283
+    },
+    "p>=0.75": {
+     "hours_in_state": 50,
+     "share_of_hours": 0.0012077294685990338,
+     "episodes": 31,
+     "episodes_per_year": 6.564071595932268,
+     "median_episode_hours": 1.0,
+     "max_episode_hours": 5.0,
+     "mean_episode_hours": 1.6129032258064515
+    }
+   },
+   "time_to_touch_all": {
+    "rows": 41400,
+    "touch_rate": 0.3982850241545894,
+    "median_minutes": 330.0,
+    "quartiles_minutes": {
+     "0.1": 83.0,
+     "0.25": 173.0,
+     "0.5": 330.0,
+     "0.75": 512.0,
+     "0.9": 635.0
+    },
+    "share_touched_in_first_quarter": 0.260658620898781,
+    "share_touched_in_last_quarter": 0.2147492267572321
+   },
+   "time_to_touch_high_state": {
+    "rows": 50,
+    "touch_rate": 0.84,
+    "median_minutes": 138.5,
+    "share_touched_in_first_quarter": 0.5714285714285714
+   }
+  },
+  "24H_200": {
+   "horizon_minutes": 1440,
+   "threshold_bp": 200,
+   "span_years": 4.72,
+   "large_move_quantiles": {
+    "0.5": 0.37755565449468964,
+    "0.75": 0.5059514357613069,
+    "0.9": 0.5636970635365126,
+    "0.95": 0.6022019742538363,
+    "0.99": 0.6760077925845036
+   },
+   "states": {
+    "p>=0.60": {
+     "hours_in_state": 2881,
+     "share_of_hours": 0.06958937198067633,
+     "episodes": 657,
+     "episodes_per_year": 139.11596898475807,
+     "median_episode_hours": 2.0,
+     "max_episode_hours": 92.0,
+     "mean_episode_hours": 4.385083713850837
+    },
+    "p>=0.65": {
+     "hours_in_state": 708,
+     "share_of_hours": 0.017101449275362317,
+     "episodes": 246,
+     "episodes_per_year": 52.089084277398,
+     "median_episode_hours": 1.0,
+     "max_episode_hours": 31.0,
+     "mean_episode_hours": 2.8780487804878048
+    },
+    "p>=0.70": {
+     "hours_in_state": 361,
+     "share_of_hours": 0.008719806763285024,
+     "episodes": 169,
+     "episodes_per_year": 35.78477741008237,
+     "median_episode_hours": 1.0,
+     "max_episode_hours": 21.0,
+     "mean_episode_hours": 2.136094674556213
+    },
+    "p>=0.75": {
+     "hours_in_state": 253,
+     "share_of_hours": 0.006111111111111111,
+     "episodes": 130,
+     "episodes_per_year": 27.526751853909513,
+     "median_episode_hours": 1.0,
+     "max_episode_hours": 13.0,
+     "mean_episode_hours": 1.9461538461538461
+    }
+   },
+   "time_to_touch_all": {
+    "rows": 41400,
+    "touch_rate": 0.6334299516908213,
+    "median_minutes": 548.0,
+    "quartiles_minutes": {
+     "0.1": 119.0,
+     "0.25": 264.0,
+     "0.5": 548.0,
+     "0.75": 906.0,
+     "0.9": 1193.0
+    },
+    "share_touched_in_first_quarter": 0.3418242830994509,
+    "share_touched_in_last_quarter": 0.15379042098840756
+   },
+   "time_to_touch_high_state": {
+    "rows": 253,
+    "touch_rate": 0.9090909090909091,
+    "median_minutes": 191.0,
+    "share_touched_in_first_quarter": 0.6826086956521739
+   }
+  }
+ }
+}

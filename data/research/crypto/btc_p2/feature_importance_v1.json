@@ -1,0 +1,265 @@
+{
+ "record": "CRYPTO_BTC_P2_FEATURE_IMPORTANCE_V1",
+ "status": "EXPLANATORY",
+ "method": "family permutation on the last fold; rows reversed (deterministic)",
+ "feeds_any_gate": false,
+ "contract_sha256": "4d7ecbe8d565c2644c42aa035072a3331c56479f7b53b24c5cc0f4ca1f317693",
+ "by_combo": {
+  "4H_100": {
+   "GATED": {
+    "valid_rows": 707,
+    "baseline_auc": 0.497,
+    "baseline_brier": 0.25501,
+    "families": {
+     "F1": {
+      "auc_drop": -0.01657,
+      "brier_increase": -0.001731
+     },
+     "F2": {
+      "auc_drop": 0.01202,
+      "brier_increase": -0.000165
+     },
+     "F3": {
+      "auc_drop": -0.002,
+      "brier_increase": -0.000996
+     },
+     "F4": {
+      "auc_drop": 0.00955,
+      "brier_increase": 0.000105
+     },
+     "F5": {
+      "auc_drop": 0.02333,
+      "brier_increase": 0.002139
+     },
+     "F7": {
+      "auc_drop": 0.03798,
+      "brier_increase": 0.004284
+     }
+    }
+   },
+   "ALL": {
+    "valid_rows": 2468,
+    "baseline_auc": 0.5606,
+    "baseline_brier": 0.24707,
+    "families": {
+     "F1": {
+      "auc_drop": 0.08303,
+      "brier_increase": 0.00847
+     },
+     "F2": {
+      "auc_drop": 0.0092,
+      "brier_increase": 0.001033
+     },
+     "F3": {
+      "auc_drop": 0.00991,
+      "brier_increase": 0.001139
+     },
+     "F4": {
+      "auc_drop": 0.00142,
+      "brier_increase": 8.8e-05
+     },
+     "F5": {
+      "auc_drop": 0.00505,
+      "brier_increase": 0.000603
+     },
+     "F7": {
+      "auc_drop": -0.0024,
+      "brier_increase": -0.000309
+     }
+    }
+   }
+  },
+  "12H_100": {
+   "GATED": {
+    "valid_rows": 582,
+    "baseline_auc": 0.4472,
+    "baseline_brier": 0.25894,
+    "families": {
+     "F1": {
+      "auc_drop": -0.02333,
+      "brier_increase": -0.00121
+     },
+     "F2": {
+      "auc_drop": 0.00119,
+      "brier_increase": 0.000223
+     },
+     "F3": {
+      "auc_drop": -0.00084,
+      "brier_increase": -0.000144
+     },
+     "F4": {
+      "auc_drop": 0.00406,
+      "brier_increase": -0.000488
+     },
+     "F5": {
+      "auc_drop": -0.00324,
+      "brier_increase": -0.001586
+     },
+     "F7": {
+      "auc_drop": 0.00921,
+      "brier_increase": 0.000993
+     }
+    }
+   },
+   "ALL": {
+    "valid_rows": 4684,
+    "baseline_auc": 0.546,
+    "baseline_brier": 0.24877,
+    "families": {
+     "F1": {
+      "auc_drop": 0.04494,
+      "brier_increase": 0.003091
+     },
+     "F2": {
+      "auc_drop": 0.00927,
+      "brier_increase": 0.000921
+     },
+     "F3": {
+      "auc_drop": 0.00455,
+      "brier_increase": 0.000312
+     },
+     "F4": {
+      "auc_drop": 0.00024,
+      "brier_increase": 0.000169
+     },
+     "F5": {
+      "auc_drop": 0.01168,
+      "brier_increase": 0.000657
+     },
+     "F7": {
+      "auc_drop": 0.00049,
+      "brier_increase": -2.4e-05
+     }
+    }
+   }
+  },
+  "12H_200": {
+   "GATED": {
+    "valid_rows": 558,
+    "baseline_auc": 0.4012,
+    "baseline_brier": 0.26672,
+    "families": {
+     "F1": {
+      "auc_drop": -0.06689,
+      "brier_increase": -0.007658
+     },
+     "F2": {
+      "auc_drop": -0.04183,
+      "brier_increase": -0.003456
+     },
+     "F3": {
+      "auc_drop": -0.01161,
+      "brier_increase": -0.001004
+     },
+     "F4": {
+      "auc_drop": -0.01989,
+      "brier_increase": -0.002094
+     },
+     "F5": {
+      "auc_drop": -0.01863,
+      "brier_increase": -0.001955
+     },
+     "F7": {
+      "auc_drop": -0.01075,
+      "brier_increase": 0.001296
+     }
+    }
+   },
+   "ALL": {
+    "valid_rows": 2072,
+    "baseline_auc": 0.5449,
+    "baseline_brier": 0.2512,
+    "families": {
+     "F1": {
+      "auc_drop": 0.02613,
+      "brier_increase": 0.002201
+     },
+     "F2": {
+      "auc_drop": -0.01001,
+      "brier_increase": -0.000521
+     },
+     "F3": {
+      "auc_drop": 0.00515,
+      "brier_increase": 0.000318
+     },
+     "F4": {
+      "auc_drop": 0.01074,
+      "brier_increase": 0.001638
+     },
+     "F5": {
+      "auc_drop": -0.00966,
+      "brier_increase": -0.000608
+     },
+     "F7": {
+      "auc_drop": 0.02915,
+      "brier_increase": 0.001811
+     }
+    }
+   }
+  },
+  "24H_200": {
+   "GATED": {
+    "valid_rows": 703,
+    "baseline_auc": 0.4277,
+    "baseline_brier": 0.26262,
+    "families": {
+     "F1": {
+      "auc_drop": -0.03692,
+      "brier_increase": -0.003506
+     },
+     "F2": {
+      "auc_drop": 0.00251,
+      "brier_increase": 0.001451
+     },
+     "F3": {
+      "auc_drop": 0.01152,
+      "brier_increase": 0.001383
+     },
+     "F4": {
+      "auc_drop": -0.01258,
+      "brier_increase": -0.000744
+     },
+     "F5": {
+      "auc_drop": -0.03332,
+      "brier_increase": -0.004001
+     },
+     "F7": {
+      "auc_drop": -0.05858,
+      "brier_increase": -0.005917
+     }
+    }
+   },
+   "ALL": {
+    "valid_rows": 3611,
+    "baseline_auc": 0.5101,
+    "baseline_brier": 0.25476,
+    "families": {
+     "F1": {
+      "auc_drop": -0.00569,
+      "brier_increase": 0.001106
+     },
+     "F2": {
+      "auc_drop": 0.00114,
+      "brier_increase": 0.001502
+     },
+     "F3": {
+      "auc_drop": 0.00452,
+      "brier_increase": 0.000514
+     },
+     "F4": {
+      "auc_drop": -0.00486,
+      "brier_increase": -0.000225
+     },
+     "F5": {
+      "auc_drop": 0.03493,
+      "brier_increase": 0.002779
+     },
+     "F7": {
+      "auc_drop": 0.02244,
+      "brier_increase": 0.000986
+     }
+    }
+   }
+  }
+ }
+}

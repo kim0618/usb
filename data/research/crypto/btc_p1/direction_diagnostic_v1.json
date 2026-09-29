@@ -1,0 +1,322 @@
+{
+ "record": "CRYPTO_BTC_P1_DIRECTION_DIAGNOSTIC_V1",
+ "status": "POST_HOC_DIAGNOSTIC",
+ "contract_sha256": "7ee69572cfe04081652ddeab6543371f0bbfa196b302721922e0fddb48857a76",
+ "feeds_any_gate": false,
+ "note": "computed from predictions_v1.parquet, which the frozen pipeline produced. No target was added, no threshold changed, no verdict altered.",
+ "reading": "a high volatility AUC with a direction AUC near 0.50 means the model knows a large move is coming but not which way, which is not tradeable as LONG or SHORT",
+ "by_model": {
+  "M1": {
+   "4H_050": {
+    "threshold_bp": 50,
+    "horizon_hours": 4,
+    "model": "M1",
+    "volatility": {
+     "question": "does price touch +0.50% or -0.50% within 4h",
+     "base_rate": 0.7892753623188405,
+     "roc_auc": 0.811831951601398,
+     "n": 41400
+    },
+    "direction": {
+     "question": "given exactly one side was touched, which one",
+     "n": 25181,
+     "share_of_rows": 0.6082367149758454,
+     "down_share": 0.5024423176204281,
+     "roc_auc": 0.5052183455407798,
+     "both_touched_share": 0.18103864734299516,
+     "neither_touched_share": 0.21072463768115943
+    },
+    "up_auc": 0.6729641075544676,
+    "down_auc": 0.6788460949974681
+   },
+   "4H_100": {
+    "threshold_bp": 100,
+    "horizon_hours": 4,
+    "model": "M1",
+    "volatility": {
+     "question": "does price touch +1.00% or -1.00% within 4h",
+     "base_rate": 0.43816425120772945,
+     "roc_auc": 0.7559425662256207,
+     "n": 41400
+    },
+    "direction": {
+     "question": "given exactly one side was touched, which one",
+     "n": 16649,
+     "share_of_rows": 0.4021497584541063,
+     "down_share": 0.510901555648988,
+     "roc_auc": 0.5252590444857657,
+     "both_touched_share": 0.03601449275362319,
+     "neither_touched_share": 0.5618357487922705
+    },
+    "up_auc": 0.7010113698479504,
+    "down_auc": 0.704909299430596
+   },
+   "12H_100": {
+    "threshold_bp": 100,
+    "horizon_hours": 12,
+    "model": "M1",
+    "volatility": {
+     "question": "does price touch +1.00% or -1.00% within 12h",
+     "base_rate": 0.7679227053140096,
+     "roc_auc": 0.7662887420135543,
+     "n": 41400
+    },
+    "direction": {
+     "question": "given exactly one side was touched, which one",
+     "n": 25498,
+     "share_of_rows": 0.6158937198067633,
+     "down_share": 0.5027453133579104,
+     "roc_auc": 0.5080653790354928,
+     "both_touched_share": 0.1520289855072464,
+     "neither_touched_share": 0.23207729468599034
+    },
+    "up_auc": 0.6365303618840572,
+    "down_auc": 0.6593270782049231
+   },
+   "12H_200": {
+    "threshold_bp": 200,
+    "horizon_hours": 12,
+    "model": "M1",
+    "volatility": {
+     "question": "does price touch +2.00% or -2.00% within 12h",
+     "base_rate": 0.3982850241545894,
+     "roc_auc": 0.7041520271381352,
+     "n": 41400
+    },
+    "direction": {
+     "question": "given exactly one side was touched, which one",
+     "n": 15633,
+     "share_of_rows": 0.3776086956521739,
+     "down_share": 0.505277298023412,
+     "roc_auc": 0.5184326655313742,
+     "both_touched_share": 0.020676328502415457,
+     "neither_touched_share": 0.6017149758454107
+    },
+    "up_auc": 0.6617056169521558,
+    "down_auc": 0.6568705644780013
+   },
+   "24H_100": {
+    "threshold_bp": 100,
+    "horizon_hours": 24,
+    "model": "M1",
+    "volatility": {
+     "question": "does price touch +1.00% or -1.00% within 24h",
+     "base_rate": 0.9121256038647343,
+     "roc_auc": 0.7825693482157382,
+     "n": 41400
+    },
+    "direction": {
+     "question": "given exactly one side was touched, which one",
+     "n": 25695,
+     "share_of_rows": 0.6206521739130435,
+     "down_share": 0.4991243432574431,
+     "roc_auc": 0.5057002685423738,
+     "both_touched_share": 0.29147342995169084,
+     "neither_touched_share": 0.0878743961352657
+    },
+    "up_auc": 0.5896216541369119,
+    "down_auc": 0.63394782956922
+   },
+   "24H_200": {
+    "threshold_bp": 200,
+    "horizon_hours": 24,
+    "model": "M1",
+    "volatility": {
+     "question": "does price touch +2.00% or -2.00% within 24h",
+     "base_rate": 0.6334299516908213,
+     "roc_auc": 0.7041056912097166,
+     "n": 41400
+    },
+    "direction": {
+     "question": "given exactly one side was touched, which one",
+     "n": 23770,
+     "share_of_rows": 0.5741545893719807,
+     "down_share": 0.503618005889777,
+     "roc_auc": 0.5097743417258714,
+     "both_touched_share": 0.05927536231884058,
+     "neither_touched_share": 0.3665700483091787
+    },
+    "up_auc": 0.6229659974090511,
+    "down_auc": 0.6280092723379854
+   },
+   "24H_300": {
+    "threshold_bp": 300,
+    "horizon_hours": 24,
+    "model": "M1",
+    "volatility": {
+     "question": "does price touch +3.00% or -3.00% within 24h",
+     "base_rate": 0.38719806763285025,
+     "roc_auc": 0.6654301908792909,
+     "n": 41400
+    },
+    "direction": {
+     "question": "given exactly one side was touched, which one",
+     "n": 15405,
+     "share_of_rows": 0.3721014492753623,
+     "down_share": 0.5028237585199611,
+     "roc_auc": 0.5116522409318691,
+     "both_touched_share": 0.015096618357487922,
+     "neither_touched_share": 0.6128019323671497
+    },
+    "up_auc": 0.639329396399435,
+    "down_auc": 0.6132067221588798
+   }
+  },
+  "M2": {
+   "4H_050": {
+    "threshold_bp": 50,
+    "horizon_hours": 4,
+    "model": "M2",
+    "volatility": {
+     "question": "does price touch +0.50% or -0.50% within 4h",
+     "base_rate": 0.7892753623188405,
+     "roc_auc": 0.8262401879366471,
+     "n": 41400
+    },
+    "direction": {
+     "question": "given exactly one side was touched, which one",
+     "n": 25181,
+     "share_of_rows": 0.6082367149758454,
+     "down_share": 0.5024423176204281,
+     "roc_auc": 0.5181278201565728,
+     "both_touched_share": 0.18103864734299516,
+     "neither_touched_share": 0.21072463768115943
+    },
+    "up_auc": 0.6846218108628926,
+    "down_auc": 0.6897384296469741
+   },
+   "4H_100": {
+    "threshold_bp": 100,
+    "horizon_hours": 4,
+    "model": "M2",
+    "volatility": {
+     "question": "does price touch +1.00% or -1.00% within 4h",
+     "base_rate": 0.43816425120772945,
+     "roc_auc": 0.7840221156553452,
+     "n": 41400
+    },
+    "direction": {
+     "question": "given exactly one side was touched, which one",
+     "n": 16649,
+     "share_of_rows": 0.4021497584541063,
+     "down_share": 0.510901555648988,
+     "roc_auc": 0.5332561445238545,
+     "both_touched_share": 0.03601449275362319,
+     "neither_touched_share": 0.5618357487922705
+    },
+    "up_auc": 0.7159480102782425,
+    "down_auc": 0.7272698973657323
+   },
+   "12H_100": {
+    "threshold_bp": 100,
+    "horizon_hours": 12,
+    "model": "M2",
+    "volatility": {
+     "question": "does price touch +1.00% or -1.00% within 12h",
+     "base_rate": 0.7679227053140096,
+     "roc_auc": 0.7858614331256834,
+     "n": 41400
+    },
+    "direction": {
+     "question": "given exactly one side was touched, which one",
+     "n": 25498,
+     "share_of_rows": 0.6158937198067633,
+     "down_share": 0.5027453133579104,
+     "roc_auc": 0.5186351279615834,
+     "both_touched_share": 0.1520289855072464,
+     "neither_touched_share": 0.23207729468599034
+    },
+    "up_auc": 0.6509903042336946,
+    "down_auc": 0.6614684049081216
+   },
+   "12H_200": {
+    "threshold_bp": 200,
+    "horizon_hours": 12,
+    "model": "M2",
+    "volatility": {
+     "question": "does price touch +2.00% or -2.00% within 12h",
+     "base_rate": 0.3982850241545894,
+     "roc_auc": 0.7278075172917302,
+     "n": 41400
+    },
+    "direction": {
+     "question": "given exactly one side was touched, which one",
+     "n": 15633,
+     "share_of_rows": 0.3776086956521739,
+     "down_share": 0.505277298023412,
+     "roc_auc": 0.5277593216635692,
+     "both_touched_share": 0.020676328502415457,
+     "neither_touched_share": 0.6017149758454107
+    },
+    "up_auc": 0.6804217459752574,
+    "down_auc": 0.6739761074760334
+   },
+   "24H_100": {
+    "threshold_bp": 100,
+    "horizon_hours": 24,
+    "model": "M2",
+    "volatility": {
+     "question": "does price touch +1.00% or -1.00% within 24h",
+     "base_rate": 0.9121256038647343,
+     "roc_auc": 0.785785769318377,
+     "n": 41400
+    },
+    "direction": {
+     "question": "given exactly one side was touched, which one",
+     "n": 25695,
+     "share_of_rows": 0.6206521739130435,
+     "down_share": 0.4991243432574431,
+     "roc_auc": 0.501706496665561,
+     "both_touched_share": 0.29147342995169084,
+     "neither_touched_share": 0.0878743961352657
+    },
+    "up_auc": 0.5974868342888477,
+    "down_auc": 0.6120758407602647
+   },
+   "24H_200": {
+    "threshold_bp": 200,
+    "horizon_hours": 24,
+    "model": "M2",
+    "volatility": {
+     "question": "does price touch +2.00% or -2.00% within 24h",
+     "base_rate": 0.6334299516908213,
+     "roc_auc": 0.7193318537679352,
+     "n": 41400
+    },
+    "direction": {
+     "question": "given exactly one side was touched, which one",
+     "n": 23770,
+     "share_of_rows": 0.5741545893719807,
+     "down_share": 0.503618005889777,
+     "roc_auc": 0.5155329825704092,
+     "both_touched_share": 0.05927536231884058,
+     "neither_touched_share": 0.3665700483091787
+    },
+    "up_auc": 0.6356714852109869,
+    "down_auc": 0.6365850246473161
+   },
+   "24H_300": {
+    "threshold_bp": 300,
+    "horizon_hours": 24,
+    "model": "M2",
+    "volatility": {
+     "question": "does price touch +3.00% or -3.00% within 24h",
+     "base_rate": 0.38719806763285025,
+     "roc_auc": 0.6933917226544336,
+     "n": 41400
+    },
+    "direction": {
+     "question": "given exactly one side was touched, which one",
+     "n": 15405,
+     "share_of_rows": 0.3721014492753623,
+     "down_share": 0.5028237585199611,
+     "roc_auc": 0.5147652620120878,
+     "both_touched_share": 0.015096618357487922,
+     "neither_touched_share": 0.6128019323671497
+    },
+    "up_auc": 0.651399436007948,
+    "down_auc": 0.6351719692007718
+   }
+  }
+ }
+}
