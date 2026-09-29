@@ -1,0 +1,572 @@
+"use client";
+
+import dynamic from "next/dynamic";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  CHART_TIMEFRAMES, Candle15s, ChartTimeframe, CryptoState, FEED_STATUS_LABELS, FeedStatus,
+  Performance, aggregateCandles, candles15sNote, candles15sToChart, chartTimeframeLabel, isWhitespace,
+  offscreenOverlays, cryptoApi, feedStatus, holdingDuration, krw,
+  num, positionOverlays, price, qty, resetCapitalLabel, resetScopeNote,
+  clockKst, costKrw, costUsdt, percent, previewFreshness, rejectLabel, signedKrw, signedUsdt,
+  tickFreshness, toneClass, usdt,
+} from "@/lib/crypto-paper";
+import type { Candle15sStatus, ChartBar, ChartPoint, LivePnl, OpenPositionPnl, PositionPnlPreview } from "@/lib/crypto-paper";
+
+/** The charting library is ~190KB of canvas code that touches `window` on construction. Loading
+ *  it dynamically with SSR off keeps it out of the server render and off the initial payload of
+ *  every other screen in the dashboard. */
+const CandleChart = dynamic(
+  () => import("@/components/crypto-candle-chart").then(module => module.CandleChart),
+  { ssr: false, loading: () => <div className="h-[260px] w-full animate-pulse rounded-lg bg-surface-alt sm:h-[300px] xl:h-[520px]" /> },
+);
+
+const STATUS_TONE: Record<FeedStatus, string> = {
+  LIVE: "text-success", STALE: "text-warning", DISCONNECTED: "text-danger",
+};
+
+export function FeedDot({ status }: { status: FeedStatus }) {
+  return (
+    <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold ${STATUS_TONE[status]}`}
+      data-testid="feed-status" data-status={status}>
+      <span aria-hidden="true">●</span>{FEED_STATUS_LABELS[status]}
+    </span>
+  );
+}
+
+/** Everything needed to decide "is this tradable and how am I doing", in one band above the
+ *  chart. On a phone this is the whole first screen, so nothing that is not a decision input
+ *  belongs here. */
+export function MarketHeader({ state, performance, onAction, busy }: {
+  state: CryptoState;
+  performance: Performance | null;
+  onAction?: (run: () => Promise<unknown>) => void;
+  busy?: boolean;
+}) {
+  const status = feedStatus(state);
+  const account = state.account;
+  const krwFigures = state.krw;
+  const segmentPnl = performance?.current_segment?.current_segment_net_pnl ?? null;
+  const changePct = (() => {
+    const mark = num(state.quote?.mark_price);
+    const open = num(state.quote?.index_price);
+    return mark == null || open == null || open === 0 ? null : ((mark - open) / open) * 100;
+  })();
+
+  return (
+    <header className="mb-2 sm:mb-3" data-testid="market-header">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <div className="flex items-baseline gap-2">
+          <span className="text-sm font-bold tracking-wide text-foreground">BTCUSDT</span>
+          <span className="text-[10px] font-medium text-muted">무기한</span>
+        </div>
+        <FeedDot status={status} />
+      </div>
+      <div className="mt-0.5 flex flex-wrap items-baseline gap-x-3">
+        <span className="text-[28px] font-bold leading-none tabular-nums text-foreground sm:text-4xl"
+          data-testid="mark-price">{price(state.quote?.mark_price)}</span>
+        {changePct != null && (
+          <span className={`text-xs font-semibold tabular-nums ${changePct >= 0 ? "text-success" : "text-danger"}`}>
+            {changePct >= 0 ? "+" : ""}{changePct.toFixed(2)}% <span className="font-normal text-muted">vs Index</span>
+          </span>
+        )}
+      </div>
+
+      {/* KRW first: the operator funded this in won and reads results in won. USDT stays as the
+          secondary figure because it is what the engine actually settles in. */}
+      <dl className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-0.5 sm:mt-2.5 sm:grid-cols-4 sm:gap-y-1.5" data-testid="account-compact">
+        <CompactFigure label="자산" value={krw(krwFigures?.equity)} sub={usdt(account?.equity)} />
+        <CompactFigure label="주문가능" value={krw(krwFigures?.available_balance)}
+          sub={usdt(account?.available_balance)} />
+        <CompactFigure label="미실현" value={signedKrw(krwFigures?.unrealized_pnl)}
+          sub={signedUsdt(account?.unrealized_pnl)} tone={toneClass(account?.unrealized_pnl)} />
+        {/* Since the last reset, not since the run began. A reset moves the capital line, so
+            the lifetime figure here would tell an operator the reset did not happen. The
+            lifetime number is still in the performance disclosure, labelled as such. */}
+        <CompactFigure label="현재 손익" title={resetScopeNote(performance)}
+          value={signedKrw(segmentPnl ? String(Number(segmentPnl) * Number(state.fx.krw_per_usdt)) : krwFigures?.realized_pnl)}
+          sub={signedUsdt(segmentPnl ?? account?.realized_pnl)}
+          tone={toneClass(segmentPnl ?? account?.realized_pnl)} />
+      </dl>
+      {onAction && <ResetControl state={state} onAction={onAction} busy={busy ?? false} />}
+    </header>
+  );
+}
+
+function CompactFigure({ label, value, sub, tone, title }: {
+  label: string; value: string; sub: string; tone?: string; title?: string;
+}) {
+  return (
+    <div className="min-w-0">
+      <dt className="truncate text-[10px] text-muted" title={title}>{label}</dt>
+      <dd className={`truncate text-[13px] font-semibold tabular-nums ${tone || "text-foreground"}`}>{value}</dd>
+      <dd className="truncate text-[10px] tabular-nums text-muted">{sub}</dd>
+    </div>
+  );
+}
+
+export function TimeframeTabs({ value, onChange }: {
+  value: ChartTimeframe; onChange: (next: ChartTimeframe) => void;
+}) {
+  return (
+    <div className="flex gap-0.5 sm:gap-1" role="group" aria-label="차트 주기">
+      {CHART_TIMEFRAMES.map(frame => (
+        <button key={frame} type="button" aria-pressed={value === frame}
+          data-testid={`timeframe-${frame}`}
+          className={`h-8 min-w-[38px] rounded-md px-1.5 text-xs font-semibold transition-colors sm:min-w-[44px] sm:px-2 ${
+            value === frame
+              ? "bg-primary-soft text-primary"
+              : "text-foreground-secondary hover:bg-surface-hover"}`}
+          onClick={() => onChange(frame)}>
+          {chartTimeframeLabel(frame)}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** The open 15 s candle is re-read twice a second: a candle that only moves once a second looks
+ *  stepped. Each read is incremental (a few hundred bytes); the finalized history is never re-sent. */
+export const CANDLES_15S_POLL_MS = 500;
+
+/** 15 s candles while that timeframe is on screen: the full kept history once, then only what
+ *  is new since the last finalized candle plus the open one. Stops when another timeframe is
+ *  chosen or the tab is hidden. Runs on its own timer, apart from the 1 s account poll and the
+ *  333 ms live PnL, so none of them waits on another. */
+export function use15sCandles(enabled: boolean) {
+  const [finalized, setFinalized] = useState<Candle15s[]>([]);
+  const [current, setCurrent] = useState<Candle15s | null>(null);
+  const [status, setStatus] = useState<Candle15sStatus | null>(null);
+  const [coverageFrom, setCoverageFrom] = useState<number | null>(null);
+  const lastFinal = useRef<number | null>(null);
+  useEffect(() => {
+    if (!enabled) return;
+    let stopped = false;
+    let timer: number | undefined;
+    const tick = async () => {
+      if (stopped) return;
+      if (typeof document === "undefined" || !document.hidden) {
+        try {
+          const body = await cryptoApi.candles15s(lastFinal.current);
+          if (stopped) return;
+          if (body.candles.length > 0) {
+            const tail = body.candles[body.candles.length - 1].start_ms;
+            setFinalized(previous => lastFinal.current == null ? body.candles
+              : [...previous, ...body.candles.filter(row => row.start_ms > (previous.at(-1)?.start_ms ?? -1))].slice(-960));
+            lastFinal.current = tail;
+          }
+          setCurrent(body.current);
+          setStatus(body.status);
+          setCoverageFrom(body.coverage_from_ms ?? null);
+        } catch {
+          if (!stopped) setStatus("DISCONNECTED");
+        }
+      }
+      if (!stopped) timer = window.setTimeout(tick, CANDLES_15S_POLL_MS);
+    };
+    void tick();
+    return () => { stopped = true; if (timer !== undefined) window.clearTimeout(timer); };
+  }, [enabled]);
+  const rows = current && current.start_ms > (finalized.at(-1)?.start_ms ?? -1) ? [...finalized, current] : finalized;
+  return { candles: candles15sToChart(rows), status, coverageFrom };
+}
+
+/** Best bid, ask and spread on one line. They matter to a market order but they are not the
+ *  headline, so they get a line rather than three cards. */
+export function QuoteStrip({ state }: { state: CryptoState }) {
+  const quote = state.quote;
+  const spreadBps = quote?.spread && quote.mid
+    ? (Number(quote.spread) / Number(quote.mid)) * 10_000 : null;
+  return (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] tabular-nums"
+      data-testid="quote-strip">
+      <span className="text-muted">Bid <span className="font-semibold text-success" data-testid="best-bid">
+        {price(quote?.best_bid)}</span></span>
+      <span className="text-muted">Ask <span className="font-semibold text-danger" data-testid="best-ask">
+        {price(quote?.best_ask)}</span></span>
+      <span className="text-muted">Spread <span className="font-semibold text-foreground-secondary" data-testid="spread">
+        {price(quote?.spread, 2)}</span>{spreadBps != null && ` · ${spreadBps.toFixed(2)}bp`}</span>
+    </div>
+  );
+}
+
+export function ChartSection({ state, bars, timeframe, onTimeframe }: {
+  state: CryptoState;
+  bars: ChartBar[];
+  timeframe: ChartTimeframe;
+  onTimeframe: (next: ChartTimeframe) => void;
+}) {
+  const fast = use15sCandles(timeframe === "15s");
+  const candles: ChartPoint[] = timeframe === "15s" ? fast.candles : aggregateCandles(bars, timeframe);
+  const overlays = positionOverlays(state);
+  const real = candles.filter(point => !isWhitespace(point)).length;
+  const note = timeframe === "15s" ? candles15sNote(fast.status, real, fast.coverageFrom) : null;
+  // The chart scales to the candles in view; an entry or liquidation line far from them is off
+  // the canvas, so the section says where it is. The range comes from the chart itself.
+  const [priceRange, setPriceRange] = useState<{ from: number; to: number } | null>(null);
+  // The chart reports after every draw; only a real change may re-render, or a draw would
+  // trigger a render that triggers a draw.
+  const onPriceRange = useCallback((next: { from: number; to: number } | null) => {
+    setPriceRange(previous => {
+      const same = previous === next || (previous != null && next != null
+        && previous.from.toFixed(2) === next.from.toFixed(2) && previous.to.toFixed(2) === next.to.toFixed(2));
+      return same ? previous : next;
+    });
+  }, []);
+  const offscreen = offscreenOverlays(overlays, priceRange);
+  return (
+    <section aria-label="시세 차트" className="panel overflow-hidden p-2 sm:p-4">
+      <div className="mb-1.5 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 sm:mb-2">
+        <TimeframeTabs value={timeframe} onChange={onTimeframe} />
+        <QuoteStrip state={state} />
+      </div>
+      {note && (
+        <p className={`mb-1 text-[10px] ${note.warn ? "text-warning" : "text-muted"}`} data-testid="candles-15s-note">
+          {note.text}
+        </p>
+      )}
+      {offscreen.length > 0 && (
+        <p className="mb-1 text-[10px] text-muted" data-testid="offscreen-overlays">
+          {offscreen.map(line => `${line.label} ${price(String(line.price))} ${line.direction === "UP" ? "↑" : "↓"} 화면 밖`).join(" · ")}
+        </p>
+      )}
+      {/* Shorter on a phone so the order panel arrives sooner; taller where there is room. On a
+          desktop the order panel fills the right column and a short chart would waste it. */}
+      <CandleChart candles={candles} overlays={overlays} seriesKey={String(timeframe)}
+        seconds={timeframe === "15s"} onPriceRange={onPriceRange} className="h-[200px] sm:h-[280px] xl:h-[520px]" />
+    </section>
+  );
+}
+
+/** Flat is one line, not a card. An empty position is the normal state and should cost almost
+ *  no vertical space on a phone. */
+/** Why the total is what it is: price PnL first, then every cost that stands between it and the
+ *  money an operator would keep. Each line is a figure the paper engine produced - the ledger's
+ *  confirmed fees and funding, and a clone's actual full CLOSE on the current book for the exit
+ *  fee and the fill. Won come from the backend at the run's fixed rate. Nothing is added up,
+ *  negated or converted here; the two totals come from the backend too.
+ *
+ *  Freshness reuses the feed contract (STALE after 5 s): a preview priced on a book the terminal
+ *  itself calls stale is withheld rather than shown as if it were current. */
+export function PositionPnlBreakdown({ preview, state }: { preview: PositionPnlPreview; state: CryptoState }) {
+  if (!preview.position_open) return null;
+  const won = preview.krw ?? {};
+  const freshness = previewFreshness(state, preview);
+  const available = preview.close_feasible && freshness.status === "LIVE";
+  const partial = preview.partial_exit_fee !== "0" || preview.partial_realized_pnl !== "0";
+  const cost = (key: keyof OpenPositionPnl) => costKrw(won[key] ?? null);
+  const costUsd = (key: keyof OpenPositionPnl) => costUsdt(preview[key] as string | null, 4);
+  const lines: { label: string; value: string; sub: string; tone: string | null; note?: string }[] = [
+    { label: "포지션 손익 (Mark 기준 미실현)", value: signedKrw(won.unrealized_pnl), sub: signedUsdt(preview.unrealized_pnl), tone: preview.unrealized_pnl },
+    { label: "진입 수수료 (확정)", value: cost("entry_fee"), sub: costUsd("entry_fee"), tone: null },
+  ];
+  if (partial) {
+    lines.push({ label: "부분청산 실현손익", value: signedKrw(won.partial_realized_pnl), sub: signedUsdt(preview.partial_realized_pnl), tone: preview.partial_realized_pnl });
+    lines.push({ label: "부분청산 수수료 (확정)", value: cost("partial_exit_fee"), sub: costUsd("partial_exit_fee"), tone: null });
+  }
+  lines.push({ label: "현재까지 Funding", value: signedKrw(won.funding_pnl), sub: signedUsdt(preview.funding_pnl), tone: preview.funding_pnl });
+  if (available) {
+    lines.push({ label: "예상 청산 수수료", value: cost("expected_close_fee"), sub: costUsd("expected_close_fee"), tone: null });
+    lines.push({ label: "예상 체결비용 (슬리피지·스프레드)", value: signedKrw(won.expected_close_slippage_pnl),
+      sub: signedUsdt(preview.expected_close_slippage_pnl), tone: preview.expected_close_slippage_pnl,
+      note: `Mark ${price(preview.mark_price)} → 예상 체결 ${price(preview.expected_close_fill_price)}` });
+  }
+  const unavailableReason = freshness.status !== "LIVE"
+    ? `${FEED_STATUS_LABELS[freshness.status]} (${freshness.status === "STALE" ? "STALE market data" : "DISCONNECTED"})`
+    : preview.close_reject_code === "NO_LIQUIDITY"
+      ? "청산 가능한 호가 깊이 부족"
+      : rejectLabel(preview.close_reject_code, preview.close_reject_message);
+  return (
+    <div className="mt-3 border-t border-line pt-2" data-testid="position-pnl-breakdown">
+      <div className="mb-1 flex items-baseline justify-between gap-2">
+        <p className="text-[11px] font-semibold text-foreground-secondary">손익 분해</p>
+        <p className="text-[10px] text-muted" data-testid="preview-quote-age">
+          현재 호가 기준 · {freshness.ageSeconds == null ? "-" : `${freshness.ageSeconds}초 전`}
+        </p>
+      </div>
+      <dl className="space-y-1 text-[11px]">
+        {lines.map(line => (
+          <div key={line.label}>
+            <div className="flex justify-between gap-3">
+              <dt className="text-muted">{line.label}</dt>
+              <dd className={`shrink-0 whitespace-nowrap text-right tabular-nums ${line.tone == null ? "text-foreground-secondary" : toneClass(line.tone)}`}>
+                {line.value}<span className="ml-1.5 text-[10px] text-muted">{line.sub}</span>
+              </dd>
+            </div>
+            {line.note && <p className="text-right text-[10px] text-muted">{line.note}</p>}
+          </div>
+        ))}
+      </dl>
+      {available ? (
+        <div className="mt-2 space-y-1 border-t border-line pt-2 text-xs">
+          <div className="flex justify-between gap-3 font-semibold">
+            <span>청산 시 예상 순손익</span>
+            <span className={`shrink-0 whitespace-nowrap text-right tabular-nums ${toneClass(preview.expected_position_net_if_closed)}`}
+              data-testid="position-net-if-closed">
+              {signedKrw(won.expected_position_net_if_closed)}
+              <span className="ml-1.5 text-[10px] font-normal text-muted">{signedUsdt(preview.expected_position_net_if_closed)}</span>
+            </span>
+          </div>
+          <div className="flex justify-between gap-3 text-[11px]">
+            <span className="text-muted">청산 시 현재 구간 총손익 <span className="text-[10px]">(이전 거래 포함)</span></span>
+            <span className={`shrink-0 whitespace-nowrap text-right tabular-nums font-medium ${toneClass(preview.expected_segment_net_if_closed)}`}
+              data-testid="segment-net-if-closed">
+              {signedKrw(won.expected_segment_net_if_closed)}
+              <span className="ml-1.5 text-[10px] font-normal text-muted">{signedUsdt(preview.expected_segment_net_if_closed)}</span>
+            </span>
+          </div>
+          <p className="text-[10px] text-muted">
+            예상값은 {clockKst(preview.quote_ts_ms)} 호가로 전량 시장가 청산을 엔진에 시험 체결한 결과입니다. 실제 체결은 그 순간의 호가를 따릅니다.
+          </p>
+        </div>
+      ) : (
+        <p className="mt-2 rounded bg-warning-soft px-2 py-1 text-[11px] text-warning" data-testid="close-preview-unavailable">
+          미리보기 불가: {unavailableReason}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** The two numbers a futures trader watches, side by side and large, and never confused:
+ *  price PnL at mark, and what closing everything right now would actually leave after the exit
+ *  fee and the book. Driven by the fast live route when it answers, by the 1 s figures otherwise.
+ *  Every value is the backend's; the percentage is its fraction printed as a percent. */
+export function LivePnlHeadline({ state, live, preview }: {
+  state: CryptoState; live?: LivePnl | null; preview?: PositionPnlPreview | null;
+}) {
+  const account = state.account;
+  const opened = preview?.position_open ? preview : null;
+  const usingLive = live?.position_open === true;
+  const unrealizedKrw = usingLive ? live!.krw.unrealized_pnl : state.krw?.unrealized_pnl;
+  const unrealized = usingLive ? live!.unrealized_pnl : account?.unrealized_pnl;
+  const pct = usingLive ? live!.unrealized_pct_of_margin : opened?.unrealized_pct_of_margin ?? null;
+  const netKrw = usingLive ? live!.krw.expected_position_net_if_closed : opened?.krw?.expected_position_net_if_closed;
+  const net = usingLive ? live!.expected_position_net_if_closed : opened?.expected_position_net_if_closed;
+  const feasible = usingLive ? live!.close_feasible : opened?.close_feasible;
+  const status = usingLive ? tickFreshness(live!) : opened ? previewFreshness(state, opened).status : "LIVE";
+  const netShown = status === "LIVE" && feasible === true && net != null;
+  return (
+    <div className="mb-3 grid grid-cols-2 gap-2" data-testid="live-pnl">
+      <div className="rounded-lg bg-surface-alt px-3 py-2">
+        <p className="text-[11px] text-muted">현재 포지션 손익</p>
+        <p className={`text-lg font-bold tabular-nums leading-tight sm:text-xl ${toneClass(unrealized)}`}
+          data-testid="live-unrealized">{signedKrw(unrealizedKrw ?? null)}</p>
+        <p className={`text-[11px] tabular-nums ${toneClass(unrealized)}`}>
+          {pct != null ? `${Number(pct) > 0 ? "+" : ""}${percent(pct, 2)} ` : ""}
+          <span className="text-muted" data-testid="position-upnl">{signedUsdt(unrealized ?? null)}</span>
+        </p>
+      </div>
+      <div className="rounded-lg bg-surface-alt px-3 py-2">
+        <p className="text-[11px] text-muted">청산 시 예상 순손익</p>
+        {netShown ? (
+          <>
+            <p className={`text-lg font-bold tabular-nums leading-tight sm:text-xl ${toneClass(net)}`}
+              data-testid="live-net-if-closed">{signedKrw(netKrw ?? null)}</p>
+            <p className="text-[11px] text-muted">수수료·체결비용 포함</p>
+          </>
+        ) : (
+          <p className="mt-1 text-[11px] text-warning" data-testid="live-net-unavailable">
+            미리보기 불가{status !== "LIVE" ? ` · ${status === "STALE" ? "시세 지연" : "연결 끊김"}` : ""}
+          </p>
+        )}
+      </div>
+      <p className="col-span-2 text-right text-[10px] text-muted" data-testid="live-source">
+        {usingLive ? "실시간 호가 기준" : "1초 갱신 기준"}
+      </p>
+    </div>
+  );
+}
+
+/** The open position at the top of a phone screen, before the chart: what is held, the two PnL
+ *  figures, entry and mark, and CLOSE - so checking or leaving a position never needs a scroll.
+ *  CLOSE sends exactly the order the order panel's CLOSE sends, through the same action runner
+ *  (which disables while a request is in flight). The rest of the numbers fold under a toggle. */
+export function MobilePositionCard({ state, openedMs, nowMs, preview, live, onAction, busy }: {
+  state: CryptoState; openedMs: number | null; nowMs: number; preview?: PositionPnlPreview | null;
+  live?: LivePnl | null; onAction: (run: () => Promise<unknown>) => void; busy: boolean;
+}) {
+  const [detail, setDetail] = useState(false);
+  const account = state.account;
+  if (!account || account.position_side === null) return null;
+  const long = account.position_side === "LONG";
+  const held = holdingDuration(openedMs, nowMs);
+  return (
+    <section className="panel mb-2 p-3" data-testid="mobile-position-card" aria-label="현재 포지션">
+      <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
+        <span className={`rounded px-2 py-0.5 font-bold ${long ? "bg-success-soft text-success" : "bg-danger-soft text-danger"}`}
+          data-testid="mobile-position-side">{account.position_side}</span>
+        <span className="font-semibold tabular-nums text-foreground-secondary">{num(account.leverage)?.toString() ?? "-"}x</span>
+        <span className="tabular-nums text-foreground-secondary">{qty(account.position_qty)} BTC</span>
+        {held && <span className="ml-auto text-[11px] text-muted">{held} 보유</span>}
+      </div>
+      <LivePnlHeadline state={state} live={live} preview={preview} />
+      <dl className="mb-2 grid grid-cols-2 gap-x-3 text-[11px]">
+        <div className="flex justify-between gap-2"><dt className="text-muted">진입가</dt>
+          <dd className="tabular-nums text-foreground-secondary">{price(account.avg_entry)}</dd></div>
+        <div className="flex justify-between gap-2"><dt className="text-muted">Mark</dt>
+          <dd className="tabular-nums text-foreground-secondary">{price(live?.position_open ? live.mark_price : state.quote?.mark_price)}</dd></div>
+      </dl>
+      <button type="button" className="btn-muted h-11 w-full text-sm font-bold" data-testid="mobile-close-button"
+        disabled={busy || state.quote === null}
+        onClick={() => onAction(() => cryptoApi.order({ side: account.position_side!, intent: "CLOSE", qty: account.position_qty }))}>
+        CLOSE · 전량 청산
+      </button>
+      <button type="button" className="mt-1.5 flex w-full items-center justify-between py-1 text-[11px] font-medium text-foreground-secondary"
+        aria-expanded={detail} data-testid="mobile-position-detail-toggle" onClick={() => setDetail(open => !open)}>
+        손익/비용 상세 <span aria-hidden="true">{detail ? "▲" : "▼"}</span>
+      </button>
+      {detail && (
+        <div data-testid="mobile-position-detail">
+          <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
+            {([["청산가", price(account.liquidation_price)], ["사용 마진", usdt(account.used_margin)],
+               ["마진 비율", account.margin_ratio == null ? "-" : `${Number(account.margin_ratio).toFixed(2)}x`]] as const)
+              .map(([label, value]) => (
+                <div key={label} className="flex justify-between gap-2"><dt className="text-muted">{label}</dt>
+                  <dd className="tabular-nums text-foreground-secondary">{value}</dd></div>))}
+          </dl>
+          {preview?.position_open && <PositionPnlBreakdown preview={preview} state={state} />}
+        </div>
+      )}
+    </section>
+  );
+}
+
+export function PositionStrip({ state, openedMs, nowMs, preview, live }: {
+  state: CryptoState; openedMs: number | null; nowMs: number; preview?: PositionPnlPreview | null;
+  live?: LivePnl | null;
+}) {
+  const account = state.account;
+  if (!account || account.position_side === null) {
+    return <p className="px-1 py-2 text-xs text-muted" data-testid="position-strip">현재 포지션 없음</p>;
+  }
+  const long = account.position_side === "LONG";
+  const held = holdingDuration(openedMs, nowMs);
+  const rows: [string, string][] = [
+    ["수량", `${qty(account.position_qty)} BTC`],
+    ["진입가", price(account.avg_entry)],
+    ["Mark", price(state.quote?.mark_price)],
+    ["청산가", price(account.liquidation_price)],
+    ["사용 마진", usdt(account.used_margin)],
+    ["마진 비율", account.margin_ratio == null ? "-" : `${Number(account.margin_ratio).toFixed(2)}x`],
+  ];
+  return (
+    <section className="panel p-3 sm:p-4" data-testid="position-strip">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className={`rounded px-2 py-0.5 text-xs font-bold ${long ? "bg-success-soft text-success" : "bg-danger-soft text-danger"}`}
+            data-testid="position-side">{long ? "LONG" : "SHORT"}</span>
+          <span className="text-xs font-semibold tabular-nums text-foreground-secondary">
+            {num(account.leverage)?.toString() ?? "-"}x
+          </span>
+          {held && <span className="text-[11px] text-muted">{held} 보유</span>}
+        </div>
+
+      </div>
+      <LivePnlHeadline state={state} live={live} preview={preview} />
+      <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] sm:grid-cols-3">
+        {rows.map(([label, value]) => (
+          <div key={label} className="flex justify-between gap-2">
+            <dt className="text-muted">{label}</dt>
+            <dd className="tabular-nums text-foreground-secondary">{value}</dd>
+          </div>
+        ))}
+      </dl>
+      {preview?.position_open && <PositionPnlBreakdown preview={preview} state={state} />}
+    </section>
+  );
+}
+
+/** Operational and historical detail, closed by default.
+ *
+ *  Nothing is deleted: the run's provenance, the ledger and the session's performance are what
+ *  make the numbers auditable, and an operator does occasionally need them. They just have no
+ *  claim on the first screen of a trading terminal. */
+/** Restore the virtual balance.
+ *
+ *  The confirmation says what the button does not do, because that is the part a person is
+ *  right to be nervous about: the trade record, the fees and the performance history all stay.
+ *  Refused while a position is open, and the position is never closed on the operator's behalf,
+ *  so the button simply goes flat-only and says why.
+ */
+export function ResetControl({ state, onAction, busy }: {
+  state: CryptoState;
+  onAction: (run: () => Promise<unknown>) => void;
+  busy: boolean;
+}) {
+  const [asking, setAsking] = useState(false);
+  const open = state.account != null && state.account.position_side !== null;
+
+  return (
+    <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 sm:mt-2" data-testid="reset-control">
+      <button type="button" className="btn-muted h-7 px-2.5 text-[11px] sm:h-8 sm:px-3"
+        disabled={busy || open} data-testid="reset-button"
+        title={open ? "포지션 청산 후 초기화 가능" : undefined}
+        onClick={() => setAsking(true)}>
+        가상계좌 초기화
+      </button>
+      {open && <span className="text-[10px] text-muted" data-testid="reset-blocked-note">
+        포지션 청산 후 초기화 가능
+      </span>}
+      {state.account && state.account.reset_count > 0 && (
+        <span className="text-[10px] text-muted" data-testid="reset-count-note">
+          초기화 {state.account.reset_count}회 · 기록 보존
+        </span>
+      )}
+
+      {asking && !open && (
+        <div role="dialog" aria-modal="true" aria-labelledby="crypto-reset-title"
+          data-testid="reset-dialog"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-sm rounded-xl border border-line bg-surface p-5">
+            <h2 id="crypto-reset-title" className="text-sm font-semibold text-foreground">
+              가상계좌 초기화
+            </h2>
+            <p className="mt-2 text-xs leading-relaxed text-foreground-secondary">
+              현재 가상잔고를 {resetCapitalLabel()}으로 초기화합니다.
+              기존 거래 및 성과 기록은 삭제되지 않습니다. 초기화 시점만 기록됩니다.
+            </p>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <button type="button" className="btn-muted h-10" data-testid="reset-cancel"
+                onClick={() => setAsking(false)}>취소</button>
+              <button type="button" className="btn-danger h-10 text-xs font-bold"
+                data-testid="reset-confirm" disabled={busy}
+                onClick={() => { setAsking(false); onAction(() => cryptoApi.reset()); }}>
+                {resetCapitalLabel()}으로 초기화
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** The AUTO state, explained where the rest of the run's documentation lives. */
+export function AutoNote({ reason }: { reason: string }) {
+  return (
+    <div className="rounded-lg border border-line bg-surface-alt p-3" data-testid="auto-detail">
+      <p className="text-xs font-semibold text-foreground-secondary">AUTO · 준비중</p>
+      <p className="mt-1 text-[11px] text-muted">
+        전략 판단 로직이 아직 없습니다. 진입·청산을 스스로 결정할 근거가 없으므로 엔진이
+        AUTO 전환을 거부합니다 ({reason}). 수동 주문만 가능합니다.
+      </p>
+    </div>
+  );
+}
+
+export function Disclosure({ title, children, testId, defaultOpen = false }: {
+  title: string; children: ReactNode; testId: string; defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <section className="border-t border-line" data-testid={testId}>
+      <button type="button" aria-expanded={open} onClick={() => setOpen(!open)}
+        data-testid={`${testId}-toggle`}
+        className="flex w-full items-center justify-between py-2 text-left text-[13px] font-semibold text-foreground-secondary hover:text-foreground sm:py-3 sm:text-sm">
+        {title}
+        <span aria-hidden="true" className="text-xs text-muted">{open ? "▲" : "▼"}</span>
+      </button>
+      {open && <div className="pb-4 sm:pb-5">{children}</div>}
+    </section>
+  );
+}
