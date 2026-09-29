@@ -1,0 +1,11 @@
+{
+ "record": "CRYPTO_D6_C_FREEZE_V1",
+ "contract": "docs/crypto/CRYPTO_D6_C_BACKTEST_CONTRACT_V1.md",
+ "sha256": "9a6a5c9b1631f2ca4bfe87bf20c4ac1e2b95d36a3b94e8115c262b9717ce4868",
+ "machine_readable": "data/research/crypto/d6/d6c_contract_v1.json",
+ "machine_readable_sha256": "8730a325db85c80a239a962d7db99c3882dee2db95efd5c25bcca9caa87414ad",
+ "d6a_contract_sha256": "1a6bcaa51d9302850d14827618bcc5d32709f768f324f425e401fac8a622cc0d",
+ "i1_sha256": "03f076c879984829b4234357abb464c55cd435c491228832741b5b0958f72fc6",
+ "frozen_at_utc": "2026-09-28T04:19:34.817107+00:00",
+ "computed_before_freeze": "nothing: zero trades simulated, zero PnL, zero performance figure. The engine had not been run."
+}

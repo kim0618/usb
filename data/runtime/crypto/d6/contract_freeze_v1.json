@@ -1,0 +1,13 @@
+{
+ "contract": "docs/crypto/CRYPTO_D6_AUTO_STRATEGY_DESIGN_CONTRACT_V1.md",
+ "sha256": "1a6bcaa51d9302850d14827618bcc5d32709f768f324f425e401fac8a622cc0d",
+ "machine_readable_copy": "data/research/crypto/d6/strategy_contract_v1.json",
+ "machine_readable_sha256": "db2cb57f86ff6eb2c8c5a7c39cdece624a0fab505e11ed9e53a3860334e5cbe4",
+ "rationale": "docs/crypto/CRYPTO_D6_CANDIDATE_RATIONALE_V1.md",
+ "rationale_sha256": "3439d579a8e53f28c3efad5e2b04f534d7ee9ef1df342ae7385dff16f6863fc6",
+ "validation_plan": "docs/crypto/CRYPTO_D6_VALIDATION_PLAN_V1.md",
+ "validation_plan_sha256": "9b0d440fd89787ac678b282b4760d9776ff215a652cdf8e4e9fda5bd0fe265fb",
+ "frozen_at_utc": "2026-09-28T03:21:34.497454+00:00",
+ "computed_before_freeze": "feature values, episode counts, volatility distribution only (prefreeze_qc_v1.json); zero forward returns, zero PnL",
+ "verdict": "DESIGN_READY"
+}

@@ -1,0 +1,82 @@
+{
+  "adopted": {
+    "maker_rate": "0.0002",
+    "product": "Perpetual & Futures Contracts Trading",
+    "taker_rate": "0.00055",
+    "vip_level": "VIP 0"
+  },
+  "captured_at_utc": "2026-09-23T04:38:50.359535Z",
+  "extraction": "script/style stripped, tags removed, whitespace collapsed",
+  "html_bytes": 421104,
+  "html_sha256": "b9bb8db5d8c2443d90b4d38d87c769d8a0880fd2b4c692130d294c6756879d70",
+  "http_status": 200,
+  "page_last_updated": "2026-09-02 01:17:46",
+  "record": "CRYPTO_D4_FEE_SOURCE_VERIFICATION_V1",
+  "residual_assumption": "The rates are official. The account's own tier is not: US-B holds no exchange account, so VIP 0 is assumed as the default tier for a new account.",
+  "url": "https://www.bybit.com/en/help-center/article/Trading-Fee-Structure",
+  "vip_table": [
+    {
+      "option_maker": "0.0200%",
+      "option_taker": "0.0300%",
+      "perp_maker": "0.0200%",
+      "perp_taker": "0.0550%",
+      "spot_maker": "0.1000%",
+      "spot_taker": "0.1000%",
+      "vip_level": "VIP 0"
+    },
+    {
+      "option_maker": "0.0150%",
+      "option_taker": "0.0200%",
+      "perp_maker": "0.0180%",
+      "perp_taker": "0.0400%",
+      "spot_maker": "0.0675%",
+      "spot_taker": "0.0800%",
+      "vip_level": "VIP 1"
+    },
+    {
+      "option_maker": "0.0150%",
+      "option_taker": "0.0200%",
+      "perp_maker": "0.0160%",
+      "perp_taker": "0.0375%",
+      "spot_maker": "0.0650%",
+      "spot_taker": "0.0775%",
+      "vip_level": "VIP 2"
+    },
+    {
+      "option_maker": "0.0150%",
+      "option_taker": "0.0200%",
+      "perp_maker": "0.0140%",
+      "perp_taker": "0.0350%",
+      "spot_maker": "0.0625%",
+      "spot_taker": "0.0750%",
+      "vip_level": "VIP 3"
+    },
+    {
+      "option_maker": "0.0150%",
+      "option_taker": "0.0180%",
+      "perp_maker": "0.0120%",
+      "perp_taker": "0.0320%",
+      "spot_maker": "0.0500%",
+      "spot_taker": "0.0600%",
+      "vip_level": "VIP 4"
+    },
+    {
+      "option_maker": "0.0100%",
+      "option_taker": "0.0150%",
+      "perp_maker": "0.0100%",
+      "perp_taker": "0.0320%",
+      "spot_maker": "0.0400%",
+      "spot_taker": "0.0500%",
+      "vip_level": "VIP 5"
+    },
+    {
+      "option_maker": "0.0050%",
+      "option_taker": "0.0150%",
+      "perp_maker": "0.0000%",
+      "perp_taker": "0.0300%",
+      "spot_maker": "0.0300%",
+      "spot_taker": "0.0450%",
+      "vip_level": "Supreme VIP"
+    }
+  ]
+}

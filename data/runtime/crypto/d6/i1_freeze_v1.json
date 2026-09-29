@@ -1,0 +1,12 @@
+{
+ "record": "CRYPTO_D6_I1_FREEZE_V1",
+ "interpretation": "docs/crypto/CRYPTO_D6_EXECUTION_INTERPRETATION_I1_V1.md",
+ "sha256": "03f076c879984829b4234357abb464c55cd435c491228832741b5b0958f72fc6",
+ "machine_readable": "data/research/crypto/d6/execution_interpretation_i1_v1.json",
+ "machine_readable_sha256": "3fc756eb1835957d3d8555eaab30bb4d690b54dc4248d7536db4b40df5fb462f",
+ "amends": "docs/crypto/CRYPTO_D6_AUTO_STRATEGY_DESIGN_CONTRACT_V1.md",
+ "amends_sha256": "1a6bcaa51d9302850d14827618bcc5d32709f768f324f425e401fac8a622cc0d",
+ "contract_modified": false,
+ "frozen_at_utc": "2026-09-28T04:17:13.115864+00:00",
+ "computed_before_freeze": "nothing; no backtest, no PnL, no performance figure existed at freeze time"
+}

@@ -1,0 +1,9 @@
+{
+ "record": "CRYPTO_D5_5_FREEZE_V1",
+ "contract": "docs/crypto/CRYPTO_D5_5_DIRECTION_CONFIRMATION_CONTRACT_V1.md",
+ "sha256": "2da39523baa0392d06ce92b4ab27b988417543076cd78919f952cbd527d0a285",
+ "machine_readable": "data/research/crypto/d5_5/contract_v1.json",
+ "machine_readable_sha256": "ece2927b93ed86f66e431e0b45bdc7e9723557d16541126f96a765151ff6bae8",
+ "frozen_at_utc": "2026-09-28T06:01:17.187283+00:00",
+ "computed_before_freeze": "event counts, shock-window range statistics and confirmation frequency only; zero forward returns, zero trade PnL, zero performance figures, and the path after confirmation was never examined"
+}

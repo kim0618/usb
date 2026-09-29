@@ -1,0 +1,9 @@
+{
+ "record": "CRYPTO_D5_4_FREEZE_V1",
+ "contract": "docs/crypto/CRYPTO_D5_4_COST_FIRST_EVENT_CONTRACT_V1.md",
+ "sha256": "d44355b4283a01a348df70a604cc1228167b9eeaa4df091939f03de774f00f27",
+ "machine_readable": "data/research/crypto/d5_4/contract_v1.json",
+ "machine_readable_sha256": "6d4420a427bbb93f1617c18180d3a63ee2ff1de7d963cf228ddf75e8f61dfaef",
+ "frozen_at_utc": "2026-09-28T04:59:08.395431+00:00",
+ "computed_before_freeze": "feature distributions, event counts and displacement magnitudes only (prefreeze_qc_v1.json); zero forward returns, zero PnL, zero simulated trades"
+}
