@@ -183,16 +183,26 @@ Regression:
   failing tests touch `schema.py`, `validate.py`, or `repair.py`, and all 10 fail identically
   regardless of the git index state (they read the working tree directly). The 38 skips are the
   usual live-Opus-gated tests (consistent with $0 cost here).
-- Backend suite excluding the known `strategy_b` collection break: separate, pre-existing
-  collection errors were found in 13 more files (`test_daily_performance.py`,
-  `test_position_lifecycle_*.py`, `test_protection_cursor.py`, etc.), all from
-  `ImportError: cannot import name 'ScannerDecision' from 'app.strategy_b.scanner'` — this traces to
-  the large amount of *unrelated* dirty work already in this working tree (position/entry-management
-  and strategy_b refactor in progress, none of it touched by this stage). These 13 are excluded from
-  the regression run below the same way `strategy_b` itself is excluded, and are reported here
-  rather than silently absorbed. Full-suite result recorded separately once the run completes (see
-  final report to the user); this is **not** the "5627 passed / 23 skipped / 0 failed" prior
-  baseline and must not be confused with it (brief §11).
+- Backend suite excluding `strategy_b` (known collection break) and, additionally, 13 more files
+  that fail to collect for an unrelated reason (`ImportError: cannot import name 'ScannerDecision'
+  from 'app.strategy_b.scanner'` — `test_daily_performance.py`, `test_position_lifecycle_*.py`,
+  `test_protection_cursor.py`, etc.): **48 failed, 5248 passed, 85 skipped, 15 errors** in 731s.
+  This is **not** the prior "5627 passed / 23 skipped / 0 failed" baseline and is reported
+  separately per brief §11, not merged with it. The gap between the two is real drift in this
+  working tree since that baseline was recorded, and none of it traces to this stage:
+    - 10 of the 48 failures are the exact same `strategy_h_v2` D2.1-missing-data failures already
+      itemized above (`test_d3_3_contract.py` x1, `test_run_strategy_h_v2_d3_3.py` x9).
+    - The remaining 38 failures and all 15 errors are in files this stage never touched and that
+      import nothing from `research/schema.py`, `research/validate.py`, or `research/repair.py`:
+      DB-migration/Alembic-head mismatches (`test_schema_contract.py`,
+      `test_simulation_persistence_schema.py`, `test_premarket_volume_v2.py`,
+      `test_paper_entry_evaluation_history.py`, `test_true_parity.py`), crypto contract-freeze
+      hash mismatches (`test_btc_p1*.py`, `test_btc_p2.py`, `test_btc_vol_a.py`), an unrelated
+      `strategy_h0` (not `strategy_h_v2`) contract test, and fixture errors in
+      `test_d6_golden.py`/`test_simulation_persistence_schema.py`. These are pre-existing
+      consequences of the large volume of unrelated in-progress work already sitting dirty in this
+      tree (crypto, paper-trading DB schema, strategy_b) — confirmed unrelated by inspection of
+      each failing file's imports, not assumed. Fixing them is out of scope for D4.2P.
 
 ## I. Remaining Budget Issue
 
