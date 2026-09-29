@@ -1,0 +1,655 @@
+{
+ "date": {
+  "empty": 0,
+  "nonempty": 1444583,
+  "unique": 1382,
+  "semantic": "UTC calendar date of transacttime (string)",
+  "dtype": "string",
+  "max_len": 10,
+  "samples": [
+   "2018-03-05",
+   "2018-03-06",
+   "2018-03-08",
+   "2018-03-09",
+   "2018-03-10"
+  ]
+ },
+ "execid": {
+  "empty": 0,
+  "nonempty": 1444583,
+  "unique": 1444583,
+  "semantic": "unique execution id (UUID); primary key",
+  "dtype": "string",
+  "max_len": 36,
+  "samples": [
+   "2d6854a4-53e5-27ff-8c78-b1f3bc328713",
+   "f7df2e2f-83c1-9870-7388-f5c8164b007c",
+   "2f438352-e30e-6ce0-64cb-d7fa56ebc750",
+   "8224cb06-d3f4-0540-f63d-e2151ee4cf3d",
+   "9770668d-1cab-0193-ac3f-2c2bbf1cf9c7"
+  ]
+ },
+ "orderid": {
+  "empty": 242,
+  "nonempty": 1444341,
+  "unique": 23418,
+  "semantic": "order id; one order has many fills. Funding/settlement/liquidation use the zero UUID or ''",
+  "dtype": "string",
+  "max_len": 36,
+  "samples": [
+   "e1a4954c-b125-d983-995a-344f2a30b406",
+   "b3f09ad8-572c-7be7-4ce7-a29bed1b0678",
+   "b0154377-b420-5fcc-3576-3d868b774ed2",
+   "2601e3ff-23c7-ccd1-40cd-045db1dafddc",
+   "34237804-5752-ae66-db8e-e3ff0d9d06de"
+  ]
+ },
+ "clordid": {
+  "empty": 1444583,
+  "nonempty": 0,
+  "unique": 1,
+  "semantic": "client order id; always empty in this export",
+  "dtype": "string",
+  "max_len": 0,
+  "samples": [],
+  "values": {
+   "": 1444583
+  }
+ },
+ "clordlinkid": {
+  "empty": 1444583,
+  "nonempty": 0,
+  "unique": 1,
+  "semantic": "always empty",
+  "dtype": "string",
+  "max_len": 0,
+  "samples": [],
+  "values": {
+   "": 1444583
+  }
+ },
+ "account": {
+  "empty": 0,
+  "nonempty": 1444583,
+  "unique": 1,
+  "semantic": "account alias; single value 'aoa'",
+  "dtype": "string",
+  "max_len": 3,
+  "samples": [
+   "aoa"
+  ],
+  "values": {
+   "aoa": 1444583
+  }
+ },
+ "symbol": {
+  "empty": 0,
+  "nonempty": 1444583,
+  "unique": 46,
+  "semantic": "BitMEX instrument",
+  "dtype": "string",
+  "max_len": 10,
+  "samples": [
+   "XBTUSD",
+   "XBTM18",
+   "XBTU18",
+   "ADAM18",
+   "BCHM18"
+  ]
+ },
+ "side": {
+  "empty": 5368,
+  "nonempty": 1439215,
+  "unique": 3,
+  "semantic": "Buy/Sell of THIS fill; '' on funding rows",
+  "dtype": "string",
+  "max_len": 4,
+  "samples": [
+   "Sell",
+   "Buy"
+  ],
+  "values": {
+   "Sell": 729605,
+   "Buy": 709610,
+   "": 5368
+  }
+ },
+ "lastqty": {
+  "empty": 0,
+  "nonempty": 1444583,
+  "unique": 73112,
+  "semantic": "fill size in contracts (XBTUSD: USD; quanto: contracts; XBT-quoted: coin units)",
+  "dtype": "int",
+  "min": 1.0,
+  "max": 85169400.0,
+  "samples": [
+   "2000",
+   "5011",
+   "1988",
+   "5000",
+   "3000"
+  ]
+ },
+ "lastpx": {
+  "empty": 0,
+  "nonempty": 1444583,
+  "unique": 66018,
+  "semantic": "fill price (funding rows: funding reference price, Settlement: settle price)",
+  "dtype": "float",
+  "min": 0.0,
+  "max": 68511.1,
+  "samples": [
+   "11441.5",
+   "11442.0",
+   "11443.5",
+   "11422.5",
+   "11436.0"
+  ]
+ },
+ "lastliquidityind": {
+  "empty": 5368,
+  "nonempty": 1439215,
+  "unique": 3,
+  "semantic": "AddedLiquidity=maker, RemovedLiquidity=taker, '' on funding",
+  "dtype": "string",
+  "max_len": 16,
+  "samples": [
+   "RemovedLiquidity",
+   "AddedLiquidity"
+  ],
+  "values": {
+   "AddedLiquidity": 966607,
+   "RemovedLiquidity": 472608,
+   "": 5368
+  }
+ },
+ "orderqty": {
+  "empty": 0,
+  "nonempty": 1444583,
+  "unique": 4433,
+  "semantic": "order size at time of the fill",
+  "dtype": "int",
+  "min": 1.0,
+  "max": 85169400.0,
+  "samples": [
+   "17000",
+   "23000",
+   "47000",
+   "5000",
+   "40000"
+  ]
+ },
+ "price": {
+  "empty": 0,
+  "nonempty": 1444583,
+  "unique": 15944,
+  "semantic": "order limit price",
+  "dtype": "float",
+  "min": 0.0,
+  "max": 68511.1,
+  "samples": [
+   "11441.5",
+   "11443.5",
+   "11422.5",
+   "11436.0",
+   "11577.0"
+  ]
+ },
+ "displayqty": {
+  "empty": 1442053,
+  "nonempty": 2530,
+  "unique": 2,
+  "semantic": "iceberg display qty; '' or 0",
+  "dtype": "int",
+  "min": 0.0,
+  "max": 0.0,
+  "samples": [
+   "0"
+  ],
+  "values": {
+   "": 1442053,
+   "0": 2530
+  }
+ },
+ "stoppx": {
+  "empty": 1439709,
+  "nonempty": 4874,
+  "unique": 44,
+  "semantic": "stop trigger price for Stop/StopLimit",
+  "dtype": "float",
+  "min": 0.0798,
+  "max": 10234.0,
+  "samples": [
+   "7419.5",
+   "7445.5",
+   "7450.5",
+   "7220.0",
+   "7250.0"
+  ]
+ },
+ "pegoffsetvalue": {
+  "empty": 1444583,
+  "nonempty": 0,
+  "unique": 1,
+  "semantic": "always empty",
+  "dtype": "string",
+  "max_len": 0,
+  "samples": [],
+  "values": {
+   "": 1444583
+  }
+ },
+ "pegpricetype": {
+  "empty": 1444583,
+  "nonempty": 0,
+  "unique": 1,
+  "semantic": "always empty",
+  "dtype": "string",
+  "max_len": 0,
+  "samples": [],
+  "values": {
+   "": 1444583
+  }
+ },
+ "currency": {
+  "empty": 0,
+  "nonempty": 1444583,
+  "unique": 3,
+  "semantic": "quote currency of the contract (USD, USDT, XBT)",
+  "dtype": "string",
+  "max_len": 4,
+  "samples": [
+   "USD",
+   "XBT",
+   "USDT"
+  ],
+  "values": {
+   "USD": 1393694,
+   "USDT": 34375,
+   "XBT": 16514
+  }
+ },
+ "settlcurrency": {
+  "empty": 0,
+  "nonempty": 1444583,
+  "unique": 1,
+  "semantic": "settlement currency; always XBt (satoshi) in this ledger",
+  "dtype": "string",
+  "max_len": 3,
+  "samples": [
+   "XBt"
+  ],
+  "values": {
+   "XBt": 1444583
+  }
+ },
+ "exectype": {
+  "empty": 0,
+  "nonempty": 1444583,
+  "unique": 3,
+  "semantic": "Trade / Funding / Settlement",
+  "dtype": "string",
+  "max_len": 10,
+  "samples": [
+   "Trade",
+   "Funding",
+   "Settlement"
+  ],
+  "values": {
+   "Trade": 1439207,
+   "Funding": 5368,
+   "Settlement": 8
+  }
+ },
+ "ordtype": {
+  "empty": 0,
+  "nonempty": 1444583,
+  "unique": 4,
+  "semantic": "Limit / Market / Stop / StopLimit",
+  "dtype": "string",
+  "max_len": 9,
+  "samples": [
+   "Market",
+   "Limit",
+   "Stop",
+   "StopLimit"
+  ],
+  "values": {
+   "Limit": 1435642,
+   "Stop": 4773,
+   "Market": 4067,
+   "StopLimit": 101
+  }
+ },
+ "timeinforce": {
+  "empty": 0,
+  "nonempty": 1444583,
+  "unique": 4,
+  "semantic": "GoodTillCancel / ImmediateOrCancel / AtTheClose (funding, settlement) / FillOrKill",
+  "dtype": "string",
+  "max_len": 17,
+  "samples": [
+   "ImmediateOrCancel",
+   "GoodTillCancel",
+   "AtTheClose",
+   "FillOrKill"
+  ],
+  "values": {
+   "GoodTillCancel": 1430308,
+   "ImmediateOrCancel": 8868,
+   "AtTheClose": 5376,
+   "FillOrKill": 31
+  }
+ },
+ "execinst": {
+  "empty": 1265606,
+  "nonempty": 178977,
+  "unique": 8,
+  "semantic": "ParticipateDoNotInitiate=post-only, Close=reduce/close, LastPrice/IndexPrice=stop trigger ref",
+  "dtype": "string",
+  "max_len": 28,
+  "samples": [
+   "[\"ParticipateDoNotInitiate\"]",
+   "[\"Close\"]",
+   "Close",
+   "ParticipateDoNotInitiate",
+   "LastPrice"
+  ],
+  "values": {
+   "": 1265606,
+   "ParticipateDoNotInitiate": 163113,
+   "[\"ParticipateDoNotInitiate\"]": 7944,
+   "LastPrice": 3660,
+   "Close": 2982,
+   "IndexPrice": 681,
+   "Close,LastPrice": 529,
+   "[\"Close\"]": 68
+  }
+ },
+ "contingencytype": {
+  "empty": 1444583,
+  "nonempty": 0,
+  "unique": 1,
+  "semantic": "always empty",
+  "dtype": "string",
+  "max_len": 0,
+  "samples": [],
+  "values": {
+   "": 1444583
+  }
+ },
+ "ordstatus": {
+  "empty": 0,
+  "nonempty": 1444583,
+  "unique": 2,
+  "semantic": "order status after this fill",
+  "dtype": "string",
+  "max_len": 15,
+  "samples": [
+   "PartiallyFilled",
+   "Filled"
+  ],
+  "values": {
+   "PartiallyFilled": 1420626,
+   "Filled": 23957
+  }
+ },
+ "triggered": {
+  "empty": 1439713,
+  "nonempty": 4870,
+  "unique": 2,
+  "semantic": "StopOrderTriggered when a stop fired",
+  "dtype": "string",
+  "max_len": 18,
+  "samples": [
+   "StopOrderTriggered"
+  ],
+  "values": {
+   "": 1439713,
+   "StopOrderTriggered": 4870
+  }
+ },
+ "workingindicator": {
+  "empty": 0,
+  "nonempty": 1444583,
+  "unique": 2,
+  "semantic": "order still working",
+  "dtype": "string",
+  "max_len": 5,
+  "samples": [
+   "true",
+   "false"
+  ],
+  "values": {
+   "true": 1420626,
+   "false": 23957
+  }
+ },
+ "ordrejreason": {
+  "empty": 1444583,
+  "nonempty": 0,
+  "unique": 1,
+  "semantic": "always empty",
+  "dtype": "string",
+  "max_len": 0,
+  "samples": [],
+  "values": {
+   "": 1444583
+  }
+ },
+ "leavesqty": {
+  "empty": 0,
+  "nonempty": 1444583,
+  "unique": 831595,
+  "semantic": "order qty remaining after fill",
+  "dtype": "int",
+  "min": 0.0,
+  "max": 24965238.0,
+  "samples": [
+   "5011",
+   "0",
+   "15012",
+   "10012",
+   "7012"
+  ]
+ },
+ "cumqty": {
+  "empty": 0,
+  "nonempty": 1444583,
+  "unique": 767473,
+  "semantic": "order qty filled so far",
+  "dtype": "int",
+  "min": 1.0,
+  "max": 85169400.0,
+  "samples": [
+   "11989",
+   "17000",
+   "1988",
+   "6988",
+   "9988"
+  ]
+ },
+ "avgpx": {
+  "empty": 0,
+  "nonempty": 1444583,
+  "unique": 102197,
+  "semantic": "order average fill price so far",
+  "dtype": "float",
+  "min": 0.0,
+  "max": 68511.1,
+  "samples": [
+   "11441.5",
+   "11443.0",
+   "11422.0",
+   "11436.5",
+   "11577.0"
+  ]
+ },
+ "commission": {
+  "empty": 0,
+  "nonempty": 1444583,
+  "unique": 1666,
+  "semantic": "fee RATE (negative = rebate); funding rows: funding rate signed to the account",
+  "dtype": "float",
+  "min": -0.003957,
+  "max": 0.00375,
+  "samples": [
+   "6.75E-4",
+   "-2.2500000000000002E-4",
+   "0.001213",
+   "-0.001748",
+   "4.28E-4"
+  ]
+ },
+ "tradepublishindicator": {
+  "empty": 5368,
+  "nonempty": 1439215,
+  "unique": 3,
+  "semantic": "PublishTrade / DoNotPublishTrade / ''",
+  "dtype": "string",
+  "max_len": 17,
+  "samples": [
+   "PublishTrade",
+   "DoNotPublishTrade"
+  ],
+  "values": {
+   "PublishTrade": 1439173,
+   "": 5368,
+   "DoNotPublishTrade": 42
+  }
+ },
+ "text": {
+  "empty": 0,
+  "nonempty": 1444583,
+  "unique": 8,
+  "semantic": "free text; 'Liquidation', 'Funding', 'Settlement', 'Position Close from www.bitmex.com', 'Triggered: ...'",
+  "dtype": "string",
+  "max_len": 74,
+  "samples": [
+   "Submission from www.bitmex.com",
+   "Position Close from www.bitmex.com",
+   "Funding",
+   "Liquidation",
+   "Settlement"
+  ],
+  "values": {
+   "Submission from www.bitmex.com": 1392332,
+   "Amended price: Amend from www.bitmex.com\nSubmission from www.bitmex.com": 38736,
+   "Funding": 5368,
+   "Triggered: Order stop price reached\nSubmission from www.bitmex.com": 4870,
+   "Position Close from www.bitmex.com": 3050,
+   "Amended orderQty: Amend from www.bitmex.com\nSubmission from www.bitmex.com": 160,
+   "Liquidation": 59,
+   "Settlement": 8
+  }
+ },
+ "trdmatchid": {
+  "empty": 0,
+  "nonempty": 1444583,
+  "unique": 1443176,
+  "semantic": "exchange trade match id (funding: funding event id)",
+  "dtype": "string",
+  "max_len": 36,
+  "samples": [
+   "3c2e88f2-b60d-bf03-9319-2782b4331c54",
+   "4667e788-1378-3146-4dd4-53a70a87a378",
+   "4c8736fd-dd21-1f93-3928-8d561d31d322",
+   "1c525e29-3d5e-33eb-9d37-403ff268ed75",
+   "e606e3d1-b328-a008-d5ab-0600bdfb5467"
+  ]
+ },
+ "execcost": {
+  "empty": 0,
+  "nonempty": 1444583,
+  "unique": 687079,
+  "semantic": "signed XBt value of the fill (funding: position value at funding price). Accounting ground truth",
+  "dtype": "int",
+  "min": -183265106094.0,
+  "max": 300548214760.0,
+  "samples": [
+   "17480000",
+   "43796140",
+   "17375120",
+   "43700000",
+   "26220000"
+  ]
+ },
+ "execcomm": {
+  "empty": 0,
+  "nonempty": 1444583,
+  "unique": 224294,
+  "semantic": "fee in XBt (positive=paid, negative=rebate); funding: funding paid(+)/received(-)",
+  "dtype": "int",
+  "min": -192170793.0,
+  "max": 291407683.0,
+  "samples": [
+   "11799",
+   "29562",
+   "11728",
+   "29498",
+   "17699"
+  ]
+ },
+ "homenotional": {
+  "empty": 0,
+  "nonempty": 1444583,
+  "unique": 747904,
+  "semantic": "signed size in base asset (XBT for XBTUSD, ETH for ETHUSD ...); sign = position/fill direction",
+  "dtype": "float",
+  "min": -19723758.389261745,
+  "max": 16692829.5549958,
+  "samples": [
+   "-0.1748",
+   "-0.4379614",
+   "-0.1737512",
+   "-0.437",
+   "-0.2622"
+  ]
+ },
+ "foreignnotional": {
+  "empty": 0,
+  "nonempty": 1444583,
+  "unique": 291877,
+  "semantic": "signed size in quote currency",
+  "dtype": "float",
+  "min": -70593700.0,
+  "max": 118695016.90025906,
+  "samples": [
+   "2000.0",
+   "5011.0",
+   "1988.0",
+   "5000.0",
+   "3000.0"
+  ]
+ },
+ "transacttime": {
+  "empty": 0,
+  "nonempty": 1444583,
+  "unique": 971714,
+  "semantic": "UTC event time 'YYYY-MM-DD HH:MM:SS[.ffffff]'",
+  "dtype": "string",
+  "max_len": 26,
+  "samples": [
+   "2018-03-05 09:16:57.937933",
+   "2018-03-05 10:09:55.740481",
+   "2018-03-05 10:09:56.801244",
+   "2018-03-05 10:09:57.641371",
+   "2018-03-05 10:09:59.096173"
+  ]
+ },
+ "timestamp": {
+  "empty": 0,
+  "nonempty": 1444583,
+  "unique": 971714,
+  "semantic": "UTC record time; equals transacttime except funding (+~12ms)",
+  "dtype": "string",
+  "max_len": 26,
+  "samples": [
+   "2018-03-05 09:16:57.937933",
+   "2018-03-05 10:09:55.740481",
+   "2018-03-05 10:09:56.801244",
+   "2018-03-05 10:09:57.641371",
+   "2018-03-05 10:09:59.096173"
+  ]
+ }
+}

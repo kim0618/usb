@@ -1,0 +1,291 @@
+{
+ "2018-09-21": {
+  "window_utc": [
+   "2018-09-20T12:00:00+00:00",
+   "2018-09-22T12:00:00+00:00"
+  ],
+  "by_symbol": {
+   "ADAU18": {
+    "fills": 1,
+    "pos_start": 1,
+    "pos_end": 0,
+    "max_long": 0,
+    "max_short": 0,
+    "reversals": 0,
+    "add_fills": 0,
+    "realized_gross_xbt": 2.2742229345440863e-06,
+    "fees_xbt": 3e-08,
+    "liquidation_fills": 0,
+    "px_min": 1.284e-05,
+    "px_max": 1.284e-05
+   },
+   "ETHUSD": {
+    "fills": 816,
+    "pos_start": 17,
+    "pos_end": 0,
+    "max_long": 123541,
+    "max_short": -299604,
+    "reversals": 5,
+    "add_fills": 352,
+    "realized_gross_xbt": -0.03817910138665516,
+    "fees_xbt": 0.14451873,
+    "liquidation_fills": 0,
+    "px_min": 221.7,
+    "px_max": 255.4
+   },
+   "XBTUSD": {
+    "fills": 1,
+    "pos_start": -1,
+    "pos_end": 0,
+    "max_long": 0,
+    "max_short": 0,
+    "reversals": 0,
+    "add_fills": 0,
+    "realized_gross_xbt": -4.630001237466931e-06,
+    "fees_xbt": 1.1e-07,
+    "liquidation_fills": 0,
+    "px_min": 6704.0,
+    "px_max": 6704.0
+   },
+   "XRPU18": {
+    "fills": 1129,
+    "pos_start": 0,
+    "pos_end": 0,
+    "max_long": 399192,
+    "max_short": -607981,
+    "reversals": 25,
+    "add_fills": 438,
+    "realized_gross_xbt": -13.648706740000021,
+    "fees_xbt": 0.86075841,
+    "liquidation_fills": 3,
+    "px_min": 7.544e-05,
+    "px_max": 0.00012972
+   }
+  },
+  "funding_snapshots": [
+   {
+    "transact_ts": "2018-09-20T12:00:00+00:00",
+    "gross_xbt": 0.00376497,
+    "unreal_xbt": 7.857861217133701e-05,
+    "equity_xbt": 13.004362778612172,
+    "leverage": 0.0002895159158580316
+   },
+   {
+    "transact_ts": "2018-09-20T20:00:00+00:00",
+    "gross_xbt": 0.00373054,
+    "unreal_xbt": 4.414861217133701e-05,
+    "equity_xbt": 16.552039658612173,
+    "leverage": 0.00022538249526601195
+   },
+   {
+    "transact_ts": "2018-09-21T04:00:00+00:00",
+    "gross_xbt": 0.0061586,
+    "unreal_xbt": -2.969000123746693e-05,
+    "equity_xbt": 18.819889018612187,
+    "leverage": 0.0003272389116593285
+   },
+   {
+    "transact_ts": "2018-09-21T12:00:00+00:00",
+    "gross_xbt": 68.44168602,
+    "unreal_xbt": -0.5097178216022087,
+    "equity_xbt": 18.16168717839779,
+    "leverage": 3.768465195315509
+   },
+   {
+    "transact_ts": "2018-09-21T20:00:00+00:00",
+    "gross_xbt": 19.4801285,
+    "unreal_xbt": 0.1182525,
+    "equity_xbt": 1.5336597577402986,
+    "leverage": 12.701727617018596
+   }
+  ]
+ },
+ "2021-05-05": {
+  "window_utc": [
+   "2021-05-04T12:00:00+00:00",
+   "2021-05-06T12:00:00+00:00"
+  ],
+  "by_symbol": {
+   "BCHUSD": {
+    "fills": 2207,
+    "pos_start": -200000,
+    "pos_end": -23199,
+    "max_long": 0,
+    "max_short": -199951,
+    "reversals": 0,
+    "add_fills": 0,
+    "realized_gross_xbt": -63.73583207431686,
+    "fees_xbt": -0.04896603,
+    "liquidation_fills": 0,
+    "px_min": 1310.0,
+    "px_max": 1436.0
+   },
+   "ETHUSD": {
+    "fills": 495,
+    "pos_start": -61047,
+    "pos_end": 0,
+    "max_long": 875,
+    "max_short": -59991,
+    "reversals": 0,
+    "add_fills": 16,
+    "realized_gross_xbt": -40.71927255637594,
+    "fees_xbt": -0.00284267,
+    "liquidation_fills": 0,
+    "px_min": 3419.75,
+    "px_max": 3433.0
+   },
+   "XBTUSD": {
+    "fills": 2665,
+    "pos_start": -33402179,
+    "pos_end": -18320540,
+    "max_long": 1902,
+    "max_short": -33382179,
+    "reversals": 2,
+    "add_fills": 1016,
+    "realized_gross_xbt": 12.263406147718115,
+    "fees_xbt": 0.07798609,
+    "liquidation_fills": 0,
+    "px_min": 53691.5,
+    "px_max": 56850.0
+   },
+   "XRPUSD": {
+    "fills": 1464,
+    "pos_start": -800000,
+    "pos_end": -200000,
+    "max_long": 0,
+    "max_short": -799996,
+    "reversals": 0,
+    "add_fills": 0,
+    "realized_gross_xbt": 9.03503388499971,
+    "fees_xbt": -0.01430323,
+    "liquidation_fills": 0,
+    "px_min": 1.4028,
+    "px_max": 1.712
+   }
+  },
+  "funding_snapshots": [
+   {
+    "transact_ts": "2021-05-04T12:00:00+00:00",
+    "gross_xbt": 1720.00248075,
+    "unreal_xbt": -78.23767328686506,
+    "equity_xbt": 639.331416093135,
+    "leverage": 2.6903143462911534
+   },
+   {
+    "transact_ts": "2021-05-04T20:00:00+00:00",
+    "gross_xbt": 996.62872063,
+    "unreal_xbt": -76.14943140037971,
+    "equity_xbt": 668.249990273131,
+    "leverage": 1.4914010252699774
+   },
+   {
+    "transact_ts": "2021-05-05T04:00:00+00:00",
+    "gross_xbt": 1034.65414145,
+    "unreal_xbt": -114.17485222037972,
+    "equity_xbt": 630.8482023931309,
+    "leverage": 1.6401000074582537
+   },
+   {
+    "transact_ts": "2021-05-05T12:00:00+00:00",
+    "gross_xbt": 1261.83936088,
+    "unreal_xbt": -159.25060980037972,
+    "equity_xbt": 555.2983943696203,
+    "leverage": 2.2723627038620404
+   },
+   {
+    "transact_ts": "2021-05-05T20:00:00+00:00",
+    "gross_xbt": 1391.44868114,
+    "unreal_xbt": -186.1586511940037,
+    "equity_xbt": 519.7955713296252,
+    "leverage": 2.6769152295405405
+   },
+   {
+    "transact_ts": "2021-05-06T04:00:00+00:00",
+    "gross_xbt": 1041.52436274,
+    "unreal_xbt": -136.90016521154362,
+    "equity_xbt": 523.1550253196069,
+    "leverage": 1.9908522566589317
+   }
+  ]
+ },
+ "2021-05-19": {
+  "window_utc": [
+   "2021-05-18T12:00:00+00:00",
+   "2021-05-20T12:00:00+00:00"
+  ],
+  "by_symbol": {
+   "ETHUSD": {
+    "fills": 8455,
+    "pos_start": 0,
+    "pos_end": -150000,
+    "max_long": 181667,
+    "max_short": -150000,
+    "reversals": 1,
+    "add_fills": 5020,
+    "realized_gross_xbt": -147.35032774999988,
+    "fees_xbt": -0.61114466,
+    "liquidation_fills": 0,
+    "px_min": 2100.0,
+    "px_max": 3430.0
+   },
+   "XBTUSD": {
+    "fills": 8846,
+    "pos_start": -10189011,
+    "pos_end": -5001043,
+    "max_long": 40702992,
+    "max_short": -30466395,
+    "reversals": 6,
+    "add_fills": 3998,
+    "realized_gross_xbt": -121.42280789398556,
+    "fees_xbt": -1.26254463,
+    "liquidation_fills": 0,
+    "px_min": 31400.0,
+    "px_max": 43902.5
+   }
+  },
+  "funding_snapshots": [
+   {
+    "transact_ts": "2021-05-18T12:00:00+00:00",
+    "gross_xbt": 224.56580244,
+    "unreal_xbt": -2.006366757644806,
+    "equity_xbt": 578.4075010623551,
+    "leverage": 0.38824842697845774
+   },
+   {
+    "transact_ts": "2021-05-18T20:00:00+00:00",
+    "gross_xbt": 669.5925966,
+    "unreal_xbt": 3.3326407614258575,
+    "equity_xbt": 644.8169032223569,
+    "leverage": 1.0384228348447924
+   },
+   {
+    "transact_ts": "2021-05-19T04:00:00+00:00",
+    "gross_xbt": 805.19954934,
+    "unreal_xbt": -7.04295419,
+    "equity_xbt": 635.9793710123824,
+    "leverage": 1.2660780931592872
+   },
+   {
+    "transact_ts": "2021-05-19T12:00:00+00:00",
+    "gross_xbt": 1289.16192054,
+    "unreal_xbt": -94.42554470356156,
+    "equity_xbt": 531.3273617764385,
+    "leverage": 2.426304409074322
+   },
+   {
+    "transact_ts": "2021-05-19T20:00:00+00:00",
+    "gross_xbt": 384.34730458,
+    "unreal_xbt": -0.44228859115818026,
+    "equity_xbt": 303.53568680642303,
+    "leverage": 1.266234321979787
+   },
+   {
+    "transact_ts": "2021-05-20T04:00:00+00:00",
+    "gross_xbt": 0.23332985,
+    "unreal_xbt": 0.013642846531085372,
+    "equity_xbt": 356.95223724646456,
+    "leverage": 0.0006536724683389305
+   }
+  ]
+ }
+}

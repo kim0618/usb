@@ -1,0 +1,290 @@
+{
+ "rows": 1444583,
+ "exact_duplicate_rows": 0,
+ "duplicate_execid": 0,
+ "unparsed_transacttime": 0,
+ "unparsed_timestamp": 0,
+ "record_minus_transact_seconds_max": 25.055103,
+ "invalid_side": 0,
+ "empty_side_by_exectype": {
+  "Funding": 5368
+ },
+ "zero_or_negative_qty": 0,
+ "zero_price_rows": [
+  {
+   "execid": "a2a0cf6c-a0ba-a942-1e3e-b2a4a2d09cd2",
+   "symbol": "XBT7D_U110",
+   "exectype": "Settlement",
+   "text": "Settlement"
+  }
+ ],
+ "missing_symbol": 0,
+ "orders": {
+  "unique_orderid_trade": 23417,
+  "fills_per_order_median": 17.0,
+  "fills_per_order_p99": 630.6800000000003,
+  "zero_uuid_rows_by_text": {
+   "Funding": 5126,
+   "Liquidation": 28,
+   "Settlement": 8
+  },
+  "empty_orderid_rows_by_exectype": {
+   "Funding": 242
+  },
+  "orders_spanning_files": 1
+ },
+ "in_file_time_order": {
+  "aoa-execution-2018-03-01-2018-12-31.csv": {
+   "backward_steps": 751,
+   "max_backward_seconds": 774759.465722,
+   "note": "files are not strictly time-sorted; normalized data is sorted by transacttime, then file, then row"
+  },
+  "aoa-execution-2019-01-01-2020-12-31.csv": {
+   "backward_steps": 2055,
+   "max_backward_seconds": 1152486.613867,
+   "note": "files are not strictly time-sorted; normalized data is sorted by transacttime, then file, then row"
+  },
+  "aoa-execution-2021-01-01-2021-06-30.csv": {
+   "backward_steps": 808,
+   "max_backward_seconds": 2488791.428844,
+   "note": "files are not strictly time-sorted; normalized data is sorted by transacttime, then file, then row"
+  },
+  "aoa-execution-2021-07-01-2021-12-31.csv": {
+   "backward_steps": 706,
+   "max_backward_seconds": 747138.926986,
+   "note": "files are not strictly time-sorted; normalized data is sorted by transacttime, then file, then row"
+  }
+ },
+ "file_boundaries": [
+  {
+   "file": "aoa-execution-2018-03-01-2018-12-31.csv",
+   "first": "2018-03-05T07:28:18.063937+00:00",
+   "last": "2018-12-31T23:59:43.087249+00:00",
+   "rows": 164096,
+   "gap_from_previous_hours": null,
+   "overlap_with_previous": null
+  },
+  {
+   "file": "aoa-execution-2019-01-01-2020-12-31.csv",
+   "first": "2019-01-01T04:00:00+00:00",
+   "last": "2020-12-31T20:00:00+00:00",
+   "rows": 529632,
+   "gap_from_previous_hours": 4.004697986388889,
+   "overlap_with_previous": false
+  },
+  {
+   "file": "aoa-execution-2021-01-01-2021-06-30.csv",
+   "first": "2021-01-01T04:00:00+00:00",
+   "last": "2021-06-30T22:46:15.544750+00:00",
+   "rows": 457603,
+   "gap_from_previous_hours": 8.0,
+   "overlap_with_previous": false
+  },
+  {
+   "file": "aoa-execution-2021-07-01-2021-12-31.csv",
+   "first": "2021-07-01T01:26:22.279253+00:00",
+   "last": "2021-12-31T20:00:00+00:00",
+   "rows": 293252,
+   "gap_from_previous_hours": 2.6685373619444444,
+   "overlap_with_previous": false
+  }
+ ],
+ "fee_liquidity_sign_inconsistency": {
+  "maker_with_positive_rate": 2391,
+  "taker_with_negative_rate": 2330
+ },
+ "commission_rate_range": [
+  -0.0005,
+  0.0025
+ ],
+ "execcomm_vs_rate_check": {
+  "within_1_sat": 1.0,
+  "max_abs_diff_sat": 1.0
+ },
+ "execcost_identity": {
+  "ADAM18": {
+   "kind": "linear",
+   "p99_rel_dev": 2.220446049250313e-16
+  },
+  "ADAM19": {
+   "kind": "linear",
+   "p99_rel_dev": 2.220446049250313e-16
+  },
+  "ADAU18": {
+   "kind": "linear",
+   "p99_rel_dev": 2.220446049250313e-16
+  },
+  "ADAUSDT": {
+   "kind": "quanto",
+   "p99_rel_dev": 1.2878587085651462e-16
+  },
+  "ADAZ18": {
+   "kind": "linear",
+   "p99_rel_dev": 2.220446049250313e-16
+  },
+  "BCHM18": {
+   "kind": "linear",
+   "p99_rel_dev": 2.220446049250313e-16
+  },
+  "BCHM19": {
+   "kind": "linear",
+   "p99_rel_dev": 2.220446049250313e-16
+  },
+  "BCHU18": {
+   "kind": "linear",
+   "p99_rel_dev": 2.220446049250313e-16
+  },
+  "BCHUSD": {
+   "kind": "quanto",
+   "p99_rel_dev": 1.1102230246251565e-16
+  },
+  "BCHZ18": {
+   "kind": "linear",
+   "p99_rel_dev": 2.220446049250313e-16
+  },
+  "BNBUSDT": {
+   "kind": "quanto",
+   "p99_rel_dev": 1.1102230246251565e-16
+  },
+  "DOGEUSDT": {
+   "kind": "quanto",
+   "p99_rel_dev": 2.220446049250313e-16
+  },
+  "DOTUSDT": {
+   "kind": "quanto",
+   "p99_rel_dev": 2.220446049250313e-16
+  },
+  "EOSH21": {
+   "kind": "linear",
+   "p99_rel_dev": 2.220446049250313e-16
+  },
+  "EOSM18": {
+   "kind": "linear",
+   "p99_rel_dev": 2.220446049250313e-16
+  },
+  "EOSU18": {
+   "kind": "linear",
+   "p99_rel_dev": 2.220446049250313e-16
+  },
+  "EOSZ18": {
+   "kind": "linear",
+   "p99_rel_dev": 2.220446049250313e-16
+  },
+  "ETHM18": {
+   "kind": "linear",
+   "p99_rel_dev": 2.1316282072803005e-16
+  },
+  "ETHU18": {
+   "kind": "linear",
+   "p99_rel_dev": 2.220446049250313e-16
+  },
+  "ETHUSD": {
+   "kind": "quanto",
+   "p99_rel_dev": 2.220446049250313e-16
+  },
+  "ETHUSDM21": {
+   "kind": "quanto",
+   "p99_rel_dev": 0.0
+  },
+  "LINKUSDT": {
+   "kind": "quanto",
+   "p99_rel_dev": 2.220446049250313e-16
+  },
+  "LTCH19": {
+   "kind": "linear",
+   "p99_rel_dev": 2.220446049250313e-16
+  },
+  "LTCU18": {
+   "kind": "linear",
+   "p99_rel_dev": 2.220446049250313e-16
+  },
+  "LTCUSD": {
+   "kind": "quanto",
+   "p99_rel_dev": 1.1102230246251565e-16
+  },
+  "TRXH19": {
+   "kind": "linear",
+   "p99_rel_dev": 2.220446049250313e-16
+  },
+  "TRXU18": {
+   "kind": "linear",
+   "p99_rel_dev": 2.220446049250313e-16
+  },
+  "TRXU19": {
+   "kind": "linear",
+   "p99_rel_dev": 2.220446049250313e-16
+  },
+  "TRXZ18": {
+   "kind": "linear",
+   "p99_rel_dev": 2.220446049250313e-16
+  },
+  "XBT7D_U110": {
+   "kind": "linear",
+   "p99_rel_dev": 0.0
+  },
+  "XBTH19": {
+   "kind": "inverse",
+   "p99_rel_dev": 2.260516908658694e-05
+  },
+  "XBTH20": {
+   "kind": "inverse",
+   "p99_rel_dev": 5.106030636192749e-05
+  },
+  "XBTM18": {
+   "kind": "inverse",
+   "p99_rel_dev": 4.235764680719064e-05
+  },
+  "XBTM19": {
+   "kind": "inverse",
+   "p99_rel_dev": 3.252756430872406e-05
+  },
+  "XBTU18": {
+   "kind": "inverse",
+   "p99_rel_dev": 4.6504418152198963e-05
+  },
+  "XBTU21": {
+   "kind": "inverse",
+   "p99_rel_dev": 2.085000010421112e-06
+  },
+  "XBTUSD": {
+   "kind": "inverse",
+   "p99_rel_dev": 0.00024438409384353044
+  },
+  "XBTZ18": {
+   "kind": "inverse",
+   "p99_rel_dev": 2.2476922476903912e-05
+  },
+  "XRPH19": {
+   "kind": "linear",
+   "p99_rel_dev": 2.220446049250313e-16
+  },
+  "XRPH21": {
+   "kind": "linear",
+   "p99_rel_dev": 2.220446049250313e-16
+  },
+  "XRPM18": {
+   "kind": "linear",
+   "p99_rel_dev": 2.220446049250313e-16
+  },
+  "XRPM19": {
+   "kind": "linear",
+   "p99_rel_dev": 2.220446049250313e-16
+  },
+  "XRPU18": {
+   "kind": "linear",
+   "p99_rel_dev": 2.220446049250313e-16
+  },
+  "XRPUSD": {
+   "kind": "quanto",
+   "p99_rel_dev": 2.220446049250313e-16
+  },
+  "XRPZ18": {
+   "kind": "linear",
+   "p99_rel_dev": 2.220446049250313e-16
+  },
+  "YFIUSDTZ20": {
+   "kind": "quanto",
+   "p99_rel_dev": 0.0
+  }
+ }
+}

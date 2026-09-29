@@ -1,0 +1,70 @@
+{
+ "zip_path": "/mnt/c/Users/jinsung/Downloads/aoa_public_2021-12-31_with_letter.zip",
+ "zip_bytes": 113381570,
+ "zip_mtime": "2026-09-27T03:07:11.550353050+00:00",
+ "zip_sha256": "b6f1dc7aadf8209bf6c99fd516a06c0cabdc77c5f16f9fc8df92fdf1d8d01b9a",
+ "zip_check": {
+  "members": [
+   {
+    "name": "90일 서한.txt",
+    "compressed": 3634,
+    "uncompressed": 8798,
+    "ratio": 2.421,
+    "encrypted": false,
+    "utf8_name_flag": true
+   },
+   {
+    "name": "aoa-execution-2018-03-01-2018-12-31.csv",
+    "compressed": 13481282,
+    "uncompressed": 67993490,
+    "ratio": 5.044,
+    "encrypted": false,
+    "utf8_name_flag": false
+   },
+   {
+    "name": "aoa-execution-2019-01-01-2020-12-31.csv",
+    "compressed": 39952641,
+    "uncompressed": 219076835,
+    "ratio": 5.483,
+    "encrypted": false,
+    "utf8_name_flag": false
+   },
+   {
+    "name": "aoa-execution-2021-01-01-2021-06-30.csv",
+    "compressed": 36855069,
+    "uncompressed": 191784153,
+    "ratio": 5.204,
+    "encrypted": false,
+    "utf8_name_flag": false
+   },
+   {
+    "name": "aoa-execution-2021-07-01-2021-12-31.csv",
+    "compressed": 23003200,
+    "uncompressed": 122612445,
+    "ratio": 5.33,
+    "encrypted": false,
+    "utf8_name_flag": false
+   },
+   {
+    "name": "aoa-wallet-2018-03-01-2021-12-31.csv",
+    "compressed": 84850,
+    "uncompressed": 318791,
+    "ratio": 3.757,
+    "encrypted": false,
+    "utf8_name_flag": false
+   }
+  ],
+  "member_count": 6,
+  "total_compressed": 113380676,
+  "total_uncompressed": 601794512,
+  "overall_ratio": 5.308,
+  "path_traversal": [],
+  "absolute_paths": [],
+  "nested_paths": [],
+  "duplicates": 0,
+  "suspicious": [],
+  "safe": true,
+  "unsafe_reasons": []
+ },
+ "extracted_bytes": 601794512
+}

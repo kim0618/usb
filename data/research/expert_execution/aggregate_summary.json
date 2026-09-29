@@ -1,0 +1,2198 @@
+{
+ "total_rows": 1444583,
+ "rows_by_exectype": {
+  "Trade": 1439207,
+  "Funding": 5368,
+  "Settlement": 8
+ },
+ "trade_fills": 1439207,
+ "unique_orders_trade": 23417,
+ "unique_execids": 1444583,
+ "coverage": {
+  "first": "2018-03-05T07:28:18.063937+00:00",
+  "last": "2021-12-31T20:00:00+00:00"
+ },
+ "symbols": 46,
+ "by_symbol": [
+  {
+   "symbol": "XBTUSD",
+   "fills": 941007,
+   "xbt_value": 1621124.72136591,
+   "orders": 18398,
+   "share_fills": 0.6538371478182082,
+   "share_xbt": 0.9176267515906185
+  },
+  {
+   "symbol": "ETHUSD",
+   "fills": 327428,
+   "xbt_value": 115489.80925755,
+   "orders": 2655,
+   "share_fills": 0.22750584175869074,
+   "share_xbt": 0.0653722302263907
+  },
+  {
+   "symbol": "XRPUSD",
+   "fills": 55495,
+   "xbt_value": 4464.24465914,
+   "orders": 254,
+   "share_fills": 0.03855942890772488,
+   "share_xbt": 0.0025269556813746026
+  },
+  {
+   "symbol": "XBTU21",
+   "fills": 25747,
+   "xbt_value": 3902.35011818,
+   "orders": 70,
+   "share_fills": 0.017889712876604964,
+   "share_xbt": 0.002208899053428549
+  },
+  {
+   "symbol": "LTCUSD",
+   "fills": 17201,
+   "xbt_value": 1049.07770992,
+   "orders": 71,
+   "share_fills": 0.01195172063504416,
+   "share_xbt": 0.0005938233859692827
+  },
+  {
+   "symbol": "DOTUSDT",
+   "fills": 11351,
+   "xbt_value": 598.9744460000001,
+   "orders": 34,
+   "share_fills": 0.007886982206173261,
+   "share_xbt": 0.0003390454589488122
+  },
+  {
+   "symbol": "DOGEUSDT",
+   "fills": 11183,
+   "xbt_value": 645.58609489,
+   "orders": 27,
+   "share_fills": 0.007770251256421071,
+   "share_xbt": 0.00036542966948702096
+  },
+  {
+   "symbol": "BCHUSD",
+   "fills": 9217,
+   "xbt_value": 718.0751383,
+   "orders": 31,
+   "share_fills": 0.006404221213487706,
+   "share_xbt": 0.0004064616052496091
+  },
+  {
+   "symbol": "LINKUSDT",
+   "fills": 6381,
+   "xbt_value": 588.9278707,
+   "orders": 39,
+   "share_fills": 0.004433691609337642,
+   "share_xbt": 0.0003333586625317038
+  },
+  {
+   "symbol": "XBTH20",
+   "fills": 5922,
+   "xbt_value": 5441.63489561,
+   "orders": 60,
+   "share_fills": 0.0041147659787646946,
+   "share_xbt": 0.003080200854869131
+  },
+  {
+   "symbol": "ETHUSDM21",
+   "fills": 5356,
+   "xbt_value": 427.0098516,
+   "orders": 27,
+   "share_fills": 0.0037214938504329122,
+   "share_xbt": 0.00024170605620692237
+  },
+  {
+   "symbol": "BNBUSDT",
+   "fills": 4785,
+   "xbt_value": 212.08705521,
+   "orders": 6,
+   "share_fills": 0.0033247475866918378,
+   "share_xbt": 0.00012005045198668879
+  },
+  {
+   "symbol": "XRPZ18",
+   "fills": 2849,
+   "xbt_value": 1973.21967133,
+   "orders": 207,
+   "share_fills": 0.0019795623562142207,
+   "share_xbt": 0.0011169277312924036
+  },
+  {
+   "symbol": "BCHZ18",
+   "fills": 2467,
+   "xbt_value": 3317.45239,
+   "orders": 281,
+   "share_fills": 0.0017141384109443604,
+   "share_xbt": 0.0018778216259803242
+  },
+  {
+   "symbol": "EOSH21",
+   "fills": 2020,
+   "xbt_value": 61.2958087,
+   "orders": 3,
+   "share_fills": 0.0014035507053537122,
+   "share_xbt": 3.4696080494108586e-05
+  },
+  {
+   "symbol": "XRPU18",
+   "fills": 2000,
+   "xbt_value": 1689.56294799,
+   "orders": 226,
+   "share_fills": 0.0013896541637165468,
+   "share_xbt": 0.0009563657497404785
+  },
+  {
+   "symbol": "XRPH21",
+   "fills": 1809,
+   "xbt_value": 222.30591387,
+   "orders": 30,
+   "share_fills": 0.0012569421910816165,
+   "share_xbt": 0.0001258347682416643
+  },
+  {
+   "symbol": "EOSU18",
+   "fills": 1085,
+   "xbt_value": 805.8788217,
+   "orders": 253,
+   "share_fills": 0.0007538873838162266,
+   "share_xbt": 0.00045616229003600013
+  },
+  {
+   "symbol": "TRXU18",
+   "fills": 776,
+   "xbt_value": 397.42968926,
+   "orders": 114,
+   "share_fills": 0.0005391858155220201,
+   "share_xbt": 0.00022496240414743922
+  },
+  {
+   "symbol": "ADAU18",
+   "fills": 654,
+   "xbt_value": 254.48972397,
+   "orders": 129,
+   "share_fills": 0.00045441691153531074,
+   "share_xbt": 0.0001440521976143957
+  },
+  {
+   "symbol": "XBTH19",
+   "fills": 531,
+   "xbt_value": 483.41755225,
+   "orders": 17,
+   "share_fills": 0.00036895318046674316,
+   "share_xbt": 0.0002736352559964013
+  },
+  {
+   "symbol": "ADAM18",
+   "fills": 526,
+   "xbt_value": 325.79830651,
+   "orders": 149,
+   "share_fills": 0.0003654790450574518,
+   "share_xbt": 0.00018441594143638764
+  },
+  {
+   "symbol": "TRXU19",
+   "fills": 497,
+   "xbt_value": 130.29726124,
+   "orders": 6,
+   "share_fills": 0.00034532905968356187,
+   "share_xbt": 7.37538888877558e-05
+  },
+  {
+   "symbol": "ADAUSDT",
+   "fills": 485,
+   "xbt_value": 66.1443979,
+   "orders": 6,
+   "share_fills": 0.0003369911347012626,
+   "share_xbt": 3.744059181933506e-05
+  },
+  {
+   "symbol": "EOSZ18",
+   "fills": 384,
+   "xbt_value": 234.635095,
+   "orders": 31,
+   "share_fills": 0.00026681359943357696,
+   "share_xbt": 0.0001328136183455365
+  },
+  {
+   "symbol": "EOSM18",
+   "fills": 276,
+   "xbt_value": 188.2379221,
+   "orders": 55,
+   "share_fills": 0.00019177227459288344,
+   "share_xbt": 0.00010655081049979427
+  },
+  {
+   "symbol": "ADAZ18",
+   "fills": 253,
+   "xbt_value": 107.11891159,
+   "orders": 22,
+   "share_fills": 0.00017579125171014316,
+   "share_xbt": 6.063393986949618e-05
+  },
+  {
+   "symbol": "XBTM18",
+   "fills": 212,
+   "xbt_value": 120.91091292,
+   "orders": 43,
+   "share_fills": 0.00014730334135395394,
+   "share_xbt": 6.844080951473724e-05
+  },
+  {
+   "symbol": "XBTZ18",
+   "fills": 179,
+   "xbt_value": 469.2838136,
+   "orders": 17,
+   "share_fills": 0.00012437404765263093,
+   "share_xbt": 0.00026563494823827734
+  },
+  {
+   "symbol": "XBTM19",
+   "fills": 169,
+   "xbt_value": 166.340568,
+   "orders": 3,
+   "share_fills": 0.0001174257768340482,
+   "share_xbt": 9.415596040196697e-05
+  },
+  {
+   "symbol": "ETHU18",
+   "fills": 158,
+   "xbt_value": 133.23118,
+   "orders": 39,
+   "share_fills": 0.00010978267893360718,
+   "share_xbt": 7.541461388052572e-05
+  },
+  {
+   "symbol": "TRXZ18",
+   "fills": 147,
+   "xbt_value": 71.57903552,
+   "orders": 11,
+   "share_fills": 0.00010213958103316618,
+   "share_xbt": 4.051683191337971e-05
+  },
+  {
+   "symbol": "XRPM18",
+   "fills": 138,
+   "xbt_value": 123.05077288,
+   "orders": 27,
+   "share_fills": 9.588613729644172e-05,
+   "share_xbt": 6.965206286130219e-05
+  },
+  {
+   "symbol": "LTCH19",
+   "fills": 109,
+   "xbt_value": 169.64117,
+   "orders": 7,
+   "share_fills": 7.573615192255179e-05,
+   "share_xbt": 9.602424397795339e-05
+  },
+  {
+   "symbol": "XRPH19",
+   "fills": 72,
+   "xbt_value": 81.72524647,
+   "orders": 4,
+   "share_fills": 5.002754989379568e-05,
+   "share_xbt": 4.626002642043588e-05
+  },
+  {
+   "symbol": "BCHM18",
+   "fills": 70,
+   "xbt_value": 84.9247,
+   "orders": 30,
+   "share_fills": 4.8637895730079134e-05,
+   "share_xbt": 4.807105558488249e-05
+  },
+  {
+   "symbol": "XRPM19",
+   "fills": 59,
+   "xbt_value": 39.162,
+   "orders": 2,
+   "share_fills": 4.0994797829638124e-05,
+   "share_xbt": 2.2167386859360914e-05
+  },
+  {
+   "symbol": "BCHM19",
+   "fills": 46,
+   "xbt_value": 124.65,
+   "orders": 3,
+   "share_fills": 3.1962045765480574e-05,
+   "share_xbt": 7.055729462283178e-05
+  },
+  {
+   "symbol": "TRXH19",
+   "fills": 38,
+   "xbt_value": 25.24919129,
+   "orders": 5,
+   "share_fills": 2.6403429110614386e-05,
+   "share_xbt": 1.4292135008718555e-05
+  },
+  {
+   "symbol": "XBTU18",
+   "fills": 36,
+   "xbt_value": 35.53586625,
+   "orders": 4,
+   "share_fills": 2.501377494689784e-05,
+   "share_xbt": 2.011483822445884e-05
+  },
+  {
+   "symbol": "BCHU18",
+   "fills": 33,
+   "xbt_value": 28.9842,
+   "orders": 6,
+   "share_fills": 2.292929370132302e-05,
+   "share_xbt": 1.6406311582888734e-05
+  },
+  {
+   "symbol": "ADAM19",
+   "fills": 17,
+   "xbt_value": 18.493724620000002,
+   "orders": 2,
+   "share_fills": 1.1812060391590647e-05,
+   "share_xbt": 1.046824850932096e-05
+  },
+  {
+   "symbol": "LTCU18",
+   "fills": 12,
+   "xbt_value": 22.81293,
+   "orders": 4,
+   "share_fills": 8.33792498229928e-06,
+   "share_xbt": 1.2913105681668975e-05
+  },
+  {
+   "symbol": "XBT7D_U110",
+   "fills": 11,
+   "xbt_value": 0.08911,
+   "orders": 4,
+   "share_fills": 7.643097900441007e-06,
+   "share_xbt": 5.044011651697183e-08
+  },
+  {
+   "symbol": "YFIUSDTZ20",
+   "fills": 11,
+   "xbt_value": 10.5219651,
+   "orders": 5,
+   "share_fills": 7.643097900441007e-06,
+   "share_xbt": 5.955887617904963e-06
+  },
+  {
+   "symbol": "ETHM18",
+   "fills": 5,
+   "xbt_value": 3.3994,
+   "orders": 4,
+   "share_fills": 3.4741354092913666e-06,
+   "share_xbt": 1.9242075197822248e-06
+  }
+ ],
+ "by_base_asset": [
+  {
+   "base": "BTC",
+   "fills": 973814,
+   "xbt_value": 1631744.28420272,
+   "share_fills": 0.6766323398927326,
+   "share_xbt": 0.9236378837514084
+  },
+  {
+   "base": "ETH",
+   "fills": 332947,
+   "xbt_value": 116053.44968915,
+   "share_fills": 0.23134059242346652,
+   "share_xbt": 0.06569127510399793
+  },
+  {
+   "base": "OTHER",
+   "fills": 132446,
+   "xbt_value": 18851.6347712,
+   "share_fills": 0.09202706768380087,
+   "share_xbt": 0.010670841144593487
+  }
+ ],
+ "by_year": [
+  {
+   "year": 2018,
+   "fills": 163142,
+   "orders": 11855,
+   "xbt_value": 313680.00221088
+  },
+  {
+   "year": 2019,
+   "fills": 211699,
+   "orders": 3858,
+   "xbt_value": 452288.56378526
+  },
+  {
+   "year": 2020,
+   "fills": 315682,
+   "orders": 3761,
+   "xbt_value": 605412.13607496
+  },
+  {
+   "year": 2021,
+   "fills": 748684,
+   "orders": 3945,
+   "xbt_value": 395268.66659197
+  }
+ ],
+ "by_month_fills": {
+  "2018-03": 6006,
+  "2018-04": 13179,
+  "2018-05": 5146,
+  "2018-06": 6854,
+  "2018-07": 10105,
+  "2018-08": 14962,
+  "2018-09": 17263,
+  "2018-10": 4586,
+  "2018-11": 34866,
+  "2018-12": 50175,
+  "2019-01": 7223,
+  "2019-02": 9597,
+  "2019-03": 6046,
+  "2019-04": 29339,
+  "2019-05": 47510,
+  "2019-06": 13300,
+  "2019-07": 19316,
+  "2019-08": 20769,
+  "2019-09": 12085,
+  "2019-10": 7838,
+  "2019-11": 14382,
+  "2019-12": 24294,
+  "2020-01": 24589,
+  "2020-02": 30864,
+  "2020-03": 35132,
+  "2020-04": 39562,
+  "2020-05": 19818,
+  "2020-06": 14226,
+  "2020-07": 13689,
+  "2020-08": 32740,
+  "2020-09": 28166,
+  "2020-10": 19144,
+  "2020-11": 36287,
+  "2020-12": 21465,
+  "2021-01": 30848,
+  "2021-02": 35491,
+  "2021-03": 17928,
+  "2021-04": 35343,
+  "2021-05": 146466,
+  "2021-06": 190450,
+  "2021-07": 39839,
+  "2021-08": 91375,
+  "2021-09": 87674,
+  "2021-10": 19389,
+  "2021-11": 50623,
+  "2021-12": 3258
+ },
+ "side": {
+  "Sell": 729600,
+  "Buy": 709607
+ },
+ "side_xbt": {
+  "Buy": 883566.11770023,
+  "Sell": 883083.25096284
+ },
+ "ordtype_fills": {
+  "Limit": 1430266,
+  "Stop": 4773,
+  "Market": 4067,
+  "StopLimit": 101
+ },
+ "ordtype_xbt": {
+  "Limit": 1758403.99247903,
+  "Market": 3264.96055849,
+  "Stop": 4352.0697298000005,
+  "StopLimit": 628.3458957500001
+ },
+ "ordtype_by_liquidity_fills": {
+  "Limit|AddedLiquidity": 966510,
+  "Limit|RemovedLiquidity": 463756,
+  "Market|RemovedLiquidity": 4067,
+  "Stop|RemovedLiquidity": 4773,
+  "StopLimit|AddedLiquidity": 97,
+  "StopLimit|RemovedLiquidity": 4
+ },
+ "execinst_fills": {
+  "": 1260230,
+  "ParticipateDoNotInitiate": 163113,
+  "[\"ParticipateDoNotInitiate\"]": 7944,
+  "LastPrice": 3660,
+  "Close": 2982,
+  "IndexPrice": 681,
+  "Close,LastPrice": 529,
+  "[\"Close\"]": 68
+ },
+ "timeinforce_fills": {
+  "GoodTillCancel": 1430308,
+  "ImmediateOrCancel": 8868,
+  "FillOrKill": 31
+ },
+ "maker_taker_all": {
+  "fills": 1439207,
+  "maker_fills": 966607,
+  "taker_fills": 472600,
+  "unknown_fills": 0,
+  "maker_share_fills": 0.67162472111378,
+  "maker_share_xbt": 0.7078451598767385,
+  "maker_share_contracts": 0.7336727868811798,
+  "fee_paid_xbt": 380.30875186,
+  "rebate_received_xbt": 302.30862215,
+  "net_fee_xbt": 78.00012971,
+  "net_fee_bp_of_value": 0.4415144911807111
+ },
+ "maker_taker_by_year": {
+  "2018": {
+   "fills": 163142,
+   "maker_fills": 80123,
+   "taker_fills": 83019,
+   "unknown_fills": 0,
+   "maker_share_fills": 0.49112429662502605,
+   "maker_share_xbt": 0.6400331436983024,
+   "maker_share_contracts": 0.6664934758822669,
+   "fee_paid_xbt": 85.87250905,
+   "rebate_received_xbt": 50.26480862,
+   "net_fee_xbt": 35.60770043,
+   "net_fee_bp_of_value": 1.1351600414125775
+  },
+  "2019": {
+   "fills": 211699,
+   "maker_fills": 95317,
+   "taker_fills": 116382,
+   "unknown_fills": 0,
+   "maker_share_fills": 0.4502477574291801,
+   "maker_share_xbt": 0.6939688508191485,
+   "maker_share_contracts": 0.679394952133014,
+   "fee_paid_xbt": 103.03638109,
+   "rebate_received_xbt": 78.90238145,
+   "net_fee_xbt": 24.13399964,
+   "net_fee_bp_of_value": 0.5335973883137685
+  },
+  "2020": {
+   "fills": 315682,
+   "maker_fills": 148113,
+   "taker_fills": 167569,
+   "unknown_fills": 0,
+   "maker_share_fills": 0.4691841790155916,
+   "maker_share_xbt": 0.6857289828089072,
+   "maker_share_contracts": 0.7063695855599998,
+   "fee_paid_xbt": 143.69139818,
+   "rebate_received_xbt": 103.45502372,
+   "net_fee_xbt": 40.23637446,
+   "net_fee_bp_of_value": 0.6646112963784074
+  },
+  "2021": {
+   "fills": 748684,
+   "maker_fills": 643054,
+   "taker_fills": 105630,
+   "unknown_fills": 0,
+   "maker_share_fills": 0.8589124383585064,
+   "maker_share_xbt": 0.8114121125332215,
+   "maker_share_contracts": 0.7723411432102101,
+   "fee_paid_xbt": 47.70846354,
+   "rebate_received_xbt": 69.68640836,
+   "net_fee_xbt": -21.97794482,
+   "net_fee_bp_of_value": -0.5560254752671177
+  }
+ },
+ "maker_taker_by_action": {
+  "ADD": {
+   "fills": 713572,
+   "maker_fills": 495030,
+   "taker_fills": 218542,
+   "unknown_fills": 0,
+   "maker_share_fills": 0.6937351801920479,
+   "maker_share_xbt": 0.7236202722202257,
+   "maker_share_contracts": 0.7495171289230238,
+   "fee_paid_xbt": 176.98624818,
+   "rebate_received_xbt": 150.8262204,
+   "net_fee_xbt": 26.16002778,
+   "net_fee_bp_of_value": 0.3024473734816822
+  },
+  "CLOSE": {
+   "fills": 1175,
+   "maker_fills": 503,
+   "taker_fills": 672,
+   "unknown_fills": 0,
+   "maker_share_fills": 0.4280851063829787,
+   "maker_share_xbt": 0.644018225917975,
+   "maker_share_contracts": 0.6729402697131648,
+   "fee_paid_xbt": 1.70233057,
+   "rebate_received_xbt": 0.9390521,
+   "net_fee_xbt": 0.76327847,
+   "net_fee_bp_of_value": 1.3316286692509751
+  },
+  "OPEN": {
+   "fills": 1184,
+   "maker_fills": 505,
+   "taker_fills": 679,
+   "unknown_fills": 0,
+   "maker_share_fills": 0.4265202702702703,
+   "maker_share_xbt": 0.6718974722312492,
+   "maker_share_contracts": 0.7436537401881392,
+   "fee_paid_xbt": 1.43823838,
+   "rebate_received_xbt": 0.97491768,
+   "net_fee_xbt": 0.4633207,
+   "net_fee_bp_of_value": 0.8472183892042467
+  },
+  "REDUCE": {
+   "fills": 721275,
+   "maker_fills": 469596,
+   "taker_fills": 251679,
+   "unknown_fills": 0,
+   "maker_share_fills": 0.651063741291463,
+   "maker_share_xbt": 0.6905662193734692,
+   "maker_share_contracts": 0.7175081289057906,
+   "fee_paid_xbt": 196.30007368,
+   "rebate_received_xbt": 144.89606152,
+   "net_fee_xbt": 51.40401216,
+   "net_fee_bp_of_value": 0.5932946920869998
+  },
+  "REVERSE": {
+   "fills": 2001,
+   "maker_fills": 973,
+   "taker_fills": 1028,
+   "unknown_fills": 0,
+   "maker_share_fills": 0.4862568715642179,
+   "maker_share_xbt": 0.7862497677000659,
+   "maker_share_contracts": 0.7659455874587157,
+   "fee_paid_xbt": 3.88186105,
+   "rebate_received_xbt": 4.67237045,
+   "net_fee_xbt": -0.7905094,
+   "net_fee_bp_of_value": -0.32817888370542825
+  }
+ },
+ "maker_taker_by_year_action": {
+  "2018|ADD": {
+   "fills": 72979,
+   "maker_fills": 38666,
+   "taker_fills": 34313,
+   "unknown_fills": 0,
+   "maker_share_fills": 0.5298236478987106,
+   "maker_share_xbt": 0.66235822809664,
+   "maker_share_contracts": 0.6851874879482914,
+   "fee_paid_xbt": 36.5798141,
+   "rebate_received_xbt": 24.03892332,
+   "net_fee_xbt": 12.54089078,
+   "net_fee_bp_of_value": 0.8672498093798984
+  },
+  "2018|CLOSE": {
+   "fills": 1042,
+   "maker_fills": 411,
+   "taker_fills": 631,
+   "unknown_fills": 0,
+   "maker_share_fills": 0.3944337811900192,
+   "maker_share_xbt": 0.5893782452823452,
+   "maker_share_contracts": 0.6363123050022351,
+   "fee_paid_xbt": 1.64210806,
+   "rebate_received_xbt": 0.71934869,
+   "net_fee_xbt": 0.92275937,
+   "net_fee_bp_of_value": 1.916099554943687
+  },
+  "2018|OPEN": {
+   "fills": 1047,
+   "maker_fills": 449,
+   "taker_fills": 598,
+   "unknown_fills": 0,
+   "maker_share_fills": 0.4288443170964661,
+   "maker_share_xbt": 0.6832213266742804,
+   "maker_share_contracts": 0.7465189967688679,
+   "fee_paid_xbt": 1.16059438,
+   "rebate_received_xbt": 0.82318411,
+   "net_fee_xbt": 0.33741027,
+   "net_fee_bp_of_value": 0.7404271798767305
+  },
+  "2018|REDUCE": {
+   "fills": 86920,
+   "maker_fills": 39871,
+   "taker_fills": 47049,
+   "unknown_fills": 0,
+   "maker_share_fills": 0.45870915784629546,
+   "maker_share_xbt": 0.6029476121840305,
+   "maker_share_contracts": 0.63287965554396,
+   "fee_paid_xbt": 44.00065879,
+   "rebate_received_xbt": 21.71708892,
+   "net_fee_xbt": 22.28356987,
+   "net_fee_bp_of_value": 1.5441379676982065
+  },
+  "2018|REVERSE": {
+   "fills": 1154,
+   "maker_fills": 726,
+   "taker_fills": 428,
+   "unknown_fills": 0,
+   "maker_share_fills": 0.6291161178509532,
+   "maker_share_xbt": 0.7810654062566468,
+   "maker_share_contracts": 0.7924564552686673,
+   "fee_paid_xbt": 2.48933372,
+   "rebate_received_xbt": 2.96626358,
+   "net_fee_xbt": -0.47692986,
+   "net_fee_bp_of_value": -0.30987214930646845
+  },
+  "2019|ADD": {
+   "fills": 101910,
+   "maker_fills": 46562,
+   "taker_fills": 55348,
+   "unknown_fills": 0,
+   "maker_share_fills": 0.45689333725836523,
+   "maker_share_xbt": 0.6933567742008336,
+   "maker_share_contracts": 0.6773429919366712,
+   "fee_paid_xbt": 50.79385041,
+   "rebate_received_xbt": 38.73346259,
+   "net_fee_xbt": 12.06038782,
+   "net_fee_bp_of_value": 0.5422578448336621
+  },
+  "2019|CLOSE": {
+   "fills": 26,
+   "maker_fills": 13,
+   "taker_fills": 13,
+   "unknown_fills": 0,
+   "maker_share_fills": 0.5,
+   "maker_share_xbt": 0.79595135563138,
+   "maker_share_contracts": 0.8459430680330668,
+   "fee_paid_xbt": 0.04408837,
+   "rebate_received_xbt": 0.05570075,
+   "net_fee_xbt": -0.01161238,
+   "net_fee_bp_of_value": -0.5765286291158758
+  },
+  "2019|OPEN": {
+   "fills": 28,
+   "maker_fills": 16,
+   "taker_fills": 12,
+   "unknown_fills": 0,
+   "maker_share_fills": 0.5714285714285714,
+   "maker_share_xbt": 0.9767810096628181,
+   "maker_share_contracts": 0.9459628980768325,
+   "fee_paid_xbt": 0.01310341,
+   "rebate_received_xbt": 0.10006384,
+   "net_fee_xbt": -0.08696043,
+   "net_fee_bp_of_value": -2.4761670244761578
+  },
+  "2019|REDUCE": {
+   "fills": 109299,
+   "maker_fills": 48623,
+   "taker_fills": 60676,
+   "unknown_fills": 0,
+   "maker_share_fills": 0.4448622585751013,
+   "maker_share_xbt": 0.6915813233625948,
+   "maker_share_contracts": 0.6784482943191087,
+   "fee_paid_xbt": 51.60707943,
+   "rebate_received_xbt": 39.1238557,
+   "net_fee_xbt": 12.48322373,
+   "net_fee_bp_of_value": 0.5548161554684589
+  },
+  "2019|REVERSE": {
+   "fills": 436,
+   "maker_fills": 103,
+   "taker_fills": 333,
+   "unknown_fills": 0,
+   "maker_share_fills": 0.23623853211009174,
+   "maker_share_xbt": 0.8218502564792403,
+   "maker_share_contracts": 0.81462795618628,
+   "fee_paid_xbt": 0.57825947,
+   "rebate_received_xbt": 0.88929857,
+   "net_fee_xbt": -0.3110391,
+   "net_fee_bp_of_value": -0.7186835044937843
+  },
+  "2020|ADD": {
+   "fills": 156369,
+   "maker_fills": 80190,
+   "taker_fills": 76179,
+   "unknown_fills": 0,
+   "maker_share_fills": 0.512825432150874,
+   "maker_share_xbt": 0.7107454308687128,
+   "maker_share_contracts": 0.7337307415521048,
+   "fee_paid_xbt": 66.86554054,
+   "rebate_received_xbt": 52.91003187,
+   "net_fee_xbt": 13.95550867,
+   "net_fee_bp_of_value": 0.4639526045766279
+  },
+  "2020|CLOSE": {
+   "fills": 36,
+   "maker_fills": 27,
+   "taker_fills": 9,
+   "unknown_fills": 0,
+   "maker_share_fills": 0.75,
+   "maker_share_xbt": 0.9754751930574791,
+   "maker_share_contracts": 0.979609368299803,
+   "fee_paid_xbt": 0.0110215,
+   "rebate_received_xbt": 0.14612734,
+   "net_fee_xbt": -0.13510584,
+   "net_fee_bp_of_value": -2.25475033429391
+  },
+  "2020|OPEN": {
+   "fills": 39,
+   "maker_fills": 20,
+   "taker_fills": 19,
+   "unknown_fills": 0,
+   "maker_share_fills": 0.5128205128205128,
+   "maker_share_xbt": 0.39283756220314453,
+   "maker_share_contracts": 0.5478960880920192,
+   "fee_paid_xbt": 0.22892484,
+   "rebate_received_xbt": 0.04666025,
+   "net_fee_xbt": 0.18226459,
+   "net_fee_bp_of_value": 3.705509673602331
+  },
+  "2020|REDUCE": {
+   "fills": 158974,
+   "maker_fills": 67803,
+   "taker_fills": 91171,
+   "unknown_fills": 0,
+   "maker_share_fills": 0.42650370500836615,
+   "maker_share_xbt": 0.6593771297612873,
+   "maker_share_contracts": 0.6782852880240265,
+   "fee_paid_xbt": 76.05647237,
+   "rebate_received_xbt": 49.75153832,
+   "net_fee_xbt": 26.30493405,
+   "net_fee_bp_of_value": 0.8756155654442771
+  },
+  "2020|REVERSE": {
+   "fills": 264,
+   "maker_fills": 73,
+   "taker_fills": 191,
+   "unknown_fills": 0,
+   "maker_share_fills": 0.2765151515151515,
+   "maker_share_xbt": 0.8022230558111143,
+   "maker_share_contracts": 0.7495122035081406,
+   "fee_paid_xbt": 0.52943893,
+   "rebate_received_xbt": 0.60066594,
+   "net_fee_xbt": -0.07122701,
+   "net_fee_bp_of_value": -0.2291300407973827
+  },
+  "2021|ADD": {
+   "fills": 382314,
+   "maker_fills": 329612,
+   "taker_fills": 52702,
+   "unknown_fills": 0,
+   "maker_share_fills": 0.8621499605036698,
+   "maker_share_xbt": 0.8223477590486944,
+   "maker_share_contracts": 0.7852072549680259,
+   "fee_paid_xbt": 22.74704313,
+   "rebate_received_xbt": 35.14380262,
+   "net_fee_xbt": -12.39675949,
+   "net_fee_bp_of_value": -0.6288528176292785
+  },
+  "2021|CLOSE": {
+   "fills": 71,
+   "maker_fills": 52,
+   "taker_fills": 19,
+   "unknown_fills": 0,
+   "maker_share_fills": 0.7323943661971831,
+   "maker_share_xbt": 0.9378015553304524,
+   "maker_share_contracts": 0.8788448111710568,
+   "fee_paid_xbt": 0.00511264,
+   "rebate_received_xbt": 0.01787532,
+   "net_fee_xbt": -0.01276268,
+   "net_fee_bp_of_value": -1.1052729591887938
+  },
+  "2021|OPEN": {
+   "fills": 70,
+   "maker_fills": 20,
+   "taker_fills": 50,
+   "unknown_fills": 0,
+   "maker_share_fills": 0.2857142857142857,
+   "maker_share_xbt": 0.3602074957874838,
+   "maker_share_contracts": 0.8109923894964971,
+   "fee_paid_xbt": 0.03561575,
+   "rebate_received_xbt": 0.00500948,
+   "net_fee_xbt": 0.03060627,
+   "net_fee_bp_of_value": 4.45530648267887
+  },
+  "2021|REDUCE": {
+   "fills": 366082,
+   "maker_fills": 313299,
+   "taker_fills": 52783,
+   "unknown_fills": 0,
+   "maker_share_fills": 0.8558164564223316,
+   "maker_share_xbt": 0.8013266168952996,
+   "maker_share_contracts": 0.7599564817856939,
+   "fee_paid_xbt": 24.63586309,
+   "rebate_received_xbt": 34.30357858,
+   "net_fee_xbt": -9.66771549,
+   "net_fee_bp_of_value": -0.49151673158392106
+  },
+  "2021|REVERSE": {
+   "fills": 147,
+   "maker_fills": 71,
+   "taker_fills": 76,
+   "unknown_fills": 0,
+   "maker_share_fills": 0.48299319727891155,
+   "maker_share_xbt": 0.6878948524115749,
+   "maker_share_contracts": 0.6964753349934697,
+   "fee_paid_xbt": 0.28482893,
+   "rebate_received_xbt": 0.21614236,
+   "net_fee_xbt": 0.06868657,
+   "net_fee_bp_of_value": 0.5450916514492636
+  }
+ },
+ "maker_taker_xbtusd_by_year": {
+  "2018": {
+   "fills": 132752,
+   "maker_fills": 63099,
+   "taker_fills": 69653,
+   "unknown_fills": 0,
+   "maker_share_fills": 0.47531487284560686,
+   "maker_share_xbt": 0.6371973054513874,
+   "maker_share_contracts": 0.6456227887710158,
+   "fee_paid_xbt": 74.06462386,
+   "rebate_received_xbt": 43.72454182,
+   "net_fee_xbt": 30.34008204,
+   "net_fee_bp_of_value": 1.0663010124778602
+  },
+  "2019": {
+   "fills": 207908,
+   "maker_fills": 92910,
+   "taker_fills": 114998,
+   "unknown_fills": 0,
+   "maker_share_fills": 0.44688035092444733,
+   "maker_share_xbt": 0.6935757312596255,
+   "maker_share_contracts": 0.6790846849524709,
+   "fee_paid_xbt": 101.8415511,
+   "rebate_received_xbt": 77.83903297,
+   "net_fee_xbt": 24.00251813,
+   "net_fee_bp_of_value": 0.5367925120307904
+  },
+  "2020": {
+   "fills": 302878,
+   "maker_fills": 136613,
+   "taker_fills": 166265,
+   "unknown_fills": 0,
+   "maker_share_fills": 0.45104959752771745,
+   "maker_share_xbt": 0.6841813754473156,
+   "maker_share_contracts": 0.7040533290617607,
+   "fee_paid_xbt": 142.02616743,
+   "rebate_received_xbt": 101.70759922,
+   "net_fee_xbt": 40.31856821,
+   "net_fee_bp_of_value": 0.6762569128105476
+  },
+  "2021": {
+   "fills": 297469,
+   "maker_fills": 211768,
+   "taker_fills": 85701,
+   "unknown_fills": 0,
+   "maker_share_fills": 0.7118993911970659,
+   "maker_share_xbt": 0.7771248373225857,
+   "maker_share_contracts": 0.7707767150469697,
+   "fee_paid_xbt": 42.29333812,
+   "rebate_received_xbt": 51.80435636,
+   "net_fee_xbt": -9.51101824,
+   "net_fee_bp_of_value": -0.3243425267633999
+  }
+ },
+ "events": {
+  "funding_rows": 5368,
+  "funding_net_paid_xbt": -149.57544093,
+  "settlement_rows": 8,
+  "liquidation_fills": 59,
+  "liquidation_by_symbol_year": {
+   "BCHZ18|2018": 1,
+   "ETHUSD|2018": 33,
+   "XBTM18|2018": 2,
+   "XBTUSD|2018": 17,
+   "XBTUSD|2019": 1,
+   "XBTUSD|2020": 1,
+   "XRPU18|2018": 4
+  },
+  "liquidation_xbt_value": 484.18769634,
+  "stop_triggered_fills": 4870,
+  "position_close_button_fills": 3050
+ },
+ "contract_specs": {
+  "ADAM18": {
+   "symbol": "ADAM18",
+   "kind": "linear",
+   "multiplier": 100000000.0,
+   "quote_currency": "XBT",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 2.220446049250313e-16,
+   "fills_checked": 526,
+   "perpetual": false
+  },
+  "ADAM19": {
+   "symbol": "ADAM19",
+   "kind": "linear",
+   "multiplier": 100000000.0,
+   "quote_currency": "XBT",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 2.220446049250313e-16,
+   "fills_checked": 17,
+   "perpetual": false
+  },
+  "ADAU18": {
+   "symbol": "ADAU18",
+   "kind": "linear",
+   "multiplier": 100000000.0,
+   "quote_currency": "XBT",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 2.220446049250313e-16,
+   "fills_checked": 654,
+   "perpetual": false
+  },
+  "ADAUSDT": {
+   "symbol": "ADAUSDT",
+   "kind": "quanto",
+   "multiplier": 1000000.0,
+   "quote_currency": "USDT",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 1.2878587085651462e-16,
+   "fills_checked": 485,
+   "perpetual": true
+  },
+  "ADAZ18": {
+   "symbol": "ADAZ18",
+   "kind": "linear",
+   "multiplier": 100000000.0,
+   "quote_currency": "XBT",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 2.220446049250313e-16,
+   "fills_checked": 253,
+   "perpetual": false
+  },
+  "BCHM18": {
+   "symbol": "BCHM18",
+   "kind": "linear",
+   "multiplier": 100000000.0,
+   "quote_currency": "XBT",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 2.220446049250313e-16,
+   "fills_checked": 70,
+   "perpetual": false
+  },
+  "BCHM19": {
+   "symbol": "BCHM19",
+   "kind": "linear",
+   "multiplier": 100000000.0,
+   "quote_currency": "XBT",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 2.220446049250313e-16,
+   "fills_checked": 46,
+   "perpetual": false
+  },
+  "BCHU18": {
+   "symbol": "BCHU18",
+   "kind": "linear",
+   "multiplier": 100000000.0,
+   "quote_currency": "XBT",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 2.220446049250313e-16,
+   "fills_checked": 33,
+   "perpetual": false
+  },
+  "BCHUSD": {
+   "symbol": "BCHUSD",
+   "kind": "quanto",
+   "multiplier": 100.0,
+   "quote_currency": "USD",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 1.1102230246251565e-16,
+   "fills_checked": 9217,
+   "perpetual": true
+  },
+  "BCHZ18": {
+   "symbol": "BCHZ18",
+   "kind": "linear",
+   "multiplier": 100000000.0,
+   "quote_currency": "XBT",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 2.220446049250313e-16,
+   "fills_checked": 2467,
+   "perpetual": false
+  },
+  "BNBUSDT": {
+   "symbol": "BNBUSDT",
+   "kind": "quanto",
+   "multiplier": 100.0,
+   "quote_currency": "USDT",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 1.1102230246251565e-16,
+   "fills_checked": 4785,
+   "perpetual": true
+  },
+  "DOGEUSDT": {
+   "symbol": "DOGEUSDT",
+   "kind": "quanto",
+   "multiplier": 100000.0,
+   "quote_currency": "USDT",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 2.220446049250313e-16,
+   "fills_checked": 11183,
+   "perpetual": true
+  },
+  "DOTUSDT": {
+   "symbol": "DOTUSDT",
+   "kind": "quanto",
+   "multiplier": 10000.0,
+   "quote_currency": "USDT",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 2.220446049250313e-16,
+   "fills_checked": 11351,
+   "perpetual": true
+  },
+  "EOSH21": {
+   "symbol": "EOSH21",
+   "kind": "linear",
+   "multiplier": 100000000.0,
+   "quote_currency": "XBT",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 2.220446049250313e-16,
+   "fills_checked": 2020,
+   "perpetual": false
+  },
+  "EOSM18": {
+   "symbol": "EOSM18",
+   "kind": "linear",
+   "multiplier": 100000000.0,
+   "quote_currency": "XBT",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 2.220446049250313e-16,
+   "fills_checked": 276,
+   "perpetual": false
+  },
+  "EOSU18": {
+   "symbol": "EOSU18",
+   "kind": "linear",
+   "multiplier": 100000000.0,
+   "quote_currency": "XBT",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 2.220446049250313e-16,
+   "fills_checked": 1085,
+   "perpetual": false
+  },
+  "EOSZ18": {
+   "symbol": "EOSZ18",
+   "kind": "linear",
+   "multiplier": 100000000.0,
+   "quote_currency": "XBT",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 2.220446049250313e-16,
+   "fills_checked": 384,
+   "perpetual": false
+  },
+  "ETHM18": {
+   "symbol": "ETHM18",
+   "kind": "linear",
+   "multiplier": 100000000.0,
+   "quote_currency": "XBT",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 2.1316282072803005e-16,
+   "fills_checked": 5,
+   "perpetual": false
+  },
+  "ETHU18": {
+   "symbol": "ETHU18",
+   "kind": "linear",
+   "multiplier": 100000000.0,
+   "quote_currency": "XBT",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 2.220446049250313e-16,
+   "fills_checked": 158,
+   "perpetual": false
+  },
+  "ETHUSD": {
+   "symbol": "ETHUSD",
+   "kind": "quanto",
+   "multiplier": 100.0,
+   "quote_currency": "USD",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 2.220446049250313e-16,
+   "fills_checked": 327428,
+   "perpetual": true
+  },
+  "ETHUSDM21": {
+   "symbol": "ETHUSDM21",
+   "kind": "quanto",
+   "multiplier": 100.0,
+   "quote_currency": "USD",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 0.0,
+   "fills_checked": 5356,
+   "perpetual": false
+  },
+  "LINKUSDT": {
+   "symbol": "LINKUSDT",
+   "kind": "quanto",
+   "multiplier": 10000.0,
+   "quote_currency": "USDT",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 2.220446049250313e-16,
+   "fills_checked": 6381,
+   "perpetual": true
+  },
+  "LTCH19": {
+   "symbol": "LTCH19",
+   "kind": "linear",
+   "multiplier": 100000000.0,
+   "quote_currency": "XBT",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 2.220446049250313e-16,
+   "fills_checked": 109,
+   "perpetual": false
+  },
+  "LTCU18": {
+   "symbol": "LTCU18",
+   "kind": "linear",
+   "multiplier": 100000000.0,
+   "quote_currency": "XBT",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 2.220446049250313e-16,
+   "fills_checked": 12,
+   "perpetual": false
+  },
+  "LTCUSD": {
+   "symbol": "LTCUSD",
+   "kind": "quanto",
+   "multiplier": 200.0,
+   "quote_currency": "USD",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 1.1102230246251565e-16,
+   "fills_checked": 17201,
+   "perpetual": true
+  },
+  "TRXH19": {
+   "symbol": "TRXH19",
+   "kind": "linear",
+   "multiplier": 100000000.0,
+   "quote_currency": "XBT",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 2.220446049250313e-16,
+   "fills_checked": 38,
+   "perpetual": false
+  },
+  "TRXU18": {
+   "symbol": "TRXU18",
+   "kind": "linear",
+   "multiplier": 100000000.0,
+   "quote_currency": "XBT",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 2.220446049250313e-16,
+   "fills_checked": 776,
+   "perpetual": false
+  },
+  "TRXU19": {
+   "symbol": "TRXU19",
+   "kind": "linear",
+   "multiplier": 100000000.0,
+   "quote_currency": "XBT",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 2.220446049250313e-16,
+   "fills_checked": 497,
+   "perpetual": false
+  },
+  "TRXZ18": {
+   "symbol": "TRXZ18",
+   "kind": "linear",
+   "multiplier": 100000000.0,
+   "quote_currency": "XBT",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 2.220446049250313e-16,
+   "fills_checked": 147,
+   "perpetual": false
+  },
+  "XBT7D_U110": {
+   "symbol": "XBT7D_U110",
+   "kind": "linear",
+   "multiplier": 100000000.0,
+   "quote_currency": "XBT",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 0.0,
+   "fills_checked": 11,
+   "perpetual": false
+  },
+  "XBTH19": {
+   "symbol": "XBTH19",
+   "kind": "inverse",
+   "multiplier": -100000000.0,
+   "quote_currency": "USD",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 2.260516908658694e-05,
+   "fills_checked": 531,
+   "perpetual": false
+  },
+  "XBTH20": {
+   "symbol": "XBTH20",
+   "kind": "inverse",
+   "multiplier": -100000000.0,
+   "quote_currency": "USD",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 5.106030636192749e-05,
+   "fills_checked": 5922,
+   "perpetual": false
+  },
+  "XBTM18": {
+   "symbol": "XBTM18",
+   "kind": "inverse",
+   "multiplier": -100000000.0,
+   "quote_currency": "USD",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 4.235764680719064e-05,
+   "fills_checked": 212,
+   "perpetual": false
+  },
+  "XBTM19": {
+   "symbol": "XBTM19",
+   "kind": "inverse",
+   "multiplier": -100000000.0,
+   "quote_currency": "USD",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 3.252756430872406e-05,
+   "fills_checked": 169,
+   "perpetual": false
+  },
+  "XBTU18": {
+   "symbol": "XBTU18",
+   "kind": "inverse",
+   "multiplier": -100000000.0,
+   "quote_currency": "USD",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 4.6504418152198963e-05,
+   "fills_checked": 36,
+   "perpetual": false
+  },
+  "XBTU21": {
+   "symbol": "XBTU21",
+   "kind": "inverse",
+   "multiplier": -100000000.0,
+   "quote_currency": "USD",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 2.085000010421112e-06,
+   "fills_checked": 25747,
+   "perpetual": false
+  },
+  "XBTUSD": {
+   "symbol": "XBTUSD",
+   "kind": "inverse",
+   "multiplier": -100000000.0,
+   "quote_currency": "USD",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 0.00024438409384353044,
+   "fills_checked": 941007,
+   "perpetual": true
+  },
+  "XBTZ18": {
+   "symbol": "XBTZ18",
+   "kind": "inverse",
+   "multiplier": -100000000.0,
+   "quote_currency": "USD",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 2.2476922476903912e-05,
+   "fills_checked": 179,
+   "perpetual": false
+  },
+  "XRPH19": {
+   "symbol": "XRPH19",
+   "kind": "linear",
+   "multiplier": 100000000.0,
+   "quote_currency": "XBT",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 2.220446049250313e-16,
+   "fills_checked": 72,
+   "perpetual": false
+  },
+  "XRPH21": {
+   "symbol": "XRPH21",
+   "kind": "linear",
+   "multiplier": 100000000.0,
+   "quote_currency": "XBT",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 2.220446049250313e-16,
+   "fills_checked": 1809,
+   "perpetual": false
+  },
+  "XRPM18": {
+   "symbol": "XRPM18",
+   "kind": "linear",
+   "multiplier": 100000000.0,
+   "quote_currency": "XBT",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 2.220446049250313e-16,
+   "fills_checked": 138,
+   "perpetual": false
+  },
+  "XRPM19": {
+   "symbol": "XRPM19",
+   "kind": "linear",
+   "multiplier": 100000000.0,
+   "quote_currency": "XBT",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 2.220446049250313e-16,
+   "fills_checked": 59,
+   "perpetual": false
+  },
+  "XRPU18": {
+   "symbol": "XRPU18",
+   "kind": "linear",
+   "multiplier": 100000000.0,
+   "quote_currency": "XBT",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 2.220446049250313e-16,
+   "fills_checked": 2000,
+   "perpetual": false
+  },
+  "XRPUSD": {
+   "symbol": "XRPUSD",
+   "kind": "quanto",
+   "multiplier": 20000.0,
+   "quote_currency": "USD",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 2.220446049250313e-16,
+   "fills_checked": 55495,
+   "perpetual": true
+  },
+  "XRPZ18": {
+   "symbol": "XRPZ18",
+   "kind": "linear",
+   "multiplier": 100000000.0,
+   "quote_currency": "XBT",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 2.220446049250313e-16,
+   "fills_checked": 2849,
+   "perpetual": false
+  },
+  "YFIUSDTZ20": {
+   "symbol": "YFIUSDTZ20",
+   "kind": "quanto",
+   "multiplier": 10.0,
+   "quote_currency": "USDT",
+   "settle_currency": "XBt",
+   "identity_p99_rel_dev": 0.0,
+   "fills_checked": 11,
+   "perpetual": false
+  }
+ },
+ "position_reconstruction": {
+  "funding_snapshot_check": {
+   "ADAM18": {
+    "funding_rows": 0,
+    "match": 0,
+    "mismatch": 0,
+    "first_mismatches": []
+   },
+   "ADAM19": {
+    "funding_rows": 0,
+    "match": 0,
+    "mismatch": 0,
+    "first_mismatches": []
+   },
+   "ADAU18": {
+    "funding_rows": 0,
+    "match": 0,
+    "mismatch": 0,
+    "first_mismatches": []
+   },
+   "ADAUSDT": {
+    "funding_rows": 0,
+    "match": 0,
+    "mismatch": 0,
+    "first_mismatches": []
+   },
+   "ADAZ18": {
+    "funding_rows": 0,
+    "match": 0,
+    "mismatch": 0,
+    "first_mismatches": []
+   },
+   "BCHM18": {
+    "funding_rows": 0,
+    "match": 0,
+    "mismatch": 0,
+    "first_mismatches": []
+   },
+   "BCHM19": {
+    "funding_rows": 0,
+    "match": 0,
+    "mismatch": 0,
+    "first_mismatches": []
+   },
+   "BCHU18": {
+    "funding_rows": 0,
+    "match": 0,
+    "mismatch": 0,
+    "first_mismatches": []
+   },
+   "BCHUSD": {
+    "funding_rows": 51,
+    "match": 51,
+    "mismatch": 0,
+    "first_mismatches": []
+   },
+   "BCHZ18": {
+    "funding_rows": 0,
+    "match": 0,
+    "mismatch": 0,
+    "first_mismatches": []
+   },
+   "BNBUSDT": {
+    "funding_rows": 23,
+    "match": 23,
+    "mismatch": 0,
+    "first_mismatches": []
+   },
+   "DOGEUSDT": {
+    "funding_rows": 46,
+    "match": 46,
+    "mismatch": 0,
+    "first_mismatches": []
+   },
+   "DOTUSDT": {
+    "funding_rows": 61,
+    "match": 61,
+    "mismatch": 0,
+    "first_mismatches": []
+   },
+   "EOSH21": {
+    "funding_rows": 0,
+    "match": 0,
+    "mismatch": 0,
+    "first_mismatches": []
+   },
+   "EOSM18": {
+    "funding_rows": 0,
+    "match": 0,
+    "mismatch": 0,
+    "first_mismatches": []
+   },
+   "EOSU18": {
+    "funding_rows": 0,
+    "match": 0,
+    "mismatch": 0,
+    "first_mismatches": []
+   },
+   "EOSZ18": {
+    "funding_rows": 0,
+    "match": 0,
+    "mismatch": 0,
+    "first_mismatches": []
+   },
+   "ETHM18": {
+    "funding_rows": 0,
+    "match": 0,
+    "mismatch": 0,
+    "first_mismatches": []
+   },
+   "ETHU18": {
+    "funding_rows": 0,
+    "match": 0,
+    "mismatch": 0,
+    "first_mismatches": []
+   },
+   "ETHUSD": {
+    "funding_rows": 789,
+    "match": 789,
+    "mismatch": 0,
+    "first_mismatches": []
+   },
+   "ETHUSDM21": {
+    "funding_rows": 0,
+    "match": 0,
+    "mismatch": 0,
+    "first_mismatches": []
+   },
+   "LINKUSDT": {
+    "funding_rows": 49,
+    "match": 49,
+    "mismatch": 0,
+    "first_mismatches": []
+   },
+   "LTCH19": {
+    "funding_rows": 0,
+    "match": 0,
+    "mismatch": 0,
+    "first_mismatches": []
+   },
+   "LTCU18": {
+    "funding_rows": 0,
+    "match": 0,
+    "mismatch": 0,
+    "first_mismatches": []
+   },
+   "LTCUSD": {
+    "funding_rows": 95,
+    "match": 95,
+    "mismatch": 0,
+    "first_mismatches": []
+   },
+   "TRXH19": {
+    "funding_rows": 0,
+    "match": 0,
+    "mismatch": 0,
+    "first_mismatches": []
+   },
+   "TRXU18": {
+    "funding_rows": 0,
+    "match": 0,
+    "mismatch": 0,
+    "first_mismatches": []
+   },
+   "TRXU19": {
+    "funding_rows": 0,
+    "match": 0,
+    "mismatch": 0,
+    "first_mismatches": []
+   },
+   "TRXZ18": {
+    "funding_rows": 0,
+    "match": 0,
+    "mismatch": 0,
+    "first_mismatches": []
+   },
+   "XBT7D_U110": {
+    "funding_rows": 0,
+    "match": 0,
+    "mismatch": 0,
+    "first_mismatches": []
+   },
+   "XBTH19": {
+    "funding_rows": 0,
+    "match": 0,
+    "mismatch": 0,
+    "first_mismatches": []
+   },
+   "XBTH20": {
+    "funding_rows": 0,
+    "match": 0,
+    "mismatch": 0,
+    "first_mismatches": []
+   },
+   "XBTM18": {
+    "funding_rows": 0,
+    "match": 0,
+    "mismatch": 0,
+    "first_mismatches": []
+   },
+   "XBTM19": {
+    "funding_rows": 0,
+    "match": 0,
+    "mismatch": 0,
+    "first_mismatches": []
+   },
+   "XBTU18": {
+    "funding_rows": 0,
+    "match": 0,
+    "mismatch": 0,
+    "first_mismatches": []
+   },
+   "XBTU21": {
+    "funding_rows": 0,
+    "match": 0,
+    "mismatch": 0,
+    "first_mismatches": []
+   },
+   "XBTUSD": {
+    "funding_rows": 3961,
+    "match": 3961,
+    "mismatch": 0,
+    "first_mismatches": []
+   },
+   "XBTZ18": {
+    "funding_rows": 0,
+    "match": 0,
+    "mismatch": 0,
+    "first_mismatches": []
+   },
+   "XRPH19": {
+    "funding_rows": 0,
+    "match": 0,
+    "mismatch": 0,
+    "first_mismatches": []
+   },
+   "XRPH21": {
+    "funding_rows": 0,
+    "match": 0,
+    "mismatch": 0,
+    "first_mismatches": []
+   },
+   "XRPM18": {
+    "funding_rows": 0,
+    "match": 0,
+    "mismatch": 0,
+    "first_mismatches": []
+   },
+   "XRPM19": {
+    "funding_rows": 0,
+    "match": 0,
+    "mismatch": 0,
+    "first_mismatches": []
+   },
+   "XRPU18": {
+    "funding_rows": 0,
+    "match": 0,
+    "mismatch": 0,
+    "first_mismatches": []
+   },
+   "XRPUSD": {
+    "funding_rows": 293,
+    "match": 293,
+    "mismatch": 0,
+    "first_mismatches": []
+   },
+   "XRPZ18": {
+    "funding_rows": 0,
+    "match": 0,
+    "mismatch": 0,
+    "first_mismatches": []
+   },
+   "YFIUSDTZ20": {
+    "funding_rows": 0,
+    "match": 0,
+    "mismatch": 0,
+    "first_mismatches": []
+   }
+  },
+  "funding_snapshots_matched": 5368,
+  "funding_snapshots_total": 5368,
+  "end_positions": {
+   "XBTUSD": {
+    "pos": -29080100,
+    "cost_sat": 56921945558.0
+   }
+  },
+  "action_counts_fills": {
+   "ADD_SHORT": 496906,
+   "REDUCE_SHORT": 490757,
+   "REDUCE_LONG": 230518,
+   "ADD_LONG": 216666,
+   "FUNDING": 5368,
+   "REVERSE_TO_SHORT": 1004,
+   "REVERSE_TO_LONG": 997,
+   "CLOSE_SHORT": 614,
+   "OPEN_SHORT": 611,
+   "OPEN_LONG": 573,
+   "CLOSE_LONG": 561,
+   "SETTLEMENT_CLOSE": 8
+  },
+  "action_counts_orders": {
+   "REDUCE_SHORT": 6513,
+   "ADD_SHORT": 5721,
+   "REDUCE_LONG": 4662,
+   "ADD_LONG": 3807,
+   "REVERSE_TO_SHORT": 643,
+   "OPEN_SHORT": 609,
+   "REVERSE_TO_LONG": 577,
+   "OPEN_LONG": 568,
+   "CLOSE_SHORT": 174,
+   "CLOSE_LONG": 170
+  }
+ },
+ "wallet": {
+  "file": "aoa-wallet-2018-03-01-2021-12-31.csv",
+  "raw_records": 4388,
+  "blank_records": 2135,
+  "records": 2253,
+  "timestamp_full_datetime": 0,
+  "timestamp_truncated_mmss": 2253,
+  "status_counts": {
+   "Completed": 2246,
+   "Canceled": 7
+  },
+  "type_counts": {
+   "RealisedPNL": 2172,
+   "Withdrawal": 63,
+   "Deposit": 18
+  },
+  "deposit_xbt": 14.48925714,
+  "deposit_count": 18,
+  "withdrawal_completed_xbt": 2814.54321713,
+  "withdrawal_completed_count": 56,
+  "withdrawal_canceled_xbt": 17.98581713,
+  "withdrawal_canceled_count": 7,
+  "withdrawal_all_rows_xbt": 2832.52903426,
+  "withdrawal_by_year_xbt": {
+   "2018": 82.95281713,
+   "2019": 259.1844,
+   "2020": 622.149,
+   "2021": 1850.257
+  },
+  "realised_pnl_wallet_xbt": 3537.32369404,
+  "realised_pnl_wallet_by_year_xbt": {
+   "2018": 188.42572232,
+   "2019": 516.37288425,
+   "2020": 763.64264549,
+   "2021": 2068.88244198
+  },
+  "first_balance_xbt": 0.17244633,
+  "ending_balance_xbt": 737.26973405,
+  "ending_balance_from_amounts_xbt": 737.26973405,
+  "ending_date": "2021-12-31",
+  "max_balance_xbt": 1531.13,
+  "walletbalance_scientific_notation_rows": 406,
+  "walletbalance_scientific_notation_dates": [
+   "2021-06-05",
+   "2021-11-16"
+  ],
+  "date_level_balance_check": {
+   "dates": 1380,
+   "match": 1226,
+   "match_within_sci_rounding": 152,
+   "break": 2,
+   "break_dates": [
+    {
+     "date": "2018-04-27",
+     "cumulative_sat": 326341302.0,
+     "stated": [
+      426461302.0,
+      380937178.0
+     ]
+    },
+    {
+     "date": "2018-04-28",
+     "cumulative_sat": 380937178.0,
+     "stated": [
+      481057178.0
+     ]
+    }
+   ]
+  },
+  "identity_deposit_minus_withdraw_plus_pnl_xbt": 737.26973405,
+  "reconciliation": {
+   "method": "ledger realized gross (avg-cost on execcost) - execcomm (trades+funding+settlement), bucketed to the 12:00 UTC daily posting [D-1 12:00, D 12:00) per symbol, vs wallet RealisedPNL (address=symbol)",
+   "cells": 2173,
+   "within_1_sat": 0.7662218131615278,
+   "within_1000_sat": 0.9613437643810401,
+   "within_0.001_xbt": 0.99033594109526,
+   "max_abs_diff_xbt": 0.04196755774406195,
+   "sum_reconstructed_xbt": 3537.321758439787,
+   "sum_wallet_xbt": 3537.32369404,
+   "sum_diff_xbt": -0.0019356002130325107,
+   "reconstructed_after_last_wallet_post_xbt": 0.01958048,
+   "worst_cells": [
+    {
+     "post_date": "2020-08-12",
+     "symbol": "XBTUSD",
+     "reconstructed_sat": -1099735627.2255938,
+     "wallet_sat": -1103932383.0,
+     "diff_sat": 4196755.774406195
+    },
+    {
+     "post_date": "2020-08-13",
+     "symbol": "XBTUSD",
+     "reconstructed_sat": 1136307370.9472334,
+     "wallet_sat": 1140503946.0,
+     "diff_sat": -4196575.0527665615
+    },
+    {
+     "post_date": "2021-09-08",
+     "symbol": "XBTUSD",
+     "reconstructed_sat": -2430967109.842996,
+     "wallet_sat": -2430246984.0,
+     "diff_sat": -720125.8429961205
+    },
+    {
+     "post_date": "2021-09-07",
+     "symbol": "XBTUSD",
+     "reconstructed_sat": 5831595355.670128,
+     "wallet_sat": 5830880515.0,
+     "diff_sat": 714840.6701278687
+    },
+    {
+     "post_date": "2019-04-07",
+     "symbol": "XBTUSD",
+     "reconstructed_sat": 1160377625.3204062,
+     "wallet_sat": 1160995415.0,
+     "diff_sat": -617789.6795938015
+    },
+    {
+     "post_date": "2021-09-25",
+     "symbol": "XBTUSD",
+     "reconstructed_sat": 2256180758.048502,
+     "wallet_sat": 2256657351.0,
+     "diff_sat": -476592.9514980316
+    },
+    {
+     "post_date": "2021-09-26",
+     "symbol": "XBTUSD",
+     "reconstructed_sat": 2468981591.949398,
+     "wallet_sat": 2468524220.0,
+     "diff_sat": 457371.9493980408
+    },
+    {
+     "post_date": "2019-04-09",
+     "symbol": "XBTUSD",
+     "reconstructed_sat": 341280144.8414773,
+     "wallet_sat": 340907047.0,
+     "diff_sat": 373097.8414772749
+    },
+    {
+     "post_date": "2021-09-16",
+     "symbol": "XBTUSD",
+     "reconstructed_sat": 742977197.7864373,
+     "wallet_sat": 742645231.0,
+     "diff_sat": 331966.786437273
+    },
+    {
+     "post_date": "2019-04-08",
+     "symbol": "XBTUSD",
+     "reconstructed_sat": -149892199.75731742,
+     "wallet_sat": -150136891.0,
+     "diff_sat": 244691.24268257618
+    }
+   ]
+  }
+ },
+ "episodes": {
+  "episodes_total": 3185,
+  "episodes_closed": 3184,
+  "open_at_end": [
+   {
+    "symbol": "XBTUSD",
+    "direction": -1,
+    "start_ts": "2021-12-24T03:28:15.683307+00:00",
+    "max_abs_pos": 29080100
+   }
+  ],
+  "closed_by": {
+   "REVERSE": 2001,
+   "CLOSE": 1147,
+   "LIQUIDATION": 28,
+   "SETTLEMENT": 8,
+   "OPEN_AT_END": 1
+  },
+  "opened_by_reverse": 2001,
+  "hold_all": {
+   "n": 3184,
+   "p25_s": 271.2801905,
+   "p50_s": 1661.131293,
+   "p75_s": 19376.83328525,
+   "p90_s": 107606.1433235003,
+   "p99_s": 1110094.917300923,
+   "<1m": 0.07537688442211055,
+   "1-5m": 0.18624371859296482,
+   "5-30m": 0.24654522613065327,
+   "30m-4h": 0.2129396984924623,
+   "4h-24h": 0.16394472361809045,
+   "24h+": 0.11494974874371859
+  },
+  "hold_by_direction": {
+   "SHORT": {
+    "n": 1614,
+    "p25_s": 268.350008,
+    "p50_s": 1905.1495854999998,
+    "p75_s": 22666.840301,
+    "p90_s": 129223.17806000003,
+    "p99_s": 1316559.1472392848,
+    "<1m": 0.06567534076827757,
+    "1-5m": 0.19330855018587362,
+    "5-30m": 0.23543990086741015,
+    "30m-4h": 0.21313506815365552,
+    "4h-24h": 0.16666666666666666,
+    "24h+": 0.12577447335811648
+   },
+   "LONG": {
+    "n": 1570,
+    "p25_s": 272.1989985,
+    "p50_s": 1547.672427,
+    "p75_s": 16981.5417525,
+    "p90_s": 90623.0556317,
+    "p99_s": 702414.4200426083,
+    "<1m": 0.08535031847133757,
+    "1-5m": 0.1789808917197452,
+    "5-30m": 0.25796178343949044,
+    "30m-4h": 0.21273885350318472,
+    "4h-24h": 0.16114649681528662,
+    "24h+": 0.10382165605095542
+   }
+  },
+  "hold_by_year": {
+   "2018": {
+    "n": 2201,
+    "p25_s": 169.844605,
+    "p50_s": 771.55696,
+    "p75_s": 4931.767912,
+    "p90_s": 30365.46716,
+    "p99_s": 284059.310189,
+    "<1m": 0.09859154929577464,
+    "1-5m": 0.24352567014993184,
+    "5-30m": 0.29168559745570194,
+    "30m-4h": 0.21172194457064972,
+    "4h-24h": 0.11767378464334394,
+    "24h+": 0.03680145388459791
+   },
+   "2019": {
+    "n": 464,
+    "p25_s": 1433.9424262500002,
+    "p50_s": 11389.1568905,
+    "p75_s": 60683.45121375,
+    "p90_s": 202495.55695929998,
+    "p99_s": 956152.2989497908,
+    "<1m": 0.02586206896551724,
+    "1-5m": 0.08189655172413793,
+    "5-30m": 0.1853448275862069,
+    "30m-4h": 0.23922413793103448,
+    "4h-24h": 0.2672413793103448,
+    "24h+": 0.20043103448275862
+   },
+   "2020": {
+    "n": 303,
+    "p25_s": 2237.8866735,
+    "p50_s": 22273.489515,
+    "p75_s": 114780.5868895,
+    "p90_s": 344215.5002446,
+    "p99_s": 1414893.9989594629,
+    "<1m": 0.026402640264026403,
+    "1-5m": 0.052805280528052806,
+    "5-30m": 0.15181518151815182,
+    "30m-4h": 0.21122112211221122,
+    "4h-24h": 0.26732673267326734,
+    "24h+": 0.29042904290429045
+   },
+   "2021": {
+    "n": 216,
+    "p25_s": 14628.226098,
+    "p50_s": 73500.149395,
+    "p75_s": 320959.28462550003,
+    "p90_s": 694158.438327,
+    "p99_s": 4381398.1346994,
+    "<1m": 0.013888888888888888,
+    "1-5m": 0.013888888888888888,
+    "5-30m": 0.05092592592592592,
+    "30m-4h": 0.1712962962962963,
+    "4h-24h": 0.26851851851851855,
+    "24h+": 0.48148148148148145
+   }
+  },
+  "hold_xbtusd": {
+   "n": 2589,
+   "p25_s": 266.122881,
+   "p50_s": 1551.889094,
+   "p75_s": 17403.102799,
+   "p90_s": 86243.06784860003,
+   "p99_s": 690855.0637775997,
+   "<1m": 0.07415990730011587,
+   "1-5m": 0.19157976052529935,
+   "5-30m": 0.2533796832753959,
+   "30m-4h": 0.21398223252220935,
+   "4h-24h": 0.16724604094244883,
+   "24h+": 0.0996523754345307
+  },
+  "win_rate_net": 0.7556532663316583,
+  "win_rate_net_xbtusd": 0.7582078022402472,
+  "orders_per_episode": {
+   "opens": {
+    "mean": 0.3696608040201005,
+    "median": 0.0,
+    "p90": 1.0,
+    "max": 1.0
+   },
+   "adds": {
+    "mean": 2.9918341708542715,
+    "median": 1.0,
+    "p90": 9.0,
+    "max": 104.0
+   },
+   "reduces": {
+    "mean": 3.5097361809045227,
+    "median": 1.0,
+    "p90": 9.0,
+    "max": 127.0
+   },
+   "closes": {
+    "mean": 0.49120603015075376,
+    "median": 0.0,
+    "p90": 1.0,
+    "max": 1.0
+   }
+  },
+  "episodes_with_any_add": 0.5455402010050251,
+  "episodes_with_partial_reduce": 0.7961683417085427,
+  "median_add_spacing_s_per_episode": {
+   "median": 412.400902,
+   "p25": 139.16679299999998,
+   "p75": 1468.011541
+  },
+  "xbtusd_add_size_vs_first_entry_median": {
+   "median": 1.0,
+   "p25": 0.8218091666666667,
+   "p75": 1.0022359884903218,
+   "episodes": 1089
+  }
+ },
+ "leverage": {
+  "definition": "gross perpetual exposure at funding price (sum |funding execcost|) / (wallet balance before snapshot + realized since last 12:00 posting + unrealized at funding price)",
+  "all": {
+   "n": 2693,
+   "median": 0.8839896061800403,
+   "p90": 2.2182623342750096,
+   "max": 762.1572648469307
+  },
+  "material_all": {
+   "n": 1762,
+   "median": 1.1977641421955527,
+   "p90": 2.5687031467255044,
+   "max": 762.1572648469307
+  },
+  "material_by_year": {
+   "2018": {
+    "n": 82,
+    "median": 2.751527454124171,
+    "p90": 22.179075931988724,
+    "max": 762.1572648469307
+   },
+   "2019": {
+    "n": 379,
+    "median": 1.011281331661958,
+    "p90": 2.1197768115078532,
+    "max": 4.566030577052858
+   },
+   "2020": {
+    "n": 641,
+    "median": 1.2336214724113606,
+    "p90": 2.2182945814630473,
+    "max": 4.356967097485109
+   },
+   "2021": {
+    "n": 660,
+    "median": 1.3001874890616891,
+    "p90": 2.587550626510215,
+    "max": 3.5137443208147596
+   }
+  },
+  "dust_snapshots_leverage_lt_0.05": 931,
+  "by_year": {
+   "2018": {
+    "n": 167,
+    "median": 0.00045336067920739436,
+    "p90": 7.994271994015365,
+    "max": 762.1572648469307
+   },
+   "2019": {
+    "n": 818,
+    "median": 0.000464446239925693,
+    "p90": 1.8106818345073938,
+    "max": 4.566030577052858
+   },
+   "2020": {
+    "n": 951,
+    "median": 0.840618365357638,
+    "p90": 2.051631004072402,
+    "max": 4.356967097485109
+   },
+   "2021": {
+    "n": 757,
+    "median": 1.153953724979655,
+    "p90": 2.5009538772059328,
+    "max": 3.5137443208147596
+   }
+  },
+  "snapshots_excluded_open_dated_future": 1270,
+  "equity_nonpositive_snapshots": 1,
+  "gross_xbt_by_year": {
+   "2018": {
+    "n": 167,
+    "median": 0.06330636,
+    "p90": 111.43450927399999,
+    "max": 220.0501467
+   },
+   "2019": {
+    "n": 818,
+    "median": 0.108074915,
+    "p90": 345.4288237580001,
+    "max": 1022.22796692
+   },
+   "2020": {
+    "n": 951,
+    "median": 441.79232485,
+    "p90": 1112.8228124,
+    "max": 3005.4821476
+   },
+   "2021": {
+    "n": 757,
+    "median": 850.17561,
+    "p90": 1999.412233652,
+    "max": 2685.10845039
+   }
+  }
+ }
+}

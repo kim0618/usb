@@ -1,0 +1,3 @@
+# E0: raw ledger (602MB) and normalized parquet (156MB) stay local; reports/json are small.
+aoa_raw/
+aoa_normalized/

@@ -1,0 +1,206 @@
+{
+ "record": "AOA_CLEANUP_MANIFEST_V1",
+ "deletion_timestamp_utc": "2026-09-27T09:05:52Z",
+ "approval": "user prompt 'AOA FINAL CLOSEOUT' section P: deletion approved once reproducibility checks pass",
+ "deleted": [
+  {
+   "path": "/home/tjd618/usb/data/research/expert_execution/e1/market/quote",
+   "files": 1400,
+   "bytes": 24491679940,
+   "content": "XBTUSD-only quote parquet per UTC day (ts,bid,ask,bid_size,ask_size)"
+  },
+  {
+   "path": "/home/tjd618/usb/data/research/expert_execution/e1/market/trade",
+   "files": 1400,
+   "bytes": 3146118097,
+   "content": "XBTUSD-only trade parquet per UTC day (ts,price,size,side)"
+  }
+ ],
+ "deleted_files": 2800,
+ "deleted_bytes": 27637798037,
+ "filesystem_freed_bytes": 27643584512,
+ "provenance": {
+  "archive": "https://s3-eu-west-1.amazonaws.com/public.bitmex.com",
+  "pattern": "data/{quote,trade}/YYYYMMDD.csv.gz",
+  "coverage": [
+   "20180304",
+   "20220101"
+  ],
+  "days": 1400,
+  "raw_bytes": {
+   "quote": 53314392905,
+   "trade": 35655177757
+  },
+  "integrity": "per-file sha256 + ETag + bytes in e1/market_manifest.json (2,800 entries) and e1/market/manifest/YYYYMMDD.json (1,400, retained)",
+  "archive_reachable_at_deletion": "HTTP 200 (HEAD data/quote/20210519.csv.gz)"
+ },
+ "reproducibility": {
+  "rebuild_command": "PYTHONPATH=backend .venv/bin/python -m app.crypto.research.expert_execution.market --workers 5",
+  "rebuild_cost": "~89GB download, ~2.5h at ~10MB/s; resumable; delete e1/market/manifest/ first or it skips days",
+  "then": [
+   "python -m app.crypto.research.expert_execution.e1 (contract hash checked)",
+   "python -m app.crypto.research.expert_execution.grid",
+   "python -m app.crypto.research.expert_execution.e2"
+  ],
+  "without_rebuild": "E2 re-run works from the retained 1m grid; E1 re-run requires the rebuild"
+ },
+ "retained_files": [
+  {
+   "path": "data/research/expert_execution/aggregate_summary.json",
+   "bytes": 52692
+  },
+  {
+   "path": "data/research/expert_execution/aoa_normalized/episodes.parquet",
+   "bytes": 170266
+  },
+  {
+   "path": "data/research/expert_execution/aoa_normalized/executions.parquet",
+   "bytes": 121461413
+  },
+  {
+   "path": "data/research/expert_execution/aoa_normalized/funding_snapshots.parquet",
+   "bytes": 308355
+  },
+  {
+   "path": "data/research/expert_execution/aoa_normalized/orders.parquet",
+   "bytes": 1572724
+  },
+  {
+   "path": "data/research/expert_execution/aoa_normalized/positions.parquet",
+   "bytes": 32554245
+  },
+  {
+   "path": "data/research/expert_execution/aoa_normalized/wallet.parquet",
+   "bytes": 133360
+  },
+  {
+   "path": "data/research/expert_execution/aoa_normalized/wallet_reconciliation.parquet",
+   "bytes": 49532
+  },
+  {
+   "path": "data/research/expert_execution/aoa_reports/claims_ledger_only.json",
+   "bytes": 7890
+  },
+  {
+   "path": "data/research/expert_execution/aoa_reports/drawdown_case_studies.json",
+   "bytes": 7075
+  },
+  {
+   "path": "data/research/expert_execution/aoa_reports/performance.json",
+   "bytes": 411
+  },
+  {
+   "path": "data/research/expert_execution/aoa_reports/preflight.json",
+   "bytes": 1719
+  },
+  {
+   "path": "data/research/expert_execution/aoa_reports/wallet_schema_profile.json",
+   "bytes": 3577
+  },
+  {
+   "path": "data/research/expert_execution/closeout/compute_leverage_table.py",
+   "bytes": 7109
+  },
+  {
+   "path": "data/research/expert_execution/closeout/leverage_table.json",
+   "bytes": 7693
+  },
+  {
+   "path": "data/research/expert_execution/e1/archive_listing.json",
+   "bytes": 1188388
+  },
+  {
+   "path": "data/research/expert_execution/e1/contract_freeze_v1.json",
+   "bytes": 269
+  },
+  {
+   "path": "data/research/expert_execution/e1/e1_run.log",
+   "bytes": 1606
+  },
+  {
+   "path": "data/research/expert_execution/e1/e1_summary.json",
+   "bytes": 101774
+  },
+  {
+   "path": "data/research/expert_execution/e1/maker_taker_metrics.parquet",
+   "bytes": 60631597
+  },
+  {
+   "path": "data/research/expert_execution/e1/maker_taker_summary.parquet",
+   "bytes": 22438
+  },
+  {
+   "path": "data/research/expert_execution/e1/market_collect.log",
+   "bytes": 1206
+  },
+  {
+   "path": "data/research/expert_execution/e1/market_manifest.json",
+   "bytes": 516761
+  },
+  {
+   "path": "data/research/expert_execution/e1/order_level_metrics.parquet",
+   "bytes": 4901473
+  },
+  {
+   "path": "data/research/expert_execution/e1/regime_metrics.parquet",
+   "bytes": 120120
+  },
+  {
+   "path": "data/research/expert_execution/e2/add_events.parquet",
+   "bytes": 1778934
+  },
+  {
+   "path": "data/research/expert_execution/e2/cf3_inflation_exploratory.parquet",
+   "bytes": 16029
+  },
+  {
+   "path": "data/research/expert_execution/e2/contract_freeze_v1.json",
+   "bytes": 273
+  },
+  {
+   "path": "data/research/expert_execution/e2/counterfactual_metrics.parquet",
+   "bytes": 190970
+  },
+  {
+   "path": "data/research/expert_execution/e2/e2_run.log",
+   "bytes": 1682
+  },
+  {
+   "path": "data/research/expert_execution/e2/episode_metrics.parquet",
+   "bytes": 956692
+  },
+  {
+   "path": "data/research/expert_execution/e2/minute_grid.parquet",
+   "bytes": 53246004
+  },
+  {
+   "path": "data/research/expert_execution/e2/reduce_events.parquet",
+   "bytes": 1680034
+  },
+  {
+   "path": "data/research/expert_execution/e2/summary.json",
+   "bytes": 82566
+  },
+  {
+   "path": "data/research/expert_execution/e2/underwater_exploratory.json",
+   "bytes": 805
+  },
+  {
+   "path": "data/research/expert_execution/inventory.csv",
+   "bytes": 992
+  },
+  {
+   "path": "data/research/expert_execution/quality_report.json",
+   "bytes": 6682
+  },
+  {
+   "path": "data/research/expert_execution/schema_profile.json",
+   "bytes": 12672
+  }
+ ],
+ "retained_also": [
+  "aoa_raw/ (extracted original ZIP members, read-only)",
+  "e1/market/manifest/ (1,400 per-day manifests)",
+  "original ZIP in Windows Downloads (untouched)"
+ ]
+}

@@ -1,0 +1,16 @@
+{
+ "processing_seconds": 86.9,
+ "peak_rss_mb": 5972.3,
+ "zip_bytes": 113381570,
+ "extracted_bytes": 601794512,
+ "normalized_bytes": {
+  "executions.parquet": 121461413,
+  "positions.parquet": 32554245,
+  "episodes.parquet": 170266,
+  "orders.parquet": 1572724,
+  "wallet.parquet": 133360,
+  "funding_snapshots.parquet": 308355,
+  "wallet_reconciliation.parquet": 49532
+ },
+ "normalized_total_bytes": 156249895
+}

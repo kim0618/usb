@@ -1,0 +1,7 @@
+filename,extension,kind,bytes,sha256,encoding,physical_lines,csv_records,delimiter
+90일 서한.txt,.txt,letter_or_metadata,8798,237d3bf22cf4897d6049b1bd4be5552eb735229c834423255c50522f7d00d5f4,utf-8,107,,
+aoa-execution-2018-03-01-2018-12-31.csv,.csv,execution,67993490,8f2aa1af3caaeaeffff0375ce4d10b21e88ab22c624976d9031ddd0e715653b1,utf-8-sig,166079,164096.0,","
+aoa-execution-2019-01-01-2020-12-31.csv,.csv,execution,219076835,ebbd90935d8e609e6371fec69babbfea13c0458a94748b05f3f795cecd814b5a,utf-8-sig,539516,529632.0,","
+aoa-execution-2021-01-01-2021-06-30.csv,.csv,execution,191784153,a51f070c9e00aed72720b9029567d4adf32656d06594b87dff3b56360564ca37,utf-8-sig,486170,457603.0,","
+aoa-execution-2021-07-01-2021-12-31.csv,.csv,execution,122612445,3bd436edb68c60bd17eb3b0c307c68baf56ad79c1da9a21a0433031f4ea7a071,utf-8-sig,296588,293252.0,","
+aoa-wallet-2018-03-01-2021-12-31.csv,.csv,wallet,318791,db0a8e6180faa093a7843ec09b1f673417252b2a7b6cac50ac96db426f2f3452,utf-8-sig,4389,4388.0,","

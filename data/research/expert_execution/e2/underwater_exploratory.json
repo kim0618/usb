@@ -1,0 +1,28 @@
+{
+ "note": "EXPLORATORY, not preregistered; dust = |pos| <= 1% of episode max",
+ "2018": {
+  "time_weighted": 0.45487832741364526,
+  "exposure_weighted": 0.5628577690420389,
+  "non_dust_time_weighted": 0.4527613913751017
+ },
+ "2019": {
+  "time_weighted": 0.45754936595321755,
+  "exposure_weighted": 0.49528392193316817,
+  "non_dust_time_weighted": 0.47709274534924667
+ },
+ "2020": {
+  "time_weighted": 0.48963833003837653,
+  "exposure_weighted": 0.5574041913753986,
+  "non_dust_time_weighted": 0.5038403298487585
+ },
+ "2021": {
+  "time_weighted": 0.5829274494845764,
+  "exposure_weighted": 0.6316058943806928,
+  "non_dust_time_weighted": 0.5768436136201315
+ },
+ "all": {
+  "time_weighted": 0.49973762222255136,
+  "exposure_weighted": 0.5878295946013161,
+  "non_dust_time_weighted": 0.5156267426730281
+ }
+}

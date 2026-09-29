@@ -1,0 +1,287 @@
+{
+ "entry_order_counts": {
+  "all_symbols": {
+   "OPEN": 1177,
+   "ADD": 9528,
+   "OPEN+ADD": 10705,
+   "REVERSE": 1220,
+   "OPEN+REVERSE": 2397
+  },
+  "xbtusd": {
+   "OPEN": 829,
+   "ADD": 7522,
+   "OPEN+ADD": 8351,
+   "OPEN+REVERSE": 1933
+  },
+  "taker_entry_orders_all": 3530,
+  "market_ordtype_entry_orders_all": 289,
+  "by_year_open_add": {
+   "2018": 5332,
+   "2019": 1695,
+   "2020": 1756,
+   "2021": 1922
+  }
+ },
+ "claim5_stop_share_in_loss_closes": {
+  "gross": {
+   "2018": {
+    "loss_close_orders": 1778,
+    "stop_orders": 26,
+    "stop_share": 0.014623172103487065,
+    "liquidation_orders": 27,
+    "close_button_orders": 98,
+    "stop_or_liquidation_share": 0.028683914510686165
+   },
+   "2019": {
+    "loss_close_orders": 617,
+    "stop_orders": 3,
+    "stop_share": 0.004862236628849271,
+    "liquidation_orders": 1,
+    "close_button_orders": 0,
+    "stop_or_liquidation_share": 0.004862236628849271
+   },
+   "2020": {
+    "loss_close_orders": 775,
+    "stop_orders": 6,
+    "stop_share": 0.007741935483870968,
+    "liquidation_orders": 1,
+    "close_button_orders": 0,
+    "stop_or_liquidation_share": 0.007741935483870968
+   },
+   "2021": {
+    "loss_close_orders": 741,
+    "stop_orders": 0,
+    "stop_share": 0.0,
+    "liquidation_orders": 0,
+    "close_button_orders": 1,
+    "stop_or_liquidation_share": 0.0
+   }
+  },
+  "net": {
+   "2018": {
+    "loss_close_orders": 1950,
+    "stop_orders": 26,
+    "stop_share": 0.013333333333333334,
+    "liquidation_orders": 27,
+    "close_button_orders": 111,
+    "stop_or_liquidation_share": 0.026153846153846153
+   },
+   "2019": {
+    "loss_close_orders": 663,
+    "stop_orders": 3,
+    "stop_share": 0.004524886877828055,
+    "liquidation_orders": 1,
+    "close_button_orders": 0,
+    "stop_or_liquidation_share": 0.004524886877828055
+   },
+   "2020": {
+    "loss_close_orders": 803,
+    "stop_orders": 6,
+    "stop_share": 0.007471980074719801,
+    "liquidation_orders": 1,
+    "close_button_orders": 0,
+    "stop_or_liquidation_share": 0.007471980074719801
+   },
+   "2021": {
+    "loss_close_orders": 744,
+    "stop_orders": 0,
+    "stop_share": 0.0,
+    "liquidation_orders": 0,
+    "close_button_orders": 1,
+    "stop_or_liquidation_share": 0.0
+   }
+  }
+ },
+ "claim2_adds_underwater_last_trade_basis": {
+  "definition": "ADD order (first fill increases an existing position); underwater if its first fill price is below (long) / above (short) the position's average entry just before it. Last-trade basis, NOT mark.",
+  "all": {
+   "orders": 9528,
+   "share": 0.6905961376994123
+  },
+  "xbtusd": {
+   "orders": 7522,
+   "share": 0.6865195426748205
+  },
+  "by_year": {
+   "2018": 0.7456876456876457,
+   "2019": 0.6442711457708459,
+   "2020": 0.6233993015133876,
+   "2021": 0.6670264436049649
+  },
+  "by_direction": {
+   "SHORT": 0.664394336654431,
+   "LONG": 0.7299711058576307
+  }
+ },
+ "claim6_unrealized_loss_share_at_funding_snapshots": {
+  "definition": "8h funding snapshots (04/12/20 UTC) with any open perpetual; unrealized = value at funding price - cost basis. Sampled, equal weight per snapshot; dated futures not marked.",
+  "snapshots_with_position": 3964,
+  "share_unrealized_negative": 0.5090817356205852,
+  "by_year": {
+   "2018": 0.4985754985754986,
+   "2019": 0.45612431444241314,
+   "2020": 0.46505125815470644,
+   "2021": 0.6118721461187214
+  },
+  "xbtusd_only": 0.5008836152486745,
+  "snapshots_total": 3964,
+  "snapshots_flat": 0,
+  "note": "flat periods have no funding row, so time spent flat between snapshots is invisible here"
+ },
+ "claim7_size_after_large_loss": {
+  "definition": "XBTUSD closing orders with net realized loss in the worst k% tail; entries (OPEN/ADD orders) within 6h after the loss order's last fill; ratio = entry qty / same-month median entry qty outside those windows",
+  "loss_tail_10pct": {
+   "loss_threshold_xbt": -4.873867080551605,
+   "loss_events": 330,
+   "entries_in_6h_after": 623,
+   "size_ratio_median": 1.0,
+   "size_ratio_mean": 0.8488864650988255,
+   "size_ratio_of_medians": 4.0
+  },
+  "loss_tail_5pct": {
+   "loss_threshold_xbt": -8.469502221239853,
+   "loss_events": 165,
+   "entries_in_6h_after": 317,
+   "size_ratio_median": 1.0,
+   "size_ratio_mean": 0.855055012737247,
+   "size_ratio_of_medians": 3.7711443348927016
+  },
+  "loss_tail_1pct": {
+   "loss_threshold_xbt": -21.30388462462111,
+   "loss_events": 33,
+   "entries_in_6h_after": 75,
+   "size_ratio_median": 1.0,
+   "size_ratio_mean": 0.8245718304433424,
+   "size_ratio_of_medians": 2.3333333333333335
+  }
+ },
+ "claim8_xbtusd_position_at_midnight": {
+  "00:00_UTC": {
+   "days": 1397,
+   "short_share": 0.6005726556907659,
+   "material": {
+    "abs_pos_ge_100000_usd": {
+     "days": 830,
+     "short_share_of_material": 0.6759036144578313,
+     "short_days": 561,
+     "long_days": 269
+    },
+    "abs_pos_ge_1000000_usd": {
+     "days": 675,
+     "short_share_of_material": 0.6962962962962963,
+     "short_days": 470,
+     "long_days": 205
+    }
+   },
+   "long_share": 0.3457408732999284,
+   "flat_share": 0.05368647100930565,
+   "mean_pos_usd": -3138274.5597709375,
+   "median_pos_usd": -426.0,
+   "by_year": {
+    "2018": {
+     "short_share": 0.3920265780730897,
+     "mean_pos_usd": -10405.365448504983
+    },
+    "2019": {
+     "short_share": 0.7123287671232876,
+     "mean_pos_usd": -454497.70410958905
+    },
+    "2020": {
+     "short_share": 0.6584699453551912,
+     "mean_pos_usd": -2994396.338797814
+    },
+    "2021": {
+     "short_share": 0.6027397260273972,
+     "mean_pos_usd": -8545744.720547944
+    }
+   }
+  },
+  "00:00_KST(15:00_UTC)": {
+   "days": 1397,
+   "short_share": 0.6070150322118826,
+   "material": {
+    "abs_pos_ge_100000_usd": {
+     "days": 821,
+     "short_share_of_material": 0.6723507917174177,
+     "short_days": 552,
+     "long_days": 269
+    },
+    "abs_pos_ge_1000000_usd": {
+     "days": 675,
+     "short_share_of_material": 0.6933333333333334,
+     "short_days": 468,
+     "long_days": 207
+    }
+   },
+   "long_share": 0.34144595561918395,
+   "flat_share": 0.05153901216893343,
+   "mean_pos_usd": -3129302.523979957,
+   "median_pos_usd": -424.0,
+   "by_year": {
+    "2018": {
+     "short_share": 0.4019933554817276,
+     "mean_pos_usd": -23164.644518272424
+    },
+    "2019": {
+     "short_share": 0.7232876712328767,
+     "mean_pos_usd": -431321.66575342463
+    },
+    "2020": {
+     "short_share": 0.6693989071038251,
+     "mean_pos_usd": -3006354.704918033
+    },
+    "2021": {
+     "short_share": 0.5972602739726027,
+     "mean_pos_usd": -8512068.049315069
+    }
+   }
+  }
+ },
+ "claim10_drawdown_days": {
+  "worst_10_realized_days_xbt": {
+   "2021-05-20": -281.83947272,
+   "2020-10-21": -146.1261631,
+   "2020-12-28": -129.99868839,
+   "2020-04-03": -110.02862944,
+   "2021-05-06": -109.37509876,
+   "2021-10-13": -105.70162143,
+   "2021-06-26": -96.76626656,
+   "2021-06-10": -91.64201166,
+   "2021-05-11": -90.12874258,
+   "2021-12-07": -83.98394122
+  },
+  "named_dates": {
+   "2018-09-21": {
+    "wallet_realised_xbt": 1.1199091,
+    "rank_among_worst": 855,
+    "wallet_balance_end_of_day_xbt": 18.671405
+   },
+   "2018-09-22": {
+    "wallet_realised_xbt": -15.74562129,
+    "rank_among_worst": 74,
+    "wallet_balance_end_of_day_xbt": 2.92578371
+   },
+   "2021-05-05": {
+    "wallet_realised_xbt": 31.1344966,
+    "rank_among_worst": 1306,
+    "wallet_balance_end_of_day_xbt": 745.68350077
+   },
+   "2021-05-06": {
+    "wallet_realised_xbt": -109.37509876,
+    "rank_among_worst": 5,
+    "wallet_balance_end_of_day_xbt": 636.30840201
+   },
+   "2021-05-19": {
+    "wallet_realised_xbt": 13.22889782,
+    "rank_among_worst": 1225,
+    "wallet_balance_end_of_day_xbt": 638.9818043
+   },
+   "2021-05-20": {
+    "wallet_realised_xbt": -281.83947272,
+    "rank_among_worst": 1,
+    "wallet_balance_end_of_day_xbt": 357.14233158
+   }
+  },
+  "note": "wallet date D holds realized PnL of [D-1 12:00, D 12:00) UTC, so a crash on D shows on D and D+1"
+ }
+}
