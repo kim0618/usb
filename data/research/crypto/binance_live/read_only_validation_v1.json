@@ -1,0 +1,98 @@
+{
+  "run": "binance_live_read_only_validation_v1",
+  "date_utc": "2026-09-29",
+  "verdict": "READ_ONLY_FAIL",
+  "verdict_reason": "BLOCKED_BY_KEY_PERMISSION_enableFutures_false",
+  "code_defect_found": false,
+  "api_key_fingerprint": "658d48f4",
+  "trading_flag": {
+    "BINANCE_LIVE_TRADING_ENABLED": "false",
+    "changed": false
+  },
+  "key_permissions_read_from": "GET /sapi/v1/account/apiRestrictions (diagnostic only; the application may not call SAPI)",
+  "key_permissions": {
+    "enableReading": true,
+    "enableFutures": false,
+    "enableSpotAndMarginTrading": false,
+    "enableWithdrawals": false,
+    "enableInternalTransfer": false,
+    "permitsUniversalTransfer": false,
+    "enableMargin": false,
+    "enablePortfolioMarginTrading": false,
+    "ipRestrict": false
+  },
+  "auth": {
+    "public_endpoints": "OK (exchangeInfo, premiumIndex, ticker/bookTicker)",
+    "signed_endpoints": "ALL -2015 Invalid API-key, IP, or permissions for action",
+    "spot_signed_read": "200 OK (key itself is valid)",
+    "wrong_signature_probe": "-2015 as well, so Binance refuses at the key/permission layer before signature verification",
+    "testnet_hosts": "-2015 (not a testnet key)"
+  },
+  "clock": {
+    "drift_ms": 1630,
+    "rtt_ms": 129,
+    "recv_window_ms": 5000,
+    "inside_window": true
+  },
+  "rest_telemetry": {
+    "requests": 42,
+    "signed_requests": 19,
+    "trade_requests": 0,
+    "errors": 19,
+    "rate_limited": 0,
+    "used_weight_1m": 125,
+    "endpoints_called": [
+      "exchange_info",
+      "listen_key_create",
+      "mark_price",
+      "book_ticker",
+      "position_mode"
+    ]
+  },
+  "stream": {
+    "connects": 0,
+    "reconnects": 0,
+    "keepalives": 0,
+    "account_events": 0,
+    "last_error": "-2015 on listenKey creation"
+  },
+  "order_calls": {
+    "new_order": 0,
+    "set_leverage": 0,
+    "margin_type": 0,
+    "position_mode_write": 0,
+    "http_posts_attempted_by_operator": 3,
+    "all_refused_with": [
+      "ACCOUNT_NOT_READY",
+      "ACCOUNT_NOT_READY",
+      "LIVE_TRADING_DISABLED"
+    ]
+  },
+  "paper_integrity": {
+    "files": 14,
+    "sha256_before_equals_after": true,
+    "note": "the validation ran against an isolated scratch paper root"
+  },
+  "secret_leak_audit": {
+    "files_checked": 8,
+    "full_key_or_secret_found": 0,
+    "partial_16char_found": 0
+  },
+  "ui": {
+    "paper_default": true,
+    "live_selectable": true,
+    "blocked_panel_shows_reason": true,
+    "order_ticket_hidden_while_blocked": true,
+    "paper_returns_intact": true,
+    "rendered_with": "playwright chromium headless"
+  },
+  "soak_30min": {
+    "status": "NOT_RUN",
+    "reason": "every signed endpoint refused; a soak would only repeat the same -2015"
+  },
+  "fixes_made_during_validation": [
+    "audit gap: a plan-stage refusal left no mirror record; ORDER_INTENT/ORDER_REFUSED are now written with stage=PLAN",
+    "LIVE badge reported snapshot freshness, so an unreadable account looked connected; it now reports readiness"
+  ],
+  "next_action_for_user": "Binance API Management: enable Futures permission on this key (or create a new key with Futures enabled after opening the USDⓈ-M Futures account), then rerun"
+}

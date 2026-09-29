@@ -1,0 +1,192 @@
+{
+  "run": "binance_live_read_only_validation_v2",
+  "date_utc": "2026-09-29",
+  "verdict": "READ_ONLY_PASS",
+  "api_key_fingerprint": "487ea08e",
+  "previous_key_fingerprint": "658d48f4",
+  "trading_flag": {
+    "BINANCE_LIVE_TRADING_ENABLED": "false",
+    "changed_during_run": false
+  },
+  "key_permissions": {
+    "source": "GET /sapi/v1/account/apiRestrictions (diagnostic only; the application may not call SAPI)",
+    "enableReading": true,
+    "enableFutures": true,
+    "enableWithdrawals": false,
+    "enableSpotAndMarginTrading": false,
+    "enableInternalTransfer": false,
+    "permitsUniversalTransfer": false,
+    "enableMargin": false,
+    "enablePortfolioMarginTrading": false,
+    "enableVanillaOptions": false,
+    "ipRestrict": true,
+    "all_expected_values_matched": true
+  },
+  "auth": {
+    "futures_signed_endpoints": "OK",
+    "error_2015": "gone",
+    "endpoints_exercised": [
+      "exchange_info",
+      "premiumIndex",
+      "ticker/bookTicker",
+      "depth",
+      "account",
+      "positionRisk(v3)",
+      "symbolConfig",
+      "positionSide/dual",
+      "commissionRate",
+      "userTrades",
+      "income",
+      "listenKey"
+    ]
+  },
+  "clock": {
+    "drift_ms_start": 1630,
+    "drift_ms_end": 700,
+    "recv_window_ms": 5000,
+    "rejections_1021": 0
+  },
+  "account": {
+    "asset": "USDT",
+    "wallet_balance": "0",
+    "available_balance": "0",
+    "margin_balance": "0",
+    "unrealized_pnl": "0",
+    "assets_rows": 11,
+    "interpretation": "FUTURES_BALANCE_ZERO_IS_EXPECTED_funds_are_in_the_spot_wallet",
+    "transfer_performed": false
+  },
+  "position": {
+    "symbol": "BTCUSDT",
+    "state": "FLAT",
+    "qty": "0",
+    "entry_price": null,
+    "liquidation_price": null,
+    "rows_returned_by_positionRisk_v3": 0,
+    "note": "an account that has never held a position gets no row at all; the code treats that as flat rather than as an error"
+  },
+  "position_mode": "ONE_WAY",
+  "margin_mode": "CROSSED",
+  "leverage": "20 (read from GET /fapi/v1/symbolConfig; positionRisk v3 does not carry it)",
+  "mark_price_source": "binance GET /fapi/v1/premiumIndex",
+  "commission": {
+    "maker": "0.000200",
+    "taker": "0.000500",
+    "source": "binance GET /fapi/v1/commissionRate",
+    "extra_field_seen": "rpiCommissionRate (ignored)"
+  },
+  "fills": {
+    "count": 0,
+    "status": "EMPTY_IS_NORMAL"
+  },
+  "funding": {
+    "count": 0,
+    "status": "EMPTY_IS_NORMAL"
+  },
+  "user_data_stream": {
+    "listen_key_issued": true,
+    "connected": true,
+    "connects": 1,
+    "reconnects": 0,
+    "keepalives_observed": 2,
+    "uptime_min_at_check": 74.8,
+    "account_events": 0,
+    "malformed": 0,
+    "errors": 0,
+    "note": "a flat, quiet account sends no frames; that is not a failure"
+  },
+  "soak": {
+    "duration_s": 1799.6,
+    "samples": 787,
+    "failed_samples": 0,
+    "success_rate": 1.0,
+    "ready_samples": 787,
+    "stale_samples": 0,
+    "blocked_samples": 0,
+    "latency_ms": {
+      "min": 1.7,
+      "p50": 124.1,
+      "p95": 290.3,
+      "max": 2430.7
+    },
+    "rest_requests": 2608,
+    "signed_requests": 1028,
+    "rest_errors": 0,
+    "rate_limited_429_418": 0,
+    "max_used_weight_1m": 282,
+    "weight_limit": 2400,
+    "mark_range": [
+      "82859.6",
+      "83121.6"
+    ],
+    "reconcile_events": 61
+  },
+  "order_network_calls": {
+    "new_order": 0,
+    "set_leverage": 0,
+    "margin_type": 0,
+    "position_mode_write": 0,
+    "withdrawal": 0,
+    "transfer": 0,
+    "operator_attempts": 5,
+    "refusals": [
+      "LIVE_TRADING_DISABLED x3",
+      "NO_POSITION_TO_CLOSE x1",
+      "LIVE_TRADING_DISABLED (leverage) x1"
+    ],
+    "mirror_LIVE_ORDER_SENT_lines": 0
+  },
+  "paper_integrity": {
+    "files": 14,
+    "sha256_before_equals_after": true,
+    "note": "the run used an isolated scratch paper root"
+  },
+  "secret_leak_audit": {
+    "files_checked": 51,
+    "full_string_hits": 0,
+    "partial_16char_hits": 0
+  },
+  "ui": {
+    "paper_default": true,
+    "live_switch_works": true,
+    "live_badge": "BINANCE LIVE 실계좌",
+    "balance_shown": "0.00 USDT",
+    "position_shown": "FLAT",
+    "margin_mode_shown": "교차 (Cross) · 20x",
+    "taker_shown": "0.0500%",
+    "preview_shown": true,
+    "order_button_pressed": true,
+    "order_result": "409 LIVE_TRADING_DISABLED shown on screen",
+    "paper_returned_intact": true,
+    "page_errors": 0,
+    "rendered_with": "playwright chromium headless"
+  },
+  "regression": {
+    "crypto_pytest": "1342 passed",
+    "binance_live_tests": "104 passed",
+    "frontend_vitest": "558 passed",
+    "tsc": "clean",
+    "eslint": "clean"
+  },
+  "operational_changes": {
+    "rsync": 0,
+    "systemd": 0,
+    "nginx": 0,
+    "prod_restart": 0,
+    "prod_build": 0,
+    "commit": 0,
+    "push": 0,
+    "real_orders": 0
+  },
+  "fixes_made_during_validation": [
+    "LIVE screen now shows Binance's own best bid/ask beside the chart and labels the chart as Bybit data",
+    "every audit refusal line now carries the stage that refused it (PLAN / GATE / EXCHANGE)"
+  ],
+  "limitations": [
+    "positionRisk row field names are still unverified: the account has never held a position, so Binance returns an empty list",
+    "fills and funding shapes unverified for the same reason",
+    "futures wallet is empty, so margin, liquidation price and unrealized PnL were never exercised with a real position",
+    "the chart is still Bybit data in V1 (labelled); a Binance candle source is a V1.1 candidate"
+  ],
+  "next_step": "user decision only: fund the futures wallet (spot to USDⓈ-M transfer, done by the user in the Binance UI), then a separately approved minimum-size live order test"
+}

@@ -1,0 +1,127 @@
+{
+  "run": "binance_live_balance_recheck_v1",
+  "date_utc": "2026-09-29",
+  "verdict": "BALANCE_SYNC_PASS",
+  "api_key_fingerprint": "487ea08e",
+  "trading_flag": {
+    "BINANCE_LIVE_TRADING_ENABLED": "false",
+    "changed_during_run": false
+  },
+  "key_permissions_expected_matched": true,
+  "key_permissions": {
+    "enableReading": true,
+    "enableFutures": true,
+    "enableWithdrawals": false,
+    "enableSpotAndMarginTrading": false,
+    "enableInternalTransfer": false,
+    "permitsUniversalTransfer": false,
+    "ipRestrict": true
+  },
+  "futures_balance_usdt_asset_row": {
+    "walletBalance": "1.32652900",
+    "availableBalance": "1.32626371",
+    "marginBalance": "1.32652900",
+    "unrealizedProfit": "0",
+    "maxWithdrawAmount": "1.32652900",
+    "initialMargin": "0",
+    "maintMargin": "0",
+    "updateTime_ms": 1790654377392,
+    "source": "GET /fapi/v3/account assets[asset=USDT]"
+  },
+  "account_valued_in_usd_top_level": {
+    "totalWalletBalance_samples": [
+      "1.32573482",
+      "1.32574637",
+      "1.32573828",
+      "1.32574829"
+    ],
+    "ratio_to_usdt_row": [
+      "0.99940131",
+      "0.99941002",
+      "0.99940392",
+      "0.99941146"
+    ],
+    "note": "drifts between reads with no trade, fee or funding: this is a USD valuation of the same USDT balance, not the balance"
+  },
+  "expected_vs_actual": {
+    "user_reported_web_ui": "1.326529",
+    "api_usdt_row": "1.32652900",
+    "match": true,
+    "previous_ui_showed": "top-level USD valuation (1.3257xx), which was the defect fixed here"
+  },
+  "position": {
+    "symbol": "BTCUSDT",
+    "state": "FLAT",
+    "positionRisk_rows": 0
+  },
+  "position_mode": "ONE_WAY",
+  "margin_mode": "CROSSED",
+  "leverage": "20",
+  "mark_price": "83026.9 (GET /fapi/v1/premiumIndex)",
+  "commission": {
+    "maker": "0.000200",
+    "taker": "0.000500"
+  },
+  "ui": {
+    "wallet_card": "1.326529 USDT",
+    "available_card": "1.326264 USDT",
+    "krw_line": "1,783원 / 1,782원",
+    "usd_footnote_shown": true,
+    "position": "FLAT",
+    "margin_mode": "교차 (Cross) · 20x",
+    "taker": "0.0500%",
+    "order_buttons_blocked": true,
+    "paper_returned_intact": true,
+    "page_errors": 0,
+    "api_vs_ui_match": true,
+    "rendered_with": "playwright chromium headless"
+  },
+  "order_network_calls": {
+    "new_order": 0,
+    "set_leverage": 0,
+    "margin_type": 0,
+    "position_mode_write": 0,
+    "transfer": 0,
+    "withdrawal": 0,
+    "operator_attempts": 4,
+    "mirror_LIVE_ORDER_SENT_lines": 0
+  },
+  "paper_integrity": {
+    "files": 14,
+    "sha256_before_equals_after": true
+  },
+  "secret_leak_audit": {
+    "files_checked": 189,
+    "full_string_hits": 0,
+    "partial_16char_hits": 0
+  },
+  "regression": {
+    "crypto_pytest": "1343 passed",
+    "frontend_vitest": "559 passed",
+    "tsc": "clean",
+    "eslint": "clean"
+  },
+  "operational_changes": {
+    "rsync": 0,
+    "systemd": 0,
+    "nginx": 0,
+    "prod_restart": 0,
+    "prod_build": 0,
+    "commit": 0,
+    "push": 0,
+    "real_orders": 0,
+    "transfers": 0
+  },
+  "fix_made_during_recheck": "balance mapping: the LIVE panel was showing the response's top-level totals (a USD valuation that drifts with the peg) under a USDT label; asset-denominated figures now come from assets[USDT] and the USD valuation is shown separately",
+  "funding_gap_for_next_step": {
+    "min_qty_btc": "0.001",
+    "notional_at_83027": "83.03 USDT",
+    "min_notional_filter": "50 USDT (satisfied)",
+    "initial_margin_at_20x": "4.1513 USDT",
+    "round_trip_taker_fee": "0.0830 USDT",
+    "required_total": "4.2344 USDT",
+    "available": "1.3263 USDT",
+    "conclusion": "a minimum-size live order is not fundable yet at 20x leverage"
+  },
+  "next_step": "user decision: deposit or transfer more USDT (about 5 USDT covers the smallest BTCUSDT order at 20x with a margin buffer), then a separately approved minimum live order test"
+}
