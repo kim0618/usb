@@ -10,6 +10,14 @@ M3 and M5 are the two D4.1 defects and are the reason this audit exists as its o
 something no D4.1 gate could ask: did any candidate get rejected for honestly reporting that
 consensus evidence is absent? Under V1 the answer was yes for every candidate that reached a
 second repair round, and the gate that should have caught it did not exist.
+
+D4.3R adds two things without touching M1-M12's frozen list or `tier_a_verdict`'s all-PASS
+requirement: `_m12_observation` refuses to call a clean-checkout run under a non-project
+interpreter official M12 evidence (NOT_EVALUATED instead), and `denominators` makes D4.3A §O's own
+hand-written "C1's 0 violations is a zero-denominator result" observation structural - every run
+now reports, per rule, whether it had a case to apply to at all. M6/M7's PASS/FAIL is still exactly
+`_rules(...) == 0`; the denominator only changes what the disclosed text says about a 0 that never
+had anything to fail.
 """
 
 from __future__ import annotations
@@ -70,6 +78,24 @@ def _direction_enum_is_visible() -> bool:
     return False
 
 
+def _m12_observation(clean) -> tuple[bool | None, str]:
+    """D4.3R (brief §13): a clean-checkout run under a non-project interpreter is not official M12
+    evidence - it measures a different environment's dependency resolution, not this repository's.
+    NOT_EVALUATED here, not a silent PASS or a misleading FAIL, so a caller cannot mistake it for
+    either."""
+    if not clean.official_interpreter:
+        return None, (f"skipped: probe ran under {clean.interpreter!r}, not the project venv - "
+                       "not official M12 evidence")
+    if clean.passed:
+        return True, "clean-checkout import passed"
+    if clean.blockers():
+        return False, "; ".join(f"{b.name}: {b.error.splitlines()[0][:120]}"
+                                 for b in clean.blockers())
+    if not clean.smoke_executed:
+        return False, "smoke did not execute"
+    return False, f"smoke failed: {clean.smoke_error}"
+
+
 def audit_run(run_id: str, *, analyses_root: Path = ANALYSES_ROOT,
               manifest_root: Path = D4_2_ROOT, packages_dir: Path = PACKAGES_DIR) -> dict:
     records = _records(analyses_root, run_id)
@@ -104,6 +130,11 @@ def audit_run(run_id: str, *, analyses_root: Path = ANALYSES_ROOT,
                 and all((r.get("raw_repair_response") or {}).get("raw_text")
                         for r in record.get("repair_rounds") or [])
                 and record.get("started_at") and record.get("completed_at")),
+            "expectation_gap": (final or {}).get("expectation_gap"),
+            "expectation_gap_confidence": (final or {}).get("expectation_gap_confidence"),
+            "consensus_ceiling_applies": (
+                bundle.consensus.status == "SOURCE_NOT_AVAILABLE"
+                and bundle.estimate_revisions.status == "SOURCE_NOT_AVAILABLE"),
             "defects": defects,
         })
 
@@ -124,6 +155,39 @@ def audit_run(run_id: str, *, analyses_root: Path = ANALYSES_ROOT,
             if item.get("rule") in wanted
         )
 
+    #: brief §10/§11: a rule's 0-violation count is only evidence the rule holds if the rule had a
+    #: case to apply to at all. `_denominator("C1")` is exactly D4.3A §O's own hand-written
+    #: "positive outputs = 0" observation, made structural instead of prose so a future run cannot
+    #: silently lose it. M6 and M7's PASS/FAIL booleans below are unchanged - this only decides
+    #: whether a 0-violation rule gets called NOT_EVALUATED in the disclosed text.
+    def _denominator(rule: str) -> int:
+        if rule == "C1":
+            return sum(1 for c in per_candidate
+                       if c["expectation_gap"] in ("POSITIVE", "WIDE_POSITIVE"))
+        if rule == "C4":
+            return sum(1 for c in per_candidate if c["consensus_ceiling_applies"])
+        if rule == "C5":
+            return sum(1 for c in per_candidate if c["has_final_output"])
+        if rule == "C6":
+            return sum(1 for c in per_candidate
+                       if c["expectation_gap"] not in ("UNKNOWN", None))
+        raise ValueError(rule)
+
+    def _rule_status(rule: str) -> str:
+        violations = _rules(rule)
+        if violations:
+            return "FAIL"
+        return "PASS" if _denominator(rule) else "NOT_EVALUATED"
+
+    def _rule_summary(*rules: str) -> str:
+        return "; ".join(
+            f"{r}: {_rule_status(r)} ({_denominator(r)} eligible, {_rules(r)} violations)"
+            for r in rules
+        )
+
+    denominators = {r: {"eligible": _denominator(r), "violations": _rules(r),
+                         "status": _rule_status(r)} for r in ("C1", "C4", "C5", "C6")}
+
     observations = {
         "M1": (all(c["canonical_model"] == REQUESTED_MODEL and not c["model_mismatch"]
                    for c in per_candidate) and bool(per_candidate),
@@ -142,9 +206,10 @@ def audit_run(run_id: str, *, analyses_root: Path = ANALYSES_ROOT,
                f"directions used {sorted({d for c in per_candidate for d in c['directions_used']})}"
                f"; enum visible in generated schema: {_direction_enum_is_visible()}"),
         "M6": (_rules("C1", "C5", "C6") == 0,
-               f"{_rules('C1', 'C5', 'C6')} C1/C5/C6 violations"),
+               f"{_rules('C1', 'C5', 'C6')} C1/C5/C6 violations | {_rule_summary('C1', 'C5', 'C6')}"),
         "M7": (_rules("C4") == 0,
-               f"{_rules('C4')} confidences above the frozen MEDIUM ceiling (C4)"),
+               f"{_rules('C4')} confidences above the frozen MEDIUM ceiling (C4) | "
+               f"{_rule_summary('C4')}"),
         "M8": (_count("code_owned_numeric_defects") == 0,
                f"{_count('code_owned_numeric_defects')} claims restating a code-owned number"),
         "M9": (_count("decision_field_leaks") == 0 and _count("decision_vocabulary_leaks") == 0,
@@ -160,9 +225,7 @@ def audit_run(run_id: str, *, analyses_root: Path = ANALYSES_ROOT,
             f"vs reserve ${TIER_A_BUDGET.candidate_worst_case_budget_usd:.2f}; run total "
             f"${manifest.get('run_total_cost_usd', 0):.2f} vs remaining cap "
             f"${D4_2_REMAINING_CAP_USD:.2f}"),
-        "M12": (clean.passed,
-                "clean-checkout import passed" if clean.passed else
-                "; ".join(f"{b.name}: {b.error.splitlines()[0][:120]}" for b in clean.blockers())),
+        "M12": _m12_observation(clean),
     }
 
     gates = build_gates(observations)
@@ -172,6 +235,7 @@ def audit_run(run_id: str, *, analyses_root: Path = ANALYSES_ROOT,
         "contract_version": D4_2_CONTRACT_VERSION, "prompt_version": PROMPT_VERSION,
         "candidates": per_candidate,
         "clean_checkout": clean.to_dict(),
+        "denominators": denominators,
         "gates": [g.to_dict() for g in gates],
         "verdict": verdict.value,
         "verdict_means": (

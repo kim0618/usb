@@ -12,6 +12,27 @@ is the same defect counted on the INITIAL response, before any repair - that is 
 unassisted behaviour, and it is reported here beside every final count rather than instead of it.
 `d4_1_contract` adjudicates on final outputs, which is correct for a contract gate; this audit
 reports both so the contract result is not mistaken for a behavioural one.
+
+D4.3R repair (`H_V2_D4_3R_AUDIT_EXECUTION_ALIGNMENT_V1.md`). Two of this file's own detectors were
+themselves the cause of D4.3A's M4 and M8 failures, and both are fixed here without touching what
+"independent second opinion" means for anything else:
+
+  M4 (`fabricated_consensus`, E3) used to run its OWN regex list to decide ASSERTED-vs-ABSENCE,
+  duplicating a judgement `consensus_language.py` already makes for the live validator
+  (`validate.py:check_consensus_not_fabricated`). Two independently written classifiers WILL
+  disagree eventually - that is what happened - and an "independent second opinion" about whether a
+  candidate satisfies the SAME rule the validator enforces has to start from the same answer to
+  "does this sentence assert a consensus expectation", not a competing one. So this file now calls
+  `asserted_consensus_findings` directly rather than restating the rule. The independence this audit
+  still provides is real: it is a fresh statement of WHICH FIELDS to scan and WHEN the rule applies
+  (§ below), not a fresh statement of what ASSERTED means.
+
+  M8 (`code_owned_numeric_defects`, E5) used to flag a claim whenever ANY digit in its text failed
+  to match the cited code fact's value, which is not what the rule means - the rule is "states a
+  DIFFERENT number", not "contains an unrelated one". `numeric_roles.fact_is_restated` decides FIRST
+  whether the text restates the fact's value at all (a fiscal-period label, a session count, a rule
+  id are never candidates), and only then compares. `_matches_fact` below is a thin wrapper kept for
+  its call sites' sake.
 """
 
 from __future__ import annotations
@@ -24,7 +45,9 @@ from typing import Any, Iterable
 
 from app.backtest.strategy_h_v2.evidence.chunk_schema import AIResearchInputV1
 from app.backtest.strategy_h_v2.expectation.code_facts import build_code_fact_index, code_source_id
+from app.backtest.strategy_h_v2.expectation.consensus_language import asserted_consensus_findings
 from app.backtest.strategy_h_v2.expectation.evidence_schema import ExpectationEvidenceBundleV1
+from app.backtest.strategy_h_v2.expectation.numeric_roles import fact_is_restated
 from app.dev.run_strategy_h_v2_d4_1 import ANALYSES_ROOT, D4_1_ROOT, PACKAGES_DIR
 
 MATERIAL_TYPES = {"FACT", "INTERPRETATION", "INFERENCE"}
@@ -37,21 +60,6 @@ AUDIT_BANNED_FIELDS = frozenset({
     "entry2", "exit", "stop", "tp1", "tp2", "position_size", "portfolio_weight", "weight",
     "conviction_score", "expectation_gap_score",
 })
-
-#: An ASSERTION about what analysts/the market expect - not the mere appearance of the word.
-#: The contract's own required replacement sentence contains "consensus" and must not be counted,
-#: which is why these are assertion patterns and not a keyword list.
-CONSENSUS_ASSERTIONS = tuple(re.compile(p, re.I) for p in (
-    r"analysts?\s+\w{0,12}\s{0,2}(expect|estimat|forecast|project|anticipat|model)",
-    r"consensus\s+(expect|estimat|forecast|view|number|is\b|was\b|of\b|implies|stands)",
-    r"(wall street|the street)\s+\w{0,12}\s{0,2}(expect|estimat|forecast|anticipat)",
-    r"the market (expect|anticipat|forecast|is looking for)",
-    r"(beat|miss(ed)?|exceed(ed)?|fell short of)\s+(the\s+)?(consensus|analyst|street|expectations|estimates)",
-    r"(above|below|versus|vs\.?)\s+consensus",
-    r"investors are pricing",
-    r"estimate revisions? (have|has|are|is|show)",
-))
-CONSENSUS_REPLACEMENT = "available evidence does not establish consensus expectations"
 
 #: Vocabulary that would make D4 a decision or valuation layer. Matched as whole words in free text.
 DECISION_VOCABULARY = tuple(re.compile(rf"\b{p}\b", re.I) for p in (
@@ -72,9 +80,6 @@ NON_PROSE_KEYS = frozenset({
     "wide_positive_deferred_conjunct", "source_id", "evidence_id", "evidence_ids", "sources",
     "decision_time", "created_at", "version",
 })
-
-NUMBER = re.compile(r"-?\d[\d,]*\.?\d*")
-
 
 def iter_claims(node: Any, path: str = "root") -> Iterable[tuple[str, dict]]:
     if isinstance(node, dict):
@@ -116,42 +121,15 @@ def _cited_evidence(claim: dict) -> list[str]:
     return ids + list(claim.get("evidence_ids") or [])
 
 
-def _numbers(text: str) -> list[float]:
-    out = []
-    for token in NUMBER.findall(text):
-        try:
-            out.append(float(token.replace(",", "")))
-        except ValueError:
-            continue
-    return out
-
-
 def _matches_fact(text: str, value: Any, unit: str) -> bool:
     """Does the claim restate the cited code fact's value, or is it purely qualitative?
 
-    Unit-aware, deliberately: a session COUNT in a sentence about a return is ordinary writing, and
-    flagging it manufactures the false-positive class D3.1 §I.2 already measured once.
+    D4.3R: delegates to `numeric_roles.fact_is_restated`, which classifies every digit in `text` by
+    role FIRST (a fiscal-period label, a session count, a rule id are never restatement candidates)
+    and compares only the ones actually playing the VALUE_RESTATEMENT role. Kept as a thin wrapper
+    so `audit_output` below did not need to change its call site.
     """
-    if unit == "STATE_TOKEN":
-        return str(value).upper() in text.upper() or not any(c.isdigit() for c in text)
-    numbers = _numbers(text)
-    if not numbers:
-        return True
-    if not isinstance(value, (int, float)):
-        return True
-    candidates = {round(abs(float(value)), 4)}
-    if unit == "RETURN_FRACTION":
-        candidates |= {round(abs(float(value)) * 100, 1), round(abs(float(value)) * 100, 2)}
-    elif unit == "ANNUALIZED_STDEV":
-        candidates |= {round(abs(float(value)) * 100, 1)}
-    elif unit == "USD":
-        for scale, _ in ((1e9, "B"), (1e6, "M"), (1e3, "K")):
-            candidates |= {round(abs(float(value)) / scale, 1), round(abs(float(value)) / scale, 2)}
-    for n in numbers:
-        for c in candidates:
-            if abs(abs(n) - c) <= max(0.05, abs(c) * 0.01):
-                return True
-    return False
+    return fact_is_restated(text, value, unit)
 
 
 def audit_output(output: dict, *, package: AIResearchInputV1,
@@ -199,13 +177,10 @@ def audit_output(output: dict, *, package: AIResearchInputV1,
 
     consensus_absent = bundle.consensus.status == "SOURCE_NOT_AVAILABLE"
     for path, text in iter_prose(output):
-        if CONSENSUS_REPLACEMENT in text.lower():
-            continue
         if consensus_absent:
-            for pattern in CONSENSUS_ASSERTIONS:
-                if pattern.search(text):
-                    e3.append({"path": path, "match": pattern.pattern, "text": text[:200]})
-                    break
+            for finding in asserted_consensus_findings(text):
+                e3.append({"path": path, "trigger": finding.trigger, "sentence": finding.sentence,
+                           "text": text[:200]})
         for pattern in DECISION_VOCABULARY:
             if pattern.search(text):
                 e7_text.append({"path": path, "match": pattern.pattern, "text": text[:200]})

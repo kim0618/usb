@@ -14,6 +14,23 @@ The probe reports per-entry-point results and, for a failure, the import chain a
 symbol. A blocker inside `research/` is reported as such rather than folded into a D4 verdict line:
 "D4 does not import" and "a module D4 imports does not import" are different findings with
 different owners.
+
+D4.3R repair (brief §12/§13). Two defects found by inspection, not by any test failing:
+
+  `smoke_ok` was initialised `True` and only ever set `False` inside the `if all(...ok...)` branch,
+  so a run where the imports themselves failed - which skips the smoke entirely - still reported
+  `smoke_ok: true`. A check that never ran is indistinguishable, in that output, from one that ran
+  and passed. `smoke_executed` is now tracked separately and `passed` requires it to be true; a
+  skipped smoke can never read as a passed one again.
+
+  The probe used to run under `sys.executable`, whatever interpreter happened to invoke it. Under
+  the repository's system Python that resolves imports against a different site-packages path
+  (`HOME` is pinned to the temp checkout, which drops `~/.local/lib`) and 6 of 10 targets fail with
+  `ModuleNotFoundError` - a real environment difference, not a dependency-closure defect, but one
+  the smoke-skip bug above then hid entirely. `probe()` now resolves the project's own
+  `.venv/bin/python` by default and reports whether it found it (`official_interpreter`); a caller
+  that got a non-project interpreter knows not to trust the result as M12 evidence rather than
+  discovering it from a stack trace two files away.
 """
 
 from __future__ import annotations
@@ -68,12 +85,15 @@ class ImportProbeResult:
 class CleanCheckoutReport:
     tree: str
     results: list[ImportProbeResult]
+    smoke_executed: bool
     smoke_ok: bool
     smoke_error: str = ""
+    interpreter: str = ""
+    official_interpreter: bool = True
 
     @property
     def passed(self) -> bool:
-        return all(r.ok for r in self.results) and self.smoke_ok
+        return all(r.ok for r in self.results) and self.smoke_executed and self.smoke_ok
 
     def blockers(self) -> list[ImportProbeResult]:
         return [r for r in self.results if not r.ok]
@@ -81,7 +101,9 @@ class CleanCheckoutReport:
     def to_dict(self) -> dict:
         return {
             "gate": "M12", "tree": self.tree, "passed": self.passed,
-            "smoke_ok": self.smoke_ok, "smoke_error": self.smoke_error,
+            "smoke_executed": self.smoke_executed, "smoke_ok": self.smoke_ok,
+            "smoke_error": self.smoke_error, "interpreter": self.interpreter,
+            "official_interpreter": self.official_interpreter,
             "results": [r.to_dict() for r in self.results],
         }
 
@@ -103,8 +125,23 @@ def export_index_tree(repo_root: Path, destination: Path) -> str:
     return tree
 
 
-def probe(repo_root: Path | None = None) -> CleanCheckoutReport:
+def official_python(repo_root: Path) -> tuple[Path, bool]:
+    """The project venv interpreter, brief §13: "시스템 Python 실행 결과를 official M12 evidence로
+    사용하지 않는다." Falls back to whatever invoked this process only if the venv is genuinely
+    absent (e.g. a checkout without it materialized yet), and says so via the second element rather
+    than silently passing a non-project interpreter's result off as official."""
+    venv_python = repo_root / ".venv" / "bin" / "python"
+    if venv_python.exists():
+        return venv_python, True
+    return Path(sys.executable), False
+
+
+def probe(repo_root: Path | None = None, *, python: Path | None = None) -> CleanCheckoutReport:
     repo_root = repo_root or Path(__file__).resolve().parents[3]
+    if python is not None:
+        interpreter, is_official = python, python == official_python(repo_root)[0]
+    else:
+        interpreter, is_official = official_python(repo_root)
     with tempfile.TemporaryDirectory(prefix="d4_clean_checkout_") as tmp:
         destination = Path(tmp)
         tree = export_index_tree(repo_root, destination)
@@ -119,18 +156,20 @@ def probe(repo_root: Path | None = None) -> CleanCheckoutReport:
             "    except Exception as error:\n"
             "        out.append({'name': name, 'module': module, 'ok': False,\n"
             "                    'error': type(error).__name__ + ': ' + str(error)})\n"
-            "smoke_ok, smoke_error = True, ''\n"
+            "smoke_executed, smoke_ok, smoke_error = False, False, ''\n"
             "if all(item['ok'] for item in out):\n"
+            "    smoke_executed = True\n"
             "    try:\n"
             f"        exec(compile({_SMOKE!r}, '<smoke>', 'exec'), {{}})\n"
+            "        smoke_ok = True\n"
             "    except Exception as error:\n"
             "        smoke_ok = False\n"
             "        smoke_error = type(error).__name__ + ': ' + str(error)\n"
-            "print(json.dumps({'results': out, 'smoke_ok': smoke_ok,"
-            " 'smoke_error': smoke_error}))\n"
+            "print(json.dumps({'results': out, 'smoke_executed': smoke_executed,"
+            " 'smoke_ok': smoke_ok, 'smoke_error': smoke_error}))\n"
         )
         completed = subprocess.run(
-            [sys.executable, "-c", script], cwd=destination, capture_output=True, text=True,
+            [str(interpreter), "-c", script], cwd=destination, capture_output=True, text=True,
             env={"PYTHONPATH": str(destination / "backend"), "PATH": "/usr/bin:/bin",
                  "HOME": str(destination)},
         )
@@ -139,13 +178,16 @@ def probe(repo_root: Path | None = None) -> CleanCheckoutReport:
                 tree=tree,
                 results=[ImportProbeResult(name, module, False, completed.stderr.strip()[-2000:])
                          for name, module in CLEAN_IMPORT_TARGETS],
-                smoke_ok=False, smoke_error="probe subprocess failed",
+                smoke_executed=False, smoke_ok=False, smoke_error="probe subprocess failed",
+                interpreter=str(interpreter), official_interpreter=is_official,
             )
         payload = json.loads(completed.stdout.strip().splitlines()[-1])
     return CleanCheckoutReport(
         tree=tree,
         results=[ImportProbeResult(**item) for item in payload["results"]],
-        smoke_ok=payload["smoke_ok"], smoke_error=payload["smoke_error"],
+        smoke_executed=payload["smoke_executed"], smoke_ok=payload["smoke_ok"],
+        smoke_error=payload["smoke_error"],
+        interpreter=str(interpreter), official_interpreter=is_official,
     )
 
 
