@@ -206,6 +206,85 @@ def test_an_unreadable_balance_means_no_size() -> None:
     assert result["reject_code"] == "MARGIN_UNKNOWN"
 
 
+# ------------------------------------------------------------------ no local cap
+
+
+def test_with_no_cap_the_account_is_the_only_bound_and_no_local_refusal_appears() -> None:
+    """Operating default: `BINANCE_LIVE_MAX_QTY` unset means the deployment imposes nothing.
+
+    What is left is the account and the exchange, which is the point of the policy: the ceiling
+    was a validation-run bound, not a risk model, and leaving it in place capped MAX at a size
+    unrelated to what the account can actually carry.
+    """
+    result = ladder(ceiling=None)
+    assert result["max_feasible"] is True
+    assert result["local_max_qty"] is None
+    assert all(item["reject_code"] != "QTY_ABOVE_LOCAL_MAXIMUM" for item in result["presets"])
+    # And it is bigger than the ceiling that used to bind production.
+    assert result["max_qty"] > Decimal("0.010")
+
+
+def test_removing_the_cap_moves_max_up_to_where_margin_binds() -> None:
+    capped = ladder(ceiling=Decimal("0.01"))["max_qty"]
+    uncapped = ladder(ceiling=None)["max_qty"]
+    assert capped == Decimal("0.010")
+    assert uncapped > capped
+    # Uncapped MAX is the margin limit, so it tracks the balance rather than any constant.
+    richer = ladder(ceiling=None, available=Decimal("1748.95"))["max_qty"]
+    poorer = ladder(ceiling=None, available=Decimal("437.24"))["max_qty"]
+    assert richer > uncapped > poorer
+
+
+def test_an_uncapped_search_still_stops_at_the_margin_the_account_has() -> None:
+    result = ladder(ceiling=None)
+    top = row(result, "MAX")
+    assert top["required_total"] <= Decimal("874.475")
+    step = FILTERS.market_qty_step
+    over = check(side="LONG", qty=result["max_qty"] + step, depth=DEEP, mark=MARK,
+                 commission=COMMISSION, filters=FILTERS, leverage=Decimal(10),
+                 available=Decimal("874.475"), ceiling=None, position=FLAT)
+    assert over["feasible"] is False
+    assert over["reject_code"] == "INSUFFICIENT_MARGIN"
+
+
+def test_an_uncapped_search_still_stops_at_the_depth_the_book_shows() -> None:
+    # Plenty of margin, thin book: liquidity becomes the binding constraint rather than the cap.
+    thin = {"bids": [["83499.90", "0.020"]], "asks": [["83500.10", "0.020"]]}
+    result = ladder(ceiling=None, depth=thin, available=Decimal("100000"))
+    assert result["max_feasible"] is True
+    assert result["max_qty"] <= Decimal("0.020")
+    over = check(side="LONG", qty=Decimal("0.021"), depth=thin, mark=MARK, commission=COMMISSION,
+                 filters=FILTERS, leverage=Decimal(10), available=Decimal("100000"),
+                 ceiling=None, position=FLAT)
+    assert over["reject_code"] == "NO_LIQUIDITY"
+
+
+def test_the_ladder_still_floors_to_the_step_when_nothing_caps_it() -> None:
+    result = ladder(ceiling=None)
+    step = FILTERS.market_qty_step
+    for item in result["presets"]:
+        assert item["qty"] % step == 0
+    for label, fraction in (("25%", Decimal("0.25")), ("HALF", Decimal("0.50")),
+                            ("75%", Decimal("0.75"))):
+        assert row(result, label)["qty"] == floor_to_step(result["max_qty"] * fraction, step)
+
+
+def test_an_absent_or_blank_variable_is_no_cap_and_a_present_one_still_binds() -> None:
+    from app.crypto.live.credentials import load_config
+    base = {"BINANCE_API_KEY": "k", "BINANCE_API_SECRET": "s"}
+    assert load_config(base).max_open_qty is None
+    assert load_config({**base, "BINANCE_LIVE_MAX_QTY": ""}).max_open_qty is None
+    assert load_config({**base, "BINANCE_LIVE_MAX_QTY": "   "}).max_open_qty is None
+    assert load_config({**base, "BINANCE_LIVE_MAX_QTY": "0.01"}).max_open_qty == Decimal("0.01")
+
+
+def test_the_adapter_without_a_ceiling_reports_none_rather_than_a_number() -> None:
+    live, _ = adapter(FakeBinance(position_rows=POSITION_RISK_FLAT))
+    result = live.get_sizing()
+    assert result["sides"]["LONG"]["local_max_qty"] is None
+    assert result["sides"]["LONG"]["max_feasible"] is True
+
+
 # ------------------------------------------------------------------ through the adapter
 
 

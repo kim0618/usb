@@ -130,8 +130,11 @@ def check(*, side: str, qty: Decimal, depth: dict[str, Any], mark: MarkPrice,
         return _refused(qty, INSUFFICIENT_MARGIN,
                         f"필요 {required_total} USDT가 주문가능 {available} USDT를 넘습니다.",
                         required_total=required_total)
+    # The refusal keys are present and null on a feasible row too, so every row in the ladder
+    # has the same shape and a reader never has to branch on a missing key.
     return {**priced, "qty": qty, "feasible": True, "required_total": required_total,
-            "available_after": available - required_total}
+            "available_after": available - required_total,
+            "reject_code": None, "reject_message": None}
 
 
 def max_open(*, side: str, depth: dict[str, Any], mark: MarkPrice, commission: CommissionRate,
