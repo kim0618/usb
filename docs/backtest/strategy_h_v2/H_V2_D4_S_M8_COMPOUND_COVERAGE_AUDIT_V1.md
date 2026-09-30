@@ -527,6 +527,14 @@ Expected compound-claim exposure in the smoke, from SCCO's stored outputs: 7 to 
 of which 2 to 5 cite two or more code facts. So compound claims will appear, which is why their M8
 treatment had to be settled before the smoke rather than after.
 
+**The smoke has since run under BRANCH 2**, and its result is
+`H_V2_D4_S1_SCCO_LIMITED_LIVE_SMOKE_RESULT_V1.md`. Measured exposure came in at the low end of the
+estimate: 5 compound claims, of which 1 cites a code fact. `compound_claim_coverage_gap` read 0, so
+that one claim would not have been flagged even under the widened scope. That is one observation on
+one candidate and does not satisfy the acceptance condition above, which still requires R1+R2+R3 and
+a zero-reading offline replay over both stored runs. M8 scope remains ATOMIC and this audit's verdict
+is unchanged.
+
 ## J. Tests
 
 ```

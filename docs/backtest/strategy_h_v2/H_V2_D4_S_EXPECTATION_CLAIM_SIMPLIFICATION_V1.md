@@ -664,6 +664,13 @@ Pass conditions, all mechanical:
 What it cannot show: whether initial validity improves in general. One or two candidates is not a
 rate, and §11 forbids steering the sample toward a POSITIVE output to exercise C1.
 
+**This smoke has since run**, as one SCCO candidate, and its result is
+`H_V2_D4_S1_SCCO_LIMITED_LIVE_SMOKE_RESULT_V1.md`: STRONG PASS, initial valid YES, 0 repairs,
+$1.3940560 of a $6.00 cap, M1-M12 all PASS. The decisive measurement is a $0 counterfactual on the
+stored bytes: that same live response is INVALID under the pre-D4-S contract (one consensus-language
+false positive) and VALID under D4-S. It changed nothing in this document, whose verdict and
+declarations stand as written, and it did not authorize Tier B.
+
 ## M. Tier B Status
 
 ```
