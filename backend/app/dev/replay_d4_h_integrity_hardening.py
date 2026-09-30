@@ -7,14 +7,14 @@ What this answers, and only this:
   R1/R2  Do the six findings of `H_V2_D4_S_M8_COMPOUND_COVERAGE_AUDIT_V1.md` disappear, does any
          NEW true numeric mismatch appear from the parser change, and does every M1-M12 gate
          reproduce the status its own run recorded?
-  STATE  How many claims are eligible for the new state gate, how many violate it, and for each
-         violating token, does the CANDIDATE own that state somewhere it did not cite?
 
-The last question is here because it is structural and it decides the finding's mechanism without
-anyone having to read the prose: a state the candidate's own `fundamental_changes` block holds under
-a metric the claim did not cite is a CITATION-set finding, while a state no metric of that candidate
-holds at all is the gate's own reading of the sentence. Both are reported; neither is silently
-reclassified, and the gate's frozen contract is not adjusted to either.
+It used to also carry `CODE_OWNED_STATE_FIDELITY`'s first measurement, under that gate's D4-H V1
+contract. D4-H1 replaced that contract (`H_V2_D4_H1_STATE_FIDELITY_SEMANTIC_REPAIR_V1.md`), so the
+state measurement lives in `replay_d4_h1_state_fidelity.py` now and this file no longer computes one.
+Two reasons rather than one: re-measuring a revised gate under this file's schema name would produce
+different numbers for the same schema, and D4-H's own artifact on disk
+(`d4_h_integrity_hardening_replay-20260930T042900Z.json`) is the immutable record of what V1 measured.
+R1/R2 and the M-gate immutability check are unchanged and are still this file's subject.
 
 Nothing here edits a historical verdict. `H_V2_D4_3A_TIER_A_V2_MECHANICAL_RESULT_V1.md`,
 `H_V2_D4_4A_FINAL_TIER_A_V3_MECHANICAL_RESULT_V1.md` and
@@ -30,10 +30,7 @@ from pathlib import Path
 import json
 import sys
 
-from app.backtest.strategy_h_v2.evidence.chunk_schema import AIResearchInputV1
 from app.backtest.strategy_h_v2.expectation.d4_2_contract import D4_2_ROOT
-from app.backtest.strategy_h_v2.expectation.state_fidelity import GATE_ID
-from app.backtest.strategy_h_v2.research.d3_3_contract import PACKAGES_DIR
 from app.dev.audit_strategy_h_v2_d4_2 import audit_run
 
 REPLAY_ROOT = D4_2_ROOT / "replay"
@@ -84,18 +81,6 @@ def _recorded_gates(run_id: str) -> tuple[dict[str, str], str]:
     raise FileNotFoundError(f"no recorded gate statuses for {run_id}")
 
 
-def _candidate_owned_states(ticker: str) -> set[str]:
-    """Every state the candidate's own D1/D2 `fundamental_changes` block holds, across ALL metrics -
-    including the ones a given claim did not cite. Read from the same package
-    `code_facts.build_code_fact_index` reads, so this is the identical source, widened from one
-    claim's citations to the candidate."""
-    package = AIResearchInputV1.model_validate_json(
-        (PACKAGES_DIR / f"{ticker}.json").read_text())
-    return {str(block["state"]).upper()
-            for block in (package.evidence_bundle.fundamental_changes or {}).values()
-            if isinstance(block, dict) and block.get("state") is not None}
-
-
 def replay() -> dict:
     runs: list[dict] = []
     for run_id, label, document in AUTHORITATIVE_RUNS:
@@ -106,32 +91,10 @@ def replay() -> dict:
 
         for candidate in report["candidates"]:
             defects = candidate["defects"]
-            state = defects["code_owned_state_fidelity"]
-            assert state["gate"] == GATE_ID
-            owned_by_candidate = _candidate_owned_states(candidate["ticker"])
-            violations = []
-            for claim in state["violating_claims"]:
-                for token in claim["unowned"]:
-                    violations.append({
-                        "path": claim["path"],
-                        "unowned_state": token,
-                        "cited_owned": claim["owned"],
-                        "candidate_owns_it_uncited": token in owned_by_candidate,
-                        "all_named": claim["named"],
-                        "text": claim["text"],
-                    })
             candidates.append({
                 "ticker": candidate["ticker"],
                 "m8_atomic_defects": len(defects["code_owned_numeric_defects"]),
                 "m8_compound_coverage_gap": len(defects["compound_claim_coverage_gap"]),
-                "state_fidelity_status": state["status"],
-                "state_fidelity_eligible": state["eligible"],
-                "state_fidelity_violating_claims": state["violations"],
-                "state_fidelity_unowned_tokens": len(violations),
-                "candidate_owned_states": sorted(owned_by_candidate),
-                "states_named_anywhere_in_output": sorted(
-                    {s for claim in state["eligible_claims"] for s in claim["named"]}),
-                "violations": violations,
             })
 
         runs.append({
@@ -150,7 +113,6 @@ def replay() -> dict:
     def total(key: str) -> int:
         return sum(c[key] for run in runs for c in run["candidates"])
 
-    every_violation = [v for run in runs for c in run["candidates"] for v in c["violations"]]
     return {
         "schema": "H_V2_D4_H_POST_HOC_INTEGRITY_REPLAY_V1",
         "produced_at": datetime.now(timezone.utc).isoformat(),
@@ -162,19 +124,13 @@ def replay() -> dict:
             "m8_new_true_numeric_defects": total("m8_atomic_defects"),
             "m8_compound_coverage_gap_findings": total("m8_compound_coverage_gap"),
             "every_m_gate_reproduced": all(run["verdict_recorded_unchanged"] for run in runs),
-            "state_fidelity_eligible": total("state_fidelity_eligible"),
-            "state_fidelity_violating_claims": total("state_fidelity_violating_claims"),
-            "state_fidelity_unowned_tokens": total("state_fidelity_unowned_tokens"),
-            "unowned_tokens_the_candidate_owns_uncited": sum(
-                1 for v in every_violation if v["candidate_owns_it_uncited"]),
-            "unowned_tokens_no_metric_of_the_candidate_holds": sum(
-                1 for v in every_violation if not v["candidate_owns_it_uncited"]),
         },
         "means": (
             "M8's atomic count is the gate figure and its 0 is the same 0 every run recorded. The "
             "compound-coverage gap is the list a widened M8 would have flagged, and its 0 is R1/R2's "
-            "result on real bytes. The state figures are a NEW gate's first measurement and are "
-            "wired to no M gate: a violation here has never been part of any Tier A verdict."
+            "result on real bytes. CODE_OWNED_STATE_FIDELITY is measured by "
+            "`replay_d4_h1_state_fidelity.py` and is wired to no M gate: a violation there has never "
+            "been part of any Tier A verdict."
         ),
     }
 

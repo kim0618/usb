@@ -120,7 +120,11 @@ def test_state_token_is_no_longer_answered_by_the_numeric_matcher():
 
 def test_the_state_question_did_not_disappear_with_the_branch():
     """The transfer is real, not a deletion: the case the old branch got wrong is a FAIL on the new
-    gate, and the case it got wrong in the other direction is a PASS."""
+    gate, and the case it got wrong in the other direction is a PASS.
+
+    Under D4-H1 the new gate binds each asserted state to the metric the clause names, so these
+    fixtures name `revenue` where the D4-H versions said "durability" - `growth_durability` is a
+    different enum on a different block and is not part of the code-owned metric state namespace."""
     from app.backtest.strategy_h_v2.expectation.code_facts import CodeFact
     from app.backtest.strategy_h_v2.expectation.d4_2_contract import MechanicalGateStatus
     from app.backtest.strategy_h_v2.expectation.state_fidelity import (
@@ -130,12 +134,14 @@ def test_the_state_question_did_not_disappear_with_the_branch():
                     "research_facts.fundamental_changes.revenue.state", "IMPROVING",
                     "STATE_TOKEN", "code-owned state")
 
+    authority = {"revenue": "IMPROVING"}
+
     def status(text: str) -> MechanicalGateStatus:
-        finding = claim_state_fidelity("root.claim", text, [fact])
+        finding = claim_state_fidelity("root.claim", text, [fact], authority)
         return state_fidelity_status([finding] if finding else [])
 
-    assert status("the tier 2 read shows DETERIORATING durability") == MechanicalGateStatus.FAIL
-    assert status("growth durability is IMPROVING over 252 sessions") == MechanicalGateStatus.PASS
+    assert status("revenue shows DETERIORATING growth") == MechanicalGateStatus.FAIL
+    assert status("revenue growth is IMPROVING over 252 sessions") == MechanicalGateStatus.PASS
     assert status("durability looks weaker now") == MechanicalGateStatus.NOT_EVALUATED
 
 

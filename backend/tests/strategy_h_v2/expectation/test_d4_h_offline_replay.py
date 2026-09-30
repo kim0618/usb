@@ -81,58 +81,16 @@ def test_no_new_true_numeric_mismatch_was_introduced(report):
     assert report["totals"]["m8_new_true_numeric_defects"] == 0
 
 
-# --- §14: State Fidelity acceptance ----------------------------------------------------------------
+# --- State Fidelity moved to H1's own replay --------------------------------------------------------
 
 @NEEDS_STORED_RUNS
-def test_the_state_gate_had_a_real_denominator(report):
-    """§11's rule in the direction it is usually needed. A 0-eligible measurement would be
-    NOT_EVALUATED and would say nothing about the gate; this one had 38 eligible claims."""
-    assert report["totals"]["state_fidelity_eligible"] > 0
-
-
-@NEEDS_STORED_RUNS
-def test_the_state_gate_findings_are_reported_at_their_measured_value(report):
-    """§14: an actual state mismatch in the stored outputs is not hidden. The measured numbers are
-    pinned here so a later change to the gate's contract cannot quietly move them - the mechanism
-    behind each is §F/§H of `H_V2_D4_H_PRE_TIER_B_INTEGRITY_HARDENING_V1.md`, and this test asserts
-    the count, not that the count is acceptable."""
-    totals = report["totals"]
-    assert totals["state_fidelity_violating_claims"] == 6
-    assert totals["state_fidelity_unowned_tokens"] == 8
-    assert (totals["unowned_tokens_the_candidate_owns_uncited"]
-            + totals["unowned_tokens_no_metric_of_the_candidate_holds"]
-            == totals["state_fidelity_unowned_tokens"])
-    assert totals["unowned_tokens_the_candidate_owns_uncited"] == 5
-    assert totals["unowned_tokens_no_metric_of_the_candidate_holds"] == 3
-
-
-@NEEDS_STORED_RUNS
-def test_no_finding_is_a_state_the_candidate_could_not_have_seen(report):
-    """The substantive reading of the eight, and the reason the verdict is NEEDS REVISION rather than
-    FAIL: none of them is a state invented out of nothing.
-
-    Five are states the candidate's OWN `fundamental_changes` block holds under a metric the claim did
-    not cite - a citation-set finding, structurally decidable and asserted here. The other three are
-    BSY naming ACCELERATING or IMPROVING only to DENY them ("not accelerating", "mixed rather than
-    improving"); the gate has no negation scope, which is the second mechanism §F records. Both are
-    gate false positives, and neither is repaired in D4-H: adjusting the contract after seeing these
-    counts is the result-driven tuning §14 exists to prevent.
-    """
-    denied_by_the_prose = {
-        ("BSY", "root.fundamental_reality_summary.improvement_claims[4]", "ACCELERATING"),
-        ("BSY", "root.gap_rationale[2]", "IMPROVING"),
-        ("BSY", "root.fundamental_reality_summary.improvement_claims[3]", "IMPROVING"),
-    }
-    seen = set()
-    for run in report["runs"]:
-        for candidate in run["candidates"]:
-            for violation in candidate["violations"]:
-                key = (candidate["ticker"], violation["path"], violation["unowned_state"])
-                if violation["candidate_owns_it_uncited"]:
-                    assert violation["unowned_state"] in candidate["candidate_owned_states"]
-                    continue
-                assert key in denied_by_the_prose, (
-                    f"a state no metric of {candidate['ticker']} holds and the prose does not deny: "
-                    f"{key} - this WOULD be a true fidelity violation")
-                seen.add(key)
-    assert seen == denied_by_the_prose
+def test_this_replay_no_longer_measures_the_state_gate(report):
+    """D4-H1 revised `CODE_OWNED_STATE_FIDELITY`'s contract, so re-measuring it under this file's
+    schema name would publish different numbers for the same schema. D4-H's own stored artifact is the
+    immutable record of what V1 measured, and H1's measurement lives in
+    `test_d4_h1_offline_replay.py`. R1/R2 and the M-gate immutability check are unchanged and are
+    still this file's subject."""
+    assert "state_fidelity_eligible" not in report["totals"]
+    assert set(report["totals"]) == {
+        "candidates_replayed", "m8_new_true_numeric_defects",
+        "m8_compound_coverage_gap_findings", "every_m_gate_reproduced"}

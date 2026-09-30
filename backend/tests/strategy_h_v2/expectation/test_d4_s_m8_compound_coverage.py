@@ -238,7 +238,8 @@ def test_the_false_negative_half_of_the_finding_is_now_a_named_gate():
         fact = CodeFact("CODE:D4:B:CHUNK:research_facts.fundamental_changes.revenue.state",
                         "research_facts.fundamental_changes.revenue.state", "STABLE",
                         "STATE_TOKEN", "code-owned state")
-        finding = claim_state_fidelity("root.gap_rationale[0]", text, [fact])
+        finding = claim_state_fidelity("root.gap_rationale[0]", text, [fact],
+                                       {"revenue": "STABLE"})
         assert state_fidelity_status([finding]) == MechanicalGateStatus.FAIL
 
 

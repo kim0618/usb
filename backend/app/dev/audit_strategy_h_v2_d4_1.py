@@ -54,7 +54,9 @@ from app.backtest.strategy_h_v2.expectation.expectation_state import (
 )
 from app.backtest.strategy_h_v2.expectation.numeric_roles import fact_is_restated
 from app.backtest.strategy_h_v2.expectation.state_fidelity import (
+    authoritative_states,
     claim_state_fidelity,
+    state_fact_inventory,
     state_fidelity_report,
 )
 from app.dev.run_strategy_h_v2_d4_1 import ANALYSES_ROOT, D4_1_ROOT, PACKAGES_DIR
@@ -216,6 +218,7 @@ def audit_output(output: dict, *, package: AIResearchInputV1,
     reader can see WHICH claim failed rather than only how many did."""
     code_facts = build_code_fact_index(
         bundle, research_facts=package.evidence_bundle.fundamental_changes)
+    state_authority = authoritative_states(package.evidence_bundle.fundamental_changes)
     valid_evidence = ({c.evidence_id for c in package.chunks}
                       | set(bundle.valid_evidence_ids()) | set(code_facts))
     valid_sources = ({s.source_id for s in package.source_manifest}
@@ -238,14 +241,17 @@ def audit_output(output: dict, *, package: AIResearchInputV1,
             continue
         cited = _cited_evidence(claim)
 
-        # D4-H's CODE_OWNED_STATE_FIDELITY, the gate the STATE_TOKEN half of M8 became
-        # (`state_fidelity.py`). Evaluated over BOTH citation forms, which is not a widening of
-        # anything frozen: this gate is new, has no historical result to keep comparable, and its
-        # unit of comparison is the claim together with its whole cited state set, so the atomic/
-        # compound distinction that bounds M8 and E4 does not apply to it. Wired to no M gate - the
-        # M1-M12 list is frozen and both Tier A runs' verdicts are read from it unchanged.
+        # D4-H's CODE_OWNED_STATE_FIDELITY, the gate the STATE_TOKEN half of M8 became, under the
+        # D4-H1 semantic repair (`state_fidelity.py`). Evaluated over BOTH citation forms, which is
+        # not a widening of anything frozen: this gate is new, has no historical result to keep
+        # comparable, and it adjudicates per ASSERTION against the CANDIDATE's code-owned metric
+        # states, so the atomic/compound distinction that bounds M8 and E4 does not apply to it.
+        # `authority` is the candidate's own namespace rather than the claim's citations, per H1
+        # §5/§6 - provenance and categorical authority are different questions. Wired to no M gate:
+        # the M1-M12 list is frozen and every graded run's verdict is read from it unchanged.
         finding = claim_state_fidelity(
-            path, claim["text"], [code_facts[cid] for cid in cited if cid in code_facts])
+            path, claim["text"], [code_facts[cid] for cid in cited if cid in code_facts],
+            state_authority)
         if finding is not None:
             state_fidelity.append(finding)
 
@@ -331,6 +337,9 @@ def audit_output(output: dict, *, package: AIResearchInputV1,
         "expectation_claim_sourcing": sourcing,
         "compound_claim_coverage_gap": compound_gap,
         "code_owned_state_fidelity": state_fidelity_report(state_fidelity),
+        "code_owned_state_authority": state_authority,
+        "code_owned_state_fact_inventory": state_fact_inventory(
+            bundle.bundle_id, code_facts.values()),
         "expectation_state": state.to_dict(),
         "honest_absence_accepted": absence_allowed,
     }
