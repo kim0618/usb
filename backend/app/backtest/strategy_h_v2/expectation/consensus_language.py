@@ -53,7 +53,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import re
 
-CONSENSUS_LANGUAGE_CONTRACT_VERSION = "h_v2_d4_consensus_language_v2_1"
+CONSENSUS_LANGUAGE_CONTRACT_VERSION = "h_v2_d4_consensus_language_v2_2"
 
 #: V1's eleven substrings, copied verbatim from commit 8a54895. V2 must still reject every one of
 #: them in an asserting sentence; `test_consensus_language.py` proves it phrase by phrase, so the
@@ -140,6 +140,18 @@ _MARKET_VERB = re.compile(
     re.IGNORECASE,
 )
 
+#: D4-S. "Investors expect X." named no listed referent and carried no listed absence phrase, so it
+#: fell through to NEUTRAL - the same coverage gap D4.3R2 closed for bare "market", in the same
+#: shape, for the one remaining subject D4's brief names. Scoped exactly like `_MARKET_VERB` (the
+#: verb directly at the subject's side, at most one copula between) rather than by adding
+#: `investors` to `_REFERENT`, because an unscoped whole-sentence pairing is what produced R2's own
+#: false positive. "Investors are pricing ..." was already a V1 banned substring; this covers the
+#: expectation verbs that phrase does not.
+_INVESTOR_VERB = re.compile(
+    r"\binvestors?\b\s*(?:is\s+|are\s+|was\s+|were\s+)?" + _EXPECTATION_VERB.pattern,
+    re.IGNORECASE,
+)
+
 # --- saying the evidence is not there ------------------------------------------------------------
 #
 # Every entry is about the AVAILABILITY of the evidence. Nothing here is about which way an
@@ -193,40 +205,102 @@ class ConsensusFinding:
     """What matched - the V1 substring, the verb, the quantified noun or the comparison."""
 
 
+@dataclass(frozen=True)
+class AttributionTrigger:
+    """One attribution match, WITH the span it occupies in the sentence.
+
+    D4-S extracted this. The span is what a structural polarity test needs and a label alone cannot
+    give: deciding whether an attribution sits under a negated epistemic frame, or is that frame's
+    subject, is a question about WHERE the attribution is, not only that one exists. The labels and
+    their order are exactly `classify_sentence`'s former inline list, so the trigger a finding
+    reports is unchanged.
+    """
+
+    label: str
+    start: int
+    end: int
+
+
 def split_sentences(text: str) -> list[str]:
     return [s.strip() for s in _SENTENCE_SPLIT.split(text or "") if s.strip()]
+
+
+def attribution_triggers(sentence: str) -> list[AttributionTrigger]:
+    """Every way `sentence` attributes an expectation to a consensus referent, in frozen order.
+
+    This is the trigger half of `classify_sentence`, lifted out unchanged so that exactly one copy
+    of these patterns exists. It deliberately does NOT consult `_ABSENCE`: a caller that wants the
+    frozen ABSENCE/ASSERTED/NEUTRAL verdict calls `classify_sentence`, and a caller doing its own
+    polarity analysis (`expectation_state`) needs the raw attributions without that short-circuit.
+    """
+    lowered = sentence.lower()
+    triggers: list[AttributionTrigger] = []
+
+    referent = _REFERENT.search(sentence)
+    if referent:
+        verb = _EXPECTATION_VERB.search(sentence)
+        if verb:
+            triggers.append(AttributionTrigger(
+                f"{referent.group(0).strip()} ... {verb.group(0).strip()}",
+                min(referent.start(), verb.start()), max(referent.end(), verb.end())))
+    quantified = _QUANTIFIED_NOUN.search(sentence)
+    if quantified:
+        triggers.append(AttributionTrigger(
+            "quantified consensus figure", quantified.start(), quantified.end()))
+    comparison = _COMPARISON.search(sentence)
+    if comparison:
+        triggers.append(AttributionTrigger(
+            "comparison against consensus", comparison.start(), comparison.end()))
+    subject = _MARKET_EXPECTATION_SUBJECT.search(sentence)
+    if subject:
+        triggers.append(AttributionTrigger(
+            "market expectation noun phrase", subject.start(), subject.end()))
+    market_verb = _MARKET_VERB.search(sentence)
+    if market_verb:
+        triggers.append(AttributionTrigger(
+            f"market ... {market_verb.group(1).strip()}", market_verb.start(), market_verb.end()))
+    investor_verb = _INVESTOR_VERB.search(sentence)
+    if investor_verb:
+        triggers.append(AttributionTrigger(
+            f"investors ... {investor_verb.group(1).strip()}",
+            investor_verb.start(), investor_verb.end()))
+    for phrase in V1_BANNED_SUBSTRINGS:
+        index = lowered.find(phrase)
+        if index >= 0:
+            triggers.append(AttributionTrigger(phrase, *_whole_words(sentence, index,
+                                                                    index + len(phrase))))
+    return triggers
+
+
+def _whole_words(sentence: str, start: int, end: int) -> tuple[int, int]:
+    """Grow a span out to token boundaries.
+
+    The V1 substrings are not word-anchored, and one of them - "consensus expect" - is a PREFIX of
+    "consensus expectations", which is the very collision D4.1 was built to fix. A raw substring
+    span therefore ends mid-token, and any caller reasoning about what sits BESIDE the attribution
+    would read the tail of the word it matched ("ations") as a neighbouring content word. Snapping
+    to token boundaries is not a leniency: the same characters still match, they are just measured
+    to the end of the word they are part of.
+    """
+    while start > 0 and (sentence[start - 1].isalnum() or sentence[start - 1] == "'"):
+        start -= 1
+    while end < len(sentence) and (sentence[end].isalnum() or sentence[end] == "'"):
+        end += 1
+    return start, end
 
 
 def classify_sentence(sentence: str) -> ConsensusFinding:
     """One sentence's verdict. Scope is the sentence on purpose: an absence statement in one
     sentence must not license an assertion in the next."""
-    lowered = sentence.lower()
     referent = _REFERENT.search(sentence)
     absence = _ABSENCE.search(sentence)
-
-    triggers: list[str] = []
-    if referent:
-        verb = _EXPECTATION_VERB.search(sentence)
-        if verb:
-            triggers.append(f"{referent.group(0).strip()} ... {verb.group(0).strip()}")
-    if _QUANTIFIED_NOUN.search(sentence):
-        triggers.append("quantified consensus figure")
-    if _COMPARISON.search(sentence):
-        triggers.append("comparison against consensus")
-    if _MARKET_EXPECTATION_SUBJECT.search(sentence):
-        triggers.append("market expectation noun phrase")
-    market_verb = _MARKET_VERB.search(sentence)
-    if market_verb:
-        triggers.append(f"market ... {market_verb.group(1).strip()}")
-    for phrase in V1_BANNED_SUBSTRINGS:
-        if phrase in lowered:
-            triggers.append(phrase)
+    triggers = attribution_triggers(sentence)
 
     if absence and (referent or triggers):
         return ConsensusFinding(sentence, ConsensusVerdict.ABSENCE, absence.group(0).strip())
     if not triggers:
         return ConsensusFinding(sentence, ConsensusVerdict.NEUTRAL, "")
-    return ConsensusFinding(sentence, ConsensusVerdict.ASSERTED, triggers[0])
+    return ConsensusFinding(sentence, ConsensusVerdict.ASSERTED, triggers[0].label)
 
 
 def asserted_consensus_findings(text: str) -> list[ConsensusFinding]:

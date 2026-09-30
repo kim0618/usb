@@ -120,6 +120,7 @@ def excerpt(text: str = "We now expect full-year revenue of $1.05 to $1.15 billi
 def expectation_bundle(
     *, guidance: EvidenceBlock | None = None,
     consensus: EvidenceBlock | None = None,
+    estimate_revisions: EvidenceBlock | None = None,
     price_reaction: list | None = None,
     pre_event_price_context: dict[str, Any] | None = None,
     bundle_id: str = "EB-1",
@@ -135,7 +136,7 @@ def expectation_bundle(
         earnings_history=not_found,
         management_expectation_signals=not_found,
         consensus=consensus or absent,
-        estimate_revisions=absent,
+        estimate_revisions=estimate_revisions or absent,
         price_reaction=price_reaction or [],
         pre_event_price_context=pre_event_price_context or {},
         valuation_context_stub={},

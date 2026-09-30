@@ -49,6 +49,13 @@ from app.backtest.strategy_h_v2.expectation.guidance_arithmetic import (
 from app.backtest.strategy_h_v2.expectation.consensus_language import (
     asserted_consensus_findings,
 )
+from app.backtest.strategy_h_v2.expectation.expectation_state import (
+    ExpectationKnowledgeStateV1,
+    affirmative_expectation_findings,
+    derive_expectation_knowledge_state,
+    is_quantified_expectation_sentence,
+    suppressed_absence_findings,
+)
 from app.backtest.strategy_h_v2.expectation.d4_inputs import package_evidence_ids
 from app.backtest.strategy_h_v2.research.schema import FutureBusinessStage
 from app.backtest.strategy_h_v2.research.validate import (
@@ -255,35 +262,71 @@ def check_d3_tokens_unmodified(
 def check_consensus_not_fabricated(
     analysis: HExpectationGapAnalysisV1, bundle: ExpectationEvidenceBundleV1,
 ) -> list[str]:
-    """Brief §13/§18. The statuses must be the bundle's own, verbatim; and no field anywhere may
-    claim a consensus expectation when the bundle says no consensus source exists."""
+    """Brief §13/§18, now routed through D4-S's structured state.
+
+    Kept under its original name because it is the same prohibition and every caller and test
+    frozen against it still means the same thing. What changed is WHO decides: the code-owned
+    `ExpectationKnowledgeStateV1` decides whether an expectation may be stated, and the prose layer
+    only looks for an affirmative attribution that got past that.
+    """
+    return check_expectation_state_contradictions(
+        analysis, derive_expectation_knowledge_state(bundle))
+
+
+def check_expectation_state_contradictions(
+    analysis: HExpectationGapAnalysisV1, state: ExpectationKnowledgeStateV1,
+) -> list[str]:
+    """Every way an output can contradict the authoritative expectation knowledge state (D4-S §9).
+
+    Three rules, in the order a reader should think about them:
+
+      1. The two availability statuses must be the state's own, verbatim. Availability is a fact
+         about this repository's data connections, not a judgement, so it is not the model's to
+         report - the same ownership rule `confidence_ceiling` already follows.
+      2. With `market_expectation_claim_allowed` False, no text anywhere may AFFIRM a market or
+         consensus expectation. Denying knowledge of one is always allowed, in any phrasing.
+      3. A quantified expectation figure under the same condition is called out separately rather
+         than folded into rule 2: "consensus estimates of $5.00" is the one shape where the number
+         itself is the fabrication, and a repair prompt that names it converges faster than one
+         that says "an attribution".
+    """
     errors: list[str] = []
     expectation = analysis.market_expectation_evidence
-    for field, block, label in (
-        (expectation.consensus_status, bundle.consensus, "consensus_status"),
-        (expectation.estimate_revisions_status, bundle.estimate_revisions,
+    for field, authoritative, label in (
+        (expectation.consensus_status, state.consensus_status, "consensus_status"),
+        (expectation.estimate_revisions_status, state.estimate_revisions_status,
          "estimate_revisions_status"),
     ):
-        if field != block.status.value:
+        if field != authoritative:
             errors.append(
                 f"{label}={field!r} contradicts the code-owned expectation bundle "
-                f"({block.status.value!r}) - the availability of a data source is not the model's "
+                f"({authoritative!r}) - the availability of a data source is not the model's "
                 f"to report @ market_expectation_evidence.{label}"
             )
-    if bundle.consensus.status == EvidenceAvailability.SOURCE_NOT_AVAILABLE:
-        for text in _every_text(analysis):
-            for finding in asserted_consensus_findings(text):
-                errors.append(
-                    f"a sentence attributes an expectation to analysts or the market "
-                    f"({finding.trigger!r}) while the expectation bundle reports consensus "
-                    f"SOURCE_NOT_AVAILABLE, so there is no source that could support it: "
-                    f"{finding.sentence!r}. Remove the attribution, or state instead that the "
-                    "evidence for it is unavailable - a sentence saying consensus expectations "
-                    "are not available, not established or not in the source set is explicitly "
-                    "allowed here and is what this pipeline expects "
-                    "@ market_expectation_evidence"
-                )
-                break
+    if state.market_expectation_claim_allowed:
+        return errors
+    for text in _every_text(analysis):
+        for finding in affirmative_expectation_findings(text, state=state):
+            # Both variants keep the phrase "attributes an expectation to analysts or the market".
+            # It is the stable part of this rejection that D4.1's own tests were written against,
+            # and the quantified case ADDS to it rather than replacing it: a more specific message
+            # must not cost a caller the substring it has always matched on.
+            detail = (
+                f"attributes an expectation to analysts or the market by stating a figure "
+                f"({finding.trigger!r})"
+                if is_quantified_expectation_sentence(finding.sentence) else
+                f"attributes an expectation to analysts or the market ({finding.trigger!r})"
+            )
+            errors.append(
+                f"a sentence {detail} while the expectation bundle reports consensus "
+                f"SOURCE_NOT_AVAILABLE, so there is no source that could support it: "
+                f"{finding.sentence!r}. Remove the attribution. Saying instead that the evidence "
+                "does not settle the question is always allowed, in whatever wording you like - "
+                "this check looks at whether a sentence AFFIRMS an expectation, never at which "
+                "phrase it uses to deny one, so you do not need to guess an approved form of words "
+                "@ market_expectation_evidence"
+            )
+            break
     return errors
 
 

@@ -47,10 +47,28 @@ from app.backtest.strategy_h_v2.evidence.chunk_schema import AIResearchInputV1
 from app.backtest.strategy_h_v2.expectation.code_facts import build_code_fact_index, code_source_id
 from app.backtest.strategy_h_v2.expectation.consensus_language import asserted_consensus_findings
 from app.backtest.strategy_h_v2.expectation.evidence_schema import ExpectationEvidenceBundleV1
+from app.backtest.strategy_h_v2.expectation.expectation_state import (
+    affirmative_expectation_findings,
+    derive_expectation_knowledge_state,
+    suppressed_absence_findings,
+)
 from app.backtest.strategy_h_v2.expectation.numeric_roles import fact_is_restated
 from app.dev.run_strategy_h_v2_d4_1 import ANALYSES_ROOT, D4_1_ROOT, PACKAGES_DIR
 
 MATERIAL_TYPES = {"FACT", "INTERPRETATION", "INFERENCE"}
+
+#: D4-S §12-§15. What kind of sourcing obligation a material claim actually carries. Decided from
+#: STRUCTURE - the claim's type and which evidence ids it cites - never from its prose, so the same
+#: claim always lands in the same class no matter how it is worded.
+CLAIM_SOURCING_A = "MATERIAL_SOURCE_REQUIRED"
+"""Cites at least one document chunk, so a real filing has to back it. E2's denominator."""
+CLAIM_SOURCING_B = "CODE_OWNED_FACT_EXPLANATION"
+"""Cites only code-owned fact ids. The number is the pipeline's own, and `code_owned_numeric_defects`
+(M8/E5) already checks that the claim states it correctly - a STRICTER test than E2's. Counting it
+again under E2 would be double-counting one obligation, which is why it is out of that denominator."""
+CLAIM_SOURCING_C = "META_LIMITATION_OR_UNKNOWN"
+"""An UNKNOWN-typed claim: the schema's own citation-exempt class. Free prose in `limitations` and
+`unknown_fields` is also C by construction, and never reaches the claim walker at all."""
 
 #: Restated independently of `analysis_schema.BANNED_D4_FIELD_NAMES` on purpose.
 AUDIT_BANNED_FIELDS = frozenset({
@@ -121,6 +139,62 @@ def _cited_evidence(claim: dict) -> list[str]:
     return ids + list(claim.get("evidence_ids") or [])
 
 
+def _citation_form(claim: dict) -> str:
+    """Which of `ClaimV2`'s two citation forms this claim uses, by that schema's own definition.
+
+    D4-S's correction. The audit used to require a truthy `source_id` on every material claim, and
+    `ClaimV2._exactly_one_citation_form` REQUIRES `source_id` to be null in the compound form - so
+    the audit was demanding something the schema forbids, and every correctly-cited compound claim
+    was counted as "no citation". That is the whole of the Final Tier A V3 audit's 17 findings: 7
+    SCCO + 4 GOOG + 6 BSY, which is exactly its 7 + 4 + 6 compound claims, every evidence id
+    resolving. The threshold is untouched; what was wrong was the test, provably so from the schema
+    alone and independently of any run's numbers.
+    """
+    if len(claim.get("evidence_ids") or []) >= 2:
+        return "COMPOUND"
+    if claim.get("source_id") and claim.get("evidence_id"):
+        return "ATOMIC"
+    return "NONE"
+
+
+def _claim_source_ids(claim: dict) -> list[str]:
+    """Every source a claim depends on, for either citation form.
+
+    The atomic form names its source outright. The compound form names none, by contract, so the
+    source is read off each evidence id - an evidence id IS `<source_id>:CHUNK:<locator>`, which is
+    the same decomposition `ClaimV2._citations_known_and_consistent` relies on when it checks that an
+    atomic `evidence_id` starts with its `source_id`.
+    """
+    if claim.get("source_id"):
+        return [claim["source_id"]]
+    return sorted({eid.rsplit(":CHUNK:", 1)[0]
+                   for eid in (claim.get("evidence_ids") or []) if ":CHUNK:" in eid})
+
+
+def classify_claim_sourcing(claim: dict, *, code_facts: dict) -> str:
+    """D4-S §12-§15. A, B or C for one claim, decided structurally.
+
+    Order matters. UNKNOWN is checked first because the schema exempts it from citation entirely, so
+    asking what it cites is meaningless. Then a claim citing ONLY code-owned facts is B: its number
+    is the pipeline's own and M8/E5 already holds it to a stricter standard than E2 would. Anything
+    that leans on a document chunk is A, including a claim that mixes the two - one uncited filing
+    assertion is not excused by the code facts beside it.
+    """
+    if claim.get("claim_type") == "UNKNOWN":
+        return CLAIM_SOURCING_C
+    cited = _cited_evidence(claim)
+    if cited and all(eid in code_facts for eid in cited):
+        return CLAIM_SOURCING_B
+    return CLAIM_SOURCING_A
+
+
+def material_source_required_defects(defects: dict) -> list[dict]:
+    """E2's numerator: A-type claims whose citation does not resolve. B and C are out of the
+    denominator (D4-S §16), and E2's threshold stays the frozen zero."""
+    return [item for item in (defects.get("unsourced_material_claims") or [])
+            if item.get("classification") == CLAIM_SOURCING_A]
+
+
 def _matches_fact(text: str, value: Any, unit: str) -> bool:
     """Does the claim restate the cited code fact's value, or is it purely qualitative?
 
@@ -146,21 +220,60 @@ def audit_output(output: dict, *, package: AIResearchInputV1,
     source_by_id = {s.source_id: s for s in package.source_manifest}
 
     unsourced, e4, e5, e7_fields, e7_text, e3 = [], [], [], [], [], []
+    sourcing: list[dict] = []
+    compound_gap: list[dict] = []
 
     for path, claim in iter_claims(output):
+        classification = classify_claim_sourcing(claim, code_facts=code_facts)
+        form = _citation_form(claim)
+        sourcing.append({"path": path, "classification": classification,
+                         "claim_type": claim.get("claim_type"), "citation_form": form,
+                         "text": claim["text"][:160]})
         if claim.get("claim_type") not in MATERIAL_TYPES:
             continue
         cited = _cited_evidence(claim)
-        if not cited or not claim.get("source_id"):
-            unsourced.append({"path": path, "text": claim["text"][:160], "reason": "no citation"})
+        if form == "NONE":
+            unsourced.append({"path": path, "text": claim["text"][:160], "reason": "no citation",
+                              "classification": classification})
             continue
         unknown = [e for e in cited if e not in valid_evidence]
         if unknown:
             unsourced.append({"path": path, "text": claim["text"][:160],
-                              "reason": f"unresolvable evidence_id {unknown}"})
-        if claim["source_id"] not in valid_sources:
-            unsourced.append({"path": path, "text": claim["text"][:160],
-                              "reason": f"unresolvable source_id {claim['source_id']}"})
+                              "reason": f"unresolvable evidence_id {unknown}",
+                              "classification": classification})
+        for source_id in _claim_source_ids(claim):
+            if source_id not in valid_sources:
+                unsourced.append({"path": path, "text": claim["text"][:160],
+                                  "reason": f"unresolvable source_id {source_id}",
+                                  "classification": classification})
+
+        # M8 (E5) and E4 keep the exact claim scope they have always had: the ATOMIC form only.
+        #
+        # Not an oversight, and not a leniency introduced here. Before D4-S the citation-form bug
+        # above `continue`d every compound claim out of the loop, so these two checks have never in
+        # any run been applied to one - M8 PASS on D4.3A and on Final Tier A V3 both mean "no atomic
+        # claim restates a code-owned number", and have never meant more. Widening the scope now
+        # would change what a frozen gate measures AFTER its results exist, which the D4-S brief
+        # (§13: no new post-hoc Tier A gate; §16: no threshold or definition tuned to a result)
+        # forbids, and it would retroactively turn both runs' M8 from PASS to FAIL - 5 findings on
+        # D4.3A, 1 on V3. Those findings are real and are reported in `compound_claim_coverage_gap`
+        # below, wired to no gate, for the separate decision that closing them requires.
+        if form != "ATOMIC":
+            for evidence_id in cited:
+                fact = code_facts.get(evidence_id)
+                if fact is not None and not _matches_fact(claim["text"], fact.value, fact.unit):
+                    compound_gap.append({
+                        "path": path, "check": "code_owned_numeric", "evidence_id": evidence_id,
+                        "fact_value": fact.value, "unit": fact.unit,
+                        "text": claim["text"][:200]})
+            for source_id in _claim_source_ids(claim):
+                provenance = source_by_id.get(source_id)
+                if provenance is not None and provenance.available_at > decision_time:
+                    compound_gap.append({
+                        "path": path, "check": "future_source", "source_id": source_id,
+                        "available_at": provenance.available_at.isoformat()})
+            continue
+
         provenance = source_by_id.get(claim["source_id"])
         if provenance is not None and provenance.available_at > decision_time:
             e4.append({"path": path, "source_id": claim["source_id"],
@@ -175,12 +288,15 @@ def audit_output(output: dict, *, package: AIResearchInputV1,
         if name in AUDIT_BANNED_FIELDS:
             e7_fields.append(path)
 
-    consensus_absent = bundle.consensus.status == "SOURCE_NOT_AVAILABLE"
+    state = derive_expectation_knowledge_state(bundle)
+    absence_allowed: list[dict] = []
     for path, text in iter_prose(output):
-        if consensus_absent:
-            for finding in asserted_consensus_findings(text):
-                e3.append({"path": path, "trigger": finding.trigger, "sentence": finding.sentence,
-                           "text": text[:200]})
+        for finding in affirmative_expectation_findings(text, state=state):
+            e3.append({"path": path, "trigger": finding.trigger, "sentence": finding.sentence,
+                       "text": text[:200]})
+        for finding in suppressed_absence_findings(text, state=state):
+            absence_allowed.append({"path": path, "trigger": finding.trigger,
+                                    "sentence": finding.sentence})
         for pattern in DECISION_VOCABULARY:
             if pattern.search(text):
                 e7_text.append({"path": path, "match": pattern.pattern, "text": text[:200]})
@@ -195,6 +311,10 @@ def audit_output(output: dict, *, package: AIResearchInputV1,
         "decision_vocabulary_leaks": e7_text,
         "unknown_discipline_violations": _unknown_discipline(output, bundle),
         "unsupported_priced_in": _priced_in(output, valid_evidence),
+        "expectation_claim_sourcing": sourcing,
+        "compound_claim_coverage_gap": compound_gap,
+        "expectation_state": state.to_dict(),
+        "honest_absence_accepted": absence_allowed,
     }
 
 

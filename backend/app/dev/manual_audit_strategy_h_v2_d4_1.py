@@ -38,6 +38,9 @@ from pathlib import Path
 
 from app.backtest.strategy_h_v2.evidence.chunk_schema import AIResearchInputV1
 from app.backtest.strategy_h_v2.expectation.code_facts import build_code_fact_index
+from app.backtest.strategy_h_v2.expectation.expectation_state import (
+    derive_expectation_knowledge_state,
+)
 from app.backtest.strategy_h_v2.expectation.evidence_schema import ExpectationEvidenceBundleV1
 from app.dev.audit_strategy_h_v2_d4_1 import MATERIAL_TYPES, iter_claims
 from app.dev.run_strategy_h_v2_d4_1 import ANALYSES_ROOT, PACKAGES_DIR
@@ -103,6 +106,10 @@ def render(ticker: str, record: dict, package: AIResearchInputV1,
         f"max_stage={output['fundamental_reality_summary']['d3_future_business_max_stage']}",
         f"consensus_status={output['market_expectation_evidence']['consensus_status']} "
         f"estimate_revisions_status={output['market_expectation_evidence']['estimate_revisions_status']}",
+        # D4-S §19. Printed from the authoritative object, not re-derived here, so a manual reviewer
+        # and the runtime validator cannot be reading two different answers to "may this output
+        # state a market expectation at all?".
+        f"expectation knowledge state: {json.dumps(derive_expectation_knowledge_state(bundle).to_dict(), ensure_ascii=False)}",
         f"limitations: {json.dumps(output['limitations'], ensure_ascii=False)}",
         f"unknown_fields: {json.dumps(output['unknown_fields'], ensure_ascii=False)}",
         "=" * 100,

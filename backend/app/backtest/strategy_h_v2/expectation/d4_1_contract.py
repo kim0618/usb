@@ -167,7 +167,23 @@ E1_MIN_SCHEMA_VALID_RATE = 0.95
 """Final validity after the bounded repair loop. Same level D3.3's L1 used and met (12/12)."""
 E2_MAX_UNSOURCED_MATERIAL_GAP_CLAIMS = 0
 """Every material gap claim carries a resolvable citation. Zero-tolerance: D3.3 achieved
-structural provenance on every material claim, so anything above zero here is a regression."""
+structural provenance on every material claim, so anything above zero here is a regression.
+
+D4-S §16 froze the MEANING, leaving the threshold at its original zero:
+
+    Every MATERIAL_SOURCE_REQUIRED expectation-gap claim must resolve to a valid source/evidence id
+    or to a code-owned fact id. CODE_OWNED_FACT_EXPLANATION and META_LIMITATION_OR_UNKNOWN claims
+    are not in the denominator.
+
+The classification is `audit_strategy_h_v2_d4_1.classify_claim_sourcing`, decided from the claim's
+type and its cited ids - never from its prose - and the numerator is
+`material_source_required_defects`. B is excluded because M8/E5 already holds a code-owned-fact
+claim to a STRICTER test (it must state that fact's value correctly), so counting it here would
+double-count one obligation; C is excluded because the schema exempts UNKNOWN claims from citation
+outright, and free prose in `limitations`/`unknown_fields` is not a claim and never reaches the
+walker. Neither exclusion was chosen after seeing a result: both follow from contracts that predate
+D4-S, and with the citation-form bug fixed the measured numerator is 0 on D4.3A and on Final Tier A
+V3 alike."""
 E3_MAX_FABRICATED_CONSENSUS = 0
 """Any assertion of an analyst/market/consensus expectation. Zero, and not adjustable: there is no
 consensus source, so every occurrence is invention."""
