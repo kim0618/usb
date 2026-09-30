@@ -1,8 +1,10 @@
 import React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { LiveArmPanel, LiveLeveragePanel } from "@/components/crypto-live-terminal";
-import { ARM_CONFIRMATION } from "@/lib/crypto-live";
+import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from "@testing-library/react";
+import {
+  LiveActivateDialog, LiveLeveragePanel, LiveTradeBar, useBinanceLive,
+} from "@/components/crypto-live-terminal";
+import { ARM_CONFIRMATION, liveTradeGate } from "@/lib/crypto-live";
 import type { LiveAccount, LiveArmState, LiveLeverageOptions } from "@/lib/crypto-live";
 
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
@@ -55,62 +57,185 @@ const account = (overrides: Partial<LiveAccount> = {}): LiveAccount => ({
 });
 
 
-describe("the arm panel", () => {
-  it("starts disarmed and does not arm on a single click", () => {
-    const onArm = vi.fn();
-    render(<LiveArmPanel arm={arm()} onArm={onArm} onDisarm={vi.fn()} />);
-    expect(screen.getByTestId("live-arm-panel")).toHaveTextContent("해제됨");
-    fireEvent.click(screen.getByTestId("live-arm"));
-    expect(onArm).not.toHaveBeenCalled();
+/** The bar is rendered the way the screen renders it: from the server's two answers, through
+ *  the one gate function, never from a prop somebody set by hand. A test that passed
+ *  `tradable` in directly would pass while the screen lied. */
+const bar = (props: Partial<{
+  account: LiveAccount | null; arm: LiveArmState | null; onActivate: () => void;
+  onDisarm: () => void; busy: boolean; error: string | null;
+}> = {}) => {
+  const acct = props.account === undefined ? account() : props.account;
+  const armState = props.arm === undefined ? arm() : props.arm;
+  return render(<LiveTradeBar account={acct} gate={liveTradeGate(acct, armState)}
+    onActivate={props.onActivate ?? vi.fn()} onDisarm={props.onDisarm ?? vi.fn()}
+    busy={props.busy} error={props.error} />);
+};
+
+const armed = (overrides: Partial<LiveArmState> = {}): LiveArmState =>
+  arm({ armed: true, armed_by: "SESSION", remaining_s: 185, ...overrides });
+
+const armedAccount = (overrides: Partial<LiveAccount> = {}): LiveAccount => account({
+  gates: { armed: true, env_flag: true, client_armed: true,
+           env_flag_name: "BINANCE_LIVE_TRADING_ENABLED" },
+  ...overrides,
+});
+
+
+describe("the trade state bar", () => {
+  it("opens 거래불가 and offers one button to change it", () => {
+    bar();
+    expect(screen.getByTestId("live-trade-state")).toHaveTextContent("거래불가");
+    expect(screen.getByTestId("live-activate")).toBeEnabled();
   });
 
-  it("will not submit until the confirmation phrase is typed exactly", () => {
-    const onArm = vi.fn();
-    render(<LiveArmPanel arm={arm()} onArm={onArm} onDisarm={vi.fn()} />);
-    fireEvent.click(screen.getByTestId("live-arm"));
-
-    const input = screen.getByTestId("live-arm-input");
-    expect(screen.getByTestId("live-arm-submit")).toBeDisabled();
-
-    fireEvent.change(input, { target: { value: "arm live trading" } });
-    expect(screen.getByTestId("live-arm-submit")).toBeDisabled();
-
-    fireEvent.change(input, { target: { value: ARM_CONFIRMATION } });
-    expect(screen.getByTestId("live-arm-submit")).not.toBeDisabled();
-    fireEvent.click(screen.getByTestId("live-arm-submit"));
-    expect(onArm).toHaveBeenCalledWith(ARM_CONFIRMATION);
+  it("shows the sync age and the trade state, and nothing about arming", () => {
+    // The screen this replaces led with 무장 / 해제됨 / 실주문 잠금 and a paragraph naming the
+    // environment variable. The operator needs two facts to act; the rest is on request.
+    bar();
+    const rendered = screen.getByTestId("live-trade-bar");
+    expect(screen.getByTestId("live-sync")).toHaveTextContent("동기화 1초 전");
+    expect(rendered).not.toHaveTextContent("무장");
+    expect(rendered).not.toHaveTextContent("해제됨");
+    expect(rendered).not.toHaveTextContent("실주문 잠금");
+    expect(rendered).not.toHaveTextContent("BINANCE_LIVE_TRADING_ENABLED");
   });
 
-  it("cannot be armed at all when the deployment has no capability", () => {
-    render(<LiveArmPanel arm={arm({ capability: false })} onArm={vi.fn()} onDisarm={vi.fn()} />);
-    expect(screen.getByTestId("live-arm")).toBeDisabled();
-    expect(screen.getByTestId("live-arm-no-capability")).toBeInTheDocument();
+  it("does not arm on the button itself - it asks first", () => {
+    const onActivate = vi.fn();
+    bar({ onActivate });
+    fireEvent.click(screen.getByTestId("live-activate"));
+    expect(onActivate).toHaveBeenCalled();
   });
 
-  it("shows the remaining window while armed and offers a disarm", () => {
-    const onDisarm = vi.fn();
-    render(<LiveArmPanel onArm={vi.fn()} onDisarm={onDisarm}
-      arm={arm({ armed: true, armed_by: "SESSION", remaining_s: 185 })} />);
-    expect(screen.getByTestId("live-arm-panel")).toHaveTextContent("무장됨");
+  it("turns 거래가능 only once the server itself reports armed", () => {
+    // Both halves have to agree: the router's gate view on the account snapshot and the arm
+    // session. A screen that flipped green on the click would be claiming the server's answer.
+    bar({ account: armedAccount(), arm: armed() });
+    expect(screen.getByTestId("live-trade-state")).toHaveTextContent("거래가능");
     expect(screen.getByTestId("live-arm-remaining")).toHaveTextContent("3분 5초 남음");
+    expect(screen.queryByTestId("live-activate")).not.toBeInTheDocument();
+  });
+
+  it("stays 거래불가 while only the session says armed", () => {
+    // The account snapshot is the router's verdict. If the two reads disagree, the screen
+    // takes the shut one.
+    bar({ account: account(), arm: armed() });
+    expect(screen.getByTestId("live-trade-state")).toHaveTextContent("거래불가");
+  });
+
+  it.each([
+    ["the window expired", armedAccount({ gates: { armed: false, env_flag: true,
+      client_armed: false, env_flag_name: "BINANCE_LIVE_TRADING_ENABLED" } }),
+      arm({ armed: false, last_disarm_reason: "EXPIRED" })],
+    ["the operator disarmed", account(), arm({ armed: false, last_disarm_reason: "MANUAL" })],
+    ["the server restarted", account(), arm({ armed: false, last_disarm_reason: "BOOT" })],
+    ["the key was refused", armedAccount({ ready: false,
+      blockers: [{ code: "BINANCE_AUTH_FAILED", message: "거부" }] }), armed()],
+    ["the snapshot went stale", armedAccount({ stale: true, age_ms: 40_000 }), armed()],
+  ])("falls back to 거래불가 when %s", (_label, acct, armState) => {
+    bar({ account: acct, arm: armState });
+    expect(screen.getByTestId("live-trade-state")).toHaveTextContent("거래불가");
+  });
+
+  it("explains the block only when the badge is clicked", () => {
+    bar({ account: armedAccount({ stale: true, age_ms: 40_000 }), arm: armed() });
+    expect(screen.queryByTestId("live-trade-detail")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("live-trade-state"));
+    expect(screen.getByTestId("live-trade-detail")).toHaveTextContent("계좌 응답 지연");
+  });
+
+  it("cannot be activated at all when the deployment has no capability", () => {
+    bar({ arm: arm({ capability: false }) });
+    expect(screen.getByTestId("live-activate")).toBeDisabled();
+    fireEvent.click(screen.getByTestId("live-trade-state"));
+    expect(screen.getByTestId("live-trade-detail"))
+      .toHaveTextContent("BINANCE_LIVE_TRADING_ENABLED=false");
+  });
+
+  it("keeps the manual disarm, inside the detail", () => {
+    const onDisarm = vi.fn();
+    bar({ account: armedAccount(), arm: armed(), onDisarm });
+    fireEvent.click(screen.getByTestId("live-trade-state"));
     fireEvent.click(screen.getByTestId("live-disarm"));
     expect(onDisarm).toHaveBeenCalled();
   });
 
   it("says when the process was armed by its environment rather than by a click", () => {
-    render(<LiveArmPanel onArm={vi.fn()} onDisarm={vi.fn()}
-      arm={arm({ armed: true, armed_by: "ENV", env_armed: true })} />);
+    bar({ account: armedAccount(), arm: armed({ armed_by: "ENV", env_armed: true, remaining_s: null }) });
+    fireEvent.click(screen.getByTestId("live-trade-state"));
     expect(screen.getByTestId("live-arm-by-env")).toBeInTheDocument();
     // Nothing on this screen can take away an environment arm; the button would lie.
-    expect(screen.getByTestId("live-disarm")).toBeDisabled();
+    expect(screen.queryByTestId("live-disarm")).not.toBeInTheDocument();
   });
 
-  it("always states the three ways the window closes", () => {
-    render(<LiveArmPanel arm={arm()} onArm={vi.fn()} onDisarm={vi.fn()} />);
+  it("still states the three ways the window closes, one click away", () => {
+    bar();
+    fireEvent.click(screen.getByTestId("live-trade-state"));
     const note = screen.getByTestId("live-arm-note");
     expect(note).toHaveTextContent("제한 시간");
     expect(note).toHaveTextContent("재시작");
     expect(note).toHaveTextContent("AUTO");
+  });
+
+  it("keeps a refused activation on screen without opening the detail", () => {
+    bar({ error: "실주문 잠금 · 무장할 수 없습니다." });
+    expect(screen.getByTestId("live-arm-error")).toBeInTheDocument();
+    expect(screen.queryByTestId("live-trade-detail")).not.toBeInTheDocument();
+  });
+});
+
+
+describe("the activation dialog", () => {
+  it("states what the click does, in the account's terms", () => {
+    render(<LiveActivateDialog open onCancel={vi.fn()} onConfirm={vi.fn()} ttlS={900} />);
+    expect(screen.getByTestId("live-activate-note"))
+      .toHaveTextContent("실제 Binance 계좌에서 주문이 실행됩니다.");
+    expect(screen.getByTestId("live-activate-ttl")).toHaveTextContent("15분");
+  });
+
+  it("no longer asks anyone to type the confirmation phrase", () => {
+    render(<LiveActivateDialog open onCancel={vi.fn()} onConfirm={vi.fn()} />);
+    expect(screen.queryByTestId("live-arm-input")).not.toBeInTheDocument();
+    expect(screen.getByTestId("live-activate-dialog")).not.toHaveTextContent(ARM_CONFIRMATION);
+    expect(screen.getByTestId("live-activate-confirm")).toBeEnabled();
+  });
+
+  it("cancels without calling anything", () => {
+    const onCancel = vi.fn(); const onConfirm = vi.fn();
+    render(<LiveActivateDialog open onCancel={onCancel} onConfirm={onConfirm} />);
+    fireEvent.click(screen.getByTestId("live-activate-cancel"));
+    expect(onCancel).toHaveBeenCalled();
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
+
+  it("confirms on the one red button", () => {
+    const onConfirm = vi.fn();
+    render(<LiveActivateDialog open onCancel={vi.fn()} onConfirm={onConfirm} />);
+    fireEvent.click(screen.getByTestId("live-activate-confirm"));
+    expect(onConfirm).toHaveBeenCalled();
+  });
+
+  it("is not in the tree until it is asked for", () => {
+    render(<LiveActivateDialog open={false} onCancel={vi.fn()} onConfirm={vi.fn()} />);
+    expect(screen.queryByTestId("live-activate-dialog")).not.toBeInTheDocument();
+  });
+});
+
+
+describe("arming from the screen", () => {
+  it("sends the server's confirmation phrase without the operator typing it", async () => {
+    // The phrase did not stop being required. It stopped being the operator's job: the server
+    // still refuses an arm request that does not carry it verbatim.
+    const posted: string[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
+      if (init?.method === "POST") posted.push(String(init.body));
+      return { ok: true, json: async () => (String(url).includes("/arm")
+        ? { armed: true, available: true, capability: true } : { available: true }) };
+    }));
+    const { result } = renderHook(() => useBinanceLive(false));
+    await act(async () => { await result.current.armLive(); });
+    await waitFor(() => expect(posted.length).toBeGreaterThan(0));
+    expect(JSON.parse(posted[0])).toMatchObject({ confirmation: ARM_CONFIRMATION });
   });
 });
 

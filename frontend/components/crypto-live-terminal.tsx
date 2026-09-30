@@ -11,14 +11,15 @@
  *  most dangerous path in the system untested until the day it is armed.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
-import { MetricCard, StatusBadge } from "@/components/ui";
+import { MetricCard } from "@/components/ui";
 import { CryptoApiError, krw, num, price, qty as qtyFmt, signedKrw, signedUsdt, toneClass, usdt }
   from "@/lib/crypto-paper";
 import type { OrderSide } from "@/lib/crypto-paper";
 import {
-  ARM_CONFIRMATION, ARM_NOTE, AccountSource, LIVE_AUTHORITY_NOTE, LIVE_LOCK_NOTE,
-  LiveAccount, LiveArmState, LiveBlocker, LiveLeverageOptions, LivePreview, LiveStatus,
-  MARGIN_MODE_LABELS, MARGIN_MODE_READONLY_NOTE, liveApi, liveBlockerLabel,
+  ACTIVATE_CONFIRM_NOTE, ARM_CONFIRMATION, ARM_NOTE, AccountSource, LIVE_AUTHORITY_NOTE,
+  LIVE_LOCK_NOTE, LiveAccount, LiveArmState, LiveBlocker, LiveLeverageOptions, LivePreview,
+  LiveStatus, LiveTradeGate, MARGIN_MODE_LABELS, MARGIN_MODE_READONLY_NOTE, liveApi,
+  liveBlockerLabel, liveTradeGate,
 } from "@/lib/crypto-live";
 
 export const LIVE_POLL_MS = 2_000;
@@ -59,26 +60,153 @@ export function AccountSourceSwitch({ value, onChange, available, busy }: {
   );
 }
 
-export function LiveBadge({ account }: { account: LiveAccount | null }) {
-  /** The badge reports the *account*, not the poll. An unreadable account showed "synced 0s ago"
-   *  in the healthy colour because the snapshot object itself was fresh, which read as a working
-   *  connection on a screen that had just refused to show a balance. Readiness comes first. */
-  const connected = Boolean(account?.ready);
-  const stale = account?.stale ?? false;
-  const [tone, label] = !account ? ["REJECTED", "연결 대기"]
-    : !connected ? ["REJECTED", "연결 안 됨"]
-    : stale ? ["WARNING", "응답 지연"]
-    : ["CONNECTED", `동기화 ${Math.round(account.age_ms / 1000)}초 전`];
+/** The whole of the LIVE screen's safety state, in one line the operator can read at a glance.
+ *
+ *  Two facts and one action. Is the screen still in touch with the account ("동기화 N초 전"),
+ *  and may an order be sent right now ("거래가능"/"거래불가"). Everything else - which of the
+ *  two server gates is shut, how long the window has left, how to close it early - is behind
+ *  the badge, one click away, because it is what an operator reads *after* the answer rather
+ *  than instead of it.
+ *
+ *  The panel this replaces named the environment variable, the session and the client flag on
+ *  the default screen and left the reader to work out whether the buttons below would do
+ *  anything. None of those gates moved: the server still holds all of them, this bar only
+ *  reports their conclusion.
+ */
+export function LiveTradeBar({ account, gate, onActivate, onDisarm, busy, error }: {
+  account: LiveAccount | null;
+  gate: LiveTradeGate;
+  onActivate: () => void;
+  onDisarm: () => void;
+  busy?: boolean;
+  error?: string | null;
+}) {
+  const [detailOpen, setDetailOpen] = useState(false);
+  const sync = !account ? "연결 대기"
+    : !account.ready ? "연결 안 됨"
+    : account.stale ? "응답 지연"
+    : `동기화 ${Math.round(account.age_ms / 1000)}초 전`;
+  // Only a session window has an end. An ENV-armed process has no countdown to show and no
+  // deadline to promise, so the bar says nothing rather than implying one.
+  const remaining = gate.armed && gate.armed_by === "SESSION" ? gate.remaining_s : null;
+
   return (
-    <div className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-danger bg-danger-soft px-3 py-2"
-      data-testid="live-badge" role="status">
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-bold tracking-wide text-danger">BINANCE LIVE</span>
-        <span className="text-xs font-semibold text-danger">실계좌</span>
+    <div className="mb-2" data-testid="live-trade-bar">
+      <div className={`flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2
+        ${gate.tradable ? "border-success bg-success-soft" : "border-danger bg-danger-soft"}`}
+        role="status">
+        <span className="text-[11px] font-medium tabular-nums text-foreground-secondary"
+          data-testid="live-sync">{sync}</span>
+        <div className="flex items-center gap-2">
+          {remaining != null && (
+            <span className="text-[11px] font-semibold tabular-nums text-foreground-secondary"
+              data-testid="live-arm-remaining">
+              {Math.floor(remaining / 60)}분 {remaining % 60}초 남음
+            </span>
+          )}
+          {/* The badge is the control that opens the reasons. A state this consequential should
+              be able to explain itself without the explanation being on screen all day. */}
+          <button type="button" data-testid="live-trade-state" aria-expanded={detailOpen}
+            onClick={() => setDetailOpen(open => !open)}
+            className={`inline-flex whitespace-nowrap rounded-full border px-2.5 py-1 text-[11px] font-bold tracking-wide
+              ${gate.tradable ? "tone-success" : "tone-danger"}`}>
+            {gate.tradable ? "거래가능" : "거래불가"}
+          </button>
+          {!gate.armed && (
+            <button type="button" data-testid="live-activate" disabled={busy || !gate.capability}
+              onClick={onActivate}
+              className="rounded-md bg-danger px-3 py-1.5 text-xs font-bold text-white disabled:opacity-40">
+              거래 활성화
+            </button>
+          )}
+        </div>
       </div>
-      <div className="flex items-center gap-2">
-        <StatusBadge value={tone} label={label} />
-        <span className="text-[11px] text-danger">{LIVE_LOCK_NOTE}</span>
+
+      {detailOpen && (
+        <div className="mt-1 rounded-lg border border-line bg-surface p-3" data-testid="live-trade-detail">
+          <ul className="space-y-1">
+            {gate.reasons.length ? gate.reasons.map((reason, index) => (
+              <li key={`${reason.code}-${index}`} className="text-xs text-foreground-secondary">
+                <span className="font-semibold text-foreground">{liveBlockerLabel(reason.code)}</span>
+                {" · "}{reason.message}
+              </li>
+            )) : (
+              <li className="text-xs text-foreground-secondary">
+                차단 사유가 없습니다. 지금은 이 화면에서 실주문이 나갑니다.
+              </li>
+            )}
+          </ul>
+          {gate.armed && gate.armed_by === "ENV" && (
+            <p className="mt-2 text-[11px] text-muted" data-testid="live-arm-by-env">
+              환경변수로 열려 있는 프로세스입니다. 이 화면에서는 닫을 수 없습니다.
+            </p>
+          )}
+          {gate.armed && gate.armed_by === "SESSION" && (
+            <button type="button" data-testid="live-disarm" disabled={busy} onClick={onDisarm}
+              className="mt-2 rounded-md border border-line px-3 py-1.5 text-xs font-bold text-foreground disabled:opacity-40">
+              거래 해제
+            </button>
+          )}
+          <p className="mt-2 text-[10px] text-muted" data-testid="live-arm-note">{ARM_NOTE}</p>
+        </div>
+      )}
+
+      {/* A refused activation is not detail. It is the answer to the click that was just made,
+          so it stays on screen whether or not the reasons are open. */}
+      {error && <p className="mt-1 rounded-md bg-warning-soft px-3 py-2 text-xs text-warning"
+        role="status" data-testid="live-arm-error">{error}</p>}
+    </div>
+  );
+}
+
+/** The one thing between a click and a real account.
+ *
+ *  It asks for a decision, not for a password. The typed phrase it replaces was protecting the
+ *  *API* from an accidental call, which is the server's job and the server still does it: the
+ *  request below still carries `ARM_CONFIRMATION` and is still refused without it. What the
+ *  operator has to supply is intent, and a modal they must dismiss to get past supplies it.
+ */
+export function LiveActivateDialog({ open, onCancel, onConfirm, busy, ttlS }: {
+  open: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+  busy?: boolean;
+  ttlS?: number | null;
+}) {
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") onCancel(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onCancel]);
+
+  if (!open) return null;
+  const minutes = ttlS ? Math.round(ttlS / 60) : null;
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4"
+      data-testid="live-activate-dialog" role="dialog" aria-modal="true"
+      aria-labelledby="live-activate-title">
+      <div className="w-full max-w-sm rounded-xl border border-danger bg-surface p-5 shadow-panel">
+        <p id="live-activate-title" className="text-xs font-bold tracking-wide text-danger">
+          BINANCE LIVE · 실계좌
+        </p>
+        <p className="mt-2 text-sm font-semibold text-foreground" data-testid="live-activate-note">
+          {ACTIVATE_CONFIRM_NOTE}
+        </p>
+        <p className="mt-1 text-[11px] text-muted" data-testid="live-activate-ttl">
+          {minutes
+            ? `활성화 후 ${minutes}분이 지나거나 서버가 재시작하면 자동으로 거래불가로 돌아갑니다.`
+            : "제한 시간이 지나거나 서버가 재시작하면 자동으로 거래불가로 돌아갑니다."}
+        </p>
+        <div className="mt-4 flex justify-end gap-2">
+          <button type="button" data-testid="live-activate-cancel" onClick={onCancel}
+            className="btn-muted px-3 py-2 text-xs">취소</button>
+          <button type="button" data-testid="live-activate-confirm" disabled={busy}
+            onClick={onConfirm}
+            className="rounded-md bg-danger px-3 py-2 text-xs font-bold text-white disabled:opacity-40">
+            실거래 활성화
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -138,17 +266,30 @@ export function LiveMarketHeader({ account }: { account: LiveAccount }) {
         <Figure label="마진 잔고" value={krwFigures ? krw(krwFigures.margin_balance) : usdt(balance?.margin_balance)}
           sub={usdt(balance?.margin_balance)} testId="live-margin-balance" />
       </dl>
-      <p className="mt-1 text-[10px] text-muted" data-testid="live-authority-note">
-        {LIVE_AUTHORITY_NOTE}
-        {balance && (
-          <span data-testid="live-usd-valuation">
-            {" "}잔고는 Binance USDT 잔고({usdt(balance.wallet_balance, 6)})입니다.
-            계정 USD 환산은 {usdt(balance.account_wallet_usd, 6).replace("USDT", "USD")}이며
-            페그에 따라 조금씩 움직입니다.
-          </span>
-        )}
-      </p>
     </header>
+  );
+}
+
+/** Where the figures come from, and how the two dollar numbers reconcile.
+ *
+ *  True and worth being able to find, but not worth the two lines it used to take under the
+ *  price on every render: the operator reads it once. It lives in the disclosure at the bottom
+ *  of the screen with the rest of the documentation, the same place the paper screen keeps its
+ *  run notes.
+ */
+export function LiveAuthorityNote({ account }: { account: LiveAccount }) {
+  const balance = account.balance;
+  return (
+    <p className="text-[11px] text-muted" data-testid="live-authority-note">
+      {LIVE_AUTHORITY_NOTE}
+      {balance && (
+        <span data-testid="live-usd-valuation">
+          {" "}잔고는 Binance USDT 잔고({usdt(balance.wallet_balance, 6)})입니다.
+          계정 USD 환산은 {usdt(balance.account_wallet_usd, 6).replace("USDT", "USD")}이며
+          페그에 따라 조금씩 움직입니다.
+        </span>
+      )}
+    </p>
   );
 }
 
@@ -266,104 +407,6 @@ export function LiveAccountCards({ account }: { account: LiveAccount }) {
   );
 }
 
-/** The manual arm control.
- *
- *  Three states, and they are deliberately not collapsed into two. "This server may not trade
- *  at all" and "this server may, but nobody has armed it" send the operator to different
- *  places - one to a settings file, one to this button - and a single "locked" badge used to
- *  send them to the wrong one.
- */
-export function LiveArmPanel({ arm, onArm, onDisarm, busy, error }: {
-  arm: LiveArmState | null;
-  onArm: (note: string) => void;
-  onDisarm: () => void;
-  busy?: boolean;
-  error?: string | null;
-}) {
-  const [confirming, setConfirming] = useState(false);
-  const [typed, setTyped] = useState("");
-
-  const capability = arm?.capability ?? arm?.env_armed ?? false;
-  const armed = Boolean(arm?.armed);
-  const remaining = arm?.remaining_s ?? null;
-
-  if (arm && arm.available === false) {
-    return (
-      <div className="panel p-4" data-testid="live-arm-panel">
-        <p className="text-xs text-muted">{arm.reason || "LIVE를 사용할 수 없습니다."}</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className={`panel p-4 ${armed ? "border-danger" : ""}`} data-testid="live-arm-panel">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-bold tracking-wide text-foreground">실주문 무장</span>
-          <StatusBadge value={armed ? "WARNING" : "REJECTED"}
-            label={armed ? "무장됨" : "해제됨"} />
-          {armed && arm?.armed_by === "SESSION" && remaining != null && (
-            <span className="text-[11px] font-semibold tabular-nums text-danger"
-              data-testid="live-arm-remaining">
-              {Math.floor(remaining / 60)}분 {remaining % 60}초 남음
-            </span>
-          )}
-          {armed && arm?.armed_by === "ENV" && (
-            <span className="text-[11px] text-muted" data-testid="live-arm-by-env">
-              환경변수로 무장된 프로세스입니다.
-            </span>
-          )}
-        </div>
-        {armed ? (
-          <button type="button" data-testid="live-disarm" disabled={busy || arm?.armed_by === "ENV"}
-            onClick={onDisarm}
-            className="rounded-md border border-line px-3 py-1.5 text-xs font-bold text-foreground disabled:opacity-40">
-            해제
-          </button>
-        ) : (
-          <button type="button" data-testid="live-arm" disabled={busy || !capability}
-            onClick={() => { setTyped(""); setConfirming(true); }}
-            className="rounded-md border border-danger bg-danger-soft px-3 py-1.5 text-xs font-bold text-danger disabled:opacity-40">
-            무장
-          </button>
-        )}
-      </div>
-
-      {!capability && (
-        <p className="mt-2 text-[11px] text-warning" data-testid="live-arm-no-capability">
-          이 서버는 실주문 기능이 꺼져 있습니다(BINANCE_LIVE_TRADING_ENABLED=false).
-          서버 설정을 바꾸기 전에는 무장할 수 없습니다.
-        </p>
-      )}
-
-      {confirming && (
-        <div className="mt-3 rounded-md border border-danger bg-danger-soft p-3" data-testid="live-arm-confirm">
-          <p className="text-xs font-bold text-danger">실계좌 주문을 열려면 아래 문구를 그대로 입력하세요</p>
-          <p className="mt-1 select-all font-mono text-xs text-foreground">{ARM_CONFIRMATION}</p>
-          <input data-testid="live-arm-input" value={typed} autoComplete="off"
-            aria-label="무장 확인 문구"
-            onChange={event => setTyped(event.target.value)}
-            className="mt-2 w-full rounded-md border border-line bg-surface px-3 py-2 font-mono text-xs" />
-          <div className="mt-2 flex gap-2">
-            <button type="button" className="btn-muted px-3 py-1.5 text-xs" data-testid="live-arm-cancel"
-              onClick={() => setConfirming(false)}>취소</button>
-            <button type="button" data-testid="live-arm-submit"
-              disabled={busy || typed !== ARM_CONFIRMATION}
-              className="rounded-md bg-danger px-3 py-1.5 text-xs font-bold text-white disabled:opacity-40"
-              onClick={() => { onArm(typed); setConfirming(false); }}>
-              무장
-            </button>
-          </div>
-        </div>
-      )}
-
-      <p className="mt-2 text-[10px] text-muted" data-testid="live-arm-note">{ARM_NOTE}</p>
-      {error && <p className="mt-2 rounded-md bg-warning-soft px-3 py-2 text-xs text-warning"
-        role="status" data-testid="live-arm-error">{error}</p>}
-    </div>
-  );
-}
-
 /** Leverage, margin mode and what they cost in margin.
  *
  *  Leverage is a margin setting, not an edge: 0.001 BTC is 0.001 BTC at 1x and at 50x, and what
@@ -374,12 +417,16 @@ export function LiveArmPanel({ arm, onArm, onDisarm, busy, error }: {
  *  Nothing here is optimistic. A button press sends the change to Binance and then re-reads
  *  `symbolConfig`; the value displayed is always the one that came back.
  */
-export function LiveLeveragePanel({ account, options, onSelect, busy, error }: {
+export function LiveLeveragePanel({ account, options, onSelect, busy, error, compact = false }: {
   account: LiveAccount;
   options: LiveLeverageOptions | null;
   onSelect: (leverage: number) => void;
   busy?: boolean;
   error?: string | null;
+  /** Hides the two standing explanations. They are true and they are kept - the screen renders
+   *  them in the disclosure at the bottom - but a prose paragraph under a row of buttons is
+   *  what made this screen read as a developer console rather than a terminal. */
+  compact?: boolean;
 }) {
   const config = account.symbol_config;
   const current = config ? Number(config.leverage) : null;
@@ -442,16 +489,24 @@ export function LiveLeveragePanel({ account, options, onSelect, busy, error }: {
         <RiskFigure label="주문가능" value={usdt(available)} testId="live-risk-available" />
       </dl>
 
-      <p className="mt-2 text-[10px] text-muted" data-testid="live-leverage-sizing-note">
-        레버리지는 노출 배수가 아니라 증거금 설정입니다. 0.001 BTC는 1x에서도 50x에서도 0.001 BTC이고,
-        달라지는 것은 묶이는 증거금과 청산가입니다. 주문 크기는 주문 패널에서 따로 고릅니다.
-      </p>
-      <p className="mt-1 text-[10px] text-muted" data-testid="live-margin-readonly-note">
-        {options?.margin_type_note || MARGIN_MODE_READONLY_NOTE}
-      </p>
+      {!compact && <div className="mt-2"><LiveLeverageNotes options={options} /></div>}
       {error && <p className="mt-2 rounded-md bg-warning-soft px-3 py-2 text-xs text-warning"
         role="status" data-testid="live-leverage-error">{error}</p>}
     </div>
+  );
+}
+
+export function LiveLeverageNotes({ options }: { options: LiveLeverageOptions | null }) {
+  return (
+    <>
+      <p className="text-[11px] text-muted" data-testid="live-leverage-sizing-note">
+        레버리지는 노출 배수가 아니라 증거금 설정입니다. 0.001 BTC는 1x에서도 50x에서도 0.001 BTC이고,
+        달라지는 것은 묶이는 증거금과 청산가입니다. 주문 크기는 주문 패널에서 따로 고릅니다.
+      </p>
+      <p className="mt-1 text-[11px] text-muted" data-testid="live-margin-readonly-note">
+        {options?.margin_type_note || MARGIN_MODE_READONLY_NOTE}
+      </p>
+    </>
   );
 }
 
@@ -468,21 +523,33 @@ function RiskFigure({ label, value, sub, testId }: {
   );
 }
 
-/** The order panel. It builds a real request and shows the real refusal. */
-export function LiveOrderTicket({ account, onOrder, busy, error, preview, onPreview }: {
+/** The order panel. It builds a real request and shows the real refusal.
+ *
+ *  `gate` is the same verdict the bar at the top shows, passed in rather than recomputed, so
+ *  the buttons and the badge cannot disagree. Opening is offered only while it says tradable;
+ *  closing is offered whenever Binance reports a position, because an operator who needs to
+ *  reduce risk should never find that control greyed out - if the window has lapsed, the press
+ *  opens the activation dialog instead of sending an order that would be refused.
+ */
+export function LiveOrderTicket({ account, onOrder, busy, error, preview, onPreview, gate,
+  onActivate }: {
   account: LiveAccount;
   onOrder: (body: { side: string; intent: "OPEN" | "CLOSE"; qty?: string }) => void;
   busy?: boolean;
   error?: string | null;
   preview?: LivePreview | null;
   onPreview?: (qty: string) => void;
+  /** Defaults to the account's own gate view, so a caller that has no arm poll still fails
+   *  closed on what the server said rather than opening the buttons. */
+  gate?: LiveTradeGate;
+  onActivate?: () => void;
 }) {
   /** The exchange minimum, not a round number. This ticket's default is what gets sent when
    *  somebody presses LONG without touching the size box, so it is set to the smallest order
    *  Binance will accept: a mis-click then costs the minimum rather than a multiple of it. */
   const [size, setSize] = useState("0.001");
   const [pending, setPending] = useState<{ side: string; intent: "OPEN" | "CLOSE" } | null>(null);
-  const armed = account.gates.armed;
+  const tradable = (gate ?? liveTradeGate(account, null)).tradable;
   const position = account.position;
   const hasPosition = Boolean(position && !position.is_flat);
 
@@ -497,9 +564,8 @@ export function LiveOrderTicket({ account, onOrder, busy, error, preview, onPrev
   return (
     <div className="panel p-4" data-testid="live-order-ticket">
       <div className="mb-3 flex items-center justify-between">
-        <p className="text-xs font-bold tracking-wide text-danger">BINANCE LIVE 주문</p>
-        <StatusBadge value={armed ? "WARNING" : "REJECTED"}
-          label={armed ? "실주문 활성" : "실주문 잠금"} />
+        <h2 className="text-sm font-semibold sm:text-base">수동 주문</h2>
+        <span className="text-[11px] font-bold tracking-wide text-danger">실계좌</span>
       </div>
       <label className="block text-[11px] text-muted" htmlFor="live-qty">수량 (BTC)</label>
       <input id="live-qty" data-testid="live-qty-input" value={size} inputMode="decimal"
@@ -528,18 +594,32 @@ export function LiveOrderTicket({ account, onOrder, busy, error, preview, onPrev
         </dl>
       )}
       <div className="mt-3 grid grid-cols-2 gap-2">
-        <button type="button" data-testid="live-long" disabled={busy}
+        <button type="button" data-testid="live-long" disabled={busy || !tradable}
+          title={tradable ? undefined : "거래불가 상태입니다. 먼저 거래를 활성화하세요."}
           onClick={() => setPending({ side: "LONG", intent: "OPEN" })}
           className="rounded-md bg-success-soft px-3 py-2 text-sm font-bold text-success disabled:opacity-40">LONG</button>
-        <button type="button" data-testid="live-short" disabled={busy}
+        <button type="button" data-testid="live-short" disabled={busy || !tradable}
+          title={tradable ? undefined : "거래불가 상태입니다. 먼저 거래를 활성화하세요."}
           onClick={() => setPending({ side: "SHORT", intent: "OPEN" })}
           className="rounded-md bg-danger-soft px-3 py-2 text-sm font-bold text-danger disabled:opacity-40">SHORT</button>
       </div>
+      {/* CLOSE keeps working off Binance's reported position, and the backend still re-reads the
+          real size and sends it reduceOnly. Nothing about that changes here. */}
       <button type="button" data-testid="live-close" disabled={busy || !hasPosition}
-        onClick={() => setPending({ side: position?.side || "LONG", intent: "CLOSE" })}
+        onClick={() => (tradable ? setPending({ side: position?.side || "LONG", intent: "CLOSE" })
+                                 : onActivate?.())}
         className="mt-2 w-full rounded-md border border-line px-3 py-2 text-sm font-bold text-foreground disabled:opacity-40">
         CLOSE {hasPosition ? `· ${qtyFmt(position?.qty)} BTC` : ""}
       </button>
+      {!tradable && (
+        <p className="mt-2 text-[11px] text-muted" data-testid="live-order-locked">
+          거래불가 상태입니다.{" "}
+          {onActivate && (
+            <button type="button" data-testid="live-order-activate" onClick={onActivate}
+              className="font-semibold text-danger underline underline-offset-2">거래 활성화</button>
+          )}{onActivate ? " 후 주문할 수 있습니다." : " 상단 배지를 눌러 사유를 확인하세요."}
+        </p>
+      )}
       {pending && (
         <div className="mt-3 rounded-md border border-danger bg-danger-soft p-3" data-testid="live-confirm">
           <p className="text-xs font-bold text-danger">BINANCE LIVE · 실계좌</p>
@@ -652,11 +732,16 @@ export function useBinanceLive(enabled: boolean, pollMs = LIVE_POLL_MS) {
     }
   }, [refresh]);
 
-  const armLive = useCallback(async (confirmation: string, note?: string) => {
+  /** The confirmation phrase is supplied here, not typed by the operator.
+   *
+   *  The server still requires it verbatim and still refuses without it - that check is the
+   *  one that stops a stray POST from arming an account, and it has not moved. What it was
+   *  never able to do is establish intent, which is now the dialog's job. */
+  const armLive = useCallback(async (note?: string) => {
     setBusy(true);
     setArmError(null);
     try {
-      setArm(await liveApi.arm({ confirmation, note }));
+      setArm(await liveApi.arm({ confirmation: ARM_CONFIRMATION, note }));
     } catch (exc) {
       setArmError(exc instanceof CryptoApiError
         ? `${liveBlockerLabel(exc.code)} · ${exc.message}` : String(exc));

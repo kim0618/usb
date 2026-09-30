@@ -10,12 +10,13 @@ import {
   AutoNote, ChartSection, Disclosure, MarketHeader, MobilePositionCard, PositionStrip,
 } from "@/components/crypto-terminal-layout";
 import {
-  AccountSourceSwitch, LiveAccountCards, LiveArmPanel, LiveBadge, LiveBlockedPanel,
-  LiveBookStrip, LiveLeveragePanel, LiveMarketHeader, LiveOrderTicket, LivePositionPanel,
-  useBinanceLive,
+  AccountSourceSwitch, LiveAccountCards, LiveActivateDialog, LiveAuthorityNote, LiveBlockedPanel,
+  LiveBookStrip, LiveLeverageNotes, LiveLeveragePanel, LiveMarketHeader, LiveOrderTicket,
+  LivePositionPanel, LiveTradeBar, useBinanceLive,
 } from "@/components/crypto-live-terminal";
 import type { ChartTimeframe } from "@/lib/crypto-paper";
 import { positionOpenedMs } from "@/lib/crypto-paper";
+import { ARM_NOTE, LIVE_LOCK_NOTE, liveTradeGate } from "@/lib/crypto-live";
 import type { AccountSource } from "@/lib/crypto-live";
 
 /** US-B CRYPTO manual futures terminal. Bybit PUBLIC market data, simulated fills, no account.
@@ -49,6 +50,9 @@ export default function CryptoPaperPage() {
    *  Binance key is configured. The two accounts never render at the same time. */
   const [source, setSource] = useState<AccountSource>("PAPER");
   const binance = useBinanceLive(source === "BINANCE_LIVE");
+  /** Raised by the bar and by a CLOSE pressed after the window lapsed. One dialog for both, so
+   *  the sentence the operator has to agree to is written once. */
+  const [activating, setActivating] = useState(false);
 
   const sourceSwitch = (
     <AccountSourceSwitch value={source} onChange={setSource} available={binance.available} />
@@ -56,17 +60,27 @@ export default function CryptoPaperPage() {
 
   if (source === "BINANCE_LIVE") {
     const account = binance.account;
+    // One verdict for the whole screen: the bar states it, the buttons obey it. It is the
+    // server's answer - the router's both-gates view plus the arm session - never this page's
+    // memory of a click, so a lapsed TTL, a manual disarm, a restart, a refused key or a stale
+    // snapshot all put the screen back to 거래불가 on the next poll without any special case.
+    const gate = liveTradeGate(account, binance.arm, binance.error);
+    const activate = () => setActivating(true);
     return (
       <div className="mx-auto max-w-[1600px]">
         {sourceSwitch}
-        <LiveBadge account={account} />
+        <LiveTradeBar account={account} gate={gate} busy={binance.busy} error={binance.armError}
+          onActivate={activate} onDisarm={binance.disarmLive} />
+        <LiveActivateDialog open={activating} busy={binance.busy}
+          ttlS={binance.arm?.ttl_s ?? null}
+          onCancel={() => setActivating(false)}
+          onConfirm={() => { void binance.armLive().finally(() => setActivating(false)); }} />
         {!account || !account.ready ? (
           <LiveBlockedPanel blockers={account?.blockers ?? binance.status?.blockers ?? []}
             error={binance.error} />
         ) : (
           <div className="space-y-3">
             <LiveMarketHeader account={account} />
-            <LiveAccountCards account={account} />
             <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
               <div className="space-y-3">
                 {/* The chart stays on the paper feed in V1: switching it to Binance candles is
@@ -81,20 +95,33 @@ export default function CryptoPaperPage() {
                     onTimeframe={setTimeframe} />
                 )}
                 <LivePositionPanel account={account} />
-                <LiveLeveragePanel account={account} options={binance.leverage}
+              </div>
+              {/* Size, leverage and the two order buttons in one column, in the order they are
+                  used, the way the paper ticket reads. */}
+              <div className="space-y-3">
+                <LiveLeveragePanel account={account} options={binance.leverage} compact
                   onSelect={binance.changeLeverage} busy={binance.busy}
                   error={binance.leverageError} />
-              </div>
-              <div className="space-y-3">
-                {/* Arming sits above the order buttons, because it is the thing that has to be
-                    true before any of them do anything. */}
-                <LiveArmPanel arm={binance.arm} busy={binance.busy} error={binance.armError}
-                  onArm={confirmation => binance.armLive(confirmation)}
-                  onDisarm={binance.disarmLive} />
                 <LiveOrderTicket account={account} onOrder={binance.order} busy={binance.busy}
                   error={binance.actionError} preview={binance.preview}
-                  onPreview={binance.requestPreview} />
+                  onPreview={binance.requestPreview} gate={gate} onActivate={activate} />
               </div>
+            </div>
+
+            {/* Everything that documents the screen rather than driving a decision, behind the
+                same disclosures the paper screen uses. */}
+            <div className="mt-4 sm:mt-6">
+              <Disclosure title="계좌 상세" testId="disclosure-live-account">
+                <LiveAccountCards account={account} />
+                <div className="mt-3"><LiveAuthorityNote account={account} /></div>
+              </Disclosure>
+              <Disclosure title="레버리지·증거금 설명" testId="disclosure-live-leverage">
+                <LiveLeverageNotes options={binance.leverage} />
+              </Disclosure>
+              <Disclosure title="실주문 안전장치" testId="disclosure-live-safety">
+                <p className="text-[11px] text-muted">{LIVE_LOCK_NOTE}</p>
+                <p className="mt-1 text-[11px] text-muted">{ARM_NOTE}</p>
+              </Disclosure>
             </div>
           </div>
         )}

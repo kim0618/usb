@@ -2,10 +2,10 @@ import React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import {
-  AccountSourceSwitch, LiveAccountCards, LiveBadge, LiveBlockedPanel, LiveBookStrip,
+  AccountSourceSwitch, LiveAccountCards, LiveAuthorityNote, LiveBlockedPanel, LiveBookStrip,
   LiveMarketHeader, LiveOrderTicket, LivePositionPanel,
 } from "@/components/crypto-live-terminal";
-import { liveApi, liveBlockerLabel } from "@/lib/crypto-live";
+import { liveApi, liveBlockerLabel, liveTradeGate } from "@/lib/crypto-live";
 import type { LiveAccount } from "@/lib/crypto-live";
 
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
@@ -64,26 +64,42 @@ describe("the account switch", () => {
   });
 });
 
-describe("the LIVE screen", () => {
-  it("says it is a real account and that orders need arming", () => {
-    render(<LiveBadge account={account()} />);
-    expect(screen.getByTestId("live-badge")).toHaveTextContent("BINANCE LIVE");
-    expect(screen.getByTestId("live-badge")).toHaveTextContent("실계좌");
-    // The badge used to name the environment variable. It now names the condition the operator
-    // can act on: orders go out only while a manual window is armed, and that window closes on
-    // a timeout, a disarm or a restart.
-    expect(screen.getByTestId("live-badge")).toHaveTextContent("무장");
+describe("the trade gate", () => {
+  it("is shut on arrival and names arming as the one thing missing", () => {
+    const ready = account({ gates: { armed: false, env_flag: true, client_armed: false,
+                                     env_flag_name: "BINANCE_LIVE_TRADING_ENABLED" } });
+    const gate = liveTradeGate(ready, null);
+    expect(gate.tradable).toBe(false);
+    expect(gate.reasons.map(reason => reason.code)).toContain("NOT_ARMED");
   });
 
-  it("does not look connected while the account cannot be read", () => {
+  it("names the server setting, not the click, when the deployment cannot trade at all", () => {
+    // The two failures need different remedies: one is a file on the server, one is a button
+    // on this screen. Collapsing them sent operators to edit something they did not need to.
+    const gate = liveTradeGate(account(), null);
+    expect(gate.reasons.map(reason => reason.code)).toEqual(["LIVE_TRADING_DISABLED"]);
+  });
+
+  it("opens only when the account is readable, current and armed", () => {
+    const gate = liveTradeGate(account({
+      gates: { armed: true, env_flag: true, client_armed: true,
+               env_flag_name: "BINANCE_LIVE_TRADING_ENABLED" } }), null);
+    expect(gate.tradable).toBe(true);
+    expect(gate.reasons).toHaveLength(0);
+  });
+
+  it("does not report a healthy connection while the account cannot be read", () => {
     // Found by rendering the real blocked screen: the badge was reporting snapshot freshness,
     // so a refused account showed a healthy "synced 0s ago".
-    const blocked = account({ ready: false, blockers: [{ code: "BINANCE_AUTH_FAILED", message: "거부" }] });
-    render(<LiveBadge account={blocked} />);
-    expect(screen.getByTestId("live-badge")).toHaveTextContent("연결 안 됨");
-    expect(screen.getByTestId("live-badge")).not.toHaveTextContent("동기화");
+    const blocked = account({ ready: false,
+      blockers: [{ code: "BINANCE_AUTH_FAILED", message: "거부" }] });
+    const gate = liveTradeGate(blocked, null);
+    expect(gate.connected).toBe(false);
+    expect(gate.reasons.map(reason => reason.code)).toContain("BINANCE_AUTH_FAILED");
   });
+});
 
+describe("the LIVE screen", () => {
   it("shows Binance's own balance, leverage and margin mode", () => {
     render(<LiveMarketHeader account={account()} />);
     expect(screen.getByTestId("live-mark-price")).toHaveTextContent("83,500.0");
@@ -94,9 +110,11 @@ describe("the LIVE screen", () => {
 
   it("shows the USDT balance as the headline and the USD valuation as a footnote", () => {
     // The top-level total is Binance's USD valuation; showing it under a USDT label made an idle
-    // wallet look like it was moving.
+    // wallet look like it was moving. The reconciliation itself is prose, so it moved to the
+    // disclosure at the bottom rather than sitting under the price all day.
     render(<LiveMarketHeader account={account()} />);
     expect(screen.getByTestId("live-wallet")).toHaveTextContent("1,000.00 USDT");
+    render(<LiveAuthorityNote account={account()} />);
     const note = screen.getByTestId("live-usd-valuation");
     expect(note).toHaveTextContent("999.400000 USD");
     expect(note).toHaveTextContent("1,000.000000 USDT");
@@ -140,10 +158,20 @@ describe("the LIVE screen", () => {
   });
 });
 
+/** The tradable account: the same fixture with the server reporting both gates open. */
+const live = (overrides: Partial<LiveAccount> = {}): LiveAccount => account({
+  gates: { armed: true, env_flag: true, client_armed: true,
+           env_flag_name: "BINANCE_LIVE_TRADING_ENABLED" },
+  ...overrides,
+});
+const ticket = (acct: LiveAccount, props: Record<string, unknown> = {}) =>
+  render(<LiveOrderTicket account={acct} gate={liveTradeGate(acct, null)}
+    onOrder={vi.fn()} {...props} />);
+
 describe("the LIVE order ticket", () => {
   it("asks for confirmation before it calls anything", () => {
     const onOrder = vi.fn();
-    render(<LiveOrderTicket account={account()} onOrder={onOrder} />);
+    ticket(live(), { onOrder });
     fireEvent.click(screen.getByTestId("live-long"));
     expect(onOrder).not.toHaveBeenCalled();
     expect(screen.getByTestId("live-confirm")).toHaveTextContent("실계좌");
@@ -153,29 +181,57 @@ describe("the LIVE order ticket", () => {
     expect(onOrder).toHaveBeenCalledWith({ side: "LONG", intent: "OPEN", qty: "0.001" });
   });
 
+  it("will not open a position while the screen says 거래불가", () => {
+    // The server refuses it too. The button is disabled so the refusal is not the way the
+    // operator finds out.
+    const onOrder = vi.fn();
+    ticket(account(), { onOrder });
+    expect(screen.getByTestId("live-long")).toBeDisabled();
+    expect(screen.getByTestId("live-short")).toBeDisabled();
+    fireEvent.click(screen.getByTestId("live-long"));
+    expect(onOrder).not.toHaveBeenCalled();
+    expect(screen.getByTestId("live-order-locked")).toBeInTheDocument();
+  });
+
   it("closes the position Binance reports, not a size typed into the box", () => {
     const onOrder = vi.fn();
-    render(<LiveOrderTicket account={account()} onOrder={onOrder} />);
+    ticket(live(), { onOrder });
     fireEvent.change(screen.getByTestId("live-qty-input"), { target: { value: "9.999" } });
     fireEvent.click(screen.getByTestId("live-close"));
     fireEvent.click(screen.getByTestId("live-submit"));
     expect(onOrder).toHaveBeenCalledWith({ side: "LONG", intent: "CLOSE", qty: undefined });
   });
 
+  it("never greys out CLOSE on a real position - it offers the activation instead", () => {
+    // Reducing risk is the one action that must not dead-end. With the window lapsed the press
+    // opens the dialog rather than sending an order the server would refuse.
+    const onOrder = vi.fn(); const onActivate = vi.fn();
+    ticket(account(), { onOrder, onActivate });
+    expect(screen.getByTestId("live-close")).toBeEnabled();
+    fireEvent.click(screen.getByTestId("live-close"));
+    expect(onOrder).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("live-confirm")).not.toBeInTheDocument();
+    expect(onActivate).toHaveBeenCalled();
+  });
+
   it("cannot close a flat account", () => {
-    const flat = account({ position: { ...account().position!, is_flat: true, side: null, qty: "0" } });
-    render(<LiveOrderTicket account={flat} onOrder={vi.fn()} />);
+    ticket(live({ position: { ...account().position!, is_flat: true, side: null, qty: "0" } }));
     expect(screen.getByTestId("live-close")).toBeDisabled();
   });
 
+  it("does not repeat the lock state the bar already shows", () => {
+    ticket(live());
+    expect(screen.getByTestId("live-order-ticket")).not.toHaveTextContent("실주문 잠금");
+    expect(screen.getByTestId("live-order-ticket")).not.toHaveTextContent("무장");
+  });
+
   it("shows the refusal the backend returns instead of hiding it", () => {
-    render(<LiveOrderTicket account={account()} onOrder={vi.fn()}
-      error="실주문 잠금 · BINANCE_LIVE_TRADING_ENABLED=false" />);
+    ticket(live(), { error: "실주문 잠금 · BINANCE_LIVE_TRADING_ENABLED=false" });
     expect(screen.getByTestId("live-order-error")).toHaveTextContent("실주문 잠금");
   });
 
   it("shows the round-trip cost the backend priced on Binance's book", () => {
-    render(<LiveOrderTicket account={account()} onOrder={vi.fn()} preview={{
+    render(<LiveOrderTicket account={live()} gate={liveTradeGate(live(), null)} onOrder={vi.fn()} preview={{
       source: "BINANCE_LIVE", symbol: "BTCUSDT", krw_per_usdt: null, mark_price: "83500.00",
       fetched_at_ms: 1, sides: { LONG: { side: "LONG", feasible: true,
         entry_fill_price: "83500.10", round_trip_cost: "0.0700",

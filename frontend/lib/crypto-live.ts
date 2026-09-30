@@ -178,6 +178,76 @@ export const liveApi = {
       { method: "POST", body: JSON.stringify({ leverage: String(leverage) }) }),
 };
 
+/** Whether an order may leave this screen right now, and if not, why not.
+ *
+ *  One function, because the badge at the top and the buttons in the ticket answering
+ *  differently is the failure that matters: a screen that says "거래가능" over a button the
+ *  server will refuse, or the reverse. Everything here is read from the server's own answers -
+ *  `account.gates.armed` is the router's both-gates verdict and `arm.armed` is the session that
+ *  expires on read - and the two are ANDed, so a snapshot that has drifted from the arm poll
+ *  fails closed rather than open.
+ *
+ *  Connection counts as part of the gate. A stale or unreadable account is not a screen anybody
+ *  should be sending a market order from, even while the window is legitimately armed.
+ */
+export type LiveTradeGate = {
+  /** The one boolean the buttons read. */
+  tradable: boolean;
+  /** The account is readable and its snapshot is current. */
+  connected: boolean;
+  /** `BINANCE_LIVE_TRADING_ENABLED` on the server. Not something a click can change. */
+  capability: boolean;
+  /** The server says an order can be sent now. */
+  armed: boolean;
+  remaining_s: number | null;
+  armed_by: "ENV" | "SESSION" | null;
+  /** Empty when tradable. Shown only when the operator opens the status detail. */
+  reasons: LiveBlocker[];
+};
+
+export function liveTradeGate(account: LiveAccount | null, arm: LiveArmState | null,
+                              error?: string | null): LiveTradeGate {
+  const reasons: LiveBlocker[] = [];
+  const available = arm?.available !== false;
+  // `env_flag` on the account snapshot is the same server setting as `capability` on the arm
+  // state, and it is present on every poll. The arm *response* to a POST carries neither, so
+  // reading `env_armed` before it would report a capable server as incapable for the one render
+  // between arming and the re-read.
+  const capability = Boolean(arm?.capability ?? account?.gates.env_flag ?? arm?.env_armed ?? false);
+  // The account snapshot carries the router's verdict; the arm poll carries the session's. Both
+  // have to say yes, so a disagreement between two reads a tick apart locks rather than opens.
+  const armed = Boolean(account?.gates.armed) && (arm == null || Boolean(arm.armed));
+  const connected = Boolean(account?.ready && !account.stale);
+
+  if (!available) {
+    reasons.push({ code: "LIVE_UNAVAILABLE", message: arm?.reason || "LIVE를 사용할 수 없습니다." });
+  }
+  if (!account) {
+    reasons.push({ code: "NOT_CONNECTED", message: "계좌를 아직 읽지 못했습니다." });
+  } else if (!account.ready) {
+    if (account.blockers.length) reasons.push(...account.blockers);
+    else reasons.push({ code: "NOT_CONNECTED", message: "계좌를 읽을 수 없습니다." });
+  } else if (account.stale) {
+    reasons.push({ code: "SNAPSHOT_STALE",
+                   message: `계좌 응답이 ${Math.round(account.age_ms / 1000)}초째 갱신되지 않았습니다.` });
+  }
+  if (!capability) {
+    reasons.push({ code: "LIVE_TRADING_DISABLED",
+                   message: `이 서버는 ${account?.gates.env_flag_name || "BINANCE_LIVE_TRADING_ENABLED"}=false 입니다. 서버 설정을 바꿔야 열립니다.` });
+  } else if (!armed) {
+    reasons.push({ code: "NOT_ARMED", message: "거래 활성화 후 제한 시간 동안만 주문이 나갑니다." });
+  }
+  if (error) reasons.push({ code: "LIVE_ERROR", message: error });
+
+  return {
+    tradable: available && connected && capability && armed,
+    connected, capability, armed,
+    remaining_s: arm?.remaining_s ?? null,
+    armed_by: arm?.armed_by ?? null,
+    reasons,
+  };
+}
+
 /** Typed verbatim to arm. Mirrors `live.arm.CONFIRMATION`; the server checks it again and is
  *  the authority, so a drift here fails closed with a visible refusal. */
 export const ARM_CONFIRMATION = "ARM LIVE TRADING";
@@ -186,6 +256,10 @@ export const ARM_CONFIRMATION = "ARM LIVE TRADING";
  *  rather than to a vague sentence, the same rule the paper screen follows. */
 export const LIVE_BLOCKER_LABELS: Record<string, string> = {
   CREDENTIALS_MISSING: "API 키 미설정",
+  NOT_CONNECTED: "계좌 연결 안 됨",
+  SNAPSHOT_STALE: "계좌 응답 지연",
+  NOT_ARMED: "거래 비활성",
+  LIVE_ERROR: "연결 오류",
   HEDGE_MODE_UNSUPPORTED: "Hedge Mode 계정 · V1 미지원",
   SYMBOL_NOT_TRADING: "심볼 거래 중지",
   BINANCE_UNREACHABLE: "Binance 연결 실패",
@@ -193,7 +267,7 @@ export const LIVE_BLOCKER_LABELS: Record<string, string> = {
   CLOCK_SKEW: "서버 시각 오차",
   RESPONSE_SHAPE_CHANGED: "응답 형식 변경 감지",
   LIVE_UNAVAILABLE: "LIVE 사용 불가",
-  LIVE_TRADING_DISABLED: "실주문 잠금",
+  LIVE_TRADING_DISABLED: "실거래 잠금",
 };
 
 export const liveBlockerLabel = (code: string) => LIVE_BLOCKER_LABELS[code] || code;
@@ -207,13 +281,17 @@ export const LIVE_AUTHORITY_NOTE =
   "LIVE에서는 Binance 응답이 정본입니다. 잔고·포지션·청산가·수수료·펀딩 모두 Binance 값을 그대로 표시합니다.";
 
 export const LIVE_LOCK_NOTE =
-  "실주문은 무장한 동안에만 나갑니다. 서버 재시작·시간 만료·해제 중 하나라도 발생하면 다시 잠깁니다.";
+  "실주문은 거래가능 상태인 동안에만 나갑니다. 서버 재시작·시간 만료·해제 중 하나라도 발생하면 다시 잠깁니다.";
 
 /** Shown next to the arm control. States the three ways the window closes, because an operator
  *  who believes it stays open is the one who leaves an armed account unattended. */
 export const ARM_NOTE =
-  "무장은 이 서버 프로세스의 메모리에만 있습니다. 제한 시간이 지나거나, 해제하거나, 서버가 " +
-  "재시작하면 자동으로 잠깁니다. AUTO는 무장 여부와 무관하게 실계좌 주문을 낼 수 없습니다.";
+  "거래 활성화는 이 서버 프로세스의 메모리에만 있습니다. 제한 시간이 지나거나, 해제하거나, 서버가 " +
+  "재시작하면 자동으로 거래불가로 돌아갑니다. AUTO는 활성화 여부와 무관하게 실계좌 주문을 낼 수 없습니다.";
+
+/** The one line the confirmation dialog has to say. Everything the operator needs in order to
+ *  decide is in it: this is the real account, and orders from this screen reach it. */
+export const ACTIVATE_CONFIRM_NOTE = "실제 Binance 계좌에서 주문이 실행됩니다.";
 
 /** V1 does not change the margin mode; `POST /fapi/v1/marginType` is on the endpoint deny list. */
 export const MARGIN_MODE_READONLY_NOTE =
