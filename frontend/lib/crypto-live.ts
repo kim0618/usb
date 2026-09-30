@@ -113,6 +113,67 @@ export type LivePreview = {
   sides: Partial<Record<OrderSide, LivePreviewSide>>;
 };
 
+/** The quick-size ladder, computed by the server.
+ *
+ *  Every quantity here came out of `live/sizing.py`, which put each candidate through the same
+ *  rules the order router applies - the local ceiling, Binance's filters, both sides of the
+ *  book, and the account's available margin. This file passes those numbers to an input box and
+ *  does no sizing arithmetic of its own; the one thing it computes is which of the two sides'
+ *  ladders is the smaller, because the box it fills is shared by LONG and SHORT.
+ */
+export type LiveSizePreset = {
+  label: string; fraction: string; qty: string; feasible: boolean;
+  notional?: string; required_margin?: string | null; entry_fee?: string;
+  required_total?: string; available_after?: string;
+  entry_fill_price?: string; exit_fill_price?: string;
+  reject_code?: string | null; reject_message?: string | null;
+};
+
+export type LiveSideSizing = {
+  side: OrderSide; leverage: string | null; available_balance: string | null;
+  local_max_qty: string | null; max_qty: string; max_feasible: boolean;
+  reject_code: string | null; reject_message: string | null; max_definition: string;
+  instrument: Record<string, string>;
+  presets: LiveSizePreset[];
+};
+
+export type LiveSizing = {
+  source: "BINANCE_LIVE"; available: boolean; symbol?: string;
+  fetched_at_ms?: number; age_ms?: number;
+  reject_code?: string; reject_message?: string;
+  sides?: Partial<Record<OrderSide, LiveSideSizing>>;
+};
+
+/** The ladder in the order the panel shows it. */
+export const LIVE_PRESET_LABELS = ["25%", "HALF", "75%", "MAX"] as const;
+export type LivePresetLabel = (typeof LIVE_PRESET_LABELS)[number];
+
+/** One offerable size for a label, or the reason there is none.
+ *
+ *  The quantity box feeds both LONG and SHORT, so a size is only offered when both sides accept
+ *  it, and the smaller of the two is the one handed over. Selecting the smaller of two
+ *  server-computed answers is not sizing arithmetic: no number here is derived from a balance,
+ *  a price or a leverage.
+ */
+export function livePresetQty(sizing: LiveSizing | null, label: string):
+    { qty: string | null; reason: string | null } {
+  if (!sizing?.available || !sizing.sides) {
+    return { qty: null, reason: sizing?.reject_message || "주문 가능 수량을 계산하지 못했습니다." };
+  }
+  const rows = (["LONG", "SHORT"] as OrderSide[])
+    .map(side => sizing.sides?.[side]?.presets.find(row => row.label === label));
+  if (rows.some(row => row == null)) {
+    return { qty: null, reason: "주문 가능 수량을 계산하지 못했습니다." };
+  }
+  const refused = rows.find(row => row!.feasible === false);
+  if (refused) {
+    return { qty: null, reason: refused.reject_message || refused.reject_code || "주문 불가" };
+  }
+  const smaller = rows.reduce((left, right) =>
+    Number(left!.qty) <= Number(right!.qty) ? left : right)!;
+  return { qty: smaller.qty, reason: null };
+}
+
 export type LiveFill = {
   id: number; order_id: number; side: string; price: string; qty: string; quote_qty: string;
   realized_pnl: string; commission: string; commission_asset: string; maker: boolean;
@@ -150,6 +211,9 @@ export const liveApi = {
       Object.entries(params).filter(([, v]) => v != null && v !== "") as [string, string][]);
     return request<LivePreview>(`/api/crypto/binance/preview?${query.toString()}`, { signal });
   },
+  /** Read only. The server computes the ladder; this never sends or arms anything. */
+  sizing: (signal?: AbortSignal) =>
+    request<LiveSizing>("/api/crypto/binance/sizing", { signal }),
   fills: (limit = 20) => request<{ total: number; fills: LiveFill[]; authority: string }>(
     `/api/crypto/binance/fills?limit=${limit}`),
   funding: (limit = 20) => request<{ total: number; funding: LiveFunding[]; authority: string }>(

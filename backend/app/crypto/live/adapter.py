@@ -33,10 +33,11 @@ from .account import (AccountReader, Blocker, LiveSnapshot, RESPONSE_SHAPE_CHANG
                       _binance_blocker)
 from .credentials import LiveConfig
 from .mirror import LiveEvent, LiveMirror
-from .models import BookTop, LiveFieldMissing, LivePosition, MarkPrice
+from .models import BookTop, LONG, SHORT, LiveFieldMissing, LivePosition, MarkPrice
 from .orders import CLOSE, OPEN, LiveOrderRouter, OrderPlan, OrderRefused
 from .preview import round_trip
 from .rest import BinanceError, BinanceFuturesClient
+from .sizing import presets as sizing_presets
 from .stream import UserDataStream
 
 PAPER = "PAPER"
@@ -259,6 +260,39 @@ class BinanceLiveAdapter:
         return round_trip(side=side, qty=size, depth=depth, mark=snapshot.mark,
                           commission=snapshot.commission, filters=snapshot.filters,
                           leverage=leverage)
+
+    def get_sizing(self, depth_limit: int = 20) -> dict[str, Any]:
+        """Quick-size ladder for both sides, computed here rather than on the screen.
+
+        One depth read serves both sides, so the two ladders are priced on the same book. The
+        panel receives quantities and the reason for any it cannot offer; it never derives a
+        size of its own.
+        """
+        snapshot = self.snapshot()
+        if not snapshot.ready or snapshot.filters is None or snapshot.mark is None:
+            first = snapshot.blockers[0] if snapshot.blockers else None
+            return {"available": False,
+                    "reject_code": first.code if first else "ACCOUNT_NOT_READY",
+                    "reject_message": first.message if first else "LIVE 계좌를 읽지 못했습니다."}
+        if snapshot.commission is None:
+            return {"available": False, "reject_code": "COMMISSION_UNAVAILABLE",
+                    "reject_message": "계정 수수료율을 읽지 못해 수량을 계산하지 않습니다."}
+        depth = self.client.call("depth", {"symbol": self.config.symbol, "limit": depth_limit})
+        leverage = snapshot.symbol_config.leverage if snapshot.symbol_config else None
+        available = snapshot.balance.available_balance if snapshot.balance else None
+        return {
+            "available": True,
+            "symbol": self.config.symbol,
+            "fetched_at_ms": snapshot.fetched_at_ms,
+            "age_ms": snapshot.age_ms(),
+            "sides": {side: sizing_presets(side=side, depth=depth, mark=snapshot.mark,
+                                           commission=snapshot.commission,
+                                           filters=snapshot.filters, leverage=leverage,
+                                           available=available,
+                                           ceiling=self.config.max_open_qty,
+                                           position=snapshot.position)
+                      for side in (LONG, SHORT)},
+        }
 
     # ------------------------------------------------------------------ writes (gated)
 

@@ -104,7 +104,8 @@ export default function CryptoPaperPage() {
                   error={binance.leverageError} />
                 <LiveOrderTicket account={account} onOrder={binance.order} busy={binance.busy}
                   error={binance.actionError} preview={binance.preview}
-                  onPreview={binance.requestPreview} gate={gate} onActivate={activate} />
+                  onPreview={binance.requestPreview} gate={gate} onActivate={activate}
+                  sizing={binance.sizing} />
               </div>
             </div>
 

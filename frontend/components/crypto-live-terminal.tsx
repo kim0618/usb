@@ -17,14 +17,17 @@ import { CryptoApiError, krw, num, price, qty as qtyFmt, signedKrw, signedUsdt, 
 import type { OrderSide } from "@/lib/crypto-paper";
 import {
   ACTIVATE_CONFIRM_NOTE, ARM_CONFIRMATION, ARM_NOTE, AccountSource, LIVE_AUTHORITY_NOTE,
-  LIVE_DEFAULT_LEVERAGE, LIVE_LEVERAGE_POLICY_NOTE, LIVE_LOCK_NOTE, LiveAccount, LiveArmState,
-  LiveBlocker, LiveLeverageOptions, LivePreview, LiveStatus, LiveTradeGate, MARGIN_MODE_LABELS,
-  MARGIN_MODE_READONLY_NOTE, liveApi, liveBlockerLabel, liveTradeGate,
+  LIVE_DEFAULT_LEVERAGE, LIVE_LEVERAGE_POLICY_NOTE, LIVE_LOCK_NOTE, LIVE_PRESET_LABELS,
+  LiveAccount, LiveArmState, LiveBlocker, LiveLeverageOptions, LivePreview, LiveSizing,
+  LiveStatus, LiveTradeGate, MARGIN_MODE_LABELS, MARGIN_MODE_READONLY_NOTE, liveApi,
+  liveBlockerLabel, livePresetQty, liveTradeGate,
 } from "@/lib/crypto-live";
 
 export const LIVE_POLL_MS = 2_000;
 /** Older than this and the panel says so instead of presenting the figures as current. */
 export const LIVE_STALE_MS = 15_000;
+/** The ladder needs a depth read, so it runs slower than the account poll. */
+export const SIZING_POLL_MS = 5_000;
 
 export function AccountSourceSwitch({ value, onChange, available, busy }: {
   value: AccountSource; onChange: (next: AccountSource) => void; available: boolean; busy?: boolean;
@@ -543,6 +546,57 @@ function RiskFigure({ label, value, sub, testId }: {
   );
 }
 
+/** The quick-size row, in the same place and shape as the paper ticket's.
+ *
+ *  Every quantity comes from `GET /api/crypto/binance/sizing`, which walks Binance's book for
+ *  each candidate and applies the local ceiling, the exchange filters and the account's margin.
+ *  Nothing on this side multiplies a balance by a leverage: the affordable size depends on how
+ *  deep the order walks the book, and a formula here would overstate MAX in exactly the thin
+ *  book where that is most expensive.
+ *
+ *  A press fills the quantity box and does nothing else. It sends no order, arms nothing and
+ *  changes no leverage - the order buttons below still answer to the trade gate, which is why
+ *  this row stays usable while the screen is 거래불가: choosing a size is not trading.
+ */
+export function LiveQuickSize({ sizing, onPick, busy, stale }: {
+  sizing: LiveSizing | null;
+  onPick: (qty: string) => void;
+  busy?: boolean;
+  stale?: boolean;
+}) {
+  const unavailable = stale
+    ? "계좌 응답이 지연돼 수량을 계산하지 않습니다."
+    : sizing == null ? "주문 가능 수량을 읽는 중입니다."
+    : !sizing.available ? (sizing.reject_message || "주문 가능 수량을 계산하지 못했습니다.")
+    : null;
+
+  return (
+    <div data-testid="live-quick-size">
+      <div className="mb-2 flex items-center justify-between">
+        <span className="text-xs text-muted">빠른 수량</span>
+        {unavailable && <span className="text-[10px] text-warning"
+          data-testid="live-quick-size-unavailable">{unavailable}</span>}
+      </div>
+      <div className="mb-2 grid grid-cols-4 gap-1.5 sm:mb-3" role="group" aria-label="빠른 수량">
+        {LIVE_PRESET_LABELS.map(label => {
+          const { qty, reason } = livePresetQty(unavailable ? null : sizing, label);
+          const strong = label === "MAX";
+          return (
+            <button key={label} type="button" data-testid={`live-preset-${label}`}
+              disabled={busy || qty == null}
+              title={qty == null ? (unavailable || reason || undefined) : `${qty} BTC`}
+              onClick={() => qty && onPick(qty)}
+              className={`btn-compact h-9 sm:h-10 ${
+                strong ? "font-extrabold tracking-wide ring-1 ring-warning/60" : ""}`}>
+              {label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /** The order panel. It builds a real request and shows the real refusal.
  *
  *  `gate` is the same verdict the bar at the top shows, passed in rather than recomputed, so
@@ -552,7 +606,7 @@ function RiskFigure({ label, value, sub, testId }: {
  *  opens the activation dialog instead of sending an order that would be refused.
  */
 export function LiveOrderTicket({ account, onOrder, busy, error, preview, onPreview, gate,
-  onActivate }: {
+  onActivate, sizing }: {
   account: LiveAccount;
   onOrder: (body: { side: string; intent: "OPEN" | "CLOSE"; qty?: string }) => void;
   busy?: boolean;
@@ -563,6 +617,8 @@ export function LiveOrderTicket({ account, onOrder, busy, error, preview, onPrev
    *  closed on what the server said rather than opening the buttons. */
   gate?: LiveTradeGate;
   onActivate?: () => void;
+  /** Server-computed quick sizes. Absent means the row renders disabled with a reason. */
+  sizing?: LiveSizing | null;
 }) {
   /** The exchange minimum, not a round number. This ticket's default is what gets sent when
    *  somebody presses LONG without touching the size box, so it is set to the smallest order
@@ -587,6 +643,8 @@ export function LiveOrderTicket({ account, onOrder, busy, error, preview, onPrev
         <h2 className="text-sm font-semibold sm:text-base">수동 주문</h2>
         <span className="text-[11px] font-bold tracking-wide text-danger">실계좌</span>
       </div>
+      <LiveQuickSize sizing={sizing ?? null} busy={busy} stale={account.stale}
+        onPick={next => setSize(next)} />
       <label className="block text-[11px] text-muted" htmlFor="live-qty">수량 (BTC)</label>
       <input id="live-qty" data-testid="live-qty-input" value={size} inputMode="decimal"
         onChange={event => setSize(event.target.value)}
@@ -673,6 +731,7 @@ export function useBinanceLive(enabled: boolean, pollMs = LIVE_POLL_MS) {
   const [status, setStatus] = useState<LiveStatus | null>(null);
   const [account, setAccount] = useState<LiveAccount | null>(null);
   const [preview, setPreview] = useState<LivePreview | null>(null);
+  const [sizing, setSizing] = useState<LiveSizing | null>(null);
   const [arm, setArm] = useState<LiveArmState | null>(null);
   const [leverage, setLeverage] = useState<LiveLeverageOptions | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -708,6 +767,16 @@ export function useBinanceLive(enabled: boolean, pollMs = LIVE_POLL_MS) {
     }
   }, []);
 
+  /** The ladder costs one depth read, so it runs on its own slower timer rather than with the
+   *  2s account poll. It is a read: nothing on the trade path is touched. */
+  const refreshSizing = useCallback(async () => {
+    try {
+      setSizing(await liveApi.sizing());
+    } catch {
+      setSizing(null);
+    }
+  }, []);
+
   const refreshLeverage = useCallback(async () => {
     try {
       setLeverage(await liveApi.leverageOptions());
@@ -727,6 +796,13 @@ export function useBinanceLive(enabled: boolean, pollMs = LIVE_POLL_MS) {
   // The bracket table changes with the account's risk tier, not with the tick, so it is read
   // when LIVE is entered and after a leverage change rather than on the poll.
   useEffect(() => { if (enabled) void refreshLeverage(); }, [enabled, refreshLeverage]);
+
+  useEffect(() => {
+    if (!enabled) return;
+    void refreshSizing();
+    const timer = setInterval(() => { void refreshSizing(); }, SIZING_POLL_MS);
+    return () => clearInterval(timer);
+  }, [enabled, refreshSizing]);
 
   const requestPreview = useCallback((size: string) => {
     if (!enabled || !size) return;
@@ -798,10 +874,12 @@ export function useBinanceLive(enabled: boolean, pollMs = LIVE_POLL_MS) {
       setBusy(false);
       await refresh();
       await refreshLeverage();
+      // Margin per coin just changed, so every quantity in the ladder is stale until re-read.
+      await refreshSizing();
     }
-  }, [refresh, refreshLeverage]);
+  }, [refresh, refreshLeverage, refreshSizing]);
 
-  return { status, account, preview, arm, leverage, error, actionError, armError, leverageError,
-           busy, refresh, order, requestPreview, armLive, disarmLive, changeLeverage,
-           available: Boolean(status?.available) };
+  return { status, account, preview, arm, leverage, sizing, error, actionError, armError,
+           leverageError, busy, refresh, order, requestPreview, armLive, disarmLive,
+           changeLeverage, refreshSizing, available: Boolean(status?.available) };
 }
