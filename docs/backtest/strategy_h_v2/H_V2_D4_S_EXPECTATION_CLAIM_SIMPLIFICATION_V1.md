@@ -458,6 +458,11 @@ defects or `fact_is_restated` false positives on qualitative text is itself part
 several look like the latter, and deciding it properly needs the numeric-role classifier examined
 against compound claims, which is its own step.
 
+**That step has since run**, and its result is `H_V2_D4_S_M8_COMPOUND_COVERAGE_AUDIT_V1.md`: 0 true
+numeric defects, 4 matcher false positives, 2 not-numeric-restatements, plus a third latent
+mechanism that blocks widening M8's scope. It changed nothing here, and this document's verdict and
+declarations stand as written.
+
 ## I. Tier B E2 Meaning
 
 Threshold unchanged at the frozen zero. Meaning frozen in `d4_1_contract.py` beside the constant:
