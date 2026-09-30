@@ -30,14 +30,27 @@ DEFAULT_BASE_URL = "https://fapi.binance.com"
 #: The futures testnet moved to this host; the legacy `testnet.binancefuture.com` is not used.
 TESTNET_BASE_URL = "https://demo-fapi.binance.com"
 
-#: Websocket bases. Both forms were opened from this machine on 2026-09-29 before this line was
-#: written: `wss://fstream.binance.com/ws/btcusdt@bookTicker` delivered a bookTicker frame and
-#: `/public/ws` answered a SUBSCRIBE, so the single-stream form is live and is what the user data
-#: stream uses (`<base>/<listenKey>`). `/private/ws` completes a handshake but sends nothing to an
-#: unauthenticated socket, so it is not used here.
-DEFAULT_WS_PUBLIC_URL = "wss://fstream.binance.com/ws"
-DEFAULT_WS_PRIVATE_URL = "wss://fstream.binance.com/ws"
-TESTNET_WS_URL = "wss://demo-fstream.binance.com/ws"
+#: Websocket bases, after Binance's base-URL split.
+#:
+#: Binance moved websocket traffic onto three bases - `/public` (high-frequency book data),
+#: `/market` (mark price, klines, tickers) and `/private` (user data) - and decommissioned the
+#: legacy unified `/ws` and `/stream` bases on **2026-04-23**. The notice is explicit that an
+#: unmigrated connection keeps receiving `/public` data and that `/market` and `/private` "stop
+#: pushing data":
+#: https://developers.binance.com/docs/derivatives/usds-margined-futures/websocket-market-streams/Important-WebSocket-Change-Notice
+#:
+#: That is why a legacy user data socket looks healthy and delivers nothing. It is not an error
+#: condition: the handshake succeeds, ping/pong is answered, `listenKey` is accepted without
+#: complaint, and no frame ever arrives. Measured here on 2026-09-30 with two sockets sharing one
+#: listen key while a leverage change fired - legacy `/ws/<key>` 0 frames, `/private/ws?listenKey=`
+#: the `ACCOUNT_CONFIG_UPDATE` 130 ms later.
+#:
+#: The public base is kept for completeness only; the terminal's public tape is Bybit and nothing
+#: in this package subscribes to a Binance market stream.
+DEFAULT_WS_PUBLIC_URL = "wss://fstream.binance.com/public"
+DEFAULT_WS_MARKET_URL = "wss://fstream.binance.com/market"
+DEFAULT_WS_PRIVATE_URL = "wss://fstream.binance.com/private/ws"
+TESTNET_WS_URL = "wss://demo-fstream.binance.com/private/ws"
 
 _DOC_ROOT = "https://developers.binance.com/docs/derivatives/usds-margined-futures"
 
@@ -96,6 +109,17 @@ ENDPOINTS: dict[str, Endpoint] = {endpoint.name: endpoint for endpoint in (
               "trade/rest-api/Get-Current-Position-Mode"),
     _endpoint("commission_rate", "GET", "/fapi/v1/commissionRate", USER_DATA, "20",
               "account/rest-api/User-Commission-Rate"),
+    # The account's *own* brackets, not the public table: Binance adjusts them per user, and the
+    # response carries `notionalCoef` when it has. The leverage selector reads its allowed values
+    # from here rather than holding a list, because a hardcoded list is wrong the day the
+    # account's risk tier moves and it is wrong in the unsafe direction.
+    _endpoint("leverage_bracket", "GET", "/fapi/v1/leverageBracket", USER_DATA, "1",
+              "account/rest-api/Notional-and-Leverage-Brackets"),
+    # Needed by reconcile: a position that is flat says nothing about a resting order, and the
+    # operating screen has to be able to state "open orders 0" from a read rather than from an
+    # assumption.
+    _endpoint("open_orders", "GET", "/fapi/v1/openOrders", USER_DATA, "1 with symbol, 40 without",
+              "trade/rest-api/Current-All-Open-Orders"),
     _endpoint("user_trades", "GET", "/fapi/v1/userTrades", USER_DATA, "5",
               "trade/rest-api/Account-Trade-List"),
     _endpoint("income", "GET", "/fapi/v1/income", USER_DATA, "30",

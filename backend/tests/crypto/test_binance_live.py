@@ -808,10 +808,30 @@ def test_an_expired_listen_key_drops_the_key_so_the_loop_mints_a_new_one() -> No
     assert stream.listen_key is None and stream.telemetry.expired_events == 1
 
 
-def test_the_stream_url_appends_the_listen_key_to_the_configured_base() -> None:
+def test_the_stream_url_passes_the_listen_key_as_a_query_parameter() -> None:
+    """The migrated form. The legacy `<base>/<listenKey>` path was decommissioned on
+    2026-04-23 and fails silently - it handshakes, answers ping and delivers nothing - so the
+    shape of this URL is the whole difference between a live stream and a dead one."""
     client, _ = make_client()
     stream = UserDataStream(client=client, config=make_config())
-    assert stream.url("abc") == "wss://fstream.binance.com/ws/abc"
+    assert stream.url("abc") == "wss://fstream.binance.com/private/ws?listenKey=abc"
+
+
+def test_the_stream_url_sends_no_event_filter() -> None:
+    """`events=` is honoured strictly by Binance, so a filter listing the events known today
+    would silently drop `listenKeyExpired` and `MARGIN_CALL`."""
+    client, _ = make_client()
+    stream = UserDataStream(client=client, config=make_config())
+    assert "events=" not in stream.url("abc")
+
+
+def test_the_stream_url_never_uses_a_decommissioned_legacy_base() -> None:
+    client, _ = make_client()
+    stream = UserDataStream(client=client, config=make_config())
+    url = stream.url("abc")
+    assert "/private/" in url
+    assert not url.startswith("wss://fstream.binance.com/ws")
+    assert not url.startswith("wss://fstream.binance.com/stream")
 
 
 def test_the_stream_says_in_its_own_view_that_it_is_only_a_signal() -> None:

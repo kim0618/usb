@@ -14,11 +14,20 @@ waiting for the next poll.
 Lifecycle, in the order Binance documents it (POST/PUT/DELETE `/fapi/v1/listenKey`, verified
 live on 2026-09-29 - all three answer `-2014` to an unsigned call, so all three exist):
 
-    POST listenKey -> connect <ws base>/<listenKey> -> PUT every 30 min -> DELETE on shutdown
+    POST listenKey -> connect <private base>?listenKey=<key> -> PUT every 30 min -> DELETE on shutdown
 
-`listenKeyExpired` arrives as an event rather than a socket close, so it is handled by dropping
-the key and letting the reconnect loop mint a new one. Every reconnect ends in a reconcile,
-because whatever happened while the socket was down was not delivered anywhere.
+The key goes in the **query string**, not in the path. The legacy `<base>/<listenKey>` form was
+decommissioned on 2026-04-23 (see `endpoints.DEFAULT_WS_PRIVATE_URL`) and fails silently rather
+than loudly: it still completes a handshake and answers ping, so a stream on it looks connected
+forever and delivers nothing.
+
+No `events` filter is sent, and that is deliberate. Binance accepts
+`&events=ORDER_TRADE_UPDATE/ACCOUNT_UPDATE` and honours it strictly - a socket asking for
+`ORDER_TRADE_UPDATE` alone was measured here receiving no `ACCOUNT_CONFIG_UPDATE` at all.
+Enumerating the events we know about today would therefore drop `listenKeyExpired` and
+`MARGIN_CALL` the moment they matter most, which is the same shape of failure this module just
+came out of. Omitting the parameter delivers every event, and `handle` does the filtering where
+the set is visible and tested.
 """
 from __future__ import annotations
 
@@ -29,6 +38,7 @@ import threading
 import time
 from dataclasses import dataclass, field
 from typing import Any, Callable
+from urllib.parse import urlencode
 
 import websockets
 
@@ -124,7 +134,9 @@ class UserDataStream:
         self.listen_key = None
 
     def url(self, key: str) -> str:
-        return f"{self.config.ws_private_url.rstrip('/')}/{key}"
+        """`<private base>?listenKey=<key>`, with no event filter. See the module docstring."""
+        base = self.config.ws_private_url.rstrip("/")
+        return f"{base}?{urlencode({'listenKey': key})}"
 
     # ------------------------------------------------------------------ frames
 
