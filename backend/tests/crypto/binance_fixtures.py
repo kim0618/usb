@@ -118,6 +118,21 @@ NEW_ORDER_RESULT = {"clientOrderId": "usbm-open-1790639000000", "cumQty": "0.015
 
 SET_LEVERAGE = {"leverage": 5, "maxNotionalValue": "20000000", "symbol": SYMBOL}
 
+#: Shape and values from the live account on 2026-09-30 (`GET /fapi/v1/leverageBracket`),
+#: truncated to the brackets a small account can ever reach. `initialLeverage` 150 in bracket 1
+#: is the real ceiling for BTCUSDT here, which is why the ladder's 50 is offered and a
+#: hypothetical 200 would not be.
+LEVERAGE_BRACKET = [{"symbol": SYMBOL, "notionalCoef": None, "brackets": [
+    {"bracket": 1, "initialLeverage": 150, "notionalCap": 300000, "notionalFloor": 0,
+     "maintMarginRatio": 0.004, "cum": 0.0},
+    {"bracket": 2, "initialLeverage": 100, "notionalCap": 800000, "notionalFloor": 300000,
+     "maintMarginRatio": 0.005, "cum": 300.0},
+    {"bracket": 3, "initialLeverage": 75, "notionalCap": 3000000, "notionalFloor": 800000,
+     "maintMarginRatio": 0.0065, "cum": 1500.0},
+]}]
+
+OPEN_ORDERS: list[Any] = []
+
 SERVER_TIME = {"serverTime": 1_790_639_000_000}
 
 
@@ -132,6 +147,7 @@ class FakeBinance:
         self.calls: list[tuple[str, str, dict[str, str]]] = []
         self.position_rows: Any = overrides.pop("position_rows", POSITION_RISK_LONG)
         self.position_mode: Any = overrides.pop("position_mode", POSITION_MODE_ONE_WAY)
+        self.open_orders: Any = overrides.pop("open_orders", list(OPEN_ORDERS))
         self.routes: dict[tuple[str, str], Any] = {
             ("GET", "/fapi/v1/time"): SERVER_TIME,
             ("GET", "/fapi/v1/exchangeInfo"): EXCHANGE_INFO,
@@ -143,6 +159,8 @@ class FakeBinance:
             ("GET", "/fapi/v1/symbolConfig"): SYMBOL_CONFIG,
             ("GET", "/fapi/v1/positionSide/dual"): lambda: self.position_mode,
             ("GET", "/fapi/v1/commissionRate"): COMMISSION_RATE,
+            ("GET", "/fapi/v1/leverageBracket"): LEVERAGE_BRACKET,
+            ("GET", "/fapi/v1/openOrders"): lambda: self.open_orders,
             ("GET", "/fapi/v1/userTrades"): USER_TRADES,
             ("GET", "/fapi/v1/income"): INCOME_FUNDING,
             ("POST", "/fapi/v1/listenKey"): LISTEN_KEY,

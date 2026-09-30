@@ -10,8 +10,9 @@ import {
   AutoNote, ChartSection, Disclosure, MarketHeader, MobilePositionCard, PositionStrip,
 } from "@/components/crypto-terminal-layout";
 import {
-  AccountSourceSwitch, LiveAccountCards, LiveBadge, LiveBlockedPanel, LiveBookStrip,
-  LiveMarketHeader, LiveOrderTicket, LivePositionPanel, useBinanceLive,
+  AccountSourceSwitch, LiveAccountCards, LiveArmPanel, LiveBadge, LiveBlockedPanel,
+  LiveBookStrip, LiveLeveragePanel, LiveMarketHeader, LiveOrderTicket, LivePositionPanel,
+  useBinanceLive,
 } from "@/components/crypto-live-terminal";
 import type { ChartTimeframe } from "@/lib/crypto-paper";
 import { positionOpenedMs } from "@/lib/crypto-paper";
@@ -80,10 +81,20 @@ export default function CryptoPaperPage() {
                     onTimeframe={setTimeframe} />
                 )}
                 <LivePositionPanel account={account} />
+                <LiveLeveragePanel account={account} options={binance.leverage}
+                  onSelect={binance.changeLeverage} busy={binance.busy}
+                  error={binance.leverageError} />
               </div>
-              <LiveOrderTicket account={account} onOrder={binance.order} busy={binance.busy}
-                error={binance.actionError} preview={binance.preview}
-                onPreview={binance.requestPreview} />
+              <div className="space-y-3">
+                {/* Arming sits above the order buttons, because it is the thing that has to be
+                    true before any of them do anything. */}
+                <LiveArmPanel arm={binance.arm} busy={binance.busy} error={binance.armError}
+                  onArm={confirmation => binance.armLive(confirmation)}
+                  onDisarm={binance.disarmLive} />
+                <LiveOrderTicket account={account} onOrder={binance.order} busy={binance.busy}
+                  error={binance.actionError} preview={binance.preview}
+                  onPreview={binance.requestPreview} />
+              </div>
             </div>
           </div>
         )}

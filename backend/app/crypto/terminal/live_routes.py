@@ -31,10 +31,11 @@ from pydantic import BaseModel
 
 from ..live.account import AccountReader
 from ..live.adapter import BinanceLiveAdapter
+from ..live.arm import ArmRefused, ArmSession
 from ..live.credentials import LiveConfig, client_armed, load_config, load_credentials
 from ..live.credentials import CredentialsMissing
 from ..live.endpoints import registry_view
-from ..live.mirror import LiveMirror, default_path
+from ..live.mirror import LiveEvent, LiveMirror, default_path
 from ..live.orders import CLOSE, OPEN, LiveOrderRouter, OrderRefused
 from ..live.rest import BinanceError, BinanceFuturesClient, TradingDisabled
 from ..live.stream import UserDataStream
@@ -43,6 +44,19 @@ from .api import app, error, jsonable, runtime
 LIVE_ROOT_ENV = "CRYPTO_LIVE_ROOT"
 STREAM_ENV = "CRYPTO_LIVE_USER_STREAM"
 SIDES = ("LONG", "SHORT")
+
+#: The steps offered in the UI. Presentation only - every one of them is checked against the
+#: account's own bracket table before it is shown, and the table is what decides. A ladder is
+#: kept rather than showing all 150 values because leverage is a risk setting and a row of
+#: meaningful steps is easier to choose correctly from than a slider.
+LEVERAGE_LADDER = (1, 2, 3, 5, 10, 20, 50)
+
+#: V1 reads the margin mode and does not offer to change it. `POST /fapi/v1/marginType` is on the
+#: endpoint deny list, and taking it off would mean a write whose failure modes (an open
+#: position, a resting order) all have to be handled on a screen whose job this week is manual
+#: orders. Cross/Isolated is changed in the Binance app; this screen states which one is active.
+MARGIN_TYPE_NOTE = ("마진 모드는 이 화면에서 바꾸지 않고 Binance에서 설정한 값을 그대로 표시합니다. "
+                    "변경은 Binance 앱/웹에서 하세요.")
 
 
 class LiveOrderRequest(BaseModel):
@@ -57,6 +71,13 @@ class LiveLeverageRequest(BaseModel):
     leverage: str
 
 
+class LiveArmRequest(BaseModel):
+    """The confirmation phrase is required verbatim; see `live.arm.CONFIRMATION`."""
+    confirmation: str = ""
+    note: str | None = None
+    ttl_s: int | None = None
+
+
 class LiveRuntime:
     """Builds the adapter once, on the first LIVE request, and owns its shutdown.
 
@@ -69,6 +90,10 @@ class LiveRuntime:
         self.adapter: BinanceLiveAdapter | None = None
         self.config: LiveConfig | None = None
         self.error: str | None = None
+        #: Built with the adapter and owned here rather than by the adapter, because the arm
+        #: state has to survive a snapshot being thrown away and must not be reachable from
+        #: anything that merely reads the account.
+        self.arm: ArmSession | None = None
         self._lock = threading.Lock()
 
     def stream_enabled(self) -> bool:
@@ -94,12 +119,14 @@ class LiveRuntime:
                 return None
             client = BinanceFuturesClient(credentials=credentials, base_url=config.base_url,
                                           recv_window_ms=config.recv_window_ms,
-                                          # The second of the two gates, and a variable of its
-                                          # own (`BINANCE_LIVE_CLIENT_ARMED`) rather than a
-                                          # second reading of `BINANCE_LIVE_TRADING_ENABLED`:
-                                          # both must be set for an order to be sent, so arming
-                                          # a real account still takes two deliberate acts.
-                                          trading_enabled=client_armed())
+                                          # Starts false. The `ArmSession` constructed below owns
+                                          # this flag from here on and writes it through on every
+                                          # transition: `BINANCE_LIVE_CLIENT_ARMED` set means
+                                          # armed from boot (the local validation path), unset
+                                          # means the operator arms a bounded session by hand.
+                                          # Either way an order still needs both this and
+                                          # `BINANCE_LIVE_TRADING_ENABLED`.
+                                          trading_enabled=False)
             try:
                 # Before the first signed read, not lazily on its failure. Binance refuses a
                 # timestamp more than a second in its own future, so a machine whose clock runs
@@ -113,8 +140,12 @@ class LiveRuntime:
             root = Path(os.environ.get(LIVE_ROOT_ENV, "data/runtime/crypto/live"))
             mirror = LiveMirror(path=default_path(config.fingerprint, root),
                                 account_fingerprint=config.fingerprint)
+            self.arm = ArmSession(client=client, env_armed=client_armed())
+            mirror.append(LiveEvent.DISARM, reason="BOOT", env_armed=client_armed(),
+                          note="프로세스 기동. 세션 무장은 항상 해제 상태로 시작한다.")
             reader = AccountReader(client, config)
-            router = LiveOrderRouter(reader=reader, client=client, config=config, mirror=mirror)
+            router = LiveOrderRouter(reader=reader, client=client, config=config, mirror=mirror,
+                                     arm=self.arm)
             adapter = BinanceLiveAdapter(config=config, client=client, reader=reader,
                                          router=router, mirror=mirror)
             if self.stream_enabled():
@@ -215,6 +246,7 @@ async def binance_status() -> Any:
     body.update({"available": True, "ready": snapshot.ready,
                  "blockers": [item.view() for item in snapshot.blockers],
                  "gates": adapter.router.gate_view(),
+                 "arm": live_runtime.arm.view() if live_runtime.arm is not None else None,
                  "stream": adapter.stream.view() if adapter.stream is not None else None,
                  "mirror": adapter.mirror.view() if adapter.mirror is not None else None,
                  "rest": adapter.client.telemetry.view()})
@@ -358,6 +390,99 @@ async def binance_leverage(request: LiveLeverageRequest) -> Any:
         return error(409 if isinstance(exc, TradingDisabled) else 502,
                      "LIVE_TRADING_DISABLED" if isinstance(exc, TradingDisabled) else "BINANCE_ERROR",
                      str(exc))
+
+
+@app.get("/api/crypto/binance/arm")
+async def binance_arm_state() -> Any:
+    """Whether this process is armed for manual LIVE orders, and for how much longer."""
+    adapter = live_runtime.build()
+    if adapter is None or live_runtime.arm is None:
+        return jsonable({"armed": False, "available": False,
+                         "reason": live_runtime.error or "Binance API 키가 설정되지 않았습니다."})
+    return jsonable({**live_runtime.arm.view(), "available": True,
+                     "capability": _config_view().get("trading_enabled")})
+
+
+@app.post("/api/crypto/binance/arm")
+async def binance_arm(request: LiveArmRequest) -> Any:
+    """Open a bounded manual-trading window.
+
+    Arming is not the same thing as being allowed to trade: `BINANCE_LIVE_TRADING_ENABLED` is
+    still the capability, and a deployment without it stays refused at the router's gate. This
+    route only supplies the second half, and only for `ttl_s`.
+    """
+    adapter = live_runtime.build()
+    if adapter is None or live_runtime.arm is None:
+        return error(503, "LIVE_UNAVAILABLE",
+                     live_runtime.error or "Binance API 키가 설정되지 않았습니다.")
+    if not (live_runtime.config and live_runtime.config.trading_enabled):
+        # Refused here rather than armed-but-useless, so the screen says the true reason.
+        if adapter.mirror is not None:
+            adapter.mirror.append(LiveEvent.ARM_REFUSED, code="LIVE_TRADING_DISABLED")
+        return error(409, "LIVE_TRADING_DISABLED",
+                     "이 서버는 BINANCE_LIVE_TRADING_ENABLED=false 입니다. 무장할 수 없습니다.")
+    try:
+        state = live_runtime.arm.arm(confirmation=request.confirmation, note=request.note,
+                                     ttl_s=request.ttl_s)
+    except ArmRefused as exc:
+        if adapter.mirror is not None:
+            adapter.mirror.append(LiveEvent.ARM_REFUSED, code=exc.code, message=exc.message)
+        return error(400, exc.code, exc.message)
+    if adapter.mirror is not None:
+        adapter.mirror.append(LiveEvent.ARM, ttl_s=state["ttl_s"],
+                              expires_at_ms=state["expires_at_ms"], note=request.note)
+    return jsonable({**state, "available": True, "gates": adapter.router.gate_view()})
+
+
+@app.post("/api/crypto/binance/disarm")
+async def binance_disarm() -> Any:
+    adapter = live_runtime.build()
+    if adapter is None or live_runtime.arm is None:
+        return error(503, "LIVE_UNAVAILABLE",
+                     live_runtime.error or "Binance API 키가 설정되지 않았습니다.")
+    state = live_runtime.arm.disarm()
+    if adapter.mirror is not None:
+        adapter.mirror.append(LiveEvent.DISARM, reason="MANUAL")
+    return jsonable({**state, "available": True, "gates": adapter.router.gate_view()})
+
+
+@app.get("/api/crypto/binance/leverage")
+async def binance_leverage_options() -> Any:
+    """What leverage this account may actually select, read from Binance.
+
+    The offered values are the intersection of a short presentation ladder with the account's
+    own bracket table, plus whatever Binance currently reports as set - so a leverage the
+    operator is already on is never missing from the row they are looking at, even if it is not
+    one of the ladder's steps.
+    """
+    adapter = live_runtime.build()
+    if adapter is None:
+        return error(503, "LIVE_UNAVAILABLE",
+                     live_runtime.error or "Binance API 키가 설정되지 않았습니다.")
+    try:
+        payload = adapter.client.call("leverage_bracket", {"symbol": adapter.config.symbol})
+    except BinanceError as exc:
+        return error(502, "BINANCE_ERROR", exc.message)
+    row = payload[0] if isinstance(payload, list) and payload else (payload or {})
+    brackets = row.get("brackets") or []
+    if not brackets:
+        return error(502, "BINANCE_ERROR", "레버리지 구간표를 읽지 못했습니다.")
+    maximum = max(int(item["initialLeverage"]) for item in brackets)
+    snapshot = adapter.snapshot()
+    current = snapshot.symbol_config.leverage if snapshot.symbol_config else None
+    options = sorted({value for value in LEVERAGE_LADDER if value <= maximum}
+                     | ({int(current)} if current else set()))
+    return jsonable({
+        "symbol": adapter.config.symbol,
+        "current": current,
+        "margin_type": snapshot.symbol_config.margin_type if snapshot.symbol_config else None,
+        "max_leverage": maximum,
+        "options": options,
+        "brackets": brackets,
+        "notional_coef": row.get("notionalCoef"),
+        "authority": "binance GET /fapi/v1/leverageBracket",
+        "margin_type_note": MARGIN_TYPE_NOTE,
+    })
 
 
 __all__ = ["live_runtime"]

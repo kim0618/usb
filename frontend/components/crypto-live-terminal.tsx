@@ -16,8 +16,9 @@ import { CryptoApiError, krw, num, price, qty as qtyFmt, signedKrw, signedUsdt, 
   from "@/lib/crypto-paper";
 import type { OrderSide } from "@/lib/crypto-paper";
 import {
-  AccountSource, LIVE_AUTHORITY_NOTE, LIVE_LOCK_NOTE, LiveAccount, LiveBlocker, LivePreview,
-  LiveStatus, MARGIN_MODE_LABELS, liveApi, liveBlockerLabel,
+  ARM_CONFIRMATION, ARM_NOTE, AccountSource, LIVE_AUTHORITY_NOTE, LIVE_LOCK_NOTE,
+  LiveAccount, LiveArmState, LiveBlocker, LiveLeverageOptions, LivePreview, LiveStatus,
+  MARGIN_MODE_LABELS, MARGIN_MODE_READONLY_NOTE, liveApi, liveBlockerLabel,
 } from "@/lib/crypto-live";
 
 export const LIVE_POLL_MS = 2_000;
@@ -265,6 +266,208 @@ export function LiveAccountCards({ account }: { account: LiveAccount }) {
   );
 }
 
+/** The manual arm control.
+ *
+ *  Three states, and they are deliberately not collapsed into two. "This server may not trade
+ *  at all" and "this server may, but nobody has armed it" send the operator to different
+ *  places - one to a settings file, one to this button - and a single "locked" badge used to
+ *  send them to the wrong one.
+ */
+export function LiveArmPanel({ arm, onArm, onDisarm, busy, error }: {
+  arm: LiveArmState | null;
+  onArm: (note: string) => void;
+  onDisarm: () => void;
+  busy?: boolean;
+  error?: string | null;
+}) {
+  const [confirming, setConfirming] = useState(false);
+  const [typed, setTyped] = useState("");
+
+  const capability = arm?.capability ?? arm?.env_armed ?? false;
+  const armed = Boolean(arm?.armed);
+  const remaining = arm?.remaining_s ?? null;
+
+  if (arm && arm.available === false) {
+    return (
+      <div className="panel p-4" data-testid="live-arm-panel">
+        <p className="text-xs text-muted">{arm.reason || "LIVE를 사용할 수 없습니다."}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`panel p-4 ${armed ? "border-danger" : ""}`} data-testid="live-arm-panel">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold tracking-wide text-foreground">실주문 무장</span>
+          <StatusBadge value={armed ? "WARNING" : "REJECTED"}
+            label={armed ? "무장됨" : "해제됨"} />
+          {armed && arm?.armed_by === "SESSION" && remaining != null && (
+            <span className="text-[11px] font-semibold tabular-nums text-danger"
+              data-testid="live-arm-remaining">
+              {Math.floor(remaining / 60)}분 {remaining % 60}초 남음
+            </span>
+          )}
+          {armed && arm?.armed_by === "ENV" && (
+            <span className="text-[11px] text-muted" data-testid="live-arm-by-env">
+              환경변수로 무장된 프로세스입니다.
+            </span>
+          )}
+        </div>
+        {armed ? (
+          <button type="button" data-testid="live-disarm" disabled={busy || arm?.armed_by === "ENV"}
+            onClick={onDisarm}
+            className="rounded-md border border-line px-3 py-1.5 text-xs font-bold text-foreground disabled:opacity-40">
+            해제
+          </button>
+        ) : (
+          <button type="button" data-testid="live-arm" disabled={busy || !capability}
+            onClick={() => { setTyped(""); setConfirming(true); }}
+            className="rounded-md border border-danger bg-danger-soft px-3 py-1.5 text-xs font-bold text-danger disabled:opacity-40">
+            무장
+          </button>
+        )}
+      </div>
+
+      {!capability && (
+        <p className="mt-2 text-[11px] text-warning" data-testid="live-arm-no-capability">
+          이 서버는 실주문 기능이 꺼져 있습니다(BINANCE_LIVE_TRADING_ENABLED=false).
+          서버 설정을 바꾸기 전에는 무장할 수 없습니다.
+        </p>
+      )}
+
+      {confirming && (
+        <div className="mt-3 rounded-md border border-danger bg-danger-soft p-3" data-testid="live-arm-confirm">
+          <p className="text-xs font-bold text-danger">실계좌 주문을 열려면 아래 문구를 그대로 입력하세요</p>
+          <p className="mt-1 select-all font-mono text-xs text-foreground">{ARM_CONFIRMATION}</p>
+          <input data-testid="live-arm-input" value={typed} autoComplete="off"
+            aria-label="무장 확인 문구"
+            onChange={event => setTyped(event.target.value)}
+            className="mt-2 w-full rounded-md border border-line bg-surface px-3 py-2 font-mono text-xs" />
+          <div className="mt-2 flex gap-2">
+            <button type="button" className="btn-muted px-3 py-1.5 text-xs" data-testid="live-arm-cancel"
+              onClick={() => setConfirming(false)}>취소</button>
+            <button type="button" data-testid="live-arm-submit"
+              disabled={busy || typed !== ARM_CONFIRMATION}
+              className="rounded-md bg-danger px-3 py-1.5 text-xs font-bold text-white disabled:opacity-40"
+              onClick={() => { onArm(typed); setConfirming(false); }}>
+              무장
+            </button>
+          </div>
+        </div>
+      )}
+
+      <p className="mt-2 text-[10px] text-muted" data-testid="live-arm-note">{ARM_NOTE}</p>
+      {error && <p className="mt-2 rounded-md bg-warning-soft px-3 py-2 text-xs text-warning"
+        role="status" data-testid="live-arm-error">{error}</p>}
+    </div>
+  );
+}
+
+/** Leverage, margin mode and what they cost in margin.
+ *
+ *  Leverage is a margin setting, not an edge: 0.001 BTC is 0.001 BTC at 1x and at 50x, and what
+ *  changes is how much of the wallet is locked to hold it and how close the liquidation sits.
+ *  The panel is laid out to say exactly that - size is chosen in the order ticket, and this
+ *  panel shows the consequence.
+ *
+ *  Nothing here is optimistic. A button press sends the change to Binance and then re-reads
+ *  `symbolConfig`; the value displayed is always the one that came back.
+ */
+export function LiveLeveragePanel({ account, options, onSelect, busy, error }: {
+  account: LiveAccount;
+  options: LiveLeverageOptions | null;
+  onSelect: (leverage: number) => void;
+  busy?: boolean;
+  error?: string | null;
+}) {
+  const config = account.symbol_config;
+  const current = config ? Number(config.leverage) : null;
+  const position = account.position;
+  const hasPosition = Boolean(position && !position.is_flat);
+  const available = account.balance?.available_balance ?? null;
+
+  // Both figures are Binance's own, off `positionRisk`, not arithmetic done here. This file's
+  // rule is that it formats numbers and never computes them, and margin is the last place to
+  // break it: `notional / leverage` ignores the maintenance tier and would disagree with the
+  // exchange exactly when the position is close to trouble. With no position open there is
+  // nothing to report - the order ticket's preview carries the required margin for a size the
+  // operator has actually chosen.
+  const notional = position && !position.is_flat ? position.notional : null;
+  const requiredMargin = position && !position.is_flat ? position.initial_margin : null;
+
+  return (
+    <div className="panel p-4" data-testid="live-leverage-panel">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="text-xs font-bold tracking-wide text-foreground">레버리지 · 마진</span>
+        <span className="text-[11px] text-muted" data-testid="live-leverage-current">
+          현재 {current != null ? `${current}x` : "-"}
+          {config && ` · ${MARGIN_MODE_LABELS[config.margin_type] || config.margin_type}`}
+          {options && ` · 최대 ${options.max_leverage}x`}
+        </span>
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-2" data-testid="live-leverage-options">
+        {(options?.options ?? []).map(value => (
+          <button key={value} type="button" data-testid={`live-leverage-${value}`}
+            aria-pressed={value === current} disabled={busy || hasPosition}
+            onClick={() => onSelect(value)}
+            className={`rounded-md border px-3 py-1.5 text-xs font-bold tabular-nums transition-colors
+              ${value === current ? "border-danger bg-danger-soft text-danger"
+                                  : "border-line text-muted hover:text-foreground"}
+              ${busy || hasPosition ? "cursor-not-allowed opacity-40" : ""}`}>
+            {value}x
+          </button>
+        ))}
+        {!options && <span className="text-[11px] text-muted">구간표를 읽는 중입니다.</span>}
+      </div>
+
+      {hasPosition && (
+        <p className="mt-2 text-[11px] text-warning" data-testid="live-leverage-locked">
+          포지션 보유 중에는 레버리지를 바꾸지 않습니다. 청산 후 변경하세요.
+        </p>
+      )}
+
+      <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4" data-testid="live-risk-figures">
+        <RiskFigure label="명목" value={notional != null ? usdt(notional) : "-"}
+          testId="live-risk-notional" sub={hasPosition ? undefined : "포지션 없음"} />
+        <RiskFigure label="개시 증거금"
+          value={requiredMargin != null ? usdt(requiredMargin, 4) : "-"}
+          testId="live-risk-margin"
+          sub={hasPosition ? "Binance 실제값" : "주문 미리보기에 수량별 필요 증거금이 있습니다"} />
+        <RiskFigure label="청산가"
+          value={hasPosition ? price(position?.liquidation_price) : "-"}
+          testId="live-risk-liq"
+          sub={hasPosition ? "Binance 실제값" : "포지션 생성 후 Binance가 산출"} />
+        <RiskFigure label="주문가능" value={usdt(available)} testId="live-risk-available" />
+      </dl>
+
+      <p className="mt-2 text-[10px] text-muted" data-testid="live-leverage-sizing-note">
+        레버리지는 노출 배수가 아니라 증거금 설정입니다. 0.001 BTC는 1x에서도 50x에서도 0.001 BTC이고,
+        달라지는 것은 묶이는 증거금과 청산가입니다. 주문 크기는 주문 패널에서 따로 고릅니다.
+      </p>
+      <p className="mt-1 text-[10px] text-muted" data-testid="live-margin-readonly-note">
+        {options?.margin_type_note || MARGIN_MODE_READONLY_NOTE}
+      </p>
+      {error && <p className="mt-2 rounded-md bg-warning-soft px-3 py-2 text-xs text-warning"
+        role="status" data-testid="live-leverage-error">{error}</p>}
+    </div>
+  );
+}
+
+function RiskFigure({ label, value, sub, testId }: {
+  label: string; value: string; sub?: string; testId?: string;
+}) {
+  return (
+    <div className="min-w-0">
+      <dt className="truncate text-[10px] text-muted">{label}</dt>
+      <dd className="truncate text-sm font-semibold tabular-nums text-foreground"
+        data-testid={testId}>{value}</dd>
+      {sub && <dd className="truncate text-[10px] text-muted">{sub}</dd>}
+    </div>
+  );
+}
+
 /** The order panel. It builds a real request and shows the real refusal. */
 export function LiveOrderTicket({ account, onOrder, busy, error, preview, onPreview }: {
   account: LiveAccount;
@@ -274,7 +477,10 @@ export function LiveOrderTicket({ account, onOrder, busy, error, preview, onPrev
   preview?: LivePreview | null;
   onPreview?: (qty: string) => void;
 }) {
-  const [size, setSize] = useState("0.002");
+  /** The exchange minimum, not a round number. This ticket's default is what gets sent when
+   *  somebody presses LONG without touching the size box, so it is set to the smallest order
+   *  Binance will accept: a mis-click then costs the minimum rather than a multiple of it. */
+  const [size, setSize] = useState("0.001");
   const [pending, setPending] = useState<{ side: string; intent: "OPEN" | "CLOSE" } | null>(null);
   const armed = account.gates.armed;
   const position = account.position;
@@ -367,8 +573,12 @@ export function useBinanceLive(enabled: boolean, pollMs = LIVE_POLL_MS) {
   const [status, setStatus] = useState<LiveStatus | null>(null);
   const [account, setAccount] = useState<LiveAccount | null>(null);
   const [preview, setPreview] = useState<LivePreview | null>(null);
+  const [arm, setArm] = useState<LiveArmState | null>(null);
+  const [leverage, setLeverage] = useState<LiveLeverageOptions | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [armError, setArmError] = useState<string | null>(null);
+  const [leverageError, setLeverageError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const previewQty = useRef<string>("");
 
@@ -388,6 +598,23 @@ export function useBinanceLive(enabled: boolean, pollMs = LIVE_POLL_MS) {
     } catch (exc) {
       setError(exc instanceof CryptoApiError ? exc.message : String(exc));
     }
+    // Polled with the account rather than on its own timer. The arm window is a countdown the
+    // server owns, and a screen that showed "3분 남음" from a stale read would be claiming a
+    // safety property it had not checked.
+    try {
+      setArm(await liveApi.armState());
+    } catch {
+      setArm(null);
+    }
+  }, []);
+
+  const refreshLeverage = useCallback(async () => {
+    try {
+      setLeverage(await liveApi.leverageOptions());
+      setLeverageError(null);
+    } catch (exc) {
+      setLeverageError(exc instanceof CryptoApiError ? exc.message : String(exc));
+    }
   }, []);
 
   useEffect(() => {
@@ -396,6 +623,10 @@ export function useBinanceLive(enabled: boolean, pollMs = LIVE_POLL_MS) {
     const timer = setInterval(() => { void refresh(); }, pollMs);
     return () => clearInterval(timer);
   }, [enabled, pollMs, refresh]);
+
+  // The bracket table changes with the account's risk tier, not with the tick, so it is read
+  // when LIVE is entered and after a leverage change rather than on the poll.
+  useEffect(() => { if (enabled) void refreshLeverage(); }, [enabled, refreshLeverage]);
 
   const requestPreview = useCallback((size: string) => {
     if (!enabled || !size) return;
@@ -421,6 +652,51 @@ export function useBinanceLive(enabled: boolean, pollMs = LIVE_POLL_MS) {
     }
   }, [refresh]);
 
-  return { status, account, preview, error, actionError, busy, refresh, order, requestPreview,
+  const armLive = useCallback(async (confirmation: string, note?: string) => {
+    setBusy(true);
+    setArmError(null);
+    try {
+      setArm(await liveApi.arm({ confirmation, note }));
+    } catch (exc) {
+      setArmError(exc instanceof CryptoApiError
+        ? `${liveBlockerLabel(exc.code)} · ${exc.message}` : String(exc));
+    } finally {
+      setBusy(false);
+      await refresh();
+    }
+  }, [refresh]);
+
+  const disarmLive = useCallback(async () => {
+    setBusy(true);
+    setArmError(null);
+    try {
+      setArm(await liveApi.disarm());
+    } catch (exc) {
+      setArmError(exc instanceof CryptoApiError ? exc.message : String(exc));
+    } finally {
+      setBusy(false);
+      await refresh();
+    }
+  }, [refresh]);
+
+  /** Sends the change and then re-reads. Nothing is applied to the screen optimistically: the
+   *  leverage shown after this resolves is the one Binance reported back. */
+  const changeLeverage = useCallback(async (value: number) => {
+    setBusy(true);
+    setLeverageError(null);
+    try {
+      await liveApi.setLeverage(value);
+    } catch (exc) {
+      setLeverageError(exc instanceof CryptoApiError
+        ? `${liveBlockerLabel(exc.code)} · ${exc.message}` : String(exc));
+    } finally {
+      setBusy(false);
+      await refresh();
+      await refreshLeverage();
+    }
+  }, [refresh, refreshLeverage]);
+
+  return { status, account, preview, arm, leverage, error, actionError, armError, leverageError,
+           busy, refresh, order, requestPreview, armLive, disarmLive, changeLeverage,
            available: Boolean(status?.available) };
 }

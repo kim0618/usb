@@ -65,11 +65,14 @@ describe("the account switch", () => {
 });
 
 describe("the LIVE screen", () => {
-  it("says it is a real account and that orders are locked", () => {
+  it("says it is a real account and that orders need arming", () => {
     render(<LiveBadge account={account()} />);
     expect(screen.getByTestId("live-badge")).toHaveTextContent("BINANCE LIVE");
     expect(screen.getByTestId("live-badge")).toHaveTextContent("실계좌");
-    expect(screen.getByTestId("live-badge")).toHaveTextContent("BINANCE_LIVE_TRADING_ENABLED=false");
+    // The badge used to name the environment variable. It now names the condition the operator
+    // can act on: orders go out only while a manual window is armed, and that window closes on
+    // a timeout, a disarm or a restart.
+    expect(screen.getByTestId("live-badge")).toHaveTextContent("무장");
   });
 
   it("does not look connected while the account cannot be read", () => {
@@ -145,7 +148,9 @@ describe("the LIVE order ticket", () => {
     expect(onOrder).not.toHaveBeenCalled();
     expect(screen.getByTestId("live-confirm")).toHaveTextContent("실계좌");
     fireEvent.click(screen.getByTestId("live-submit"));
-    expect(onOrder).toHaveBeenCalledWith({ side: "LONG", intent: "OPEN", qty: "0.002" });
+    // The exchange minimum. An untouched size box is what a mis-click sends, so the default is
+    // the smallest order Binance accepts rather than a multiple of it.
+    expect(onOrder).toHaveBeenCalledWith({ side: "LONG", intent: "OPEN", qty: "0.001" });
   });
 
   it("closes the position Binance reports, not a size typed into the box", () => {

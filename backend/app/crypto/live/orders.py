@@ -115,22 +115,48 @@ class LiveOrderRouter:
     """Builds and (when armed) sends orders for one account."""
 
     def __init__(self, *, reader: AccountReader, client: BinanceFuturesClient,
-                 config: LiveConfig, mirror: LiveMirror | None = None) -> None:
+                 config: LiveConfig, mirror: LiveMirror | None = None,
+                 arm: Any | None = None) -> None:
         self.reader = reader
         self.client = client
         self.config = config
         self.mirror = mirror
+        #: The `ArmSession` that owns `client.trading_enabled`, when there is one. Typed loosely
+        #: to keep `live.arm` out of this module's imports: the router does not construct one and
+        #: must keep working with `None`, which is the shape every existing test builds.
+        self.arm = arm
 
     # ------------------------------------------------------------------ gates
 
     @property
     def armed(self) -> bool:
-        """Both gates. Either one false means no order can be sent, whatever is asked."""
+        """Both gates. Either one false means no order can be sent, whatever is asked.
+
+        The session is read *before* the client flag, and that ordering is the safety property
+        rather than a style choice. `ArmSession` expires on read: it lowers `trading_enabled`
+        when somebody looks at it, and nothing else does. Reading the client flag alone would
+        make the deadline depend on the screen still polling - an operator who closed the tab
+        would leave a window that never shut.
+        """
+        if self.arm is not None:
+            self.arm.armed  # syncs the expiry through to `client.trading_enabled`
         return self.config.trading_enabled and self.client.trading_enabled
 
+    def _locked_message(self) -> str:
+        """Name the gate that is actually shut. The two fail for different reasons and need
+        different actions - one is a deployment setting, the other is a click - so a single
+        message for both used to send the operator to edit a file they did not need to touch."""
+        if not self.config.trading_enabled:
+            return (f"실주문이 잠겨 있습니다. 이 서버는 {TRADING_FLAG_ENV}=false 입니다. "
+                    "서버 설정을 바꿔야 열립니다.")
+        return ("실주문이 잠겨 있습니다. LIVE 수동매매가 무장돼 있지 않습니다. "
+                "화면에서 무장한 뒤 다시 시도하세요(무장은 제한 시간이 지나면 자동 해제됩니다).")
+
     def gate_view(self) -> dict[str, Any]:
-        return {"armed": self.armed, "env_flag": self.config.trading_enabled,
+        armed = self.armed  # first, so the client flag below is read after any expiry
+        return {"armed": armed, "env_flag": self.config.trading_enabled,
                 "client_armed": self.client.trading_enabled,
+                "arm_session": self.arm.view() if self.arm is not None else None,
                 "env_flag_name": TRADING_FLAG_ENV,
                 "client_arm_env_name": CLIENT_ARM_ENV,
                 "max_open_qty": self.config.max_open_qty,
@@ -248,8 +274,7 @@ class LiveOrderRouter:
         # local check and is now being offered to the gate.
         self._record(LiveEvent.ORDER_INTENT, stage="SUBMIT", **plan.view(), gates=self.gate_view())
         if not self.armed:
-            message = ("실주문이 잠겨 있습니다. BINANCE_LIVE_TRADING_ENABLED=false "
-                       "(V1은 읽기 전용이며 이 단계에서 주문을 보내지 않습니다).")
+            message = self._locked_message()
             self._record(LiveEvent.ORDER_REFUSED, stage="GATE", code=LIVE_TRADING_DISABLED,
                          message=message, client_order_id=plan.client_order_id)
             raise OrderRefused(LIVE_TRADING_DISABLED, message)
@@ -278,8 +303,7 @@ class LiveOrderRouter:
         if self.mirror is not None:
             self.mirror.append(LiveEvent.LEVERAGE_INTENT, leverage=leverage, gates=self.gate_view())
         if not self.armed:
-            message = ("레버리지 변경도 실계좌 쓰기입니다. BINANCE_LIVE_TRADING_ENABLED=false 상태에서는 "
-                       "요청하지 않습니다.")
+            message = f"레버리지 변경도 실계좌 쓰기입니다. {self._locked_message()}"
             self._record(LiveEvent.LEVERAGE_REFUSED, stage="GATE", code=LIVE_TRADING_DISABLED,
                          message=message)
             raise OrderRefused(LIVE_TRADING_DISABLED, message)

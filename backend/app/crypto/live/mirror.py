@@ -50,6 +50,12 @@ class LiveEvent:
     LEVERAGE_INTENT = "LIVE_LEVERAGE_INTENT"
     LEVERAGE_REFUSED = "LIVE_LEVERAGE_REFUSED"
     LEVERAGE_RESULT = "LIVE_LEVERAGE_RESULT"
+    #: The manual arm session opening and closing. Recorded because "was this deployment armed
+    #: at 14:32" is a question an audit has to be able to answer from the file alone, and the
+    #: session itself is in memory and dies with the process.
+    ARM = "LIVE_ARM"
+    ARM_REFUSED = "LIVE_ARM_REFUSED"
+    DISARM = "LIVE_DISARM"
 
 
 def jsonable(value: Any) -> Any:

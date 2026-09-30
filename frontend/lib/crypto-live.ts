@@ -16,6 +16,33 @@ export type LiveBlocker = { code: string; message: string };
 
 export type LiveGates = {
   armed: boolean; env_flag: boolean; client_armed: boolean; env_flag_name: string;
+  arm_session?: LiveArmState | null;
+};
+
+/** The manual arm window.
+ *
+ *  `env_flag` is the deployment's capability and `armed` is whether an order can be sent right
+ *  now. The two are separate because they fail for different reasons and need different
+ *  remedies: one is a server setting, the other is a click that expires. */
+export type LiveArmState = {
+  armed: boolean; armed_by: "ENV" | "SESSION" | null;
+  armed_at_ms: number | null; expires_at_ms: number | null; remaining_s: number | null;
+  ttl_s: number; arm_count: number; disarm_count: number;
+  last_disarm_reason: string | null; last_disarm_ms: number | null;
+  operator_note: string | null; confirmation_phrase: string; env_armed: boolean; role: string;
+  available?: boolean; capability?: boolean; reason?: string;
+  gates?: LiveGates;
+};
+
+export type LiveLeverageBracket = {
+  bracket: number; initialLeverage: number; notionalCap: number; notionalFloor: number;
+  maintMarginRatio: number; cum: number;
+};
+
+export type LiveLeverageOptions = {
+  symbol: string; current: string | null; margin_type: string | null;
+  max_leverage: number; options: number[]; brackets: LiveLeverageBracket[];
+  notional_coef: number | null; authority: string; margin_type_note: string;
 };
 
 /** Asset-denominated figures (`wallet_balance` and friends) come from Binance's `assets[USDT]`
@@ -129,12 +156,31 @@ export const liveApi = {
     `/api/crypto/binance/funding?limit=${limit}`),
   events: (limit = 50) => request<{ total: number; events: LiveEventRow[]; role?: string }>(
     `/api/crypto/binance/events?limit=${limit}`),
-  /** Sends the order the backend will refuse while the trading flag is off. Kept so the button
-   *  exercises the real path rather than a disabled stub. */
+  /** Sends the order. The backend refuses it unless the deployment has the capability flag
+   *  *and* the operator has armed a manual window; both refusals come back as real responses,
+   *  so the button exercises the real path rather than a disabled stub. */
   order: (body: { side: string; intent: "OPEN" | "CLOSE"; qty?: string; notional_usdt?: string }) =>
     request<{ plan: Record<string, unknown>; response: Record<string, unknown> }>(
       "/api/crypto/binance/order", { method: "POST", body: JSON.stringify(body) }),
+  armState: (signal?: AbortSignal) =>
+    request<LiveArmState>("/api/crypto/binance/arm", { signal }),
+  arm: (body: { confirmation: string; note?: string; ttl_s?: number }) =>
+    request<LiveArmState>("/api/crypto/binance/arm",
+      { method: "POST", body: JSON.stringify(body) }),
+  disarm: () => request<LiveArmState>("/api/crypto/binance/disarm", { method: "POST" }),
+  leverageOptions: (signal?: AbortSignal) =>
+    request<LiveLeverageOptions>("/api/crypto/binance/leverage", { signal }),
+  /** Asks Binance to change the leverage. The response carries what Binance reports afterwards;
+   *  the caller shows that, never the requested value. */
+  setLeverage: (leverage: number) =>
+    request<{ requested: string; leverage: string | null; response: Record<string, unknown> }>(
+      "/api/crypto/binance/leverage",
+      { method: "POST", body: JSON.stringify({ leverage: String(leverage) }) }),
 };
+
+/** Typed verbatim to arm. Mirrors `live.arm.CONFIRMATION`; the server checks it again and is
+ *  the authority, so a drift here fails closed with a visible refusal. */
+export const ARM_CONFIRMATION = "ARM LIVE TRADING";
 
 /** Why LIVE is unavailable, in the operator's language. An unknown code falls through to itself
  *  rather than to a vague sentence, the same rule the paper screen follows. */
@@ -161,5 +207,14 @@ export const LIVE_AUTHORITY_NOTE =
   "LIVE에서는 Binance 응답이 정본입니다. 잔고·포지션·청산가·수수료·펀딩 모두 Binance 값을 그대로 표시합니다.";
 
 export const LIVE_LOCK_NOTE =
-  "V1은 읽기 전용입니다. LONG·SHORT·CLOSE 버튼은 실제 주문 경로를 그대로 호출하지만 서버가 " +
-  "BINANCE_LIVE_TRADING_ENABLED=false로 거부합니다.";
+  "실주문은 무장한 동안에만 나갑니다. 서버 재시작·시간 만료·해제 중 하나라도 발생하면 다시 잠깁니다.";
+
+/** Shown next to the arm control. States the three ways the window closes, because an operator
+ *  who believes it stays open is the one who leaves an armed account unattended. */
+export const ARM_NOTE =
+  "무장은 이 서버 프로세스의 메모리에만 있습니다. 제한 시간이 지나거나, 해제하거나, 서버가 " +
+  "재시작하면 자동으로 잠깁니다. AUTO는 무장 여부와 무관하게 실계좌 주문을 낼 수 없습니다.";
+
+/** V1 does not change the margin mode; `POST /fapi/v1/marginType` is on the endpoint deny list. */
+export const MARGIN_MODE_READONLY_NOTE =
+  "마진 모드는 Binance에서 설정한 값을 표시만 합니다. 변경은 Binance 앱/웹에서 하세요.";
