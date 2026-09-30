@@ -293,6 +293,23 @@ export const ARM_NOTE =
  *  decide is in it: this is the real account, and orders from this screen reach it. */
 export const ACTIVATE_CONFIRM_NOTE = "실제 Binance 계좌에서 주문이 실행됩니다.";
 
+/** The operating default for BINANCE LIVE.
+ *
+ *  A policy, not an action. Nothing in this screen applies it: the panel reads whatever Binance
+ *  reports and marks this value as the one operations settled on, and only a click sends the
+ *  change. That separation is the whole point - a page that set the account to its own idea of
+ *  a default on load would move an operator's margin and liquidation price without them asking,
+ *  and a page load is not a decision.
+ *
+ *  Leverage is a margin setting. At 10x the same 0.001 BTC is still 0.001 BTC; what changes is
+ *  how much of the wallet is held against it and how far the liquidation sits.
+ */
+export const LIVE_DEFAULT_LEVERAGE = 10;
+
+export const LIVE_LEVERAGE_POLICY_NOTE =
+  `운영 기본은 ${LIVE_DEFAULT_LEVERAGE}x입니다. 화면이 알아서 바꾸지 않으니 ` +
+  `필요하면 ${LIVE_DEFAULT_LEVERAGE}x를 눌러 직접 변경하세요.`;
+
 /** V1 does not change the margin mode; `POST /fapi/v1/marginType` is on the endpoint deny list. */
 export const MARGIN_MODE_READONLY_NOTE =
   "마진 모드는 Binance에서 설정한 값을 표시만 합니다. 변경은 Binance 앱/웹에서 하세요.";

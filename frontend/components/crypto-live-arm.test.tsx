@@ -4,7 +4,7 @@ import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from "@t
 import {
   LiveActivateDialog, LiveLeveragePanel, LiveTradeBar, useBinanceLive,
 } from "@/components/crypto-live-terminal";
-import { ARM_CONFIRMATION, liveTradeGate } from "@/lib/crypto-live";
+import { ARM_CONFIRMATION, LIVE_DEFAULT_LEVERAGE, liveTradeGate } from "@/lib/crypto-live";
 import type { LiveAccount, LiveArmState, LiveLeverageOptions } from "@/lib/crypto-live";
 
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
@@ -299,6 +299,63 @@ describe("the leverage panel", () => {
     const note = screen.getByTestId("live-leverage-sizing-note");
     expect(note).toHaveTextContent("증거금 설정");
     expect(note).toHaveTextContent("0.001 BTC");
+  });
+
+  it("marks the operating default without being on it", () => {
+    // The account fixture is on 20x. The tag says which value operations settled on; it does
+    // not claim the account is there, and it does not put it there.
+    const onSelect = vi.fn();
+    render(<LiveLeveragePanel account={account()} options={options()} onSelect={onSelect} />);
+    expect(screen.getByTestId("live-leverage-policy-tag")).toBeInTheDocument();
+    expect(screen.getByTestId(`live-leverage-${LIVE_DEFAULT_LEVERAGE}`))
+      .toHaveAttribute("aria-pressed", "false");
+    // Rendering is not a decision: nothing was sent.
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it("says the screen will not apply the default by itself", () => {
+    render(<LiveLeveragePanel account={account()} options={options()} onSelect={vi.fn()} />);
+    const note = screen.getByTestId("live-leverage-policy-note");
+    expect(note).toHaveTextContent(`운영 기본은 ${LIVE_DEFAULT_LEVERAGE}x`);
+    expect(note).toHaveTextContent("화면이 알아서 바꾸지 않으니");
+  });
+
+  it("drops the nudge once Binance reports the default", () => {
+    const onPolicy = account({ symbol_config: { ...account().symbol_config!,
+      leverage: String(LIVE_DEFAULT_LEVERAGE) } });
+    render(<LiveLeveragePanel account={onPolicy} options={options()} onSelect={vi.fn()} />);
+    expect(screen.queryByTestId("live-leverage-policy-note")).not.toBeInTheDocument();
+    expect(screen.getByTestId(`live-leverage-${LIVE_DEFAULT_LEVERAGE}`))
+      .toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("sends the default only on a click, and still shows Binance's value afterwards", () => {
+    const onSelect = vi.fn();
+    render(<LiveLeveragePanel account={account()} options={options()} onSelect={onSelect} />);
+    fireEvent.click(screen.getByTestId(`live-leverage-${LIVE_DEFAULT_LEVERAGE}`));
+    expect(onSelect).toHaveBeenCalledWith(LIVE_DEFAULT_LEVERAGE);
+    // No optimistic repaint: the account still says 20x until a refreshed snapshot says otherwise.
+    expect(screen.getByTestId("live-leverage-current")).toHaveTextContent("현재 20x");
+    expect(screen.getByTestId(`live-leverage-${LIVE_DEFAULT_LEVERAGE}`))
+      .toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("does not nudge while a position is holding the setting", () => {
+    const open = account({
+      position: { ...account().position!, is_flat: false, side: "LONG", qty: "0.001",
+                  notional: "83.39", initial_margin: "4.17", liquidation_price: "45120.10" },
+    });
+    render(<LiveLeveragePanel account={open} options={options()} onSelect={vi.fn()} />);
+    expect(screen.queryByTestId("live-leverage-policy-note")).not.toBeInTheDocument();
+    expect(screen.getByTestId("live-leverage-locked")).toBeInTheDocument();
+    expect(screen.getByTestId(`live-leverage-${LIVE_DEFAULT_LEVERAGE}`)).toBeDisabled();
+  });
+
+  it("says nothing about a default this account's bracket cannot reach", () => {
+    render(<LiveLeveragePanel account={account()} onSelect={vi.fn()}
+      options={options({ max_leverage: 5, options: [1, 2, 3, 5] })} />);
+    expect(screen.queryByTestId("live-leverage-policy-tag")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("live-leverage-policy-note")).not.toBeInTheDocument();
   });
 
   it("states that the margin mode is read only here", () => {

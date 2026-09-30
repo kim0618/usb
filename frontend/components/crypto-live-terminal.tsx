@@ -17,9 +17,9 @@ import { CryptoApiError, krw, num, price, qty as qtyFmt, signedKrw, signedUsdt, 
 import type { OrderSide } from "@/lib/crypto-paper";
 import {
   ACTIVATE_CONFIRM_NOTE, ARM_CONFIRMATION, ARM_NOTE, AccountSource, LIVE_AUTHORITY_NOTE,
-  LIVE_LOCK_NOTE, LiveAccount, LiveArmState, LiveBlocker, LiveLeverageOptions, LivePreview,
-  LiveStatus, LiveTradeGate, MARGIN_MODE_LABELS, MARGIN_MODE_READONLY_NOTE, liveApi,
-  liveBlockerLabel, liveTradeGate,
+  LIVE_DEFAULT_LEVERAGE, LIVE_LEVERAGE_POLICY_NOTE, LIVE_LOCK_NOTE, LiveAccount, LiveArmState,
+  LiveBlocker, LiveLeverageOptions, LivePreview, LiveStatus, LiveTradeGate, MARGIN_MODE_LABELS,
+  MARGIN_MODE_READONLY_NOTE, liveApi, liveBlockerLabel, liveTradeGate,
 } from "@/lib/crypto-live";
 
 export const LIVE_POLL_MS = 2_000;
@@ -433,6 +433,11 @@ export function LiveLeveragePanel({ account, options, onSelect, busy, error, com
   const position = account.position;
   const hasPosition = Boolean(position && !position.is_flat);
   const available = account.balance?.available_balance ?? null;
+  // The policy is only offerable if this account's bracket table actually reaches it. On a
+  // symbol whose tier caps below it, the tag and the note would point at a button that is not
+  // there, so both are simply absent.
+  const policyOffered = (options?.options ?? []).includes(LIVE_DEFAULT_LEVERAGE);
+  const onPolicy = current === LIVE_DEFAULT_LEVERAGE;
 
   // Both figures are Binance's own, off `positionRisk`, not arithmetic done here. This file's
   // rule is that it formats numbers and never computes them, and margin is the last place to
@@ -458,12 +463,17 @@ export function LiveLeveragePanel({ account, options, onSelect, busy, error, com
         {(options?.options ?? []).map(value => (
           <button key={value} type="button" data-testid={`live-leverage-${value}`}
             aria-pressed={value === current} disabled={busy || hasPosition}
+            title={value === LIVE_DEFAULT_LEVERAGE ? `운영 기본 ${LIVE_DEFAULT_LEVERAGE}x` : undefined}
             onClick={() => onSelect(value)}
             className={`rounded-md border px-3 py-1.5 text-xs font-bold tabular-nums transition-colors
               ${value === current ? "border-danger bg-danger-soft text-danger"
                                   : "border-line text-muted hover:text-foreground"}
               ${busy || hasPosition ? "cursor-not-allowed opacity-40" : ""}`}>
             {value}x
+            {value === LIVE_DEFAULT_LEVERAGE && (
+              <span className="ml-1 text-[9px] font-semibold text-muted"
+                data-testid="live-leverage-policy-tag">기본</span>
+            )}
           </button>
         ))}
         {!options && <span className="text-[11px] text-muted">구간표를 읽는 중입니다.</span>}
@@ -472,6 +482,16 @@ export function LiveLeveragePanel({ account, options, onSelect, busy, error, com
       {hasPosition && (
         <p className="mt-2 text-[11px] text-warning" data-testid="live-leverage-locked">
           포지션 보유 중에는 레버리지를 바꾸지 않습니다. 청산 후 변경하세요.
+        </p>
+      )}
+
+      {/* Shown only when it is both true and actionable: the account is off the operating
+          default, the default is selectable, and no position is holding the setting. It states
+          that the screen will not do it, because a line that merely named the default would
+          read like something had already been applied. */}
+      {!hasPosition && policyOffered && !onPolicy && (
+        <p className="mt-2 text-[11px] text-muted" data-testid="live-leverage-policy-note">
+          {LIVE_LEVERAGE_POLICY_NOTE}
         </p>
       )}
 
