@@ -12,15 +12,15 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MetricCard } from "@/components/ui";
-import { CryptoApiError, krw, num, price, qty as qtyFmt, signedKrw, signedUsdt, toneClass, usdt }
-  from "@/lib/crypto-paper";
+import { CryptoApiError, holdingDuration, krw, num, price, qty as qtyFmt, signedKrw, signedUsdt,
+  toneClass, usdt } from "@/lib/crypto-paper";
 import type { OrderSide } from "@/lib/crypto-paper";
 import {
   ACTIVATE_CONFIRM_NOTE, ARM_CONFIRMATION, ARM_NOTE, AccountSource, LIVE_AUTHORITY_NOTE,
   LIVE_DEFAULT_LEVERAGE, LIVE_LEVERAGE_POLICY_NOTE, LIVE_LOCK_NOTE, LIVE_PRESET_LABELS,
-  LiveAccount, LiveArmState, LiveBlocker, LiveLeverageOptions, LivePreview, LiveSizing,
-  LiveStatus, LiveTradeGate, MARGIN_MODE_LABELS, MARGIN_MODE_READONLY_NOTE, liveApi,
-  liveBlockerLabel, livePresetQty, liveTradeGate,
+  LiveAccount, LiveArmState, LiveBlocker, LiveLeverageOptions, LivePositionCard as LivePositionCardData,
+  LivePreview, LiveSizing, LiveStatus, LiveTradeGate, MARGIN_MODE_LABELS,
+  MARGIN_MODE_READONLY_NOTE, liveApi, liveBlockerLabel, livePresetQty, liveTradeGate,
 } from "@/lib/crypto-live";
 
 export const LIVE_POLL_MS = 2_000;
@@ -101,12 +101,6 @@ export function LiveTradeBar({ account, gate, onActivate, onDisarm, busy, error 
         <span className="text-[11px] font-medium tabular-nums text-foreground-secondary"
           data-testid="live-sync">{sync}</span>
         <div className="flex items-center gap-2">
-          {remaining != null && (
-            <span className="text-[11px] font-semibold tabular-nums text-foreground-secondary"
-              data-testid="live-arm-remaining">
-              {Math.floor(remaining / 60)}분 {remaining % 60}초 남음
-            </span>
-          )}
           {/* The badge is the control that opens the reasons. A state this consequential should
               be able to explain itself without the explanation being on screen all day. */}
           <button type="button" data-testid="live-trade-state" aria-expanded={detailOpen}
@@ -142,6 +136,15 @@ export function LiveTradeBar({ account, gate, onActivate, onDisarm, busy, error 
           {gate.armed && gate.armed_by === "ENV" && (
             <p className="mt-2 text-[11px] text-muted" data-testid="live-arm-by-env">
               환경변수로 열려 있는 프로세스입니다. 이 화면에서는 닫을 수 없습니다.
+            </p>
+          )}
+          {/* The window's remaining time lives here rather than in the bar. BTCUSDT trades
+              around the clock, so a countdown beside the verdict read as trading hours; it is
+              a property of the arm session, which is what this panel is about. */}
+          {remaining != null && (
+            <p className="text-[11px] font-semibold tabular-nums text-foreground-secondary"
+              data-testid="live-arm-remaining">
+              {Math.floor(remaining / 60)}분 {remaining % 60}초 남음
             </p>
           )}
           {gate.armed && gate.armed_by === "SESSION" && (
@@ -379,6 +382,112 @@ export function LivePositionPanel({ account }: { account: LiveAccount }) {
         ))}
       </dl>
     </div>
+  );
+}
+
+/** The held LIVE position, in the shape the paper card settled on.
+ *
+ *  Same reading order as `MobilePositionCard`: what is held, the two money figures, entry and
+ *  mark, CLOSE, and the rest folded away. The layout is deliberately the paper card's, because
+ *  an operator switching accounts should not have to relearn where the close button is.
+ *
+ *  What is *not* shared is the arithmetic. Every figure here is a string this file formats and
+ *  never derives: the position is Binance's `positionRisk`, the net is the server's own
+ *  close-now estimate off the real book, and the hold duration is measured from the fill that
+ *  `userTrades` says opened the position. When the server cannot establish one of them it says
+ *  so, and the card shows "-" rather than a confident wrong number.
+ */
+export function LivePositionCard({ card, nowMs, onClose, busy }: {
+  card: LivePositionCardData | null;
+  nowMs: number;
+  onClose: () => void;
+  busy?: boolean;
+}) {
+  const [detail, setDetail] = useState(false);
+  if (!card?.open) return null;
+  const long = card.side === "LONG";
+  const held = holdingDuration(card.opened_at_ms ?? null, nowMs);
+  const close = card.close;
+  const netShown = card.net_complete === true && card.net_if_closed != null;
+
+  return (
+    <section className="panel mb-2 p-3" data-testid="live-position-card" aria-label="현재 포지션">
+      <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
+        <span className={`rounded px-2 py-0.5 font-bold ${long ? "bg-success-soft text-success" : "bg-danger-soft text-danger"}`}
+          data-testid="live-card-side">{card.side}</span>
+        <span className="font-semibold tabular-nums text-foreground-secondary"
+          data-testid="live-card-leverage">{num(card.leverage)?.toString() ?? "-"}x</span>
+        <span className="tabular-nums text-foreground-secondary"
+          data-testid="live-card-qty">{qtyFmt(card.qty)} BTC</span>
+        {/* Absent rather than wrong: a position whose opening fill is off the fetched page has
+            no honest duration, and `positionRisk.updateTime` is the last change, not the open. */}
+        <span className="ml-auto text-[11px] text-muted" data-testid="live-card-held">
+          {held ? `${held} 보유` : "보유 시간 -"}
+        </span>
+      </div>
+
+      <div className="mb-3 grid grid-cols-2 gap-2">
+        <div className="rounded-lg bg-surface-alt px-3 py-2">
+          <p className="text-[11px] text-muted">현재 포지션 손익</p>
+          <p className={`text-lg font-bold tabular-nums leading-tight sm:text-xl ${toneClass(card.unrealized_pnl)}`}
+            data-testid="live-card-unrealized">{signedUsdt(card.unrealized_pnl ?? null)}</p>
+          <p className="text-[11px] text-muted">Binance Mark 기준</p>
+        </div>
+        <div className="rounded-lg bg-surface-alt px-3 py-2">
+          <p className="text-[11px] text-muted">청산 시 예상 순손익</p>
+          {netShown ? (
+            <>
+              <p className={`text-lg font-bold tabular-nums leading-tight sm:text-xl ${toneClass(card.net_if_closed)}`}
+                data-testid="live-card-net">{signedUsdt(card.net_if_closed ?? null)}</p>
+              <p className="text-[11px] text-muted">수수료·펀딩·체결가 포함</p>
+            </>
+          ) : (
+            <p className="mt-1 text-[11px] text-warning" data-testid="live-card-net-unavailable">
+              {close && close.feasible === false
+                ? (close.reject_message || close.reject_code || "미리보기 불가")
+                : "미리보기 불가"}
+            </p>
+          )}
+        </div>
+      </div>
+
+      <dl className="mb-2 grid grid-cols-2 gap-x-3 text-[11px]">
+        <div className="flex justify-between gap-2"><dt className="text-muted">진입가</dt>
+          <dd className="tabular-nums text-foreground-secondary"
+            data-testid="live-card-entry">{price(card.entry_price)}</dd></div>
+        <div className="flex justify-between gap-2"><dt className="text-muted">Mark</dt>
+          <dd className="tabular-nums text-foreground-secondary"
+            data-testid="live-card-mark">{price(card.mark_price)}</dd></div>
+      </dl>
+
+      <button type="button" className="btn-muted h-11 w-full text-sm font-bold"
+        data-testid="live-card-close" disabled={busy} onClick={onClose}>
+        CLOSE · 전량 청산
+      </button>
+
+      <button type="button" aria-expanded={detail} data-testid="live-card-detail-toggle"
+        className="mt-1.5 flex w-full items-center justify-between py-1 text-[11px] font-medium text-foreground-secondary"
+        onClick={() => setDetail(open => !open)}>
+        손익/비용 상세 <span aria-hidden="true">{detail ? "▲" : "▼"}</span>
+      </button>
+      {detail && (
+        <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]" data-testid="live-card-detail">
+          {([["청산가", price(card.liquidation_price)],
+             ["개시 증거금", usdt(card.initial_margin, 4)],
+             ["예상 청산가(체결)", price(close?.exit_fill_price)],
+             ["예상 청산 수수료", usdt(close?.exit_fee, 4)],
+             ["누적 수수료", usdt(card.commission_paid, 4)],
+             ["펀딩 수지", signedUsdt(card.funding_income ?? null, 4)],
+             ["부분청산 실현", signedUsdt(card.realized_since_open ?? null, 4)],
+             ["손익분기", price(card.break_even_price)]] as const).map(([label, value]) => (
+            <div key={label} className="flex justify-between gap-2">
+              <dt className="text-muted">{label}</dt>
+              <dd className="tabular-nums text-foreground-secondary">{value}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+    </section>
   );
 }
 
@@ -732,6 +841,7 @@ export function useBinanceLive(enabled: boolean, pollMs = LIVE_POLL_MS) {
   const [account, setAccount] = useState<LiveAccount | null>(null);
   const [preview, setPreview] = useState<LivePreview | null>(null);
   const [sizing, setSizing] = useState<LiveSizing | null>(null);
+  const [positionCard, setPositionCard] = useState<LivePositionCardData | null>(null);
   const [arm, setArm] = useState<LiveArmState | null>(null);
   const [leverage, setLeverage] = useState<LiveLeverageOptions | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -777,6 +887,16 @@ export function useBinanceLive(enabled: boolean, pollMs = LIVE_POLL_MS) {
     }
   }, []);
 
+  /** The card costs three extra reads, so it runs on the ladder's slower timer. The server
+   *  short-circuits on a flat account, which is the common case. */
+  const refreshPositionCard = useCallback(async () => {
+    try {
+      setPositionCard(await liveApi.positionCard());
+    } catch {
+      setPositionCard(null);
+    }
+  }, []);
+
   const refreshLeverage = useCallback(async () => {
     try {
       setLeverage(await liveApi.leverageOptions());
@@ -800,9 +920,13 @@ export function useBinanceLive(enabled: boolean, pollMs = LIVE_POLL_MS) {
   useEffect(() => {
     if (!enabled) return;
     void refreshSizing();
-    const timer = setInterval(() => { void refreshSizing(); }, SIZING_POLL_MS);
+    void refreshPositionCard();
+    const timer = setInterval(() => {
+      void refreshSizing();
+      void refreshPositionCard();
+    }, SIZING_POLL_MS);
     return () => clearInterval(timer);
-  }, [enabled, refreshSizing]);
+  }, [enabled, refreshSizing, refreshPositionCard]);
 
   const requestPreview = useCallback((size: string) => {
     if (!enabled || !size) return;
@@ -818,6 +942,7 @@ export function useBinanceLive(enabled: boolean, pollMs = LIVE_POLL_MS) {
     try {
       await liveApi.order(body);
       await refresh();
+      await refreshPositionCard();
     } catch (exc) {
       // The expected V1 path: the backend refuses. The message is the operator's evidence that
       // the lock is real, so it is shown rather than swallowed.
@@ -826,7 +951,7 @@ export function useBinanceLive(enabled: boolean, pollMs = LIVE_POLL_MS) {
     } finally {
       setBusy(false);
     }
-  }, [refresh]);
+  }, [refresh, refreshPositionCard]);
 
   /** The confirmation phrase is supplied here, not typed by the operator.
    *
@@ -879,7 +1004,8 @@ export function useBinanceLive(enabled: boolean, pollMs = LIVE_POLL_MS) {
     }
   }, [refresh, refreshLeverage, refreshSizing]);
 
-  return { status, account, preview, arm, leverage, sizing, error, actionError, armError,
-           leverageError, busy, refresh, order, requestPreview, armLive, disarmLive,
-           changeLeverage, refreshSizing, available: Boolean(status?.available) };
+  return { status, account, preview, arm, leverage, sizing, positionCard, error, actionError,
+           armError, leverageError, busy, refresh, order, requestPreview, armLive, disarmLive,
+           changeLeverage, refreshSizing, refreshPositionCard,
+           available: Boolean(status?.available) };
 }

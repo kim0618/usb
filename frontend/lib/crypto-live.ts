@@ -174,6 +174,33 @@ export function livePresetQty(sizing: LiveSizing | null, label: string):
   return { qty: smaller.qty, reason: null };
 }
 
+/** The held position, its own history, and what closing it now would net.
+ *
+ *  Assembled by `live/position_card.py` from Binance's own record: `positionRisk` for what is
+ *  held, `userTrades` walked back to the fill that opened it, `income` for funding inside that
+ *  window, and the real book for the close. The card below formats these and computes none of
+ *  them - in particular `net_if_closed` is the server's figure, not a subtraction done here.
+ */
+export type LiveCloseNow = {
+  feasible: boolean; qty: string; basis: string;
+  exit_fill_price?: string; exit_fee?: string; gross_pnl?: string; fee_rate?: string;
+  reference_price?: string; fee_source?: string;
+  reject_code?: string | null; reject_message?: string | null;
+};
+
+export type LivePositionCard = {
+  open: boolean; available?: boolean; symbol?: string; fetched_at_ms?: number; age_ms?: number;
+  reject_code?: string; reject_message?: string;
+  side?: OrderSide; qty?: string; leverage?: string | null;
+  entry_price?: string | null; break_even_price?: string | null; mark_price?: string | null;
+  liquidation_price?: string | null; unrealized_pnl?: string; notional?: string | null;
+  initial_margin?: string | null;
+  opened_at_ms?: number | null; opened_source?: string;
+  commission_paid?: string | null; realized_since_open?: string | null;
+  funding_income?: string | null;
+  close?: LiveCloseNow; net_if_closed?: string | null; net_basis?: string; net_complete?: boolean;
+};
+
 export type LiveFill = {
   id: number; order_id: number; side: string; price: string; qty: string; quote_qty: string;
   realized_pnl: string; commission: string; commission_asset: string; maker: boolean;
@@ -211,6 +238,9 @@ export const liveApi = {
       Object.entries(params).filter(([, v]) => v != null && v !== "") as [string, string][]);
     return request<LivePreview>(`/api/crypto/binance/preview?${query.toString()}`, { signal });
   },
+  /** Read only. Empty when the account is flat; the server does no extra reads then. */
+  positionCard: (signal?: AbortSignal) =>
+    request<LivePositionCard>("/api/crypto/binance/position", { signal }),
   /** Read only. The server computes the ladder; this never sends or arms anything. */
   sizing: (signal?: AbortSignal) =>
     request<LiveSizing>("/api/crypto/binance/sizing", { signal }),

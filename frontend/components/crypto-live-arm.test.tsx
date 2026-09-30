@@ -112,8 +112,27 @@ describe("the trade state bar", () => {
     // session. A screen that flipped green on the click would be claiming the server's answer.
     bar({ account: armedAccount(), arm: armed() });
     expect(screen.getByTestId("live-trade-state")).toHaveTextContent("거래가능");
-    expect(screen.getByTestId("live-arm-remaining")).toHaveTextContent("3분 5초 남음");
     expect(screen.queryByTestId("live-activate")).not.toBeInTheDocument();
+  });
+
+  it("keeps the window's countdown out of the default bar", () => {
+    // BTCUSDT trades around the clock. A countdown beside the verdict read as trading hours,
+    // so the remaining time moved to the panel about the arm session, where it belongs.
+    bar({ account: armedAccount(), arm: armed() });
+    expect(screen.queryByTestId("live-arm-remaining")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("live-trade-state"));
+    expect(screen.getByTestId("live-arm-remaining")).toHaveTextContent("3분 5초 남음");
+  });
+
+  it("carries no notion of a trading session or market hours", () => {
+    // The gate is account state, never a clock. These are equity-screen words and must not
+    // reach a perpetual futures terminal.
+    bar({ account: armedAccount(), arm: armed() });
+    const rendered = screen.getByTestId("live-trade-bar");
+    for (const word of ["거래가능시간", "거래 가능 시간", "장 시작", "장 마감", "시장 오픈",
+                        "시장 종료", "정규장", "거래 시간대"]) {
+      expect(rendered).not.toHaveTextContent(word);
+    }
   });
 
   it("stays 거래불가 while only the session says armed", () => {

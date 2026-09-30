@@ -35,6 +35,7 @@ from .credentials import LiveConfig
 from .mirror import LiveEvent, LiveMirror
 from .models import BookTop, LONG, SHORT, LiveFieldMissing, LivePosition, MarkPrice
 from .orders import CLOSE, OPEN, LiveOrderRouter, OrderPlan, OrderRefused
+from .position_card import card as position_card
 from .preview import round_trip
 from .rest import BinanceError, BinanceFuturesClient
 from .sizing import presets as sizing_presets
@@ -293,6 +294,33 @@ class BinanceLiveAdapter:
                                            position=snapshot.position)
                       for side in (LONG, SHORT)},
         }
+
+    def get_position_card(self, depth_limit: int = 50) -> dict[str, Any]:
+        """The held position, its history and what closing it now would net.
+
+        Only read when a position exists: with a flat account there is nothing to price, and
+        the three extra reads this needs (trades, funding, book) would be spent on nothing.
+        """
+        snapshot = self.snapshot()
+        if not snapshot.ready or snapshot.filters is None:
+            first = snapshot.blockers[0] if snapshot.blockers else None
+            return {"open": False, "available": False,
+                    "reject_code": first.code if first else "ACCOUNT_NOT_READY",
+                    "reject_message": first.message if first else "LIVE 계좌를 읽지 못했습니다."}
+        position = snapshot.position
+        if position is None or position.is_flat:
+            return {"open": False, "available": True}
+        if snapshot.commission is None:
+            return {"open": True, "available": False, "reject_code": "COMMISSION_UNAVAILABLE",
+                    "reject_message": "계정 수수료율을 읽지 못해 청산 손익을 계산하지 않습니다."}
+        depth = self.client.call("depth", {"symbol": self.config.symbol, "limit": depth_limit})
+        leverage = snapshot.symbol_config.leverage if snapshot.symbol_config else None
+        built = position_card(position=position, trades=self.reader.recent_fills(200),
+                              funding_rows=self.reader.funding(100), depth=depth,
+                              commission=snapshot.commission, filters=snapshot.filters,
+                              leverage=leverage)
+        return {**built, "available": True, "symbol": self.config.symbol,
+                "fetched_at_ms": snapshot.fetched_at_ms, "age_ms": snapshot.age_ms()}
 
     # ------------------------------------------------------------------ writes (gated)
 

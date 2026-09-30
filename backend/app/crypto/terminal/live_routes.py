@@ -392,6 +392,19 @@ async def binance_leverage(request: LiveLeverageRequest) -> Any:
                      str(exc))
 
 
+@app.get("/api/crypto/binance/position")
+async def binance_position_card() -> Any:
+    """The held position with its own history and a close-now estimate. Read only."""
+    adapter = live_runtime.build()
+    if adapter is None:
+        return error(503, "LIVE_UNAVAILABLE",
+                     live_runtime.error or "Binance API 키가 설정되지 않았습니다.")
+    try:
+        return jsonable({"source": "BINANCE_LIVE", **adapter.get_position_card()})
+    except BinanceError as exc:
+        return error(502, "BINANCE_ERROR", exc.message)
+
+
 @app.get("/api/crypto/binance/sizing")
 async def binance_sizing() -> Any:
     """The quick-size ladder, computed on the server from Binance's own figures.

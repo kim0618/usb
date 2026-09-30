@@ -12,7 +12,7 @@ import {
 import {
   AccountSourceSwitch, LiveAccountCards, LiveActivateDialog, LiveAuthorityNote, LiveBlockedPanel,
   LiveBookStrip, LiveLeverageNotes, LiveLeveragePanel, LiveMarketHeader, LiveOrderTicket,
-  LivePositionPanel, LiveTradeBar, useBinanceLive,
+  LivePositionCard, LivePositionPanel, LiveTradeBar, useBinanceLive,
 } from "@/components/crypto-live-terminal";
 import type { ChartTimeframe } from "@/lib/crypto-paper";
 import { positionOpenedMs } from "@/lib/crypto-paper";
@@ -81,6 +81,16 @@ export default function CryptoPaperPage() {
         ) : (
           <div className="space-y-3">
             <LiveMarketHeader account={account} />
+            {/* Phone: the held position comes before the chart with its own CLOSE, exactly
+                where the paper screen puts it. The wide layout keeps the full panel below the
+                chart, so nothing moves on a desktop. */}
+            <div className="xl:hidden">
+              <LivePositionCard card={binance.positionCard} nowMs={Date.now()}
+                busy={binance.busy}
+                onClose={() => (gate.tradable
+                  ? binance.order({ side: account.position?.side || "LONG", intent: "CLOSE" })
+                  : activate())} />
+            </div>
             <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
               <div className="space-y-3">
                 {/* The chart stays on the paper feed in V1: switching it to Binance candles is
@@ -94,7 +104,12 @@ export default function CryptoPaperPage() {
                   <ChartSection state={terminal.state} bars={terminal.bars} timeframe={timeframe}
                     onTimeframe={setTimeframe} />
                 )}
-                <LivePositionPanel account={account} />
+                {/* Wide only: the phone already has the card above the chart, and showing
+                    both would print the same position twice. Same split the paper screen uses
+                    between MobilePositionCard and PositionStrip. */}
+                <div className="hidden xl:block">
+                  <LivePositionPanel account={account} />
+                </div>
               </div>
               {/* Size, leverage and the two order buttons in one column, in the order they are
                   used, the way the paper ticket reads. */}
