@@ -1,0 +1,51 @@
+[Unit]
+Description=US-B CRYPTO BTCUSDT Terminal (PAPER: Bybit public data, simulated fills | BINANCE LIVE: real USDs-M manual orders, disarmed at boot)
+Documentation=file:/root/usb/docs/crypto/CRYPTO_SERVER_RUNBOOK_V1.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/usb_runtime/crypto_paper
+
+# The equity /root/usb/.env is still deliberately NOT loaded. It carries the Kiwoom profile
+# and the broker mode, and this app must never be able to read them: the crypto package
+# imports nothing from the equity side.
+#
+# What changed: this service now holds one exchange credential, for Binance USDs-M manual
+# trading, scoped to a file of its own inside this service's tree rather than shared with
+# the equity side. The boundary that mattered - crypto cannot see the equity broker, and the
+# equity services cannot see the Binance key - is preserved by the split, not by absence.
+#
+# BINANCE_LIVE_TRADING_ENABLED=true in that file is a *capability*: it says this host may
+# send an order. It is not an arm. The second gate is an in-memory session that starts
+# disarmed on every boot, needs a confirmation phrase typed in the UI, and expires on its
+# own - so a restart, a crash or a deploy always comes back unable to trade.
+# BINANCE_LIVE_CLIENT_ARMED is deliberately absent from that file; setting it would arm the
+# account from boot forever and defeat the whole arrangement.
+EnvironmentFile=/root/usb_runtime/crypto_paper/secrets/binance_live.env
+Environment=PYTHONPATH=/root/usb_runtime/crypto_paper/src/backend
+Environment=PYTHONUNBUFFERED=1
+Environment=CRYPTO_PAPER_RUN_CONFIG=/root/usb_runtime/crypto_paper/run/run_config.json
+Environment=CRYPTO_PAPER_ROOT=/root/usb_runtime/crypto_paper/run
+
+# --workers 1 is a correctness requirement, not a capacity choice. The paper engine is a single
+# in-memory account that appends to one input tape and one ledger. A second worker would hold a
+# second account, append interleaved records to the same files, and the next restart would
+# replay a tape that never described one run. Recovery would refuse it, or worse, not notice.
+# Entrypoint is `terminal.server`, not `terminal.api`: it imports api's app and registers the
+# D3.5 sizing route onto that same instance. Pointing systemd at `api:app` would start a
+# terminal without /api/crypto/sizing, and the screen's quick-size buttons would go dead.
+ExecStart=/root/usb/.venv/bin/uvicorn app.crypto.terminal.server:app \
+  --host 127.0.0.1 --port 8100 --workers 1 --no-access-log
+
+Restart=always
+RestartSec=5
+KillSignal=SIGTERM
+TimeoutStopSec=30
+MemoryMax=200M
+Nice=5
+
+[Install]
+WantedBy=multi-user.target
