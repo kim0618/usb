@@ -53,6 +53,10 @@ from app.backtest.strategy_h_v2.expectation.expectation_state import (
     suppressed_absence_findings,
 )
 from app.backtest.strategy_h_v2.expectation.numeric_roles import fact_is_restated
+from app.backtest.strategy_h_v2.expectation.state_fidelity import (
+    claim_state_fidelity,
+    state_fidelity_report,
+)
 from app.dev.run_strategy_h_v2_d4_1 import ANALYSES_ROOT, D4_1_ROOT, PACKAGES_DIR
 
 MATERIAL_TYPES = {"FACT", "INTERPRETATION", "INFERENCE"}
@@ -222,6 +226,7 @@ def audit_output(output: dict, *, package: AIResearchInputV1,
     unsourced, e4, e5, e7_fields, e7_text, e3 = [], [], [], [], [], []
     sourcing: list[dict] = []
     compound_gap: list[dict] = []
+    state_fidelity: list = []
 
     for path, claim in iter_claims(output):
         classification = classify_claim_sourcing(claim, code_facts=code_facts)
@@ -232,6 +237,18 @@ def audit_output(output: dict, *, package: AIResearchInputV1,
         if claim.get("claim_type") not in MATERIAL_TYPES:
             continue
         cited = _cited_evidence(claim)
+
+        # D4-H's CODE_OWNED_STATE_FIDELITY, the gate the STATE_TOKEN half of M8 became
+        # (`state_fidelity.py`). Evaluated over BOTH citation forms, which is not a widening of
+        # anything frozen: this gate is new, has no historical result to keep comparable, and its
+        # unit of comparison is the claim together with its whole cited state set, so the atomic/
+        # compound distinction that bounds M8 and E4 does not apply to it. Wired to no M gate - the
+        # M1-M12 list is frozen and both Tier A runs' verdicts are read from it unchanged.
+        finding = claim_state_fidelity(
+            path, claim["text"], [code_facts[cid] for cid in cited if cid in code_facts])
+        if finding is not None:
+            state_fidelity.append(finding)
+
         if form == "NONE":
             unsourced.append({"path": path, "text": claim["text"][:160], "reason": "no citation",
                               "classification": classification})
@@ -313,6 +330,7 @@ def audit_output(output: dict, *, package: AIResearchInputV1,
         "unsupported_priced_in": _priced_in(output, valid_evidence),
         "expectation_claim_sourcing": sourcing,
         "compound_claim_coverage_gap": compound_gap,
+        "code_owned_state_fidelity": state_fidelity_report(state_fidelity),
         "expectation_state": state.to_dict(),
         "honest_absence_accepted": absence_allowed,
     }

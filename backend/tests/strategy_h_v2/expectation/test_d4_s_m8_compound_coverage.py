@@ -1,10 +1,25 @@
 """D4-S M8 compound-coverage audit: the six findings the old citation-form bug hid.
 
-Scope of this file. It is an AUDIT, not a repair. `numeric_roles.py` is NOT modified by this step
-and M8's claim scope stays atomic, because changing either after seeing these six results is the
-result-driven tuning the brief forbids. So the tests below PIN the current behaviour, including the
-two defects they expose, and name them as defects so that a later repair breaks a test that says
-exactly what it was protecting.
+Scope of this file, as written for D4-S. It was an AUDIT, not a repair: `numeric_roles.py` was not
+modified and M8's claim scope stayed atomic, because changing either after seeing these six results
+would have been the result-driven tuning the D4-S brief forbids. So the tests PINNED the behaviour of
+the day, including the two defects they exposed, and named them as defects so that a later repair
+would break a test saying exactly what it was protecting.
+
+D4-H is that repair (`H_V2_D4_H_PRE_TIER_B_INTEGRITY_HARDENING_V1.md`), and the pins below are now
+updated to the post-repair behaviour rather than deleted, each one naming what it used to assert.
+The AUDIT record - the six cases, their classifications, the measured distances - is unchanged and is
+still asserted; what changed is the matcher's answer, which is the point. Two mechanisms were closed:
+
+    R1  the STATE_TOKEN branch left `numeric_roles` entirely (cases 1 and 6)
+    R2  `_SESSION_COUNT` now covers a coordinated, unit-elided window pair (cases 2-5)
+
+and one was NOT, deliberately:
+
+    R3  compound set-valued numeric semantics (mechanism C below) = DEFERRED
+
+M8's claim scope is still atomic and both Tier A runs still read M8 = PASS, which the stored-record
+tests at the bottom of this file continue to assert.
 
 The six are six (fact, claim) pairs across FOUR claims - two claims cite two code facts each and
 were flagged on both. Every one of the four uses `ClaimV2`'s compound citation form, cites ONLY code
@@ -105,16 +120,32 @@ def test_the_classification_totals():
 
 
 @pytest.mark.parametrize("case", SIX_CASES, ids=lambda c: f"case{c[0]}-{c[2]}")
-def test_every_one_of_the_six_is_currently_flagged(case):
-    """The starting fact. All six read `fact_is_restated() is False` today, which is why widening
-    M8's scope without a matcher repair would turn both runs' M8 from PASS to FAIL."""
+def test_every_one_of_the_six_is_closed_by_d4_h(case):
+    """Was `test_every_one_of_the_six_is_currently_flagged`, asserting `is False` for all six - the
+    starting fact that made widening M8's scope impossible without a matcher repair first.
+
+    D4-H's acceptance criterion, on the audit's own six cases: none of them is a matcher false
+    positive any more. Cases 1 and 6 pass because M8 no longer answers a STATE_TOKEN fact at all
+    (R1); cases 2-5 pass because the elided window digits are now classified as the window labels
+    they are (R2). No tolerance moved to get here - see
+    `test_d4_h_numeric_role_coverage.py::test_a_mismatched_restatement_beside_a_window_label_is_still_caught`.
+    """
     _, _, _, _, text, _, value, unit, _ = case
-    assert fact_is_restated(text, value, unit) is False
+    assert fact_is_restated(text, value, unit) is True
 
 
-#: How far the closest surviving token is from the closest reading of the cited fact, as a multiple
-#: of that reading's own tolerance. Measured, not asserted loosely, because "not a near miss" is a
-#: claim about a distance and the distances differ by 20x across the four cases.
+#: How far the closest surviving token WAS from the closest reading of the cited fact, as a multiple
+#: of that reading's own tolerance, measured at audit time. Measured, not asserted loosely, because
+#: "not a near miss" is a claim about a distance and the distances differ by 20x across the four
+#: cases.
+#:
+#: These four numbers are no longer recomputable, and that is the repair rather than a loss: the
+#: tokens they measured are the elided window digits, which R2 now classifies as SESSION_COUNT, so
+#: zero VALUE_RESTATEMENT tokens survive in all four claims and there is no distance left to measure.
+#: Recomputing them would mean reintroducing the pattern D4-H removed, which is the same thing
+#: `replay_d4_3r_audit_alignment` refuses to do for D4.3A's old detectors. Kept as the audit's
+#: recorded measurement; `test_none_of_the_six_is_a_true_numeric_defect` now asserts the stronger
+#: post-repair fact directly.
 #:
 #: Case 2 is the one worth reading carefully: "1" sits 0.2 away from 1.2, which is the
 #: percentage-form reading of return_1d (-1.2378%), only 4x its 0.05 tolerance. That proximity is a
@@ -140,27 +171,29 @@ def test_none_of_the_six_is_a_true_numeric_defect(case):
         assert not isinstance(value, (int, float))
         assert number not in MARGIN_RATIOS
         return
-    from app.backtest.strategy_h_v2.expectation.numeric_roles import (
-        _fact_candidates, _token_values)
-    candidates = _fact_candidates(float(value), unit)
-    tokens = [f.token for f in classify_roles(text)
-              if f.role == NumericRole.VALUE_RESTATEMENT and f.token is not None]
-    ratios = [abs(abs(v) - candidate) / tolerance
-              for token in tokens for v in _token_values(token, text)
-              for candidate, tolerance in candidates]
-    assert min(ratios) == pytest.approx(MARGIN_RATIOS[number], abs=0.1)
-    assert min(ratios) > 1.0, "if this were <= 1 the matcher would have called it a match"
+    assert number in MARGIN_RATIOS and MARGIN_RATIOS[number] > 1.0, (
+        "the audit's recorded distance: if this had been <= 1 the matcher would have called it a "
+        "match, and the case would have been a coincidence rather than a false positive")
+    # Post-R2 this is stronger than a distance. No token in any of the four claims plays the
+    # VALUE_RESTATEMENT role at all, so there is nothing left that could be compared to the fact -
+    # which is why `MARGIN_RATIOS` above is a record and not a recomputation.
+    assert _value_restatements(text) == []
+    assert fact_is_restated(text, value, unit) is True
 
 
-# --- mechanism A: the STATE_TOKEN branch never consults the role classifier ----------------------
+# --- mechanism A (CLOSED by D4-H R1): the STATE_TOKEN branch never consulted the role classifier --
 #
-# `fact_is_restated`'s STATE_TOKEN branch is
+# `fact_is_restated`'s STATE_TOKEN branch was
 #
 #     return str(value).upper() in text.upper() or not any(c.isdigit() for c in text)
 #
-# a raw character scan. `classify_roles` is not called, so the exclusions D4.3R built (a session
-# count, a stage identifier) do not apply and ANY digit anywhere disables the "purely qualitative"
+# a raw character scan. `classify_roles` was not called, so the exclusions D4.3R built (a session
+# count, a stage identifier) did not apply and ANY digit anywhere disabled the "purely qualitative"
 # escape. Cases 1 and 6 are that, and nothing else.
+#
+# D4-H removed the branch rather than repairing it in place, because a question about a CATEGORY does
+# not belong in a matcher whose unit of comparison is a number. The state question is now
+# `state_fidelity.CODE_OWNED_STATE_FIDELITY`, and the two-directional defect below is a FAIL there.
 
 @pytest.mark.parametrize("text,digit,role", [
     (GOOG_GAP_6, "252-session", NumericRole.SESSION_COUNT.value),
@@ -173,47 +206,67 @@ def test_the_state_token_cases_have_no_value_restatement_at_all(text, digit, rol
     assert _roles(text)[digit] == role
 
 
-def test_a_state_token_claim_passes_when_its_sentence_happens_to_have_no_digit():
-    """The same qualitative statement, with the incidental digit removed, passes. Nothing about the
-    claim's relationship to the cited fact changed - only an unrelated character."""
+def test_the_verdict_no_longer_turns_on_whether_the_sentence_has_a_digit():
+    """Was `test_a_state_token_claim_passes_when_its_sentence_happens_to_have_no_digit`, which
+    asserted `is False` for the second line: the same qualitative statement passed with the
+    incidental digit removed and failed with it present, though nothing about the claim's
+    relationship to the cited fact had changed. Both now agree."""
     assert fact_is_restated("Fundamentals continued improving on the operating line.",
                             "ACCELERATING", "STATE_TOKEN") is True
-    assert fact_is_restated(GOOG_GAP_6, "ACCELERATING", "STATE_TOKEN") is False
+    assert fact_is_restated(GOOG_GAP_6, "ACCELERATING", "STATE_TOKEN") is True
 
 
-def test_known_defect_state_token_branch_is_also_a_false_negative():
-    """The same raw digit scan that produces cases 1 and 6 ALSO lets a genuine mis-restatement
-    through, which is the more serious half of the finding.
+def test_the_false_negative_half_of_the_finding_is_now_a_named_gate():
+    """Was `test_known_defect_state_token_branch_is_also_a_false_negative`, recording the more
+    serious half: the same raw digit scan that produced cases 1 and 6 ALSO let a genuine
+    mis-restatement through. "Revenue is ACCELERATING" against a fact whose value is STABLE passed,
+    because the sentence contained no digit, and the identical claim with "over 3 quarters" appended
+    failed. The branch was not merely over-strict; it was keyed on something unrelated to the
+    question.
 
-    "Revenue is ACCELERATING" against a fact whose value is STABLE is exactly what M8 exists to
-    catch, and it passes - because the sentence contains no digit. The branch is not merely
-    over-strict; it is keyed on something unrelated to the question. Recorded and NOT repaired here:
-    fixing it would make M8 start enforcing state-token ownership properly, which is a change to
-    what M8 enforces and needs preregistering rather than patching mid-audit.
+    D4-H closes it where the question belongs. M8 reports nothing for either line now - it compares
+    numbers, and a STATE_TOKEN fact has none - and BOTH are a FAIL on
+    `CODE_OWNED_STATE_FIDELITY`, with the same verdict whether or not the sentence carries a number.
     """
-    assert fact_is_restated("Revenue is ACCELERATING.", "STABLE", "STATE_TOKEN") is True
-    assert fact_is_restated("Revenue is ACCELERATING over 3 quarters.", "STABLE",
-                            "STATE_TOKEN") is False
+    from app.backtest.strategy_h_v2.expectation.code_facts import CodeFact
+    from app.backtest.strategy_h_v2.expectation.d4_2_contract import MechanicalGateStatus
+    from app.backtest.strategy_h_v2.expectation.state_fidelity import (
+        claim_state_fidelity, state_fidelity_status)
+
+    for text in ("Revenue is ACCELERATING.", "Revenue is ACCELERATING over 3 quarters."):
+        assert fact_is_restated(text, "STABLE", "STATE_TOKEN") is True
+        fact = CodeFact("CODE:D4:B:CHUNK:research_facts.fundamental_changes.revenue.state",
+                        "research_facts.fundamental_changes.revenue.state", "STABLE",
+                        "STATE_TOKEN", "code-owned state")
+        finding = claim_state_fidelity("root.gap_rationale[0]", text, [fact])
+        assert state_fidelity_status([finding]) == MechanicalGateStatus.FAIL
 
 
-# --- mechanism B: _SESSION_COUNT does not cover an elided coordination --------------------------
+# --- mechanism B (CLOSED by D4-H R2): _SESSION_COUNT did not cover an elided coordination --------
 #
-# `_SESSION_COUNT` needs the digit adjacent to its unit word, and needs a HYPHEN for day/month/year.
-# "1- and 3-session" elides the first unit word, and "3 and 6 months" uses a space. So the leading
-# digit of a coordinated window pair survives as a bare COUNT token and is compared to the fact.
+# `_SESSION_COUNT` needed the digit adjacent to its unit word, and needed a HYPHEN for
+# day/month/year. "1- and 3-session" elides the first unit word, and "3 and 6 months" uses a space.
+# So the leading digit of a coordinated window pair survived as a bare COUNT token and was compared
+# to the fact. R2 absorbs a leading run of coordinated numbers into the window span and accepts a
+# space before any unit word, so the whole coordination is one SESSION_COUNT.
 
-def test_the_window_pair_leaves_its_first_digit_unmasked():
+def test_the_window_pair_is_now_one_session_count_span():
+    """Was `test_the_window_pair_leaves_its_first_digit_unmasked`, which asserted
+    `roles["1"] == VALUE_RESTATEMENT` and `_value_restatements(...) == ["1"]` - the elided '1-' of
+    '1- and 3-session' being the whole mechanism of cases 2 and 3."""
     roles = _roles(SCCO_PRICE_5)
-    assert roles["3-session"] == NumericRole.SESSION_COUNT.value
-    assert roles["1"] == NumericRole.VALUE_RESTATEMENT.value, (
-        "the elided '1-' of '1- and 3-session' is the whole mechanism of cases 2 and 3")
-    assert _value_restatements(SCCO_PRICE_5) == ["1"]
+    assert roles["1- and 3-session"] == NumericRole.SESSION_COUNT.value
+    assert "1" not in roles
+    assert _value_restatements(SCCO_PRICE_5) == []
 
 
-def test_a_spaced_month_window_pair_leaves_both_digits_unmasked():
+def test_a_spaced_month_window_pair_is_now_one_session_count_span():
+    """Was `test_a_spaced_month_window_pair_leaves_both_digits_unmasked`, which asserted
+    `_value_restatements(...) == ["3", "6"]` - the mechanism of cases 4 and 5."""
     roles = _roles(SCCO_GAP_5)
     assert roles["252-session"] == NumericRole.SESSION_COUNT.value
-    assert _value_restatements(SCCO_GAP_5) == ["3", "6"]
+    assert roles["3 and 6 months"] == NumericRole.SESSION_COUNT.value
+    assert _value_restatements(SCCO_GAP_5) == []
 
 
 @pytest.mark.parametrize("text", [
@@ -327,22 +380,67 @@ NEEDS_STORED_RUNS = pytest.mark.skipif(
 
 
 @NEEDS_STORED_RUNS
-def test_the_stored_records_still_yield_exactly_these_six():
-    """Re-derives the six from the real artifacts and matches them against the inline copies, so a
-    fixture cannot quietly diverge from the run it claims to describe."""
+def test_the_stored_records_no_longer_yield_any_of_the_six():
+    """Was `test_the_stored_records_still_yield_exactly_these_six`, which re-derived the six from the
+    real artifacts and matched them against the inline copies.
+
+    Post-R1/R2 the derivation is empty, on both Tier A runs, which is D4-H's R1/R2 acceptance
+    criterion measured on the real stored bytes rather than on fixtures. `compound_claim_coverage_gap`
+    is the list M8's atomic scope would have flagged had it been widened, so an empty list means
+    widening it is no longer blocked by the matcher. It is still not widened here - that is a Tier B
+    scope decision (§K of the D4-H document).
+    """
     from app.dev.audit_strategy_h_v2_d4_2 import audit_run
 
     derived = []
     for run in ("D4_2_A-20260929T072105Z", "D4_2_A-20260930T012115Z"):
         for candidate in audit_run(run)["candidates"]:
             for gap in candidate["defects"].get("compound_claim_coverage_gap") or []:
-                assert gap["check"] == "code_owned_numeric", (
-                    "a future_source finding would be a different audit")
-                derived.append((candidate["ticker"], gap["path"],
-                                gap["evidence_id"].rsplit(":CHUNK:", 1)[-1], gap["fact_value"]))
+                derived.append((candidate["ticker"], gap["path"], gap.get("check"),
+                                gap.get("evidence_id", gap.get("source_id"))))
+    assert derived == []
 
-    expected = [(c[2], c[3], c[5], c[6]) for c in SIX_CASES]
-    assert sorted(derived) == sorted(expected)
+
+@NEEDS_STORED_RUNS
+def test_the_inline_six_still_match_the_stored_records_verbatim():
+    """The drift guard the test above used to provide, rebuilt so it does not depend on the matcher.
+
+    Re-deriving the six through `fact_is_restated` is no longer possible - that is the repair - so the
+    fixture is checked against the artifacts structurally instead, which is a stronger guard anyway:
+    each claim's text must still be present verbatim at its stated path, and each must still cite the
+    stated code fact at the stated value.
+    """
+    from app.backtest.strategy_h_v2.evidence.chunk_schema import AIResearchInputV1
+    from app.backtest.strategy_h_v2.expectation.code_facts import build_code_fact_index
+    from app.backtest.strategy_h_v2.expectation.evidence_schema import (
+        ExpectationEvidenceBundleV1)
+    from app.backtest.strategy_h_v2.research.d3_3_contract import PACKAGES_DIR
+    from app.dev.audit_strategy_h_v2_d4_1 import _cited_evidence, iter_claims
+    from app.dev.run_strategy_h_v2_d4_2 import ANALYSES_ROOT
+
+    seen = 0
+    for number, _, ticker, path, text, fact_path, value, unit, _ in SIX_CASES:
+        run = ("D4_2_A-20260930T012115Z" if number == 6 else "D4_2_A-20260929T072105Z")
+        directory = ANALYSES_ROOT / run / ticker
+        bundle = ExpectationEvidenceBundleV1.model_validate_json(
+            (directory / "expectation_evidence.json").read_text())
+        package = AIResearchInputV1.model_validate_json(
+            (PACKAGES_DIR / f"{ticker}.json").read_text())
+        facts = build_code_fact_index(
+            bundle, research_facts=package.evidence_bundle.fundamental_changes)
+        record = next(json.loads(pth.read_text())
+                      for pth in sorted(directory.glob("*.json"))
+                      if pth.name != "expectation_evidence.json")
+        claim = {p: c for p, c in iter_claims(record["final_output"])}[path]
+
+        assert claim["text"] == text, f"case {number}: inline text has drifted from the record"
+        cited = [facts[e] for e in _cited_evidence(claim) if e in facts]
+        matching = [f for f in cited if f.path == fact_path]
+        assert len(matching) == 1, f"case {number}: {fact_path} is no longer cited by this claim"
+        assert matching[0].unit == unit
+        assert matching[0].value == value, f"case {number}: the cited fact's value has moved"
+        seen += 1
+    assert seen == 6
 
 
 @NEEDS_STORED_RUNS

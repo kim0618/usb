@@ -96,18 +96,47 @@ def test_purely_qualitative_claim_is_not_a_restatement():
                             "RETURN_FRACTION") is True
 
 
-# --- STATE_TOKEN is untouched by the numeric-role repair ------------------------------------------
+# --- STATE_TOKEN left this module in D4-H (R1) ----------------------------------------------------
 
-def test_state_token_matching_is_unchanged():
-    """STATE_TOKEN handling is untouched by the M8 numeric-role repair (it was never the source of
-    D4.3A's false positives) and keeps its pre-existing contract exactly: a digit-free sentence
-    naming the wrong state is read as qualitative prose, not a restatement, because the whole
-    point of this branch is telling a NUMBER mismatch apart from ordinary text - a digit is what
-    makes a mismatch detectable at all here."""
+def test_state_token_is_no_longer_answered_by_the_numeric_matcher():
+    """Was `test_state_token_matching_is_unchanged`, which pinned the branch
+
+        str(value).upper() in text.upper() or not any(c.isdigit() for c in text)
+
+    and justified it as "a digit is what makes a mismatch detectable at all here". D4-H's R1 audit
+    showed that premise is the defect: the verdict depended on an unrelated character, so a correct
+    qualitative claim failed on "252-session" while "Revenue is ACCELERATING" against a STABLE fact
+    passed. M8 compares numbers, and a STATE_TOKEN fact has none, so it reports no numeric defect
+    here for any of these. The state question moved to `CODE_OWNED_STATE_FIDELITY`
+    (`state_fidelity.py`), where the middle case below is a FAIL - see
+    `test_d4_h_state_fidelity.py`. The live validator lost nothing: `validate._COMPARABLE_UNITS`
+    never listed STATE_TOKEN, so `check_code_fact_numerics` never examined a state fact in any run.
+    """
     assert fact_is_restated("growth durability is IMPROVING", "IMPROVING", "STATE_TOKEN") is True
     assert fact_is_restated("the tier 2 read shows DETERIORATING durability", "IMPROVING",
-                            "STATE_TOKEN") is False
+                            "STATE_TOKEN") is True
     assert fact_is_restated("durability looks weaker now", "IMPROVING", "STATE_TOKEN") is True
+
+
+def test_the_state_question_did_not_disappear_with_the_branch():
+    """The transfer is real, not a deletion: the case the old branch got wrong is a FAIL on the new
+    gate, and the case it got wrong in the other direction is a PASS."""
+    from app.backtest.strategy_h_v2.expectation.code_facts import CodeFact
+    from app.backtest.strategy_h_v2.expectation.d4_2_contract import MechanicalGateStatus
+    from app.backtest.strategy_h_v2.expectation.state_fidelity import (
+        claim_state_fidelity, state_fidelity_status)
+
+    fact = CodeFact("CODE:D4:B:CHUNK:research_facts.fundamental_changes.revenue.state",
+                    "research_facts.fundamental_changes.revenue.state", "IMPROVING",
+                    "STATE_TOKEN", "code-owned state")
+
+    def status(text: str) -> MechanicalGateStatus:
+        finding = claim_state_fidelity("root.claim", text, [fact])
+        return state_fidelity_status([finding] if finding else [])
+
+    assert status("the tier 2 read shows DETERIORATING durability") == MechanicalGateStatus.FAIL
+    assert status("growth durability is IMPROVING over 252 sessions") == MechanicalGateStatus.PASS
+    assert status("durability looks weaker now") == MechanicalGateStatus.NOT_EVALUATED
 
 
 # --- range bounds are excluded, not compared -------------------------------------------------------

@@ -23,8 +23,12 @@ filing dates and `Q[1-4]`/`FY####`/`10-K` style labels before a bare-digit scan 
 module reuses that tokenizer unchanged and adds the additional exclusions D3.2 had no reason to
 know about, because D3.2 is about matching a claim's number against the EVIDENCE CHUNK it cites,
 never against a D4 code fact: a reversed fiscal-period label ("2Q26"), a session/day/month count
-describing a WINDOW rather than a value ("63 sessions", "6-month"), and a gate/rule/stage identifier
-("C1", "M8", "D4.3A").
+describing a WINDOW rather than a value ("63 sessions", "6-month", and after D4-H's R2 the
+coordinated, unit-elided form "1- and 3-session"), and a gate/rule/stage identifier ("C1", "M8",
+"D4.3A").
+
+D4-H also moved the STATE_TOKEN question out of this module entirely - see `fact_is_restated` and
+`state_fidelity.py`. What is left here is about numbers only, which is what M8 was always about.
 """
 
 from __future__ import annotations
@@ -77,9 +81,34 @@ _REVERSED_FISCAL_PERIOD = re.compile(r"\b[1-4]Q\d{2,4}\b", re.IGNORECASE)
 #: (`code_facts.py`) labels its return windows by session count ("candidate return over the last
 #: 63 sessions"), so a claim describing the same window in prose necessarily contains that same
 #: number, and it is not the number the fact evaluates to.
+#:
+#: D4-H's R2 repair, from `H_V2_D4_S_M8_COMPOUND_COVERAGE_AUDIT_V1.md`'s mechanism B. The D4.3R form
+#: of this pattern required every window number to sit directly against its own unit word, and
+#: required a HYPHEN for day/month/year. Real claims coordinate windows and elide all but the last
+#: unit word - "the 1- and 3-session windows", "relative strength over 3 and 6 months", "1-, 3-, and
+#: 6-month" - so the leading member of every such pair survived as a bare COUNT token and was
+#: compared to the cited fact. Four of the six compound audit findings are that, and they are
+#: matcher false positives by construction: the elided digits ARE the cited facts' own window
+#: labels ("1-session event return", "over the same 126 sessions").
+#:
+#: Two changes, both coverage only. The separator before the unit word is `[\s-]` for every unit,
+#: not just for "session", so "over 3 months" is a window the same way "3-month" already was. And a
+#: leading run of coordinated numbers, each optionally carrying its own dangling hyphen, is absorbed
+#: into the match. The coordinator must sit IMMEDIATELY after the number for the run to continue,
+#: which is what stops "revenue rose 12.3% and 6 months later" from swallowing the 12.3.
+#:
+#: What makes widening this safe rather than a tolerance that was loosened until the answer changed:
+#: no D4 code fact is ever a count of sessions, days, months or years. Every unit
+#: `build_code_fact_index` emits is RETURN_FRACTION, ANNUALIZED_STDEV, USD or STATE_TOKEN, so a
+#: digit whose unit word is a window length cannot be a reading of any fact that exists.
+_WINDOW_UNIT = r"(?:trading[\s-])?(?:sessions?|days?|months?|years?)"
+_WINDOW_NUMBER = r"\d+(?:\.\d+)?"
+#: "and", "or" or a bare comma, with the optional Oxford ", and". A hyphen or "to" is NOT a
+#: coordinator here: "3-6 months" is a RANGE of window lengths, which `_mark_ranges` already has its
+#: own role for, and conflating the two would be a semantic change rather than coverage.
+_WINDOW_COORD = r"(?:,\s*|\s*,?\s*(?:and|or)\s+)"
 _SESSION_COUNT = re.compile(
-    r"\b\d+(?:\.\d+)?[\s-](?:trading[\s-])?sessions?\b"
-    r"|\b\d+(?:\.\d+)?-(?:day|month|year)s?\b",
+    rf"\b(?:{_WINDOW_NUMBER}-?{_WINDOW_COORD})*{_WINDOW_NUMBER}[\s-]{_WINDOW_UNIT}\b",
     re.IGNORECASE,
 )
 
@@ -210,9 +239,19 @@ def fact_is_restated(text: str, value: object, unit: str) -> bool:
     it? True also when `text` states no number for the fact at all - a claim that is purely
     qualitative about a code-owned fact has not violated numeric ownership, whatever OTHER digits
     (a fiscal period, a session count, a rule id) its sentence happens to contain.
+
+    A fact with no numeric value has nothing M8 can compare, and says so by returning True. That is
+    the whole of D4-H's R1 repair: a `STATE_TOKEN` fact used to be answered HERE, by
+    `str(value).upper() in text.upper() or not any(c.isdigit() for c in text)`, which made a correct
+    qualitative statement fail on an unrelated digit ("252-session", "D3") and let an outright
+    mis-restatement ("Revenue is ACCELERATING" against a STABLE fact) pass whenever the sentence had
+    no digit at all. Both directions came from answering a question about a CATEGORY inside a matcher
+    whose unit of comparison is a number. The state question now has its own gate with its own
+    contract - `state_fidelity.claim_state_fidelity` - and M8 keeps exactly the meaning it has always
+    had, applied to the facts that have a number. The live validator loses nothing: its
+    `validate._COMPARABLE_UNITS` never listed STATE_TOKEN, so `check_code_fact_numerics` has never
+    examined a state fact in any run, and this makes the audit layer agree with it.
     """
-    if unit == "STATE_TOKEN":
-        return str(value).upper() in text.upper() or not any(c.isdigit() for c in text)
     if not isinstance(value, (int, float)):
         return True
     restatements = [f.token for f in classify_roles(text)
