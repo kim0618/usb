@@ -34,6 +34,7 @@ import json
 import sys
 
 from app.backtest.strategy_h_v2.evidence.chunk_schema import AIResearchInputV1
+from app.backtest.strategy_h_v2.expectation.contract_v2 import MAX_REPAIR_ATTEMPTS
 from app.backtest.strategy_h_v2.expectation.d4_1_contract import (
     E_GATES_DO_NOT_PROVE,
     E_GATES_PROVE,
@@ -91,13 +92,29 @@ def _d3_attempts(attempts_root: Path, run_id: str) -> dict[str, dict]:
 
 def audit_run(run_id: str, *, analyses_root: Path = ANALYSES_ROOT,
               d3_leg_root: Path = D3_LEG_ATTEMPTS_ROOT, manifest_root: Path = D4_B_ROOT,
-              packages_dir: Path = PACKAGES_DIR) -> dict:
+              packages_dir: Path = PACKAGES_DIR,
+              sample=TIER_B_SAMPLE,
+              hard_cap_usd: float = TIER_B_HARD_CAP_USD,
+              schema: str = "H_V2_D4_B_TIER_B_AUDIT_V1",
+              contract_version: str = D4_B_CONTRACT_VERSION,
+              sample_integrity_fn=sample_integrity,
+              verdict_fn=None) -> dict:
+    """The gate audit over one stored run. Offline, 0 calls, $0.
+
+    The sample, ceiling, store, labels and verdict function are arguments for the same reason the
+    runner's are: D4-BR-C grades a different four issuers against the SAME frozen gates, and a second
+    copy of this mapping would be a second place for the gate arithmetic to drift. Every default is
+    Tier B's, so a call that passes none of them is Tier B's audit unchanged. `verdict_fn` receives
+    the gate statuses and the run's non-gating diagnostics and defaults to `d4_b_verdict` ignoring
+    the latter; a function that is handed the diagnostics can only read them to REPORT a limitation,
+    never to lift a gate, which is a property of the functions themselves rather than of this call.
+    """
     manifest = json.loads((manifest_root / f"{run_id}.manifest.json").read_text())
     records = {r["ticker"]: r for r in _records(analyses_root, run_id)}
     d3_attempts = _d3_attempts(d3_leg_root, run_id)
 
     candidates: list[dict] = []
-    for entry in TIER_B_SAMPLE:
+    for entry in sample:
         ticker = entry.ticker
         result = next((r for r in manifest["results"] if r["ticker"] == ticker), None)
         if result is None:
@@ -240,13 +257,27 @@ def audit_run(run_id: str, *, analyses_root: Path = ANALYSES_ROOT,
     )
     gates = [g.to_dict() for g in e_gates] + [sf1.to_dict()]
     statuses = {g["gate"]: g["status"] for g in gates}
-    verdict = d4_b_verdict(statuses)
+
+    # Non-gating convergence diagnostics (D4-BR §15/§19). `full_repair_budget_candidates` is the
+    # number of graded candidates that converged only on their LAST available round, which is what
+    # "4/4 but mostly two repairs" means as a number. It changes no gate.
+    repair_dependence = {
+        "max_repair_attempts": MAX_REPAIR_ATTEMPTS,
+        "repair_rounds_by_ticker": {c["ticker"]: c.get("d4_repair_rounds")
+                                    for c in attempted},
+        "candidates_needing_repair": sum(
+            1 for c in graded if (c.get("d4_repair_rounds") or 0) > 0),
+        "full_repair_budget_candidates": sum(
+            1 for c in graded if (c.get("d4_repair_rounds") or 0) >= MAX_REPAIR_ATTEMPTS),
+        "total_repair_rounds": sum((c.get("d4_repair_rounds") or 0) for c in attempted),
+    }
+    verdict = (verdict_fn or (lambda s, _diag: d4_b_verdict(s)))(statuses, repair_dependence)
 
     spends = manifest.get("candidate_spends") or []
     budget = {
-        "hard_cap_usd": TIER_B_HARD_CAP_USD,
+        "hard_cap_usd": hard_cap_usd,
         "run_total_cost_usd": manifest.get("run_total_cost_usd"),
-        "within_hard_cap": (manifest.get("run_total_cost_usd") or 0.0) <= TIER_B_HARD_CAP_USD,
+        "within_hard_cap": (manifest.get("run_total_cost_usd") or 0.0) <= hard_cap_usd,
         "candidate_worst_case_usd": TIER_B_BUDGET.candidate_worst_case_budget_usd,
         "every_candidate_within_its_worst_case": all(
             s["candidate_total_cost_usd"] <= TIER_B_BUDGET.candidate_worst_case_budget_usd
@@ -275,15 +306,16 @@ def audit_run(run_id: str, *, analyses_root: Path = ANALYSES_ROOT,
         gap_distribution[key] = gap_distribution.get(key, 0) + 1
 
     return {
-        "schema": "H_V2_D4_B_TIER_B_AUDIT_V1", "run_id": run_id,
-        "contract_version": D4_B_CONTRACT_VERSION,
+        "schema": schema, "run_id": run_id,
+        "contract_version": contract_version,
         "manifest_contract_version": manifest.get("contract_version"),
         "prompt_version": PROMPT_VERSION,
-        "sample_integrity": {**sample_integrity(),
+        "sample_integrity": {**sample_integrity_fn(),
                              "manifest_checksum": manifest.get("tier_b_checksum")},
-        "sample_size": len(TIER_B_SAMPLE), "attempted": len(attempted), "graded": len(graded),
+        "sample_size": len(sample), "attempted": len(attempted), "graded": len(graded),
         "models": models,
         "budget": budget,
+        "repair_dependence": repair_dependence,
         "expectation_gap_distribution": gap_distribution,
         "rules": rules,
         "m8_scope": {

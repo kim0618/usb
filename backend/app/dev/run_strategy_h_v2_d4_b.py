@@ -87,6 +87,12 @@ def run_tier_b(
     d3_leg_root: Path = D3_LEG_ATTEMPTS_ROOT, analyses_root: Path = ANALYSES_ROOT,
     manifest_root: Path = D4_B_ROOT,
     panel: Mapping[str, Mapping[date, float]] | None = None,
+    run_id_prefix: str = "D4_B",
+    tier: str = "B",
+    schema: str = "H_V2_D4_B_RUN_MANIFEST_V1",
+    contract_version: str = D4_B_CONTRACT_VERSION,
+    checksum_fn=tier_b_checksum,
+    observed_projection_usd: float = OBSERVED_PROJECTION_USD,
 ) -> dict:
     """Tier B end to end. One candidate at a time, budget checked BEFORE the candidate starts.
 
@@ -94,8 +100,14 @@ def run_tier_b(
     substitute input - the brief forbids sample substitution, and a D4 call on a manufactured D3
     output would be measuring the manufacture. Its D3 cost is still charged, because a failed call was
     still paid for and a budget that counts only successes is not a budget.
+
+    The last six arguments exist so D4-BR-C's disjoint confirmation can reuse this orchestration
+    rather than copy it - a second implementation of the same chaining is a second place for the two
+    legs' contracts to drift apart. Every default is Tier B's own value, so a call that passes none
+    of them is the Tier B run exactly as it was graded; what the confirmation changes is its sample,
+    its ceiling, its store and the label on its record, and nothing in the legs themselves.
     """
-    run_id = datetime.now(timezone.utc).strftime("D4_B-%Y%m%dT%H%M%SZ")
+    run_id = datetime.now(timezone.utc).strftime(f"{run_id_prefix}-%Y%m%dT%H%M%SZ")
     panel = panel if panel is not None else load_price_panel(e.ticker for e in sample)
     generated_at = datetime.now(timezone.utc)
 
@@ -196,19 +208,19 @@ def run_tier_b(
         })
 
     manifest = {
-        "schema": "H_V2_D4_B_RUN_MANIFEST_V1", "run_id": run_id, "tier": "B",
-        "contract_version": D4_B_CONTRACT_VERSION,
+        "schema": schema, "run_id": run_id, "tier": tier,
+        "contract_version": contract_version,
         "d4_contract_version": D4_CONTRACT_VERSION,
         "d3_prompt_version": PROMPT_VERSION_V2, "d3_schema_version": D3_SCHEMA_VERSION,
         "d4_prompt_version": PROMPT_VERSION, "gap_contract_version": GAP_CONTRACT_VERSION,
         "validation_contract_version": VALIDATION_CONTRACT_VERSION,
         "model_requested": MODEL,
         "sample_size": len(sample), "attempted": len(results),
-        "tier_b_checksum": tier_b_checksum(tuple(sample)),
+        "tier_b_checksum": checksum_fn(tuple(sample)),
         "stopped_early": stopped_early, "budget_exhausted": budget_exhausted,
         "budget_contract": TIER_B_BUDGET.to_dict(),
         "tier_b_hard_cap_usd": hard_cap_usd,
-        "observed_projection_usd": OBSERVED_PROJECTION_USD,
+        "observed_projection_usd": observed_projection_usd,
         "run_total_cost_usd": run_total_cost_usd(spends),
         "candidate_spends": [s.to_dict() for s in spends],
         "d3_leg": d3_leg,
