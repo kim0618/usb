@@ -271,18 +271,18 @@ describe("terminal layout", () => {
     expect(compact).toHaveTextContent("1,000,000원");
   });
 
-  it("offers 15s and the four minute timeframes", () => {
-    render(<TimeframeTabs value={1} onChange={() => {}} />);
-    ["15s", "1", "3", "5", "15"].forEach(minutes =>
-      expect(screen.getByTestId(`timeframe-${minutes}`)).toBeInTheDocument());
-    expect(screen.getByTestId("timeframe-1")).toHaveAttribute("aria-pressed", "true");
+  it("offers the six V2 timeframes", () => {
+    render(<TimeframeTabs value="1m" onChange={() => {}} />);
+    ["15s", "1m", "10m", "1h", "4h", "1d"].forEach(frame =>
+      expect(screen.getByTestId(`timeframe-${frame}`)).toBeInTheDocument());
+    expect(screen.getByTestId("timeframe-1m")).toHaveAttribute("aria-pressed", "true");
   });
 
   it("switches timeframe on click", () => {
     const seen: (number | string)[] = [];
-    render(<TimeframeTabs value={1} onChange={next => seen.push(next)} />);
-    fireEvent.click(screen.getByTestId("timeframe-15"));
-    expect(seen).toEqual([15]);
+    render(<TimeframeTabs value="1m" onChange={next => seen.push(next)} />);
+    fireEvent.click(screen.getByTestId("timeframe-1d"));
+    expect(seen).toEqual(["1d"]);
   });
 
   it("keeps bid, ask and spread on one compact line", () => {
@@ -293,15 +293,18 @@ describe("terminal layout", () => {
     expect(strip).toHaveTextContent("0.10");
   });
 
-  it("feeds the chart candles built from the selected timeframe", async () => {
+  /** 1m is the one timeframe the short execution feed can still stand in for while the history
+   *  API is unreachable; every wider one is drawn from history or not at all, rather than from
+   *  a couple of hours of minute bars folded into a handful of misleading candles. */
+  it("falls back to the execution feed on 1m and to nothing on a wider timeframe", async () => {
     // The chart is a dynamic import, so it arrives on a later tick than the rest of the section.
     const bars = Array.from({ length: 6 }, (_, minute) =>
       bar(minute * M, "1", "1", "1", "1"));
     const { rerender } = render(
-      <ChartSection state={baseState()} bars={bars} timeframe={1} onTimeframe={() => {}} />);
+      <ChartSection state={baseState()} bars={bars} timeframe="1m" onTimeframe={() => {}} />);
     expect(await screen.findByTestId("candle-chart-stub")).toHaveAttribute("data-count", "6");
-    rerender(<ChartSection state={baseState()} bars={bars} timeframe={3} onTimeframe={() => {}} />);
-    expect(await screen.findByTestId("candle-chart-stub")).toHaveAttribute("data-count", "2");
+    rerender(<ChartSection state={baseState()} bars={bars} timeframe="10m" onTimeframe={() => {}} />);
+    expect(await screen.findByTestId("candle-chart-stub")).toHaveAttribute("data-count", "0");
   });
 
   it("says flat in one line instead of a large empty card", () => {

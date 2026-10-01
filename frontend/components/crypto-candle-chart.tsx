@@ -5,12 +5,28 @@ import type { AutoscaleInfo, IChartApi, IPriceLine, ISeriesApi } from "lightweig
 import type { ChartOverlay, ChartPoint } from "@/lib/crypto-paper";
 import { isTailUpdate, isWhitespace, visible15sBars } from "@/lib/crypto-paper";
 
-/** Axis label in KST. Without a formatter the library labels ticks in UTC, which put "04:30" under
- *  a 13:30 candle. Seconds only on the 15 s view, where they are the point. */
-const kstLabel = (seconds: boolean) => (time: number) => new Intl.DateTimeFormat("ko-KR", {
-  timeZone: "Asia/Seoul", hour: "2-digit", minute: "2-digit",
-  ...(seconds ? { second: "2-digit" as const } : {}), hour12: false,
-}).format(new Date(time * 1000));
+/** Every chart label is read in KST. Without a formatter the library labels ticks in UTC, which
+ *  put "04:30" under a 13:30 candle. */
+const kst = (time: number, options: Intl.DateTimeFormatOptions) =>
+  new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", hour12: false, ...options })
+    .format(new Date(time * 1000));
+
+/** Axis labels in KST. `tickMarkType` is the library's own answer to "is this tick the start of a
+ *  year, a month, a day, or a time within a day", so an hourly, 4-hourly or daily chart gets a
+ *  date where it needs one instead of the same `09:00` on every candle. */
+export const kstTickLabel = (seconds: boolean) => (time: number, tickMarkType?: number) => {
+  if (tickMarkType === 0) return kst(time, { year: "numeric" });
+  if (tickMarkType === 1) return kst(time, { year: "2-digit", month: "short" });
+  if (tickMarkType === 2) return kst(time, { month: "2-digit", day: "2-digit" });
+  return kst(time, { hour: "2-digit", minute: "2-digit",
+                     ...(seconds ? { second: "2-digit" as const } : {}) });
+};
+
+/** The crosshair reading. It is the one place that always carries the date, because a bar on a
+ *  daily chart and a bar at the far left of a panned minute chart are both ambiguous without it. */
+export const kstCrosshairLabel = (seconds: boolean) => (time: number) =>
+  kst(time, { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit",
+              ...(seconds ? { second: "2-digit" as const } : {}) });
 
 /** Two display profiles. The 15 s one trades the whole-history overview for readable candles:
  *  wider bars, the last N of them in view, the price scale fitted to those, volume kept small.
@@ -47,7 +63,7 @@ export function widenPriceRange<T extends { priceRange: { minValue: number; maxV
  *  unusable for exactly the person this screen is for.
  */
 export function CandleChart({ candles, overlays, className = "h-[300px]", seriesKey = "default", seconds = false,
-  onPriceRange }: {
+  onPriceRange, onNeedMoreHistory }: {
   candles: ChartPoint[];
   overlays: ChartOverlay[];
   /** Height is a Tailwind class rather than a number so the chart can grow on a wide screen
@@ -58,6 +74,8 @@ export function CandleChart({ candles, overlays, className = "h-[300px]", series
   seriesKey?: string;
   /** Show seconds on the time axis (the 15 s view). */
   seconds?: boolean;
+  /** Called near the left edge; the owner supplies loading/end locks. */
+  onNeedMoreHistory?: () => void;
   /** The price range currently on screen, reported whenever it may have changed. */
   onPriceRange?: (range: { from: number; to: number } | null) => void;
 }) {
@@ -74,6 +92,8 @@ export function CandleChart({ candles, overlays, className = "h-[300px]", series
    *  span). Read by tests and by the layout measurements; nothing in the app depends on them. */
   const secondsRef = useRef(seconds);
   secondsRef.current = seconds;
+  const historyListener = useRef(onNeedMoreHistory);
+  historyListener.current = onNeedMoreHistory;
   const rangeListener = useRef(onPriceRange);
   rangeListener.current = onPriceRange;
   const report = useCallback(() => {
@@ -89,6 +109,7 @@ export function CandleChart({ candles, overlays, className = "h-[300px]", series
       : "";
     node.dataset.barSpacing = String(api.timeScale().options().barSpacing);
     node.dataset.priceSpan = prices ? (prices.to - prices.from).toFixed(2) : "";
+    if (range && range.from <= 20) historyListener.current?.();
     node.dataset.profile = secondsRef.current ? "15s" : "minute";
     rangeListener.current?.(prices ? { from: prices.from, to: prices.to } : null);
   }, []);
@@ -124,13 +145,7 @@ export function CandleChart({ candles, overlays, className = "h-[300px]", series
           secondsVisible: false,
           rightOffset: 3,
         },
-        localization: {
-          locale: "ko-KR",
-          timeFormatter: (time: number) =>
-            new Intl.DateTimeFormat("ko-KR", {
-              timeZone: "Asia/Seoul", hour: "2-digit", minute: "2-digit", hour12: false,
-            }).format(new Date(time * 1000)),
-        },
+        localization: { locale: "ko-KR", timeFormatter: kstCrosshairLabel(false) },
         handleScroll: true,
         handleScale: true,
       });
@@ -196,25 +211,26 @@ export function CandleChart({ candles, overlays, className = "h-[300px]", series
     } else {
       const profile = seconds ? PROFILES.seconds : PROFILES.minute;
       const api = chart.current;
+      const visible = api?.timeScale().getVisibleLogicalRange() ?? null;
+      const prepended = previous?.key === seriesKey ? prependedBars(previous.times, times) : 0;
       api?.applyOptions({
         timeScale: { secondsVisible: seconds, barSpacing: profile.barSpacing, minBarSpacing: profile.minBarSpacing,
-                     rightOffset: profile.rightOffset, tickMarkFormatter: kstLabel(seconds) },
-        localization: { timeFormatter: kstLabel(seconds) },
+                     rightOffset: profile.rightOffset, tickMarkFormatter: kstTickLabel(seconds) },
+        localization: { timeFormatter: kstCrosshairLabel(seconds) },
       });
       price.priceScale().applyOptions({ scaleMargins: { top: profile.priceTop, bottom: profile.priceBottom } });
       api?.priceScale("volume").applyOptions({ scaleMargins: { top: profile.volumeTop, bottom: 0 } });
       price.setData(candles.map(bar));
       volume.setData(candles.map(vol));
+      if (prepended > 0 && visible) {
+        api?.timeScale().setVisibleLogicalRange({ from: visible.from + prepended, to: visible.to + prepended });
+      }
       // Place the view on the first draw and whenever the series changes. After that the
       // viewport belongs to whoever is panning it.
       if (!fitted.current || (previous != null && previous.key !== seriesKey)) {
-        if (seconds) {
-          const width = holder.current?.clientWidth ?? 0;
-          const bars = visible15sBars(width);
-          api?.timeScale().setVisibleLogicalRange({ from: candles.length - bars, to: candles.length - 1 + profile.rightOffset });
-        } else {
-          api?.timeScale().fitContent();
-        }
+        const width = holder.current?.clientWidth ?? 0;
+        const bars = seconds ? visible15sBars(width) : Math.max(60, Math.floor(width / profile.barSpacing));
+        api?.timeScale().setVisibleLogicalRange({ from: candles.length - bars, to: candles.length - 1 + profile.rightOffset });
         fitted.current = true;
       }
     }
@@ -256,4 +272,12 @@ export function CandleChart({ candles, overlays, className = "h-[300px]", series
       )}
     </div>
   );
+}
+
+/** Number of bars prepended to the same series, or zero when this is not a pure prepend. */
+export function prependedBars(previous: number[], next: number[]): number {
+  if (previous.length === 0 || next.length <= previous.length) return 0;
+  const offset = next.indexOf(previous[0]);
+  if (offset <= 0 || offset + previous.length > next.length) return 0;
+  return previous.every((time, index) => next[offset + index] === time) ? offset : 0;
 }

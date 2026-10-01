@@ -29,11 +29,14 @@ from ..paper.engine import OrderRejected
 from ..paper.analytics import reconcile, summarize
 from ..paper.instrument import RiskTierTable
 from ..paper.state import TransitionRejected
+from .chart_history import BybitChartHistory
 from .feed import BybitPublicFeed
 from .session import PaperSession
 
 DEFAULT_ROOT = Path("data/runtime/crypto/paper")
 CONFIG_ENV = "CRYPTO_PAPER_RUN_CONFIG"
+chart_history = BybitChartHistory()
+
 REQUIRED_CONFIG_FIELDS = (
     "run_id", "starting_capital_krw", "fx_krw_per_usdt", "fx_source", "fx_asof_utc",
     "fee_version", "fee_taker_rate", "fee_maker_rate", "fee_source", "fee_effective_date",
@@ -208,6 +211,19 @@ def create_app() -> FastAPI:
     @app.get("/api/crypto/chart")
     async def chart(limit: int = 120) -> Any:
         return jsonable({"bars": runtime.feed.chart(min(limit, 600))})
+
+    @app.get("/api/crypto/chart-history")
+    async def chart_history_route(timeframe: str, limit: int = 500,
+                                  before_ms: int | None = None) -> Any:
+        """Paged display history. It never feeds orders, sizing, PnL or the paper ledger."""
+        try:
+            body = await asyncio.to_thread(chart_history.get, timeframe, limit, before_ms)
+        except ValueError as exc:
+            return error(400, "CHART_QUERY_INVALID", str(exc))
+        except Exception as exc:
+            return error(502, "CHART_SOURCE_UNAVAILABLE",
+                         f"{type(exc).__name__}: {exc}")
+        return jsonable(body)
 
     @app.get("/api/crypto/performance")
     async def performance() -> Any:

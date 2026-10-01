@@ -43,7 +43,7 @@ function useIsWide() {
 
 export default function CryptoPaperPage() {
   const terminal = useCryptoTerminal();
-  const [timeframe, setTimeframe] = useState<ChartTimeframe>(1);
+  const [timeframe, setTimeframe] = useState<ChartTimeframe>("1m");
   const wide = useIsWide();
   const live = useLivePnl(terminal.state?.account?.position_side != null);
   /** PAPER unless the operator switches, and the switch is only offered when the backend says a

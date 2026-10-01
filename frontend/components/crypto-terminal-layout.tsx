@@ -4,13 +4,15 @@ import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   CHART_TIMEFRAMES, Candle15s, ChartTimeframe, CryptoState, FEED_STATUS_LABELS, FeedStatus,
-  Performance, aggregateCandles, candles15sNote, candles15sToChart, chartTimeframeLabel, isWhitespace,
+  Performance, aggregateCandles, candles15sNote, candles15sToChart, chartBarsToCandles,
+  chartTimeframeLabel, isWhitespace, mergeCandles,
   offscreenOverlays, cryptoApi, feedStatus, holdingDuration, krw,
   num, positionOverlays, price, qty, resetCapitalLabel, resetScopeNote,
   clockKst, costKrw, costUsdt, percent, previewFreshness, rejectLabel, signedKrw, signedUsdt,
   tickFreshness, toneClass, usdt,
 } from "@/lib/crypto-paper";
-import type { Candle15sStatus, ChartBar, ChartPoint, LivePnl, OpenPositionPnl, PositionPnlPreview } from "@/lib/crypto-paper";
+import type { Candle, Candle15sStatus, ChartBar, ChartPoint, HistoryTimeframe, LivePnl,
+  OpenPositionPnl, PositionPnlPreview } from "@/lib/crypto-paper";
 
 /** The charting library is ~190KB of canvas code that touches `window` on construction. Loading
  *  it dynamically with SSR off keeps it out of the server render and off the initial payload of
@@ -170,6 +172,88 @@ export function use15sCandles(enabled: boolean) {
   return { candles: candles15sToChart(rows), status, coverageFrom };
 }
 
+export const CHART_INITIAL_BARS: Record<HistoryTimeframe, number> = {
+  "1m": 2880, "10m": 2016, "1h": 2160, "4h": 2190, "1d": 2000,
+};
+export const CHART_HISTORY_PAGE = 500;
+export const CHART_HISTORY_POLL_MS = 15_000;
+
+/** Paged chart history. Requests are generation-checked as well as aborted, so a late response
+ *  from the previous timeframe can never replace the selected series. */
+export function useChartHistory(enabled: boolean, timeframe: HistoryTimeframe) {
+  const [series, setSeries] = useState<{ key: HistoryTimeframe; candles: Candle[] }>(
+    { key: timeframe, candles: [] });
+  const [loading, setLoading] = useState(false);
+  const [loadingEarlier, setLoadingEarlier] = useState(false);
+  const [end, setEnd] = useState(false);
+  const generation = useRef(0);
+  const before = useRef<number | null>(null);
+  const loadingEarlierRef = useRef(false);
+  const hasMore = useRef(true);
+
+  useEffect(() => {
+    if (!enabled) return;
+    const ownGeneration = ++generation.current;
+    const controller = new AbortController();
+    let stopped = false;
+    let timer: number | undefined;
+    before.current = null;
+    hasMore.current = true;
+    loadingEarlierRef.current = false;
+    setSeries({ key: timeframe, candles: [] });
+    setLoading(true);
+    setLoadingEarlier(false);
+    setEnd(false);
+
+    const current = () => !stopped && generation.current === ownGeneration;
+    const refreshTail = async () => {
+      try {
+        const body = await cryptoApi.chartHistory(timeframe, 3, null, controller.signal);
+        if (current()) setSeries(previous => ({ key: timeframe,
+          candles: mergeCandles(previous.key === timeframe ? previous.candles : [], chartBarsToCandles(body.bars)) }));
+      } catch { /* history remains usable when a refresh fails */ }
+      if (current()) timer = window.setTimeout(refreshTail, CHART_HISTORY_POLL_MS);
+    };
+
+    void cryptoApi.chartHistory(timeframe, CHART_INITIAL_BARS[timeframe], null, controller.signal)
+      .then(body => {
+        if (!current()) return;
+        setSeries({ key: timeframe, candles: chartBarsToCandles(body.bars) });
+        before.current = body.next_before_ms;
+        hasMore.current = body.has_more;
+        setEnd(!body.has_more);
+        timer = window.setTimeout(refreshTail, CHART_HISTORY_POLL_MS);
+      })
+      .catch(() => { /* the short execution-feed fallback remains on screen */ })
+      .finally(() => { if (current()) setLoading(false); });
+
+    return () => { stopped = true; controller.abort(); if (timer !== undefined) window.clearTimeout(timer); };
+  }, [enabled, timeframe]);
+
+  const loadEarlier = useCallback(async () => {
+    if (!enabled || loadingEarlierRef.current || !hasMore.current || before.current == null) return;
+    const ownGeneration = generation.current;
+    const cursor = before.current;
+    loadingEarlierRef.current = true;
+    setLoadingEarlier(true);
+    try {
+      const body = await cryptoApi.chartHistory(timeframe, CHART_HISTORY_PAGE, cursor);
+      if (generation.current !== ownGeneration) return;
+      setSeries(previous => ({ key: timeframe,
+        candles: mergeCandles(previous.key === timeframe ? previous.candles : [], chartBarsToCandles(body.bars)) }));
+      before.current = body.next_before_ms;
+      hasMore.current = body.has_more && body.next_before_ms !== cursor;
+      setEnd(!hasMore.current);
+    } catch { /* retry when the visible range asks again */ }
+    finally {
+      if (generation.current === ownGeneration) setLoadingEarlier(false);
+      loadingEarlierRef.current = false;
+    }
+  }, [enabled, timeframe]);
+
+  return { candles: series.key === timeframe ? series.candles : [], loading, loadingEarlier, end, loadEarlier };
+}
+
 /** Best bid, ask and spread on one line. They matter to a market order but they are not the
  *  headline, so they get a line rather than three cards. */
 export function QuoteStrip({ state }: { state: CryptoState }) {
@@ -196,7 +280,11 @@ export function ChartSection({ state, bars, timeframe, onTimeframe }: {
   onTimeframe: (next: ChartTimeframe) => void;
 }) {
   const fast = use15sCandles(timeframe === "15s");
-  const candles: ChartPoint[] = timeframe === "15s" ? fast.candles : aggregateCandles(bars, timeframe);
+  const historyFrame: HistoryTimeframe = timeframe === "15s" ? "1m" : timeframe;
+  const history = useChartHistory(timeframe !== "15s", historyFrame);
+  const fallback = timeframe === "1m" ? aggregateCandles(bars, 1) : [];
+  const candles: ChartPoint[] = timeframe === "15s" ? fast.candles
+    : (history.candles.length > 0 ? history.candles : fallback);
   const overlays = positionOverlays(state);
   const real = candles.filter(point => !isWhitespace(point)).length;
   const note = timeframe === "15s" ? candles15sNote(fast.status, real, fast.coverageFrom) : null;
@@ -215,6 +303,11 @@ export function ChartSection({ state, bars, timeframe, onTimeframe }: {
   const offscreen = offscreenOverlays(overlays, priceRange);
   return (
     <section aria-label="시세 차트" className="panel overflow-hidden p-2 sm:p-4">
+      {timeframe !== "15s" && (history.loading || history.loadingEarlier || history.end) && (
+        <p className="mb-1 text-[10px] text-muted" data-testid="chart-history-state">
+          {history.loading ? "기록 불러오는 중" : history.loadingEarlier ? "과거 불러오는 중" : "전체 기록"}
+        </p>
+      )}
       <div className="mb-1.5 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 sm:mb-2">
         <TimeframeTabs value={timeframe} onChange={onTimeframe} />
         <QuoteStrip state={state} />
@@ -232,7 +325,8 @@ export function ChartSection({ state, bars, timeframe, onTimeframe }: {
       {/* Shorter on a phone so the order panel arrives sooner; taller where there is room. On a
           desktop the order panel fills the right column and a short chart would waste it. */}
       <CandleChart candles={candles} overlays={overlays} seriesKey={String(timeframe)}
-        seconds={timeframe === "15s"} onPriceRange={onPriceRange} className="h-[200px] sm:h-[280px] xl:h-[520px]" />
+        seconds={timeframe === "15s"} onPriceRange={onPriceRange}
+        onNeedMoreHistory={timeframe === "15s" ? undefined : history.loadEarlier} className="h-[200px] sm:h-[280px] xl:h-[520px]" />
     </section>
   );
 }

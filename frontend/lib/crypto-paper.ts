@@ -102,6 +102,12 @@ export type TradeRow = {
   liquidated: boolean; exits: number; is_win: boolean;
 };
 export type ChartBar = { start_ms: number; open: string; high: string; low: string; close: string; volume: string; confirmed: boolean };
+export type HistoryTimeframe = "1m" | "10m" | "1h" | "4h" | "1d";
+export type ChartHistoryResponse = {
+  timeframe: HistoryTimeframe; bucket_ms: number;
+  source: "BYBIT_PUBLIC_KLINE"; source_interval: string;
+  bars: ChartBar[]; has_more: boolean; next_before_ms: number | null;
+};
 
 /** Price PnL and trading costs, apart. Every figure is the paper engine's: confirmed amounts are
  *  folded from the ledger, the expected-close amounts are read off a clone that was actually sent
@@ -233,6 +239,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const cryptoApi = {
   state: () => request<CryptoState>("/api/crypto/state"),
   chart: (limit = 120) => request<{ bars: ChartBar[] }>(`/api/crypto/chart?limit=${limit}`),
+  chartHistory: (timeframe: HistoryTimeframe, limit: number, beforeMs?: number | null,
+                 signal?: AbortSignal) => {
+    const query = new URLSearchParams({ timeframe, limit: String(limit) });
+    if (beforeMs != null) query.set("before_ms", String(beforeMs));
+    return request<ChartHistoryResponse>(`/api/crypto/chart-history?${query.toString()}`, { signal });
+  },
   ledger: (limit = 60) => request<{ total: number; events: LedgerEvent[] }>(`/api/crypto/ledger?limit=${limit}`),
   performance: () => request<Performance>("/api/crypto/performance"),
   trades: (limit = 50) => request<{ total: number; trades: TradeRow[] }>(`/api/crypto/trades?limit=${limit}`),
@@ -417,9 +429,9 @@ export const TIMEFRAME_LABELS: Record<Timeframe, string> = { 1: "1m", 3: "3m", 5
 /** What the chart can show. "15s" is built by the backend from the realtime public trade stream
  *  on its own connection; it is a live view only, never research data, and it exists only from
  *  the moment that stream started. The minute timeframes fold the exchange's 1m klines. */
-export const CHART_TIMEFRAMES = ["15s", 1, 3, 5, 15] as const;
+export const CHART_TIMEFRAMES = ["15s", "1m", "10m", "1h", "4h", "1d"] as const;
 export type ChartTimeframe = (typeof CHART_TIMEFRAMES)[number];
-export const chartTimeframeLabel = (value: ChartTimeframe) => value === "15s" ? "15s" : TIMEFRAME_LABELS[value];
+export const chartTimeframeLabel = (value: ChartTimeframe) => value;
 
 export type Candle15s = {
   start_ms: number; end_ms: number; open: string; high: string; low: string; close: string;
@@ -515,6 +527,29 @@ export type Candle = {
   open: number; high: number; low: number; close: number; volume: number;
   confirmed: boolean;
 };
+
+/** Parse server-bucketed history for drawing, dropping invalid and duplicate timestamps. */
+export function chartBarsToCandles(bars: ChartBar[]): Candle[] {
+  const byTime = new Map<number, Candle>();
+  for (const row of bars) {
+    const candle = {
+      time: row.start_ms / 1000, open: Number(row.open), high: Number(row.high),
+      low: Number(row.low), close: Number(row.close), volume: Number(row.volume),
+      confirmed: row.confirmed,
+    };
+    if ([candle.time, candle.open, candle.high, candle.low, candle.close].every(Number.isFinite)) {
+      byTime.set(candle.time, { ...candle, volume: Number.isFinite(candle.volume) ? candle.volume : 0 });
+    }
+  }
+  return [...byTime.values()].sort((left, right) => left.time - right.time);
+}
+
+/** Merge initial, lazy-loaded and live refresh pages without duplicate timestamps. */
+export function mergeCandles(current: Candle[], incoming: Candle[]): Candle[] {
+  const byTime = new Map(current.map(row => [row.time, row]));
+  for (const row of incoming) byTime.set(row.time, row);
+  return [...byTime.values()].sort((left, right) => left.time - right.time);
+}
 
 /** Fold 1m bars into `minutes`-wide candles.
  *

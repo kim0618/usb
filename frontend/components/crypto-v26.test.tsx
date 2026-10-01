@@ -113,7 +113,7 @@ const body = (candles: Candle15s[], current: Candle15s | null, status: Candles15
 describe("15 s candles", () => {
   it("offers 15s first in the timeframe row", () => {
     const seen: unknown[] = [];
-    render(<TimeframeTabs value={1} onChange={next => seen.push(next)} />);
+    render(<TimeframeTabs value="1m" onChange={next => seen.push(next)} />);
     const buttons = screen.getAllByRole("button");
     expect(buttons[0]).toHaveTextContent("15s");
     fireEvent.click(screen.getByTestId("timeframe-15s"));
