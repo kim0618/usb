@@ -313,53 +313,68 @@ def test_e7_is_a_core_gate_so_the_failure_cannot_be_reported_as_a_limitation():
                                  repair_dependence_high=dependence) is D4BVerdict.FAIL
 
 
-def test_the_e7_detector_matches_sell_inside_a_hyphenated_price_action_word():
-    """The mechanism of the failure, as a property of the detector rather than of the output: the
-    terms are compiled as whole words and a hyphen is a word boundary, so a compound noun that
-    recommends nothing matches the recommendation vocabulary. No data needed to show it."""
-    from app.dev.audit_strategy_h_v2_d4_1 import DECISION_VOCABULARY
+def test_the_e7_failure_mechanism_is_recorded_as_history_not_as_current_behaviour():
+    """D4-E7R repaired the detector this test used to pin. What the run observed does not change,
+    so the mechanism is now asserted from the stored artifact and from the regex property itself,
+    and the repaired behaviour is asserted beside it.
+
+    The word-boundary fact is what made this a defect rather than a vocabulary decision, and it is
+    a property of `re` that needs no detector to demonstrate: a hyphen is a boundary and a letter
+    is not, so `\bsell\b` matched "sell-off" and never matched "selloff".
+    """
+    import re
+
+    from app.backtest.strategy_h_v2.research.validation_v2 import decision_leakage_findings
 
     sentence = ("The flat pre-event return suggests the guidance cut was not anticipated in the "
                 "price beforehand: there was neither a run-up nor a sell-off before the event.")
-    matched = [p.pattern for p in DECISION_VOCABULARY if p.search(sentence)]
-    assert matched == [r"\bsell\b"], matched
-    assert any(p.search("sell-off") for p in DECISION_VOCABULARY)
-    assert any(p.search("a selloff") for p in DECISION_VOCABULARY) is False, (
-        "unhyphenated 'selloff' does NOT match, which is what makes this a word-boundary artifact "
-        "rather than a vocabulary decision"
+    assert re.search(r"\bsell\b", sentence), "this is why the run failed"
+    assert re.search(r"\bsell\b", "sell-off")
+    assert re.search(r"\bsell\b", "a selloff") is None, (
+        "the same sentence written without the hyphen would have passed the identical gate"
+    )
+    assert decision_leakage_findings(sentence) == (), "D4-E7R: the sentence asserts no decision"
+
+
+def test_the_e7_defect_class_also_fired_in_the_generating_validator():
+    """COLL's initial failure, the second instance of the one defect. Recorded from the stored
+    record rather than from the live classifier, because the classifier no longer behaves that way -
+    and §10 of D4-E7R forbids using the repair to reduce the repair count the run recorded."""
+    import glob as _glob
+    import json
+
+    import pytest
+
+    from app.backtest.strategy_h_v2.research.validation_v2 import decision_leakage_findings
+
+    paths = [p for p in _glob.glob(str(C.D4_BR_C_ROOT / "analyses/**/COLL/*.json"), recursive=True)
+             if not p.endswith("expectation_evidence.json")]
+    if not paths:
+        pytest.skip("no stored COLL record in this checkout")
+    record = json.loads(open(paths[0]).read())
+    assert record["initial_failure_codes"] == ["PROHIBITED_LANGUAGE"]
+    assert any("price target" in d for d in record["initial_failure_details"])
+    assert len(record["repair_rounds"]) == 2, "the round was spent; the repair does not refund it"
+    assert decision_leakage_findings(
+        "Nothing here is a valuation, a price target or a decision.") == (), (
+        "D4-E7R: a disclaimer is read as a disclaimer"
     )
 
 
-def test_the_decision_vocabulary_has_no_context_window():
-    """Stated as a fact about the detector, because it is the thing the finding is about. `fair
-    value` and `approve/reject` are resolved through a surrounding window in `validation_v2`; the
-    audit's decision vocabulary and the validator's unambiguous list are not."""
+def test_the_decision_semantics_now_have_one_authority():
+    """The pre-E7R split is what let the two components disagree about COLL: the validator passed
+    the sell-off sentence the audit failed, and rejected the disclaimer the audit would have
+    passed."""
     import inspect
 
     from app.backtest.strategy_h_v2.research import validation_v2
     from app.dev import audit_strategy_h_v2_d4_1 as audit
 
-    vocab_src = inspect.getsource(audit).split("DECISION_VOCABULARY")[1][:400]
-    assert "window" not in vocab_src.lower()
+    assert not hasattr(audit, "DECISION_VOCABULARY")
+    assert not hasattr(validation_v2, "_UNAMBIGUOUS_RE")
+    assert "decision_leakage_findings" in inspect.getsource(audit)
     assert "_FV_SAFE_FRAME" in inspect.getsource(validation_v2), (
-        "the context-window machinery exists for 'fair value', which is why its absence on the "
-        "unambiguous list is a gap rather than an oversight everywhere"
-    )
-    assert any(t.strip("r'\"").startswith(r"\bprice target") or "price target" in t
-               for t in [p for p in validation_v2._UNAMBIGUOUS_TERMS])
-
-
-def test_the_validator_rejects_a_disclaimer_that_denies_producing_a_price_target():
-    """COLL's initial failure, reproduced on the sentence itself. The model's natural way to comply
-    with the prohibition trips the unconditional match on the prohibited phrase."""
-    from app.backtest.strategy_h_v2.research.validation_v2 import (
-        LanguageVerdict,
-        classify_investment_language,
-    )
-    disclaimer = "Nothing here is a valuation, a price target or a decision."
-    verdicts = [m.verdict for m in classify_investment_language(disclaimer)]
-    assert LanguageVerdict.VIOLATION in verdicts, (
-        "recorded as the behaviour observed on this run, not endorsed as correct"
+        "the contextual machinery D3.2 measured on real filings is still there, unchanged"
     )
 
 

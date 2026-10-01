@@ -483,14 +483,201 @@ _APPROVE_OPINION = re.compile(
     r"\bwe\s+(?:approve|recommend)\s+(?:this|the)\s+(?:stock|investment|company)\b|"
     r"\breject\s+(?:this|the)\s+company\s+as\s+an\s+investment\b", re.IGNORECASE)
 
-#: Whole-phrase analyst/strategy jargon that D0/D3 already keep out of the schema entirely - kept
-#: here only as a lexical regression check, not because V2 changes their treatment.
-_UNAMBIGUOUS_TERMS = (
-    r"\bprice target\b", r"\bfair value target\b", r"\bentry zone\b", r"\bstrong buy\b",
-    r"\bstrong sell\b", r"\bbuy rating\b", r"\bsell rating\b", r"\bprice objective\b",
-    r"\bundervalued\b", r"\bovervalued\b",
+#: Retired by D4-E7R. The same phrases are now in `_JARGON_TERMS` below, where clause-level negation
+#: reaches them - which is what "This is not a price target" needed. They were never wrong about
+#: which phrases are jargon; they were wrong that a phrase cannot be mentioned in order to deny it.
+
+
+# ---------------------------------------------------------------------------------------------
+# E7R - decision-leakage semantics (D4-E7R brief §3-§6)
+# ---------------------------------------------------------------------------------------------
+#
+# What E7 prohibits is the PRODUCTION of an investment action or verdict: "buy the stock", "we
+# recommend selling", "APPROVE", "my price target is $50". What it does not prohibit is the word.
+# D4-BR-C failed on "there was neither a run-up nor a sell-off before the event", because the audit
+# compiled `\bsell\b` as a whole word and a hyphen is a word boundary; it had already spent a repair
+# round on "Nothing here is a valuation, a price target or a decision", because the unambiguous list
+# matched a sentence that DENIES producing one. Two instances of one defect: a lexical hit read as an
+# assertion.
+#
+# The repair inverts the direction. Instead of matching a bare token and then looking for an excuse,
+# each family matches the SHAPE of a decision - an imperative, a recommendation frame, a verdict
+# token, a price directive - and market or business vocabulary never has that shape. "sell-off",
+# "buyback", "selling pressure", "the board approved the transaction" and "customer purchase" are not
+# excused by a rule; they are not matched in the first place.
+#
+# Negation is read PER CLAUSE, which is the convention D4-BR §G already froze: a disclaimer behind a
+# semicolon does not reach the clause above it. That is what makes "Do not sell; buy instead" a BUY
+# violation while "This is not a recommendation to buy" is nothing at all - and it is why a blanket
+# negation exemption is not what this implements.
+
+_CLAUSE_BOUNDARY = re.compile(r"(?:[.!?;:]|\n)+")
+
+_NEGATION_CUE = re.compile(
+    r"\b(?:not|n't|no|nor|neither|never|nothing|none|without|cannot|"
+    r"excludes?|exclusive of|absent|rather than|instead of)\b", re.IGNORECASE)
+"""A denial cue. It only counts when it sits BEFORE the matched term in the SAME clause, so a
+trailing disclaimer cannot retroactively excuse an assertion made earlier in the sentence."""
+
+#: What the action has to be done to, when a family needs an object. Deliberately the security and
+#: not the company: "customers buy replacement parts" and "the company sells HVAC equipment" are
+#: ordinary business prose and are the D3-pilot false positives `schema.py` already documents.
+_SECURITY_WORD = re.compile(
+    r"\b(?:stock|shares?|equity|share price|position|holding|security|securities|ticker)\b",
+    re.IGNORECASE)
+
+#: An action verb at the START of a clause is an instruction. `(?!-)` is the whole point of this
+#: module's existence: it stops "sell-off", "sell-side", "buy-side" and "buy-back" from being read as
+#: the verb they are not. Gerunds and plurals are excluded by the word boundary itself - "selling",
+#: "sells" and "sold" never match `\bsell\b` - and are reached through the recommendation frame
+#: instead, where an actual recommender is named.
+_ACTION_IMPERATIVE = re.compile(
+    r"^\s*(?:please\s+)?(buy|sell|short|accumulate|trim|exit|avoid)\b(?!-)", re.IGNORECASE)
+
+#: A named party being told to transact. "you should buy", "investors should sell the position".
+_ACTION_PRESCRIPTION = re.compile(
+    r"\b(?:you|we|i|investors?|readers?|clients?|one)\s+(?:should|ought\s+to|must|need\s+to)\s+"
+    r"(?:buy|sell|short|accumulate|trim|exit|avoid|hold)\b(?!-)", re.IGNORECASE)
+
+#: A recommendation whose object is a transaction. The verb is matched with `\w*` so "selling" and
+#: "buying" are reached here, where the frame already establishes that somebody is recommending.
+_ACTION_RECOMMENDATION = re.compile(
+    r"\b(?:i|we|you|investors?|one)\s+(?:would\s+|strongly\s+|therefore\s+)?"
+    r"(?:recommend|advise|urge|suggest)\w*\s+(?:that\s+\w+\s+|\w+\s+)?"
+    r"(?:buy|sell|short|exit|accumulate|trim|avoid)\w*", re.IGNORECASE)
+
+#: Analyst rating vocabulary. A rating is a verdict however it is phrased.
+_ACTION_RATING = re.compile(
+    r"\b(?:strong\s+(?:buy|sell)|(?:buy|sell)\s+(?:rating|recommendation)|"
+    r"(?:rate|rated|rating\s+of)\s+(?:it\s+)?(?:a\s+)?(?:buy|sell))\b", re.IGNORECASE)
+
+#: The D6 decision enum leaking into a D4 output. Case-SENSITIVE and uppercase on purpose: the
+#: lowercase verbs are ordinary corporate prose ("the board approved", "shareholders rejected",
+#: "we watch the metric") and are handled by `_APPROVE_SAFE`/`_APPROVE_OPINION`. An uppercase
+#: APPROVE / WATCH / REJECT is the token, not the word.
+_DECISION_TOKEN = re.compile(r"\b(?:APPROVE|APPROVED|WATCH|REJECT|REJECTED)\b")
+
+#: A price directive. The price has to follow the term immediately, so "the segment's exit from
+#: Europe cost $40 million" is not an entry/exit level.
+_PRICE_DIRECTIVE = re.compile(
+    r"\b(?:entry|exit|stop|target)\s+(?:is|at|was|of|near|around|price\s+(?:is|of))\s*\$|"
+    r"\bstop[\s-]?loss\b|\btake[\s-]?profit\b", re.IGNORECASE)
+
+#: A bare declarative valuation of the security. "Fair value is $60." is an opinion; "The fair value
+#: was $5.0 million as of December 31" is an accounting disclosure, and only the present-tense
+#: clause-initial form is matched so filing prose stays out. Checked AFTER the GAAP safe markers,
+#: which keep precedence.
+_VALUE_DECLARATION = re.compile(
+    r"^\s*(?:the\s+|our\s+|my\s+)?(?:fair|intrinsic)\s+value\s+(?:is|of)\s*\$", re.IGNORECASE)
+
+#: "intrinsic value" is also GAAP's term for share-based compensation. Safe when it is attached to
+#: an award, a violation when it values the security.
+_IV_SAFE = re.compile(
+    r"\b(?:option|award|rsu|sar|warrant|exercis\w+|vest\w+|grant\w+|unvested|outstanding)\b",
+    re.IGNORECASE)
+
+#: Price-level opinions about the security. "expensive to manufacture" has no security in its clause.
+_PRICE_OPINION_TERM = re.compile(r"\b(?:cheap|expensive|attractive)\b", re.IGNORECASE)
+
+#: Whole-phrase jargon that has no non-decision reading at all. Unlike the pre-E7R list, these are
+#: still subject to clause-level negation, which is what "This is not a price target" needed.
+_JARGON_TERMS = (
+    r"\bprice target\b", r"\btarget price\b", r"\bprice objective\b", r"\bfair value target\b",
+    r"\bentry zone\b", r"\battractive entry\b", r"\bposition siz\w+\b", r"\bportfolio weight\b",
+    r"\bundervalued\b", r"\bovervalued\b", r"\bwe recommend\b", r"\bconviction score\b",
+    r"\bexpectation gap (?:is )?positive\b", r"\bexpectation gap (?:is )?negative\b",
 )
-_UNAMBIGUOUS_RE = re.compile("|".join(_UNAMBIGUOUS_TERMS), re.IGNORECASE)
+_JARGON_RE = re.compile("|".join(_JARGON_TERMS), re.IGNORECASE)
+
+
+def _clauses(text: str) -> list[tuple[int, str]]:
+    """`(offset, clause)` for each clause. Commas are NOT boundaries: "Nothing here is a valuation,
+    a price target or a decision" is one denial, and splitting it would strand the cue."""
+    spans: list[tuple[int, str]] = []
+    start = 0
+    for match in _CLAUSE_BOUNDARY.finditer(text):
+        spans.append((start, text[start:match.start()]))
+        start = match.end()
+    spans.append((start, text[start:]))
+    return [(offset, clause) for offset, clause in spans if clause.strip()]
+
+
+def _is_negated(clause: str, term_start: int) -> bool:
+    """A cue before the term, in this clause. Nothing after the term can excuse it."""
+    return any(m.start() < term_start for m in _NEGATION_CUE.finditer(clause))
+
+
+def _denied_in_clause(text: str, term_start: int) -> bool:
+    """Whether the clause containing `term_start` denies it, for the two families that predate E7R.
+
+    Expressed over absolute offsets because `classify_investment_language` scans the whole text for
+    those two rather than clause by clause, and rewriting their window logic would change verdicts
+    D3.2 §G measured on real filings.
+    """
+    for offset, clause in _clauses(text):
+        if offset <= term_start < offset + len(clause):
+            return _is_negated(clause, term_start - offset)
+    return False
+
+
+def _decision_matches(text: str) -> list[LanguageMatch]:
+    """Every decision-shaped assertion in `text`, clause by clause.
+
+    A family that matches is a VIOLATION unless the clause denies it. Nothing here returns SAFE or
+    UNCLASSIFIED: a shape either is an instruction or was never matched, which is the difference
+    between this and a vocabulary list.
+    """
+    found: list[LanguageMatch] = []
+
+    def _add(clause: str, offset: int, match: re.Match, family: str) -> None:
+        if _is_negated(clause, match.start()):
+            return
+        found.append(LanguageMatch(
+            family, (offset + match.start(), offset + match.end()),
+            clause.strip()[:200], LanguageVerdict.VIOLATION))
+
+    for offset, clause in _clauses(text):
+        for family, pattern in (
+            ("investment action", _ACTION_IMPERATIVE),
+            ("investment prescription", _ACTION_PRESCRIPTION),
+            ("investment recommendation", _ACTION_RECOMMENDATION),
+            ("analyst rating", _ACTION_RATING),
+            ("decision token", _DECISION_TOKEN),
+            ("price directive", _PRICE_DIRECTIVE),
+            ("analyst jargon", _JARGON_RE),
+        ):
+            match = pattern.search(clause)
+            if match:
+                _add(clause, offset, match, family)
+
+        value = _VALUE_DECLARATION.search(clause)
+        if value and not (_FV_SAFE_OBJECT.search(clause) or _FV_SAFE_FRAME.search(clause)
+                          or _IV_SAFE.search(clause)):
+            _add(clause, offset, value, "valuation of the security")
+
+        for match in _PRICE_OPINION_TERM.finditer(clause):
+            if _SECURITY_WORD.search(clause):
+                _add(clause, offset, match, "price-level opinion")
+                break
+
+        for match in re.finditer(r"\bintrinsic value\b", clause, re.IGNORECASE):
+            if not _IV_SAFE.search(clause) and _SECURITY_WORD.search(clause):
+                _add(clause, offset, match, "valuation of the security")
+                break
+
+    return found
+
+
+def decision_leakage_findings(text: str) -> tuple[LanguageMatch, ...]:
+    """E7's authority: every investment-decision assertion in `text`, and nothing else.
+
+    `audit_strategy_h_v2_d4_1` calls this instead of carrying its own vocabulary, so there is one
+    place where "is this a decision?" is answered. It returns only VIOLATION matches - an
+    UNCLASSIFIED lexical hit is not a decision leak, and E7's threshold of zero is only meaningful
+    if what it counts are assertions.
+    """
+    return tuple(m for m in classify_investment_language(text)
+                 if m.verdict == LanguageVerdict.VIOLATION)
 
 
 def classify_investment_language(text: str) -> tuple[LanguageMatch, ...]:
@@ -504,7 +691,7 @@ def classify_investment_language(text: str) -> tuple[LanguageMatch, ...]:
     matches: list[LanguageMatch] = []
     for m in re.finditer(r"\bfair value\b", text, re.IGNORECASE):
         window = text[max(0, m.start() - 60):m.end() + 60]
-        if _FV_OPINION.search(window):
+        if _FV_OPINION.search(window) and not _denied_in_clause(text, m.start()):
             verdict = LanguageVerdict.VIOLATION
         elif _FV_SAFE_OBJECT.search(window) or _FV_SAFE_FRAME.search(window):
             verdict = LanguageVerdict.SAFE
@@ -513,16 +700,14 @@ def classify_investment_language(text: str) -> tuple[LanguageMatch, ...]:
         matches.append(LanguageMatch("fair value", m.span(), window, verdict))
     for m in re.finditer(r"\bapprov\w*\b|\breject\w*\b", text, re.IGNORECASE):
         window = text[max(0, m.start() - 60):m.end() + 60]
-        if _APPROVE_OPINION.search(window):
+        if _APPROVE_OPINION.search(window) and not _denied_in_clause(text, m.start()):
             verdict = LanguageVerdict.VIOLATION
         elif _APPROVE_SAFE.search(window):
             verdict = LanguageVerdict.SAFE
         else:
             continue  # bare "approved the acquisition" etc. - not a lexical trigger at all
         matches.append(LanguageMatch(m.group(0), m.span(), window, verdict))
-    for m in _UNAMBIGUOUS_RE.finditer(text):
-        window = text[max(0, m.start() - 40):m.end() + 40]
-        matches.append(LanguageMatch(m.group(0), m.span(), window, LanguageVerdict.VIOLATION))
+    matches.extend(_decision_matches(text))
     return tuple(matches)
 
 

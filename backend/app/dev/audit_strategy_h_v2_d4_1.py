@@ -59,6 +59,7 @@ from app.backtest.strategy_h_v2.expectation.state_fidelity import (
     state_fact_inventory,
     state_fidelity_report,
 )
+from app.backtest.strategy_h_v2.research.validation_v2 import decision_leakage_findings
 from app.dev.run_strategy_h_v2_d4_1 import ANALYSES_ROOT, D4_1_ROOT, PACKAGES_DIR
 
 MATERIAL_TYPES = {"FACT", "INTERPRETATION", "INFERENCE"}
@@ -85,12 +86,16 @@ AUDIT_BANNED_FIELDS = frozenset({
     "conviction_score", "expectation_gap_score",
 })
 
-#: Vocabulary that would make D4 a decision or valuation layer. Matched as whole words in free text.
-DECISION_VOCABULARY = tuple(re.compile(rf"\b{p}\b", re.I) for p in (
-    "approve", "reject", "buy", "sell", "overvalued", "undervalued", "fair value",
-    "intrinsic value", "price target", "target price", "cheap", "expensive", "attractive entry",
-    "position size", "we recommend", "recommendation",
-))
+#: E7's vocabulary used to live here, as whole-word patterns over free text. D4-E7R retired it:
+#: `validation_v2.decision_leakage_findings` is now the single place where "is this an investment
+#: decision?" is answered, and this audit asks it rather than deciding again. The shadow list is
+#: what failed D4-BR-C - `\bsell\b` matched inside "sell-off", a description of price action that
+#: recommends nothing, while the validator that generated the text had already passed it. Two
+#: answers to one question is one answer too many.
+#:
+#: What stays local is `AUDIT_BANNED_FIELDS` above. A field NAME is a different obligation from
+#: prose semantics - `{"fair_value": 42}` is prohibited whatever the surrounding sentence says - and
+#: that list is still deliberately independent of `analysis_schema.BANNED_D4_FIELD_NAMES`.
 
 #: Field paths whose value is a code-filled status token or a version string, never free prose.
 NON_PROSE_KEYS = frozenset({
@@ -320,10 +325,10 @@ def audit_output(output: dict, *, package: AIResearchInputV1,
         for finding in suppressed_absence_findings(text, state=state):
             absence_allowed.append({"path": path, "trigger": finding.trigger,
                                     "sentence": finding.sentence})
-        for pattern in DECISION_VOCABULARY:
-            if pattern.search(text):
-                e7_text.append({"path": path, "match": pattern.pattern, "text": text[:200]})
-                break
+        for finding in decision_leakage_findings(text):
+            e7_text.append({"path": path, "match": finding.term, "context": finding.context,
+                            "text": text[:200]})
+            break
 
     return {
         "unsourced_material_claims": unsourced,
