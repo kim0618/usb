@@ -20,10 +20,11 @@ from app.crypto.live.arm import (ARMED_BY_ENV, ARMED_BY_SESSION, CONFIRMATION, D
                                  DISARM_EXPIRED, DISARM_MANUAL, ArmRefused, ArmSession)
 from app.crypto.live.mirror import LiveEvent, LiveMirror
 from app.crypto.live.orders import LIVE_TRADING_DISABLED, LiveOrderRouter
+from app.crypto.live.rest import BinanceError
 from app.crypto.live.account import AccountReader
 from app.crypto.terminal import live_routes
 from app.crypto.terminal.server import app
-from tests.crypto.binance_fixtures import (FakeBinance, POSITION_RISK_FLAT, make_client,
+from tests.crypto.binance_fixtures import (FakeBinance, POSITION_RISK_FLAT, SYMBOL_CONFIG, make_client,
                                            make_config)
 
 D = Decimal
@@ -322,3 +323,91 @@ def test_reading_leverage_options_sends_no_trade_request(live) -> None:
     client.get("/api/crypto/binance/leverage")
     assert adapter.client.telemetry.trade_requests == 0
     assert fake.count("/fapi/v1/leverage") == 0
+
+# ------------------------------------------------------------------ leverage mutation route
+
+def _last_requested_leverage(fake: FakeBinance) -> int:
+    posts = [params for method, path, params in fake.calls
+             if method == "POST" and path == "/fapi/v1/leverage"]
+    return int(posts[-1]["leverage"]) if posts else 10
+
+
+@pytest.mark.parametrize("requested", [20, 50])
+def test_leverage_route_confirms_actual_value_after_binance_resync(live, requested) -> None:
+    client, _adapter, fake, *_ = live
+    fake.routes[("POST", "/fapi/v1/leverage")] = lambda: {
+        "symbol": "BTCUSDT", "leverage": _last_requested_leverage(fake),
+        "maxNotionalValue": "10000000"}
+    fake.routes[("GET", "/fapi/v1/symbolConfig")] = lambda: [{
+        "symbol": "BTCUSDT", "marginType": "CROSSED", "isAutoAddMargin": "false",
+        "leverage": _last_requested_leverage(fake), "maxNotionalValue": "10000000"}]
+    client.post("/api/crypto/binance/arm", json={"confirmation": CONFIRMATION})
+    response = client.post("/api/crypto/binance/leverage", json={"leverage": str(requested)})
+    assert response.status_code == 200
+    assert response.json()["leverage"] == str(requested)
+
+
+def test_leverage_route_rejects_a_success_response_not_confirmed_by_resync(live) -> None:
+    client, _adapter, fake, *_ = live
+    client.post("/api/crypto/binance/arm", json={"confirmation": CONFIRMATION})
+    response = client.post("/api/crypto/binance/leverage", json={"leverage": "20"})
+    assert response.status_code == 409
+    assert response.json()["error"]["code"] == "LEVERAGE_CONFIRMATION_FAILED"
+    assert fake.count("/fapi/v1/leverage") == 1
+
+
+def test_leverage_route_maps_exchange_reject_without_internal_message(live) -> None:
+    client, _adapter, fake, *_ = live
+    fake.fail("POST", "/fapi/v1/leverage", 400, -4028, "internal exchange wording")
+    client.post("/api/crypto/binance/arm", json={"confirmation": CONFIRMATION})
+    response = client.post("/api/crypto/binance/leverage", json={"leverage": "50"})
+    assert response.status_code == 409
+    assert response.json()["error"] == {
+        "code": "UNSUPPORTED_LEVERAGE",
+        "message": "Binance 계정에서 선택한 레버리지를 사용할 수 없습니다."}
+
+
+def test_leverage_route_rejects_invalid_input_without_binance_write(live) -> None:
+    client, _adapter, fake, *_ = live
+    for value in ("0", "-1", "1.5", "bad"):
+        response = client.post("/api/crypto/binance/leverage", json={"leverage": value})
+        assert response.status_code == 400
+        assert response.json()["error"]["code"] == "INVALID_LEVERAGE"
+    assert fake.count("/fapi/v1/leverage") == 0
+
+
+def test_leverage_route_blocks_when_fresh_account_resync_fails(live) -> None:
+    client, _adapter, fake, *_ = live
+    fake.fail("GET", "/fapi/v3/account", 500, -1000, "unknown")
+    client.post("/api/crypto/binance/arm", json={"confirmation": CONFIRMATION})
+    response = client.post("/api/crypto/binance/leverage", json={"leverage": "20"})
+    assert response.status_code == 409
+    assert response.json()["error"]["code"] == "LEVERAGE_RESYNC_FAILED"
+    assert fake.count("/fapi/v1/leverage") == 0
+
+
+def test_leverage_route_reports_post_change_resync_failure(live) -> None:
+    client, _adapter, fake, *_ = live
+    reads = 0
+    def symbol_config():
+        nonlocal reads
+        reads += 1
+        return SYMBOL_CONFIG if reads == 1 else []
+    fake.routes[("GET", "/fapi/v1/symbolConfig")] = symbol_config
+    client.post("/api/crypto/binance/arm", json={"confirmation": CONFIRMATION})
+    response = client.post("/api/crypto/binance/leverage", json={"leverage": "10"})
+    assert response.status_code == 409
+    assert response.json()["error"]["code"] == "LEVERAGE_RESYNC_FAILED"
+    assert fake.count("/fapi/v1/leverage") == 1
+
+
+def test_leverage_route_maps_transport_timeout_without_internal_detail(live, monkeypatch) -> None:
+    client, adapter, *_ = live
+    def timeout(_value):
+        raise BinanceError(status=0, code=None, message="transport failure: ReadTimeout")
+    monkeypatch.setattr(adapter, "set_leverage", timeout)
+    response = client.post("/api/crypto/binance/leverage", json={"leverage": "20"})
+    assert response.status_code == 504
+    assert response.json()["error"] == {
+        "code": "LEVERAGE_TIMEOUT",
+        "message": "Binance 응답 시간이 초과되었습니다. 기존 레버리지를 유지합니다."}

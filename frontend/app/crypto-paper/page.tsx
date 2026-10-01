@@ -11,8 +11,8 @@ import {
 } from "@/components/crypto-terminal-layout";
 import {
   AccountSourceSwitch, LiveAccountCards, LiveActivateDialog, LiveAuthorityNote, LiveBlockedPanel,
-  LiveBookStrip, LiveLeverageNotes, LiveLeveragePanel, LiveMarketHeader, LiveOrderTicket,
-  LivePositionCard, LivePositionPanel, LiveTradeBar, useBinanceLive,
+  LiveAutoExit, LiveBookStrip, LiveLeverageNotes, LiveLeveragePanel, LiveMarketHeader, LiveOrderTicket,
+  LivePerformanceSummary, LivePositionCard, LivePositionPanel, LiveTradeBar, useBinanceLive,
 } from "@/components/crypto-live-terminal";
 import type { ChartTimeframe } from "@/lib/crypto-paper";
 import { positionOpenedMs } from "@/lib/crypto-paper";
@@ -81,6 +81,7 @@ export default function CryptoPaperPage() {
         ) : (
           <div className="space-y-3">
             <LiveMarketHeader account={account} />
+            <LivePerformanceSummary performance={binance.performance} />
             {/* Phone: the held position comes before the chart with its own CLOSE, exactly
                 where the paper screen puts it. The wide layout keeps the full panel below the
                 chart, so nothing moves on a desktop. */}
@@ -121,6 +122,11 @@ export default function CryptoPaperPage() {
                   error={binance.actionError} preview={binance.preview}
                   onPreview={binance.requestPreview} gate={gate} onActivate={activate}
                   sizing={binance.sizing} />
+                {account.position && !account.position.is_flat && (
+                  <LiveAutoExit guard={binance.exitGuard} onSave={binance.saveExitGuard}
+                    onDisable={binance.disableExitGuard} busy={binance.busy}
+                    error={binance.exitGuardError} />
+                )}
               </div>
             </div>
 

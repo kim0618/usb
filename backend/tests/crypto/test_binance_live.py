@@ -838,3 +838,47 @@ def test_the_stream_says_in_its_own_view_that_it_is_only_a_signal() -> None:
     client, _ = make_client()
     stream = UserDataStream(client=client, config=make_config())
     assert "CHANGE_SIGNAL_ONLY" in stream.view()["role"]
+
+# ------------------------------------------------------------------ leverage change safety
+
+def test_leverage_20_and_50_reach_binance_only_when_flat(tmp_path: Path) -> None:
+    for value in (20, 50):
+        fake = FakeBinance()
+        fake.position_rows = POSITION_RISK_FLAT
+        route, fake, _ = router(fake, armed=True, tmp_path=tmp_path / str(value))
+        route.set_leverage(value)
+        method, path, params = fake.calls[-1]
+        assert (method, path, params["leverage"]) == ("POST", "/fapi/v1/leverage", str(value))
+
+
+def test_leverage_change_is_blocked_by_backend_while_position_exists(tmp_path: Path) -> None:
+    route, fake, _ = router(armed=True, tmp_path=tmp_path)
+    with pytest.raises(OrderRefused) as caught:
+        route.set_leverage(20)
+    assert caught.value.code == orders.LEVERAGE_POSITION_OPEN
+    assert fake.count("/fapi/v1/leverage") == 0
+
+
+def test_leverage_outside_account_bracket_is_blocked_before_trade_call(tmp_path: Path) -> None:
+    fake = FakeBinance()
+    fake.position_rows = POSITION_RISK_FLAT
+    fake.routes[("GET", "/fapi/v1/leverageBracket")] = [{"symbol": "BTCUSDT", "brackets": [
+        {"bracket": 1, "initialLeverage": 10, "notionalCap": 1, "notionalFloor": 0}]}]
+    route, fake, _ = router(fake, armed=True, tmp_path=tmp_path)
+    with pytest.raises(OrderRefused) as caught:
+        route.set_leverage(20)
+    assert caught.value.code == orders.UNSUPPORTED_LEVERAGE
+    assert fake.count("/fapi/v1/leverage") == 0
+
+
+def test_binance_leverage_rejection_is_sanitized_in_audit_mirror(tmp_path: Path) -> None:
+    fake = FakeBinance()
+    fake.position_rows = POSITION_RISK_FLAT
+    fake.fail("POST", "/fapi/v1/leverage", 400, -4028, "Leverage 50 is not valid")
+    route, _, mirror = router(fake, armed=True, tmp_path=tmp_path)
+    with pytest.raises(BinanceError) as caught:
+        route.set_leverage(50)
+    assert caught.value.code == -4028
+    refusal = next(row for row in mirror.events if row["event_type"] == LiveEvent.LEVERAGE_REFUSED)
+    assert refusal["stage"] == "EXCHANGE" and refusal["code"] == -4028
+    assert "signature" not in repr(refusal).lower()

@@ -2,8 +2,8 @@ import React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import {
-  AccountSourceSwitch, LiveAccountCards, LiveAuthorityNote, LiveBlockedPanel, LiveBookStrip,
-  LiveMarketHeader, LiveOrderTicket, LivePositionPanel,
+  AccountSourceSwitch, LiveAccountCards, LiveAutoExit, LiveAuthorityNote, LiveBlockedPanel, LiveBookStrip,
+  LiveMarketHeader, LiveOrderTicket, LivePerformanceSummary, LivePositionPanel,
 } from "@/components/crypto-live-terminal";
 import { liveApi, liveBlockerLabel, liveTradeGate } from "@/lib/crypto-live";
 import type { LiveAccount } from "@/lib/crypto-live";
@@ -132,19 +132,17 @@ describe("the LIVE screen", () => {
     expect(screen.getByTestId("live-position-pnl")).toHaveTextContent("+12.5000 USDT");
   });
 
-  it("shows Binance's own book beside the chart, and says the chart is not Binance's", () => {
-    // Found by rendering the real LIVE screen: the chart strip prints Bybit's bid/ask, which on a
-    // LIVE screen reads as the book the order would hit.
+  it("shows only Binance quote numbers beside the chart", () => {
     render(<LiveBookStrip account={account()} />);
     expect(screen.getByTestId("live-best-bid")).toHaveTextContent("83,499.9");
     expect(screen.getByTestId("live-best-ask")).toHaveTextContent("83,500.1");
-    expect(screen.getByTestId("live-chart-source-note")).toHaveTextContent("Bybit");
+    expect(screen.queryByTestId("live-chart-source-note")).not.toBeInTheDocument();
   });
 
-  it("says a flat account is flat instead of drawing an empty position", () => {
+  it("renders no position card for a flat account", () => {
     const flat = account({ position: { ...account().position!, is_flat: true, side: null, qty: "0" } });
     render(<LivePositionPanel account={flat} />);
-    expect(screen.getByTestId("live-position-panel")).toHaveTextContent("보유 포지션이 없습니다");
+    expect(screen.queryByTestId("live-position-panel")).not.toBeInTheDocument();
   });
 
   it("names every blocker in the operator's language", () => {
@@ -230,17 +228,41 @@ describe("the LIVE order ticket", () => {
     expect(screen.getByTestId("live-order-error")).toHaveTextContent("실주문 잠금");
   });
 
-  it("shows the round-trip cost the backend priced on Binance's book", () => {
+  it("shows the expected entry cost priced by the backend", () => {
     render(<LiveOrderTicket account={live()} gate={liveTradeGate(live(), null)} onOrder={vi.fn()} preview={{
       source: "BINANCE_LIVE", symbol: "BTCUSDT", krw_per_usdt: null, mark_price: "83500.00",
       fetched_at_ms: 1, sides: { LONG: { side: "LONG", feasible: true,
-        entry_fill_price: "83500.10", round_trip_cost: "0.0700",
+        entry_fill_price: "83500.10", expected_entry_total_cost: "0.0700",
         breakeven_mark_price: "83533.50" } },
     }} />);
     expect(screen.getByTestId("live-preview")).toHaveTextContent("83,500.1");
     expect(screen.getByTestId("live-preview")).toHaveTextContent("0.0700 USDT");
   });
 });
+
+describe("the LIVE auto exit panel", () => {
+  it("accepts positive KRW thresholds and displays the armed state", () => {
+    const save = vi.fn();
+    const { rerender } = render(<LiveAutoExit guard={null} onSave={save}
+      onDisable={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText("익절"), { target: { value: "100000" } });
+    fireEvent.change(screen.getByLabelText("손절"), { target: { value: "50000" } });
+    fireEvent.click(screen.getByRole("button", { name: "자동청산 켜기" }));
+    expect(save).toHaveBeenCalledWith("100000", "50000");
+
+    rerender(<LiveAutoExit guard={{
+      state: "ARMED", enabled: true, symbol: "BTCUSDT", side: "LONG",
+      position_qty: "0.01", opened_at_ms: 1, take_profit_krw: "100000",
+      stop_loss_krw: "50000", current_net_usdt: "24", current_net_krw: "32480",
+      created_at_ms: 1, updated_at_ms: 2, last_error: null,
+    }} onSave={save} onDisable={vi.fn()} />);
+    expect(screen.getByTestId("live-auto-exit")).toHaveTextContent("ON");
+    expect(screen.getByTestId("exit-current-net")).toHaveTextContent("+32,480원");
+    expect(screen.getByTestId("live-auto-exit")).toHaveTextContent("+100,000원");
+    expect(screen.getByTestId("live-auto-exit")).toHaveTextContent("-50,000원");
+  });
+});
+
 
 describe("the LIVE client", () => {
   it("never sends a credential and asks the binance namespace", async () => {
@@ -259,5 +281,30 @@ describe("the LIVE client", () => {
       json: async () => ({ error: { code: "LIVE_TRADING_DISABLED", message: "실주문이 잠겨 있습니다." } }) }));
     await expect(liveApi.order({ side: "LONG", intent: "OPEN", qty: "0.002" }))
       .rejects.toMatchObject({ code: "LIVE_TRADING_DISABLED" });
+  });
+});
+
+describe("the LIVE performance summary", () => {
+  const performance = (cumulative: string | null, today: string | null) => ({
+    available: true, has_trades: true, first_trade_kst_date: "2026-09-29", running_day: 3,
+    cumulative_net_usdt: "1", today_net_usdt: "1", cumulative_net_krw: cumulative,
+    today_net_krw: today, krw_per_usdt: "1400", classification_complete: true,
+    last_error: null, last_calculated_ms: 2,
+  });
+
+  it("formats signed KRW and keeps long mobile values unbroken", () => {
+    render(<LivePerformanceSummary performance={performance("18420", "-1234567890")} />);
+    expect(screen.getByTestId("live-performance-summary")).toHaveTextContent("2026.09.29 · 3일째");
+    expect(screen.getByTestId("live-performance-cumulative")).toHaveTextContent("+18,420원");
+    expect(screen.getByTestId("live-performance-today")).toHaveTextContent("-1,234,567,890원");
+    expect(screen.getByTestId("live-performance-today")).toHaveClass("whitespace-nowrap");
+  });
+
+  it("renders neutral zero and hides before the first trade", () => {
+    const view = render(<LivePerformanceSummary performance={performance("0", "0")} />);
+    expect(screen.getByTestId("live-performance-cumulative")).toHaveTextContent("0원");
+    view.rerender(<LivePerformanceSummary performance={{ available: true, has_trades: false,
+      classification_complete: true, last_error: null, last_calculated_ms: 2 }} />);
+    expect(screen.queryByTestId("live-performance-summary")).not.toBeInTheDocument();
   });
 });

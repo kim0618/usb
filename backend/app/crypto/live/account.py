@@ -127,6 +127,23 @@ class AccountReader:
         rows = self.client.call("user_trades", {"symbol": self.symbol, "limit": min(limit, 1000)})
         return [UserTrade.from_payload(row) for row in rows]
 
+    def trade_history(self, *, from_id: int, limit: int = 1000) -> list[UserTrade]:
+        """Chronological trade page used by the durable Manual LIVE performance cursor."""
+        rows = self.client.call("user_trades", {
+            "symbol": self.symbol, "fromId": from_id, "limit": min(limit, 1000)})
+        return [UserTrade.from_payload(row) for row in rows]
+
+    def order(self, order_id: int) -> dict[str, Any]:
+        return self.client.call("query_order", {"symbol": self.symbol, "orderId": order_id})
+
+    def income_window(self, *, start_ms: int, end_ms: int,
+                      income_type: str = IncomeRow.FUNDING,
+                      limit: int = 1000) -> list[IncomeRow]:
+        rows = self.client.call("income", {"symbol": self.symbol, "incomeType": income_type,
+                                           "startTime": start_ms, "endTime": end_ms,
+                                           "limit": min(limit, 1000)})
+        return [IncomeRow.from_payload(row) for row in rows]
+
     def income(self, limit: int = 100, income_type: str | None = None) -> list[IncomeRow]:
         params: dict[str, Any] = {"symbol": self.symbol, "limit": min(limit, 1000)}
         if income_type is not None:

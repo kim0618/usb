@@ -47,6 +47,9 @@ BINANCE_LIVE = "BINANCE_LIVE"
 FAST_TTL_MS = 1_000
 SLOW_TTL_MS = 30_000
 
+LEVERAGE_RESYNC_FAILED = "LEVERAGE_RESYNC_FAILED"
+LEVERAGE_CONFIRMATION_FAILED = "LEVERAGE_CONFIRMATION_FAILED"
+
 
 @runtime_checkable
 class ManualTradingAdapter(Protocol):
@@ -348,10 +351,24 @@ class BinanceLiveAdapter:
 
     def set_leverage(self, leverage: str) -> dict[str, Any]:
         """Change it, then read it back. The UI shows the read, never the request."""
-        result = self.router.set_leverage(int(Decimal(str(leverage))))
+        requested = int(Decimal(str(leverage)))
+        before = self.resync()
+        if not before.ready:
+            raise OrderRefused(
+                LEVERAGE_RESYNC_FAILED,
+                "현재 Binance 계좌 상태를 확인하지 못했습니다. 동기화 후 다시 시도하세요.")
+        result = self.router.set_leverage(requested)
         after = self.resync()
-        return {"requested": str(leverage), "response": result,
-                "leverage": after.symbol_config.leverage if after.symbol_config else None}
+        if not after.ready or after.symbol_config is None:
+            raise OrderRefused(
+                LEVERAGE_RESYNC_FAILED,
+                "Binance 변경 후 계좌 동기화에 실패했습니다. 현재 레버리지를 다시 확인하세요.")
+        actual = after.symbol_config.leverage
+        if actual != Decimal(requested):
+            raise OrderRefused(
+                LEVERAGE_CONFIRMATION_FAILED,
+                "Binance 응답과 실제 계좌 레버리지가 일치하지 않습니다. 계좌를 새로고침하세요.")
+        return {"requested": str(requested), "response": result, "leverage": actual}
 
     # ------------------------------------------------------------------ view
 

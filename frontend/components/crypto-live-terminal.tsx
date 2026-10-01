@@ -18,7 +18,7 @@ import type { OrderSide } from "@/lib/crypto-paper";
 import {
   ACTIVATE_CONFIRM_NOTE, ARM_CONFIRMATION, ARM_NOTE, AccountSource, LIVE_AUTHORITY_NOTE,
   LIVE_DEFAULT_LEVERAGE, LIVE_LEVERAGE_POLICY_NOTE, LIVE_LOCK_NOTE, LIVE_PRESET_LABELS,
-  LiveAccount, LiveArmState, LiveBlocker, LiveLeverageOptions, LivePositionCard as LivePositionCardData,
+  LiveAccount, LiveArmState, LiveBlocker, LiveExitGuard, LivePerformance, LiveLeverageOptions, LivePositionCard as LivePositionCardData,
   LivePreview, LiveSizing, LiveStatus, LiveTradeGate, MARGIN_MODE_LABELS,
   MARGIN_MODE_READONLY_NOTE, liveApi, liveBlockerLabel, livePresetQty, liveTradeGate,
 } from "@/lib/crypto-live";
@@ -335,20 +335,13 @@ export function LiveBookStrip({ account }: { account: LiveAccount }) {
         <span className="text-muted">Funding {account.mark?.last_funding_rate
           ? `${(Number(account.mark.last_funding_rate) * 100).toFixed(4)}%` : "-"}</span>
       </div>
-      <span className="text-[10px] text-muted" data-testid="live-chart-source-note">
-        아래 차트는 Bybit 공개 시세입니다. 주문·손익·미리보기는 위 Binance 값 기준입니다.
-      </span>
     </div>
   );
 }
 
 export function LivePositionPanel({ account }: { account: LiveAccount }) {
   const position = account.position;
-  if (!position || position.is_flat) {
-    return <div className="panel p-5 text-sm text-muted" data-testid="live-position-panel">
-      Binance 실계좌에 보유 포지션이 없습니다.
-    </div>;
-  }
+  if (!position || position.is_flat) return null;
   const long = position.side === "LONG";
   const rows: [string, string][] = [
     ["수량", `${qtyFmt(position.qty)} BTC`],
@@ -429,15 +422,23 @@ export function LivePositionCard({ card, nowMs, onClose, busy }: {
       <div className="mb-3 grid grid-cols-2 gap-2">
         <div className="rounded-lg bg-surface-alt px-3 py-2">
           <p className="text-[11px] text-muted">현재 포지션 손익</p>
-          <p className={`text-lg font-bold tabular-nums leading-tight sm:text-xl ${toneClass(card.unrealized_pnl)}`}
-            data-testid="live-card-unrealized">{signedUsdt(card.unrealized_pnl ?? null)}</p>
+          {card.krw?.unrealized_pnl != null ? <>
+            <p className={`whitespace-nowrap text-lg font-bold tabular-nums leading-tight sm:text-xl ${toneClass(card.krw.unrealized_pnl)}`}
+              data-testid="live-card-unrealized-krw">{signedKrw(card.krw.unrealized_pnl)}</p>
+            <p className={`whitespace-nowrap text-[11px] tabular-nums ${toneClass(card.unrealized_pnl)}`}
+              data-testid="live-card-unrealized">{signedUsdt(card.unrealized_pnl ?? null)}</p>
+          </> : <p className={`whitespace-nowrap text-lg font-bold tabular-nums leading-tight sm:text-xl ${toneClass(card.unrealized_pnl)}`}
+            data-testid="live-card-unrealized">{signedUsdt(card.unrealized_pnl ?? null)}</p>}
           <p className="text-[11px] text-muted">Binance Mark 기준</p>
         </div>
         <div className="rounded-lg bg-surface-alt px-3 py-2">
           <p className="text-[11px] text-muted">청산 시 예상 순손익</p>
           {netShown ? (
             <>
-              <p className={`text-lg font-bold tabular-nums leading-tight sm:text-xl ${toneClass(card.net_if_closed)}`}
+              {card.krw?.net_if_closed != null && <p
+                className={`whitespace-nowrap text-lg font-bold tabular-nums leading-tight sm:text-xl ${toneClass(card.krw.net_if_closed)}`}
+                data-testid="live-card-net-krw">{signedKrw(card.krw.net_if_closed)}</p>}
+              <p className={`${card.krw?.net_if_closed != null ? "text-[11px]" : "text-lg font-bold sm:text-xl"} whitespace-nowrap tabular-nums leading-tight ${toneClass(card.net_if_closed)}`}
                 data-testid="live-card-net">{signedUsdt(card.net_if_closed ?? null)}</p>
               <p className="text-[11px] text-muted">수수료·펀딩·체결가 포함</p>
             </>
@@ -472,7 +473,7 @@ export function LivePositionCard({ card, nowMs, onClose, busy }: {
       </button>
       {detail && (
         <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]" data-testid="live-card-detail">
-          {([["청산가", price(card.liquidation_price)],
+          {([["청산가", Number(card.liquidation_price) > 0 ? price(card.liquidation_price) : "-"],
              ["개시 증거금", usdt(card.initial_margin, 4)],
              ["예상 청산가(체결)", price(close?.exit_fill_price)],
              ["예상 청산 수수료", usdt(close?.exit_fee, 4)],
@@ -490,6 +491,40 @@ export function LivePositionCard({ card, nowMs, onClose, busy }: {
     </section>
   );
 }
+
+export function LivePerformanceSummary({ performance }: {
+  performance: LivePerformance | null;
+}) {
+  if (!performance?.has_trades) return null;
+  const date = performance.first_trade_kst_date?.replaceAll("-", ".") || "-";
+  return (
+    <section className="panel px-4 py-3" data-testid="live-performance-summary">
+      <dl className="grid gap-x-6 gap-y-1 text-xs sm:grid-cols-3">
+        <div className="flex min-w-0 items-baseline justify-between gap-3 sm:block">
+          <dt className="whitespace-nowrap text-muted">실주문 시작</dt>
+          <dd className="whitespace-nowrap font-semibold tabular-nums text-foreground">
+            {date} · {performance.running_day}일째
+          </dd>
+        </div>
+        <div className="flex min-w-0 items-baseline justify-between gap-3 sm:block">
+          <dt className="whitespace-nowrap text-muted">누적 수익</dt>
+          <dd className={`whitespace-nowrap text-base font-bold tabular-nums ${toneClass(performance.cumulative_net_krw)}`}
+            data-testid="live-performance-cumulative">
+            {signedKrw(performance.cumulative_net_krw)}
+          </dd>
+        </div>
+        <div className="flex min-w-0 items-baseline justify-between gap-3 sm:block">
+          <dt className="whitespace-nowrap text-muted">오늘 수익</dt>
+          <dd className={`whitespace-nowrap text-base font-bold tabular-nums ${toneClass(performance.today_net_krw)}`}
+            data-testid="live-performance-today">
+            {signedKrw(performance.today_net_krw)}
+          </dd>
+        </div>
+      </dl>
+    </section>
+  );
+}
+
 
 export function LiveAccountCards({ account }: { account: LiveAccount }) {
   const balance = account.balance;
@@ -544,7 +579,6 @@ export function LiveLeveragePanel({ account, options, onSelect, busy, error, com
   const current = config ? Number(config.leverage) : null;
   const position = account.position;
   const hasPosition = Boolean(position && !position.is_flat);
-  const available = account.balance?.available_balance ?? null;
   // The policy is only offerable if this account's bracket table actually reaches it. On a
   // symbol whose tier caps below it, the tag and the note would point at a button that is not
   // there, so both are simply absent.
@@ -557,18 +591,11 @@ export function LiveLeveragePanel({ account, options, onSelect, busy, error, com
   // exchange exactly when the position is close to trouble. With no position open there is
   // nothing to report - the order ticket's preview carries the required margin for a size the
   // operator has actually chosen.
-  const notional = position && !position.is_flat ? position.notional : null;
-  const requiredMargin = position && !position.is_flat ? position.initial_margin : null;
 
   return (
     <div className="panel p-4" data-testid="live-leverage-panel">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-xs font-bold tracking-wide text-foreground">레버리지 · 마진</span>
-        <span className="text-[11px] text-muted" data-testid="live-leverage-current">
-          현재 {current != null ? `${current}x` : "-"}
-          {config && ` · ${MARGIN_MODE_LABELS[config.margin_type] || config.margin_type}`}
-          {options && ` · 최대 ${options.max_leverage}x`}
-        </span>
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2" data-testid="live-leverage-options">
@@ -607,20 +634,6 @@ export function LiveLeveragePanel({ account, options, onSelect, busy, error, com
         </p>
       )}
 
-      <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4" data-testid="live-risk-figures">
-        <RiskFigure label="명목" value={notional != null ? usdt(notional) : "-"}
-          testId="live-risk-notional" sub={hasPosition ? undefined : "포지션 없음"} />
-        <RiskFigure label="개시 증거금"
-          value={requiredMargin != null ? usdt(requiredMargin, 4) : "-"}
-          testId="live-risk-margin"
-          sub={hasPosition ? "Binance 실제값" : "주문 미리보기에 수량별 필요 증거금이 있습니다"} />
-        <RiskFigure label="청산가"
-          value={hasPosition ? price(position?.liquidation_price) : "-"}
-          testId="live-risk-liq"
-          sub={hasPosition ? "Binance 실제값" : "포지션 생성 후 Binance가 산출"} />
-        <RiskFigure label="주문가능" value={usdt(available)} testId="live-risk-available" />
-      </dl>
-
       {!compact && <div className="mt-2"><LiveLeverageNotes options={options} /></div>}
       {error && <p className="mt-2 rounded-md bg-warning-soft px-3 py-2 text-xs text-warning"
         role="status" data-testid="live-leverage-error">{error}</p>}
@@ -642,20 +655,7 @@ export function LiveLeverageNotes({ options }: { options: LiveLeverageOptions | 
   );
 }
 
-function RiskFigure({ label, value, sub, testId }: {
-  label: string; value: string; sub?: string; testId?: string;
-}) {
-  return (
-    <div className="min-w-0">
-      <dt className="truncate text-[10px] text-muted">{label}</dt>
-      <dd className="truncate text-sm font-semibold tabular-nums text-foreground"
-        data-testid={testId}>{value}</dd>
-      {sub && <dd className="truncate text-[10px] text-muted">{sub}</dd>}
-    </div>
-  );
-}
-
-/** The quick-size row, in the same place and shape as the paper ticket's.
+ /** The quick-size row, in the same place and shape as the paper ticket's.
  *
  *  Every quantity comes from `GET /api/crypto/binance/sizing`, which walks Binance's book for
  *  each candidate and applies the local ceiling, the exchange filters and the account's margin.
@@ -769,7 +769,7 @@ export function LiveOrderTicket({ account, onOrder, busy, error, preview, onPrev
                 {row.feasible ? (
                   <dd className="mt-1 space-y-0.5 tabular-nums text-muted">
                     <p>예상 진입 {price(row.entry_fill_price)}</p>
-                    <p>왕복 비용 {usdt(row.round_trip_cost, 4)}</p>
+                    <p>예상 진입 비용 {usdt(row.expected_entry_total_cost, 4)}</p>
                     <p>손익분기 {price(row.breakeven_mark_price)}</p>
                   </dd>
                 ) : (
@@ -834,6 +834,72 @@ export function LiveOrderTicket({ account, onOrder, busy, error, preview, onPrev
   );
 }
 
+export function LiveAutoExit({ guard, onSave, onDisable, busy, error }: {
+  guard: LiveExitGuard | null;
+  onSave: (takeProfit: string, stopLoss: string) => void;
+  onDisable: () => void;
+  busy?: boolean;
+  error?: string | null;
+}) {
+  const [takeProfit, setTakeProfit] = useState("");
+  const [stopLoss, setStopLoss] = useState("");
+  const [editing, setEditing] = useState(false);
+  const active = Boolean(guard?.enabled);
+
+  if (active && !editing) {
+    return (
+      <section className="panel p-4" data-testid="live-auto-exit">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold">자동청산</h2>
+          <span className="text-xs font-bold text-success">ON</span>
+        </div>
+        <dl className="mt-3 space-y-1 text-xs">
+          <div className="flex justify-between gap-2"><dt className="text-muted">현재 순손익</dt>
+            <dd className={toneClass(guard?.current_net_krw)}
+              data-testid="exit-current-net">{signedKrw(guard?.current_net_krw)}</dd></div>
+          <div className="flex justify-between gap-2"><dt className="text-muted">익절</dt>
+            <dd className="tabular-nums text-success">+{krw(guard?.take_profit_krw)}</dd></div>
+          <div className="flex justify-between gap-2"><dt className="text-muted">손절</dt>
+            <dd className="tabular-nums text-danger">-{krw(guard?.stop_loss_krw)}</dd></div>
+        </dl>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <button className="btn-muted h-9 text-xs" type="button"
+            onClick={() => { setTakeProfit(guard?.take_profit_krw || ""); setStopLoss(guard?.stop_loss_krw || ""); setEditing(true); }}>
+            설정 변경
+          </button>
+          <button className="btn-muted h-9 text-xs" type="button" disabled={busy}
+            onClick={onDisable}>끄기</button>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="panel p-4" data-testid="live-auto-exit">
+      <h2 className="text-sm font-semibold">자동청산</h2>
+      <div className="mt-3 grid grid-cols-[auto_1fr_auto] items-center gap-2 text-xs">
+        <label htmlFor="take-profit-krw">익절</label>
+        <input id="take-profit-krw" inputMode="numeric" value={takeProfit}
+          onChange={event => setTakeProfit(event.target.value.replace(/[^0-9]/g, ""))}
+          className="min-w-0 rounded-md border border-line bg-surface px-3 py-2 text-right tabular-nums" />
+        <span className="text-muted">원</span>
+        <label htmlFor="stop-loss-krw">손절</label>
+        <input id="stop-loss-krw" inputMode="numeric" value={stopLoss}
+          onChange={event => setStopLoss(event.target.value.replace(/[^0-9]/g, ""))}
+          className="min-w-0 rounded-md border border-line bg-surface px-3 py-2 text-right tabular-nums" />
+        <span className="text-muted">원</span>
+      </div>
+      <button type="button" className="btn-muted mt-3 h-10 w-full text-sm font-bold"
+        disabled={busy || !takeProfit || !stopLoss}
+        onClick={() => { onSave(takeProfit, stopLoss); setEditing(false); }}>
+        자동청산 켜기
+      </button>
+      {error && <p className="mt-2 text-xs text-warning" role="status">{error}</p>}
+    </section>
+  );
+}
+
+
 /** Status once, then the account on a timer. The status answer is what decides whether the
  *  switch may be used at all, so it is fetched even while the screen is on PAPER. */
 export function useBinanceLive(enabled: boolean, pollMs = LIVE_POLL_MS) {
@@ -842,6 +908,9 @@ export function useBinanceLive(enabled: boolean, pollMs = LIVE_POLL_MS) {
   const [preview, setPreview] = useState<LivePreview | null>(null);
   const [sizing, setSizing] = useState<LiveSizing | null>(null);
   const [positionCard, setPositionCard] = useState<LivePositionCardData | null>(null);
+  const [exitGuard, setExitGuard] = useState<LiveExitGuard | null>(null);
+  const [performance, setPerformance] = useState<LivePerformance | null>(null);
+  const [exitGuardError, setExitGuardError] = useState<string | null>(null);
   const [arm, setArm] = useState<LiveArmState | null>(null);
   const [leverage, setLeverage] = useState<LiveLeverageOptions | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -895,6 +964,8 @@ export function useBinanceLive(enabled: boolean, pollMs = LIVE_POLL_MS) {
     } catch {
       setPositionCard(null);
     }
+    try { setExitGuard(await liveApi.exitGuard()); } catch { setExitGuard(null); }
+    try { setPerformance(await liveApi.performance()); } catch { setPerformance(null); }
   }, []);
 
   const refreshLeverage = useCallback(async () => {
@@ -992,20 +1063,35 @@ export function useBinanceLive(enabled: boolean, pollMs = LIVE_POLL_MS) {
     setLeverageError(null);
     try {
       await liveApi.setLeverage(value);
+      previewQty.current = "";
+      setPreview(null);
+      await refresh();
+      await refreshLeverage();
+      await refreshSizing();
     } catch (exc) {
       setLeverageError(exc instanceof CryptoApiError
         ? `${liveBlockerLabel(exc.code)} · ${exc.message}` : String(exc));
     } finally {
       setBusy(false);
-      await refresh();
-      await refreshLeverage();
-      // Margin per coin just changed, so every quantity in the ladder is stale until re-read.
-      await refreshSizing();
     }
   }, [refresh, refreshLeverage, refreshSizing]);
 
-  return { status, account, preview, arm, leverage, sizing, positionCard, error, actionError,
-           armError, leverageError, busy, refresh, order, requestPreview, armLive, disarmLive,
-           changeLeverage, refreshSizing, refreshPositionCard,
+  const saveExitGuard = useCallback(async (takeProfit: string, stopLoss: string) => {
+    setBusy(true); setExitGuardError(null);
+    try { setExitGuard(await liveApi.setExitGuard(takeProfit, stopLoss)); }
+    catch (exc) { setExitGuardError(exc instanceof CryptoApiError ? exc.message : String(exc)); }
+    finally { setBusy(false); }
+  }, []);
+
+  const disableExitGuard = useCallback(async () => {
+    setBusy(true); setExitGuardError(null);
+    try { setExitGuard(await liveApi.disableExitGuard()); }
+    catch (exc) { setExitGuardError(exc instanceof CryptoApiError ? exc.message : String(exc)); }
+    finally { setBusy(false); }
+  }, []);
+
+  return { status, account, preview, arm, leverage, sizing, positionCard, exitGuard, performance, error, actionError,
+           armError, leverageError, exitGuardError, busy, refresh, order, requestPreview, armLive, disarmLive,
+           changeLeverage, refreshSizing, refreshPositionCard, saveExitGuard, disableExitGuard,
            available: Boolean(status?.available) };
 }

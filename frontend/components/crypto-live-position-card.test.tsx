@@ -32,7 +32,8 @@ const card = (over: Partial<LivePositionCardData> = {}): LivePositionCardData =>
            fee_rate: "0.0005", reference_price: "83400.00", reject_code: null,
            reject_message: null },
   net_if_closed: "9.4545", net_basis: "CLOSE_ENTIRE_POSITION_AT_MARKET_ON_THIS_BOOK_NOW",
-  net_complete: true,
+  net_complete: true, krw: { unrealized_pnl: "15301", net_if_closed: "13152.7" },
+    krw_per_usdt: "1391",
   ...over,
 });
 
@@ -164,5 +165,41 @@ describe("the PAPER position card is untouched", () => {
     expect(onAction).toHaveBeenCalledTimes(1);
     // The two cards are separate components; the LIVE one is not in this tree.
     expect(screen.queryByTestId("live-position-card")).not.toBeInTheDocument();
+  });
+});
+
+describe("the LIVE mobile card KRW hierarchy", () => {
+  it("shows positive KRW first and authoritative USDT second", () => {
+    show();
+    expect(screen.getByTestId("live-card-unrealized-krw")).toHaveTextContent("+15,301원");
+    expect(screen.getByTestId("live-card-unrealized")).toHaveTextContent("+11.0000 USDT");
+    expect(screen.getByTestId("live-card-net-krw")).toHaveTextContent("+13,153원");
+    expect(screen.getByTestId("live-card-net")).toHaveTextContent("+9.4545 USDT");
+  });
+
+  it("uses loss colors and comma formatting for negative KRW", () => {
+    show({ unrealized_pnl: "-11", net_if_closed: "-9",
+      krw: { unrealized_pnl: "-1234567", net_if_closed: "-987654" } });
+    expect(screen.getByTestId("live-card-unrealized-krw")).toHaveTextContent("-1,234,567원");
+    expect(screen.getByTestId("live-card-net-krw")).toHaveTextContent("-987,654원");
+    expect(screen.getByTestId("live-card-unrealized-krw").className).toContain("danger");
+  });
+
+  it("renders zero neutrally and long values without wrapping at mobile width", () => {
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
+    show({ unrealized_pnl: "0", net_if_closed: "0",
+      krw: { unrealized_pnl: "0", net_if_closed: "1234567890" } });
+    expect(screen.getByTestId("live-card-unrealized-krw")).toHaveTextContent("0원");
+    expect(screen.getByTestId("live-card-net-krw")).toHaveTextContent("+1,234,567,890원");
+    expect(screen.getByTestId("live-card-net-krw")).toHaveClass("whitespace-nowrap");
+  });
+
+  it("shows a dash for both null and string zero liquidation prices", () => {
+    for (const liquidation_price of [null, "0"] as const) {
+      const view = show({ liquidation_price });
+      fireEvent.click(screen.getByTestId("live-card-detail-toggle"));
+      expect(screen.getByTestId("live-card-detail")).toHaveTextContent("청산가-");
+      view.unmount();
+    }
   });
 });

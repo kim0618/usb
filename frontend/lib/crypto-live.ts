@@ -100,6 +100,9 @@ export type LiveStatus = {
 export type LivePreviewSide = {
   side: OrderSide; feasible: boolean; qty?: string; notional?: string; leverage?: string | null;
   required_margin?: string | null; entry_fill_price?: string; entry_fee?: string;
+  expected_entry_vwap?: string; expected_entry_notional?: string;
+  expected_entry_fee?: string; expected_entry_slippage_cost?: string;
+  expected_entry_total_cost?: string;
   exit_fill_price?: string; exit_fee?: string; round_trip_cost?: string;
   immediate_round_trip_net?: string; breakeven_exit_fill_price?: string;
   breakeven_mark_price?: string; breakeven_move?: string; breakeven_move_pct?: string;
@@ -199,6 +202,8 @@ export type LivePositionCard = {
   commission_paid?: string | null; realized_since_open?: string | null;
   funding_income?: string | null;
   close?: LiveCloseNow; net_if_closed?: string | null; net_basis?: string; net_complete?: boolean;
+  krw?: { unrealized_pnl?: string; net_if_closed?: string } | null;
+  krw_per_usdt?: string | null;
 };
 
 export type LiveFill = {
@@ -212,6 +217,24 @@ export type LiveFunding = {
 };
 
 export type LiveEventRow = { seq: number; ts_ms: number; event_type: string } & Record<string, unknown>;
+
+export type LiveExitGuard = {
+  state: "OFF" | "ARMED" | "TRIGGERING" | "CLOSING" | "COMPLETE" | "ERROR";
+  enabled: boolean; symbol: string | null; side: OrderSide | null;
+  position_qty: string | null; opened_at_ms: number | null;
+  take_profit_krw: string | null; stop_loss_krw: string | null;
+  current_net_usdt: string | null; current_net_krw: string | null;
+  created_at_ms: number | null; updated_at_ms: number | null; last_error: string | null;
+};
+
+export type LivePerformance = {
+  available: boolean; has_trades: boolean; first_trade_at_ms?: number;
+  first_trade_kst_date?: string; running_day?: number;
+  cumulative_net_usdt?: string; today_net_usdt?: string;
+  cumulative_net_krw?: string | null; today_net_krw?: string | null;
+  krw_per_usdt?: string | null; classification_complete: boolean;
+  last_error: string | null; last_calculated_ms: number | null;
+};
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response;
@@ -241,6 +264,15 @@ export const liveApi = {
   /** Read only. Empty when the account is flat; the server does no extra reads then. */
   positionCard: (signal?: AbortSignal) =>
     request<LivePositionCard>("/api/crypto/binance/position", { signal }),
+  performance: (signal?: AbortSignal) =>
+    request<LivePerformance>("/api/crypto/binance/performance", { signal }),
+  exitGuard: (signal?: AbortSignal) =>
+    request<LiveExitGuard>("/api/crypto/binance/exit-guard", { signal }),
+  setExitGuard: (take_profit_krw: string, stop_loss_krw: string) =>
+    request<LiveExitGuard>("/api/crypto/binance/exit-guard",
+      { method: "POST", body: JSON.stringify({ take_profit_krw, stop_loss_krw }) }),
+  disableExitGuard: () => request<LiveExitGuard>("/api/crypto/binance/exit-guard",
+    { method: "DELETE" }),
   /** Read only. The server computes the ladder; this never sends or arms anything. */
   sizing: (signal?: AbortSignal) =>
     request<LiveSizing>("/api/crypto/binance/sizing", { signal }),
@@ -362,6 +394,15 @@ export const LIVE_BLOCKER_LABELS: Record<string, string> = {
   RESPONSE_SHAPE_CHANGED: "응답 형식 변경 감지",
   LIVE_UNAVAILABLE: "LIVE 사용 불가",
   LIVE_TRADING_DISABLED: "실거래 잠금",
+  INVALID_LEVERAGE: "잘못된 레버리지",
+  LEVERAGE_POSITION_OPEN: "포지션 보유 중 변경 불가",
+  UNSUPPORTED_LEVERAGE: "지원하지 않는 레버리지",
+  LEVERAGE_CONSTRAINT_UNAVAILABLE: "레버리지 범위 확인 실패",
+  ACCOUNT_LEVERAGE_LIMIT: "계정 레버리지 제한",
+  LEVERAGE_TIMEOUT: "Binance 응답 지연",
+  BINANCE_LEVERAGE_REJECTED: "Binance 변경 거부",
+  LEVERAGE_RESYNC_FAILED: "변경 후 동기화 실패",
+  LEVERAGE_CONFIRMATION_FAILED: "변경값 확인 실패",
 };
 
 export const liveBlockerLabel = (code: string) => LIVE_BLOCKER_LABELS[code] || code;

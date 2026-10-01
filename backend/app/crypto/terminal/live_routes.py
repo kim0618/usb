@@ -35,8 +35,10 @@ from ..live.arm import ArmRefused, ArmSession
 from ..live.credentials import LiveConfig, client_armed, load_config, load_credentials
 from ..live.credentials import CredentialsMissing
 from ..live.endpoints import registry_view
+from ..live.exit_guard import ExitGuard
 from ..live.mirror import LiveEvent, LiveMirror, default_path
 from ..live.orders import CLOSE, OPEN, LiveOrderRouter, OrderRefused
+from ..live.performance import ManualLivePerformance
 from ..live.rest import BinanceError, BinanceFuturesClient, TradingDisabled
 from ..live.stream import UserDataStream
 from .api import app, error, jsonable, runtime
@@ -78,6 +80,11 @@ class LiveArmRequest(BaseModel):
     ttl_s: int | None = None
 
 
+class ExitGuardRequest(BaseModel):
+    take_profit_krw: str
+    stop_loss_krw: str
+
+
 class LiveRuntime:
     """Builds the adapter once, on the first LIVE request, and owns its shutdown.
 
@@ -94,6 +101,8 @@ class LiveRuntime:
         #: state has to survive a snapshot being thrown away and must not be reachable from
         #: anything that merely reads the account.
         self.arm: ArmSession | None = None
+        self.exit_guard: ExitGuard | None = None
+        self.performance: ManualLivePerformance | None = None
         self._lock = threading.Lock()
 
     def stream_enabled(self) -> bool:
@@ -154,16 +163,27 @@ class LiveRuntime:
                 adapter.stream = stream
                 stream.start()
             self.adapter = adapter
+            self.exit_guard = ExitGuard(
+                adapter=adapter, path=root / "exit_guard.json",
+                krw_rate=lambda: _krw_rate())
+            self.exit_guard.start()
+            self.performance = ManualLivePerformance(
+                reader=reader, path=root / "manual_performance.json",
+                krw_rate=lambda: _krw_rate())
             return adapter
 
     def shutdown(self) -> None:
         adapter = self.adapter
         if adapter is None:
             return
+        if self.exit_guard is not None:
+            self.exit_guard.stop()
         if adapter.stream is not None:
             adapter.stream.stop()
         adapter.client.close()
         self.adapter = None
+        self.exit_guard = None
+        self.performance = None
 
 
 live_runtime = LiveRuntime()
@@ -175,6 +195,10 @@ _previous_lifespan = app.router.lifespan_context
 async def _lifespan_with_live(application: Any):
     async with _previous_lifespan(application) as state:
         try:
+            guard_path = Path(os.environ.get(
+                LIVE_ROOT_ENV, "data/runtime/crypto/live")) / "exit_guard.json"
+            if guard_path.exists():
+                live_runtime.build()
             yield state
         finally:
             live_runtime.shutdown()
@@ -386,10 +410,21 @@ async def binance_leverage(request: LiveLeverageRequest) -> Any:
         return jsonable(adapter.set_leverage(str(value)))
     except OrderRefused as exc:
         return error(409, exc.code, exc.message)
-    except (TradingDisabled, BinanceError) as exc:
-        return error(409 if isinstance(exc, TradingDisabled) else 502,
-                     "LIVE_TRADING_DISABLED" if isinstance(exc, TradingDisabled) else "BINANCE_ERROR",
-                     str(exc))
+    except TradingDisabled as exc:
+        return error(409, "LIVE_TRADING_DISABLED", str(exc))
+    except BinanceError as exc:
+        if exc.status == 0:
+            return error(504, "LEVERAGE_TIMEOUT",
+                         "Binance 응답 시간이 초과되었습니다. 기존 레버리지를 유지합니다.")
+        if exc.code == -4028:
+            return error(409, "UNSUPPORTED_LEVERAGE",
+                         "Binance 계정에서 선택한 레버리지를 사용할 수 없습니다.")
+        if exc.code in {-4202, -4203, -4205, -4206}:
+            return error(409, "ACCOUNT_LEVERAGE_LIMIT",
+                         "Binance 계정 제한으로 선택한 레버리지를 사용할 수 없습니다.")
+        suffix = f" (오류 코드 {exc.code})" if exc.code is not None else ""
+        return error(502, "BINANCE_LEVERAGE_REJECTED",
+                     f"Binance에서 레버리지 변경을 거부했습니다{suffix}.")
 
 
 @app.get("/api/crypto/binance/position")
@@ -400,7 +435,13 @@ async def binance_position_card() -> Any:
         return error(503, "LIVE_UNAVAILABLE",
                      live_runtime.error or "Binance API 키가 설정되지 않았습니다.")
     try:
-        return jsonable({"source": "BINANCE_LIVE", **adapter.get_position_card()})
+        card = adapter.get_position_card()
+        rate = _krw_rate()
+        converted = _krw(card, ("unrealized_pnl", "net_if_closed"), rate)
+        if converted is not None:
+            card["krw"] = converted
+            card["krw_per_usdt"] = rate
+        return jsonable({"source": "BINANCE_LIVE", **card})
     except BinanceError as exc:
         return error(502, "BINANCE_ERROR", exc.message)
 
@@ -474,6 +515,53 @@ async def binance_disarm() -> Any:
     if adapter.mirror is not None:
         adapter.mirror.append(LiveEvent.DISARM, reason="MANUAL")
     return jsonable({**state, "available": True, "gates": adapter.router.gate_view()})
+
+
+@app.get("/api/crypto/binance/performance")
+async def binance_manual_performance() -> Any:
+    adapter = live_runtime.build()
+    if adapter is None or live_runtime.performance is None:
+        return error(503, "LIVE_UNAVAILABLE",
+                     live_runtime.error or "Binance API 키가 설정되지 않았습니다.")
+    return jsonable(live_runtime.performance.refresh())
+
+
+@app.get("/api/crypto/binance/exit-guard")
+async def binance_exit_guard() -> Any:
+    adapter = live_runtime.build()
+    if adapter is None or live_runtime.exit_guard is None:
+        return error(503, "LIVE_UNAVAILABLE",
+                     live_runtime.error or "Binance API 키가 설정되지 않았습니다.")
+    return jsonable(live_runtime.exit_guard.view())
+
+
+@app.post("/api/crypto/binance/exit-guard")
+async def configure_binance_exit_guard(request: ExitGuardRequest) -> Any:
+    adapter = live_runtime.build()
+    if adapter is None or live_runtime.exit_guard is None:
+        return error(503, "LIVE_UNAVAILABLE",
+                     live_runtime.error or "Binance API 키가 설정되지 않았습니다.")
+    if not (live_runtime.config and live_runtime.config.trading_enabled):
+        return error(409, "LIVE_TRADING_DISABLED",
+                     "이 서버는 LIVE close-only 권한이 비활성화돼 있습니다.")
+    try:
+        take_profit = _decimal(request.take_profit_krw, "take_profit_krw")
+        stop_loss = _decimal(request.stop_loss_krw, "stop_loss_krw")
+        return jsonable(live_runtime.exit_guard.configure(
+            take_profit_krw=take_profit, stop_loss_krw=stop_loss))
+    except ValueError as exc:
+        return error(400, "INVALID_EXIT_GUARD", str(exc))
+    except BinanceError as exc:
+        return error(502, "BINANCE_ERROR", exc.message)
+
+
+@app.delete("/api/crypto/binance/exit-guard")
+async def disable_binance_exit_guard() -> Any:
+    adapter = live_runtime.build()
+    if adapter is None or live_runtime.exit_guard is None:
+        return error(503, "LIVE_UNAVAILABLE",
+                     live_runtime.error or "Binance API 키가 설정되지 않았습니다.")
+    return jsonable(live_runtime.exit_guard.disable())
 
 
 @app.get("/api/crypto/binance/leverage")

@@ -177,6 +177,15 @@ class BinanceFuturesClient:
             self.sync_clock()
             return self._dispatch(endpoint, params)
 
+    def call_close_only(self, name: str, params: dict[str, Any]) -> Any:
+        """Narrow permission used by an explicitly armed exit guard."""
+        endpoint = resolve(name)
+        if (endpoint.name != "new_order" or endpoint.security != TRADE
+                or params.get("type") != "MARKET" or params.get("reduceOnly") != "true"):
+            raise TradingDisabled(
+                "close-only permission accepts only reduceOnly MARKET new_order")
+        return self._dispatch(endpoint, params)
+
     def _dispatch(self, endpoint: Endpoint, params: dict[str, Any] | None = None) -> Any:
         """One request, exactly as asked. Gates and retries belong to `call`."""
         request_params = dict(params or {})

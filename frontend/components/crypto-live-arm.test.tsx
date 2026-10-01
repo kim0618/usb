@@ -282,7 +282,7 @@ describe("the leverage panel", () => {
     fireEvent.click(screen.getByTestId("live-leverage-5"));
     expect(onSelect).toHaveBeenCalledWith(5);
     // Still 20x on screen: the panel shows what Binance said, never what was requested.
-    expect(screen.getByTestId("live-leverage-current")).toHaveTextContent("현재 20x");
+    expect(screen.getByTestId("live-leverage-20")).toHaveAttribute("aria-pressed", "true");
   });
 
   it("refuses to change leverage while a position is open", () => {
@@ -295,22 +295,21 @@ describe("the leverage panel", () => {
     expect(screen.getByTestId("live-leverage-locked")).toBeInTheDocument();
   });
 
-  it("shows Binance's own margin and liquidation figures for an open position", () => {
+  it("removes duplicate position metrics from the leverage panel", () => {
     const open = account({
       position: { ...account().position!, is_flat: false, side: "LONG", qty: "0.001",
                   notional: "83.39", initial_margin: "4.17", liquidation_price: "45120.10" },
     });
     render(<LiveLeveragePanel account={open} options={options()} onSelect={vi.fn()} />);
-    expect(screen.getByTestId("live-risk-notional")).toHaveTextContent("83.39");
-    expect(screen.getByTestId("live-risk-margin")).toHaveTextContent("4.17");
-    expect(screen.getByTestId("live-risk-liq")).toHaveTextContent("45,120.1");
+    expect(screen.queryByTestId("live-risk-notional")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("live-risk-margin")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("live-risk-liq")).not.toBeInTheDocument();
   });
 
-  it("does not invent a liquidation price while the account is flat", () => {
+  it("does not render empty position metrics while the account is flat", () => {
     render(<LiveLeveragePanel account={account()} options={options()} onSelect={vi.fn()} />);
-    expect(screen.getByTestId("live-risk-liq")).toHaveTextContent("-");
-    expect(screen.getByTestId("live-leverage-panel"))
-      .toHaveTextContent("포지션 생성 후 Binance가 산출");
+    expect(screen.queryByTestId("live-risk-liq")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("live-risk-available")).not.toBeInTheDocument();
   });
 
   it("says leverage is a margin setting and not an exposure multiplier", () => {
@@ -354,7 +353,7 @@ describe("the leverage panel", () => {
     fireEvent.click(screen.getByTestId(`live-leverage-${LIVE_DEFAULT_LEVERAGE}`));
     expect(onSelect).toHaveBeenCalledWith(LIVE_DEFAULT_LEVERAGE);
     // No optimistic repaint: the account still says 20x until a refreshed snapshot says otherwise.
-    expect(screen.getByTestId("live-leverage-current")).toHaveTextContent("현재 20x");
+    expect(screen.getByTestId("live-leverage-20")).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByTestId(`live-leverage-${LIVE_DEFAULT_LEVERAGE}`))
       .toHaveAttribute("aria-pressed", "false");
   });
@@ -382,8 +381,8 @@ describe("the leverage panel", () => {
     expect(screen.getByTestId("live-margin-readonly-note")).toHaveTextContent("Binance");
   });
 
-  it("shows the available balance so the margin figure has something to sit against", () => {
+  it("does not repeat available balance below leverage", () => {
     render(<LiveLeveragePanel account={account()} options={options()} onSelect={vi.fn()} />);
-    expect(screen.getByTestId("live-risk-available")).toHaveTextContent("374.41");
+    expect(screen.queryByTestId("live-risk-available")).not.toBeInTheDocument();
   });
 });

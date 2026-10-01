@@ -50,6 +50,9 @@ NO_POSITION_TO_CLOSE = "NO_POSITION_TO_CLOSE"
 ACCOUNT_NOT_READY = "ACCOUNT_NOT_READY"
 NO_QUOTE = "NO_QUOTE"
 QTY_REQUIRED = "QTY_REQUIRED"
+LEVERAGE_POSITION_OPEN = "LEVERAGE_POSITION_OPEN"
+UNSUPPORTED_LEVERAGE = "UNSUPPORTED_LEVERAGE"
+LEVERAGE_CONSTRAINT_UNAVAILABLE = "LEVERAGE_CONSTRAINT_UNAVAILABLE"
 #: The self-imposed ceiling from `BINANCE_LIVE_MAX_QTY`, distinct from Binance's own
 #: `QTY_ABOVE_MARKET_MAXIMUM` so a report can tell "we refused this" from "the exchange would".
 QTY_ABOVE_LOCAL_MAXIMUM = "QTY_ABOVE_LOCAL_MAXIMUM"
@@ -295,6 +298,21 @@ class LiveOrderRouter:
                                response=response)
         return response
 
+    def submit_close_only(self, plan: OrderPlan) -> dict[str, Any]:
+        """Guard-owned CLOSE permission, independent of the manual arm TTL."""
+        if not self.config.trading_enabled:
+            raise OrderRefused(LIVE_TRADING_DISABLED, self._locked_message())
+        if plan.intent != CLOSE or not plan.reduce_only:
+            raise OrderRefused("CLOSE_ONLY_VIOLATION",
+                               "자동청산 권한은 전량 reduceOnly CLOSE만 허용합니다.")
+        params = plan.params(recv_window_ms=self.config.recv_window_ms)
+        self._record(LiveEvent.ORDER_SENT, client_order_id=plan.client_order_id,
+                     permission="AUTO_EXIT_CLOSE_ONLY", params=params)
+        response = self.client.call_close_only("new_order", params)
+        self._record(LiveEvent.ORDER_RESULT, client_order_id=plan.client_order_id,
+                     permission="AUTO_EXIT_CLOSE_ONLY", response=response)
+        return response
+
     # ------------------------------------------------------------------ leverage
 
     def set_leverage(self, leverage: int) -> dict[str, Any]:
@@ -307,9 +325,38 @@ class LiveOrderRouter:
             self._record(LiveEvent.LEVERAGE_REFUSED, stage="GATE", code=LIVE_TRADING_DISABLED,
                          message=message)
             raise OrderRefused(LIVE_TRADING_DISABLED, message)
-        response = self.client.call("set_leverage", {
-            "symbol": self.config.symbol, "leverage": int(leverage),
-            "recvWindow": self.config.recv_window_ms})
+        position = self.reader.position()
+        if not position.is_flat:
+            message = "포지션 보유 중에는 레버리지를 변경할 수 없습니다. 청산 후 다시 시도하세요."
+            self._record(LiveEvent.LEVERAGE_REFUSED, stage="POSITION",
+                         code=LEVERAGE_POSITION_OPEN, message=message)
+            raise OrderRefused(LEVERAGE_POSITION_OPEN, message)
+        try:
+            payload = self.client.call("leverage_bracket", {"symbol": self.config.symbol})
+            row = payload[0] if isinstance(payload, list) and payload else (payload or {})
+            brackets = row.get("brackets") or []
+            maximum = max(int(item["initialLeverage"]) for item in brackets)
+        except (BinanceError, KeyError, TypeError, ValueError) as exc:
+            message = "Binance 레버리지 허용 범위를 확인하지 못했습니다. 계좌 동기화 후 다시 시도하세요."
+            self._record(LiveEvent.LEVERAGE_REFUSED, stage="CONSTRAINT",
+                         code=LEVERAGE_CONSTRAINT_UNAVAILABLE,
+                         exchange_code=exc.code if isinstance(exc, BinanceError) else None,
+                         message=exc.message if isinstance(exc, BinanceError) else type(exc).__name__)
+            raise OrderRefused(LEVERAGE_CONSTRAINT_UNAVAILABLE, message) from None
+        if leverage < 1 or leverage > maximum:
+            message = f"현재 Binance 계정에서 {leverage}x 레버리지를 사용할 수 없습니다."
+            self._record(LiveEvent.LEVERAGE_REFUSED, stage="CONSTRAINT",
+                         code=UNSUPPORTED_LEVERAGE, leverage=leverage, maximum=maximum,
+                         message=message)
+            raise OrderRefused(UNSUPPORTED_LEVERAGE, message)
+        try:
+            response = self.client.call("set_leverage", {
+                "symbol": self.config.symbol, "leverage": int(leverage),
+                "recvWindow": self.config.recv_window_ms})
+        except BinanceError as exc:
+            self._record(LiveEvent.LEVERAGE_REFUSED, stage="EXCHANGE", code=exc.code,
+                         status=exc.status, message=exc.message, requested=leverage)
+            raise
         if self.mirror is not None:
             self.mirror.append(LiveEvent.LEVERAGE_RESULT, requested=leverage, response=response)
         return response
@@ -317,4 +364,5 @@ class LiveOrderRouter:
 
 __all__ = ["LiveOrderRouter", "OrderPlan", "OrderRefused", "OPEN", "CLOSE", "BUY", "SELL",
            "LIVE_TRADING_DISABLED", "REVERSE_NOT_ALLOWED", "NO_POSITION_TO_CLOSE",
-           "ACCOUNT_NOT_READY", "QTY_ABOVE_LOCAL_MAXIMUM", "client_order_id"]
+           "ACCOUNT_NOT_READY", "QTY_ABOVE_LOCAL_MAXIMUM", "LEVERAGE_POSITION_OPEN",
+           "UNSUPPORTED_LEVERAGE", "LEVERAGE_CONSTRAINT_UNAVAILABLE", "client_order_id"]

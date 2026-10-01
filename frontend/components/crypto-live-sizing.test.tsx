@@ -213,8 +213,11 @@ describe("the sizing client", () => {
     }));
     const { result } = renderHook(() => useBinanceLive(true));
     await waitFor(() => expect(sizingReads).toBeGreaterThan(0));
+    act(() => { result.current.requestPreview("0.001"); });
+    await waitFor(() => expect(result.current.preview).not.toBeNull());
     const before = sizingReads;
     await act(async () => { await result.current.changeLeverage(10); });
     expect(sizingReads).toBeGreaterThan(before);
+    expect(result.current.preview).toBeNull();
   });
 });

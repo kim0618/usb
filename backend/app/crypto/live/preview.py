@@ -121,6 +121,12 @@ def round_trip(*, side: str, qty: Decimal, depth: dict[str, Any], mark: MarkPric
         "required_margin": (notional / leverage) if leverage and leverage > 0 else None,
         "entry_fill_price": entry_price,
         "entry_fee": entry_fee,
+        "expected_entry_vwap": entry_price,
+        "expected_entry_notional": notional,
+        "expected_entry_fee": entry_fee,
+        # Market impact is measured from the best executable quote, never from mark.
+        "expected_entry_slippage_cost": abs(entry_price - reference) * qty,
+        "expected_entry_total_cost": entry_fee + abs(entry_price - reference) * qty,
         "entry_slippage": entry_slippage,
         "entry_slippage_pnl": -entry_slippage,
         "exit_fill_price": exit_price,

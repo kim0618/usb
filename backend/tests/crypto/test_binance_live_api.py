@@ -274,3 +274,16 @@ def test_a_live_route_reads_exactly_one_thing_from_the_paper_session(live, monke
     body = client.get("/api/crypto/binance/account").json()
     assert body["krw_per_usdt"] == "1400"
     assert touched == [], f"LIVE handlers reached for {touched} on the paper session"
+
+
+def test_position_card_krw_uses_the_same_fixed_rate_as_account_summary(live, monkeypatch) -> None:
+    client, adapter, _fake, _mirror = live
+    monkeypatch.setattr(adapter, "get_position_card", lambda: {
+        "open": True, "unrealized_pnl": Decimal("9.56"),
+        "net_if_closed": Decimal("8.88"), "net_complete": True})
+    session = type("Session", (), {"config": type("Config", (), {
+        "fx": type("Fx", (), {"krw_per_usdt": Decimal("1400")})()})()})()
+    monkeypatch.setattr(live_routes.runtime, "session", session)
+    body = client.get("/api/crypto/binance/position").json()
+    assert body["krw_per_usdt"] == "1400"
+    assert body["krw"] == {"unrealized_pnl": "13384.00", "net_if_closed": "12432.00"}
