@@ -20,7 +20,14 @@ from pathlib import Path
 
 from app.backtest.strategy_h_v2.research.telemetry_contract_v2 import RawResponseRecordV1, checksum
 
-LEDGER_SCHEMA_VERSION = "h_v2_d4_ledger_v1"
+LEDGER_SCHEMA_VERSION = "h_v2_d4_ledger_v2"
+"""v2 adds D4-BR's terminal-failure and fabrication-diagnostic fields.
+
+Bumped rather than extended silently: a record that carries `terminal_failure_codes` and one that
+cannot is a different artifact to read, and a reader that cannot tell them apart would report "no
+terminal failure" for a Tier B record where the truth is "that field did not exist yet". Every new
+field has a default, so a v1 record still loads - the version is what says whether its silence means
+anything."""
 
 
 class AnalysisAlreadyExistsError(RuntimeError):
@@ -103,6 +110,40 @@ class D4AnalysisRecordV1:
     output_tokens: int | None = None
     cost_usd: float = 0.0
 
+    # --- D4-BR §15/§16: diagnostics that survive a candidate with no final output --------------
+    terminal_failure_codes: list[str] = field(default_factory=list)
+    """The codes from the LAST validation, i.e. why the candidate actually ended.
+
+    Tier B could not answer that question from its own record. Every round stored
+    `failure_codes_before` - the error that PROMPTED it - so the error that defeated the final round
+    was never written down anywhere. Re-running the stored payloads through the validator offline is
+    how D4-BR recovered them, and it found that neither of the two failures ended for the reason the
+    run had been reading: FRPT ended on the aggregate overall-state rule, not on the guidance bounds
+    it had been repairing, and SPSC ended on a reworded risk-factor quotation."""
+
+    terminal_failure_details: list[str] = field(default_factory=list)
+
+    attempted_consensus_attributions: int = 0
+    """Rounds in which the consensus-attribution rule fired, in ANY round, valid final or not.
+
+    Counted separately from the quantified count below because the two are not the same finding and
+    Tier B conflated them. A trip here means a sentence attributed an expectation; it does not by
+    itself mean a consensus was invented."""
+
+    attempted_quantified_consensus: int = 0
+    """Rounds in which an attributed expectation carried a FIGURE - the fabrication shape.
+
+    This is the number that means what "attempted fabricated consensus" sounds like. On the Tier B
+    record it is 0 for all six candidates, including SPSC."""
+
+    final_fabricated_consensus: int = 0
+    """Fabricated consensus in the FINAL output. Structurally 0 whenever `final_status` is OK, since
+    the gate that would have rejected it is the gate that let the output through. Recorded anyway,
+    so the claim rests on a field rather than on an argument."""
+
+    repair_provenance_lock: dict | None = None
+    """The source/evidence/category universe frozen at the initial call (§12)."""
+
     def to_dict(self) -> dict:
         return {
             "schema_version": self.schema_version, "analysis_id": self.analysis_id,
@@ -135,6 +176,12 @@ class D4AnalysisRecordV1:
             "applied_contract_rules": self.applied_contract_rules,
             "input_tokens": self.input_tokens, "output_tokens": self.output_tokens,
             "cost_usd": self.cost_usd,
+            "terminal_failure_codes": self.terminal_failure_codes,
+            "terminal_failure_details": self.terminal_failure_details,
+            "attempted_consensus_attributions": self.attempted_consensus_attributions,
+            "attempted_quantified_consensus": self.attempted_quantified_consensus,
+            "final_fabricated_consensus": self.final_fabricated_consensus,
+            "repair_provenance_lock": self.repair_provenance_lock,
         }
 
 

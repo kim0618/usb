@@ -26,6 +26,7 @@ from app.backtest.strategy_h_v2.expectation.analysis_schema import (
     HExpectationGapAnalysisV1,
 )
 from app.backtest.strategy_h_v2.expectation.code_facts import CodeFact, code_source_id
+from app.backtest.strategy_h_v2.expectation.comparability import structural_prescan
 from app.backtest.strategy_h_v2.expectation.evidence_schema import ExpectationEvidenceBundleV1
 from app.backtest.strategy_h_v2.expectation.gap_contract import (
     C7_PRICED_IN_MIN_EVIDENCE_IDS,
@@ -66,11 +67,29 @@ from app.backtest.strategy_h_v2.research.validate import (
 )
 from app.backtest.strategy_h_v2.research import validation_v2
 
-VALIDATION_CONTRACT_VERSION = "h_v2_d4_validation_contract_v2"
-#: V1, for attribution when reading D4.1's stored records. V2 differs in exactly two enforcement
-#: behaviours - the consensus check discriminates an asserted expectation from a stated absence
-#: instead of scanning for substrings, and the citable-evidence set is built from a D4-owned module
-#: instead of an uncommitted one. No rule was added, dropped or re-thresholded.
+VALIDATION_CONTRACT_VERSION = "h_v2_d4_validation_contract_v3"
+"""V3 is D4-BR. It changes WHEN errors are reported and WHICH field the attribution rule reads, and
+it does not change any threshold, any gate or any enum.
+
+    pre-scan        aggregate inconsistencies a malformed child used to mask are now reported in the
+                    same round. Strictly additive: every rule it raises is one the schema raises.
+    unknown_fields  the abstention channel is scanned under the quantified rule only, so naming the
+                    quantity you are declaring unknown is no longer read as asserting it. A FIGURE
+                    there is still rejected.
+    message         the attribution rejection now states that polarity is read per clause, so a
+                    repair knows the denial must sit beside the attribution.
+
+Bumped because Tier B's records were graded under V2 and the `unknown_fields` change means a payload
+V2 rejected can now be accepted. That is a real difference in what a stored
+`validation_contract_version` promises, and a reader comparing a Tier B record with a later one is
+entitled to see it rather than infer it."""
+
+#: V2, the contract Tier A V3 and Tier B were graded under. It differed from V1 in exactly two
+#: enforcement behaviours - the consensus check discriminates an asserted expectation from a stated
+#: absence instead of scanning for substrings, and the citable-evidence set is built from a D4-owned
+#: module instead of an uncommitted one.
+VALIDATION_CONTRACT_VERSION_V2 = "h_v2_d4_validation_contract_v2"
+#: V1, for attribution when reading D4.1's stored records.
 VALIDATION_CONTRACT_VERSION_V1 = "h_v2_d4_validation_contract_v1"
 
 #: Metadata the orchestration layer fills in, never asked of the model - the D4 counterpart of
@@ -305,7 +324,14 @@ def check_expectation_state_contradictions(
             )
     if state.market_expectation_claim_allowed:
         return errors
-    for text in _every_text(analysis):
+    # D4-BR §5/§9. `unknown_fields` is scanned under the QUANTIFIED rule only. Its contract is "the
+    # things this output does not know", so an entry there is a denial by construction - naming the
+    # abstained quantity is the whole point of the list, and Tier B shows the cost of treating that
+    # name as an assertion: SPSC's first repair had already downgraded both comparisons to UNKNOWN,
+    # and the round that should have ended the candidate was spent on its own `unknown_fields` entry
+    # reading "consensus expectations". A FIGURE there is still rejected: "consensus estimate of
+    # $5.00" is not a field name, and the quantified rule is where that is caught.
+    for text in _every_text(analysis, include_unknown_fields=False):
         for finding in affirmative_expectation_findings(text, state=state):
             # Both variants keep the phrase "attributes an expectation to analysts or the market".
             # It is the stable part of this rejection that D4.1's own tests were written against,
@@ -323,16 +349,37 @@ def check_expectation_state_contradictions(
                 f"{finding.sentence!r}. Remove the attribution. Saying instead that the evidence "
                 "does not settle the question is always allowed, in whatever wording you like - "
                 "this check looks at whether a sentence AFFIRMS an expectation, never at which "
-                "phrase it uses to deny one, so you do not need to guess an approved form of words "
+                "phrase it uses to deny one, so you do not need to guess an approved form of words. "
+                "The denial has to sit in the SAME clause as the attribution: polarity is read per "
+                "clause, so a disclaimer after a semicolon or a full stop does not reach back to the "
+                "clause quoted above. 'results may fall short of what analysts anticipate, which the "
+                "evidence does not establish' passes; the same sentence with that qualifier moved "
+                "behind a semicolon does not "
                 "@ market_expectation_evidence"
+            )
+            break
+    for text in analysis.unknown_fields:
+        for finding in affirmative_expectation_findings(text, state=state):
+            if not is_quantified_expectation_sentence(finding.sentence):
+                continue
+            errors.append(
+                f"an unknown_fields entry states an expectation FIGURE ({finding.trigger!r}) while "
+                "the expectation bundle reports consensus SOURCE_NOT_AVAILABLE: "
+                f"{finding.sentence!r}. Naming a field as unknown is always allowed; attaching a "
+                "number to it is not, because the number is the fabrication "
+                "@ market_expectation_evidence.unknown_fields"
             )
             break
     return errors
 
 
-def _every_text(analysis: HExpectationGapAnalysisV1) -> list[str]:
+def _every_text(
+    analysis: HExpectationGapAnalysisV1, *, include_unknown_fields: bool = True,
+) -> list[str]:
     texts = [c.text for c in analysis._all_claims()]
-    texts += analysis.limitations + analysis.unknown_fields
+    texts += analysis.limitations
+    if include_unknown_fields:
+        texts += analysis.unknown_fields
     texts += [i.summary for i in analysis.why_now]
     texts += analysis.priced_in_assessment.limitations
     texts += [c.topic for c in analysis.conflicts] + [c.description for c in analysis.conflicts]
@@ -508,8 +555,21 @@ def assemble_and_validate_d4(
                      "valid_evidence_ids": citable_evidence},
         )
     except ValidationError as error:
-        return None, [str(e["msg"]) + " @ " + ".".join(str(p) for p in e["loc"])
-                      for e in error.errors()]
+        reported = [str(e["msg"]) + " @ " + ".".join(str(p) for p in e["loc"])
+                    for e in error.errors()]
+        # D4-BR §16. Pydantic runs child validators before a parent's mode="after" validator, so a
+        # single malformed assessment hides every aggregate inconsistency in the same payload. Tier B
+        # paid for that twice: FRPT and IDCC both violated the overall-state rule in their INITIAL
+        # response and were told so only after a repair round had gone on something else. FRPT ran
+        # out of rounds. The pre-scan reports the hidden ones now, so a bounded repair budget is
+        # spent on fixing defects rather than on discovering them one at a time. It only ADDS
+        # errors, and only ones the schema itself would raise.
+        # Pydantic prefixes its own messages with "Value error, ", so a rule the pre-scan and the
+        # schema both raise must be compared with that prefix stripped, or the repair prompt gets
+        # the same complaint twice and reads it as two problems.
+        seen = {m.removeprefix("Value error, ") for m in reported}
+        masked = [m for m in structural_prescan(full_record) if m not in seen]
+        return None, reported + masked
 
     errors: list[str] = []
     errors += check_d3_tokens_unmodified(analysis, research_output)

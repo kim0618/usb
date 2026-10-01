@@ -146,8 +146,29 @@ def regenerate_tier_b_from_universe(
 # improvement is a ceiling that does not bound anything.
 
 D4_WORST_CASE_CANDIDATE_USD = 2.00
-#: A Tier B issuer needs a D3 run first, at D3's own observed worst case, then a D4 run.
-D3_WORST_CASE_CANDIDATE_USD = 1.60
+#: A Tier B issuer needs a D3 run first, then a D4 run. This is the D3 PLANNING ESTIMATE.
+#:
+#: D4-BR §17 corrects the label, not the number. It was written as a worst case, set above D3.3's
+#: observed maximum of $1.54 - and Tier B then observed TG at $2.0859, which is 30% above it. One D3
+#: repair round is all it took. So this figure never bounded anything; it was a planning estimate
+#: that happened to sit above the sample it was fitted to, and calling it a ceiling invited exactly
+#: the reading that a ceiling makes an overrun impossible.
+#:
+#: The value is deliberately unchanged. The candidate reserve it feeds is per-candidate and the Tier B
+#: hard cap held with $27.70 of room, so the reserve did its job; raising the number to cover one
+#: observation would be fitting a ceiling to a sample again. What changes is that the overrun is now
+#: named here, where the next person doing this arithmetic will read it.
+D3_PLANNING_ESTIMATE_CANDIDATE_USD = 1.60
+D3_OBSERVED_MAX_CANDIDATE_USD = 2.0859296
+"""Tier B's TG candidate, run `D4_B-20260930T053146Z` - the observation that falsified the label."""
+assert D3_OBSERVED_MAX_CANDIDATE_USD > D3_PLANNING_ESTIMATE_CANDIDATE_USD, (
+    "this assertion exists to fail loudly if someone 'fixes' the estimate by raising it to cover "
+    "the observation - the point of §17 is that a planning estimate is not a bound"
+)
+#: Retained under its original name because two frozen contracts and the Tier B budget arithmetic
+#: import it, and renaming a constant that graded runs were computed from would silently change what
+#: those runs are read to have measured.
+D3_WORST_CASE_CANDIDATE_USD = D3_PLANNING_ESTIMATE_CANDIDATE_USD
 TIER_B_WORST_CASE_CANDIDATE_USD = D3_WORST_CASE_CANDIDATE_USD + D4_WORST_CASE_CANDIDATE_USD
 D4_1_HARD_BUDGET_USD = 30.00
 assert (TIER_A_N * D4_WORST_CASE_CANDIDATE_USD

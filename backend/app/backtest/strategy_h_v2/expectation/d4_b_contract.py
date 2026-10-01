@@ -165,7 +165,26 @@ M8_R2_WINDOW_ELLIPSIS_COVERAGE = "CLOSED"
 M8_R3_COMPOUND_SET_VALUED = "DEFERRED"
 """Unchanged and not implemented in this run. R3 changes M8's unit of comparison rather than its
 coverage, its measured exposure in the D4-H corpus is 0 occurrences, and implementing it mid-run would
-change what E5 measures after the run started."""
+change what E5 measures after the run started.
+
+This literal is Tier B's, and D4-BR does not touch it. It is what the run recorded and what the run's
+gate audit reports, so rewriting it would change what a graded run is read to have said. The status
+D4-BR arrives at lives in `M8_R3_STATUS_AFTER_TIER_B` below."""
+
+M8_R3_OBSERVED_EXPOSURE = 1
+"""CRK, run `D4_B-20260930T053146Z`. Was 0 across the whole D4-H corpus.
+
+CRK cites a 3-month AND a 6-month figure in one claim and restates only the 3-month one - R3's exact
+shape, a set-valued citation whose atomic reading cannot tell a partial restatement from a complete
+one. Recorded by D4-BR from the stored Tier B outputs, offline."""
+
+M8_R3_STATUS_AFTER_TIER_B = "OBSERVED / DEFERRED"
+"""D4-BR §18. The status, not the implementation - R3 is still not implemented.
+
+"DEFERRED" rested on zero measured exposure. That premise is gone: the exposure is 1, so the deferral
+is now a scheduling decision rather than an absence of evidence. It stays deferred deliberately,
+because R3 changes M8's unit of comparison, which is a gate-semantics change §1 forbids, and a change
+to what E5 measures has to be frozen before the run it grades rather than inserted after two."""
 
 M8_SCOPE_NOTE = (
     "E5/M8 examines ATOMIC claims only, with R1 and R2's corrected numeric-role coverage. A compound "

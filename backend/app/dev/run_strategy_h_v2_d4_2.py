@@ -34,7 +34,10 @@ from app.backtest.strategy_h_v2.evidence.chunk_schema import AIResearchInputV1
 from app.backtest.strategy_h_v2.expectation.analysis_schema import (
     SCHEMA_VERSION as D4_SCHEMA_VERSION,
 )
-from app.backtest.strategy_h_v2.expectation.code_facts import build_code_fact_index
+from app.backtest.strategy_h_v2.expectation.code_facts import (
+    build_code_fact_index,
+    code_source_id,
+)
 from app.backtest.strategy_h_v2.expectation.contract_v2 import (
     CandidateSpend,
     D4_CONTRACT_VERSION,
@@ -52,7 +55,10 @@ from app.backtest.strategy_h_v2.expectation.d4_2_contract import (
     TIER_A_HARD_BUDGET_USD,
     TIER_A_TICKERS_UNCHANGED,
 )
-from app.backtest.strategy_h_v2.expectation.d4_inputs import classify_d4_repair_reason
+from app.backtest.strategy_h_v2.expectation.d4_inputs import (
+    classify_d4_repair_reason,
+    package_evidence_ids,
+)
 from app.backtest.strategy_h_v2.expectation.evidence_builder import (
     build_expectation_evidence_bundle,
 )
@@ -67,6 +73,10 @@ from app.backtest.strategy_h_v2.expectation.ledger import (
 )
 from app.backtest.strategy_h_v2.expectation.price_engine import SESSION_CLOSE_LATEST_UTC
 from app.backtest.strategy_h_v2.expectation.prompt import PROMPT_VERSION, build_d4_prompt
+from app.backtest.strategy_h_v2.expectation.repair_provenance import (
+    ProvenanceLock,
+    check_repair_provenance,
+)
 from app.backtest.strategy_h_v2.expectation.validate import (
     VALIDATION_CONTRACT_VERSION,
     assemble_and_validate_d4,
@@ -79,7 +89,12 @@ from app.backtest.strategy_h_v2.research.research_attempt_v2 import (
     extract_usage,
 )
 from app.backtest.strategy_h_v2.research.telemetry_contract_v2 import RawResponseRecordV1, checksum
-from app.backtest.strategy_h_v2.research.validate import package_checksum
+from app.backtest.strategy_h_v2.research.validate import (
+    ExtractionError,
+    extract_json_object,
+    package_checksum,
+    valid_source_ids,
+)
 
 DAILY_PANEL_DIR = Path("data/runtime/strategy_b_e0/mirror/market_data/raw/massive/grouped_daily")
 ANALYSES_ROOT = D4_2_ROOT / "analyses"
@@ -165,6 +180,28 @@ def build_bundle_for(
 
 # --- one D4 analysis -----------------------------------------------------------------------------
 
+def _consensus_diagnostics(errors: list[str]) -> tuple[int, int]:
+    """`(attributions, quantified)` for one round's errors - D4-BR §15.
+
+    Read off the validator's own message rather than re-deriving from the payload, because the
+    question being counted is "did the gate fire", and the gate is what the message reports. The two
+    counts are separate on purpose: Tier B's write-up read a single attribution trip as an attempted
+    fabrication, and the raw attempts do not support that - the strings that tripped it were an
+    `unknown_fields` entry declaring the quantity unknown and a quoted 10-K risk factor. Neither
+    carried a figure, and a figure is what makes an attribution a fabrication.
+    """
+    attributions = sum(
+        1 for e in errors
+        if "attributes an expectation to analysts or the market" in e
+        or "unknown_fields entry states an expectation FIGURE" in e
+    )
+    quantified = sum(
+        1 for e in errors
+        if "by stating a figure" in e or "states an expectation FIGURE" in e
+    )
+    return (1 if attributions else 0), (1 if quantified else 0)
+
+
 def analyze_one_v2(
     *,
     package: AIResearchInputV1,
@@ -247,6 +284,24 @@ def analyze_one_v2(
     initial_failure_codes = [classify_d4_repair_reason(errors).value] if errors else []
     initial_failure_details = list(errors)
 
+    # D4-BR §12. The repair universe is whatever the INITIAL response cited, frozen here. Built from
+    # the raw payload rather than from a validated model, because the lock has to exist for a payload
+    # that failed validation - which is the only case a repair ever runs on.
+    try:
+        lock = ProvenanceLock.from_content(extract_json_object(raw_text))
+    except ExtractionError:
+        lock = None          # unparseable initial answer: there is no universe to freeze
+    provenance_lock = lock.to_dict() if lock else None
+
+    attributions, quantified = _consensus_diagnostics(errors)
+
+    # The code-owned citable universe, so the lock's id check asks "does this exist?" rather than
+    # "was this cited before?" - §10 permits a repair to attach evidence that was already present.
+    citable_sources = valid_source_ids(package) | {code_source_id(bundle.bundle_id)}
+    citable_evidence = (
+        package_evidence_ids(package) | set(bundle.valid_evidence_ids()) | set(code_facts)
+    )
+
     repair_rounds: list[D4RepairRoundV1] = []
     attempt_n = 0
     while output is None and attempt_n < MAX_REPAIR_ATTEMPTS:
@@ -276,6 +331,24 @@ def analyze_one_v2(
         attempt_n += 1
         raw_text = raw.get("result", "")
         output, errors = _validate(raw_text, _canonical_model(raw) or canonical_model)
+        if lock is not None:
+            try:
+                introduced = check_repair_provenance(
+                    extract_json_object(raw_text), lock,
+                    citable_source_ids=citable_sources,
+                    citable_evidence_ids=citable_evidence,
+                )
+            except ExtractionError:
+                introduced = []
+            if introduced:
+                # A repair that reached outside the initial evidence universe is rejected even if it
+                # otherwise validates: §11's prohibition is about WHERE the answer came from, and an
+                # output that passes every content gate while citing a source the initial answer did
+                # not have is exactly the substitution the gates cannot see.
+                output, errors = None, list(introduced) + list(errors)
+        round_attributions, round_quantified = _consensus_diagnostics(errors)
+        attributions += round_attributions
+        quantified += round_quantified
         repair_rounds.append(D4RepairRoundV1(
             attempt_number=attempt_n - 1, failure_codes_before=failure_codes_before,
             failure_details_before=failure_details_before, repair_prompt_version=PROMPT_VERSION,
@@ -284,7 +357,15 @@ def analyze_one_v2(
         ))
 
     final_raw = repair_rounds[-1].raw_repair_response if repair_rounds else initial_response
+    diagnostics = dict(
+        attempted_consensus_attributions=attributions,
+        attempted_quantified_consensus=quantified,
+        repair_provenance_lock=provenance_lock,
+    )
     if output is None:
+        # D4-BR §16. `errors` here is the LAST validation's result - why the candidate actually
+        # ended. D4.1 and Tier B stored only each round's `failure_codes_before`, so a candidate with
+        # no final output recorded every reason it had been repaired and not the reason it stopped.
         return _base(
             completed_at=_now_iso(), final_status="SCHEMA_VALIDATION_FAILED",
             initial_parse_status=parse_status, initial_validation_status=validation_status,
@@ -292,6 +373,12 @@ def analyze_one_v2(
             initial_failure_details=initial_failure_details, repair_rounds=repair_rounds,
             final_raw_response=final_raw, cost_usd=_spend().candidate_total_cost_usd,
             applied_contract_rules=[], final_output=None,
+            terminal_failure_codes=(
+                [classify_d4_repair_reason(errors).value] if errors else []
+            ),
+            terminal_failure_details=list(errors),
+            final_fabricated_consensus=0,
+            **diagnostics,
         ), _spend()
 
     output_dict = json.loads(output.model_dump_json())
@@ -303,6 +390,9 @@ def analyze_one_v2(
         final_output_checksum=checksum(json.dumps(output_dict, sort_keys=True, default=str)),
         applied_contract_rules=list(output_dict.get("applied_contract_rules") or []),
         cost_usd=_spend().candidate_total_cost_usd,
+        terminal_failure_codes=[], terminal_failure_details=[],
+        final_fabricated_consensus=0,
+        **diagnostics,
     ), _spend()
 
 

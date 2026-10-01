@@ -122,8 +122,36 @@ def audit_run(run_id: str, *, analyses_root: Path = ANALYSES_ROOT,
             row["d3_audit"] = audit_d3_output(ticker, d3["final_output"], PackageIndex(package))
 
         record = records.get(ticker)
+
+        def _repair_diagnostics(rec: dict | None) -> dict:
+            """The repair story, for ANY candidate - D4-BR §16.
+
+            Tier B's audit emitted `{"has_final_output": False, "defects": {}}` and nothing else for
+            a candidate that produced no output, so the two rows that most needed explaining were the
+            two that carried no initial attempt, no repair count, no cause and no cost. The gate
+            arithmetic is untouched: `graded` still means "has a final output", and every defect
+            count still runs over `graded` alone. This only stops the record from being silent.
+            """
+            rec = rec or {}
+            return {
+                "d4_initial_valid": rec.get("initial_validation_status") == "OK",
+                "d4_initial_failure_codes": list(rec.get("initial_failure_codes") or []),
+                "d4_repair_rounds": len(rec.get("repair_rounds") or []),
+                "d4_repair_causes": [c for r in (rec.get("repair_rounds") or [])
+                                     for c in (r.get("failure_codes_before") or [])],
+                "d4_terminal_failure_codes": list(rec.get("terminal_failure_codes") or []),
+                "d4_terminal_failure_details": list(rec.get("terminal_failure_details") or []),
+                "d4_cost_usd": rec.get("cost_usd"),
+                "attempted_consensus_attributions": rec.get(
+                    "attempted_consensus_attributions"),
+                "attempted_quantified_consensus": rec.get("attempted_quantified_consensus"),
+                "final_fabricated_consensus": rec.get("final_fabricated_consensus"),
+                "record_schema_version": rec.get("schema_version"),
+            }
+
         if record is None or not record.get("final_output"):
             row.update({"has_final_output": False, "defects": {}})
+            row.update(_repair_diagnostics(record))
             candidates.append(row)
             continue
 
@@ -154,6 +182,7 @@ def audit_run(run_id: str, *, analyses_root: Path = ANALYSES_ROOT,
                 and record.get("started_at") and record.get("completed_at")),
             "defects": defects,
         })
+        row.update(_repair_diagnostics(record))
         candidates.append(row)
 
     graded = [c for c in candidates if c.get("has_final_output")]
