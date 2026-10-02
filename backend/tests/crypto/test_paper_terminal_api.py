@@ -201,6 +201,32 @@ def test_reading_paper_c1_auto_state_never_creates_an_order(client: TestClient) 
     assert controller.session.engine.ledger.events == before
 
 
+def test_c1_auto_toggle_keeps_state_endpoints_on_the_same_paper_account(
+        client: TestClient, monkeypatch) -> None:
+    from app.crypto.terminal import c1_routes
+
+    opened = client.post("/api/crypto/order",
+                         json={"side": "LONG", "intent": "OPEN", "qty": "0.010"})
+    assert opened.status_code == 200
+    before_state = client.get("/api/crypto/state").json()
+    before_ledger = client.get("/api/crypto/ledger").json()
+    monkeypatch.setattr(c1_routes, "c1_runtime", object())
+
+    enabled = client.post("/api/crypto/paper/c1-auto", json={"enabled": True})
+    during_state = client.get("/api/crypto/state").json()
+    during_ledger = client.get("/api/crypto/ledger").json()
+    disabled = client.post("/api/crypto/paper/c1-auto", json={"enabled": False})
+    after_state = client.get("/api/crypto/state").json()
+    after_ledger = client.get("/api/crypto/ledger").json()
+
+    assert enabled.status_code == 200 and disabled.status_code == 200
+    for state in (during_state, after_state):
+        assert state["run_id"] == before_state["run_id"]
+        assert state["account"] == before_state["account"]
+        assert state["krw"] == before_state["krw"]
+    assert during_ledger == before_ledger == after_ledger
+
+
 def test_a_manual_long_then_close_moves_the_account_through_the_api(client: TestClient) -> None:
     opened = client.post("/api/crypto/order",
                          json={"side": "LONG", "intent": "OPEN", "qty": "0.010"})

@@ -1,4 +1,4 @@
-"""Persistent PAPER-only C1 automation over an isolated PaperSession.
+"""Persistent PAPER-only C1 automation over the shared PaperSession.
 
 The controller never imports the Binance package and never reads C1x.  C1 supplies entry
 identity and the official four-hour timestamp; PaperEngine remains the only execution path.
@@ -8,15 +8,13 @@ from __future__ import annotations
 import json
 import os
 import tempfile
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from decimal import Decimal
 from pathlib import Path
 from typing import Any, Iterable
 
 from . import sizing
 from .book import Quote
-from .config import PaperRunConfig
-from .instrument import RiskTierTable
 from ..terminal.session import PaperSession
 
 AUTO_SOURCE = "PAPER_C1_AUTO"
@@ -43,12 +41,10 @@ class AutoState:
 
 
 class C1AutoController:
-    def __init__(self, *, manual_config: PaperRunConfig, tiers: RiskTierTable,
-                 root: Path | str) -> None:
-        self.root = Path(root) / f"{manual_config.run_id}-c1-auto"
-        auto_config = replace(manual_config, run_id=f"{manual_config.run_id}-c1-auto",
-                              leverage=Decimal(10))
-        self.session = PaperSession(config=auto_config, tiers=tiers, root=Path(root))
+    def __init__(self, *, session: PaperSession) -> None:
+        # AUTO is a control/origin flag on the one PAPER account, never another run.
+        self.session = session
+        self.root = session.run_dir
         self.state_path = self.root / STATE_FILE
         self.state = self._load()
         self._recover_active_link()
@@ -124,10 +120,21 @@ class C1AutoController:
         self._save()
         return True
 
+    def owns_position(self) -> bool:
+        """Ownership is the origin of the current flat-to-open lifecycle, not AUTO state."""
+        if self.session.engine.account.position.is_flat:
+            return False
+        for event in reversed(self.session.engine.ledger.events):
+            if event.get("event_type") == "POSITION_OPEN":
+                return event.get("reason") == AUTO_SOURCE
+            if event.get("event_type") == "POSITION_CLOSE":
+                return False
+        return False
+
     def disable(self, quote: Quote) -> tuple[bool, dict[str, Any]]:
         if not self.state.enabled:
             return True, self.view()
-        if not self.close(quote, AUTO_TO_MANUAL_CLOSE):
+        if self.owns_position() and not self.close(quote, AUTO_TO_MANUAL_CLOSE):
             return False, self.view()
         self.state.enabled = False
         self.state.disabled_at = quote.ts_ms
@@ -148,6 +155,15 @@ class C1AutoController:
                   > (self.state.last_seen_signal_at, self.state.last_seen_signal_id or "")]
         position = self.session.engine.account.position
         if not position.is_flat:
+            # A MANUAL position remains MANUAL. Consume all signals seen while it is open so
+            # flattening it cannot cause a stale C1 entry; only the next C1 may enter.
+            if not self.owns_position():
+                if unseen:
+                    last = unseen[-1]
+                    self.state.last_seen_signal_id = last.signal_id
+                    self.state.last_seen_signal_at = last.triggered_at_ms
+                    self._save()
+                return
             active = next((row for row in ordered
                            if row.signal_id == self.state.active_signal_id), None)
             benchmark = (active.planned_exit_at_ms if active is not None
@@ -166,6 +182,9 @@ class C1AutoController:
         last = unseen[-1]
         self.state.last_seen_signal_id = last.signal_id
         self.state.last_seen_signal_at = last.triggered_at_ms
+        if self.session.engine.leverage != Decimal(10):
+            self.session.command({"command": "SET_LEVERAGE", "ts_ms": quote.ts_ms,
+                                  "leverage": "10"}, quote=None)
         quote_size = sizing.max_entry(self.session.engine, "LONG")
         if not quote_size.feasible or quote_size.qty <= 0:
             self._save()

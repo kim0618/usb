@@ -85,7 +85,7 @@ class Runtime:
     def build(self, config_path: Path, root: Path) -> None:
         config, tiers = load_run_config(config_path)
         self.session = PaperSession(config=config, tiers=tiers, root=root)
-        self.c1_auto = C1AutoController(manual_config=config, tiers=tiers, root=root)
+        self.c1_auto = C1AutoController(session=self.session)
 
     async def _observe_loop(self) -> None:
         while True:
@@ -127,10 +127,7 @@ class Runtime:
         return self.session
 
     def selected_session(self) -> PaperSession:
-        manual = self.require_session()
-        if self.c1_auto is not None and self.c1_auto.state.enabled:
-            return self.c1_auto.session
-        return manual
+        return self.require_session()
 
 
 runtime = Runtime()
@@ -336,9 +333,10 @@ def create_app() -> FastAPI:
         if runtime.c1_auto is not None and runtime.c1_auto.state.enabled:
             if request.intent == "OPEN":
                 return error(409, "AUTO_MANAGED", "C1 AUTO 중에는 자동 진입만 허용됩니다.")
-            if not runtime.c1_auto.close(quote, MANUAL_CLOSE_DURING_AUTO):
-                return error(409, "AUTO_CLOSE_FAILED", "AUTO 포지션 청산에 실패했습니다.")
-            return jsonable({"events": [], "state": runtime.c1_auto.session.snapshot()})
+            if runtime.c1_auto.owns_position():
+                if not runtime.c1_auto.close(quote, MANUAL_CLOSE_DURING_AUTO):
+                    return error(409, "AUTO_CLOSE_FAILED", "AUTO 포지션 청산에 실패했습니다.")
+                return jsonable({"events": [], "state": session.snapshot()})
         # Put the engine on the tick this order is about to be judged against, then re-check
         # the size on it. A preset was priced seconds ago and the book moves; letting a stale
         # preview through is how an operator ends up holding a position the engine will refuse

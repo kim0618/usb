@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+from decimal import Decimal
+
 from app.crypto.c1.models import Signal
 from app.crypto.paper import sizing
 from app.crypto.paper.c1_auto import (
     AUTO_4H_EXIT, AUTO_SOURCE, AUTO_TO_MANUAL_CLOSE, MANUAL_CLOSE_DURING_AUTO,
     C1AutoController,
 )
+from app.crypto.terminal.session import PaperSession
 
 from tests.crypto.conftest import make_config, quote
 
@@ -17,12 +20,21 @@ def signal(name: str, triggered: int, exit_at: int) -> Signal:
 
 
 def controller(tmp_path, tiers) -> C1AutoController:
-    return C1AutoController(manual_config=make_config(), tiers=tiers, root=tmp_path)
+    return C1AutoController(session=PaperSession(config=make_config(), tiers=tiers, root=tmp_path))
 
 
 def reasons(auto: C1AutoController, event_type: str) -> list[str]:
     return [row["reason"] for row in auto.session.engine.ledger.events
             if row["event_type"] == event_type]
+
+
+def open_manual(auto: C1AutoController, at: int = 1_000) -> None:
+    auto.observe(quote(at))
+    result = auto.session.command({
+        "command": "ORDER", "ts_ms": at, "side": "LONG", "qty": "0.001",
+        "intent": "OPEN", "request_id": f"manual-{at}", "reason": "PAPER_MANUAL",
+    })
+    assert result["rejection"] is None
 
 
 def test_off_never_enters_and_on_uses_safe_max_10x(tmp_path, tiers):
@@ -92,7 +104,55 @@ def test_disable_closes_first_and_failure_keeps_auto(tmp_path, tiers, monkeypatc
     assert not ok and auto.state.enabled
 
 
-def test_restart_recovers_state_position_and_separate_ledger(tmp_path, tiers):
+def test_toggle_preserves_one_account_position_pnl_and_ledger(tmp_path, tiers):
+    auto = controller(tmp_path, tiers)
+    open_manual(auto)
+    auto.observe(quote(2_000))
+    account = auto.session.engine.account
+    account.realized_pnl = Decimal("122.45598")
+    before = (account.wallet_balance, account.equity(quote(2_000).mark_price),
+              account.position.signed_qty, account.realized_pnl,
+              account.unrealized_pnl(quote(2_000).mark_price),
+              list(auto.session.engine.ledger.events), auto.session.config.run_id)
+
+    auto.enable(quote(2_000))
+    ok, _ = auto.disable(quote(2_001))
+    auto.enable(quote(2_002))
+    ok_again, _ = auto.disable(quote(2_003))
+
+    after = (account.wallet_balance, account.equity(quote(2_000).mark_price),
+             account.position.signed_qty, account.realized_pnl,
+             account.unrealized_pnl(quote(2_000).mark_price),
+             list(auto.session.engine.ledger.events), auto.session.config.run_id)
+    assert ok and ok_again
+    assert after == before
+
+
+def test_manual_position_blocks_auto_until_flat_then_next_c1_enters(tmp_path, tiers):
+    auto = controller(tmp_path, tiers)
+    open_manual(auto)
+    auto.enable(quote(1_001))
+    held_signal = signal("C1-held", 1_002, 8_000)
+    auto.reconcile(quote(1_002), [held_signal])
+    assert reasons(auto, "POSITION_OPEN") == ["PAPER_MANUAL"]
+
+    position = auto.session.engine.account.position
+    auto.session.command({
+        "command": "ORDER", "ts_ms": 2_000, "side": position.side,
+        "qty": str(position.abs_qty), "intent": "CLOSE", "request_id": "manual-close",
+        "reason": "PAPER_MANUAL",
+    }, quote=quote(2_000))
+    auto.reconcile(quote(2_001), [held_signal])
+    assert auto.session.engine.account.position.is_flat
+
+    next_signal = signal("C1-next", 3_000, 9_000)
+    auto.reconcile(quote(3_000), [held_signal, next_signal])
+    assert not auto.session.engine.account.position.is_flat
+    assert auto.session.engine.account.position.leverage == 10
+    assert reasons(auto, "POSITION_OPEN") == ["PAPER_MANUAL", AUTO_SOURCE]
+
+
+def test_restart_recovers_state_position_and_shared_ledger(tmp_path, tiers):
     manual_root = tmp_path / "test-run"
     auto = controller(tmp_path, tiers)
     auto.enable(quote(1_000))
@@ -104,6 +164,6 @@ def test_restart_recovers_state_position_and_separate_ledger(tmp_path, tiers):
     assert recovered.state.active_signal_id == "C1-1"
     assert not recovered.session.engine.account.position.is_flat
     assert recovered.state.active_benchmark_at == 5_000
-    assert recovered.root != manual_root
+    assert recovered.root == manual_root
     assert all(row.get("reason") != "MANUAL" for row in
                recovered.session.engine.ledger.events if row["event_type"] == "POSITION_OPEN")

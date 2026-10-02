@@ -80,6 +80,10 @@ def _origin(reason: str | None, liquidated: bool) -> str:
         return LIQUIDATION
     if reason == "EMERGENCY":
         return EMERGENCY
+    if reason == "PAPER_C1_AUTO":
+        return "PAPER_C1_AUTO"
+    if reason == "PAPER_MANUAL":
+        return "PAPER_MANUAL"
     if reason == AUTO:
         return AUTO
     return MANUAL
