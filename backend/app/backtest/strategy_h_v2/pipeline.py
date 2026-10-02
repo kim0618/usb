@@ -43,15 +43,30 @@ class CandidateResult:
 
 
 def _snapshot(facts: Sequence[CanonicalFact], field_name: str, cutoff: datetime) -> dict[str, Any]:
+    """One resolved field, with the period provenance a downstream valuation layer needs.
+
+    Before D5-P0 this emitted `end` but not `start`, so a consumer could not tell a discrete
+    quarter from a year to date and `operating_cash_flow: OK` silently meant "a 180-day figure" for
+    every one of the ten issuers D4 contacted. `start`, `duration_days` and `duration_family` are
+    emitted for exactly that reason; a status of OK is not a claim about the period, and now does
+    not have to be read as one.
+    """
     resolution = resolve_fact(facts, field_name, cutoff)
     if resolution.status.value != "OK" or resolution.fact is None:
-        return {"status": resolution.status.value, "value": None}
+        return {"status": resolution.status.value, "value": None, "reason": resolution.reason}
+    fact = resolution.fact
     return {
         "status": "OK",
-        "value": resolution.fact.value,
-        "end": resolution.fact.end.isoformat(),
-        "accession": resolution.fact.accession,
-        "accepted_at": resolution.fact.accepted_at.isoformat(),
+        "value": fact.value,
+        "start": fact.start.isoformat() if fact.start is not None else None,
+        "end": fact.end.isoformat(),
+        "duration_days": fact.duration_days,
+        "duration_family": fact.duration_family.value,
+        "form": fact.form,
+        "tag": fact.tag,
+        "unit": fact.unit,
+        "accession": fact.accession,
+        "accepted_at": fact.accepted_at.isoformat(),
     }
 
 

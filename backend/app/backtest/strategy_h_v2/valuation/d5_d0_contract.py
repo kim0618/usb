@@ -26,7 +26,13 @@ import hashlib
 import json
 from pathlib import Path
 
-from app.backtest.strategy_h0.facts import FIELD_SPECS
+from app.backtest.strategy_h0.facts import (
+    ANNUAL_SPAN_DAYS,
+    FIELD_SPECS,
+    NINE_MONTH_SPAN_DAYS,
+    QUARTER_SPAN_DAYS,
+    SEMI_SPAN_DAYS,
+)
 from app.backtest.strategy_h0.h0_5 import MAX_SHARES_STALENESS_DAYS, SHARES_TAG
 
 D5_D0_CONTRACT_VERSION = "h_v2_d5_d0_valuation_fundamentals_v1"
@@ -83,6 +89,14 @@ D4_BANNED_FIELDS_ARE_A_LAYER_BOUNDARY = (
 # date, resolves OK and carries no warning that it is a partial-year figure. Measured: AEYE's
 # `operating_cash_flow` at the D2.1 cutoff resolves OK with start 2026-01-01, end 2026-06-30 - a
 # 180-day number. A price divided by that is a price-to-half-year-FCF.
+#
+# REPAIRED BY D5-P0, and the measurements above are left as the D5-D0-time record rather than
+# rewritten. `facts.DurationFamily` / `facts.classify_duration` now classify a fact's period from
+# its own start/end/form/fiscal-period, `resolve_fact(..., duration_family=...)` narrows to one
+# family and returns MISSING rather than another family, and the D2.1 bundle carries `start`,
+# `duration_days` and `duration_family`. The `BLOCKED_DURATION_AMBIGUITY` availabilities below
+# therefore describe the UNNARROWED call, which is still what D1-D4 make; see
+# `H_V2_D5_P0_FUNDAMENTAL_PERIOD_PRIMITIVE_REPAIR_V1.md` for the re-measured 10-issuer coverage.
 
 
 class PeriodFamily(StrEnum):
@@ -95,14 +109,13 @@ class PeriodFamily(StrEnum):
     """A duration this contract will not classify. Never silently treated as any of the others."""
 
 
-#: Day-count windows. Deliberately wide enough for 52/53-week fiscal calendars and short fiscal
-#: transition periods, and deliberately NOT overlapping - a span that falls in no window is UNKNOWN
-#: rather than assigned to the nearest one.
-QUARTER_DAYS = (80, 100)
-SEMI_DAYS = (170, 195)
-NINE_MONTH_DAYS = (260, 285)
-ANNUAL_DAYS = (350, 380)
-
+#: Day-count windows. Owned by `facts.py` since D5-P0, which adopted the frozen H-PV2/H-PV3
+#: tolerances, so the repository holds ONE set of duration windows rather than three that disagree.
+#: Re-exported here under their original names because this contract quotes them by name.
+QUARTER_DAYS = QUARTER_SPAN_DAYS
+SEMI_DAYS = SEMI_SPAN_DAYS
+NINE_MONTH_DAYS = NINE_MONTH_SPAN_DAYS
+ANNUAL_DAYS = ANNUAL_SPAN_DAYS
 
 def period_family(start: date | None, end: date | None, *, fiscal_year_start: date | None = None
                   ) -> PeriodFamily:
@@ -113,6 +126,14 @@ def period_family(start: date | None, end: date | None, *, fiscal_year_start: da
     would make Q1 silently comparable with a Q3 year-to-date figure. When the fiscal year start is
     not supplied - the D2.1 bundle does not carry one - a quarter-length span is QUARTER and the
     ambiguity is recorded in `YTD_Q1_INDISTINGUISHABLE` rather than resolved by assumption.
+
+    Since D5-P0 the day-count windows are `facts.py`'s, so this contract and the resolver can no
+    longer drift apart on what "a quarter" spans. The mapping stays here because it is coarser on
+    purpose and because this signature carries neither `form` nor `fp`: a bare six-month span is
+    year-to-date *as far as a multiple is concerned* - unusable as a denominator either way -
+    whereas `facts.classify_duration` will not call it YTD_Q2 without the fiscal-period metadata
+    that says which quarter it accumulates to. A caller holding a `CanonicalFact` should read
+    `fact.duration_family` instead and get that stricter answer.
     """
     if end is None:
         return PeriodFamily.UNKNOWN
@@ -121,11 +142,11 @@ def period_family(start: date | None, end: date | None, *, fiscal_year_start: da
     span = (end - start).days
     if fiscal_year_start is not None and start == fiscal_year_start:
         return PeriodFamily.YTD
-    for low, high, family in (
-        (*QUARTER_DAYS, PeriodFamily.QUARTER),
-        (*SEMI_DAYS, PeriodFamily.YTD),
-        (*NINE_MONTH_DAYS, PeriodFamily.YTD),
-        (*ANNUAL_DAYS, PeriodFamily.ANNUAL),
+    for (low, high), family in (
+        (QUARTER_DAYS, PeriodFamily.QUARTER),
+        (SEMI_DAYS, PeriodFamily.YTD),
+        (NINE_MONTH_DAYS, PeriodFamily.YTD),
+        (ANNUAL_DAYS, PeriodFamily.ANNUAL),
     ):
         if low <= span <= high:
             return family
