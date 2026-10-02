@@ -29,6 +29,7 @@ from ..paper.engine import OrderRejected
 from ..paper.analytics import reconcile, summarize
 from ..paper.instrument import RiskTierTable
 from ..paper.state import TransitionRejected
+from ..paper.c1_auto import (C1AutoController, MANUAL_CLOSE_DURING_AUTO, MANUAL_SOURCE)
 from .chart_history import BybitChartHistory
 from .feed import BybitPublicFeed
 from .session import PaperSession
@@ -77,12 +78,14 @@ class Runtime:
     def __init__(self) -> None:
         self.feed = BybitPublicFeed()
         self.session: PaperSession | None = None
+        self.c1_auto: C1AutoController | None = None
         self.error: str | None = None
         self._pump: asyncio.Task | None = None
 
     def build(self, config_path: Path, root: Path) -> None:
         config, tiers = load_run_config(config_path)
         self.session = PaperSession(config=config, tiers=tiers, root=root)
+        self.c1_auto = C1AutoController(manual_config=config, tiers=tiers, root=root)
 
     async def _observe_loop(self) -> None:
         while True:
@@ -97,6 +100,11 @@ class Runtime:
                 if not session.is_started:
                     session.start(quote.ts_ms)
                 session.observe(quote)
+                controller = self.c1_auto
+                if controller is not None:
+                    from . import c1_routes
+                    c1 = c1_routes.c1_runtime
+                    controller.reconcile(quote, c1.signals.values() if c1 is not None else ())
             except Exception as exc:  # a bad tick must not kill the loop silently
                 self.error = f"{type(exc).__name__}: {exc}"
 
@@ -118,6 +126,12 @@ class Runtime:
             raise ConfigMissing(self.error or "paper session is not configured")
         return self.session
 
+    def selected_session(self) -> PaperSession:
+        manual = self.require_session()
+        if self.c1_auto is not None and self.c1_auto.state.enabled:
+            return self.c1_auto.session
+        return manual
+
 
 runtime = Runtime()
 
@@ -127,7 +141,7 @@ class OrderRequest(BaseModel):
     intent: str = "OPEN"
     qty: str | None = None
     notional_usdt: str | None = None
-    reason: str = "MANUAL"
+    reason: str = MANUAL_SOURCE
 
 
 class LeverageRequest(BaseModel):
@@ -137,6 +151,10 @@ class LeverageRequest(BaseModel):
 class ModeRequest(BaseModel):
     action: str
     confirmed: bool = False
+
+
+class AutoRequest(BaseModel):
+    enabled: bool
 
 
 def _decimal(value: str, name: str) -> Decimal:
@@ -196,17 +214,44 @@ def create_app() -> FastAPI:
     async def state() -> Any:
         if runtime.session is None:
             return error(503, "RUN_NOT_CONFIGURED", runtime.error or "paper run is not configured")
-        snapshot = runtime.session.snapshot()
+        session = runtime.selected_session()
+        snapshot = session.snapshot()
         snapshot["feed"] = runtime.feed.view()
         snapshot["server_time_ms"] = int(time.time() * 1000)
         snapshot["engine_version"] = PAPER_ENGINE_VERSION
         account = snapshot.get("account")
         if account is not None:
-            rate = runtime.session.config.fx.krw_per_usdt
+            rate = session.config.fx.krw_per_usdt
             snapshot["krw"] = {key: account[key] * rate for key in
                                ("equity", "available_balance", "realized_pnl", "unrealized_pnl",
                                 "used_margin", "wallet_balance")}
+        snapshot["paper_source"] = ("PAPER_C1_AUTO" if runtime.c1_auto
+                                    and runtime.c1_auto.state.enabled else "PAPER_MANUAL")
+        snapshot["c1_auto"] = runtime.c1_auto.view() if runtime.c1_auto else None
         return jsonable(snapshot)
+
+    @app.get("/api/crypto/paper/c1-auto")
+    async def c1_auto_state() -> Any:
+        if runtime.c1_auto is None:
+            return error(503, "RUN_NOT_CONFIGURED", "C1 AUTO is not configured")
+        return jsonable(runtime.c1_auto.view())
+
+    @app.post("/api/crypto/paper/c1-auto")
+    async def c1_auto_toggle(request: AutoRequest) -> Any:
+        if runtime.c1_auto is None:
+            return error(503, "RUN_NOT_CONFIGURED", "C1 AUTO is not configured")
+        quote = runtime.feed.quote()
+        if quote is None:
+            return error(409, "NO_QUOTE", "C1 AUTO 전환에 필요한 현재 호가가 없습니다.")
+        if request.enabled:
+            from . import c1_routes
+            if c1_routes.c1_runtime is None:
+                return error(409, "C1_SIGNAL_UNAVAILABLE", "C1 신호 레이어가 준비되지 않았습니다.")
+            return jsonable(runtime.c1_auto.enable(quote))
+        success, body = runtime.c1_auto.disable(quote)
+        if not success:
+            return error(409, "AUTO_CLOSE_FAILED", "AUTO 포지션 청산에 실패해 AUTO를 유지합니다.")
+        return jsonable(body)
 
     @app.get("/api/crypto/chart")
     async def chart(limit: int = 120) -> Any:
@@ -230,7 +275,7 @@ def create_app() -> FastAPI:
         """Everything here is folded out of the ledger, not read off a running total."""
         if runtime.session is None:
             return error(503, "RUN_NOT_CONFIGURED", runtime.error or "paper run is not configured")
-        session = runtime.session
+        session = runtime.selected_session()
         events = session.engine.ledger.events
         account = session.engine.account
         summary = summarize(events, starting_capital=account.starting_capital_usdt)
@@ -243,6 +288,8 @@ def create_app() -> FastAPI:
             account_realized=account.realized_pnl, account_fees=account.cumulative_fees,
             account_funding=account.cumulative_funding_paid)
         summary["source"] = "LIVE_PAPER"
+        summary["paper_source"] = ("PAPER_C1_AUTO" if runtime.c1_auto
+                                   and runtime.c1_auto.state.enabled else "PAPER_MANUAL")
         summary["run_id"] = session.config.run_id
         return jsonable(summary)
 
@@ -251,7 +298,8 @@ def create_app() -> FastAPI:
         if runtime.session is None:
             return error(503, "RUN_NOT_CONFIGURED", runtime.error or "paper run is not configured")
         from ..paper.analytics import build_trades
-        rows = build_trades(runtime.session.engine.ledger.events)
+        session = runtime.selected_session()
+        rows = build_trades(session.engine.ledger.events)
         return jsonable({"total": len(rows),
                          "trades": [trade.view() for trade in rows[-min(limit, 200):]][::-1]})
 
@@ -259,13 +307,13 @@ def create_app() -> FastAPI:
     async def ledger(limit: int = 100) -> Any:
         if runtime.session is None:
             return error(503, "RUN_NOT_CONFIGURED", runtime.error or "paper run is not configured")
-        events = runtime.session.engine.ledger.events
+        events = runtime.selected_session().engine.ledger.events
         return jsonable({"total": len(events), "events": events[-min(limit, 500):][::-1]})
 
     @app.post("/api/crypto/order")
     async def order(request: OrderRequest) -> Any:
         try:
-            session = runtime.require_session()
+            session = runtime.selected_session()
         except ConfigMissing as exc:
             return error(503, "RUN_NOT_CONFIGURED", str(exc))
         quote = runtime.feed.quote()
@@ -285,6 +333,12 @@ def create_app() -> FastAPI:
                 return error(400, "QTY_REQUIRED", "pass either qty or notional_usdt")
         except ValueError as exc:
             return error(400, "INVALID_REQUEST", str(exc))
+        if runtime.c1_auto is not None and runtime.c1_auto.state.enabled:
+            if request.intent == "OPEN":
+                return error(409, "AUTO_MANAGED", "C1 AUTO 중에는 자동 진입만 허용됩니다.")
+            if not runtime.c1_auto.close(quote, MANUAL_CLOSE_DURING_AUTO):
+                return error(409, "AUTO_CLOSE_FAILED", "AUTO 포지션 청산에 실패했습니다.")
+            return jsonable({"events": [], "state": runtime.c1_auto.session.snapshot()})
         # Put the engine on the tick this order is about to be judged against, then re-check
         # the size on it. A preset was priced seconds ago and the book moves; letting a stale
         # preview through is how an operator ends up holding a position the engine will refuse
@@ -310,6 +364,8 @@ def create_app() -> FastAPI:
 
     @app.post("/api/crypto/leverage")
     async def leverage(request: LeverageRequest) -> Any:
+        if runtime.c1_auto is not None and runtime.c1_auto.state.enabled:
+            return error(409, "AUTO_LEVERAGE_FIXED", "C1 AUTO 레버리지는 10x로 고정됩니다.")
         try:
             session = runtime.require_session()
         except ConfigMissing as exc:

@@ -8,12 +8,14 @@ import {
 } from "@/components/crypto-paper-terminal";
 import {
   AutoNote, ChartSection, Disclosure, MarketHeader, MobilePositionCard, PositionStrip,
+  useC1Signals,
 } from "@/components/crypto-terminal-layout";
 import {
   AccountSourceSwitch, LiveAccountCards, LiveActivateDialog, LiveAuthorityNote, LiveBlockedPanel,
   LiveAutoExit, LiveBookStrip, LiveLeverageNotes, LiveLeveragePanel, LiveMarketHeader, LiveOrderTicket,
   LivePerformanceSummary, LivePositionCard, LivePositionPanel, LiveTradeBar, useBinanceLive,
 } from "@/components/crypto-live-terminal";
+import { C1AutoControl } from "@/components/crypto-c1-auto-control";
 import type { ChartTimeframe } from "@/lib/crypto-paper";
 import { positionOpenedMs } from "@/lib/crypto-paper";
 import { ARM_NOTE, LIVE_CHART_SOURCE_NOTE, LIVE_LOCK_NOTE, liveOverlays, liveTradeGate }
@@ -45,6 +47,10 @@ function useIsWide() {
 export default function CryptoPaperPage() {
   const terminal = useCryptoTerminal();
   const [timeframe, setTimeframe] = useState<ChartTimeframe>("1m");
+  /** One signal engine, one series, both screens. The PAPER and LIVE trees below are handed the
+   *  same `signals` object, so a C1 event has one id and one marker wherever it is drawn - the
+   *  signal is a property of the market, not of which account is selected. */
+  const signals = useC1Signals();
   const wide = useIsWide();
   const live = useLivePnl(terminal.state?.account?.position_side != null);
   /** PAPER unless the operator switches, and the switch is only offered when the backend says a
@@ -108,7 +114,7 @@ export default function CryptoPaperPage() {
                 {terminal.state && (
                   <ChartSection state={terminal.state} bars={terminal.bars} timeframe={timeframe}
                     onTimeframe={setTimeframe} overlays={liveOverlays(account)}
-                    note={LIVE_CHART_SOURCE_NOTE} />
+                    note={LIVE_CHART_SOURCE_NOTE} c1={signals.state} c1Markers={signals.markers} />
                 )}
                 {/* Wide only: the phone already has the card above the chart, and showing
                     both would print the same position twice. Same split the paper screen uses
@@ -181,6 +187,8 @@ export default function CryptoPaperPage() {
 
       <MarketHeader state={state} performance={terminal.performance}
         onAction={terminal.act} busy={terminal.busy} />
+      <C1AutoControl state={state} markers={signals.markers} busy={terminal.busy}
+        onAction={terminal.act} />
 
       {/* Phone: the held position comes before the chart, with its own CLOSE. */}
       <div className="xl:hidden">
@@ -191,7 +199,7 @@ export default function CryptoPaperPage() {
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
         <div className="space-y-3">
           <ChartSection state={state} bars={terminal.bars} timeframe={timeframe}
-            onTimeframe={setTimeframe} />
+            onTimeframe={setTimeframe} c1={signals.state} c1Markers={signals.markers} />
           {/* On a phone the order panel sits here, directly under the chart. The wide layout
               moves it to the right column, which is why it is rendered twice rather than
               repositioned with CSS order: two different trees, each simple. */}

@@ -230,16 +230,6 @@ class LiveOrderRouter:
             size = filters.qty_from_notional(Decimal(str(notional_usdt)), reference_price=reference)
         else:
             raise OrderRefused(QTY_REQUIRED, "qty 또는 notional_usdt 중 하나가 필요합니다.")
-        ceiling = self.config.max_open_qty
-        if ceiling is not None and size > ceiling:
-            # Checked before Binance's filters, because this is the tighter of the two and the
-            # operator needs to be told which limit they hit. Only OPEN is bounded: `_close_plan`
-            # never consults this, so a position larger than the ceiling - one opened before the
-            # ceiling was set, or by hand in the Binance app - can still be flattened.
-            raise OrderRefused(
-                QTY_ABOVE_LOCAL_MAXIMUM,
-                f"수량 {size}이 이 프로세스의 상한 {ceiling}을 넘습니다 "
-                f"(BINANCE_LIVE_MAX_QTY). 청산은 이 상한의 제한을 받지 않습니다.")
         try:
             filters.validate_market_qty(size, reference_price=reference)
         except QuantityRejected as exc:

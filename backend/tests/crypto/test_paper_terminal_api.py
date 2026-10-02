@@ -185,6 +185,22 @@ def test_state_reports_the_quote_the_account_and_the_fee_provenance(client: Test
     assert Decimal(body["krw"]["equity"]) == D("1000000")
 
 
+def test_paper_c1_auto_is_outside_the_read_only_signal_namespace(client: TestClient) -> None:
+    paths = {route.path for route in terminal_api.create_app().routes}
+    assert "/api/crypto/paper/c1-auto" in paths
+    assert "/api/crypto/c1-auto" not in paths
+
+
+def test_reading_paper_c1_auto_state_never_creates_an_order(client: TestClient) -> None:
+    controller = terminal_api.runtime.c1_auto
+    assert controller is not None
+    before = list(controller.session.engine.ledger.events)
+    response = client.get("/api/crypto/paper/c1-auto")
+    assert response.status_code == 200
+    assert response.json()["enabled"] is False
+    assert controller.session.engine.ledger.events == before
+
+
 def test_a_manual_long_then_close_moves_the_account_through_the_api(client: TestClient) -> None:
     opened = client.post("/api/crypto/order",
                          json={"side": "LONG", "intent": "OPEN", "qty": "0.010"})

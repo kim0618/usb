@@ -21,7 +21,7 @@ from app.crypto.live.models import CommissionRate, LivePosition, MarkPrice
 from app.crypto.live.sizing import (DEFAULT_FRACTIONS, MAX_DEFINITION, check, floor_to_step,
                                     max_open, presets)
 
-from tests.crypto.binance_fixtures import (COMMISSION_RATE, DEPTH, EXCHANGE_INFO, FakeBinance, MARK_PRICE,
+from tests.crypto.binance_fixtures import (ACCOUNT, COMMISSION_RATE, DEPTH, EXCHANGE_INFO, FakeBinance, MARK_PRICE,
                                POSITION_RISK_FLAT, POSITION_RISK_LONG, SYMBOL, make_client,
                                make_config)
 
@@ -59,12 +59,15 @@ def test_max_is_the_largest_size_that_passes_every_rule_not_a_balance_times_leve
     assert result["max_definition"] == MAX_DEFINITION
     naive = Decimal("874.475") * Decimal(10) / Decimal("83500.10")
     assert max_qty < naive
-    # And it is genuinely maximal: one more step does not fit.
+    # The solver records the exact boundary, then reserves exactly one exchange step because
+    # margin is the binding constraint (the smallest deterministic drift reserve possible).
     step = FILTERS.market_qty_step
     assert check(side="LONG", qty=max_qty, depth=DEEP, mark=MARK, commission=COMMISSION,
                  filters=FILTERS, leverage=Decimal(10), available=Decimal("874.475"),
                  ceiling=None, position=FLAT)["feasible"] is True
-    assert check(side="LONG", qty=max_qty + step, depth=DEEP, mark=MARK, commission=COMMISSION,
+    assert result["reserve_policy"] == "ONE_QTY_STEP_WHEN_MARGIN_BINDS"
+    assert result["reserve_steps"] == 1
+    assert check(side="LONG", qty=max_qty + step * 2, depth=DEEP, mark=MARK, commission=COMMISSION,
                  filters=FILTERS, leverage=Decimal(10), available=Decimal("874.475"),
                  ceiling=None, position=FLAT)["feasible"] is False
 
@@ -80,10 +83,10 @@ def test_the_fractions_are_taken_from_max_and_not_from_the_balance() -> None:
 
 
 def test_every_fraction_is_floored_to_the_step_never_rounded_up() -> None:
-    # A ceiling of 0.01 makes MAX exactly 0.010, so the fractions land on 0.0025 and 0.0075 and
+    # This balance makes MAX exactly 0.010, so the fractions land on 0.0025 and 0.0075 and
     # have to come back as 0.002 and 0.007. Rounding either up would offer a size above the
     # fraction the operator asked for.
-    result = ladder(ceiling=Decimal("0.01"))
+    result = ladder(available=Decimal("93"))
     assert result["max_qty"] == Decimal("0.010")
     assert row(result, "25%")["qty"] == Decimal("0.002")
     assert row(result, "HALF")["qty"] == Decimal("0.005")
@@ -101,20 +104,10 @@ def test_floor_to_step_rounds_down_on_the_examples_the_policy_names() -> None:
 # ------------------------------------------------------------------ the limits
 
 
-def test_the_local_ceiling_binds_before_margin_does_and_says_which_limit_was_hit() -> None:
+def test_deprecated_local_ceiling_does_not_cap_the_actual_account() -> None:
     result = ladder(ceiling=Decimal("0.005"))
-    assert result["max_qty"] == Decimal("0.005")
-    refused = check(side="LONG", qty=Decimal("0.006"), depth=DEEP, mark=MARK,
-                    commission=COMMISSION, filters=FILTERS, leverage=Decimal(10),
-                    available=Decimal("874.475"), ceiling=Decimal("0.005"), position=FLAT)
-    assert refused["reject_code"] == "QTY_ABOVE_LOCAL_MAXIMUM"
-    assert "BINANCE_LIVE_MAX_QTY" in refused["reject_message"]
-
-
-def test_nothing_in_the_ladder_ever_exceeds_the_local_ceiling() -> None:
-    ceiling = Decimal("0.01")
-    result = ladder(ceiling=ceiling)
-    assert all(item["qty"] <= ceiling for item in result["presets"])
+    assert result["max_qty"] > Decimal("0.005")
+    assert result["local_max_qty"] is None
 
 
 def test_a_size_below_the_exchange_minimum_is_refused_rather_than_rounded_up() -> None:
@@ -125,21 +118,11 @@ def test_a_size_below_the_exchange_minimum_is_refused_rather_than_rounded_up() -
     assert refused["reject_code"] == "QTY_BELOW_MINIMUM"
 
 
-def test_a_ceiling_under_the_exchange_minimum_offers_nothing_and_says_why() -> None:
-    # 0.0005 is below minQty, so not even the smallest order fits. The ladder reports the
-    # exchange's reason rather than a zero with no explanation.
-    result = ladder(ceiling=Decimal("0.0005"))
-    assert result["max_feasible"] is False
-    assert result["max_qty"] == Decimal(0)
-    assert result["reject_code"] == "QTY_ABOVE_LOCAL_MAXIMUM"
-    assert all(item["feasible"] is False for item in result["presets"])
-
-
 def test_a_fraction_that_lands_under_the_floor_is_offered_as_refused_not_rounded_up() -> None:
     # MAX 0.004 makes 25% land on 0.001, which is on the grid but worth less than MIN_NOTIONAL.
     # The row comes back infeasible with the exchange's reason so the button can be disabled;
     # it is never rounded up to the smallest orderable size.
-    result = ladder(ceiling=Decimal("0.004"))
+    result = ladder(available=Decimal("42"))
     assert result["max_qty"] == Decimal("0.004")
     quarter = row(result, "25%")
     assert quarter["qty"] == Decimal("0.001")
@@ -162,6 +145,19 @@ def test_a_notional_under_the_exchange_minimum_is_refused() -> None:
     assert refused["reject_code"] == "NOTIONAL_BELOW_MINIMUM"
 
 
+def test_notional_filter_maximum_is_enforced_when_binance_publishes_it() -> None:
+    info = {**EXCHANGE_INFO, "symbols": [{**EXCHANGE_INFO["symbols"][0], "filters": [
+        *[item for item in EXCHANGE_INFO["symbols"][0]["filters"]
+          if item["filterType"] != "MIN_NOTIONAL"],
+        {"filterType": "NOTIONAL", "minNotional": "100", "maxNotional": "500"},
+    ]}]}
+    filters = SymbolFilters.from_exchange_info(info, SYMBOL, fetched_at_ms=1)
+    refused = check(side="LONG", qty=Decimal("0.010"), depth=DEEP, mark=MARK,
+                    commission=COMMISSION, filters=filters, leverage=Decimal(10),
+                    available=Decimal("1000"), ceiling=None, position=FLAT)
+    assert refused["reject_code"] == "NOTIONAL_ABOVE_MAXIMUM"
+
+
 def test_margin_is_measured_against_the_real_available_balance_with_the_fee_on_top() -> None:
     result = ladder(available=Decimal("200"))
     priced = row(result, "MAX")
@@ -176,14 +172,14 @@ def test_a_balance_that_cannot_cover_the_minimum_refuses_the_whole_ladder() -> N
     assert result["reject_code"] == "INSUFFICIENT_MARGIN"
 
 
-def test_a_size_the_book_cannot_fill_both_ways_is_refused() -> None:
+def test_entry_sizing_does_not_reserve_hypothetical_close_liquidity() -> None:
     thin = {"bids": [["83499.90", "0.002"]], "asks": [["83500.10", "500"]]}
-    # The entry would fill on the deep ask; the immediate exit could not. The size is not offered.
+    # The entry fills on the deep ask. A future close is a round-trip preview concern, not an
+    # opening margin requirement.
     refused = check(side="LONG", qty=Decimal("0.010"), depth=thin, mark=MARK,
                     commission=COMMISSION, filters=FILTERS, leverage=Decimal(10),
                     available=Decimal("874.475"), ceiling=None, position=FLAT)
-    assert refused["feasible"] is False
-    assert refused["reject_code"] == "NO_LIQUIDITY"
+    assert refused["feasible"] is True
 
 
 def test_an_open_position_on_the_other_side_offers_nothing_and_does_not_invent_a_reverse() -> None:
@@ -227,8 +223,7 @@ def test_with_no_cap_the_account_is_the_only_bound_and_no_local_refusal_appears(
 def test_removing_the_cap_moves_max_up_to_where_margin_binds() -> None:
     capped = ladder(ceiling=Decimal("0.01"))["max_qty"]
     uncapped = ladder(ceiling=None)["max_qty"]
-    assert capped == Decimal("0.010")
-    assert uncapped > capped
+    assert capped == uncapped
     # Uncapped MAX is the margin limit, so it tracks the balance rather than any constant.
     richer = ladder(ceiling=None, available=Decimal("1748.95"))["max_qty"]
     poorer = ladder(ceiling=None, available=Decimal("437.24"))["max_qty"]
@@ -240,7 +235,7 @@ def test_an_uncapped_search_still_stops_at_the_margin_the_account_has() -> None:
     top = row(result, "MAX")
     assert top["required_total"] <= Decimal("874.475")
     step = FILTERS.market_qty_step
-    over = check(side="LONG", qty=result["max_qty"] + step, depth=DEEP, mark=MARK,
+    over = check(side="LONG", qty=result["max_qty"] + step * 2, depth=DEEP, mark=MARK,
                  commission=COMMISSION, filters=FILTERS, leverage=Decimal(10),
                  available=Decimal("874.475"), ceiling=None, position=FLAT)
     assert over["feasible"] is False
@@ -303,11 +298,11 @@ def test_the_adapter_prices_both_sides_off_one_book_read() -> None:
     assert fake.count("/fapi/v1/depth") == before + 1
 
 
-def test_the_adapter_applies_the_deployments_own_ceiling() -> None:
+def test_the_adapter_ignores_the_deprecated_deployment_ceiling() -> None:
     live, _ = adapter(FakeBinance(position_rows=POSITION_RISK_FLAT), max_open_qty="0.01")
     result = live.get_sizing()
-    assert result["sides"]["LONG"]["max_qty"] == Decimal("0.010")
-    assert result["sides"]["LONG"]["local_max_qty"] == Decimal("0.01")
+    assert result["sides"]["LONG"]["max_qty"] > Decimal("0.010")
+    assert result["sides"]["LONG"]["local_max_qty"] is None
 
 
 def test_reading_the_ladder_sends_no_order_and_changes_no_leverage() -> None:
@@ -318,6 +313,33 @@ def test_reading_the_ladder_sends_no_order_and_changes_no_leverage() -> None:
     assert fake.count("/fapi/v1/order") == 0
     assert fake.count("/fapi/v1/leverage") == 0
     assert fake.count("/fapi/v1/listenKey") == 0
+
+
+def test_final_preflight_force_resyncs_and_returns_a_new_max_without_sending() -> None:
+    account = dict(ACCOUNT)
+    current = {"payload": account}
+    fake = FakeBinance(position_rows=POSITION_RISK_FLAT,
+                       routes={("GET", "/fapi/v3/account"): lambda: current["payload"]})
+    live, _ = adapter(fake)
+    offered = live.get_sizing()["sides"]["LONG"]["max_qty"]
+
+    poorer = {**account, "assets": [{**account["assets"][0], "availableBalance": "1"}]}
+    current["payload"] = poorer
+    checked = live.preflight_open("LONG", str(offered))
+
+    assert checked["feasible"] is False
+    assert checked["reject_code"] == "INSUFFICIENT_MARGIN"
+    assert checked["safe_max_qty"] == 0
+    assert fake.count("/fapi/v1/order") == 0
+
+
+def test_final_preflight_allows_an_unchanged_safe_quantity() -> None:
+    live, fake = adapter(FakeBinance(position_rows=POSITION_RISK_FLAT))
+    offered = live.get_sizing()["sides"]["LONG"]["max_qty"]
+    checked = live.preflight_open("LONG", str(offered))
+    assert checked["feasible"] is True
+    assert checked["safe_max_qty"] == offered
+    assert fake.count("/fapi/v1/order") == 0
 
 
 def test_an_account_that_cannot_be_read_returns_a_reason_rather_than_a_size() -> None:

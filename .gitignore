@@ -46,4 +46,6 @@ frontend/build/
 frontend/.next/
 frontend/.next-dev/
 frontend/.next-build/
+# C1 preview build output; the preview runs on its own port and its own dist directory
+frontend/.next-c1-preview/
 frontend/tsconfig.tsbuildinfo

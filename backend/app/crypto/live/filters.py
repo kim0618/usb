@@ -24,6 +24,7 @@ FILTER_PRICE = "PRICE_FILTER"
 FILTER_LOT_SIZE = "LOT_SIZE"
 FILTER_MARKET_LOT_SIZE = "MARKET_LOT_SIZE"
 FILTER_MIN_NOTIONAL = "MIN_NOTIONAL"
+FILTER_NOTIONAL = "NOTIONAL"
 
 
 class QuantityRejected(ValueError):
@@ -53,6 +54,7 @@ class SymbolFilters:
     market_min_qty: Decimal
     market_max_qty: Decimal
     min_notional: Decimal
+    max_notional: Decimal | None
     fetched_at_ms: int
 
     TRADING = "TRADING"
@@ -89,8 +91,9 @@ class SymbolFilters:
                       if FILTER_MARKET_LOT_SIZE in filters else required(FILTER_LOT_SIZE, "minQty"))
         market_max = (Decimal(str(filters[FILTER_MARKET_LOT_SIZE]["maxQty"]))
                       if FILTER_MARKET_LOT_SIZE in filters else required(FILTER_LOT_SIZE, "maxQty"))
-        notional_filter = filters.get(FILTER_MIN_NOTIONAL) or {}
-        notional_raw = notional_filter.get("notional", notional_filter.get("minNotional"))
+        notional_filter = filters.get(FILTER_NOTIONAL) or filters.get(FILTER_MIN_NOTIONAL) or {}
+        notional_raw = notional_filter.get(
+            "minNotional", notional_filter.get("notional"))
         if notional_raw in (None, ""):
             raise ValueError(f"{symbol} exchangeInfo is missing {FILTER_MIN_NOTIONAL}")
 
@@ -111,6 +114,8 @@ class SymbolFilters:
             market_min_qty=market_min,
             market_max_qty=market_max,
             min_notional=Decimal(str(notional_raw)),
+            max_notional=(Decimal(str(notional_filter["maxNotional"]))
+                          if notional_filter.get("maxNotional") not in (None, "", "0") else None),
             fetched_at_ms=fetched_at_ms if fetched_at_ms is not None else int(time.time() * 1000),
         )
 
@@ -154,6 +159,9 @@ class SymbolFilters:
         if notional < self.min_notional:
             raise QuantityRejected("NOTIONAL_BELOW_MINIMUM",
                                    f"notional {notional} is below the minimum {self.min_notional}")
+        if self.max_notional is not None and notional > self.max_notional:
+            raise QuantityRejected("NOTIONAL_ABOVE_MAXIMUM",
+                                   f"notional {notional} exceeds the maximum {self.max_notional}")
 
     def qty_from_notional(self, notional: Decimal, *, reference_price: Decimal) -> Decimal:
         """Coins for a USDT amount, floored to the step, exactly as the paper order route floors
@@ -171,4 +179,5 @@ class SymbolFilters:
                 "qty_step": self.qty_step, "min_qty": self.min_qty, "max_qty": self.max_qty,
                 "market_qty_step": self.market_qty_step, "market_min_qty": self.market_min_qty,
                 "market_max_qty": self.market_max_qty, "min_notional": self.min_notional,
+                "max_notional": self.max_notional,
                 "fetched_at_ms": self.fetched_at_ms, "source": "binance GET /fapi/v1/exchangeInfo"}

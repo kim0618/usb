@@ -1,9 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
-import type { AutoscaleInfo, IChartApi, IPriceLine, ISeriesApi } from "lightweight-charts";
+import type {
+  AutoscaleInfo, IChartApi, IPriceLine, ISeriesApi, ISeriesMarkersPluginApi, SeriesMarker, Time,
+} from "lightweight-charts";
 import type { ChartOverlay, ChartPoint } from "@/lib/crypto-paper";
 import { isTailUpdate, isWhitespace, visible15sBars } from "@/lib/crypto-paper";
+import type { C1ChartMarker, MarkKind } from "@/lib/crypto-c1";
 
 /** Every chart label is read in KST. Without a formatter the library labels ticks in UTC, which
  *  put "04:30" under a 13:30 candle. */
@@ -62,10 +65,18 @@ export function widenPriceRange<T extends { priceRange: { minValue: number; maxV
  *  zooming survive the 1 Hz refresh. A chart that reset its viewport every second would be
  *  unusable for exactly the person this screen is for.
  */
-export function CandleChart({ candles, overlays, className = "h-[300px]", seriesKey = "default", seconds = false,
-  onPriceRange, onNeedMoreHistory }: {
+export function CandleChart({ candles, overlays, markers = [], className = "h-[300px]",
+  seriesKey = "default", seconds = false, onPriceRange, onNeedMoreHistory, onMarkerClick }: {
   candles: ChartPoint[];
   overlays: ChartOverlay[];
+  /** Strategy signals to draw on the candles. Already folded onto this timeframe's buckets and
+   *  deduplicated by signal id by the caller; this component only draws them. They are markers
+   *  rather than a shaded band on purpose - a background region over a 4 h window would cover
+   *  the candles an operator is reading. */
+  markers?: C1ChartMarker[];
+  /** Raised with the signal ids of a mark the operator clicked, and which kind it was: an entry
+   *  mark and a diagnostic mark can share a candle and they read differently. */
+  onMarkerClick?: (signalIds: string[], kind: MarkKind) => void;
   /** Height is a Tailwind class rather than a number so the chart can grow on a wide screen
    *  without this component learning about breakpoints. `autoSize` follows the container. */
   className?: string;
@@ -84,6 +95,7 @@ export function CandleChart({ candles, overlays, className = "h-[300px]", series
   const priceSeries = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const volumeSeries = useRef<ISeriesApi<"Histogram"> | null>(null);
   const lines = useRef<Map<string, IPriceLine>>(new Map());
+  const markerPlugin = useRef<ISeriesMarkersPluginApi<Time> | null>(null);
   const fitted = useRef(false);
   const drawn = useRef<{ key: string; times: number[] } | null>(null);
   const box = useRef<HTMLDivElement | null>(null);
@@ -96,6 +108,14 @@ export function CandleChart({ candles, overlays, className = "h-[300px]", series
   historyListener.current = onNeedMoreHistory;
   const rangeListener = useRef(onPriceRange);
   rangeListener.current = onPriceRange;
+  const markerListener = useRef(onMarkerClick);
+  markerListener.current = onMarkerClick;
+  // Keyed by candle time, then by kind: one candle can carry an entry mark under it and a
+  // diagnostic above it, and a click has to be able to report both.
+  const markerIndex = useRef<Map<number, { ids: string[]; kind: MarkKind }[]>>(new Map());
+  // The chart is created in an async effect, so markers that arrived before it existed have to be
+  // applied at creation; without this a first paint with signals already fetched draws none.
+  const markerSpecs = useRef<SeriesMarker<Time>[]>([]);
   const report = useCallback(() => {
     const api = chart.current;
     const node = box.current;
@@ -170,12 +190,26 @@ export function CandleChart({ candles, overlays, className = "h-[300px]", series
       chart.current = created;
       priceSeries.current = price;
       volumeSeries.current = volume;
+      // Markers are a plugin in v5 rather than a series method; one instance per series, kept so
+      // the marker effect can replace the set without touching the candles.
+      markerPlugin.current = lib.createSeriesMarkers(price, markerSpecs.current);
       created.timeScale().subscribeVisibleLogicalRangeChange(() => report());
+      created.subscribeClick(param => {
+        const listener = markerListener.current;
+        const time = param.time as number | undefined;
+        if (!listener || time == null) return;
+        const hits = markerIndex.current.get(time);
+        if (!hits || hits.length === 0) return;
+        // With both kinds on one candle the diagnostic is the newer information, so it wins.
+        const hit = hits.find(entry => entry.kind === "C1x") ?? hits[0];
+        listener(hit.ids, hit.kind);
+      });
     })();
 
     return () => {
       disposed = true;
       priceLines.clear();
+      markerPlugin.current = null;
       chart.current?.remove();
       chart.current = null;
       priceSeries.current = null;
@@ -262,8 +296,29 @@ export function CandleChart({ candles, overlays, className = "h-[300px]", series
     }
   }, [overlays]);
 
+  // Signals, redrawn whenever the set or the timeframe changes. `setMarkers` replaces the whole
+  // set, which is what keeps a timeframe switch from leaving the previous timeframe's arrows
+  // behind on the new buckets.
+  useEffect(() => {
+    const index = new Map<number, { ids: string[]; kind: MarkKind }[]>();
+    for (const marker of markers) {
+      const held = index.get(marker.time);
+      const entry = { ids: marker.signalIds, kind: marker.kind };
+      if (held) held.push(entry);
+      else index.set(marker.time, [entry]);
+    }
+    markerIndex.current = index;
+    markerSpecs.current = markers.map(marker => ({
+      time: marker.time as Time, position: marker.position, color: marker.color,
+      shape: marker.shape, text: marker.text, size: marker.size,
+    })) as SeriesMarker<Time>[];
+    markerPlugin.current?.setMarkers(markerSpecs.current);
+  }, [markers, seriesKey]);
+
   return (
-    <div ref={box} className={`relative w-full ${className}`} data-testid="candle-chart">
+    <div ref={box} className={`relative w-full ${className}`} data-testid="candle-chart"
+      data-markers={markers.length} data-marker-text={markers.map(m => m.text).join("|")}
+      data-marker-kinds={markers.map(m => `${m.kind}:${m.shape}:${m.position}`).join("|")}>
       <div ref={holder} className="absolute inset-0" />
       {candles.length === 0 && (
         <p className="absolute inset-0 flex items-center justify-center text-sm text-muted">

@@ -52,6 +52,13 @@ export type CryptoState = {
     book_resyncs: number; malformed: number; messages: number; last_message_ms: number | null;
     last_error: string | null; book_ready: boolean;
   };
+  paper_source?: "PAPER_MANUAL" | "PAPER_C1_AUTO";
+  c1_auto?: {
+    enabled: boolean; active_signal_id: string | null; active_trade_id: string | null;
+    enabled_at: number | null; disabled_at: number | null; source: "PAPER_C1_AUTO";
+    leverage: "10"; has_position: boolean; entry_at: number | null;
+    benchmark_at: number | null;
+  } | null;
 };
 
 export type LedgerEvent = { seq: number; ts_ms: number; event_type: string } & Record<string, unknown>;
@@ -266,6 +273,8 @@ export const cryptoApi = {
     request<Candles15sResponse>(`/api/crypto/candles-15s${sinceMs != null ? `?since_ms=${sinceMs}` : ""}`, { signal }),
   reset: (targetKrw?: string) => request<{ state: CryptoState }>("/api/crypto/reset", {
     method: "POST", body: JSON.stringify(targetKrw ? { target_krw: targetKrw } : {}) }),
+  c1Auto: (enabled: boolean) => request<CryptoState["c1_auto"]>("/api/crypto/paper/c1-auto", {
+    method: "POST", body: JSON.stringify({ enabled }) }),
 };
 
 /** Decimal strings arrive from the backend and stay strings until the moment they are shown. */

@@ -52,7 +52,7 @@ async def sizing_quote(side: str | None = None) -> Any:
         if candidate not in SIDES:
             return error(400, "UNKNOWN_SIDE", f"side must be LONG or SHORT, got {candidate!r}")
 
-    session = runtime.session
+    session = runtime.selected_session()
     quote = runtime.feed.quote()
     if quote is not None:
         # Price the presets against the tick the operator is looking at, not the one that
@@ -82,6 +82,8 @@ async def reset_account(request: ResetRequest) -> Any:
     """
     if runtime.session is None:
         return error(503, "RUN_NOT_CONFIGURED", runtime.error or "paper run is not configured")
+    if runtime.c1_auto is not None and runtime.c1_auto.state.enabled:
+        return error(409, "AUTO_MANAGED", "C1 AUTO 중에는 계좌 초기화를 할 수 없습니다.")
     session = runtime.session
 
     try:
@@ -122,8 +124,9 @@ async def pnl_breakdown_view() -> Any:
     """
     if runtime.session is None:
         return error(503, "RUN_NOT_CONFIGURED", runtime.error or "paper run is not configured")
-    engine = runtime.session.engine
-    rate = runtime.session.config.fx.krw_per_usdt
+    session = runtime.selected_session()
+    engine = session.engine
+    rate = session.config.fx.krw_per_usdt
     position = pnl_breakdown.open_position_preview(engine)
     trades = pnl_breakdown.closed_trade_breakdowns(engine.ledger.events)
     # KRW at the run's fixed rate, converted here like `/state` does, so the panel shows won
@@ -132,7 +135,7 @@ async def pnl_breakdown_view() -> Any:
     for row in trades:
         row["krw"] = pnl_breakdown.to_krw(row, rate)
     return jsonable({
-        "run_id": runtime.session.config.run_id,
+        "run_id": session.config.run_id,
         "krw_per_usdt": rate,
         "position": position,
         "trades": trades[-200:][::-1],
@@ -172,7 +175,7 @@ async def order_preview(long_qty: str | None = None, short_qty: str | None = Non
     """
     if runtime.session is None:
         return error(503, "RUN_NOT_CONFIGURED", runtime.error or "paper run is not configured")
-    session = runtime.session
+    session = runtime.selected_session()
     quote = runtime.feed.quote()
     engine = trade_preview.advanced(session.engine, quote)
     rate = session.config.fx.krw_per_usdt
@@ -220,7 +223,7 @@ async def live() -> Any:
     """
     if runtime.session is None:
         return error(503, "RUN_NOT_CONFIGURED", runtime.error or "paper run is not configured")
-    session = runtime.session
+    session = runtime.selected_session()
     preview = trade_preview.live_position(session.engine, runtime.feed.quote())
     body = {key: preview.get(key) for key in LIVE_FIELDS}
     body["krw"] = pnl_breakdown.to_krw(body, session.config.fx.krw_per_usdt)
@@ -282,3 +285,13 @@ async def candles_15s(since_ms: int | None = None) -> Any:
 # Binance key is present in the environment, and orders stay refused until
 # `BINANCE_LIVE_TRADING_ENABLED` is turned on, which V1 does not do.
 from . import live_routes  # noqa: E402,F401
+
+# --------------------------------------------------------------------- C1 signal routes
+#
+# Same arrangement, same reason: a separate module registers `/api/crypto/c1/*` and wraps the
+# lifespan once more. The signal layer is a strategy *observation* - a chart marker and its own
+# shadow ledger - and holds no order path at all.
+#
+# It is off unless `CRYPTO_C1_SIGNAL=on`. Importing it therefore does not change a running
+# terminal: no venue is polled and every route answers 503 until the environment says otherwise.
+from . import c1_routes  # noqa: E402,F401

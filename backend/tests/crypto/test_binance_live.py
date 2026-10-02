@@ -556,25 +556,19 @@ def test_the_two_arming_variables_are_separate_and_both_default_to_false() -> No
                         "BINANCE_LIVE_CLIENT_ARMED": "yes"}).armed is False
 
 
-def test_an_open_above_the_self_imposed_ceiling_is_refused_before_binance_is_asked() -> None:
-    """The exchange would accept 0.002 BTC on this account. `BINANCE_LIVE_MAX_QTY` is the
-    operator's own bound for a validation run, and it has to bite before the order is built:
-    the LIVE ticket's default size is larger than the size a minimum-order test may send."""
+def test_deprecated_local_ceiling_does_not_override_exchange_valid_quantity() -> None:
     route, fake, _ = router(armed=True, max_open_qty="0.001")
     fake.position_rows = POSITION_RISK_FLAT
-    with pytest.raises(OrderRefused) as caught:
-        route.plan(side="LONG", intent=orders.OPEN, qty="0.002")
-    assert caught.value.code == orders.QTY_ABOVE_LOCAL_MAXIMUM
+    plan = route.plan(side="LONG", intent=orders.OPEN, qty="0.002")
+    assert plan.qty == D("0.002")
     assert fake.count("/fapi/v1/order") == 0
 
 
-def test_the_ceiling_also_bounds_an_open_sized_from_a_notional() -> None:
+def test_deprecated_local_ceiling_does_not_bound_notional_sizing() -> None:
     route, fake, _ = router(armed=True, max_open_qty="0.001")
     fake.position_rows = POSITION_RISK_FLAT
-    with pytest.raises(OrderRefused) as caught:
-        # 835 USDT at the fixture's 83,500 is 0.01 BTC, ten times the ceiling.
-        route.plan(side="LONG", intent=orders.OPEN, notional_usdt="835")
-    assert caught.value.code == orders.QTY_ABOVE_LOCAL_MAXIMUM
+    plan = route.plan(side="LONG", intent=orders.OPEN, notional_usdt="835")
+    assert plan.qty == D("0.009") and plan.qty > D("0.001")
     assert fake.count("/fapi/v1/order") == 0
 
 

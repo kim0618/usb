@@ -38,7 +38,7 @@ from .orders import CLOSE, OPEN, LiveOrderRouter, OrderPlan, OrderRefused
 from .position_card import card as position_card
 from .preview import round_trip
 from .rest import BinanceError, BinanceFuturesClient
-from .sizing import presets as sizing_presets
+from .sizing import check as sizing_check, presets as sizing_presets
 from .stream import UserDataStream
 
 PAPER = "PAPER"
@@ -265,14 +265,16 @@ class BinanceLiveAdapter:
                           commission=snapshot.commission, filters=snapshot.filters,
                           leverage=leverage)
 
-    def get_sizing(self, depth_limit: int = 20) -> dict[str, Any]:
+    def get_sizing(self, depth_limit: int = 20, *, force: bool = True) -> dict[str, Any]:
         """Quick-size ladder for both sides, computed here rather than on the screen.
 
         One depth read serves both sides, so the two ladders are priced on the same book. The
         panel receives quantities and the reason for any it cannot offer; it never derives a
         size of its own.
         """
-        snapshot = self.snapshot()
+        # A sizing click is an explicit request for current buying power. Do not reuse the slow
+        # account cache: availableBalance, position and leverage are all order inputs.
+        snapshot = self.snapshot(force=force)
         if not snapshot.ready or snapshot.filters is None or snapshot.mark is None:
             first = snapshot.blockers[0] if snapshot.blockers else None
             return {"available": False,
@@ -293,10 +295,53 @@ class BinanceLiveAdapter:
                                            commission=snapshot.commission,
                                            filters=snapshot.filters, leverage=leverage,
                                            available=available,
-                                           ceiling=self.config.max_open_qty,
+                                           ceiling=None,
                                            position=snapshot.position)
                       for side in (LONG, SHORT)},
         }
+
+    def preflight_open(self, side: str, qty: str | None = None,
+                       notional_usdt: str | None = None, depth_limit: int = 20) -> dict[str, Any]:
+        """Force-refresh every authoritative input immediately before an OPEN is sent.
+
+        This method is read-only.  On failure it also returns a newly computed safe MAX so the
+        caller can ask the operator to acknowledge the changed quantity; it never silently
+        substitutes that quantity into the order.
+        """
+        snapshot = self.snapshot(force=True)
+        if (not snapshot.ready or snapshot.filters is None or snapshot.mark is None
+                or snapshot.commission is None or snapshot.balance is None):
+            first = snapshot.blockers[0] if snapshot.blockers else None
+            return {"feasible": False, "reject_code": first.code if first else "ACCOUNT_NOT_READY",
+                    "reject_message": first.message if first else "LIVE 계좌를 읽지 못했습니다.",
+                    "safe_max_qty": Decimal(0), "account_timestamp_ms": snapshot.fetched_at_ms}
+        depth = self.client.call("depth", {"symbol": self.config.symbol, "limit": depth_limit})
+        try:
+            if qty not in (None, ""):
+                size = Decimal(str(qty))
+            elif notional_usdt not in (None, ""):
+                size = snapshot.filters.qty_from_notional(
+                    Decimal(str(notional_usdt)),
+                    reference_price=snapshot.book.reference(side) if snapshot.book else Decimal(0))
+            else:
+                raise ValueError("qty or notional_usdt is required")
+        except Exception:
+            return {"feasible": False, "reject_code": "INVALID_QTY",
+                    "reject_message": "수량 형식이 올바르지 않습니다.", "safe_max_qty": Decimal(0),
+                    "account_timestamp_ms": snapshot.fetched_at_ms}
+        leverage = snapshot.symbol_config.leverage if snapshot.symbol_config else None
+        available = snapshot.balance.available_balance
+        result = sizing_check(side=side, qty=size, depth=depth, mark=snapshot.mark,
+                              commission=snapshot.commission, filters=snapshot.filters,
+                              leverage=leverage, available=available, ceiling=None,
+                              position=snapshot.position)
+        ladder = sizing_presets(side=side, depth=depth, mark=snapshot.mark,
+                                commission=snapshot.commission, filters=snapshot.filters,
+                                leverage=leverage, available=available, ceiling=None,
+                                position=snapshot.position)
+        return {**result, "qty": size, "safe_max_qty": ladder["max_qty"],
+                "available_balance": available, "account_timestamp_ms": snapshot.fetched_at_ms,
+                "final_resync_timestamp_ms": int(time.time() * 1000)}
 
     def get_position_card(self, depth_limit: int = 50) -> dict[str, Any]:
         """The held position, its history and what closing it now would net.

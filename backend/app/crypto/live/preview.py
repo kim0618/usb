@@ -145,4 +145,48 @@ def round_trip(*, side: str, qty: Decimal, depth: dict[str, Any], mark: MarkPric
     }
 
 
-__all__ = ["NoLiquidity", "round_trip", "walk", "BREAKEVEN_BASIS", "FILL_BASIS"]
+def entry(*, side: str, qty: Decimal, depth: dict[str, Any], mark: MarkPrice,
+          commission: CommissionRate, filters: SymbolFilters,
+          leverage: Decimal | None) -> dict[str, Any]:
+    """Price only the new MARKET entry.
+
+    Entry feasibility must not depend on hypothetical close-side liquidity or a future close
+    commission.  Those remain useful round-trip preview figures, but Binance does not require
+    them in order to accept the opening order.
+    """
+    base: dict[str, Any] = {"side": side, "qty": qty, "feasible": False,
+                            "mark_price": mark.mark_price, "source": "BINANCE_LIVE",
+                            "fill_basis": FILL_BASIS}
+    if side not in (LONG, SHORT):
+        return {**base, "reject_stage": "INPUT", "reject_code": "UNKNOWN_SIDE",
+                "reject_message": f"side must be LONG or SHORT, got {side!r}"}
+    entry_side = "asks" if side == LONG else "bids"
+    try:
+        levels = list(_levels(depth, entry_side))
+        reference = Decimal(str(levels[0][0])) if levels else Decimal(0)
+        filters.validate_market_qty(qty, reference_price=reference)
+        fill_price = walk(levels, qty)
+    except QuantityRejected as exc:
+        return {**base, "reject_stage": "SIZE", "reject_code": exc.code,
+                "reject_message": exc.message}
+    except NoLiquidity as exc:
+        return {**base, "reject_stage": "BOOK", "reject_code": "NO_LIQUIDITY",
+                "reject_message": str(exc)}
+    except (ValueError, IndexError) as exc:
+        return {**base, "reject_stage": "BOOK", "reject_code": "NO_QUOTE",
+                "reject_message": str(exc)}
+
+    notional = fill_price * qty
+    fee = notional * commission.taker
+    return {**base, "feasible": True, "notional": notional, "leverage": leverage,
+            "required_margin": (notional / leverage) if leverage and leverage > 0 else None,
+            "entry_fill_price": fill_price, "entry_fee": fee,
+            "expected_entry_vwap": fill_price, "expected_entry_notional": notional,
+            "expected_entry_fee": fee,
+            "expected_entry_slippage_cost": abs(fill_price - reference) * qty,
+            "expected_entry_total_cost": fee + abs(fill_price - reference) * qty,
+            "fee_rate": commission.taker,
+            "fee_source": "binance GET /fapi/v1/commissionRate"}
+
+
+__all__ = ["NoLiquidity", "entry", "round_trip", "walk", "BREAKEVEN_BASIS", "FILL_BASIS"]

@@ -9,13 +9,9 @@ The rules, and where each number comes from:
 
 * **Reverse** - `positionRisk`. An open position on the other side means no size is available at
   all; `OrderRouter._open_plan` refuses it and sizing must not offer what the router will reject.
-* **Local ceiling** - `BINANCE_LIVE_MAX_QTY`. Checked before the exchange's own filters, the same
-  order the router checks it, so the operator is told which limit they hit.
 * **Exchange filters** - `exchangeInfo`: LOT_SIZE / MARKET_LOT_SIZE stepSize and minQty, and
   MIN_NOTIONAL against the reference price.
-* **Book depth, both ways** - `GET /fapi/v1/depth`, walked by `preview.round_trip`. Entry and
-  exit are both required, because a size that fills on a deep ask can face a bid that cannot
-  absorb it; the paper engine learned that in production at 1.082 BTC against 0.157 BTC of bid.
+* **Entry book depth** - `GET /fapi/v1/depth`, walked on asks for LONG and bids for SHORT.
 * **Margin** - `assets[USDT].availableBalance` against the entry's own required margin and fee,
   both taken from the preview rather than recomputed here.
 
@@ -35,7 +31,7 @@ from typing import Any
 
 from .filters import SymbolFilters
 from .models import LONG, SHORT, CommissionRate, LivePosition, MarkPrice
-from .preview import round_trip
+from .preview import entry
 
 #: The quick-size ladder the panel offers, as fractions of MAX.
 DEFAULT_FRACTIONS = (Decimal("0.25"), Decimal("0.50"), Decimal("0.75"), Decimal("1.00"))
@@ -45,12 +41,16 @@ FRACTION_LABELS = {Decimal("0.25"): "25%", Decimal("0.50"): "HALF",
 
 #: What MAX means here, carried with the answer so a reader never has to guess. Same definition
 #: the paper terminal settled on.
-MAX_DEFINITION = "ENTRY_AND_IMMEDIATE_EXIT_ON_THIS_SNAPSHOT_WITHIN_LOCAL_CEILING"
+MAX_DEFINITION = "MAX_ADDITIONAL_MARKET_ENTRY_QTY_ON_THIS_SNAPSHOT"
 
 REVERSE_NOT_ALLOWED = "REVERSE_NOT_ALLOWED"
 QTY_ABOVE_LOCAL_MAXIMUM = "QTY_ABOVE_LOCAL_MAXIMUM"
 INSUFFICIENT_MARGIN = "INSUFFICIENT_MARGIN"
 MARGIN_UNKNOWN = "MARGIN_UNKNOWN"
+# One exchange quantity tick, only when margin is the binding boundary. This is the smallest
+# deterministic reserve possible and protects the REST gap between the final read and POST;
+# it is not a percentage haircut.
+FINAL_MARGIN_RESERVE_STEPS = 1
 
 
 def floor_to_step(qty: Decimal, step: Decimal) -> Decimal:
@@ -99,19 +99,17 @@ def check(*, side: str, qty: Decimal, depth: dict[str, Any], mark: MarkPrice,
           commission: CommissionRate, filters: SymbolFilters, leverage: Decimal | None,
           available: Decimal | None, ceiling: Decimal | None,
           position: LivePosition | None) -> dict[str, Any]:
-    """Everything that must hold for `qty` to be placeable right now, in the router's order."""
+    """Everything that must hold for `qty` to be placeable right now."""
     if qty <= 0:
         return _refused(qty, "QTY_NOT_POSITIVE", "수량은 0보다 커야 합니다.")
     if position is not None and not position.is_flat and position.side != side:
         return _refused(qty, REVERSE_NOT_ALLOWED,
                         f"{position.side} 포지션 {position.qty}이 열려 있습니다. 먼저 청산하세요.")
-    if ceiling is not None and qty > ceiling:
-        return _refused(qty, QTY_ABOVE_LOCAL_MAXIMUM,
-                        f"수량 {qty}이 이 프로세스의 상한 {ceiling}을 넘습니다 (BINANCE_LIVE_MAX_QTY).")
-
-    # Filters and both sides of the book, priced by the module the preview panel already uses.
-    priced = round_trip(side=side, qty=qty, depth=depth, mark=mark, commission=commission,
-                        filters=filters, leverage=leverage)
+    # Entry only: future close liquidity and commission are preview information, not funds
+    # Binance requires to accept this opening order. ``ceiling`` is retained in the call shape
+    # for compatibility, but the deprecated BINANCE_LIVE_MAX_QTY is deliberately not applied.
+    priced = entry(side=side, qty=qty, depth=depth, mark=mark, commission=commission,
+                   filters=filters, leverage=leverage)
     if not priced.get("feasible"):
         return _refused(qty, str(priced.get("reject_code") or "NOT_FEASIBLE"),
                         str(priced.get("reject_message") or "이 수량은 주문할 수 없습니다."),
@@ -157,8 +155,7 @@ def max_open(*, side: str, depth: dict[str, Any], mark: MarkPrice, commission: C
                            str(smallest.get("reject_message"))), "label": "MAX",
                 "fraction": Decimal(1)}
 
-    high = floor_to_step(min(filters.market_max_qty, ceiling) if ceiling is not None
-                         else filters.market_max_qty, step)
+    high = floor_to_step(filters.market_max_qty, step)
     low, best = floor_qty, smallest
     while low < high:
         middle = floor_to_step(low + (high - low) / 2 + step, step)
@@ -169,7 +166,15 @@ def max_open(*, side: str, depth: dict[str, Any], mark: MarkPrice, commission: C
             best, low = candidate, middle
         else:
             high = middle - step
-    return {**best, "label": "MAX", "fraction": Decimal(1)}
+    theoretical_qty = best["qty"]
+    above = probe(theoretical_qty + step) if theoretical_qty + step <= filters.market_max_qty else None
+    reserve_steps = (FINAL_MARGIN_RESERVE_STEPS if above is not None
+                     and above.get("reject_code") == INSUFFICIENT_MARGIN
+                     and theoretical_qty - step >= floor_qty else 0)
+    if reserve_steps:
+        best = probe(theoretical_qty - step * reserve_steps)
+    return {**best, "label": "MAX", "fraction": Decimal(1),
+            "theoretical_max_qty": theoretical_qty, "reserve_steps": reserve_steps}
 
 
 def presets(*, side: str, depth: dict[str, Any], mark: MarkPrice, commission: CommissionRate,
@@ -205,12 +210,15 @@ def presets(*, side: str, depth: dict[str, Any], mark: MarkPrice, commission: Co
         "side": side,
         "leverage": leverage,
         "available_balance": available,
-        "local_max_qty": ceiling,
+        "local_max_qty": None,
         "max_qty": ceiling_quote["qty"] if ceiling_quote.get("feasible") else Decimal(0),
         "max_feasible": bool(ceiling_quote.get("feasible")),
+        "theoretical_max_qty": ceiling_quote.get("theoretical_max_qty"),
+        "reserve_steps": ceiling_quote.get("reserve_steps", 0),
         "reject_code": ceiling_quote.get("reject_code"),
         "reject_message": ceiling_quote.get("reject_message"),
         "max_definition": MAX_DEFINITION,
+        "reserve_policy": "ONE_QTY_STEP_WHEN_MARGIN_BINDS",
         "instrument": {"qty_step": step,
                        "min_qty": max(filters.market_min_qty, filters.min_qty),
                        "smallest_orderable_qty": smallest_qty(filters, reference_price(depth, side)),

@@ -404,7 +404,8 @@ export function OrderTicket({ state, sizing, onAction, busy, error, wide = false
   // reducing risk on a bad screen is the safer of the two mistakes.
   const status = feedStatus(state);
   const age = feedAgeSeconds(state);
-  const blocked = !state.state.can_open_new_position || !canEnter(status);
+  const blocked = !state.state.can_open_new_position || !canEnter(status)
+    || Boolean(state.c1_auto?.enabled);
 
   const sideSizing = (side: OrderSide) => sizing?.sides?.[side];
   const presetFor = (side: OrderSide) =>

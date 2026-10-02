@@ -28,6 +28,7 @@ from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel
+from fastapi.responses import JSONResponse
 
 from ..live.account import AccountReader
 from ..live.adapter import BinanceLiveAdapter
@@ -397,11 +398,39 @@ async def binance_order(request: LiveOrderRequest) -> Any:
     if intent not in (OPEN, CLOSE):
         return error(400, "UNKNOWN_INTENT", f"intent must be OPEN or CLOSE, got {intent!r}")
     side = request.side.upper()
+    preflight: dict[str, Any] | None = None
+    if intent == OPEN:
+        try:
+            preflight = adapter.preflight_open(side, request.qty, request.notional_usdt)
+        except BinanceError as exc:
+            return error(502, "BINANCE_ERROR", exc.message)
+        if not preflight.get("feasible"):
+            reject_code = str(preflight.get("reject_code") or "UNSAFE_SIZE")
+            capacity_changed = reject_code in {
+                "INSUFFICIENT_MARGIN", "NO_LIQUIDITY", "NOTIONAL_ABOVE_MAXIMUM",
+                "QTY_ABOVE_MARKET_MAXIMUM",
+            }
+            return JSONResponse(status_code=409, content=jsonable({
+                "error": {"code": "ORDER_CAPACITY_CHANGED" if capacity_changed else reject_code,
+                          "message": ("주문 가능 수량이 변경되었습니다." if capacity_changed else
+                                      preflight.get("reject_message") or "주문할 수 없습니다.")},
+                "safe_max_qty": preflight.get("safe_max_qty", 0),
+                "preflight": preflight,
+            }))
     try:
         plan = adapter.plan_order(side, intent, request.qty, request.notional_usdt)
     except OrderRefused as exc:
         return error(409, exc.code, exc.message)
     except BinanceError as exc:
+        if (preflight is not None and exc.code == -2019 and adapter.mirror is not None):
+            adapter.mirror.append(
+                LiveEvent.ORDER_REFUSED, stage="EXCHANGE_MARGIN_AUDIT", code=str(exc.code),
+                message=exc.message, requested_qty=request.qty,
+                available_balance=preflight.get("available_balance"),
+                required_margin=preflight.get("required_margin"),
+                expected_fill=preflight.get("expected_entry_vwap"),
+                account_timestamp_ms=preflight.get("account_timestamp_ms"),
+                final_resync_timestamp_ms=preflight.get("final_resync_timestamp_ms"))
         return error(502, "BINANCE_ERROR", exc.message)
     try:
         result = adapter.router.submit(plan)
