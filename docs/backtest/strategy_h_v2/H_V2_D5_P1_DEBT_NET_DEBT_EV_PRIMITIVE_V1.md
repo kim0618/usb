@@ -521,7 +521,12 @@ without data)    only by share class for the named six; the two D5-D0 defects re
 ```
 
 Regression, from the repository root: **1,494 passed, 1 skipped** across `backend/tests/strategy_h_v2`
-and `backend/tests/strategy_h0` - P0.1's 1,437 plus the 57 new. Full suite: see §Q.
+and `backend/tests/strategy_h0` - P0.1's 1,437 plus the 57 new. Whole suite: **6,943 passed, 24
+skipped**, with `backend/tests/strategy_b/test_strategy_b_scanner.py` and
+`backend/tests/test_strategy_b_historical_scanner.py` excluded: both fail to import
+(`ImportError: OBSERVATION_ONLY from app.strategy_b.scanner`) from another session's untracked
+files, which aborts collection for the whole run. Pre-existing and unrelated to this step, which
+modified no existing file.
 
 ---
 
