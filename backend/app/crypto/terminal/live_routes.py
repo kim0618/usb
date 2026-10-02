@@ -35,6 +35,8 @@ from ..live.arm import ArmRefused, ArmSession
 from ..live.credentials import LiveConfig, client_armed, load_config, load_credentials
 from ..live.credentials import CredentialsMissing
 from ..live.endpoints import registry_view
+from ..live.leverage import (ACCOUNT_LEVERAGE_NOT_YET_AVAILABLE, RESTRICTION_CODES,
+                             BootstrapOutcome, LeverageCapability)
 from ..live.exit_guard import ExitGuard
 from ..live.mirror import LiveEvent, LiveMirror, default_path
 from ..live.orders import CLOSE, OPEN, LiveOrderRouter, OrderRefused
@@ -51,7 +53,13 @@ SIDES = ("LONG", "SHORT")
 #: account's own bracket table before it is shown, and the table is what decides. A ladder is
 #: kept rather than showing all 150 values because leverage is a risk setting and a row of
 #: meaningful steps is easier to choose correctly from than a slider.
-LEVERAGE_LADDER = (1, 2, 3, 5, 10, 20, 50)
+#:
+#: 100 being in this tuple is not a claim that the account can use it. Two further filters stand
+#: between the tuple and an enabled button: the account's own bracket table (`max_leverage`), and
+#: what Binance has actually been observed to refuse (`live.leverage.LeverageCapability`). On the
+#: real account on 2026-10-01 the bracket table reached 150 while Binance refused 50 with code
+#: -4300, so the table alone is not capability and this ladder alone is not either.
+LEVERAGE_LADDER = (1, 2, 3, 5, 10, 20, 50, 100)
 
 #: V1 reads the margin mode and does not offer to change it. `POST /fapi/v1/marginType` is on the
 #: endpoint deny list, and taking it off would mean a write whose failure modes (an open
@@ -103,6 +111,12 @@ class LiveRuntime:
         self.arm: ArmSession | None = None
         self.exit_guard: ExitGuard | None = None
         self.performance: ManualLivePerformance | None = None
+        #: What this account has actually been allowed to set, learned from Binance's refusals
+        #: and persisted beside the mirror so a restart does not cost another refused click.
+        self.leverage_capability: LeverageCapability | None = None
+        #: What the startup scan of the audit mirror concluded. Reported on the leverage route
+        #: so a quiet startup is still explicable.
+        self.leverage_bootstrap: BootstrapOutcome | None = None
         self._lock = threading.Lock()
 
     def stream_enabled(self) -> bool:
@@ -153,8 +167,17 @@ class LiveRuntime:
             mirror.append(LiveEvent.DISARM, reason="BOOT", env_armed=client_armed(),
                           note="프로세스 기동. 세션 무장은 항상 해제 상태로 시작한다.")
             reader = AccountReader(client, config)
+            self.leverage_capability = LeverageCapability(
+                path=root / "leverage_capability.json")
+            # The refusal that greys 50x and 100x out is already in the audit file from the
+            # first time it happened, so the restriction is recovered here rather than being
+            # relearned by making the operator send one more write Binance will reject. The
+            # stored capability wins when it has one; this only speaks when it does not. Read
+            # only: it opens a local file and makes no Binance request.
+            self.leverage_bootstrap = self.leverage_capability.bootstrap_from_mirror(
+                mirror.path, symbol=config.symbol)
             router = LiveOrderRouter(reader=reader, client=client, config=config, mirror=mirror,
-                                     arm=self.arm)
+                                     arm=self.arm, capability=self.leverage_capability)
             adapter = BinanceLiveAdapter(config=config, client=client, reader=reader,
                                          router=router, mirror=mirror)
             if self.stream_enabled():
@@ -416,6 +439,11 @@ async def binance_leverage(request: LiveLeverageRequest) -> Any:
         if exc.status == 0:
             return error(504, "LEVERAGE_TIMEOUT",
                          "Binance 응답 시간이 초과되었습니다. 기존 레버리지를 유지합니다.")
+        if exc.code in RESTRICTION_CODES:
+            # Reached only when the refusal arrived but nothing could be learned from it; the
+            # router turns a parseable one into `OrderRefused` above, which is the 409 branch.
+            return error(409, ACCOUNT_LEVERAGE_NOT_YET_AVAILABLE,
+                         "현재 계정에서 선택한 레버리지를 아직 사용할 수 없습니다.")
         if exc.code == -4028:
             return error(409, "UNSUPPORTED_LEVERAGE",
                          "Binance 계정에서 선택한 레버리지를 사용할 수 없습니다.")
@@ -437,7 +465,8 @@ async def binance_position_card() -> Any:
     try:
         card = adapter.get_position_card()
         rate = _krw_rate()
-        converted = _krw(card, ("unrealized_pnl", "net_if_closed"), rate)
+        converted = _krw(card, ("unrealized_pnl", "net_if_closed", "exposure",
+                                "initial_margin"), rate)
         if converted is not None:
             card["krw"] = converted
             card["krw_per_usdt"] = rate
@@ -590,6 +619,11 @@ async def binance_leverage_options() -> Any:
     current = snapshot.symbol_config.leverage if snapshot.symbol_config else None
     options = sorted({value for value in LEVERAGE_LADDER if value <= maximum}
                      | ({int(current)} if current else set()))
+    # The bracket table says what the *symbol* allows. What this *account* allows is only known
+    # from Binance's own refusals, so the steps it has refused are reported alongside the
+    # options rather than quietly dropped: a button that is there and greyed with a reason is
+    # what an operator can act on, and the reason expires by itself.
+    capability = adapter.router.capability
     return jsonable({
         "symbol": adapter.config.symbol,
         "current": current,
@@ -598,7 +632,12 @@ async def binance_leverage_options() -> Any:
         "options": options,
         "brackets": brackets,
         "notional_coef": row.get("notionalCoef"),
+        "unavailable": capability.unavailable(options),
+        "capability": capability.view(options),
+        "capability_bootstrap": (live_runtime.leverage_bootstrap.view()
+                                 if live_runtime.leverage_bootstrap is not None else None),
         "authority": "binance GET /fapi/v1/leverageBracket",
+        "capability_authority": "binance POST /fapi/v1/leverage refusals observed by this account",
         "margin_type_note": MARGIN_TYPE_NOTE,
     })
 

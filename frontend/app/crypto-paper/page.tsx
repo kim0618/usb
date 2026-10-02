@@ -16,7 +16,8 @@ import {
 } from "@/components/crypto-live-terminal";
 import type { ChartTimeframe } from "@/lib/crypto-paper";
 import { positionOpenedMs } from "@/lib/crypto-paper";
-import { ARM_NOTE, LIVE_LOCK_NOTE, liveTradeGate } from "@/lib/crypto-live";
+import { ARM_NOTE, LIVE_CHART_SOURCE_NOTE, LIVE_LOCK_NOTE, liveOverlays, liveTradeGate }
+  from "@/lib/crypto-live";
 import type { AccountSource } from "@/lib/crypto-live";
 
 /** US-B CRYPTO manual futures terminal. Bybit PUBLIC market data, simulated fills, no account.
@@ -94,22 +95,26 @@ export default function CryptoPaperPage() {
             </div>
             <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
               <div className="space-y-3">
-                {/* The chart stays on the paper feed in V1: switching it to Binance candles is
-                    a larger change than this step allows, and the LIVE numbers that matter -
-                    mark, PnL, preview - are Binance's. The caption says so rather than letting
-                    the price line imply it is Binance's. */}
+                {/* The candles stay on the paper feed in V1: switching them to Binance is a
+                    larger change than this step allows, and the LIVE numbers that matter -
+                    mark, PnL, preview - are Binance's.
+                    The *price lines* are a different matter and are Binance's here. `state` is
+                    the paper terminal's and is passed for the candles alone; letting the panel
+                    derive its overlays from it drew the paper account's entry on a LIVE chart,
+                    which is exactly the number an operator reads their position against. */}
                 {/* Binance's book first, then the chart it is not drawn from. The label sits
                     above the chart rather than under it so it is read before the price line. */}
                 <LiveBookStrip account={account} />
                 {terminal.state && (
                   <ChartSection state={terminal.state} bars={terminal.bars} timeframe={timeframe}
-                    onTimeframe={setTimeframe} />
+                    onTimeframe={setTimeframe} overlays={liveOverlays(account)}
+                    note={LIVE_CHART_SOURCE_NOTE} />
                 )}
                 {/* Wide only: the phone already has the card above the chart, and showing
                     both would print the same position twice. Same split the paper screen uses
                     between MobilePositionCard and PositionStrip. */}
                 <div className="hidden xl:block">
-                  <LivePositionPanel account={account} />
+                  <LivePositionPanel account={account} card={binance.positionCard} />
                 </div>
               </div>
               {/* Size, leverage and the two order buttons in one column, in the order they are

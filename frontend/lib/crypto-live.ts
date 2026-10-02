@@ -8,7 +8,8 @@
  *  `crypto-paper.ts` does. Nothing here computes a balance, a PnL or a liquidation price - when
  *  the backend cannot supply one, the panel shows "-" rather than a number this file invented.
  */
-import { CRYPTO_API_BASE, CryptoApiError, OrderSide } from "@/lib/crypto-paper";
+import { CRYPTO_API_BASE, CryptoApiError, OrderSide, num } from "@/lib/crypto-paper";
+import type { ChartOverlay } from "@/lib/crypto-paper";
 
 export type AccountSource = "PAPER" | "BINANCE_LIVE";
 
@@ -39,11 +40,34 @@ export type LiveLeverageBracket = {
   maintMarginRatio: number; cum: number;
 };
 
+/** One step the account may not select, with the reason and the moment it lifts.
+ *
+ *  Learned on the server from Binance's own refusals, never assumed here. A step missing from
+ *  this map is not a promise that it works; it means nothing has refused it yet. */
+export type LiveLeverageRestriction = {
+  above: number; code: number | null; until_ms: number | null; until_utc: string | null;
+  observed_at_ms: number; code_name: string; message: string;
+  /** `EXCHANGE_REFUSAL` when this process was refused, `AUDIT_MIRROR_BOOTSTRAP` when it
+   *  recovered the refusal from its own audit file at startup. Not rendered; the screen shows
+   *  the same sentence either way. */
+  source?: string;
+};
+
 export type LiveLeverageOptions = {
   symbol: string; current: string | null; margin_type: string | null;
   max_leverage: number; options: number[]; brackets: LiveLeverageBracket[];
   notional_coef: number | null; authority: string; margin_type_note: string;
+  /** Keyed by the leverage as a decimal string, the way the server sent it. */
+  unavailable?: Record<string, LiveLeverageRestriction> | null;
+  capability?: Record<string, unknown> | null;
+  capability_authority?: string;
 };
+
+/** The restriction on one step, or null when there is none on record. */
+export function leverageRestriction(options: LiveLeverageOptions | null, value: number):
+    LiveLeverageRestriction | null {
+  return options?.unavailable?.[String(value)] ?? null;
+}
 
 /** Asset-denominated figures (`wallet_balance` and friends) come from Binance's `assets[USDT]`
  *  row. The `account_*_usd` figures are the same account valued in USD by Binance and drift with
@@ -151,20 +175,58 @@ export type LiveSizing = {
 export const LIVE_PRESET_LABELS = ["25%", "HALF", "75%", "MAX"] as const;
 export type LivePresetLabel = (typeof LIVE_PRESET_LABELS)[number];
 
+/** Which sides an OPEN may be sent on right now, given what Binance reports is held.
+ *
+ *  The rule is the order router's, restated here so the buttons agree with it instead of
+ *  discovering it from a refusal: flat allows both, a held position allows the side it is
+ *  already on, and the other side is never turned into a reduce, a reverse or a flip. Closing
+ *  and reopening is two decisions and the operator makes both.
+ */
+export type LiveSideAllowance = {
+  /** The side a position is held on, or null when flat. */
+  holding: OrderSide | null;
+  /** Sides an OPEN may be sent on. One entry while a position is held. */
+  allowed: OrderSide[];
+  /** The side that would reverse the position, or null when flat. */
+  blocked: OrderSide | null;
+};
+
+export const OPPOSITE_SIDE_NOTE = "현재 포지션을 먼저 청산하세요.";
+
+export function liveSideAllowance(position: LivePosition | null | undefined): LiveSideAllowance {
+  const sides: OrderSide[] = ["LONG", "SHORT"];
+  if (!position || position.is_flat || position.side == null) {
+    return { holding: null, allowed: sides, blocked: null };
+  }
+  const holding = position.side;
+  return { holding, allowed: [holding],
+           blocked: holding === "LONG" ? "SHORT" : "LONG" };
+}
+
 /** One offerable size for a label, or the reason there is none.
  *
- *  The quantity box feeds both LONG and SHORT, so a size is only offered when both sides accept
- *  it, and the smaller of the two is the one handed over. Selecting the smaller of two
- *  server-computed answers is not sizing arithmetic: no number here is derived from a balance,
- *  a price or a leverage.
+ *  The quantity box feeds both LONG and SHORT, so while the account is flat a size is only
+ *  offered when both sides accept it and the smaller of the two is handed over. Once a position
+ *  is held only one side can be opened, and only that side's ladder is consulted.
+ *
+ *  That distinction is the whole of it. The both-sides rule used to run unconditionally, so a
+ *  held SHORT made the LONG ladder answer `REVERSE_NOT_ALLOWED` and every quick size went dead
+ *  - the screen refused to size an add-on to a position it was perfectly able to add to. The
+ *  refusal was right about LONG and irrelevant to the button being pressed.
+ *
+ *  Selecting the smaller of two server-computed answers is not sizing arithmetic: no number
+ *  here is derived from a balance, a price or a leverage.
  */
-export function livePresetQty(sizing: LiveSizing | null, label: string):
+export function livePresetQty(sizing: LiveSizing | null, label: string,
+                              sides: OrderSide[] = ["LONG", "SHORT"]):
     { qty: string | null; reason: string | null } {
   if (!sizing?.available || !sizing.sides) {
     return { qty: null, reason: sizing?.reject_message || "주문 가능 수량을 계산하지 못했습니다." };
   }
-  const rows = (["LONG", "SHORT"] as OrderSide[])
-    .map(side => sizing.sides?.[side]?.presets.find(row => row.label === label));
+  if (sides.length === 0) {
+    return { qty: null, reason: OPPOSITE_SIDE_NOTE };
+  }
+  const rows = sides.map(side => sizing.sides?.[side]?.presets.find(row => row.label === label));
   if (rows.some(row => row == null)) {
     return { qty: null, reason: "주문 가능 수량을 계산하지 못했습니다." };
   }
@@ -197,12 +259,16 @@ export type LivePositionCard = {
   side?: OrderSide; qty?: string; leverage?: string | null;
   entry_price?: string | null; break_even_price?: string | null; mark_price?: string | null;
   liquidation_price?: string | null; unrealized_pnl?: string; notional?: string | null;
-  initial_margin?: string | null;
+  /** "포지션 규모": how much market this position holds, positive. `abs(positionRisk.notional)`
+   *  on the server; `exposure_basis` says which of the two sources it came from. */
+  exposure?: string | null; exposure_basis?: string | null;
+  initial_margin?: string | null; maint_margin?: string | null; margin_basis?: string | null;
   opened_at_ms?: number | null; opened_source?: string;
   commission_paid?: string | null; realized_since_open?: string | null;
   funding_income?: string | null;
   close?: LiveCloseNow; net_if_closed?: string | null; net_basis?: string; net_complete?: boolean;
-  krw?: { unrealized_pnl?: string; net_if_closed?: string } | null;
+  krw?: { unrealized_pnl?: string; net_if_closed?: string; exposure?: string;
+          initial_margin?: string } | null;
   krw_per_usdt?: string | null;
 };
 
@@ -222,6 +288,10 @@ export type LiveExitGuard = {
   state: "OFF" | "ARMED" | "TRIGGERING" | "CLOSING" | "COMPLETE" | "ERROR";
   enabled: boolean; symbol: string | null; side: OrderSide | null;
   position_qty: string | null; opened_at_ms: number | null;
+  /** The size the thresholds were typed against. `scaled_in` is true once the live size has
+   *  grown past it, which is a notice rather than a fault: the guard still closes the real
+   *  position in full. */
+  configured_qty?: string | null; scaled_in?: boolean;
   take_profit_krw: string | null; stop_loss_krw: string | null;
   current_net_usdt: string | null; current_net_krw: string | null;
   created_at_ms: number | null; updated_at_ms: number | null; last_error: string | null;
@@ -403,6 +473,9 @@ export const LIVE_BLOCKER_LABELS: Record<string, string> = {
   BINANCE_LEVERAGE_REJECTED: "Binance 변경 거부",
   LEVERAGE_RESYNC_FAILED: "변경 후 동기화 실패",
   LEVERAGE_CONFIRMATION_FAILED: "변경값 확인 실패",
+  ACCOUNT_LEVERAGE_NOT_YET_AVAILABLE: "계정에서 아직 사용 불가",
+  REVERSE_NOT_ALLOWED: "반대 방향 진입 차단",
+  INSUFFICIENT_MARGIN: "주문가능 잔고 부족",
 };
 
 export const liveBlockerLabel = (code: string) => LIVE_BLOCKER_LABELS[code] || code;
@@ -448,3 +521,49 @@ export const LIVE_LEVERAGE_POLICY_NOTE =
 /** V1 does not change the margin mode; `POST /fapi/v1/marginType` is on the endpoint deny list. */
 export const MARGIN_MODE_READONLY_NOTE =
   "마진 모드는 Binance에서 설정한 값을 표시만 합니다. 변경은 Binance 앱/웹에서 하세요.";
+
+
+/** The price lines the LIVE chart draws, taken from Binance and from nowhere else.
+ *
+ *  This exists because the LIVE screen was drawing the *paper* account's lines. The chart panel
+ *  is shared with the paper terminal, and it built its overlays from the paper terminal state it
+ *  was handed, so the blue 진입 line on a LIVE screen was the paper engine's `avg_entry` and the
+ *  Mark line was the paper feed's Bybit mark. Two accounts, one canvas: on 2026-10-02 the paper
+ *  account held LONG 0.106 at 83,962.30 while Binance held SHORT 0.080 at 83,938.05, and the
+ *  line drawn was the first of those.
+ *
+ *  So the authority is stated here rather than inferred: `positionRisk.entryPrice`,
+ *  `positionRisk.liquidationPrice` and the Binance mark, passed through `num` and never
+ *  computed. There is no averaging of fills, no price read off a candle and no paper figure in
+ *  reach of this function - it cannot see one.
+ *
+ *  The lifecycle falls out of that. Flat means no `entry` and no `liquidation` in the list, and
+ *  the chart removes any line whose id is absent. A re-entry is a new `entryPrice` on the next
+ *  account poll. A same-side add-on is the weighted `entryPrice` Binance reports after the REST
+ *  reconcile, so the line moves to the real average without this file averaging anything. A
+ *  timeframe switch replaces the candles and not the overlays, which are props.
+ */
+export function liveOverlays(account: LiveAccount | null | undefined): ChartOverlay[] {
+  const overlays: ChartOverlay[] = [];
+  if (!account) return overlays;
+  const position = account.position;
+  // Binance's mark, not the chart feed's. The candles are still the paper screen's exchange in
+  // V1 and are labelled as such; the lines an operator reads against their own position must
+  // all come from one account or the distances between them mean nothing.
+  const mark = num(position?.mark_price ?? null) ?? num(account.mark?.mark_price ?? null);
+  if (mark != null) overlays.push({ id: "mark", price: mark, label: "Mark", kind: "MARK" });
+  if (!position || position.is_flat) return overlays;
+  const entry = num(position.entry_price);
+  if (entry != null && entry > 0) {
+    overlays.push({ id: "entry", price: entry, label: "진입", kind: "ENTRY" });
+  }
+  const liquidation = num(position.liquidation_price);
+  if (liquidation != null && liquidation > 0) {
+    overlays.push({ id: "liquidation", price: liquidation, label: "청산", kind: "LIQUIDATION" });
+  }
+  return overlays;
+}
+
+/** What the LIVE chart's candles actually are, said on screen beside them. */
+export const LIVE_CHART_SOURCE_NOTE =
+  "차트 캔들은 페이퍼 피드(Bybit)입니다. 진입·청산·Mark 선은 Binance 실포지션 값입니다.";

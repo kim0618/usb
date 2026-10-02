@@ -34,6 +34,22 @@ from .preview import NoLiquidity, walk
 #: What the net figure means, carried with it so a reader never has to guess.
 NET_BASIS = "CLOSE_ENTIRE_POSITION_AT_MARKET_ON_THIS_BOOK_NOW"
 
+#: Where "포지션 규모" came from. `positionRisk.notional` is Binance's own valuation of the
+#: position at its mark and is signed by direction; the screen wants the size of the exposure,
+#: so it is reported as an absolute value and labelled with this.
+EXPOSURE_FROM_NOTIONAL = "BINANCE_POSITION_RISK_NOTIONAL_ABS"
+#: Only when Binance sent no `notional` on the row. `positionAmt x markPrice` is then the same
+#: quantity computed from two fields of the same response rather than from a price this package
+#: chose, and the difference is visible on screen through this label.
+EXPOSURE_FROM_QTY_AND_MARK = "ABS_POSITION_AMT_TIMES_BINANCE_MARK"
+
+#: `positionRisk.initialMargin` is the margin Binance holds against the position. Measured
+#: against two leverages on the real account (1x: 83.2149 on a notional of 83.2149; 20x:
+#: 339.2448 on 6784.8965), so it tracks the setting rather than being a constant - which is why
+#: it is reported instead of `notional / leverage`, a division that ignores the maintenance tier
+#: and disagrees with the exchange exactly when the position is close to trouble.
+MARGIN_FROM_POSITION_RISK = "BINANCE_POSITION_RISK_INITIAL_MARGIN"
+
 #: How the open time was established, so the screen can say `-` rather than guess.
 OPEN_FROM_TRADES = "BINANCE_USER_TRADES_WALKBACK"
 OPEN_UNKNOWN = "UNKNOWN"
@@ -117,6 +133,24 @@ def close_now(*, position: LivePosition, depth: dict[str, Any], commission: Comm
             "reject_code": None, "reject_message": None}
 
 
+def exposure(position: LivePosition) -> dict[str, Any]:
+    """How much of the market this position is actually holding, as a positive figure.
+
+    Binance publishes it, so it is read rather than derived: `notional` on the `positionRisk`
+    row. The absolute value is taken because a SHORT's notional is negative and "포지션 규모" is
+    a size, not a direction - the direction is already the LONG/SHORT badge beside it. The only
+    arithmetic fallback is used when the field is absent, and it says so.
+    """
+    if position.is_flat:
+        return {"exposure": None, "exposure_basis": None}
+    if position.notional is not None:
+        return {"exposure": abs(position.notional), "exposure_basis": EXPOSURE_FROM_NOTIONAL}
+    if position.mark_price is not None:
+        return {"exposure": position.qty * position.mark_price,
+                "exposure_basis": EXPOSURE_FROM_QTY_AND_MARK}
+    return {"exposure": None, "exposure_basis": None}
+
+
 def card(*, position: LivePosition, trades: Sequence[UserTrade], funding_rows: Sequence[IncomeRow],
          depth: dict[str, Any], commission: CommissionRate, filters: SymbolFilters,
          leverage: Decimal | None) -> dict[str, Any]:
@@ -149,7 +183,10 @@ def card(*, position: LivePosition, trades: Sequence[UserTrade], funding_rows: S
                               else None),
         "unrealized_pnl": position.unrealized_pnl,
         "notional": position.notional,
+        **exposure(position),
         "initial_margin": position.initial_margin,
+        "maint_margin": position.maint_margin,
+        "margin_basis": MARGIN_FROM_POSITION_RISK,
         "opened_at_ms": window["opened_at_ms"],
         "opened_source": window["source"],
         "commission_paid": (window["commission_paid"]
@@ -164,5 +201,6 @@ def card(*, position: LivePosition, trades: Sequence[UserTrade], funding_rows: S
     }
 
 
-__all__ = ["card", "close_now", "opening", "funding_since", "NET_BASIS", "OPEN_FROM_TRADES",
-           "OPEN_UNKNOWN"]
+__all__ = ["card", "close_now", "exposure", "opening", "funding_since", "NET_BASIS",
+           "OPEN_FROM_TRADES", "OPEN_UNKNOWN", "EXPOSURE_FROM_NOTIONAL",
+           "EXPOSURE_FROM_QTY_AND_MARK", "MARGIN_FROM_POSITION_RISK"]

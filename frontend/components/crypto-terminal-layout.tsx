@@ -11,8 +11,8 @@ import {
   clockKst, costKrw, costUsdt, percent, previewFreshness, rejectLabel, signedKrw, signedUsdt,
   tickFreshness, toneClass, usdt,
 } from "@/lib/crypto-paper";
-import type { Candle, Candle15sStatus, ChartBar, ChartPoint, HistoryTimeframe, LivePnl,
-  OpenPositionPnl, PositionPnlPreview } from "@/lib/crypto-paper";
+import type { Candle, Candle15sStatus, ChartBar, ChartOverlay, ChartPoint, HistoryTimeframe,
+  LivePnl, OpenPositionPnl, PositionPnlPreview } from "@/lib/crypto-paper";
 
 /** The charting library is ~190KB of canvas code that touches `window` on construction. Loading
  *  it dynamically with SSR off keeps it out of the server render and off the initial payload of
@@ -273,11 +273,19 @@ export function QuoteStrip({ state }: { state: CryptoState }) {
   );
 }
 
-export function ChartSection({ state, bars, timeframe, onTimeframe }: {
+export function ChartSection({ state, bars, timeframe, onTimeframe, overlays: given, note }: {
   state: CryptoState;
   bars: ChartBar[];
   timeframe: ChartTimeframe;
   onTimeframe: (next: ChartTimeframe) => void;
+  /** The price lines to draw. Omitted on the paper screen, where the account on the state *is*
+   *  the account being charted. The LIVE screen passes Binance's own lines, because the state
+   *  handed in here is the paper terminal's - it supplies the candles and nothing else - and
+   *  deriving the position lines from it drew the wrong account's entry on a real position. */
+  overlays?: ChartOverlay[];
+  /** One line above the chart, for a caller whose candles and position come from different
+   *  places and who has to say so. */
+  note?: string;
 }) {
   const fast = use15sCandles(timeframe === "15s");
   const historyFrame: HistoryTimeframe = timeframe === "15s" ? "1m" : timeframe;
@@ -285,9 +293,9 @@ export function ChartSection({ state, bars, timeframe, onTimeframe }: {
   const fallback = timeframe === "1m" ? aggregateCandles(bars, 1) : [];
   const candles: ChartPoint[] = timeframe === "15s" ? fast.candles
     : (history.candles.length > 0 ? history.candles : fallback);
-  const overlays = positionOverlays(state);
+  const overlays = given ?? positionOverlays(state);
   const real = candles.filter(point => !isWhitespace(point)).length;
-  const note = timeframe === "15s" ? candles15sNote(fast.status, real, fast.coverageFrom) : null;
+  const secondsNote = timeframe === "15s" ? candles15sNote(fast.status, real, fast.coverageFrom) : null;
   // The chart scales to the candles in view; an entry or liquidation line far from them is off
   // the canvas, so the section says where it is. The range comes from the chart itself.
   const [priceRange, setPriceRange] = useState<{ from: number; to: number } | null>(null);
@@ -308,13 +316,20 @@ export function ChartSection({ state, bars, timeframe, onTimeframe }: {
           {history.loading ? "기록 불러오는 중" : history.loadingEarlier ? "과거 불러오는 중" : "전체 기록"}
         </p>
       )}
+      {/* Above the quote strip, not below it. The strip is the *candle* feed's bid and ask, and
+          on a screen whose position figures come from somewhere else that has to be read
+          before the numbers rather than after them. */}
+      {note && (
+        <p className="mb-1 text-[10px] text-muted" data-testid="chart-source-note">{note}</p>
+      )}
       <div className="mb-1.5 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 sm:mb-2">
         <TimeframeTabs value={timeframe} onChange={onTimeframe} />
         <QuoteStrip state={state} />
       </div>
-      {note && (
-        <p className={`mb-1 text-[10px] ${note.warn ? "text-warning" : "text-muted"}`} data-testid="candles-15s-note">
-          {note.text}
+      {secondsNote && (
+        <p className={`mb-1 text-[10px] ${secondsNote.warn ? "text-warning" : "text-muted"}`}
+          data-testid="candles-15s-note">
+          {secondsNote.text}
         </p>
       )}
       {offscreen.length > 0 && (

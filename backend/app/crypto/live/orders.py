@@ -31,6 +31,7 @@ from typing import Any
 from .account import AccountReader, LiveSnapshot
 from .credentials import CLIENT_ARM_ENV, MAX_QTY_ENV, TRADING_FLAG_ENV, LiveConfig
 from .filters import QuantityRejected, SymbolFilters
+from .leverage import ACCOUNT_LEVERAGE_NOT_YET_AVAILABLE, LeverageCapability
 from .mirror import LiveEvent, LiveMirror
 from .models import BOTH, LONG, SHORT, LivePosition
 from .rest import BinanceError, BinanceFuturesClient, TradingDisabled
@@ -119,11 +120,15 @@ class LiveOrderRouter:
 
     def __init__(self, *, reader: AccountReader, client: BinanceFuturesClient,
                  config: LiveConfig, mirror: LiveMirror | None = None,
-                 arm: Any | None = None) -> None:
+                 arm: Any | None = None,
+                 capability: LeverageCapability | None = None) -> None:
         self.reader = reader
         self.client = client
         self.config = config
         self.mirror = mirror
+        #: What this account has actually been allowed to set. Starts empty and knows nothing;
+        #: see `live.leverage` for why the bracket table cannot answer this.
+        self.capability = capability if capability is not None else LeverageCapability()
         #: The `ArmSession` that owns `client.trading_enabled`, when there is one. Typed loosely
         #: to keep `live.arm` out of this module's imports: the router does not construct one and
         #: must keep working with `None`, which is the shape every existing test builds.
@@ -319,16 +324,17 @@ class LiveOrderRouter:
         """Implemented, gated, and never optimistic: the caller re-reads `symbolConfig` after
         this returns and shows what Binance reports, not what was asked for."""
         if self.mirror is not None:
-            self.mirror.append(LiveEvent.LEVERAGE_INTENT, leverage=leverage, gates=self.gate_view())
+            self.mirror.append(LiveEvent.LEVERAGE_INTENT, symbol=self.config.symbol,
+                               leverage=leverage, gates=self.gate_view())
         if not self.armed:
             message = f"레버리지 변경도 실계좌 쓰기입니다. {self._locked_message()}"
-            self._record(LiveEvent.LEVERAGE_REFUSED, stage="GATE", code=LIVE_TRADING_DISABLED,
-                         message=message)
+            self._record(LiveEvent.LEVERAGE_REFUSED, stage="GATE", symbol=self.config.symbol,
+                         code=LIVE_TRADING_DISABLED, message=message)
             raise OrderRefused(LIVE_TRADING_DISABLED, message)
         position = self.reader.position()
         if not position.is_flat:
             message = "포지션 보유 중에는 레버리지를 변경할 수 없습니다. 청산 후 다시 시도하세요."
-            self._record(LiveEvent.LEVERAGE_REFUSED, stage="POSITION",
+            self._record(LiveEvent.LEVERAGE_REFUSED, stage="POSITION", symbol=self.config.symbol,
                          code=LEVERAGE_POSITION_OPEN, message=message)
             raise OrderRefused(LEVERAGE_POSITION_OPEN, message)
         try:
@@ -338,31 +344,57 @@ class LiveOrderRouter:
             maximum = max(int(item["initialLeverage"]) for item in brackets)
         except (BinanceError, KeyError, TypeError, ValueError) as exc:
             message = "Binance 레버리지 허용 범위를 확인하지 못했습니다. 계좌 동기화 후 다시 시도하세요."
-            self._record(LiveEvent.LEVERAGE_REFUSED, stage="CONSTRAINT",
+            self._record(LiveEvent.LEVERAGE_REFUSED, stage="CONSTRAINT", symbol=self.config.symbol,
                          code=LEVERAGE_CONSTRAINT_UNAVAILABLE,
                          exchange_code=exc.code if isinstance(exc, BinanceError) else None,
                          message=exc.message if isinstance(exc, BinanceError) else type(exc).__name__)
             raise OrderRefused(LEVERAGE_CONSTRAINT_UNAVAILABLE, message) from None
         if leverage < 1 or leverage > maximum:
             message = f"현재 Binance 계정에서 {leverage}x 레버리지를 사용할 수 없습니다."
-            self._record(LiveEvent.LEVERAGE_REFUSED, stage="CONSTRAINT",
+            self._record(LiveEvent.LEVERAGE_REFUSED, stage="CONSTRAINT", symbol=self.config.symbol,
                          code=UNSUPPORTED_LEVERAGE, leverage=leverage, maximum=maximum,
                          message=message)
             raise OrderRefused(UNSUPPORTED_LEVERAGE, message)
+        # What the bracket table cannot say. If Binance has already refused this account at or
+        # below this step, there is no reason to send the write again: the refusal is replayed
+        # with the same message the screen would have shown, and the restriction expires by
+        # itself at the instant Binance named.
+        known = self.capability.restriction_for(leverage)
+        if known is not None:
+            message = known.message(leverage)
+            self._record(LiveEvent.LEVERAGE_REFUSED, stage="CAPABILITY", symbol=self.config.symbol,
+                         code=ACCOUNT_LEVERAGE_NOT_YET_AVAILABLE, leverage=leverage,
+                         above=known.above, until_ms=known.until_ms, message=message)
+            raise OrderRefused(ACCOUNT_LEVERAGE_NOT_YET_AVAILABLE, message)
         try:
             response = self.client.call("set_leverage", {
                 "symbol": self.config.symbol, "leverage": int(leverage),
                 "recvWindow": self.config.recv_window_ms})
         except BinanceError as exc:
-            self._record(LiveEvent.LEVERAGE_REFUSED, stage="EXCHANGE", code=exc.code,
-                         status=exc.status, message=exc.message, requested=leverage)
+            self._record(LiveEvent.LEVERAGE_REFUSED, stage="EXCHANGE", symbol=self.config.symbol,
+                         code=exc.code, status=exc.status, message=exc.message,
+                         requested=leverage)
+            # Only the restriction family teaches anything; every other error leaves the ladder
+            # exactly as wide as it was.
+            learned = self.capability.note_refusal(leverage=leverage, code=exc.code,
+                                                   message=exc.message)
+            if learned is not None:
+                self._record(LiveEvent.LEVERAGE_REFUSED, stage="CAPABILITY_LEARNED",
+                             symbol=self.config.symbol,
+                             code=ACCOUNT_LEVERAGE_NOT_YET_AVAILABLE, above=learned.above,
+                             until_ms=learned.until_ms, requested=leverage)
+                raise OrderRefused(ACCOUNT_LEVERAGE_NOT_YET_AVAILABLE,
+                                   learned.message(leverage)) from None
             raise
+        self.capability.note_success(leverage)
         if self.mirror is not None:
-            self.mirror.append(LiveEvent.LEVERAGE_RESULT, requested=leverage, response=response)
+            self.mirror.append(LiveEvent.LEVERAGE_RESULT, symbol=self.config.symbol,
+                               requested=leverage, response=response)
         return response
 
 
 __all__ = ["LiveOrderRouter", "OrderPlan", "OrderRefused", "OPEN", "CLOSE", "BUY", "SELL",
            "LIVE_TRADING_DISABLED", "REVERSE_NOT_ALLOWED", "NO_POSITION_TO_CLOSE",
            "ACCOUNT_NOT_READY", "QTY_ABOVE_LOCAL_MAXIMUM", "LEVERAGE_POSITION_OPEN",
-           "UNSUPPORTED_LEVERAGE", "LEVERAGE_CONSTRAINT_UNAVAILABLE", "client_order_id"]
+           "UNSUPPORTED_LEVERAGE", "LEVERAGE_CONSTRAINT_UNAVAILABLE",
+           "ACCOUNT_LEVERAGE_NOT_YET_AVAILABLE", "client_order_id"]

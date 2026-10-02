@@ -17,10 +17,11 @@ import { CryptoApiError, holdingDuration, krw, num, price, qty as qtyFmt, signed
 import type { OrderSide } from "@/lib/crypto-paper";
 import {
   ACTIVATE_CONFIRM_NOTE, ARM_CONFIRMATION, ARM_NOTE, AccountSource, LIVE_AUTHORITY_NOTE,
-  LIVE_DEFAULT_LEVERAGE, LIVE_LEVERAGE_POLICY_NOTE, LIVE_LOCK_NOTE, LIVE_PRESET_LABELS,
+  LIVE_LOCK_NOTE, LIVE_PRESET_LABELS, OPPOSITE_SIDE_NOTE,
   LiveAccount, LiveArmState, LiveBlocker, LiveExitGuard, LivePerformance, LiveLeverageOptions, LivePositionCard as LivePositionCardData,
   LivePreview, LiveSizing, LiveStatus, LiveTradeGate, MARGIN_MODE_LABELS,
-  MARGIN_MODE_READONLY_NOTE, liveApi, liveBlockerLabel, livePresetQty, liveTradeGate,
+  MARGIN_MODE_READONLY_NOTE, leverageRestriction, liveApi, liveBlockerLabel, livePresetQty,
+  liveSideAllowance, liveTradeGate,
 } from "@/lib/crypto-live";
 
 export const LIVE_POLL_MS = 2_000;
@@ -339,34 +340,94 @@ export function LiveBookStrip({ account }: { account: LiveAccount }) {
   );
 }
 
-export function LivePositionPanel({ account }: { account: LiveAccount }) {
+/** The held position on a wide screen, reading the same card the phone reads.
+ *
+ *  It takes `card` and not just `account` on purpose. "청산 시 예상 순손익" exists only on the
+ *  card - it is `net_if_closed`, assembled on the server from the realised PnL inside the open
+ *  cycle, the gross against the real opposite side of the book, the commission Binance has
+ *  already charged, the close's own fee and the signed funding - and the phone has shown it
+ *  since the card was added while this panel showed `명목` and `유지 마진` instead. Computing it
+ *  here from fee, funding and price would be the one way to make the two screens disagree about
+ *  the same position, so the panel is fed the figure rather than the ingredients.
+ *
+ *  Parity with the phone and with 자동청산 therefore holds by construction: one request,
+ *  `GET /api/crypto/binance/position`, one `net_if_closed`, and the exit guard's
+ *  `current_net_usdt` is that same field read by the guard's own tick.
+ */
+export function LivePositionPanel({ account, card }: {
+  account: LiveAccount;
+  /** The server's position card. Absent means the panel falls back to the account snapshot for
+   *  the position figures and simply has no net estimate to show. */
+  card?: LivePositionCardData | null;
+}) {
   const position = account.position;
   if (!position || position.is_flat) return null;
   const long = position.side === "LONG";
+  const open = card?.open ? card : null;
+  const close = open?.close;
+  const netShown = open?.net_complete === true && open.net_if_closed != null;
+  const leverage = account.symbol_config ? `${num(account.symbol_config.leverage)}x` : "-";
   const rows: [string, string][] = [
-    ["수량", `${qtyFmt(position.qty)} BTC`],
-    ["진입가", price(position.entry_price)],
-    ["Mark", price(position.mark_price ?? account.mark?.mark_price ?? null)],
-    ["청산가", price(position.liquidation_price)],
-    ["명목", usdt(position.notional)],
-    ["레버리지", account.symbol_config ? `${num(account.symbol_config.leverage)}x` : "-"],
+    ["진입가", price(open?.entry_price ?? position.entry_price)],
+    ["Mark", price(open?.mark_price ?? position.mark_price ?? account.mark?.mark_price ?? null)],
+    ["청산가", Number(position.liquidation_price) > 0 ? price(position.liquidation_price) : "-"],
+    // The margin Binance holds, off `positionRisk.initialMargin` - not `notional / leverage`,
+    // which ignores the maintenance tier. Beside the exposure above it so the two cannot be
+    // read as the same number.
+    ["증거금", usdt(open?.initial_margin ?? position.initial_margin, 2)],
+    ["유지 마진", usdt(position.maint_margin, 4)],
     ["마진 모드", account.symbol_config
       ? (MARGIN_MODE_LABELS[account.symbol_config.margin_type] || account.symbol_config.margin_type) : "-"],
-    ["유지 마진", usdt(position.maint_margin, 4)],
   ];
   return (
     <div className="panel p-5" data-testid="live-position-panel">
-      <div className="mb-4 flex items-center justify-between">
-        <span className={`rounded-md px-2 py-1 text-xs font-bold ${long ? "bg-success-soft text-success" : "bg-danger-soft text-danger"}`}
+      <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+        <span className={`rounded-md px-2 py-1 font-bold ${long ? "bg-success-soft text-success" : "bg-danger-soft text-danger"}`}
           data-testid="live-position-side">{long ? "LONG" : "SHORT"}</span>
-        <span className={`text-lg font-bold tabular-nums ${toneClass(position.unrealized_pnl)}`}
-          data-testid="live-position-pnl">
-          {signedUsdt(position.unrealized_pnl)}
-          {account.position_krw && <span className="ml-2 text-xs font-medium">
-            {signedKrw(account.position_krw.unrealized_pnl)}</span>}
-        </span>
+        <span className="font-semibold tabular-nums text-foreground-secondary"
+          data-testid="live-position-leverage">{leverage}</span>
+        <span className="tabular-nums text-foreground-secondary"
+          data-testid="live-position-qty">{qtyFmt(position.qty)} BTC</span>
       </div>
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4">
+
+      {open && <LiveExposure card={open} testIdPrefix="live-position" />}
+
+      <div className="mb-3 grid gap-2 sm:grid-cols-2">
+        <div className="rounded-lg bg-surface-alt px-3 py-2">
+          <p className="text-[11px] text-muted">현재 손익</p>
+          {account.position_krw && (
+            <p className={`whitespace-nowrap text-lg font-bold tabular-nums leading-tight ${toneClass(account.position_krw.unrealized_pnl)}`}
+              data-testid="live-position-pnl-krw">
+              {signedKrw(account.position_krw.unrealized_pnl)}</p>
+          )}
+          <p className={`whitespace-nowrap tabular-nums ${account.position_krw ? "text-[11px]" : "text-lg font-bold leading-tight"} ${toneClass(position.unrealized_pnl)}`}
+            data-testid="live-position-pnl">{signedUsdt(position.unrealized_pnl)}</p>
+          <p className="text-[11px] text-muted">Binance Mark 기준</p>
+        </div>
+        {/* The figure this panel was missing. Same source, same number as the phone card. */}
+        <div className="rounded-lg bg-surface-alt px-3 py-2">
+          <p className="text-[11px] text-muted">청산 시 예상 순손익</p>
+          {netShown ? (
+            <>
+              {open?.krw?.net_if_closed != null && (
+                <p className={`whitespace-nowrap text-lg font-bold tabular-nums leading-tight ${toneClass(open.krw.net_if_closed)}`}
+                  data-testid="live-position-net-krw">{signedKrw(open.krw.net_if_closed)}</p>
+              )}
+              <p className={`whitespace-nowrap tabular-nums leading-tight ${open?.krw?.net_if_closed != null ? "text-[11px]" : "text-lg font-bold"} ${toneClass(open?.net_if_closed)}`}
+                data-testid="live-position-net">{signedUsdt(open?.net_if_closed ?? null)}</p>
+              <p className="text-[11px] text-muted">수수료·펀딩·체결가 포함</p>
+            </>
+          ) : (
+            <p className="mt-1 text-[11px] text-warning" data-testid="live-position-net-unavailable">
+              {close && close.feasible === false
+                ? (close.reject_message || close.reject_code || "미리보기 불가")
+                : "미리보기 불가"}
+            </p>
+          )}
+        </div>
+      </div>
+
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3">
         {rows.map(([label, value]) => (
           <div key={label}>
             <dt className="text-[10px] text-muted">{label}</dt>
@@ -374,6 +435,41 @@ export function LivePositionPanel({ account }: { account: LiveAccount }) {
           </div>
         ))}
       </dl>
+    </div>
+  );
+}
+
+/** How much market the position is actually holding, in the one place both panels read it.
+ *
+ *  "증거금" and "포지션 규모" are different numbers and the screen says which is which. The
+ *  margin is the operator's own money Binance is holding (`positionRisk.initialMargin`, 339.24
+ *  USDT on the real account at 20x); the exposure is the position's value at the mark
+ *  (`abs(positionRisk.notional)`, 6,788.74 USDT on that same position). Twenty times apart, and
+ *  only the second answers "how much is riding on this".
+ *
+ *  Both come from the server's card, so this component formats and never derives - including
+ *  the sign, which is dropped on the server because a SHORT's notional is negative and a size
+ *  is not a direction. KRW leads because that is the currency the operator thinks in; the USDT
+ *  figure underneath is the accounting authority.
+ */
+export function LiveExposure({ card, testIdPrefix }: {
+  card: LivePositionCardData; testIdPrefix: string;
+}) {
+  if (card.exposure == null) return null;
+  const krwValue = card.krw?.exposure;
+  return (
+    <div className="mb-2 flex items-baseline justify-between gap-2 rounded-lg bg-surface-alt px-3 py-2"
+      data-testid={`${testIdPrefix}-exposure-block`}>
+      <p className="text-[11px] text-muted">포지션 규모</p>
+      <p className="min-w-0 text-right">
+        {krwValue != null && (
+          <span className="block whitespace-nowrap text-base font-bold tabular-nums leading-tight text-foreground"
+            data-testid={`${testIdPrefix}-exposure-krw`}>{krw(krwValue)}</span>
+        )}
+        <span className={`block whitespace-nowrap tabular-nums text-foreground-secondary ${
+          krwValue != null ? "text-[11px]" : "text-base font-bold leading-tight"}`}
+          data-testid={`${testIdPrefix}-exposure`}>{usdt(card.exposure)}</span>
+      </p>
     </div>
   );
 }
@@ -418,6 +514,8 @@ export function LivePositionCard({ card, nowMs, onClose, busy }: {
           {held ? `${held} 보유` : "보유 시간 -"}
         </span>
       </div>
+
+      <LiveExposure card={card} testIdPrefix="live-card" />
 
       <div className="mb-3 grid grid-cols-2 gap-2">
         <div className="rounded-lg bg-surface-alt px-3 py-2">
@@ -579,11 +677,15 @@ export function LiveLeveragePanel({ account, options, onSelect, busy, error, com
   const current = config ? Number(config.leverage) : null;
   const position = account.position;
   const hasPosition = Boolean(position && !position.is_flat);
-  // The policy is only offerable if this account's bracket table actually reaches it. On a
-  // symbol whose tier caps below it, the tag and the note would point at a button that is not
-  // there, so both are simply absent.
-  const policyOffered = (options?.options ?? []).includes(LIVE_DEFAULT_LEVERAGE);
-  const onPolicy = current === LIVE_DEFAULT_LEVERAGE;
+
+  // One sentence for the whole row: every restricted step shares the same cause (the account,
+  // not the number), so the tightest one is quoted and the rest are struck through.
+  const restrictions = (options?.options ?? [])
+    .map(value => leverageRestriction(options, value))
+    .filter((item): item is NonNullable<typeof item> => item != null);
+  const restrictionNote = restrictions.length
+    ? restrictions.reduce((left, right) => (left.above <= right.above ? left : right)).message
+    : null;
 
   // Both figures are Binance's own, off `positionRisk`, not arithmetic done here. This file's
   // rule is that it formats numbers and never computes them, and margin is the last place to
@@ -598,23 +700,28 @@ export function LiveLeveragePanel({ account, options, onSelect, busy, error, com
         <span className="text-xs font-bold tracking-wide text-foreground">레버리지 · 마진</span>
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-2" data-testid="live-leverage-options">
-        {(options?.options ?? []).map(value => (
-          <button key={value} type="button" data-testid={`live-leverage-${value}`}
-            aria-pressed={value === current} disabled={busy || hasPosition}
-            title={value === LIVE_DEFAULT_LEVERAGE ? `운영 기본 ${LIVE_DEFAULT_LEVERAGE}x` : undefined}
-            onClick={() => onSelect(value)}
-            className={`rounded-md border px-3 py-1.5 text-xs font-bold tabular-nums transition-colors
-              ${value === current ? "border-danger bg-danger-soft text-danger"
-                                  : "border-line text-muted hover:text-foreground"}
-              ${busy || hasPosition ? "cursor-not-allowed opacity-40" : ""}`}>
-            {value}x
-            {value === LIVE_DEFAULT_LEVERAGE && (
-              <span className="ml-1 text-[9px] font-semibold text-muted"
-                data-testid="live-leverage-policy-tag">기본</span>
-            )}
-          </button>
-        ))}
+      {/* Eight steps, and the selected one is marked by its own styling and `aria-pressed`
+          alone. The row used to carry a "기본" tag on 10x and a sentence under it naming the
+          same number; both said the screen would not change anything by itself, which the
+          screen demonstrates by not changing anything by itself. */}
+      <div className="mt-3 flex flex-wrap gap-1.5" data-testid="live-leverage-options">
+        {(options?.options ?? []).map(value => {
+          const restriction = leverageRestriction(options, value);
+          const locked = Boolean(restriction);
+          return (
+            <button key={value} type="button" data-testid={`live-leverage-${value}`}
+              aria-pressed={value === current} disabled={busy || hasPosition || locked}
+              title={restriction ? restriction.message : undefined}
+              onClick={() => onSelect(value)}
+              className={`rounded-md border px-2.5 py-1.5 text-xs font-bold tabular-nums transition-colors
+                ${value === current ? "border-danger bg-danger-soft text-danger"
+                                    : "border-line text-muted hover:text-foreground"}
+                ${locked ? "line-through" : ""}
+                ${busy || hasPosition || locked ? "cursor-not-allowed opacity-40" : ""}`}>
+              {value}x
+            </button>
+          );
+        })}
         {!options && <span className="text-[11px] text-muted">구간표를 읽는 중입니다.</span>}
       </div>
 
@@ -624,13 +731,13 @@ export function LiveLeveragePanel({ account, options, onSelect, busy, error, com
         </p>
       )}
 
-      {/* Shown only when it is both true and actionable: the account is off the operating
-          default, the default is selectable, and no position is holding the setting. It states
-          that the screen will not do it, because a line that merely named the default would
-          read like something had already been applied. */}
-      {!hasPosition && policyOffered && !onPolicy && (
-        <p className="mt-2 text-[11px] text-muted" data-testid="live-leverage-policy-note">
-          {LIVE_LEVERAGE_POLICY_NOTE}
+      {/* A step Binance has refused for this account, named once rather than per button. The
+          sentence is the server's, built from Binance's own refusal, and it carries the moment
+          the restriction lifts - after which the server stops reporting it and the buttons come
+          back without anything being deployed. */}
+      {!hasPosition && restrictionNote && (
+        <p className="mt-2 text-[11px] text-warning" data-testid="live-leverage-restricted">
+          {restrictionNote}
         </p>
       )}
 
@@ -666,13 +773,24 @@ export function LiveLeverageNotes({ options }: { options: LiveLeverageOptions | 
  *  A press fills the quantity box and does nothing else. It sends no order, arms nothing and
  *  changes no leverage - the order buttons below still answer to the trade gate, which is why
  *  this row stays usable while the screen is 거래불가: choosing a size is not trading.
+ *
+ *  `sides` is which sides an OPEN may be sent on, and it is the whole of what a held position
+ *  changes here. While a position is held only its own side can be added to, so only that
+ *  side's ladder is read; the other side's `REVERSE_NOT_ALLOWED` is a true answer to a question
+ *  nobody is asking and used to blank all four buttons. On the server the sizes for the held
+ *  side are already add-on sizes: they are computed against `availableBalance`, which is what
+ *  is left after the position's own margin.
  */
-export function LiveQuickSize({ sizing, onPick, busy, stale }: {
+export function LiveQuickSize({ sizing, onPick, busy, stale, sides }: {
   sizing: LiveSizing | null;
   onPick: (qty: string) => void;
   busy?: boolean;
   stale?: boolean;
+  /** Defaults to both, the flat case. */
+  sides?: OrderSide[];
 }) {
+  const open = sides ?? (["LONG", "SHORT"] as OrderSide[]);
+  const adding = open.length === 1;
   const unavailable = stale
     ? "계좌 응답이 지연돼 수량을 계산하지 않습니다."
     : sizing == null ? "주문 가능 수량을 읽는 중입니다."
@@ -682,13 +800,13 @@ export function LiveQuickSize({ sizing, onPick, busy, stale }: {
   return (
     <div data-testid="live-quick-size">
       <div className="mb-2 flex items-center justify-between">
-        <span className="text-xs text-muted">빠른 수량</span>
+        <span className="text-xs text-muted">{adding ? "빠른 수량 · 추가" : "빠른 수량"}</span>
         {unavailable && <span className="text-[10px] text-warning"
           data-testid="live-quick-size-unavailable">{unavailable}</span>}
       </div>
       <div className="mb-2 grid grid-cols-4 gap-1.5 sm:mb-3" role="group" aria-label="빠른 수량">
         {LIVE_PRESET_LABELS.map(label => {
-          const { qty, reason } = livePresetQty(unavailable ? null : sizing, label);
+          const { qty, reason } = livePresetQty(unavailable ? null : sizing, label, open);
           const strong = label === "MAX";
           return (
             <button key={label} type="button" data-testid={`live-preset-${label}`}
@@ -702,6 +820,12 @@ export function LiveQuickSize({ sizing, onPick, busy, stale }: {
           );
         })}
       </div>
+      {adding && (
+        <p className="mb-2 text-[10px] text-muted" data-testid="live-quick-size-addon-note">
+          보유 포지션을 유지한 상태에서 남은 주문가능 잔고로 추가 진입할 수 있는 수량입니다.
+          기존 수량 합계가 아닙니다.
+        </p>
+      )}
     </div>
   );
 }
@@ -737,6 +861,12 @@ export function LiveOrderTicket({ account, onOrder, busy, error, preview, onPrev
   const tradable = (gate ?? liveTradeGate(account, null)).tradable;
   const position = account.position;
   const hasPosition = Boolean(position && !position.is_flat);
+  /** The router's own rule, read off Binance's reported position: a held side may be added to
+   *  and the other side is refused. The backend refuses it again - `_open_plan` raises
+   *  `REVERSE_NOT_ALLOWED` after re-reading `positionRisk` - so this disables a button rather
+   *  than being the only thing standing between a click and a reverse. */
+  const allowance = liveSideAllowance(position);
+  const canOpen = (side: OrderSide) => allowance.allowed.includes(side);
 
   useEffect(() => { onPreview?.(size); }, [size, onPreview]);
 
@@ -752,24 +882,46 @@ export function LiveOrderTicket({ account, onOrder, busy, error, preview, onPrev
         <h2 className="text-sm font-semibold sm:text-base">수동 주문</h2>
         <span className="text-[11px] font-bold tracking-wide text-danger">실계좌</span>
       </div>
+      {/* A held position is reported here, not hidden, because the size box below is now an
+          add-on size and the operator needs the base it is being added to. */}
+      {hasPosition && (
+        <p className="mb-2 rounded-md bg-surface-alt px-2.5 py-1.5 text-[11px] text-foreground-secondary"
+          data-testid="live-ticket-holding">
+          보유 <span className="font-bold">{allowance.holding}</span>{" "}
+          <span className="tabular-nums">{qtyFmt(position?.qty)} BTC</span> · 같은 방향 추가 진입만 가능합니다.
+        </p>
+      )}
       <LiveQuickSize sizing={sizing ?? null} busy={busy} stale={account.stale}
-        onPick={next => setSize(next)} />
-      <label className="block text-[11px] text-muted" htmlFor="live-qty">수량 (BTC)</label>
+        sides={allowance.allowed} onPick={next => setSize(next)} />
+      <label className="block text-[11px] text-muted" htmlFor="live-qty">
+        {hasPosition ? "추가 수량 (BTC)" : "수량 (BTC)"}
+      </label>
+      {/* Never disabled because a position exists. A position means one side is unavailable,
+          not that no size can be chosen. */}
       <input id="live-qty" data-testid="live-qty-input" value={size} inputMode="decimal"
         onChange={event => setSize(event.target.value)}
         className="mt-1 w-full rounded-md border border-line bg-surface px-3 py-2 text-sm tabular-nums" />
       {preview?.sides && (
-        <dl className="mt-3 grid grid-cols-2 gap-2 text-[11px]" data-testid="live-preview">
-          {(["LONG", "SHORT"] as OrderSide[]).map(side => {
+        <dl className={`mt-3 grid gap-2 text-[11px] ${hasPosition ? "grid-cols-1" : "grid-cols-2"}`}
+          data-testid="live-preview">
+          {/* Only the openable sides. The cost of a side the router would refuse is a number
+              about an order that cannot be placed. */}
+          {allowance.allowed.map(side => {
             const row = preview.sides[side];
             if (!row) return null;
             return (
               <div key={side} className="rounded-md border border-line p-2">
-                <dt className="font-semibold text-foreground">{side}</dt>
+                <dt className="font-semibold text-foreground">
+                  {side}{hasPosition ? " 추가" : ""}
+                </dt>
                 {row.feasible ? (
                   <dd className="mt-1 space-y-0.5 tabular-nums text-muted">
                     <p>예상 진입 {price(row.entry_fill_price)}</p>
-                    <p>예상 진입 비용 {usdt(row.expected_entry_total_cost, 4)}</p>
+                    {/* The entered quantity's own commission and slippage, from the same
+                        backend preview the flat case uses. Not the held position's cost. */}
+                    <p>{hasPosition ? "추가분 예상 진입 비용" : "예상 진입 비용"}{" "}
+                      <span data-testid={`live-preview-cost-${side}`}>
+                        {usdt(row.expected_entry_total_cost, 4)}</span></p>
                     <p>손익분기 {price(row.breakeven_mark_price)}</p>
                   </dd>
                 ) : (
@@ -781,15 +933,27 @@ export function LiveOrderTicket({ account, onOrder, busy, error, preview, onPrev
         </dl>
       )}
       <div className="mt-3 grid grid-cols-2 gap-2">
-        <button type="button" data-testid="live-long" disabled={busy || !tradable}
-          title={tradable ? undefined : "거래불가 상태입니다. 먼저 거래를 활성화하세요."}
-          onClick={() => setPending({ side: "LONG", intent: "OPEN" })}
-          className="rounded-md bg-success-soft px-3 py-2 text-sm font-bold text-success disabled:opacity-40">LONG</button>
-        <button type="button" data-testid="live-short" disabled={busy || !tradable}
-          title={tradable ? undefined : "거래불가 상태입니다. 먼저 거래를 활성화하세요."}
-          onClick={() => setPending({ side: "SHORT", intent: "OPEN" })}
-          className="rounded-md bg-danger-soft px-3 py-2 text-sm font-bold text-danger disabled:opacity-40">SHORT</button>
+        {(["LONG", "SHORT"] as OrderSide[]).map(side => {
+          const opposite = !canOpen(side);
+          const long = side === "LONG";
+          return (
+            <button key={side} type="button" data-testid={`live-${side.toLowerCase()}`}
+              disabled={busy || !tradable || opposite}
+              title={opposite ? OPPOSITE_SIDE_NOTE
+                : tradable ? undefined : "거래불가 상태입니다. 먼저 거래를 활성화하세요."}
+              onClick={() => setPending({ side, intent: "OPEN" })}
+              className={`rounded-md px-3 py-2 text-sm font-bold disabled:opacity-40
+                ${long ? "bg-success-soft text-success" : "bg-danger-soft text-danger"}`}>
+              {side}{hasPosition && !opposite ? " 추가" : ""}
+            </button>
+          );
+        })}
       </div>
+      {allowance.blocked && (
+        <p className="mt-1.5 text-[11px] text-muted" data-testid="live-opposite-blocked">
+          {allowance.blocked} 진입은 반대 방향입니다. {OPPOSITE_SIDE_NOTE}
+        </p>
+      )}
       {/* CLOSE keeps working off Binance's reported position, and the backend still re-reads the
           real size and sends it reduceOnly. Nothing about that changes here. */}
       <button type="button" data-testid="live-close" disabled={busy || !hasPosition}
@@ -813,7 +977,9 @@ export function LiveOrderTicket({ account, onOrder, busy, error, preview, onPrev
           <p className="mt-1 text-sm font-semibold text-foreground">
             {pending.intent === "CLOSE"
               ? `${pending.side} 전량 청산 (${qtyFmt(position?.qty)} BTC)`
-              : `${pending.side} ${size} BTC`}
+              : hasPosition
+                ? `${pending.side} 추가 진입 ${size} BTC (보유 ${qtyFmt(position?.qty)} BTC)`
+                : `${pending.side} ${size} BTC`}
           </p>
           <p className="mt-1 text-[11px] text-muted">
             {account.symbol_config ? `${num(account.symbol_config.leverage)}x · ` : ""}
@@ -853,10 +1019,28 @@ export function LiveAutoExit({ guard, onSave, onDisable, busy, error }: {
           <h2 className="text-sm font-semibold">자동청산</h2>
           <span className="text-xs font-bold text-success">ON</span>
         </div>
+        {/* A same-side add-on does not invalidate the guard: the thresholds are amounts of
+            money, the identity it matches on is the side and the fill that opened the cycle
+            (both unchanged by an add-on), and the CLOSE it eventually sends re-reads the real
+            position and sends it `reduceOnly`, so it can only ever flatten what is actually
+            there. What does change is how far price has to move to reach the same amount, and
+            the operator typed those amounts against the smaller size, so the change is
+            reported instead of the guard being silently switched off - switching it off would
+            leave a position its owner believes is protected with no protection at all. */}
+        {guard?.scaled_in && (
+          <p className="mt-2 rounded-md bg-warning-soft px-3 py-2 text-[11px] text-warning"
+            role="status" data-testid="exit-scaled-in">
+            추가 진입으로 수량이 {guard.configured_qty} → {guard.position_qty} BTC로 늘었습니다.
+            목표 금액은 설정 당시 수량 기준이니 확인하세요.
+          </p>
+        )}
         <dl className="mt-3 space-y-1 text-xs">
           <div className="flex justify-between gap-2"><dt className="text-muted">현재 순손익</dt>
             <dd className={toneClass(guard?.current_net_krw)}
               data-testid="exit-current-net">{signedKrw(guard?.current_net_krw)}</dd></div>
+          <div className="flex justify-between gap-2"><dt className="text-muted">대상 수량</dt>
+            <dd className="tabular-nums text-foreground-secondary"
+              data-testid="exit-position-qty">{guard?.position_qty ?? "-"} BTC</dd></div>
           <div className="flex justify-between gap-2"><dt className="text-muted">익절</dt>
             <dd className="tabular-nums text-success">+{krw(guard?.take_profit_krw)}</dd></div>
           <div className="flex justify-between gap-2"><dt className="text-muted">손절</dt>

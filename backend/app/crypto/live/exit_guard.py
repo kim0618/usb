@@ -26,7 +26,8 @@ class ExitGuard:
     @staticmethod
     def _blank() -> dict[str, Any]:
         return {"state": OFF, "enabled": False, "symbol": None, "side": None,
-                "position_qty": None, "opened_at_ms": None, "take_profit_krw": None,
+                "position_qty": None, "configured_qty": None, "opened_at_ms": None,
+                "take_profit_krw": None,
                 "stop_loss_krw": None, "current_net_usdt": None,
                 "current_net_krw": None, "created_at_ms": None, "updated_at_ms": None,
                 "last_error": None}
@@ -53,6 +54,13 @@ class ExitGuard:
             if not isinstance(raw, dict) or not raw.get("enabled"):
                 return
             card = self.adapter.get_position_card()
+            # Restart recovery stays strict about the size, and deliberately so. A live
+            # scale-in is handled while the process is up - `_matches` keys on the side and the
+            # opening fill, which an add-on does not change, and `tick` carries the new size
+            # through - but a size that moved while this process was *not* watching was not
+            # observed by anything, so the guard comes back OFF with `RECOVERY_DISABLED` on
+            # screen rather than resuming onto a position it never saw change. Off and visible
+            # beats armed on an assumption.
             matches = (card.get("open") and card.get("side") == raw.get("side")
                        and str(card.get("qty")) == str(raw.get("position_qty"))
                        and card.get("opened_at_ms") == raw.get("opened_at_ms"))
@@ -60,6 +68,8 @@ class ExitGuard:
             if not matches or any(raw.get(key) in (None, "") for key in required):
                 raise ValueError("stored guard does not match the current open cycle")
             self.data = {**self._blank(), **raw, "state": ARMED, "enabled": True,
+                         "configured_qty": (raw.get("configured_qty")
+                                            or raw.get("position_qty")),
                          "updated_at_ms": self._now(), "last_error": None}
             self._save()
         except Exception as exc:
@@ -93,8 +103,20 @@ class ExitGuard:
                         self._save()
 
     def view(self) -> dict[str, Any]:
+        """The guard as stored, plus whether the position has changed size since it was set.
+
+        A same-side scale-in does not invalidate the guard - the thresholds are amounts of money
+        and the CLOSE always re-reads the real position and sends it `reduceOnly` - but it does
+        change what those amounts mean in price terms, and the operator who typed them against a
+        smaller position is the one who needs to know.
+        """
         with self._lock:
-            return dict(self.data)
+            data = dict(self.data)
+        configured, current = data.get("configured_qty"), data.get("position_qty")
+        data["scaled_in"] = bool(data.get("enabled") and configured not in (None, "")
+                                 and current not in (None, "")
+                                 and Decimal(str(current)) > Decimal(str(configured)))
+        return data
 
     def configure(self, *, take_profit_krw: Decimal,
                   stop_loss_krw: Decimal) -> dict[str, Any]:
@@ -110,6 +132,10 @@ class ExitGuard:
             self.data = {**self._blank(), "state": ARMED, "enabled": True,
                          "symbol": self.adapter.config.symbol, "side": card["side"],
                          "position_qty": str(card["qty"]),
+                         #: The size the thresholds were chosen against, frozen here. The live
+                         #: size below keeps moving with a scale-in; this one does not, so the
+                         #: screen can say the two have diverged.
+                         "configured_qty": str(card["qty"]),
                          "opened_at_ms": card["opened_at_ms"],
                          "take_profit_krw": str(take_profit_krw),
                          "stop_loss_krw": str(stop_loss_krw),

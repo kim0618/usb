@@ -276,7 +276,12 @@ def test_the_leverage_options_come_from_the_accounts_own_brackets(live) -> None:
     body = client.get("/api/crypto/binance/leverage").json()
 
     assert body["max_leverage"] == 150
-    assert body["options"] == [1, 2, 3, 5, 10, 20, 50]
+    # 100 is in the ladder and 150 is not: the ladder is a row of meaningful steps and the
+    # bracket table is what admits them. Being offered is still not capability - see
+    # `test_binance_live_leverage_capability.py` for the account restriction that greys a
+    # step out after Binance refuses it.
+    assert body["options"] == [1, 2, 3, 5, 10, 20, 50, 100]
+    assert body["unavailable"] == {}
     assert body["authority"] == "binance GET /fapi/v1/leverageBracket"
     assert body["current"] == "10"  # SYMBOL_CONFIG fixture, Decimal -> string
     assert body["margin_type"] == "CROSSED"

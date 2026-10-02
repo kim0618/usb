@@ -319,32 +319,27 @@ describe("the leverage panel", () => {
     expect(note).toHaveTextContent("0.001 BTC");
   });
 
-  it("marks the operating default without being on it", () => {
-    // The account fixture is on 20x. The tag says which value operations settled on; it does
-    // not claim the account is there, and it does not put it there.
+  it("names no default on the row, and still applies nothing by itself", () => {
+    // The row used to tag 10x as 기본 and repeat the same number in a sentence underneath. The
+    // policy is unchanged and still recorded as `LIVE_DEFAULT_LEVERAGE`; what was removed is
+    // the screen restating it beside eight buttons, where it read as something already done.
+    // The property that mattered is kept and asserted: rendering sends nothing.
     const onSelect = vi.fn();
     render(<LiveLeveragePanel account={account()} options={options()} onSelect={onSelect} />);
-    expect(screen.getByTestId("live-leverage-policy-tag")).toBeInTheDocument();
+
+    expect(screen.queryByTestId("live-leverage-policy-tag")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("live-leverage-policy-note")).not.toBeInTheDocument();
+    expect(screen.getByTestId("live-leverage-options")).not.toHaveTextContent("기본");
     expect(screen.getByTestId(`live-leverage-${LIVE_DEFAULT_LEVERAGE}`))
       .toHaveAttribute("aria-pressed", "false");
-    // Rendering is not a decision: nothing was sent.
     expect(onSelect).not.toHaveBeenCalled();
   });
 
-  it("says the screen will not apply the default by itself", () => {
+  it("marks the leverage Binance reports, by the selected state alone", () => {
     render(<LiveLeveragePanel account={account()} options={options()} onSelect={vi.fn()} />);
-    const note = screen.getByTestId("live-leverage-policy-note");
-    expect(note).toHaveTextContent(`운영 기본은 ${LIVE_DEFAULT_LEVERAGE}x`);
-    expect(note).toHaveTextContent("화면이 알아서 바꾸지 않으니");
-  });
-
-  it("drops the nudge once Binance reports the default", () => {
-    const onPolicy = account({ symbol_config: { ...account().symbol_config!,
-      leverage: String(LIVE_DEFAULT_LEVERAGE) } });
-    render(<LiveLeveragePanel account={onPolicy} options={options()} onSelect={vi.fn()} />);
-    expect(screen.queryByTestId("live-leverage-policy-note")).not.toBeInTheDocument();
-    expect(screen.getByTestId(`live-leverage-${LIVE_DEFAULT_LEVERAGE}`))
-      .toHaveAttribute("aria-pressed", "true");
+    // The fixture account is on 20x, so that is the one marked - not the policy value.
+    expect(screen.getByTestId("live-leverage-20")).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("live-leverage-10")).toHaveAttribute("aria-pressed", "false");
   });
 
   it("sends the default only on a click, and still shows Binance's value afterwards", () => {
