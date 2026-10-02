@@ -16,6 +16,8 @@ TAGS = {
     "equity": "StockholdersEquity",
     "shares_outstanding": "EntityCommonStockSharesOutstanding",
     "net_income": "NetIncomeLoss",
+    # Canonical only for the valuation layer (D5-P0.1); absent from FIELD_SPECS on purpose.
+    "depreciation_amortization": "DepreciationDepletionAndAmortization",
 }
 
 

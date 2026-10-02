@@ -117,6 +117,17 @@ SEMI_SPAN_DAYS = (160, 200)
 NINE_MONTH_SPAN_DAYS = (250, 299)
 ANNUAL_SPAN_DAYS = (300, 400)
 
+#: How far apart two facts must be to be each other's prior-year comparable, and how closely their
+#: own spans must agree.  Adopted verbatim from frozen `h_pv2.comparable_pair`, which is the only
+#: validated prior-comparable rule in this repository: `345 <= (current.end - prior.end).days <= 385`
+#: and `abs(duration_current - duration_prior) <= 15 if FY else 7`.  They live here for the same
+#: reason the span windows do - P0 found three modules defining duration tolerances that disagreed,
+#: and a second definition of "one year apart" would recreate exactly that drift.  `h_pv2.py` keeps
+#: its inline literals and stays frozen; a test asserts the numbers still agree.
+YEAR_APART_DAYS = (345, 385)
+COMPARABLE_DURATION_TOLERANCE_DAYS = 7
+COMPARABLE_FY_DURATION_TOLERANCE_DAYS = 15
+
 _ANNUAL_FORMS = frozenset({"10-K", "10-K/A", "10-KT", "10-KT/A"})
 _QUARTERLY_FORMS = frozenset({"10-Q", "10-Q/A"})
 _QUARTER_PERIODS = frozenset({"Q1", "Q2", "Q3", "Q4"})
@@ -237,14 +248,26 @@ def _utc(value: datetime) -> datetime:
 def extract_companyfacts(
     document: Mapping[str, Any],
     accepted_by_accession: Mapping[str, datetime],
+    *,
+    specs: Mapping[str, FieldSpec] | None = None,
 ) -> list[CanonicalFact]:
-    """Flatten supported SEC facts, rejecting facts without verified acceptance time."""
+    """Flatten supported SEC facts, rejecting facts without verified acceptance time.
+
+    `specs` defaults to `FIELD_SPECS`, so every pre-existing caller extracts exactly the fields it
+    extracted before. A caller may pass a superset - the valuation layer passes
+    `valuation.fundamental_fields.VALUATION_FIELD_SPECS`, which adds `depreciation_amortization` -
+    and the extra rows arrive as ordinary `CanonicalFact`s carrying that field name. Widening
+    `FIELD_SPECS` itself was rejected: `len(FIELD_SPECS)` is D1's `total_field_count` and its
+    resolved-field count feeds the `MIN_RESOLVED_CANONICAL_FIELDS` eligibility floor and E3's
+    priority, so one more canonical field would silently move historical D1/D2 outcomes - which
+    D5-P0.1 forbids. One parser, two field registries.
+    """
     output: list[CanonicalFact] = []
     facts = document.get("facts") or {}
     for taxonomy, concepts in facts.items():
         if not isinstance(concepts, Mapping):
             continue
-        for field, spec in FIELD_SPECS.items():
+        for field, spec in (FIELD_SPECS if specs is None else specs).items():
             for tag in spec.tags:
                 concept = concepts.get(tag)
                 if not isinstance(concept, Mapping):
@@ -299,6 +322,7 @@ def resolve_fact(
     *,
     report_end: date | None = None,
     duration_family: DurationFamily | None = None,
+    specs: Mapping[str, FieldSpec] | None = None,
 ) -> Resolution:
     """Resolve one field from versions known at ``decision_time``.
 
@@ -313,13 +337,17 @@ def resolve_fact(
     because INSTANT is itself a family. Leaving it ``None`` preserves the pre-D5-P0 behaviour
     exactly - including reporting the quarter/year-to-date collision as AMBIGUOUS, which is honest
     rather than wrong - so existing H0/D1/D2/D3/D4 callers are unaffected until they opt in.
+
+    ``specs`` defaults to ``FIELD_SPECS``; see `extract_companyfacts` for why the valuation layer
+    passes a superset instead of this module widening the canonical registry.
     """
-    if field not in FIELD_SPECS:
+    registry = FIELD_SPECS if specs is None else specs
+    if field not in registry:
         raise KeyError(field)
     if duration_family is DurationFamily.UNKNOWN:
         raise ValueError("UNKNOWN is a classification outcome, not a requestable duration family")
     cutoff = _utc(decision_time)
-    spec = FIELD_SPECS[field]
+    spec = registry[field]
     eligible = [f for f in facts if f.field == field and f.accepted_at <= cutoff]
     if report_end is not None:
         eligible = [f for f in eligible if f.end == report_end]
@@ -355,6 +383,8 @@ def resolve_period_aligned(
     fields: Sequence[str],
     decision_time: datetime,
     duration_family: DurationFamily,
+    *,
+    specs: Mapping[str, FieldSpec] | None = None,
 ) -> tuple[dict[str, CanonicalFact] | None, str]:
     """Resolve several duration fields onto ONE shared period family and period end.
 
@@ -380,7 +410,7 @@ def resolve_period_aligned(
                   reverse=True)
     for end in ends:
         resolved = {name: resolve_fact(rows, name, decision_time, report_end=end,
-                                       duration_family=duration_family)
+                                       duration_family=duration_family, specs=specs)
                     for name in wanted}
         if all(r.status is FactStatus.OK and r.fact is not None for r in resolved.values()):
             return {name: r.fact for name, r in resolved.items()}, "aligned"  # type: ignore[misc]
