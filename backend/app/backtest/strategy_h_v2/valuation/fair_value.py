@@ -402,6 +402,139 @@ def window_stats(observations: Sequence[MultipleObservation], *, method: str,
 
 
 # -------------------------------------------------------------------------------------------------
+# Window selection (D5-D2 V1, and the D5-D2R recent-regime repair)
+# -------------------------------------------------------------------------------------------------
+
+class WindowSelectionContract(StrEnum):
+    """Which window-selection rule a run is under. Named rather than implied, because a run whose
+    selection rule cannot be read off its own output is a run nobody can reproduce."""
+
+    D5_D2_V1 = "D5_D2_V1"
+    """D5-D2 as it ran. The regime-change test is asked of FULL_2Y and of nothing else."""
+
+    D5_D2R_V1 = "D5_D2R_V1"
+    """D5-D2R. The same test, the same threshold, asked of every contract-eligible window - plus a
+    conflict condition so that evidence from a shorter window only overrides FULL_2Y when the two
+    disagree about the level."""
+
+
+RECENT_REGIME_EVIDENCE_IS_NOT_ONLY_THE_FULL_PANEL = (
+    "V1 asked one question - did FULL_2Y drift strongly - and used the answer for two different "
+    "purposes: as the evidence that a regime change happened, and as the gate on escaping it. The "
+    "trend test is a rank correlation, which measures MONOTONICITY, so a panel that rises and then "
+    "falls cancels to a small rho and reports no drift. D6 found the case on VRRM: EV/EBIT rose "
+    "across the first half of the panel (rho +0.830) and collapsed across the second (-0.918), the "
+    "two averaged to -0.522, V1 concluded the panel had not drifted, and the published Base target "
+    "was the median of a complete round trip.\n\n"
+    "D2R separates the two purposes without changing either the window set or the threshold. The "
+    "evidence that a regime change happened is now 'ANY contract-eligible window drifted strongly', "
+    "which is the same TRENDING_STRONG test applied to windows V1 never asked. Which window then "
+    "governs is unchanged: the shortest contract-eligible one."
+)
+
+RECENT_REGIME_OVERRIDE_REQUIRES_A_CONFLICT = (
+    "Evidence that a shorter window drifted strongly is not by itself a reason to discard the full "
+    "panel, because a window can drift strongly and still end up centred where the full panel is - "
+    "a round trip inside the recent window does exactly that. So when the strong drift is in a "
+    "shorter window and NOT in FULL_2Y, D2R additionally requires the two windows' Base target "
+    "multiples to disagree past `RECENT_REGIME_CONFLICT_RATIO` before the shorter one governs.\n\n"
+    "The comparison is between the two windows' OBSERVED P50 multiples and never between their fair "
+    "values or their upsides. That is what makes the rule upside-independent: the test is symmetric "
+    "in the ratio, so a recent regime that is 2x MORE expensive than the full panel overrides it on "
+    "identical terms to one that is 2x cheaper, and the direction TP1 moves is a consequence of the "
+    "selection rather than an input to it. A test asserts the mirrored case."
+)
+
+def _trend_description(stats: object) -> str:
+    """`rho` is None whenever the trend is UNDETERMINED - too few observations to rank, or a constant
+    multiple - so it is formatted defensively rather than interpolated directly."""
+    return (f"{stats.trend.value} (rho {stats.rho:+.3f})" if stats.rho is not None
+            else f"{stats.trend.value} (rho not measurable)")
+
+
+def base_multiple_ratio(a: object, b: object) -> float | None:
+    """The larger of two windows' Base target multiples over the smaller, or None if unmeasurable.
+
+    Symmetric by construction, so no caller can use it to prefer the higher or the lower window.
+    Returns None when either window has no Base percentile or a non-positive one - a ratio against a
+    multiple that does not exist is not a small ratio, and reporting 1.0 would read as agreement.
+    """
+    left = None if a is None or a.base is None else a.base.multiple
+    right = None if b is None or b.base is None else b.base.multiple
+    if left is None or right is None or left <= 0.0 or right <= 0.0:
+        return None
+    return max(left, right) / min(left, right)
+
+
+def select_contract_window(
+    windows: Mapping[PanelWindow, object], *, contract: WindowSelectionContract,
+) -> tuple[PanelWindow | None, str]:
+    """Which window's observed percentiles become the scenario set. Mechanical, issuer-agnostic.
+
+    `contract` is required rather than defaulted, because the two rules disagree on real issuers and
+    a call site that did not state which one it wanted would be a silent choice. V1's branches and
+    their exact reason strings are preserved verbatim so that the steps which ran under V1 reproduce
+    their published reports - including the `contract_window_reason` string, which is in the JSON.
+    """
+    eligible = [w for w in PanelWindow if windows[w].contract_eligible]
+    if not eligible:
+        return None, "no window is contract-eligible"
+    full = windows[PanelWindow.FULL_2Y]
+    trend_desc = _trend_description(full)
+    shortest = min(eligible, key=lambda w: windows[w].n)
+
+    if contract is WindowSelectionContract.D5_D2_V1:
+        if full.contract_eligible and full.trend is not TrendClass.TRENDING_STRONG:
+            return PanelWindow.FULL_2Y, (
+                f"FULL_2Y trend is {trend_desc}, not TRENDING_STRONG, so the whole panel is the "
+                f"observation range")
+        return shortest, (
+            f"FULL_2Y trend is {trend_desc}: the early panel is a different regime from the late "
+            f"panel, so the shortest contract-eligible window ({shortest.value}, "
+            f"n={windows[shortest].n}) governs rather than the median of a transition")
+
+    # D5_D2R_V1 from here. Same window set, same TRENDING_STRONG threshold, asked of every window.
+    strong = [w for w in eligible if windows[w].trend is TrendClass.TRENDING_STRONG]
+    strong_desc = ", ".join(f"{w.value} {_trend_description(windows[w])}" for w in strong)
+
+    if not full.contract_eligible:
+        return shortest, (
+            f"FULL_2Y is not contract-eligible ({full.ineligible_reason}), so the shortest "
+            f"contract-eligible window ({shortest.value}, n={windows[shortest].n}) governs")
+
+    if not strong:
+        return PanelWindow.FULL_2Y, (
+            f"no contract-eligible window trends strongly - FULL_2Y is {trend_desc} - so nothing "
+            f"says the recent regime differs from the panel and the whole panel is the observation "
+            f"range")
+
+    if full.trend is TrendClass.TRENDING_STRONG:
+        return shortest, (
+            f"FULL_2Y trend is {trend_desc}: the early panel is a different regime from the late "
+            f"panel, so the shortest contract-eligible window ({shortest.value}, "
+            f"n={windows[shortest].n}) governs rather than the median of a transition")
+
+    # The V1 blind spot: FULL_2Y cancels to a weak rho while a shorter window drifted strongly.
+    ratio = base_multiple_ratio(full, windows[shortest])
+    if ratio is None:
+        return PanelWindow.FULL_2Y, (
+            f"{strong_desc} trends strongly while FULL_2Y is {trend_desc}, but the two windows' "
+            f"Base target multiples cannot be compared, so the full panel is not overridden")
+    if ratio <= RECENT_REGIME_CONFLICT_RATIO:
+        return PanelWindow.FULL_2Y, (
+            f"{strong_desc} trends strongly while FULL_2Y is {trend_desc}, but their Base target "
+            f"multiples agree within {RECENT_REGIME_CONFLICT_RATIO:.2f}x (ratio {ratio:.3f}): the "
+            f"recent window drifted without leaving the panel's level, so the whole panel remains "
+            f"the observation range")
+    return shortest, (
+        f"FULL_2Y is {trend_desc} - a rank correlation cancels a rise against a fall - but "
+        f"{strong_desc} trends strongly and its Base target multiple disagrees with FULL_2Y's by "
+        f"{ratio:.3f}x, past {RECENT_REGIME_CONFLICT_RATIO:.2f}x: the recent regime is a different "
+        f"level, so the shortest contract-eligible window ({shortest.value}, "
+        f"n={windows[shortest].n}) governs rather than the median of a round trip")
+
+
+# -------------------------------------------------------------------------------------------------
 # The per-share metric and the three numerator chains
 # -------------------------------------------------------------------------------------------------
 
@@ -764,6 +897,20 @@ def target_prices(fv: FairValueRange, *, current_price: float) -> TargetPrices:
 #: disagree by half again on what a share is worth cannot both inform the same decision, and
 #: averaging them would produce a number neither method supports. Pre-registered, not tuned.
 VALUATION_CONFLICT_RATIO = 1.5
+
+#: Reused rather than introduced: `VALUATION_CONFLICT_RATIO` is already this repository's answer to
+#: "how far apart must two valuation statements be before they are contradicting rather than
+#: corroborating", pre-registered in D5-D2 and not fitted. D2R needs exactly that judgement about two
+#: windows instead of two methods, so it takes the constant rather than inventing a second one that
+#: could drift away from it.
+#:
+#: The role is not identical and that is recorded here rather than glossed: D5-D2 applies the ratio to
+#: two Base FAIR VALUES, and D2R applies it to two Base MULTIPLES. On the equity chain the two ratios
+#: are the same number, because the metric per share is held across windows and cancels. On the
+#: enterprise chain they are not, because of the net-debt bridge. D2R uses the multiple ratio in both
+#: cases, deliberately: the multiple is an observation and the fair value is a conclusion, and §8 of
+#: this step forbids selecting a window by its conclusion.
+RECENT_REGIME_CONFLICT_RATIO = VALUATION_CONFLICT_RATIO
 
 NEVER_AVERAGED = (
     "A primary and a secondary fair value are reported side by side and are never averaged, blended "

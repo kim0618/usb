@@ -60,7 +60,10 @@ from app.backtest.strategy_h_v2.decision.d6_contract import (
     audit_decisions,
     decide,
 )
-from app.backtest.strategy_h_v2.valuation.fair_value import ValuationStatus
+from app.backtest.strategy_h_v2.valuation.fair_value import (
+    ValuationStatus,
+    WindowSelectionContract,
+)
 from app.dev.run_strategy_h_v2_d4_1 import load_price_panel
 from app.dev.run_strategy_h_v2_d5_d2 import (
     DECISION_SESSION,
@@ -96,6 +99,12 @@ D4_RUNS: tuple[tuple[str, str, str], ...] = (
 )
 
 RUNTIME_ROOT = Path("data/runtime/strategy_h_v2")
+
+#: The window-selection rule THIS step ran under, stated at the call site rather than inherited from a
+#: default. D5-D2R repaired the rule after D6 published, and a published result keeps the contract it
+#: was produced by: re-running this file reproduces its report rather than quietly becoming a D2R run.
+#: A later step that wants the repaired rule - D7 - passes `D5_D2R_V1` explicitly.
+WINDOW_CONTRACT = WindowSelectionContract.D5_D2_V1
 
 SELECTION_EFFECT = (
     "This sample is selected by D4's coverage. D5-D0 chose its twelve with a seeded hash over the "
@@ -764,7 +773,8 @@ def value_universe(tickers: Sequence[str]) -> tuple[list[dict], dict, dict, list
             continue
         panels[ticker] = panel
         decision_rows[ticker] = decision
-        rows.append(value_issuer(ticker, panel, decision, judgements=METHOD_JUDGEMENTS))
+        rows.append(value_issuer(ticker, panel, decision, judgements=METHOD_JUDGEMENTS,
+                                 window_contract=WINDOW_CONTRACT))
     return rows, panels, decision_rows, coverage
 
 

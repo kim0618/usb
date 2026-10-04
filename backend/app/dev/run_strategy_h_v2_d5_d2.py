@@ -50,6 +50,7 @@ from app.backtest.strategy_h_v2.valuation.capital_structure import (
 )
 from app.backtest.strategy_h_v2.valuation.fair_value import (
     FAIR_VALUE_CONTRACT_VERSION,
+    WindowSelectionContract,
     GUIDANCE_UNAVAILABLE,
     FairValueRange,
     MetricChain,
@@ -66,6 +67,7 @@ from app.backtest.strategy_h_v2.valuation.fair_value import (
     methods_are_correlated,
     reconcile,
     scenario_value,
+    select_contract_window as _select_contract_window,
     target_prices,
     valuation_confidence,
     window_stats,
@@ -467,26 +469,20 @@ def _windows_for(method: str, observations: Sequence[MultipleObservation],
             for w in PanelWindow}
 
 
+#: The window-selection rule THIS step ran under. D5-D2R repaired the rule and did not rewrite this
+#: step: a published result keeps the contract it was produced by, so re-running this file reproduces
+#: its report - `contract_window_reason` included - rather than quietly becoming a D2R run.
+WINDOW_CONTRACT = WindowSelectionContract.D5_D2_V1
+
+
 def select_contract_window(windows: Mapping[PanelWindow, object]) -> tuple[PanelWindow | None, str]:
-    """`WINDOW_RULE`, executed. Mechanical, and the same for every issuer."""
-    eligible = [w for w in PanelWindow if windows[w].contract_eligible]
-    if not eligible:
-        return None, "no window is contract-eligible"
-    full = windows[PanelWindow.FULL_2Y]
-    # `rho` is None whenever the trend is UNDETERMINED - too few observations to rank, or a constant
-    # multiple - so it is formatted defensively rather than interpolated directly. UNDETERMINED is
-    # not TRENDING_STRONG, so it takes the FULL_2Y branch and would otherwise format a None.
-    trend_desc = (f"{full.trend.value} (rho {full.rho:+.3f})" if full.rho is not None
-                  else f"{full.trend.value} (rho not measurable)")
-    if full.contract_eligible and full.trend is not TrendClass.TRENDING_STRONG:
-        return PanelWindow.FULL_2Y, (
-            f"FULL_2Y trend is {trend_desc}, not TRENDING_STRONG, so the whole panel is the "
-            f"observation range")
-    shortest = min(eligible, key=lambda w: windows[w].n)
-    return shortest, (
-        f"FULL_2Y trend is {trend_desc}: the early panel is a different regime from the late "
-        f"panel, so the shortest contract-eligible window ({shortest.value}, "
-        f"n={windows[shortest].n}) governs rather than the median of a transition")
+    """`WINDOW_RULE`, executed, pinned to this step's own contract. Mechanical and issuer-agnostic.
+
+    The rule itself now lives in `fair_value` next to the window statistics it reads, because D5-D2R
+    needed one code path able to produce both the V1 and the D2R selection for the same panel - an
+    A/B that two copies of the logic could not honestly provide.
+    """
+    return _select_contract_window(windows, contract=WINDOW_CONTRACT)
 
 
 def _denominator_of(row: IssuerSession, method: str) -> tuple[float | None, str | None, date | None]:
@@ -516,13 +512,18 @@ def build_range(row: IssuerSession, method: str, window: PanelWindow,
 
 def value_issuer(ticker: str, panel: Mapping[str, Sequence[MultipleObservation]],
                  row: IssuerSession, *,
-                 judgements: Mapping[str, MethodJudgement] = METHOD_JUDGEMENTS) -> dict:
+                 judgements: Mapping[str, MethodJudgement] = METHOD_JUDGEMENTS,
+                 window_contract: WindowSelectionContract = WINDOW_CONTRACT) -> dict:
     """One issuer, end to end: selection, windows, fair value, targets, reconciliation, confidence.
 
     `judgements` defaults to this step's own table, so every D5-D2 call site is unchanged and this
     step's output is bitwise what it was. A later step that applies the identical evaluator to a
     different sample passes its own declared table instead of editing this one - which is the only
     way the two samples can be held to the same arithmetic and still have their own economics.
+
+    `window_contract` is the same idea for the selection rule, and it defaults to this step's own
+    `WINDOW_CONTRACT` so that this file and D6 reproduce their published reports. D5-D2R passes
+    `D5_D2R_V1` to replay the identical arithmetic under the repaired rule.
     """
     judgement = judgements[ticker]
     computable = tuple(m for m in METHOD_ORDER if row.results[m].ok)
@@ -543,7 +544,8 @@ def value_issuer(ticker: str, panel: Mapping[str, Sequence[MultipleObservation]]
                                     "why": "asserted NOT_SUITABLE: "
                                            + judgement.unsuitable[candidate]})
             continue
-        chosen, _why = select_contract_window(windows_by_method[candidate])
+        chosen, _why = _select_contract_window(windows_by_method[candidate],
+                                              contract=window_contract)
         if chosen is None:
             reasons = {w.value: windows_by_method[candidate][w].ineligible_reason
                        for w in PanelWindow}
@@ -574,7 +576,8 @@ def value_issuer(ticker: str, panel: Mapping[str, Sequence[MultipleObservation]]
             "fair_value": None, "target_prices": None,
         }
 
-    contract_window, window_reason = select_contract_window(windows_by_method[primary])
+    contract_window, window_reason = _select_contract_window(windows_by_method[primary],
+                                                             contract=window_contract)
     assert contract_window is not None
 
     # Secondary: first declared, computable, suitable, contract-eligible method that is not the
@@ -606,7 +609,8 @@ def value_issuer(ticker: str, panel: Mapping[str, Sequence[MultipleObservation]]
 
     secondary_range: FairValueRange | None = None
     if secondary is not None:
-        sec_window, _ = select_contract_window(windows_by_method[secondary])
+        sec_window, _ = _select_contract_window(windows_by_method[secondary],
+                                               contract=window_contract)
         assert sec_window is not None
         secondary_range = build_range(row, secondary, sec_window, windows_by_method[secondary])
 
