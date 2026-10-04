@@ -466,10 +466,19 @@ falls by one session for every forward session that passes:
 | 2026-10-16 | 19 | **no** |
 
 Once A is running this does not decay: each forward session adds a Kiwoom session as it removes
-a tape one, so the combined count holds. It is the *first* morning that has a deadline. For a
-2026-10-05 entry, 141 of a 200-symbol sample reach twenty covered sessions (median 28, max 28);
-the 59 short are mostly symbols the tape does not carry at all. A symbol without a full
-baseline is a per-symbol `NO_DAILY_VOLUME_BASELINE` refusal, not a run-level one.
+a tape one, so the combined count holds. It is the *first* morning that has a deadline.
+
+How much of the universe that first morning covers, measured over **all 5,015** A symbols rather
+than a sample: **3,410 reach twenty covered sessions, 1,605 do not** (68.0%, median 28, max 28).
+Of the short ones, 1,265 are symbols the frozen tape does not carry at all. A symbol without a
+baseline is a per-symbol refusal and not a run-level one, so A runs; what it costs is recall,
+concentrated on the thinner names, which is where a mover scanner's own value is supposed to be.
+
+The earlier figure of "188 of 200 sampled symbols" was not this measurement. While the daily
+store was stale, `UNI.build` refused, and `bootstrap-coverage` catches that and falls back to
+*the tape's own universe* - a sample of symbols every one of which is in the tape by
+construction, so it could only report a high number. With the store current the build succeeds
+and the sample is A's own universe, which is the question worth asking.
 
 ### Not done, deliberately
 
