@@ -22,6 +22,10 @@ What is new, and is what the live version names:
   hidden: the previous close, the daily baselines, the reference universe and the split
   calendar are Massive's, and only the same-day premarket is Kiwoom's;
 * ``baseline_version`` - A's own 20-session premarket share-volume baseline;
+* ``baseline_provider_contract`` - that baseline's provider mix. Twenty Kiwoom sessions do not
+  exist on the first morning, so each session is Kiwoom's where Kiwoom has an observation and
+  the frozen local Massive tape's otherwise. Twenty *combined* sessions is the precondition;
+  the mix is carried on the run as ``baseline_mode`` with both session counts;
 * ``scanner_checksum`` - computed over *this* declaration. The research checksum travels
   beside it as ``research_parent_checksum`` and is never presented as the live one.
 
@@ -57,11 +61,16 @@ COLLECTOR_VERSION = "ae_shared_premarket_collector_v1"
 FEATURE_CONTRACT_VERSION = "a_mover_live_features_v1"
 #: A's own premarket share-volume baseline identity (``baseline``).
 BASELINE_VERSION = "A_MOVER_PM_VOLUME_V1"
+#: The denominator's provider contract. Kiwoom owns every session it has an observation for and
+#: the frozen local Massive minute tape owns the rest, so the twenty sessions exist on the first
+#: morning instead of twenty mornings later. Which provider supplied each session travels on the
+#: run as ``baseline_mode`` and the two session counts; it is recorded, never gated on.
+BASELINE_PROVIDER_CONTRACT = "KIWOOM_PREFERRED_PER_SESSION+MASSIVE_TAPE_BOOTSTRAP"
 
 #: Which provider is authoritative for which input. Declared, never implied.
 HYBRID_SOURCES: dict[str, str] = {
     "same_day_premarket_bars": LIVE_PROVIDER,
-    "premarket_rvol_baseline": LIVE_PROVIDER,
+    "premarket_rvol_baseline": BASELINE_PROVIDER_CONTRACT,
     "previous_regular_close": "MASSIVE_GROUPED_DAILY",
     "daily_volume_baselines": "MASSIVE_GROUPED_DAILY",
     "reference_universe": "MASSIVE_REFERENCE_CACHE",
@@ -86,6 +95,7 @@ class LiveContract:
     collector_version: str = COLLECTOR_VERSION
     feature_contract_version: str = FEATURE_CONTRACT_VERSION
     baseline_version: str = BASELINE_VERSION
+    baseline_provider_contract: str = BASELINE_PROVIDER_CONTRACT
     hybrid_sources: dict[str, str] = field(default_factory=lambda: dict(HYBRID_SOURCES))
     #: Restated from the parent so the live declaration is self-describing.
     pool_size: int = K.POOL_SIZE
@@ -105,6 +115,7 @@ class LiveContract:
             "collector_version": self.collector_version,
             "feature_contract_version": self.feature_contract_version,
             "baseline_version": self.baseline_version,
+            "baseline_provider_contract": self.baseline_provider_contract,
             "hybrid_sources": dict(sorted(self.hybrid_sources.items())),
             "pool_size": self.pool_size,
             "top_count": self.top_count,

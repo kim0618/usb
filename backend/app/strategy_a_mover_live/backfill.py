@@ -200,8 +200,12 @@ def plan(session_db: Session, entry_session_date: date, symbols: Sequence[tuple[
     for symbol, exchange in symbols:
         required = service.required_sessions(entry_session_date)
         missing = service.missing_sessions(symbol, exchange, entry_session_date)
+        # Kiwoom only: this plans *Kiwoom* collection, and a bootstrap row for a session is
+        # not a Kiwoom observation of it. Counting the combined coverage here would report the
+        # work as already done the moment the bootstrap half was materialized.
         covered = B.covered_count(session_db, symbol, exchange, entry_session_date,
-                                  calendar=calendar, rule=rule)
+                                  calendar=calendar, rule=rule,
+                                  provider=B.BaselineProvider.KIWOOM)
         plans.append(SymbolPlan(symbol, exchange, required, covered, tuple(missing),
                                 target_sessions=rule.sessions))
     progress = (Path(repo) / PROGRESS_ROOT / f"plan_{entry_session_date.isoformat()}.json"
@@ -293,7 +297,12 @@ def execute(service: B.AMoverPremarketVolumeService, plan_: BackfillPlan, *,
 def validate(session_db: Session, entry_session_date: date, symbols: Sequence[tuple[str, str]],
              *, calendar: MarketCalendar | None = None,
              rule: B.BaselineRule | None = None) -> dict[str, Any]:
-    """After a pass: how many symbols now have A's denominator, and what is still short."""
+    """After a pass: how many symbols now have A's denominator, and what is still short.
+
+    The denominator read here is the live one, so a symbol the bootstrap half already covers
+    reads as available. That is the right answer to "can this symbol be scanned"; the Kiwoom
+    work that remains is :func:`plan`'s question and is counted under the Kiwoom identity alone.
+    """
     rule = rule or B.BaselineRule()
     calendar = calendar or MarketCalendar()
     available, short = [], {}
@@ -310,4 +319,6 @@ def validate(session_db: Session, entry_session_date: date, symbols: Sequence[tu
             "symbols": len(symbols), "baseline_available": len(available),
             "baseline_short": len(short),
             "baseline_short_examples": dict(list(short.items())[:10]),
-            "rows": B.rows_statistics(session_db, rule=rule)}
+            "rows": B.rows_statistics(session_db, rule=rule),
+            "bootstrap_rows": B.rows_statistics(session_db, rule=rule,
+                                                provider=B.BaselineProvider.MASSIVE)}

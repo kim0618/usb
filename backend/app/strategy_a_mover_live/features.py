@@ -73,6 +73,11 @@ class LivePanels:
     snapshots: Mapping[str, SymbolSnapshot]
     digest: str
 
+    @property
+    def baseline_provider_mix(self) -> dict[str, Any]:
+        """The run's denominator provenance, as section I's named block."""
+        return B.provider_mix(self.baselines)
+
     def declaration(self) -> dict[str, Any]:
         available = sum(1 for item in self.baselines.values() if item.available)
         return {
@@ -83,6 +88,7 @@ class LivePanels:
             "snapshots": len(self.snapshots),
             "baselines_available": available,
             "baselines_insufficient": len(self.baselines) - available,
+            "baseline_provider_mix": self.baseline_provider_mix,
             "gate_window_available_at_cut": False,
             "premarket_digest": self.digest,
             "universe": self.universe.declaration(),
@@ -194,7 +200,8 @@ def scan_input(panels: LivePanels) -> MoverScanInput:
         universe_as_of=panels.universe.reference_as_of,
         universe_checksum=panels.universe.reference_checksum,
         premarket_digest=panels.digest,
-        baseline_sessions=B.BaselineRule().sessions)
+        baseline_sessions=B.BaselineRule().sessions,
+        baseline_provider_mix=panels.baseline_provider_mix)
 
 
 class LivePremarketFeed(MoverPremarketSource):

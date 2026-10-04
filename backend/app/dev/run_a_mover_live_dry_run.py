@@ -123,7 +123,8 @@ def _dry_daily_panel(snapshots, gaps, session: date, calendar):
     return DailyPanel(tuple(grid), close, volume)
 
 
-def dry_run(session: date, symbol_count: int) -> dict[str, Any]:
+def dry_run(session: date, symbol_count: int,
+            kiwoom_sessions: int = 0) -> dict[str, Any]:
     from sqlalchemy.orm import sessionmaker
     from app.backtest.mover_scanner_v1 import contract as K
     from app.core.database import Base, create_db_engine
@@ -135,6 +136,7 @@ def dry_run(session: date, symbol_count: int) -> dict[str, Any]:
     from app.strategy.lifecycle import OvernightSuitability, TrailingProfile
     from app.strategy_a_mover_live import acquisition as AQ
     from app.strategy_a_mover_live import baseline as B
+    from app.strategy_a_mover_live import bootstrap as BOOT
     from app.strategy_a_mover_live import config as CFG
     from app.strategy_a_mover_live import contract as LC
     from app.strategy_a_mover_live import features as FEAT
@@ -184,22 +186,48 @@ def dry_run(session: date, symbol_count: int) -> dict[str, Any]:
     Base.metadata.create_all(engine)
     factory = sessionmaker(bind=engine, expire_on_commit=False)
     rule = B.BaselineRule()
+    # The denominator is seeded as a provider mix, and the default is the real first morning:
+    # no Kiwoom observation exists yet, so all twenty sessions are bootstrap rows. Each
+    # ``--kiwoom-sessions`` moves one session of the newest end to the Kiwoom identity, which is
+    # exactly what one more completed forward session does in production.
+    kiwoom_sessions = max(0, min(kiwoom_sessions, rule.sessions))
     with factory() as database:
+        window: list[date] = []
         day = session
         for _ in range(rule.sessions):
             day = calendar.previous_trading_day(day)
+            window.append(day)                                   # newest first
+        for index, day in enumerate(window):
+            kiwoom = index < kiwoom_sessions
+            source = rule.source if kiwoom else rule.bootstrap_source
+            version = (rule.collector_version if kiwoom
+                       else rule.bootstrap_collector_version)
             for symbol in symbols:
                 database.add(PremarketVolumeSession(
-                    symbol=symbol, exchange="ND", trading_date=day, source=rule.source,
-                    collector_version=rule.collector_version, premarket_volume=50_000,
-                    bar_count=10, regular_bar_count=10, first_timestamp=None,
-                    last_timestamp=None, pages_used=1, target_reached=True,
-                    quality_status=V.SessionQuality.COMPLETE.value, quality_reason=None,
+                    symbol=symbol, exchange="ND", trading_date=day, source=source,
+                    collector_version=version, premarket_volume=50_000,
+                    bar_count=10, regular_bar_count=10 if kiwoom else 0,
+                    first_timestamp=None, last_timestamp=None, pages_used=1,
+                    target_reached=True,
+                    quality_status=V.SessionQuality.COMPLETE.value,
+                    quality_reason=None if kiwoom else BOOT.QUALITY_REASON,
                     collected_at=observed))
         database.commit()
         baselines = {symbol: B.load_baseline(database, symbol, "ND", session,
                                              calendar=calendar, rule=rule)
                      for symbol in snapshots}
+        baseline_mix = B.provider_mix(baselines, rule=rule)
+        # The forward replacement, driven once: this morning's own observations are stored and
+        # the *next* session's denominator is re-read. One more Kiwoom session, one fewer
+        # bootstrap session, and no operator in between.
+        forward = B.record_forward_observations(
+            database, snapshots, {symbol: "ND" for symbol in snapshots},
+            collected_at=observed, rule=rule, calendar=calendar)
+        following = calendar.next_trading_day(session)
+        after = {symbol: B.load_baseline(database, symbol, "ND", following,
+                                         calendar=calendar, rule=rule)
+                 for symbol in snapshots}
+        next_mix = B.provider_mix(after, rule=rule)
 
     # The recorded page is one symbol's tape, so every dry-run symbol shares its premarket.
     # The previous close is what makes each one a *different* gap, and a spread that straddles
@@ -235,7 +263,20 @@ def dry_run(session: date, symbol_count: int) -> dict[str, Any]:
         "union_universe": union.declaration(),
         "a_snapshot_count": len(snapshots),
         "a_baseline": {"identity": rule.identity, "requested": len(snapshots),
-                       "available": sum(1 for item in baselines.values() if item.available)},
+                       "available": sum(1 for item in baselines.values() if item.available),
+                       "rule": rule.declaration(),
+                       "provider_mix": baseline_mix,
+                       "seeded_kiwoom_sessions": kiwoom_sessions,
+                       "seeded_massive_sessions": rule.sessions - kiwoom_sessions},
+        "forward_replacement": {
+            "stored_this_session": forward,
+            "next_session": following.isoformat(),
+            "next_session_provider_mix": next_mix,
+            "kiwoom_sessions_gained": (next_mix["kiwoom_session_count"]
+                                       - baseline_mix["kiwoom_session_count"]),
+            "massive_sessions_released": (baseline_mix["massive_session_count"]
+                                          - next_mix["massive_session_count"]),
+            "operator_steps_required": 0},
         "assigned_gap_spread": {"gaps": list(gap_spread),
                                 "in_strategy_a_band": [value for value in gap_spread
                                                        if 0.02 <= value <= 0.15],
@@ -276,7 +317,9 @@ def dry_run(session: date, symbol_count: int) -> dict[str, Any]:
                                    "candidates": handoff.candidate_count,
                                    "prompt_chars": handoff.prompt_chars,
                                    "gpt_calls": handoff.gpt_calls_expected,
-                                   "prompt_text_changed": False}
+                                   "prompt_text_changed": False,
+                                   # kept so the check below reads the real text, not a claim
+                                   "prompt_sample": handoff.prompt or ""}
             # the human decision is MOCKED as APPROVE here, only so the injection can be counted
             analysis = GPTAnalysis(scanner_run_id=handoff.run_id, trading_date=session,
                                    provider="dry-run", model="mock", prompt_version="1",
@@ -309,6 +352,15 @@ def dry_run(session: date, symbol_count: int) -> dict[str, Any]:
                 run.active_gpt_analysis_id = analysis.id
             database.commit()
             injected = PA.load_live_approved_candidates(database, session)
+            run = database.get(ScannerRun, handoff.run_id)
+            stored = database.query(ScannerCandidate).filter(
+                ScannerCandidate.scanner_run_id == handoff.run_id).all()
+            body["persisted_candidate_baseline_stamp"] = {
+                "rows": len(stored),
+                "every_row_carries_it": bool(stored) and all(
+                    "baseline_mode" in dict(row.score_components_json) for row in stored),
+                "read_back_from_the_run": PA.baseline_stamp_of(database, run),
+            }
         body["human_decision"] = {"authority": "HUMAN", "mocked_in_this_dry_run": True,
                                   "approved": len(injected),
                                   "rejected": max(len(rows) - len(injected), 0)}
@@ -345,10 +397,35 @@ def dry_run(session: date, symbol_count: int) -> dict[str, Any]:
         "EXPECTED_429": True,
         "NO_RAW_CONFLICT": len(raw.quarantine) == 0,
         "SNAPSHOTS_FOR_EVERY_USABLE_SYMBOL": len(snapshots) == len(report.usable),
-        "GPT_PROMPT_TEXT_UNCHANGED": True,
+        # a real check, not an assertion: the renderer reads named keys out of
+        # ``score_components``, so the baseline stamp must not appear in the rendered text
+        "GPT_PROMPT_TEXT_UNCHANGED": all(
+            name not in (body.get("gpt_handoff", {}).get("prompt_sample") or "")
+            for name in ("baseline_mode", "kiwoom_session_count", "massive_session_count")),
         "ONLY_APPROVED_INJECTED": (body.get("paper_injection", {}).get("injected_count", 0)
                                    == body.get("human_decision", {}).get("approved", 0)),
+        # the live precondition is twenty *combined* sessions, so a mix calculates
+        "MIXED_BASELINE_AVAILABLE": (baseline_mix["available"] == len(snapshots)
+                                     and baseline_mix["baseline_session_count"] == rule.sessions),
+        "BASELINE_MODE_MATCHES_SEEDED_MIX": (
+            baseline_mix["baseline_mode"] == str(B.mode_for(
+                kiwoom_sessions, rule.sessions - kiwoom_sessions))),
+        "BASELINE_COUNTS_EXACT": (
+            baseline_mix["kiwoom_session_count"] == kiwoom_sessions
+            and baseline_mix["massive_session_count"] == rule.sessions - kiwoom_sessions),
+        "SCAN_SESSION_NOT_IN_ITS_OWN_DENOMINATOR": all(
+            session not in item.used_sessions for item in baselines.values()),
+        "FORWARD_REPLACEMENT_ADVANCES_WITHOUT_AN_OPERATOR": (
+            next_mix["kiwoom_session_count"] == min(kiwoom_sessions + 1, rule.sessions)
+            and next_mix["massive_session_count"]
+            == max(rule.sessions - kiwoom_sessions - 1, 0)),
+        "FORWARD_WRITE_IS_IDEMPOTENT": forward["written"] == len(snapshots),
+        "BASELINE_MODE_PERSISTED_ON_CANDIDATES": body.get(
+            "persisted_candidate_baseline_stamp", {}).get("every_row_carries_it") is True,
     }
+    sample = body.get("gpt_handoff", {})
+    if "prompt_sample" in sample:
+        sample["prompt_sample"] = f"<{len(sample['prompt_sample'])} chars, not reproduced here>"
     body["checks"] = checks
     body["SHARED_COLLECTOR_DRY_RUN"] = "PASS" if all(checks.values()) else "FAIL"
     body["failed_checks"] = [name for name, value in checks.items() if not value]
@@ -383,33 +460,100 @@ def backfill_plan(session: date, database_url: str, limit: int | None) -> dict[s
         plan = BF.plan(db, session, eligible, calendar=calendar, repo=REPO)
         body = plan.declaration() | {
             "universe": universe_body,
-            "existing_rows": B.rows_statistics(db),
+            "existing_kiwoom_rows": B.rows_statistics(db),
+            "existing_bootstrap_rows": B.rows_statistics(
+                db, provider=B.BaselineProvider.MASSIVE),
             "guard_window": "collection is refused between 03:55 and 09:35 ET",
             "network_started": False,
-            "full_backfill": "NOT RUN (needs an explicit request; execute() refuses without "
-                             "confirm_network=True)",
+            "full_backfill": "NOT RUN and NOT REQUIRED: the mixed bootstrap baseline supplies "
+                             "the twenty sessions, so this collection only buys a "
+                             "Kiwoom-native denominator sooner. execute() still refuses "
+                             "without confirm_network=True",
         }
     engine.dispose()
+    return body
+
+
+# -- bootstrap coverage: the real local tape, no network, nothing written ------------------------
+
+def bootstrap_coverage(session: date, limit: int | None) -> dict[str, Any]:
+    """Can the Massive half of the denominator actually be supplied for this session?
+
+    This is the honest precondition check for "Paper starts immediately". It reads the real
+    frozen minute tape on this machine and reports, per symbol, how many of A's twenty sessions
+    it covers. Nothing is written and no request is made, so a short answer here is a fact about
+    the stores rather than a failure of a run.
+    """
+    from app.market.calendar import MarketCalendar
+    from app.strategy_a_mover_live import baseline as B
+    from app.strategy_a_mover_live import bootstrap as BOOT
+    from app.strategy_a_mover_live import universe as UNI
+
+    calendar = MarketCalendar("America/New_York")
+    rule = B.BaselineRule()
+    body: dict[str, Any] = {"stage": "A_MOVER_BOOTSTRAP_COVERAGE",
+                            "mode": "READ_ONLY_NO_NETWORK_NO_WRITE",
+                            "bootstrap_identity": dict(BOOT.declaration(rule)),
+                            "baseline_rule": rule.declaration()}
+    try:
+        tape = BOOT.select_tape(REPO)
+    except BOOT.TapeUnavailable as error:
+        return body | {"status": "TAPE_UNAVAILABLE", "detail": str(error)}
+    body["tape"] = tape.declaration()
+    try:
+        union = UNI.build(REPO, session, calendar=calendar)
+        symbols = list(union.a_symbols)
+        body["universe"] = union.declaration()
+    except Exception as error:
+        symbols = sorted(tape.symbols)
+        body["universe"] = {"status": "UNAVAILABLE",
+                            "detail": f"{type(error).__name__}: {error}",
+                            "fell_back_to": "the tape's own universe"}
+    if limit is not None:
+        symbols = symbols[:limit]
+    coverage = BOOT.coverage_of(REPO, [(symbol, "ND") for symbol in symbols], session,
+                               calendar=calendar, tape=tape)
+    per_symbol = coverage.pop("covered_sessions_per_symbol")
+    counts = sorted(per_symbol.values())
+    body["coverage"] = coverage
+    body["covered_sessions_distribution"] = {
+        "symbols": len(counts),
+        "min": counts[0] if counts else None,
+        "median": counts[len(counts) // 2] if counts else None,
+        "max": counts[-1] if counts else None,
+        "at_or_above_required": sum(1 for value in counts if value >= rule.sessions),
+    }
+    ready = coverage["symbols_with_enough_bootstrap_sessions"]
+    body["status"] = "BOOTSTRAP_AVAILABLE" if ready else "BOOTSTRAP_SHORT"
+    body["absent_sessions_in_window"] = coverage["sessions_in_window_absent_from_tape"]
     return body
 
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="A-MOVER-LIVE-V1 pre-deploy dry run")
     sub = parser.add_subparsers(dest="command", required=True)
-    for name in ("budget", "dry-run", "backfill-plan"):
+    for name in ("budget", "dry-run", "backfill-plan", "bootstrap-coverage"):
         item = sub.add_parser(name)
         item.add_argument("--session", type=date.fromisoformat, required=True)
         if name == "dry-run":
             item.add_argument("--symbols", type=int, default=60)
+            item.add_argument("--kiwoom-sessions", type=int, default=0,
+                              help="how many of the twenty baseline sessions are Kiwoom's; "
+                                   "0 is the real first morning")
         if name == "backfill-plan":
             item.add_argument("--database", default="sqlite://")
+            item.add_argument("--limit", type=int)
+        if name == "bootstrap-coverage":
             item.add_argument("--limit", type=int)
     args = parser.parse_args(argv)
     if args.command == "budget":
         body, name = budget(args.session), f"budget_{args.session.isoformat()}.json"
     elif args.command == "dry-run":
-        body, name = (dry_run(args.session, args.symbols),
+        body, name = (dry_run(args.session, args.symbols, args.kiwoom_sessions),
                       f"dry_run_{args.session.isoformat()}.json")
+    elif args.command == "bootstrap-coverage":
+        body, name = (bootstrap_coverage(args.session, args.limit),
+                      f"bootstrap_coverage_{args.session.isoformat()}.json")
     else:
         body, name = (backfill_plan(args.session, args.database, args.limit),
                       f"backfill_plan_{args.session.isoformat()}.json")

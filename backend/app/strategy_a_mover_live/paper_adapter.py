@@ -67,6 +67,31 @@ def source_of(run: ScannerRun) -> str:
     return str(candidate_source_of(run))
 
 
+#: What section O's baseline names are when no live run, or no candidate row, carries them.
+#: UNKNOWN rather than zeros: an entry session with no run has made no claim about a
+#: denominator, and writing 0 Kiwoom and 0 Massive sessions would be one.
+NO_BASELINE_STAMP: dict[str, Any] = {"baseline_mode": "UNKNOWN", "baseline_session_count": None,
+                                     "kiwoom_session_count": None,
+                                     "massive_session_count": None}
+
+
+def baseline_stamp_of(session: Session, run: ScannerRun) -> dict[str, Any]:
+    """The denominator mix the scan recorded, read back from the run's own candidate rows.
+
+    The mix is a property of the run, so every candidate of a run carries the same values and
+    the first row answers for the run. It is read, never recomputed: recomputing it here would
+    read today's stored rows and could disagree with what the morning's scan actually divided
+    by. A run that admitted nobody has no candidate row and so no stamp, which is reported as
+    UNKNOWN rather than filled in.
+    """
+    row = session.scalar(select(ScannerCandidate)
+                         .where(ScannerCandidate.scanner_run_id == run.id)
+                         .order_by(ScannerCandidate.rank, ScannerCandidate.id).limit(1))
+    components = dict(row.score_components_json or {}) if row is not None else {}
+    return {name: components.get(name, default)
+            for name, default in NO_BASELINE_STAMP.items()}
+
+
 def live_run_for(session: Session, entry_session_date: date) -> ScannerRun | None:
     """The newest completed live run stamped with this entry session. Source-filtered."""
     return session.scalar(
@@ -132,6 +157,7 @@ class MoverLiveEntryLifecycleService(EMR.EntryLifecycleService):
         """What this entry session's candidates came from, for a record or a report."""
         with self.runtime.session_factory() as session:
             run = live_run_for(session, entry_session_date)
+            baseline = baseline_stamp_of(session, run) if run is not None else NO_BASELINE_STAMP
         return {"entry_session_date": entry_session_date.isoformat(),
                 "candidate_source": self.candidate_source,
                 "scanner_version": self.scanner_version,
@@ -141,7 +167,9 @@ class MoverLiveEntryLifecycleService(EMR.EntryLifecycleService):
                 "scanner_run_id": run.id if run else None,
                 "analysis_session_date": self.analysis_session_date(
                     entry_session_date).isoformat(),
-                "legacy_predecessor_rule_applied": False}
+                "legacy_predecessor_rule_applied": False,
+                "baseline_version": LC.BASELINE_VERSION,
+                "baseline_provider_contract": LC.BASELINE_PROVIDER_CONTRACT} | baseline
 
 
 def lifecycle_for(runtime, *, calendar: MarketCalendar | None = None,

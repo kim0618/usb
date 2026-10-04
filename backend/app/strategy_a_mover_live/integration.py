@@ -75,6 +75,9 @@ class SharedCollectorIntegration:
     extra_caches: dict[str, FZ.SymbolCache] = field(default_factory=dict)
     unmapped: tuple[str, ...] = ()
     report: dict[str, Any] = field(default_factory=dict)
+    #: The denominator rule in force, bootstrap half included. One object, so the read, the
+    #: forward write and the recorded mix cannot disagree about which identities are A's.
+    baseline_rule: B.BaselineRule = field(default_factory=B.BaselineRule)
 
     # -- rolling phase
     def rolling_until(self) -> datetime:
@@ -132,13 +135,15 @@ class SharedCollectorIntegration:
             "unmapped_union_symbols": len(self.unmapped),
             "snapshots": len(snapshots),
         }
+        body["forward_observation"] = self._record_forward(snapshots, observed)
         baselines = self._baselines(snapshots)
         body["baseline"] = {
             "identity": B.BASELINE_IDENTITY,
-            "rule": B.BaselineRule().declaration(),
+            "rule": self.baseline_rule.declaration(),
             "requested": len(snapshots),
             "available": sum(1 for item in baselines.values() if item.available),
             "database_available": self.session_factory is not None,
+            "provider_mix": B.provider_mix(baselines, rule=self.baseline_rule),
         }
         try:
             panels = FEAT.assemble(self.repo, self.session, snapshots, baselines, self.union)
@@ -172,19 +177,41 @@ class SharedCollectorIntegration:
         return body
 
     # -- helpers
+    def _exchange_of(self, symbol: str) -> str:
+        return self.exchanges.get(FZ.kiwoom_code(symbol, self.exchanges), "")
+
+    def _record_forward(self, snapshots: Mapping[str, Any],
+                        observed: datetime) -> dict[str, Any]:
+        """Store this morning's own observations, which is the whole forward replacement.
+
+        Nothing an operator does moves the mix: tomorrow's walk finds one more Kiwoom session
+        than today's did because this ran, and the oldest bootstrap session leaves the twenty
+        on its own. The session written is the scan session, which ``lookback_sessions``
+        excludes, so it cannot reach its own denominator.
+        """
+        if self.session_factory is None:
+            return {"status": "NOT_RECORDED_NO_DATABASE", "written": 0}
+        exchanges = {symbol: self._exchange_of(symbol) for symbol in snapshots}
+        with self.session_factory() as database:
+            body = B.record_forward_observations(
+                database, snapshots, exchanges, collected_at=observed,
+                rule=self.baseline_rule, calendar=self.calendar or MarketCalendar())
+        return {"status": "RECORDED"} | body
+
     def _baselines(self, snapshots: Mapping[str, Any]) -> dict[str, B.AMoverBaseline]:
-        """A's denominators from durable rows. No database means no denominator, not a guess."""
-        rule = B.BaselineRule()
+        """A's denominators from durable rows. No database means no denominator, not a guess.
+
+        Both identities are read here: Kiwoom's observation for a session when there is one and
+        the materialized bootstrap row otherwise. Twenty combined covered sessions is the
+        precondition, so the first morning is calculable rather than the twenty-first.
+        """
         if self.session_factory is None:
             return {}
-        out: dict[str, B.AMoverBaseline] = {}
         calendar = self.calendar or MarketCalendar()
+        candidates = [(symbol, self._exchange_of(symbol)) for symbol in snapshots]
         with self.session_factory() as database:
-            for symbol in snapshots:
-                exchange = self.exchanges.get(FZ.kiwoom_code(symbol, self.exchanges), "")
-                out[symbol] = B.load_baseline(database, symbol, exchange, self.session,
-                                              calendar=calendar, rule=rule)
-        return out
+            return B.load_baselines(database, candidates, self.session, calendar=calendar,
+                                    rule=self.baseline_rule)
 
     def _handoff(self, live: SCAN.LiveScan) -> dict[str, Any]:
         if live.candidate_count == 0:

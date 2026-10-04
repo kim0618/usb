@@ -6,13 +6,14 @@ document describes what is implemented and committed, not what is deployed.
 | | |
 |---|---|
 | live scanner version | `A-MOVER-LIVE-V1` |
-| live scanner checksum | `d7dfb853f5050918f6a87d7f88fe56dd5e7e7006c76e8e78ee9dac182afa87a3` |
+| live scanner checksum | `382ba2c16409cb1009006b992c2c0d05e0c8a25c29ee768f997c5027fbd3f22b` |
 | research parent | `a-mover-scanner-v1.2` |
 | research parent checksum | `f05e53cce5a431e8e132a0fc1698085b64f8e1d015e11028a77dc62754a11f25` |
 | live provider (same-day premarket) | `KIWOOM` |
 | collector version | `ae_shared_premarket_collector_v1` |
 | feature contract version | `a_mover_live_features_v1` |
 | baseline version | `A_MOVER_PM_VOLUME_V1` |
+| baseline provider contract | `KIWOOM_PREFERRED_PER_SESSION+MASSIVE_TAPE_BOOTSTRAP` |
 | `ScannerRun.score_version` | `a_mover_live_v1` |
 | `ScannerRun.provider` | `KIWOOM_AE_SHARED_PREMARKET` |
 | config flag | `A_MOVER_LIVE_ENABLED`, default **off** |
@@ -39,7 +40,7 @@ bounds through `StrategyConfig`; the pool size of 35 and the output maximum of 8
 | input | authority |
 |---|---|
 | same-day premarket bars | Kiwoom (`usa06011` / `usa06010`) |
-| premarket relative-volume baseline | Kiwoom, `A_MOVER_PM_VOLUME_V1` |
+| premarket relative-volume baseline | `A_MOVER_PM_VOLUME_V1`: Kiwoom per session where it has one, frozen Massive tape otherwise |
 | previous regular close | Massive grouped daily |
 | 20-session ADV / ADDV | Massive grouped daily |
 | reference (common-stock) universe | Massive reference cache |
@@ -153,7 +154,80 @@ A's covered-session walk is expressed as panel coverage rather than reimplemente
 column", so the live denominator is the research denominator by construction, and the scan
 session's own volume cannot enter its own denominator.
 
-### Current rows and the backfill
+### The denominator is a provider mix
+
+Twenty Kiwoom sessions do not exist on the first morning and there are only two ways to reach
+them: wait twenty trading days, or run the 60-plus-hour historical collection below. Neither is
+what the strategy is waiting for, so the walk reads **two** row identities and prefers Kiwoom
+**per session**:
+
+| identity | `source` / `collector_version` | supplies |
+|---|---|---|
+| Kiwoom | `KIWOOM_USA06011_PM0915` / `a_mover_pm_volume_v1` | every session it has an observation for |
+| bootstrap | `MASSIVE_MINUTE_TAPE_PM0915` / `a_mover_pm_volume_v1_bootstrap` | the rest |
+
+The precondition for a live calculation is **twenty combined covered sessions**. The provider
+mix is recorded, never gated on: every result carries `baseline_session_count`,
+`kiwoom_session_count`, `massive_session_count` and `baseline_mode`
+(`MASSIVE_BOOTSTRAP` -> `MIXED_BOOTSTRAP` -> `KIWOOM_NATIVE`), and those four names travel onto
+every persisted candidate row and the entry session's own record. A run that admitted nobody,
+or an entry session with no run, reads `UNKNOWN` rather than zero sessions, because zero
+sessions would be a claim about a denominator nothing computed.
+
+**The bootstrap half is a read of the frozen local tape, not a collection.** `bootstrap.py`
+produces A's own quantity — premarket share volume over `[04:00, 09:15)` — through
+`mover_scanner_v1.premarket.build_panel`, the research arm's own function at the research arm's
+own cut, so a bootstrap session and a Kiwoom session are the same measurement of different
+bars. Coverage is the tape's ledger: a covered session with no print contributes a zero, and a
+pair the tape does not cover produces **no row at all** and is named
+(`SESSION_NOT_IN_TAPE`, `SYMBOL_NOT_IN_TAPE`, `SYMBOL_SESSION_NOT_COVERED`). Nothing turns
+absent coverage into a zero. There is no network request on this path.
+
+Materialization happens ahead of the cut rather than at it. A's cut has about five minutes
+before E's finalization and a twenty-session panel is tens of thousands of memory-mapped
+slices; a past session's premarket volume does not change, so the 09:15 read stays an indexed
+query.
+
+**The cut-time cost was measured, not assumed**, because the margin on E's 09:29:45 deadline is
+seconds. Over a 4,947-symbol universe with 40 sessions of rows per identity, on this machine:
+
+| at A's cut | before | after |
+|---|---|---|
+| denominator read | 6.6 s (one identity, per symbol) | **3.7 s** (two identities, batched) |
+| forward observation write | - | 2.4 s |
+| total | 6.6 s | **6.1 s** |
+
+Reading two identities one symbol at a time would have cost 11.3 s, so `load_baselines` batches
+the rows into a handful of `IN` queries and keeps `_walk` as the only implementation of the
+covered walk; a test asserts the batch and per-symbol readers produce byte-identical
+declarations over the same rows. The net effect at the cut is slightly *faster* than the
+single-provider read it replaces.
+
+**The replacement is automatic.** At each cut the shared collector's own snapshots are stored
+under the Kiwoom identity (`record_forward_observations`, `quality_reason =
+A_CUT_FORWARD_OBSERVATION`, `regular_bar_count = 0` because at 09:15 there is no regular
+session to have observed). The session written is the scan session, which `lookback_sessions`
+excludes, so it cannot reach its own denominator; from the next session on it is a Kiwoom
+candidate. One more Kiwoom session enters the twenty and the oldest bootstrap session leaves
+it, with **no operator step**, so after at most twenty completed forward sessions the mode is
+`KIWOOM_NATIVE` on its own. The write goes through the V2 upsert, so a restart at the cut
+writes the same row once.
+
+Measured on the real local tape (`ca1ce9d030cdcb88`, 104 sessions 2026-04-20 - 2026-09-16,
+3,882 symbols), 200 sampled A-universe symbols:
+
+| entry session | sessions in the 40-session window absent from the tape | symbols with >= 20 covered | median covered |
+|---|---|---|---|
+| 2026-09-15 | 0 | 143 / 200 | 40 |
+| 2026-10-05 | 12 (2026-09-17 - 2026-10-02) | 188 / 200 | 28 |
+
+The 2026-10-05 row is the honest shape of the bootstrap today: the twelve newest sessions are
+not on the tape, the covered walk reaches past them inside its declared 40-session lookback,
+and the denominator is therefore built from older sessions and says so through
+`oldest_used_session` / `newest_used_session`. A symbol the tape does not carry at all stays
+`INSUFFICIENT_COVERED_SESSIONS` rather than acquiring invented zeros.
+
+### The full Kiwoom backfill: not required
 
 Measured against the local database on 2026-09-15:
 
@@ -177,8 +251,11 @@ scaled, not charged the whole unit. An earlier draft of this estimate charged th
 collector version, so a killed run resumes by being started again and cannot double-collect.
 The progress file is for reporting.
 
-**The full backfill was not run.** `backfill.execute` refuses without `confirm_network=True`,
-and it checks the 03:55-09:35 ET guard before every symbol rather than once at the start.
+**The full backfill was not run, and is no longer a precondition.** With the bootstrap half in
+place, the sixty-plus hours buy a Kiwoom-native denominator *sooner* than twenty forward
+sessions would; they do not unblock anything. `backfill.execute` still refuses without
+`confirm_network=True` and still checks the 03:55-09:35 ET guard before every symbol, and the
+planner is kept for the day that trade is worth making.
 
 ## 6. Scan, handoff, decision, injection
 
@@ -249,16 +326,37 @@ recorded production payload of 322 real premarket minutes, driven through the re
 | snapshots for every usable symbol | PASS |
 | GPT prompt text unchanged | PASS |
 | only APPROVED injected | PASS |
+| mixed baseline available (20 combined sessions) | PASS |
+| baseline mode matches the seeded mix | PASS |
+| both session counts exact | PASS |
+| scan session not in its own denominator | PASS |
+| forward replacement advances without an operator | PASS |
+| forward write idempotent | PASS |
+| baseline mode persisted on every candidate row | PASS |
 
 Funnel: 60 evaluated -> 60 eligible -> 35 discovery pool -> 27 actionable -> **8 GPT output**
 -> 7 approved (1 rejected, mocked) -> **7 injected**. Raw persistence: 18,300 bars, 0
 quarantined. No profit or loss is computed anywhere.
 
+The denominator is driven through all three modes, and the forward step is driven once in each
+so the transition is measured rather than asserted:
+
+| `--kiwoom-sessions` | mode | K / M | next session | GPT | injected |
+|---|---|---|---|---|---|
+| 0 | `MASSIVE_BOOTSTRAP` | 0 / 20 | `MIXED_BOOTSTRAP`, 1 / 19 | 8 | 7 |
+| 10 | `MIXED_BOOTSTRAP` | 10 / 10 | `MIXED_BOOTSTRAP`, 11 / 9 | 8 | 7 |
+| 19 | `MIXED_BOOTSTRAP` | 19 / 1 | `KIWOOM_NATIVE`, 20 / 0 | 8 | 7 |
+| 20 | `KIWOOM_NATIVE` | 20 / 0 | `KIWOOM_NATIVE`, 20 / 0 | 8 | 7 |
+
+The mode and both counts are read back out of the persisted candidate rows through
+`paper_adapter.baseline_stamp_of`, not out of the in-memory scan.
+
 Reproduce:
 
 ```
 PYTHONPATH=backend .venv/bin/python -m app.dev.run_a_mover_live_dry_run budget --session 2026-09-15
-PYTHONPATH=backend .venv/bin/python -m app.dev.run_a_mover_live_dry_run dry-run --session 2026-09-15 --symbols 60
+PYTHONPATH=backend .venv/bin/python -m app.dev.run_a_mover_live_dry_run dry-run --session 2026-09-15 --symbols 60 --kiwoom-sessions 0
+PYTHONPATH=backend .venv/bin/python -m app.dev.run_a_mover_live_dry_run bootstrap-coverage --session 2026-10-05 --limit 200
 PYTHONPATH=backend .venv/bin/python -m app.dev.run_a_mover_live_dry_run backfill-plan --session 2026-09-15
 ```
 
@@ -268,8 +366,23 @@ scanning a gap.
 
 ## 10. Status
 
-`READY_FOR_BASELINE_BACKFILL`. The pipeline is implemented, tested and committed with the flag
-off. The blocker to a live run is the baseline: 0 rows exist for `A_MOVER_PM_VOLUME_V1` and A
-refuses every symbol without its full twenty, so the 62.6-77.8 h collection is the next step
-and needs an explicit decision. Nothing has been pushed, deployed, restarted or enabled, no
-migration exists or was applied, and no real order was placed.
+`BLOCKED_STALE_MASSIVE_DAILY_FEED`. The pipeline is implemented, tested and committed with the
+flag off, and the baseline is no longer the blocker: the mixed bootstrap removes both the
+twenty-session wait and the 62.6-77.8 h collection from the critical path.
+
+What is left is **not** A's code. A's hybrid contract makes the Massive grouped daily store
+load-bearing for the previous close, the daily volume baselines and the union universe, and
+that store ends at **2026-09-16**. For the next session (2026-10-05) both
+`universe.build` and `features.live_daily_panel` refuse with `NO_GROUPED_DAILY` naming
+2026-09-17, which is the correct refusal and not a bug: twelve sessions of grouped daily
+(2026-09-17 - 2026-10-02) and the splits store (frozen at 2026-09-16) have to be caught up
+before the first live run, and that is a Massive collection decision rather than part of this
+stage.
+
+The bootstrap half is unaffected by that gap — 188 of 200 sampled symbols already have twenty
+or more covered sessions for a 2026-10-05 entry — so once the daily feed is current, the first
+morning is calculable, the mode is `MASSIVE_BOOTSTRAP`, and it walks itself to `KIWOOM_NATIVE`
+over at most twenty completed forward sessions.
+
+Nothing has been pushed, deployed, restarted or enabled, no migration exists or was applied,
+and no real order was placed.

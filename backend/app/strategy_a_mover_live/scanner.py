@@ -51,6 +51,23 @@ class LiveScan:
     universe_checksum: str
     premarket_digest: str
     observed_at: datetime
+    #: Section I's denominator provenance, as the source handed it over. None when the source
+    #: does not mix providers; never invented here.
+    baseline_provider_mix: Mapping[str, Any] | None = None
+
+    @property
+    def baseline_stamp(self) -> dict[str, Any]:
+        """The three names section O requires on a candidate row, from the mix or as unknown.
+
+        An absent mix is recorded as UNKNOWN rather than as zero sessions: a row saying
+        ``massive_session_count = 0`` would be a claim about the denominator, and a source that
+        did not report its mix has made no such claim.
+        """
+        mix = self.baseline_provider_mix or {}
+        return {"baseline_mode": mix.get("baseline_mode", "UNKNOWN"),
+                "baseline_session_count": mix.get("baseline_session_count"),
+                "kiwoom_session_count": mix.get("kiwoom_session_count"),
+                "massive_session_count": mix.get("massive_session_count")}
 
     @property
     def handoff(self) -> tuple[MoverCandidate, ...]:
@@ -76,7 +93,9 @@ class LiveScan:
             "actionable_pool_size": self.selection.actionable_pool_size,
             "handoff_size": self.candidate_count,
             "actionability_rejections": self.selection.rejection_counts,
-        }
+            "baseline_provider_mix": (dict(self.baseline_provider_mix)
+                                      if self.baseline_provider_mix is not None else None),
+        } | self.baseline_stamp
 
 
 class LiveScanRefused(RuntimeError):
@@ -111,7 +130,8 @@ def run(scan_input: MoverScanInput, *, observed_at: datetime,
                     selection=selection, source_name=scan_input.source_name,
                     universe_as_of=scan_input.universe_as_of,
                     universe_checksum=scan_input.universe_checksum,
-                    premarket_digest=scan_input.premarket_digest, observed_at=observed_at)
+                    premarket_digest=scan_input.premarket_digest, observed_at=observed_at,
+                    baseline_provider_mix=scan_input.baseline_provider_mix)
 
 
 def run_from_source(source, session: date, *, observed_at: datetime,
@@ -143,6 +163,8 @@ def candidate_payload(live: LiveScan, config: MoverScannerConfig | None = None) 
     payload["collector_version"] = contract.collector_version
     payload["feature_contract_version"] = contract.feature_contract_version
     payload["baseline_version"] = contract.baseline_version
+    payload["baseline_provider_contract"] = contract.baseline_provider_contract
+    payload.update(live.baseline_stamp)
     payload["source_name"] = live.source_name
     ranks = live.selection.rank_by_symbol()
     for entry, item in zip(payload["candidates"], live.selection.handoff, strict=True):
@@ -152,6 +174,7 @@ def candidate_payload(live: LiveScan, config: MoverScannerConfig | None = None) 
         entry["scanner_version"] = contract.scanner_version
         entry["scanner_checksum"] = contract.scanner_checksum
         entry["provider_contract"] = payload["provider_contract"]
+        entry.update(live.baseline_stamp)
     return payload
 
 
@@ -171,6 +194,8 @@ def candidate_rows(live: LiveScan) -> list[ScannerCandidateData]:
         components["collector_version"] = contract.collector_version
         components["feature_contract_version"] = contract.feature_contract_version
         components["baseline_version"] = contract.baseline_version
+        components["baseline_provider_contract"] = contract.baseline_provider_contract
+        components.update(live.baseline_stamp)
         out.append(ScannerCandidateData(
             symbol=row.symbol, rank=row.rank, is_top8=row.is_top8, score=row.score,
             score_components=components, observed_at=row.observed_at,

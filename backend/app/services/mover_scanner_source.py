@@ -30,6 +30,7 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from enum import StrEnum
 from pathlib import Path
+from typing import Any
 
 from app.backtest.collector.range import sessions_between
 from app.backtest.mover_scanner_v1 import daily as D
@@ -77,6 +78,11 @@ class MoverScanInput:
     universe_checksum: str
     premarket_digest: str
     baseline_sessions: int
+    #: Which provider supplied each session of the relative-volume denominator, when the source
+    #: knows. A research store reads one tape and has nothing to mix, so it leaves this None;
+    #: the live source fills it and the run record carries it. See
+    #: ``strategy_a_mover_live.baseline.provider_mix``.
+    baseline_provider_mix: Mapping[str, Any] | None = None
 
 
 class MoverPremarketSource:

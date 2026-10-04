@@ -37,10 +37,12 @@ def prior(count: int, before: date = SESSION) -> list[date]:
     return list(reversed(out))
 
 
-def baseline_for(symbol: str, median: float) -> B.AMoverBaseline:
+def baseline_for(symbol: str, median: float,
+                 provider: B.BaselineProvider = B.BaselineProvider.KIWOOM) -> B.AMoverBaseline:
     days = tuple(prior(20))
     return B.AMoverBaseline(B.BaselineStatus.AVAILABLE, symbol, "ND", SESSION, days, (),
-                            tuple([median] * 20), median)
+                            tuple([median] * 20), median, B.BaselineRule(),
+                            tuple([provider] * len(days)))
 
 
 def snapshot_for(symbol: str, *, gap: float, volume: float, price: float = 10.0,
@@ -73,7 +75,8 @@ def panel_input(count: int = 60, *, strategy: StrategyConfig | None = None,
                           daily=daily_panel(symbols, SESSION), source_name=FEAT.SOURCE_NAME,
                           live=True, universe_as_of=date(2026, 7, 1),
                           universe_checksum="ref-checksum",
-                          premarket_digest=premarket.cache_digest, baseline_sessions=20)
+                          premarket_digest=premarket.cache_digest, baseline_sessions=20,
+                          baseline_provider_mix=B.provider_mix(baselines))
 
 
 # -- panel assembly --------------------------------------------------------------------------
