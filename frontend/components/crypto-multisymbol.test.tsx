@@ -156,6 +156,34 @@ describe("the symbol tabs", () => {
     expect(screen.queryByTestId("symbol-tab-SOLUSDT")).toBeNull();
   });
 
+  it("gives the selected tab a pressed state the design system actually renders", () => {
+    // The first version used `bg-accent`, `text-accent-foreground` and `bg-surface-muted`, none
+    // of which is a token in tailwind.config. Tailwind emits nothing for an unknown utility, so
+    // the selected tab had no border, no fill and no visible change - aria-selected was correct
+    // and the screen showed no pressed state at all. Asserting the aria attribute alone would
+    // not have caught it, so the classes are checked against the token list.
+    const TOKENS = ["primary", "surface-alt", "line", "foreground", "muted", "danger",
+                    "success", "warning", "surface", "background"];
+    render(<SymbolTabs value="ETHUSDT" onChange={vi.fn()} />);
+    const on = screen.getByTestId("symbol-tab-ETHUSDT");
+    const off = screen.getByTestId("symbol-tab-BTCUSDT");
+    // The selected tab is visibly different, not merely announced as selected.
+    expect(on.className).not.toBe(off.className);
+    expect(on.className).toMatch(/border-primary/);
+    expect(on.className).toMatch(/bg-surface-alt/);
+    expect(off.className).toMatch(/border-line/);
+    // Every colour utility resolves to a defined token. Size and weight utilities share the
+    // `text-` prefix, so they are excluded by name rather than by guessing.
+    const NOT_COLOUR = new Set(["xs", "sm", "base", "lg", "xl", "bold", "semibold", "medium",
+                                "center", "left", "right", "wide", "nowrap"]);
+    const colours = [...`${on.className} ${off.className}`.matchAll(/(?:bg|text|border)-([a-z-]+)/g)]
+      .map(m => m[1]).filter(name => !NOT_COLOUR.has(name));
+    for (const name of colours) {
+      expect(TOKENS.some(token => name === token || name.startsWith(`${token}-`)),
+             `unknown design token: ${name}`).toBe(true);
+    }
+  });
+
   it("does not switch while a write is in flight", () => {
     const onChange = vi.fn();
     render(<SymbolTabs value="BTCUSDT" onChange={onChange} busy />);

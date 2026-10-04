@@ -69,11 +69,20 @@ export function SymbolTabs({ value, onChange, permitted, busy }: {
             disabled={busy && !selected}
             data-testid={`symbol-tab-${symbol}`}
             onClick={() => { if (!selected) onChange(symbol); }}
-            className={`shrink-0 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+            // Same shape as the PAPER / BINANCE LIVE switch directly above, deliberately: the
+            // two rows sit together and a tab that styled its selection differently would read
+            // as a different kind of control.
+            //
+            // `bg-accent` / `text-accent-foreground` / `bg-surface-muted` were used here first
+            // and none of them is a token in this design system, so the selected tab rendered
+            // with no border, no fill and no change beyond inheriting the text colour - there
+            // was no pressed state on screen at all. Every class below is in tailwind.config.
+            className={`shrink-0 rounded-md border px-3 py-1.5 text-xs font-bold tracking-wide
+              transition-colors ${
               selected
-                ? "bg-accent text-accent-foreground"
-                : "bg-surface-muted text-foreground-secondary hover:text-foreground disabled:opacity-40"
-            }`}>
+                ? "border-primary bg-surface-alt text-foreground"
+                : "border-line text-muted hover:text-foreground"
+            } ${busy && !selected ? "cursor-not-allowed opacity-40" : ""}`}>
             {symbolLabel(symbol)}
           </button>
         );
