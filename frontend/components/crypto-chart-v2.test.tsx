@@ -5,7 +5,7 @@ import {
 } from "@/components/crypto-terminal-layout";
 import { chartBarsToCandles, cryptoApi, mergeCandles } from "@/lib/crypto-paper";
 import {
-  heldViewport, kstCrosshairLabel, kstTickLabel, prependedBars,
+  heldViewport, kstCrosshairLabel, kstTickLabel, prependedBars, visibleMinuteBars,
 } from "@/components/crypto-candle-chart";
 import type { ChartBar, ChartHistoryResponse, HistoryTimeframe } from "@/lib/crypto-paper";
 
@@ -101,6 +101,18 @@ describe("chart V2 history", () => {
   it("detects pure prepend so the chart can preserve its logical range", () => {
     expect(prependedBars([10, 20, 30], [-10, 0, 10, 20, 30])).toBe(2);
     expect(prependedBars([10, 20, 30], [0, 10, 25, 30])).toBe(0);
+  });
+
+  it("opens the minute views on hours of candles rather than one screen of wide ones", () => {
+    // What an operator reads as "how much history does this chart have". At 6 px per candle this
+    // came out at 120 on a 722 px canvas: two hours, out of the 2,880 one-minute candles loaded
+    // behind it, which is indistinguishable from the chart having no history at all.
+    expect(visibleMinuteBars(1194)).toBe(398);   // 1,920 px desktop, 6.6 h of minutes
+    expect(visibleMinuteBars(882)).toBe(294);    // 1,600 px desktop, 4.9 h
+    expect(visibleMinuteBars(722)).toBe(240);    // 1,440 px laptop, 4.0 h
+    expect(visibleMinuteBars(340)).toBe(113);    // 390 px phone, 1.9 h
+    // Before the canvas has been measured. A window of zero candles would draw nothing.
+    expect(visibleMinuteBars(0)).toBe(60);
   });
 
   it("hands the viewport back after every full replace of the same series", () => {

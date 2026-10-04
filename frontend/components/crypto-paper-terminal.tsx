@@ -1081,17 +1081,22 @@ export function useCryptoTerminal(symbol: string = DEFAULT_SYMBOL, pollMs = 1000
     setActionError(null);
   }, [symbol]);
 
-  const refresh = useCallback(async () => {
-    const asked = current.current;
-    const still = () => asked === current.current;
+  /** Both readers take the instrument and the signal they are about as arguments rather than
+   *  reading a ref. The ref told them which symbol was selected *at the moment they ran*, which
+   *  is a different question: a timer that had been running since before the operator changed
+   *  tabs would read the ref, see the new symbol and issue a perfectly well formed request that
+   *  nobody had asked for, out of a source belonging to the previous one. Owning the symbol and
+   *  the signal makes a reader structurally unable to ask about anything else. */
+  const refresh = useCallback(async (asked: string, signal: AbortSignal) => {
+    const still = () => !signal.aborted && asked === current.current;
     try {
       const [next, ledger, summary, history, sizes] = await Promise.all([
-        cryptoApi.state(asked), cryptoApi.ledger(asked, 60), cryptoApi.performance(asked),
-        cryptoApi.trades(asked, 50),
+        cryptoApi.state(asked, signal), cryptoApi.ledger(asked, 60, signal),
+        cryptoApi.performance(asked, signal), cryptoApi.trades(asked, 50, signal),
         // Sizing moves with the mark and with the balance, so it is refreshed on the same tick
         // as the account rather than only when a preset is pressed. A stale MAX is a rejected
         // order. The engine prices all four presets for both sides in a couple of milliseconds.
-        cryptoApi.sizing(asked),
+        cryptoApi.sizing(asked, signal),
       ]);
       if (!still() || (next.symbol != null && next.symbol !== asked)) return;
       setState(next);
@@ -1105,43 +1110,67 @@ export function useCryptoTerminal(symbol: string = DEFAULT_SYMBOL, pollMs = 1000
         setError(exception instanceof CryptoApiError ? exception.message : "상태 조회 실패");
       }
     }
+    if (!still()) return;
     // Fetched on its own so a server that predates the route (404) or a failed preview never
     // takes the rest of the terminal down with it. Missing breakdown just hides the panel.
     try {
-      const next = await cryptoApi.pnlBreakdown(asked);
+      const next = await cryptoApi.pnlBreakdown(asked, signal);
       if (still()) setBreakdown(next);
     } catch { if (still()) setBreakdown(null); }
   }, []);
 
-  const refreshChart = useCallback(async () => {
-    const asked = current.current;
+  const refreshChart = useCallback(async (asked: string, signal: AbortSignal) => {
     try {
-      const next = await cryptoApi.chart(asked);
+      const next = await cryptoApi.chart(asked, undefined, signal);
       // The bars are the one thing on this screen that is pure shape: a wrong-symbol series
-      // looks entirely plausible, so it is checked rather than eyeballed.
-      if (asked === current.current && (next.symbol == null || next.symbol === asked)) {
+      // looks entirely plausible, so it is checked rather than eyeballed. The check stays even
+      // though the request can no longer be about another instrument: it is what catches a
+      // backend that answers with one.
+      if (!signal.aborted && asked === current.current
+          && (next.symbol == null || next.symbol === asked)) {
         setBars(next.bars);
       }
     } catch { /* the chart is not the authority */ }
   }, []);
 
+  /** The live poll's controller, so an action and the retry button refresh the instrument on
+   *  screen through the same signal the poll uses and are aborted with it. */
+  const live = useRef<AbortController | null>(null);
+  const refreshNow = useCallback(() => {
+    const controller = live.current;
+    return controller ? refresh(current.current, controller.signal) : Promise.resolve();
+  }, [refresh]);
+
   const act = useCallback((run: () => Promise<unknown>) => {
     setBusy(true);
     setActionError(null);
     void run()
-      .then(() => refresh())
+      .then(() => refreshNow())
       .catch(exception => setActionError(
         exception instanceof CryptoApiError ? `${exception.code} · ${exception.message}` : "요청 실패"))
       .finally(() => setBusy(false));
-  }, [refresh]);
+  }, [refreshNow]);
 
+  // Keyed on the symbol, so changing it tears the whole source down: the timers are cleared
+  // before new ones are made and every read in flight is aborted. Previously these intervals
+  // were created once for the life of the screen and survived every symbol change, which is
+  // what let a tick belonging to one instrument fire after the operator had left it.
   useEffect(() => {
-    void refresh();
-    void refreshChart();
-    const stateTimer = window.setInterval(refresh, pollMs);
-    const chartTimer = window.setInterval(refreshChart, 15_000);
-    return () => { window.clearInterval(stateTimer); window.clearInterval(chartTimer); };
-  }, [refresh, refreshChart, pollMs]);
+    const asked = symbol;
+    const controller = new AbortController();
+    live.current = controller;
+    void refresh(asked, controller.signal);
+    void refreshChart(asked, controller.signal);
+    const stateTimer = window.setInterval(() => void refresh(asked, controller.signal), pollMs);
+    const chartTimer = window.setInterval(() => void refreshChart(asked, controller.signal), 15_000);
+    return () => {
+      controller.abort();
+      if (live.current === controller) live.current = null;
+      window.clearInterval(stateTimer);
+      window.clearInterval(chartTimer);
+    };
+  }, [refresh, refreshChart, pollMs, symbol]);
 
-  return { state, bars, events, performance, trades, sizing, breakdown, error, actionError, busy, act, refresh };
+  return { state, bars, events, performance, trades, sizing, breakdown, error, actionError, busy,
+           act, refresh: refreshNow };
 }

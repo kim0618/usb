@@ -23,7 +23,7 @@ import { cryptoApi } from "@/lib/crypto-paper";
  *  discarding a response that names a different symbol than the one on screen.
  */
 
-afterEach(() => { cleanup(); vi.restoreAllMocks(); });
+afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.useRealTimers(); });
 beforeEach(() => { try { window.localStorage.clear(); } catch { /* private window */ } });
 
 const PRICES: Record<string, string> = {
@@ -435,6 +435,84 @@ describe("the chart follows the selected symbol", () => {
     render(<ChartSection state={state} bars={[]} timeframe="15s" onTimeframe={() => {}} />);
     await waitFor(() => expect(fifteen).toHaveBeenCalled());
     expect(fifteen.mock.calls.every(call => call[0] === "SOLUSDT")).toBe(true);
+  });
+});
+
+describe("the terminal's polls do not survive a symbol change", () => {
+  /** Every read the 1 Hz poll makes, answered with the symbol it was asked about. */
+  const stubReads = () => {
+    const state = { symbol: "", leverage: "10", server_time_ms: 1, state: { mode: "MANUAL" },
+                    quote: null, account: null, feed: { connected: true } };
+    const reads = {
+      state: vi.spyOn(cryptoApi, "state")
+        .mockImplementation(async symbol => ({ ...state, symbol }) as never),
+      chart: vi.spyOn(cryptoApi, "chart")
+        .mockImplementation(async symbol => ({ symbol, bars: [] })),
+      ledger: vi.spyOn(cryptoApi, "ledger").mockResolvedValue({ total: 0, events: [] }),
+      performance: vi.spyOn(cryptoApi, "performance").mockResolvedValue({} as never),
+      trades: vi.spyOn(cryptoApi, "trades").mockResolvedValue({ total: 0, trades: [] }),
+      sizing: vi.spyOn(cryptoApi, "sizing").mockResolvedValue({} as never),
+      breakdown: vi.spyOn(cryptoApi, "pnlBreakdown").mockResolvedValue({} as never),
+    };
+    return reads;
+  };
+
+  it("starts the new symbol's polls at once and asks about nothing else", async () => {
+    // The polls used to be one `setInterval` pair created for the life of the screen, carrying
+    // the symbol in a ref. Changing the symbol did not restart them, so the chart feed - which
+    // the symbol change had just emptied - stayed empty until the old 15 s tick came round,
+    // up to fifteen seconds of a chart with nothing in it on the new tab. The same timers also
+    // kept running under a symbol the operator had left, which is the request production was
+    // seen making. Both follow from the source not being owned by the symbol.
+    vi.useFakeTimers();
+    const reads = stubReads();
+    const { useCryptoTerminal } = await import("@/components/crypto-paper-terminal");
+    const { rerender, unmount } = renderHook(({ s }) => useCryptoTerminal(s),
+                                             { initialProps: { s: "BTCUSDT" } });
+    await act(async () => { await vi.advanceTimersByTimeAsync(20_000); });
+
+    for (const next of ["ETHUSDT", "SOLUSDT", "BTCUSDT"]) {
+      for (const spy of Object.values(reads)) spy.mockClear();
+      rerender({ s: next });
+      // Not on the next tick of a timer that belongs to the symbol just left: now.
+      await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+      expect(reads.chart, `chart right after switching to ${next}`)
+        .toHaveBeenCalledWith(next, undefined, expect.anything());
+      expect(reads.state, `state right after switching to ${next}`)
+        .toHaveBeenCalledWith(next, expect.anything());
+
+      // Well past both cadences: the 1 s account poll and the 15 s execution-feed chart poll.
+      await act(async () => { await vi.advanceTimersByTimeAsync(40_000); });
+      for (const [name, spy] of Object.entries(reads)) {
+        const asked = [...new Set(spy.mock.calls.map(call => call[0]))];
+        expect(asked, `${name} after switching to ${next}`).toEqual([next]);
+      }
+    }
+    unmount();
+    for (const spy of Object.values(reads)) spy.mockClear();
+    await act(async () => { await vi.advanceTimersByTimeAsync(40_000); });
+    for (const [name, spy] of Object.entries(reads)) {
+      expect(spy, `${name} after unmount`).not.toHaveBeenCalled();
+    }
+  });
+
+  it("hands every read the signal its poll is aborted with", async () => {
+    vi.useFakeTimers();
+    const reads = stubReads();
+    const { useCryptoTerminal } = await import("@/components/crypto-paper-terminal");
+    const { rerender } = renderHook(({ s }) => useCryptoTerminal(s),
+                                    { initialProps: { s: "BTCUSDT" } });
+    await act(async () => { await vi.advanceTimersByTimeAsync(5_000); });
+    // The signal the first symbol's reads were given, taken from the last argument of each call.
+    const signals = Object.values(reads)
+      .flatMap(spy => spy.mock.calls.map(call => call[call.length - 1]))
+      .filter((value): value is AbortSignal => value instanceof AbortSignal);
+    expect(signals.length).toBeGreaterThan(0);
+    expect(signals.every(signal => !signal.aborted)).toBe(true);
+
+    rerender({ s: "ETHUSDT" });
+    // Changing the symbol does not wait for the reads in flight to come back; it cancels them.
+    expect(signals.every(signal => signal.aborted)).toBe(true);
   });
 });
 

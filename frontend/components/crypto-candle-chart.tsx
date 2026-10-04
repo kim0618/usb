@@ -35,11 +35,30 @@ export const kstCrosshairLabel = (seconds: boolean) => (time: number) =>
  *  wider bars, the last N of them in view, the price scale fitted to those, volume kept small.
  *  Every value is set on each profile switch, so nothing from one timeframe survives into another. */
 const PROFILES = {
-  minute: { barSpacing: 6, minBarSpacing: 0.5, rightOffset: 3, priceTop: 0.08, priceBottom: 0.28, volumeTop: 0.8,
+  // `barSpacing` is also what decides how much history the minute views open on, because the
+  // first draw places a window of `clientWidth / barSpacing` candles out of the ones loaded. At
+  // 6 px a 1m chart opened on 120 candles on a 722 px canvas: two hours out of the 2,880 behind
+  // it, which read as the chart having no history rather than as a starting zoom. At 3 px the
+  // same canvas opens on about four hours and a 1,600 px desktop on about five, and the candles
+  // still have bodies. Zooming and panning from there are untouched, and so is where a view
+  // that has already been moved sits.
+  minute: { barSpacing: 3, minBarSpacing: 0.5, rightOffset: 3, priceTop: 0.08, priceBottom: 0.28, volumeTop: 0.8,
     minPriceSpan: 0 },
   seconds: { barSpacing: 7, minBarSpacing: 2, rightOffset: 4, priceTop: 0.1, priceBottom: 0.2, volumeTop: 0.84,
     minPriceSpan: 10 },
 } as const;
+
+/** How many one-minute-or-wider candles the first draw puts in view, by chart width.
+ *
+ *  Named and exported for the same reason `VISIBLE_15S_BARS` is: this is the number an operator
+ *  reads as "how much history does this chart have", and at 6 px per candle it came out at 120
+ *  on a 722 px canvas, which is two hours of the 2,880 loaded behind it. The floor is for the
+ *  first draw on a canvas that has not been measured yet, where `clientWidth` is 0.
+ *
+ *  It is the opening window only. Zoom and pan own the viewport afterwards, and `heldViewport`
+ *  is what keeps their work. */
+export const visibleMinuteBars = (chartWidthPx: number) =>
+  Math.max(60, Math.floor(chartWidthPx / PROFILES.minute.barSpacing));
 
 /** Autoscale that never zooms tighter than `minSpan` (USDT), centred on the candles. Without it a
  *  few flat 15 s candles, right after a restart or in a quiet minute, fill the whole pane and a
@@ -261,7 +280,7 @@ export function CandleChart({ candles, overlays, markers = [], className = "h-[3
       // viewport belongs to whoever is panning it.
       if (!fitted.current || (previous != null && previous.key !== seriesKey)) {
         const width = holder.current?.clientWidth ?? 0;
-        const bars = seconds ? visible15sBars(width) : Math.max(60, Math.floor(width / profile.barSpacing));
+        const bars = seconds ? visible15sBars(width) : visibleMinuteBars(width);
         api?.timeScale().setVisibleLogicalRange({ from: candles.length - bars, to: candles.length - 1 + profile.rightOffset });
         fitted.current = true;
       }

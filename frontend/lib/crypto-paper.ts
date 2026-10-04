@@ -260,7 +260,13 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     response = await fetch(`${CRYPTO_API_BASE}${path}`, {
       ...init, headers: { "Content-Type": "application/json", ...init?.headers }, cache: "no-store",
     });
-  } catch {
+  } catch (exception) {
+    // An abort is this screen being told it no longer wants the answer, not the API being
+    // unreachable. Reported as its own code so a caller cannot mistake the two: a symbol change
+    // aborts every read in flight, and showing "연결할 수 없습니다" for that would be a lie.
+    if (exception instanceof DOMException && exception.name === "AbortError") {
+      throw new CryptoApiError(0, "REQUEST_ABORTED", "요청이 취소되었습니다.");
+    }
     throw new CryptoApiError(0, "NETWORK_ERROR", "Paper Terminal API에 연결할 수 없습니다.");
   }
   const body = await response.json().catch(() => null) as { error?: { code?: string; message?: string } } | null;
@@ -275,24 +281,25 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
  *  quietly answers about another instrument looks exactly like a correct one.
  */
 export const cryptoApi = {
-  state: (symbol: string) => request<CryptoState>(withSymbol("/api/crypto/state", symbol)),
-  chart: (symbol: string, limit = 120) =>
+  state: (symbol: string, signal?: AbortSignal) =>
+    request<CryptoState>(withSymbol("/api/crypto/state", symbol), { signal }),
+  chart: (symbol: string, limit = 120, signal?: AbortSignal) =>
     request<{ symbol?: string; bars: ChartBar[] }>(
-      withSymbol(`/api/crypto/chart?limit=${limit}`, symbol)),
+      withSymbol(`/api/crypto/chart?limit=${limit}`, symbol), { signal }),
   chartHistory: (symbol: string, timeframe: HistoryTimeframe, limit: number,
                  beforeMs?: number | null, signal?: AbortSignal) => {
     const query = new URLSearchParams({ timeframe, limit: String(limit), symbol });
     if (beforeMs != null) query.set("before_ms", String(beforeMs));
     return request<ChartHistoryResponse>(`/api/crypto/chart-history?${query.toString()}`, { signal });
   },
-  ledger: (symbol: string, limit = 60) =>
+  ledger: (symbol: string, limit = 60, signal?: AbortSignal) =>
     request<{ total: number; events: LedgerEvent[] }>(
-      withSymbol(`/api/crypto/ledger?limit=${limit}`, symbol)),
-  performance: (symbol: string) =>
-    request<Performance>(withSymbol("/api/crypto/performance", symbol)),
-  trades: (symbol: string, limit = 50) =>
+      withSymbol(`/api/crypto/ledger?limit=${limit}`, symbol), { signal }),
+  performance: (symbol: string, signal?: AbortSignal) =>
+    request<Performance>(withSymbol("/api/crypto/performance", symbol), { signal }),
+  trades: (symbol: string, limit = 50, signal?: AbortSignal) =>
     request<{ total: number; trades: TradeRow[] }>(
-      withSymbol(`/api/crypto/trades?limit=${limit}`, symbol)),
+      withSymbol(`/api/crypto/trades?limit=${limit}`, symbol), { signal }),
   order: (symbol: string,
           body: { side: "LONG" | "SHORT"; intent: "OPEN" | "CLOSE"; qty?: string; notional_usdt?: string }) =>
     request<{ state: CryptoState }>("/api/crypto/order",
@@ -306,9 +313,10 @@ export const cryptoApi = {
   emergencyClose: (symbol: string) =>
     request<{ state: CryptoState }>(withSymbol("/api/crypto/emergency-close", symbol),
       { method: "POST" }),
-  sizing: (symbol: string) => request<CryptoSizing>(withSymbol("/api/crypto/sizing", symbol)),
-  pnlBreakdown: (symbol: string) =>
-    request<PnlBreakdown>(withSymbol("/api/crypto/pnl-breakdown", symbol)),
+  sizing: (symbol: string, signal?: AbortSignal) =>
+    request<CryptoSizing>(withSymbol("/api/crypto/sizing", symbol), { signal }),
+  pnlBreakdown: (symbol: string, signal?: AbortSignal) =>
+    request<PnlBreakdown>(withSymbol("/api/crypto/pnl-breakdown", symbol), { signal }),
   orderPreview: (symbol: string, params: OrderPreviewParams, signal?: AbortSignal) => {
     const query = new URLSearchParams(Object.entries(params).filter(([, v]) => v != null && v !== "") as [string, string][]);
     return request<OrderPreview>(
