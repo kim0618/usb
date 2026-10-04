@@ -157,7 +157,9 @@ export function HCohortTable({ rows, detailHref }: {
         <td className="whitespace-nowrap">{dash(row.valuation_method)}
           <span className="block text-[10px] text-muted">{dash(row.valuation_window)}</span></td>
         <td>{row.valuation_confidence}
-          {row.range_complete === false && <span className="block text-[10px] tone-warning"
+          {/* text tone only: tone-warning carries a background and renders as a block inside this
+              narrow cell, which reads as a highlight artifact rather than a note. */}
+          {row.range_complete === false && <span className="mt-0.5 block whitespace-nowrap text-[10px] tone-text-warning"
             title="범위에 다리가 하나 없다. 신뢰도와 함께 읽으면 모순일 수 있다(D5-D2R 선언 한계)">range 불완전</span>}</td>
         <Cell value={price(row.current_price)} reason={`세션 ${dash(row.current_price_session)}`}/>
         <Cell value={price(row.bear)} reason={row.bear_na_reason}/>
