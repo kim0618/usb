@@ -366,6 +366,34 @@ scanning a gap.
 
 ## 10. Status
 
+### The commit graph is incomplete, and the missing piece is not A's
+
+A standalone checkout of A's commits **does not import**, and neither does `app.main`:
+
+```
+ImportError: cannot import name 'GapDirection' from 'app.strategy.config'
+```
+
+`mover_scanner_v1/scan.py` and `actionability.py` read the premarket gate's admitted gap sign
+from `StrategyConfig.premarket_gap_direction`, which is exactly right - the handoff checksum
+includes the gap band, so the mask must come from the deployed config rather than be restated.
+But `GapDirection` and `premarket_gap_direction` exist only as an **uncommitted edit** to
+`backend/app/strategy/config.py`, and that edit is another session's gap-sensitivity and
+entry-family research (`EntryMode`, `time_progress_stop_minutes`,
+`max_breakout_distance_r`, `max_signal_bar_volume_ratio`, `trend_lookback_bars`). It is not
+A's to commit.
+
+Measured in an isolated worktree holding committed content only: that one name is the whole
+gap. With a two-field shim for it, all 23 A entry points import and A's committed suites pass
+290 tests; without it, 19 of 23 fail at import and `app.main` fails with them.
+
+**So a production pull of these commits, without that file, would stop the backend from
+starting.** That is the sharpest reason nothing here is pushed or deployed. The fix is one of:
+the owning session commits its `strategy/config.py` work, or `premarket_gap_direction` is
+split out into a commit of its own with the owner's agreement.
+
+### Data
+
 `BLOCKED_STALE_MASSIVE_DAILY_FEED`. The pipeline is implemented, tested and committed with the
 flag off, and the baseline is no longer the blocker: the mixed bootstrap removes both the
 twenty-session wait and the 62.6-77.8 h collection from the critical path.
