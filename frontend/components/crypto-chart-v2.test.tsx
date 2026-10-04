@@ -1,8 +1,12 @@
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { CHART_HISTORY_PAGE, CHART_INITIAL_BARS, useChartHistory } from "@/components/crypto-terminal-layout";
+import {
+  CHART_HISTORY_PAGE, CHART_HISTORY_POLL_MS, CHART_INITIAL_BARS, useChartHistory,
+} from "@/components/crypto-terminal-layout";
 import { chartBarsToCandles, cryptoApi, mergeCandles } from "@/lib/crypto-paper";
-import { kstCrosshairLabel, kstTickLabel, prependedBars } from "@/components/crypto-candle-chart";
+import {
+  heldViewport, kstCrosshairLabel, kstTickLabel, prependedBars,
+} from "@/components/crypto-candle-chart";
 import type { ChartBar, ChartHistoryResponse, HistoryTimeframe } from "@/lib/crypto-paper";
 
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.useRealTimers(); });
@@ -74,9 +78,56 @@ describe("chart V2 history", () => {
       "ETHUSDT", "1m", expect.anything(), null, expect.anything());
   });
 
+  it("retries the initial history instead of leaving the screen on the execution feed", async () => {
+    vi.useFakeTimers();
+    const history = vi.spyOn(cryptoApi, "chartHistory")
+      .mockRejectedValueOnce(new Error("CHART_SOURCE_UNAVAILABLE"))
+      .mockResolvedValueOnce(response("1m", [bar(60_000), bar(120_000)]));
+    const { result } = renderHook(() => useChartHistory(true, "1m"));
+    await act(async () => { await Promise.resolve(); });
+    // The regression this pins. The seed was asked for once, so a 502 from this route left the
+    // series empty with `loading` already false: the 1m screen fell back to the execution feed's
+    // 120 one-minute bars, said nothing about it, and stayed there until the page was reloaded.
+    expect(result.current.candles).toEqual([]);
+    expect(result.current.loading).toBe(true);
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(CHART_HISTORY_POLL_MS); });
+    expect(result.current.candles.map(item => item.time)).toEqual([60, 120]);
+    expect(result.current.loading).toBe(false);
+    expect(history).toHaveBeenNthCalledWith(2, "BTCUSDT", "1m", CHART_INITIAL_BARS["1m"], null,
+                                            expect.anything());
+  });
+
   it("detects pure prepend so the chart can preserve its logical range", () => {
     expect(prependedBars([10, 20, 30], [-10, 0, 10, 20, 30])).toBe(2);
     expect(prependedBars([10, 20, 30], [0, 10, 25, 30])).toBe(0);
+  });
+
+  it("hands the viewport back after every full replace of the same series", () => {
+    const drawn = { key: "BTCUSDT|1m", times: [0, 60, 120, 180, 240] };
+    const pulledBack = { from: 1, to: 2 };
+    const atLiveEdge = { from: 2, to: 4 };
+
+    // The regression this pins. A tail that moved by more than two bars is neither a tail update
+    // nor a prepend, so it takes the full-replace branch, which re-applies `barSpacing`. With no
+    // range handed back the chart re-zoomed to one screen of candles and threw away an operator's
+    // zoom-out: a 1m view of two days came back showing two hours of them.
+    const jumped = [...drawn.times, 300, 360, 420];
+    expect(heldViewport(drawn, "BTCUSDT|1m", pulledBack, jumped)).toEqual(pulledBack);
+    // A view that was sitting on the newest bar follows the bars that arrived, the way a tail
+    // update does, instead of falling one gap further behind the live edge each time.
+    expect(heldViewport(drawn, "BTCUSDT|1m", atLiveEdge, jumped)).toEqual({ from: 5, to: 7 });
+
+    // A prepended page shifts the range over the bars that arrived in front of it.
+    const prepended = [-120, -60, ...drawn.times];
+    expect(heldViewport(drawn, "BTCUSDT|1m", pulledBack, prepended)).toEqual({ from: 3, to: 4 });
+
+    // A new symbol or timeframe is a new series: its view is placed afresh, not inherited.
+    expect(heldViewport(drawn, "ETHUSDT|1m", pulledBack, jumped)).toBeNull();
+    expect(heldViewport(drawn, "BTCUSDT|1h", pulledBack, jumped)).toBeNull();
+    // Nothing drawn yet, or no range to read, is placed afresh as well.
+    expect(heldViewport(null, "BTCUSDT|1m", pulledBack, jumped)).toBeNull();
+    expect(heldViewport(drawn, "BTCUSDT|1m", null, jumped)).toBeNull();
   });
 
   /** 2026-10-01 00:00 UTC, which is 09:00 the same morning in KST. On the daily and 4 h views

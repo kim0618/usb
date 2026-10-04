@@ -246,7 +246,6 @@ export function CandleChart({ candles, overlays, markers = [], className = "h-[3
       const profile = seconds ? PROFILES.seconds : PROFILES.minute;
       const api = chart.current;
       const visible = api?.timeScale().getVisibleLogicalRange() ?? null;
-      const prepended = previous?.key === seriesKey ? prependedBars(previous.times, times) : 0;
       api?.applyOptions({
         timeScale: { secondsVisible: seconds, barSpacing: profile.barSpacing, minBarSpacing: profile.minBarSpacing,
                      rightOffset: profile.rightOffset, tickMarkFormatter: kstTickLabel(seconds) },
@@ -256,9 +255,8 @@ export function CandleChart({ candles, overlays, markers = [], className = "h-[3
       api?.priceScale("volume").applyOptions({ scaleMargins: { top: profile.volumeTop, bottom: 0 } });
       price.setData(candles.map(bar));
       volume.setData(candles.map(vol));
-      if (prepended > 0 && visible) {
-        api?.timeScale().setVisibleLogicalRange({ from: visible.from + prepended, to: visible.to + prepended });
-      }
+      const held = heldViewport(previous, seriesKey, visible, times);
+      if (held) api?.timeScale().setVisibleLogicalRange(held);
       // Place the view on the first draw and whenever the series changes. After that the
       // viewport belongs to whoever is panning it.
       if (!fitted.current || (previous != null && previous.key !== seriesKey)) {
@@ -327,6 +325,34 @@ export function CandleChart({ candles, overlays, markers = [], className = "h-[3
       )}
     </div>
   );
+}
+
+/** The logical range a full replace has to hand back, or null when the view is to be placed afresh.
+ *
+ *  `barSpacing` belongs to the profile a full replace re-applies, so the chart re-zooms to one
+ *  screen of candles unless the range it was showing is put back. That was done only for a
+ *  prepend, which left every other full replace of the same series throwing the viewport away.
+ *  The merge that does it is a tail that moved by more than two bars, which is neither a tail
+ *  update nor a prepend: production answered the 1m tail poll with 502 or 504 twenty times today
+ *  and left four gaps of 141 s to 567 s in it, and a backgrounded tab throttles the same timer to
+ *  minutes. An operator who had zoomed out to read two days of minutes was put back on two hours
+ *  of them, which from the chair is indistinguishable from the chart having lost its history.
+ *
+ *  `prepended` is zero when nothing was prepended, so one call both holds the view still and
+ *  shifts it over the bars that arrived in front of it. */
+export function heldViewport(previous: { key: string; times: number[] } | null, key: string,
+                             visible: { from: number; to: number } | null,
+                             times: number[]): { from: number; to: number } | null {
+  if (visible == null || previous == null || previous.key !== key) return null;
+  const prepended = prependedBars(previous.times, times);
+  const appended = times.length - previous.times.length - prepended;
+  // A view whose right edge was sitting on the newest bar keeps sitting on it, which is what
+  // `update` does on a tail update; a view the operator had pulled back stays where they left
+  // it. Without the first half of that, a chart left at the live edge would fall one gap further
+  // behind it every time this branch ran.
+  const live = visible.to >= previous.times.length - 1;
+  const shift = prepended + (live ? Math.max(0, appended) : 0);
+  return { from: visible.from + shift, to: visible.to + shift };
 }
 
 /** Number of bars prepended to the same series, or zero when this is not a pure prepend. */

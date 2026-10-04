@@ -327,18 +327,31 @@ export function useChartHistory(enabled: boolean, timeframe: HistoryTimeframe,
       if (current()) timer = window.setTimeout(refreshTail, CHART_HISTORY_POLL_MS);
     };
 
-    void cryptoApi.chartHistory(symbol, timeframe, CHART_INITIAL_BARS[timeframe], null,
-                                controller.signal)
-      .then(body => {
+    /** The initial history, retried until it arrives.
+     *
+     *  A seed that was asked for once left the 1m screen on the execution feed's 120 one-minute
+     *  bars - two hours - for as long as the page stayed open, with the series empty, `loading`
+     *  already false and so no message saying anything was missing, and no way back except a
+     *  reload. The wider timeframes have no fallback at all and sat on "차트 데이터를 받는 중입니다"
+     *  instead. This is the ordinary failure rather than a rare one: nginx answered this route
+     *  with 502 or 504 twenty-one times today. Retried on the tail's own cadence, and `loading`
+     *  stays true while it is still trying, so the strip says so. */
+    const seed = async () => {
+      try {
+        const body = await cryptoApi.chartHistory(symbol, timeframe, CHART_INITIAL_BARS[timeframe],
+                                                  null, controller.signal);
         if (!current()) return;
         setSeries({ key: seriesKey, candles: chartBarsToCandles(body.bars) });
         before.current = body.next_before_ms;
         hasMore.current = body.has_more;
         setEnd(!body.has_more);
+        setLoading(false);
         timer = window.setTimeout(refreshTail, CHART_HISTORY_POLL_MS);
-      })
-      .catch(() => { /* the short execution-feed fallback remains on screen */ })
-      .finally(() => { if (current()) setLoading(false); });
+      } catch {
+        if (current()) timer = window.setTimeout(seed, CHART_HISTORY_POLL_MS);
+      }
+    };
+    void seed();
 
     return () => { stopped = true; controller.abort(); if (timer !== undefined) window.clearTimeout(timer); };
   }, [enabled, timeframe, symbol, seriesKey]);
