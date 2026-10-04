@@ -1,0 +1,19 @@
+[Unit]
+Description=Collect the grouped daily Strategy A reads as D-1, after Massive publishes it
+
+[Timer]
+# Stocks Basic does not publish a session until after midnight ET, which is why the E universe
+# build sits at 00:20 ET. Measured, not assumed: the forward store's eleven grouped files were
+# each written at 00:20-00:22 ET on the session's next calendar day, seven nights in a row and
+# across a weekend. 00:40 ET is twenty minutes behind that build (which completes in ~20s, so
+# the shared Massive key is free) and three hours five minutes ahead of the 03:45 ET paper
+# start that attaches A. Mon..Fri covers every session: a Friday close is collected on Monday,
+# and a holiday Monday collects Friday again as a no-op.
+OnCalendar=Mon..Fri 00:40 America/New_York
+Persistent=true
+AccuracySec=1m
+RandomizedDelaySec=0
+Unit=usb-grouped-daily.service
+
+[Install]
+WantedBy=timers.target

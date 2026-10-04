@@ -1,0 +1,33 @@
+[Unit]
+Description=USB Strategy A grouped daily refresh (Massive market-wide D-1 daily bars)
+After=network-online.target
+Wants=network-online.target
+# a once-a-day job must not crash-loop between timers
+StartLimitIntervalSec=1800
+StartLimitBurst=3
+
+[Service]
+Type=oneshot
+User=root
+# The code is read from the main checkout; the store is written where Strategy A actually
+# reads it, which is the paper runner's own tree (its repo root is parents[3] of the live
+# integration module). --mirror-repo keeps the main checkout's copy of the same store in
+# step at zero bytes, because both trees are on /dev/vda2 and the file is hardlinked.
+WorkingDirectory=/root/usb/backend
+EnvironmentFile=/root/usb/.env
+EnvironmentFile=/root/usb/.env.massive
+Environment=PYTHONPATH=/root/usb/backend
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/root/usb/.venv/bin/python -m app.dev.collect_grouped_daily \
+  --repo /root/usb_runtime/strategy_e_paper/src \
+  --mirror-repo /root/usb
+# One Massive call on a normal night; the 13s spacing and the 40-session repair cap bound the
+# worst case well inside this. --revalidate is deliberately NOT passed: a nightly run owns the
+# target session only, so a validation rule of mine cannot turn one night into a bulk refetch.
+TimeoutStartSec=30min
+MemoryMax=300M
+Nice=10
+
+# Every run also writes its own evidence to
+# <repo>/data/runtime/ops/grouped_daily/run_<ts>.json plus a runs.jsonl line, because this
+# host's journal is vacuumed and a collection failure has to outlive it.
