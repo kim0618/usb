@@ -19,13 +19,17 @@ export const analysisTabs: SectionTab[] = [
 /** Operating screens are derived from the strategy registry (see lib/strategies.ts), so a strategy
  *  appears here by being enabled in the backend rather than by being written into this file. */
 
-/** Result screens. The A/E comparison is the group's landing screen; A's shadow variants keep their
- *  own tab; Strategy H's forward shadow has its own screen because a decision cohort does not fit a
- *  trade-shaped comparison; closed research (B, C, D) is reachable only through the research history. */
+/** Result screens. The comparison is the group's landing screen and answers ALL / A / E / H on its
+ *  own; Strategy H keeps a second screen because its per-issuer evidence does not fit a
+ *  trade-shaped comparison; closed research (B, C, D) is reachable only through the research history.
+ *
+ *  A's exit-rule experiment (`/shadow`) is deliberately not a tab. Its variants are also labelled
+ *  A to E, which collides with Strategy A and Strategy E on this very bar, and the server's
+ *  `shadow_trades` table holds 0 rows: the live paper runtime never writes one. The route, its
+ *  components and its data stay where they are and the research history links to it. */
 export const strategyTabs: SectionTab[] = [
   { href: "/strategy-compare", label: "성과 비교" },
   { href: "/strategy-h", label: "H 포워드 섀도" },
-  { href: "/shadow", label: "A 섀도 변형" },
   { href: "/strategy-history", label: "연구 이력" },
 ];
 

@@ -14,11 +14,14 @@
 
 import Link from "next/link";
 import { pnlTone } from "@/components/daily-performance";
-import { EmptyState, StatusBadge } from "@/components/ui";
+import { EquitySparkline, StrategyPositions, StrategyTrades } from "@/components/strategy-runtime";
+import { EmptyState, LoadingState, StatusBadge } from "@/components/ui";
+import { useApi } from "@/hooks/use-api";
 import { formatSignedUsd, formatUsd } from "@/lib/format";
 import {
   ALL_STRATEGIES, LIFECYCLE_LABELS, OPERATION_LABELS, PAPER_MODES, RESEARCH_LABELS,
   STRATEGY_A, STRATEGY_E, STRATEGY_H, selectorOptions, strategyLabel,
+  strategiesApi,
   type GateResult, type PerformanceBoard, type PortfolioView, type StrategyMetrics, type StrategyRow,
 } from "@/lib/strategies";
 import { HBoardRow } from "@/components/h-forward";
@@ -90,6 +93,8 @@ export function PerformanceTable({ board, rows, book = "official", strategy = AL
       : []),
   ];
   const showH = official && board.h_forward && (all || strategy === STRATEGY_H);
+  const shows = (id: string) => columns.some(column => column.id === id);
+  const hasCombined = shows("COMBINED");
   const clock = board.paper_clock;
   const titleId = official ? "ae-performance-title" : "ae-legacy-title";
   return <section aria-labelledby={titleId} className="mb-7 min-w-0" data-book={book}>
@@ -118,19 +123,21 @@ export function PerformanceTable({ board, rows, book = "official", strategy = AL
         </tbody>
       </table>
     </div>
+    {/* A note is shown only when the thing it describes is on screen: under a single strategy the
+        Combined, E-book and H-cohort sentences describe columns that are not there. */}
     <ul className="mt-3 space-y-1 text-xs text-muted">
       {official ? <>
-        <li>Combined는 두 공식 장부의 거래와 일별 손익을 더한 회계 합계입니다. 배분 규칙이 아닙니다.</li>
-        <li>MFE·MAE는 두 원장 모두 장중 경로를 기록하지 않아 N/A입니다.</li>
-        <li>E는 {board.books[STRATEGY_E] || "-"} 장부만 집계합니다.</li>
-        {board.combined_definition && <li>{board.combined_definition}</li>}
-        {board.h_forward && <li>
+        {hasCombined && <li>Combined는 두 공식 장부의 거래와 일별 손익을 더한 회계 합계입니다. 배분 규칙이 아닙니다.</li>}
+        {(shows(STRATEGY_A) || shows(STRATEGY_E)) && <li>MFE·MAE는 두 원장 모두 장중 경로를 기록하지 않아 N/A입니다.</li>}
+        {shows(STRATEGY_E) && <li>E는 {board.books[STRATEGY_E] || "-"} 장부만 집계합니다.</li>}
+        {hasCombined && board.combined_definition && <li>{board.combined_definition}</li>}
+        {shows(STRATEGY_H) && board.h_forward && <li>
           H는 자본 장부가 없어 금액 지표가 N/A이고 Combined·포트폴리오 합산에 들어가지 않습니다.
           결정 상태는 APPROVE {board.h_forward.decision_counts.APPROVE ?? 0} ·
           WATCH {board.h_forward.decision_counts.WATCH ?? 0} ·
           REJECT {board.h_forward.decision_counts.REJECT ?? 0}이며 포지션 0은 정상입니다.
         </li>}
-        {Object.entries(board.excluded).map(([name, info]) => <li key={name}>{name}: 거래 {info.trades}건 · 세션 {info.sessions} · {info.reason}</li>)}
+        {shows(STRATEGY_E) && Object.entries(board.excluded).map(([name, info]) => <li key={name}>{name}: 거래 {info.trades}건 · 세션 {info.sessions} · {info.reason}</li>)}
       </> : <li className="tone-warning" data-accounting-warning="">
         V0 순손익은 체결가에 이미 들어간 스프레드·슬리피지를 비용으로 한 번 더 뺀 기록 그대로입니다. 원본은 수정하지 않으며,
         V1 재산정값은 원장(ledger)의 recomputed_v1_net_pnl에 따로 있습니다.</li>}
@@ -158,10 +165,12 @@ export function StrategySelector({ rows, value, onChange }: {
 const VERDICT_TONE: Readonly<Record<string, "success" | "warning" | "danger">> = { PASS: "success", INCONCLUSIVE: "warning", FAIL: "danger" };
 
 /** The frozen paper gate per strategy: the verdict, and which condition holds it back. */
-export function GatePanel({ gate, rows, board }: {
-  gate: Record<string, GateResult>; rows: StrategyRow[]; board?: PerformanceBoard;
+export function GatePanel({ gate, rows, board, strategy = ALL_STRATEGIES }: {
+  gate: Record<string, GateResult>; rows: StrategyRow[]; board?: PerformanceBoard; strategy?: string;
 }) {
   const h = board?.h_forward;
+  const shown = Object.values(gate).filter(r => strategy === ALL_STRATEGIES || r.strategy_id === strategy);
+  if (!shown.length) return null;
   return <section aria-labelledby="ae-gate-title" className="mb-7">
     <h2 id="ae-gate-title" className="mb-1 font-semibold">Paper 평가 게이트</h2>
     <p className="mb-3 text-xs text-muted">결과를 보기 전에 고정한 기준(AE_PAPER_EVALUATION_GATE_V1)입니다. 결과에 따라 바꾸지 않습니다.</p>
@@ -171,7 +180,7 @@ export function GatePanel({ gate, rows, board }: {
       {" "}{h.evaluation.state} · {h.evaluation.verdict}이며, 21D·63D 표본이 찰 때까지 INCONCLUSIVE가 정상입니다.
     </p>}
     <div className="grid gap-4 xl:grid-cols-2">
-      {Object.values(gate).map(result => {
+      {shown.map(result => {
         const row = rows.find(r => r.strategy_id === result.strategy_id);
         return <article key={result.strategy_id} className="panel min-w-0 p-4" data-gate={result.strategy_id}>
           <header className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -249,6 +258,46 @@ export function PortfolioPanel({ view, rows }: { view: PortfolioView; rows: Stra
   </section>;
 }
 
+/** One strategy's own book, inline on the comparison screen: what it holds now, what it closed and
+ *  how its equity moved.
+ *
+ *  It fetches per strategy id, so two strategies' rows can never end up in one table, and it is
+ *  mounted with a key so selecting another strategy refetches instead of showing the previous one.
+ *  A strategy with no capital book (Strategy H) says so rather than rendering empty tables. */
+export function StrategyBookPanel({ row }: { row: StrategyRow }) {
+  const id = row.strategy_id;
+  const state = useApi(() => Promise.all([
+    strategiesApi.positions(id), strategiesApi.trades(id, 50), strategiesApi.equity(id),
+  ]), 60_000);
+  const label = row.short_name || row.display_name;
+  if (state.loading) return <LoadingState/>;
+  if (!state.data) {
+    return <EmptyState title={`${label} 장부 조회 실패`} description={state.error || undefined}/>;
+  }
+  const [positions, trades, equity] = state.data;
+  return <section aria-labelledby="book-title" className="mb-7 min-w-0" data-strategy-book={id}>
+    <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+      <h2 id="book-title" className="font-semibold">{strategyLabel(row)} · 자체 장부</h2>
+      <p className="text-xs text-muted">{equity.source}{equity.note ? ` · ${equity.note}` : ""}</p>
+    </div>
+    <div className="grid gap-4 xl:grid-cols-2">
+      <div className="panel min-w-0 p-4">
+        <h3 className="mb-2 text-sm font-semibold">보유 포지션</h3>
+        <div className="table-wrap relative"><StrategyPositions positions={positions}/></div>
+      </div>
+      <div className="panel min-w-0 p-4">
+        <h3 className="mb-2 text-sm font-semibold">자산 추이</h3>
+        {equity.points.length ? <EquitySparkline equity={equity}/>
+          : <EmptyState title="자산 곡선 없음" description={equity.note || "기록된 일별 자산이 없습니다."}/>}
+      </div>
+    </div>
+    <div className="panel mt-4 min-w-0 p-4">
+      <h3 className="mb-2 text-sm font-semibold">최근 거래</h3>
+      <div className="table-wrap relative"><StrategyTrades trades={trades}/></div>
+    </div>
+  </section>;
+}
+
 /** Research history: every strategy the registry lists, research verdict beside operating state. */
 export function ResearchHistory({ rows }: { rows: StrategyRow[] }) {
   return <div className="table-wrap relative">
@@ -270,6 +319,36 @@ export function ResearchHistory({ rows }: { rows: StrategyRow[] }) {
       })}</tbody>
     </table>
   </div>;
+}
+
+/** The experiments that are not strategies, and so have no registry row of their own.
+ *
+ *  Strategy A's exit-rule variants (`/shadow`) are the only one: five exit rules replayed over A's
+ *  own entries, confusingly labelled A to E like the strategies themselves. The screen is kept
+ *  reachable rather than deleted, but it is not a tab, because the live paper runtime writes no
+ *  `shadow_trades` row and the table is empty. */
+export function ExperimentHistory() {
+  return <section aria-labelledby="experiment-title" className="mt-7">
+    <h2 id="experiment-title" className="mb-1 font-semibold">전략이 아닌 실험</h2>
+    <p className="mb-3 text-xs text-muted">레지스트리에 전략으로 올라가지 않는 비교 실험입니다. 기록은 지우지 않습니다.</p>
+    <div className="panel p-4" data-experiment="A_EXIT_VARIANTS">
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <span className="font-semibold">A 청산규칙 변형 (A~E)</span>
+        <StatusBadge value="NO_DATA" label="기록 없음" tone="neutral"/>
+      </div>
+      <p className="text-sm text-foreground-secondary">
+        Strategy A가 실제로 잡은 진입을 청산 규칙만 바꿔 다시 돌린 비교입니다
+        (당일청산·ATR 1.5 / Day2 허용·ATR 1.0·1.5·2.0 / 당일청산·구조손절).
+      </p>
+      <p className="mt-1 text-xs text-muted">
+        여기서의 A~E는 청산 변형 이름이고 Strategy A·E와는 다른 것입니다. 운영 런타임이 shadow 기록을
+        쓰지 않아 표가 비어 있어 전략 탭에서는 내렸습니다. 화면과 데이터는 그대로 있습니다.
+      </p>
+      <p className="mt-3">
+        <Link href="/shadow" className="btn-action-secondary-compact">섀도 변형 화면 열기</Link>
+      </p>
+    </div>
+  </section>;
 }
 
 /** What a closed strategy's old screen shows now: that it is closed, and where the record lives.

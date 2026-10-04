@@ -1,6 +1,6 @@
 "use client";
 
-import { ResearchHistory } from "@/components/ae-operations";
+import { ExperimentHistory, ResearchHistory } from "@/components/ae-operations";
 import { StrategyTabs } from "@/components/section-tabs";
 import { ErrorState, LoadingState, PageHeader } from "@/components/ui";
 import { useApi } from "@/hooks/use-api";
@@ -13,5 +13,5 @@ export default function StrategyHistoryPage() {
   const header = <PageHeader title="연구 이력" description="연구 판정과 운영 상태를 따로 봅니다. 종결된 전략의 연구 기록은 삭제하지 않습니다."/>;
   if (rows.loading) return <><StrategyTabs/>{header}<LoadingState/></>;
   if (!rows.data) return <><StrategyTabs/>{header}<ErrorState message={rows.error || "전략 목록 조회 실패"} retry={rows.refresh}/></>;
-  return <><StrategyTabs/>{header}<ResearchHistory rows={rows.data}/></>;
+  return <><StrategyTabs/>{header}<ResearchHistory rows={rows.data}/><ExperimentHistory/></>;
 }

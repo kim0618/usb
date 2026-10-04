@@ -55,12 +55,15 @@ describe("Final information architecture", () => {
       { strategy_id: "STRATEGY_H_V2", href: "/strategy-h", label: "Strategy H · Forward Shadow" });
     expect(Object.keys(OPERATING_ROUTES))
       .toEqual(["STRATEGY_A", "STRATEGY_E_MAX_V1", "STRATEGY_H_V2"]);   // B is not operating
+    // A's exit-rule experiment is not a tab: its variants are also called A to E, which collides
+    // with Strategy A and Strategy E, and the server's shadow_trades table is empty. The route
+    // survives and the research history links to it.
     expect(strategyTabs).toEqual([
       { href: "/strategy-compare", label: "성과 비교" },
       { href: "/strategy-h", label: "H 포워드 섀도" },
-      { href: "/shadow", label: "A 섀도 변형" },
       { href: "/strategy-history", label: "연구 이력" },
     ]);
+    expect(strategyTabs.map(tab => tab.href)).not.toContain("/shadow");
     expect(source("lib/strategies.ts")).not.toMatch(/전략 [AE] ·/);
   });
 

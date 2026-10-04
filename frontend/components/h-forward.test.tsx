@@ -2,7 +2,7 @@ import React from "react";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { HCohortTable, HEvaluationPanel, HForwardOutcomes, HIssuerDetail, HSummary } from "./h-forward";
-import { PerformanceTable, StrategySelector } from "./ae-operations";
+import { ExperimentHistory, GatePanel, PerformanceTable, StrategySelector } from "./ae-operations";
 import type {
   HCohortRow, HEvaluation, HForwardView, HIssuerView, HMaturity, HOutcome,
   PerformanceBoard, StrategyMetrics, StrategyRow,
@@ -314,5 +314,52 @@ describe("A/E/H performance board", () => {
     const options = Array.from(document.querySelectorAll("[data-strategy-option]"))
       .map(node => (node as HTMLElement).dataset.strategyOption);
     expect(options).toEqual(["ALL", "STRATEGY_A", "STRATEGY_E_MAX_V1", "STRATEGY_H_V2"]);
+  });
+});
+
+
+// -- the comparison screen narrows to one strategy -------------------------------------------------
+
+const gate = (id: string): import("../lib/strategies").GateResult => ({
+  strategy_id: id, contract_id: "AE_PAPER_EVALUATION_GATE_V1", verdict: "INCONCLUSIVE",
+  reasons: ["SAMPLE_NOT_REACHED"], failed: [], pending: ["net_pnl"],
+  conditions: [{ condition: "net_pnl", value: null, threshold: "> 0", status: "PENDING", note: null }],
+  accounting: [], error_rate: null, final: false,
+});
+
+describe("per-strategy narrowing", () => {
+  const boardWithGate = { ...board, gate: { STRATEGY_A: gate("STRATEGY_A"), STRATEGY_E_MAX_V1: gate("STRATEGY_E_MAX_V1") } };
+
+  it("shows both gates under ALL", () => {
+    render(<GatePanel gate={boardWithGate.gate} rows={rows} board={boardWithGate}/>);
+    expect(document.querySelectorAll("[data-gate]")).toHaveLength(2);
+  });
+
+  it("shows only the selected strategy's gate", () => {
+    render(<GatePanel gate={boardWithGate.gate} rows={rows} board={boardWithGate} strategy="STRATEGY_A"/>);
+    const shown = Array.from(document.querySelectorAll("[data-gate]")).map(n => (n as HTMLElement).dataset.gate);
+    expect(shown).toEqual(["STRATEGY_A"]);
+  });
+
+  it("renders nothing rather than an empty gate card when H is selected", () => {
+    const { container } = render(
+      <GatePanel gate={boardWithGate.gate} rows={rows} board={boardWithGate} strategy="STRATEGY_H_V2"/>);
+    expect(container.innerHTML).toBe("");
+  });
+
+  it("still says H is outside the gate when both are shown", () => {
+    render(<GatePanel gate={boardWithGate.gate} rows={rows} board={boardWithGate}/>);
+    const note = document.querySelector("[data-gate-excluded=STRATEGY_H_V2]")!;
+    expect(note.textContent).toContain("H_V2_D7_FORWARD_SHADOW_V1");
+  });
+});
+
+describe("A's exit-rule experiment is kept but not a tab", () => {
+  it("names it as an experiment, says the A-E labels are not the strategies, and links to it", () => {
+    render(<ExperimentHistory/>);
+    const card = document.querySelector("[data-experiment=A_EXIT_VARIANTS]") as HTMLElement;
+    expect(card.textContent).toContain("A 청산규칙 변형");
+    expect(card.textContent).toContain("Strategy A·E와는 다른 것");
+    expect(screen.getByRole("link", { name: "섀도 변형 화면 열기" })).toHaveAttribute("href", "/shadow");
   });
 });
