@@ -20,7 +20,7 @@ from app.services.end_of_day_runtime import (
     start_end_of_day_runtime, stop_end_of_day_runtime,
 )
 from app.services.entry_management_runtime import (
-    start_entry_management_runtime, stop_entry_management_runtime,
+    stop_entry_management_runtime,
 )
 from app.services.position_management_runtime import (
     start_position_management_runtime, stop_position_management_runtime,
@@ -28,6 +28,7 @@ from app.services.position_management_runtime import (
 from app.services.simulation_runtime import (
     activate_operator_simulation_runtime, clear_active_sim_broker,
 )
+from app.strategy_a_mover_live import paper_adapter as mover_live_entry
 from app.strategy_e_max_rt import runtime as strategy_e_max_runtime
 
 
@@ -58,7 +59,13 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
                 _app.state, "position_market_data_provider_factory",
                 lambda: market_factory.build_kiwoom_provider(current),
             )
-            start_entry_management_runtime(runtime, provider_factory)
+            # A-MOVER-LIVE-V1 candidate injection is a lifecycle choice, not a new runtime.
+            # With A_MOVER_LIVE_ENABLED off this call *is* ``start_entry_management_runtime``;
+            # with it on, the same runtime is started with the live candidate source injected
+            # through ``EntryManagementRuntime``'s own lifecycle argument. Either way every
+            # candidate travels EntryLifecycleService.evaluate -> StrategyV0Engine -> Risk ->
+            # position and exit unchanged.
+            mover_live_entry.start(runtime, provider_factory)
             start_position_management_runtime(runtime, provider_factory)
             # The closing review is a second cadence over the same broker, not a
             # second control loop: it starts after the minute driver so a process
