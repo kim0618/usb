@@ -171,6 +171,7 @@ def _paper_stage(decision, session, record, out_root: Path, cal, now, at, log, e
 def run(universe_path: Path, out_root: Path, *, paper: bool = False,
         rvol_store_path: Path | None = None, equity: str = "10000") -> int:
     from app.core.config import get_settings
+    from app.core.database import SessionLocal
     from app.integrations.kiwoom.auth import KiwoomAuthClient
     from app.integrations.kiwoom.rate_limit import KiwoomRateLimits, RequestRateLimiter
     from app.market.calendar import MarketCalendar
@@ -263,7 +264,7 @@ def run(universe_path: Path, out_root: Path, *, paper: bool = False,
     a_live = A_LIVE.attach_isolated(session=session, repo=Path(__file__).resolve().parents[3],
                                     caches=caches, shard_minute=shard_a, shard_tick=shard_b,
                                     lane_minute=lane_a, lane_tick=lane_b, now=now,
-                                    exchanges=exch, log=log)
+                                    exchanges=exch, log=log, session_factory=SessionLocal)
 
     while now() < at(FZ.PREMARKET_START) + timedelta(seconds=5):
         time.sleep(5)

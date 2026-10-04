@@ -302,6 +302,9 @@ def attach(*, session: date, repo: Path, caches: Mapping[str, FZ.SymbolCache],
         return None
     calendar = calendar or MarketCalendar()
     union = UNI.build(repo, session, calendar=calendar)
+    if session_factory is None:
+        from sqlalchemy.exc import InvalidRequestError
+        raise InvalidRequestError("A live session_factory is missing; durable DB paths are unavailable")
     handle = SharedCollectorIntegration(
         session=session, repo=Path(repo), caches=caches, shard_minute=tuple(shard_minute),
         shard_tick=tuple(shard_tick), lane_minute=lane_minute, lane_tick=lane_tick, now=now,

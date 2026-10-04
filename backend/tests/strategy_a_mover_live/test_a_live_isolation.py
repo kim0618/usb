@@ -57,6 +57,27 @@ def raising(error):
     return _raise
 
 
+def test_missing_session_factory_fails_closed_after_authority(tmp_path, monkeypatch):
+    union = _fake_attach({}).__call__(session=SESSION, repo=tmp_path, now=lambda: A_CUT_AT).union
+    monkeypatch.setattr(UNI, "build", lambda *args, **kwargs: union)
+    isolated = attach(tmp_path)
+    assert isolated.handle is None
+    assert isolated.status["reason"] == ISO.Reason.DATABASE_UNAVAILABLE
+
+
+def test_present_session_factory_reaches_durable_database(tmp_path, monkeypatch):
+    from sqlalchemy import create_engine, text
+    from sqlalchemy.orm import sessionmaker
+    union = _fake_attach({}).__call__(session=SESSION, repo=tmp_path, now=lambda: A_CUT_AT).union
+    monkeypatch.setattr(UNI, "build", lambda *args, **kwargs: union)
+    factory = sessionmaker(bind=create_engine(f"sqlite:///{tmp_path / 'durable.sqlite3'}"))
+    isolated = attach(tmp_path, session_factory=factory)
+    assert isolated.handle is not None
+    assert isolated.handle.session_factory is factory
+    with isolated.handle.session_factory() as database:
+        assert database.execute(text("select 1")).scalar_one() == 1
+
+
 # -- section J1, J6: A off and A attached leave E's own expressions alone ---------------------
 
 def test_a_off_touches_nothing_and_adds_no_key_to_e_report(tmp_path):
@@ -605,6 +626,8 @@ def test_real_e_worker_finalizes_and_runs_paper_after_a_attach_failure(tmp_path,
         original = INT.attach_isolated
 
         def isolated_attach(**kwargs):
+            from app.core.database import SessionLocal
+            assert kwargs["session_factory"] is SessionLocal
             return original(**(kwargs | {"repo": tmp_path}))
 
         # Restore this wrapper after each run so the second run cannot wrap itself.
