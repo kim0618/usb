@@ -24,8 +24,8 @@ const projectFiles = (directory: string): string[] => readdirSync(directory, { w
 afterEach(() => cleanup());
 
 describe("Final information architecture", () => {
-  it("keeps five top-level menus and routes both trading screens to 트레이딩", () => {
-    expect(navigationItems.map(item => item.label)).toEqual(["대시보드", "트레이딩", "종목 분석", "전략", "시스템"]);
+  it("keeps six top-level menus and routes both trading screens to 트레이딩", () => {
+    expect(navigationItems.map(item => item.label)).toEqual(["대시보드", "트레이딩", "종목 분석", "전략", "선물", "시스템"]);
     const group = (route: string) => navigationItems.find(item => isNavigationActive(route, item))?.label;
     expect(group("/dashboard")).toBe("대시보드");
     expect(group("/trading")).toBe("트레이딩");
@@ -34,6 +34,7 @@ describe("Final information architecture", () => {
     expect(group("/strategy-b")).toBe("전략");
     expect(group("/strategy-compare")).toBe("전략");
     expect(group("/strategy-history")).toBe("전략");
+    expect(group("/crypto-paper")).toBe("선물");
   });
 
   it("derives the operating tabs from the registry and keeps the result tabs fixed", () => {

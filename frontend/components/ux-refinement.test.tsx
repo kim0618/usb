@@ -7,9 +7,9 @@ import { ConvertedKrw, EmptyState, InfoTooltip, PageHeader } from "./ui";
 const source = (path: string) => readFileSync(path, "utf8");
 
 describe("Stage 9.6 UX policy", () => {
-  it("keeps the five confirmed top-level navigation labels", () => {
+  it("keeps the six confirmed top-level navigation labels", () => {
     const shell = source("components/app-shell.tsx");
-    ["대시보드", "트레이딩", "종목 분석", 'label: "전략"', "시스템"].forEach(label => expect(shell).toContain(label));
+    ["대시보드", "트레이딩", "종목 분석", 'label: "전략"', 'label: "선물"', "시스템"].forEach(label => expect(shell).toContain(label));
     expect(shell).not.toContain('label: "전략 성과"');
   });
   it("redirects the dashboard route and removes the research onboarding guide", () => {

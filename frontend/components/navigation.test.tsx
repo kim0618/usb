@@ -14,9 +14,9 @@ describe("Stage 9.10 navigation", () => {
   beforeEach(() => { pathname = "/candidates"; });
   afterEach(() => cleanup());
 
-  it("defines exactly five top-level menu entries, dashboard first", () => {
-    expect(navigationItems.map(item => item.label)).toEqual(["대시보드", "트레이딩", "종목 분석", "전략", "시스템"]);
-    expect(navigationItems).toHaveLength(5);
+  it("defines exactly six top-level menu entries, dashboard first", () => {
+    expect(navigationItems.map(item => item.label)).toEqual(["대시보드", "트레이딩", "종목 분석", "전략", "선물", "시스템"]);
+    expect(navigationItems).toHaveLength(6);
     // The 전략 menu lands on the A/E comparison; a closed strategy's route is never a menu of its own.
     // the strategy group is one screen now and lands on it
     expect(navigationItems.find(item => item.label === "전략")!.href).toBe("/daily");
@@ -34,6 +34,8 @@ describe("Stage 9.10 navigation", () => {
     ["/shadow", "전략"],
     ["/strategy-b", "전략"],
     ["/daily", "전략"],
+    ["/strategy-h", "전략"],
+    ["/crypto-paper", "선물"],
     ["/strategy-compare", "전략"],
     ["/strategy-history", "전략"],
     ["/runtime", "시스템"],
