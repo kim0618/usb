@@ -4,10 +4,14 @@ Section S tests covered here: 10 (TOP35 is fixed), 11 (the output maximum of 8 i
 12 (actionability follows ``StrategyConfig``, it is not copied).
 """
 
+from collections.abc import Mapping, Sequence
 from dataclasses import replace
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
+import gzip
+import json
 
+import numpy as np
 import pytest
 
 from app.backtest.mover_scanner_v1 import contract as K
@@ -311,3 +315,53 @@ def test_a_feed_staged_for_another_session_is_refused():
         SCAN.run_from_source(M.LiveRuntimeSource(feeds=registry), date(2026, 9, 16),
                             observed_at=OBSERVED, environ=ON)
     assert refused.value.refusal is CFG.Refusal.DATA_UNAVAILABLE
+
+
+# -- the session's own grouped daily cannot exist on the morning it is scanned ----------------
+
+def write_grouped(repo, day: date, rows: Sequence[Mapping[str, object]]) -> None:
+    path = repo / "data/runtime/strategy_c/raw/grouped" / f"{day.isoformat()}.json.gz"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(gzip.compress(json.dumps({"body": {"results": list(rows)}}).encode()))
+
+
+def grouped_grid(repo, grid: Sequence[date], *, through: int) -> None:
+    """One bar per symbol for the first ``through`` grid sessions."""
+    for position, day in enumerate(grid[:through]):
+        write_grouped(repo, day, [{"T": "AAA", "c": 10.0 + position, "v": 1_000_000 + position},
+                                  {"T": "BBB", "c": 20.0, "v": 2_000_000}])
+
+
+def test_the_sessions_own_grouped_daily_is_an_index_not_a_requirement(tmp_path):
+    """A live session's grouped file is written after its close, so the morning cannot have it."""
+    grid = prior(5) + [SESSION]
+    grouped_grid(tmp_path, grid, through=5)
+    panel = UNI.session_daily_panel(tmp_path, grid, frozenset({"AAA", "BBB"}))
+    assert panel.sessions == tuple(grid)
+    assert panel.index[SESSION] == 5
+    assert all(not np.isfinite(series[-1]) for series in panel.close.values())
+    assert panel.previous_close("AAA", 5) == 14.0            # read strictly before the column
+    adv, addv, used = panel.baselines("AAA", 5, 5)
+    assert used == 5 and adv and addv
+
+
+def test_a_prior_missing_grouped_daily_is_still_a_refusal(tmp_path):
+    """Those columns *are* read, so a gap before the session stays an error, not an empty column."""
+    grid = prior(5) + [SESSION]
+    grouped_grid(tmp_path, grid, through=3)
+    with pytest.raises(FileNotFoundError) as missing:
+        UNI.session_daily_panel(tmp_path, grid, frozenset({"AAA"}))
+    assert grid[3].isoformat() in str(missing.value)
+
+
+def test_a_session_whose_own_file_exists_is_loaded_exactly_as_before(tmp_path):
+    """A past session changes in no way: the same columns, including its own."""
+    from app.backtest.mover_scanner_v1 import daily as D
+    grid = prior(5) + [SESSION]
+    grouped_grid(tmp_path, grid, through=6)
+    tolerant = UNI.session_daily_panel(tmp_path, grid, frozenset({"AAA", "BBB"}))
+    direct = D.load_panel(tmp_path, grid, symbols=frozenset({"AAA", "BBB"}))
+    assert tolerant.sessions == direct.sessions
+    for symbol in direct.close:
+        assert np.array_equal(tolerant.close[symbol], direct.close[symbol])
+        assert np.array_equal(tolerant.volume[symbol], direct.volume[symbol])

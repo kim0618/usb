@@ -33,6 +33,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+import numpy as np
+
 from app.backtest.collector.range import sessions_between
 from app.backtest.mover_scanner_v1 import daily as D
 from app.backtest.mover_scanner_v1 import universe as U
@@ -148,6 +150,25 @@ def daily_baseline_symbols(daily: D.DailyPanel, symbols: Iterable[str], position
     return frozenset(keep), dropped
 
 
+def session_daily_panel(repo: Path, grid: Sequence[date], symbols: frozenset[str],
+                        ) -> D.DailyPanel:
+    """The grid's daily panel, with the session's own column an index when its file is absent.
+
+    A session's grouped daily file is produced after that session's close, so on the morning of
+    a live session it cannot exist yet. Requiring it would refuse every live morning for the
+    one column nothing reads: ``previous_close`` and ``baselines`` both read strictly before the
+    column, which is the same contract ``features.live_daily_panel`` states for the scan panel.
+    A *prior* missing file stays a refusal, because those columns are read. A session whose file
+    does exist is loaded exactly as before, so no past run changes.
+    """
+    if D.grouped_path(repo, grid[-1]) is not None:
+        return D.load_panel(repo, grid, symbols=symbols)
+    prior = D.load_panel(repo, grid[:-1], symbols=symbols)
+    close = {symbol: np.append(series, np.nan) for symbol, series in prior.close.items()}
+    volume = {symbol: np.append(series, np.nan) for symbol, series in prior.volume.items()}
+    return D.DailyPanel(tuple(grid), close, volume)
+
+
 def build(repo: Path, session: date, *, config: MoverScannerConfig | None = None,
           calendar: MarketCalendar | None = None,
           daily: D.DailyPanel | None = None,
@@ -166,7 +187,7 @@ def build(repo: Path, session: date, *, config: MoverScannerConfig | None = None
         start = session - timedelta(days=D.DAILY_LOOKBACK_DAYS + 10)
         grid = [item.session_date for item in sessions_between(calendar, start, session)]
         try:
-            daily = D.load_panel(repo, grid, symbols=frozenset(active))
+            daily = session_daily_panel(repo, grid, frozenset(active))
         except FileNotFoundError as error:
             raise UniverseUnavailable(str(error)) from error
     position = daily.index[session]
