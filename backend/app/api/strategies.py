@@ -538,6 +538,66 @@ async def strategy_performance(db: DB) -> dict[str, Any]:
     }
 
 
+@router.get("/daily")
+async def strategy_daily(db: DB, limit: Annotated[int, Query(ge=1, le=400)] = 60) -> dict[str, Any]:
+    """One row per session: what each strategy made or lost that day, and what it traded.
+
+    This is the operating question - "how much today, how much yesterday" - answered once, instead
+    of leaving it to be reassembled from four screens. It composes nothing new: the daily points and
+    the trades are the same ones ``/performance`` and ``/ledger`` publish, grouped by session.
+
+    Strategy H has no row here and that is not an omission: it holds no capital, so there is no
+    daily figure to report. Its state is carried in ``strategies`` beside the rows.
+    """
+    books = _books(db)
+    official = {sid: book["official"] for sid, book in books.items()}
+    per_day: dict[str, dict[str, Any]] = {}
+    for sid, book in official.items():
+        for point in book.daily:
+            row = per_day.setdefault(point.day, {"session": point.day, "strategies": {}, "trades": []})
+            row["strategies"][sid] = {"pnl": PERF.money(point.pnl), "equity": PERF.money(point.equity),
+                                      "trades": 0}
+        for trade in book.trades:
+            session = trade.get("session")
+            if session is None or trade.get("status") != "CLOSED":
+                continue
+            row = per_day.setdefault(session, {"session": session, "strategies": {}, "trades": []})
+            row["strategies"].setdefault(sid, {"pnl": None, "equity": None, "trades": 0})["trades"] += 1
+            row["trades"].append({k: trade.get(k) for k in
+                                  ("strategy_id", "symbol", "entry_at", "entry_price", "exit_at",
+                                   "exit_price", "qty", "net_pnl", "costs", "exit_reason",
+                                   "holding_seconds", "accounting_version", "evaluation")})
+    rows = []
+    for session in sorted(per_day, reverse=True)[:limit]:
+        row = per_day[session]
+        amounts = [Decimal(s["pnl"]) for s in row["strategies"].values() if s.get("pnl") is not None]
+        row["total_pnl"] = PERF.money(sum(amounts, Decimal(0))) if amounts else None
+        row["trades"].sort(key=lambda t: str(t.get("exit_at") or t.get("entry_at") or ""))
+        rows.append(row)
+    # Why a strategy can read as flat for weeks: its own trades may predate the official clock.
+    # Those sessions are in the legacy (V0) book, which charges costs twice and is never mixed in
+    # here. Saying so is the difference between "it made nothing" and "its record is elsewhere".
+    before_start = {}
+    for sid, book in books.items():
+        legacy = [point.day for point in book["legacy"].daily if point.pnl != 0]
+        if legacy:
+            before_start[sid] = {"sessions": len(legacy), "last_session": max(legacy)}
+    h_state = HV.status()["detail"]
+    return {
+        "currency": "USD", "paper_clock": OFF.state(), "rows": rows,
+        "excluded_before_start": before_start,
+        "strategies": [{"strategy_id": sid, "display_name": REG.get(sid).display_name,
+                        "short_name": REG.get(sid).short_name, "has_daily_pnl": True}
+                       for sid in official]
+                      + [{"strategy_id": REG.STRATEGY_H_V2, "display_name": "Strategy H",
+                          "short_name": "H", "has_daily_pnl": False,
+                          "reason": HV.NO_CAPITAL_BOOK,
+                          "decision_counts": h_state["decision_counts"],
+                          "launch": h_state["launch"]}],
+        "note": "일별 손익은 각 전략의 자체 장부에서 읽은 그대로이고, 합계는 단순 합입니다",
+    }
+
+
 @router.get("/portfolio")
 async def strategy_portfolio(db: DB, book: Annotated[str, Query(pattern="^(official|legacy)$")] = "official"
                              ) -> dict[str, Any]:

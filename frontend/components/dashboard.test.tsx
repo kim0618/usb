@@ -155,9 +155,9 @@ describe("Strategy information architecture", () => {
     // screen (H-V2-D7), and lists closed research (B, C, D) and A's empty exit-rule experiment
     // only through the research history.
     expect(strategyTabs.map(tab => tab.label))
-      .toEqual(["성과 비교", "H 포워드 섀도", "연구 이력"]);
+      .toEqual(["일별 손익", "상세 분석", "H 포워드 섀도", "연구 이력"]);
     expect(strategyTabs.map(tab => tab.href))
-      .toEqual(["/strategy-compare", "/strategy-h", "/strategy-history"]);
+      .toEqual(["/daily", "/strategy-compare", "/strategy-h", "/strategy-history"]);
   });
 
   it("sends the dashboard cards to the operating screens, not the result screens", () => {

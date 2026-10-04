@@ -74,6 +74,15 @@ def _m(value: Decimal | None) -> str | None:
     return _s(value, MONEY_PLACES)
 
 
+def money(value: Decimal | None) -> str | None:
+    """The shared display rounding for a money figure, so no screen invents its own.
+
+    It also keeps a Decimal zero out of exponent form: ``Decimal("0E-24")`` is a legitimate zero but
+    reads as a parse accident on a screen, and `0.0000` says the same thing without the question.
+    """
+    return _m(value)
+
+
 def closed_with_net(trades: Iterable[Mapping[str, Any]]) -> list[Mapping[str, Any]]:
     return [t for t in trades if t.get("status") == "CLOSED" and t.get("net_pnl") is not None]
 

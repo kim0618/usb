@@ -517,3 +517,67 @@ async def test_closed_strategies_have_no_operating_data(api) -> None:
         assert status["enabled"] is False and status["research_lifecycle"] == "CLOSED"
         assert status["runtime_status"] == "NOT_RUNNING"
         assert await get(api, f"/api/v1/strategies/{closed}/trades") == []
+
+
+# -- the daily operating view ------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_daily_answers_how_much_each_session_made_per_strategy(api) -> None:
+    """The operating question, answered once: per session, per strategy, with that day's trades."""
+    body = await get(api, "/api/v1/strategies/daily")
+    sessions = [row["session"] for row in body["rows"]]
+    assert sessions == sorted(sessions, reverse=True)          # newest first
+    assert START in sessions
+    day = next(row for row in body["rows"] if row["session"] == START)
+    # Money is published through the shared display rounding, so a Decimal zero never reaches a
+    # screen as "0E-24" and every figure on the row is comparable at a glance.
+    assert day["strategies"][A]["pnl"] == "24.0000"            # A's own daily row, as recorded
+    assert day["strategies"][A]["equity"] == "1048.0000"
+    assert Decimal(day["strategies"][A]["pnl"]) == Decimal(24)
+    # the day's closed trades travel with the day, each tagged with the book that owns it
+    symbols = {(t["strategy_id"], t["symbol"]) for t in day["trades"]}
+    assert (A, "COR") in symbols
+    assert all(t["strategy_id"] in (A, E) for t in day["trades"])
+    # the total is the plain sum of the strategies that reported a figure, never a reweighting
+    total = sum(Decimal(s["pnl"]) for s in day["strategies"].values() if s["pnl"] is not None)
+    assert Decimal(day["total_pnl"]) == total
+
+
+@pytest.mark.asyncio
+async def test_daily_says_h_has_no_daily_pnl_instead_of_showing_zero(api) -> None:
+    body = await get(api, "/api/v1/strategies/daily")
+    h = next(s for s in body["strategies"] if s["strategy_id"] == H)
+    assert h["has_daily_pnl"] is False and "자본 장부가 없다" in h["reason"]
+    assert set(h["decision_counts"]) == {"APPROVE", "WATCH", "REJECT"}
+    # and H never appears as a strategy column inside a daily row
+    assert all(H not in row["strategies"] for row in body["rows"])
+
+
+@pytest.mark.asyncio
+async def test_daily_rows_carry_only_closed_trades(api) -> None:
+    body = await get(api, "/api/v1/strategies/daily")
+    for row in body["rows"]:
+        for trade in row["trades"]:
+            assert trade["net_pnl"] is not None            # an open position has no day's result yet
+            assert trade["exit_at"] is not None
+
+
+@pytest.mark.asyncio
+async def test_daily_money_never_reaches_a_screen_in_exponent_form(api) -> None:
+    """A Decimal zero is a legitimate zero but "0E-24" reads as a parse accident on a screen."""
+    body = await get(api, "/api/v1/strategies/daily")
+    figures = [value for row in body["rows"] for cell in row["strategies"].values()
+               for value in (cell["pnl"], cell["equity"]) if value is not None]
+    figures += [row["total_pnl"] for row in body["rows"] if row["total_pnl"] is not None]
+    assert figures
+    assert all("E" not in figure.upper() for figure in figures), figures
+
+
+@pytest.mark.asyncio
+async def test_daily_says_which_sessions_sit_before_the_official_clock(api) -> None:
+    """Why a strategy can read as flat: its own moves may predate the official start."""
+    body = await get(api, "/api/v1/strategies/daily")
+    excluded = body["excluded_before_start"]
+    assert A in excluded                                   # the fixture's 2026-09-25 V0 day
+    assert excluded[A]["sessions"] >= 1
+    assert excluded[A]["last_session"] < START             # strictly before the official clock

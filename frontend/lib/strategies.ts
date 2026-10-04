@@ -289,6 +289,33 @@ export type HIssuerView = HCohortRow & {
   launch_snapshot: Record<string, unknown>;
 };
 
+/** The operating view: one row per session, what each strategy made, and that day's trades. */
+export type DailyTrade = {
+  strategy_id: string; symbol: string; entry_at: string | null; entry_price: string | null;
+  exit_at: string | null; exit_price: string | null; qty: string | null;
+  net_pnl: string | null; costs: string | null; exit_reason: string | null;
+  holding_seconds: number | null; accounting_version: string | null; evaluation: string | null;
+};
+
+export type DailyRow = {
+  session: string;
+  strategies: Record<string, { pnl: string | null; equity: string | null; trades: number }>;
+  trades: DailyTrade[];
+  total_pnl: string | null;
+};
+
+export type DailyView = {
+  currency: string; paper_clock: PaperClock; rows: DailyRow[];
+  /** Sessions a strategy did move on, but before the official clock started: they sit in the
+   *  legacy (V0) book and are never mixed into these rows. Explains a strategy reading as flat. */
+  excluded_before_start?: Record<string, { sessions: number; last_session: string }>;
+  /** Every operating strategy, with whether it has a daily figure at all. H does not. */
+  strategies: Array<{ strategy_id: string; display_name: string; short_name?: string;
+                      has_daily_pnl: boolean; reason?: string;
+                      decision_counts?: Record<string, number>; launch?: HLaunchState }>;
+  note: string;
+};
+
 export const strategiesApi = {
   list: () => apiFetch<StrategyRow[]>("/api/v1/strategies"),
   status: (id: string) => apiFetch<StrategyStatus>(`/api/v1/strategies/${encodeURIComponent(id)}/status`),
@@ -300,6 +327,7 @@ export const strategiesApi = {
   cards: () => apiFetch<StrategyCardData[]>("/api/v1/strategies/cards"),
   performance: () => apiFetch<PerformanceBoard>("/api/v1/strategies/performance"),
   portfolio: () => apiFetch<PortfolioView>("/api/v1/strategies/portfolio"),
+  daily: (limit = 60) => apiFetch<DailyView>(`/api/v1/strategies/daily?limit=${limit}`),
   forward: (id: string = STRATEGY_H) =>
     apiFetch<HForwardView>(`/api/v1/strategies/${encodeURIComponent(id)}/forward`),
   forwardIssuer: (ticker: string, id: string = STRATEGY_H) =>

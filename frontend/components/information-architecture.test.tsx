@@ -58,8 +58,11 @@ describe("Final information architecture", () => {
     // A's exit-rule experiment is not a tab: its variants are also called A to E, which collides
     // with Strategy A and Strategy E, and the server's shadow_trades table is empty. The route
     // survives and the research history links to it.
+    // The daily view leads: it answers the operating question. The comparison tables, the gate and
+    // the portfolio simulation are analysis and sit behind "상세 분석".
     expect(strategyTabs).toEqual([
-      { href: "/strategy-compare", label: "성과 비교" },
+      { href: "/daily", label: "일별 손익" },
+      { href: "/strategy-compare", label: "상세 분석" },
       { href: "/strategy-h", label: "H 포워드 섀도" },
       { href: "/strategy-history", label: "연구 이력" },
     ]);
@@ -89,10 +92,11 @@ describe("Final information architecture", () => {
   });
 
   it("renders the strategy tabs on the result routes, with no closed strategy among them", () => {
-    pathname = "/strategy-compare";
+    pathname = "/daily";
     render(<StrategyTabs/>);
     expect(screen.getByRole("navigation", { name: "전략 화면" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "성과 비교" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "일별 손익" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "상세 분석" })).toHaveAttribute("href", "/strategy-compare");
     expect(screen.getByRole("link", { name: "H 포워드 섀도" })).toHaveAttribute("href", "/strategy-h");
     expect(screen.getByRole("link", { name: "연구 이력" })).toHaveAttribute("href", "/strategy-history");
     expect(screen.queryByRole("link", { name: /전략 B|Strategy B|A\/B/ })).not.toBeInTheDocument();

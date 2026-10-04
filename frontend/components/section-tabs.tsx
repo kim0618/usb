@@ -23,12 +23,17 @@ export const analysisTabs: SectionTab[] = [
  *  own; Strategy H keeps a second screen because its per-issuer evidence does not fit a
  *  trade-shaped comparison; closed research (B, C, D) is reachable only through the research history.
  *
+ *  The daily view leads because it answers the operating question - how much this session made or
+ *  lost. The comparison tables, the frozen gate and the portfolio simulation are analysis and sit
+ *  behind "상세 분석" rather than in front of it.
+ *
  *  A's exit-rule experiment (`/shadow`) is deliberately not a tab. Its variants are also labelled
  *  A to E, which collides with Strategy A and Strategy E on this very bar, and the server's
  *  `shadow_trades` table holds 0 rows: the live paper runtime never writes one. The route, its
  *  components and its data stay where they are and the research history links to it. */
 export const strategyTabs: SectionTab[] = [
-  { href: "/strategy-compare", label: "성과 비교" },
+  { href: "/daily", label: "일별 손익" },
+  { href: "/strategy-compare", label: "상세 분석" },
   { href: "/strategy-h", label: "H 포워드 섀도" },
   { href: "/strategy-history", label: "연구 이력" },
 ];
