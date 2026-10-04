@@ -515,9 +515,16 @@ def build_range(row: IssuerSession, method: str, window: PanelWindow,
 
 
 def value_issuer(ticker: str, panel: Mapping[str, Sequence[MultipleObservation]],
-                 row: IssuerSession) -> dict:
-    """One issuer, end to end: selection, windows, fair value, targets, reconciliation, confidence."""
-    judgement = METHOD_JUDGEMENTS[ticker]
+                 row: IssuerSession, *,
+                 judgements: Mapping[str, MethodJudgement] = METHOD_JUDGEMENTS) -> dict:
+    """One issuer, end to end: selection, windows, fair value, targets, reconciliation, confidence.
+
+    `judgements` defaults to this step's own table, so every D5-D2 call site is unchanged and this
+    step's output is bitwise what it was. A later step that applies the identical evaluator to a
+    different sample passes its own declared table instead of editing this one - which is the only
+    way the two samples can be held to the same arithmetic and still have their own economics.
+    """
+    judgement = judgements[ticker]
     computable = tuple(m for m in METHOD_ORDER if row.results[m].ok)
     current = {m: row.results[m].value for m in computable}
 
