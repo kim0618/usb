@@ -18,7 +18,8 @@ describe("Stage 9.10 navigation", () => {
     expect(navigationItems.map(item => item.label)).toEqual(["대시보드", "트레이딩", "종목 분석", "전략", "시스템"]);
     expect(navigationItems).toHaveLength(5);
     // The 전략 menu lands on the A/E comparison; a closed strategy's route is never a menu of its own.
-    expect(navigationItems.find(item => item.label === "전략")!.href).toBe("/strategy-compare");
+    // the strategy group is one screen now and lands on it
+    expect(navigationItems.find(item => item.label === "전략")!.href).toBe("/daily");
     expect(navigationItems.some(item => item.href === "/strategy-b" || item.href === "/trading-b")).toBe(false);
     const shell = source("components/app-shell.tsx");
     ["후보 종목", "GPT 분석", "설정"].forEach(label => expect(shell).not.toContain(`label: "${label}"`));
@@ -32,6 +33,7 @@ describe("Stage 9.10 navigation", () => {
     ["/research", "종목 분석"],
     ["/shadow", "전략"],
     ["/strategy-b", "전략"],
+    ["/daily", "전략"],
     ["/strategy-compare", "전략"],
     ["/strategy-history", "전략"],
     ["/runtime", "시스템"],

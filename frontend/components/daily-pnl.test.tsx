@@ -86,14 +86,13 @@ describe("daily pnl", () => {
     expect(screen.getByRole("button", { name: /2026-10-02/ })).toBeDisabled();
   });
 
-  it("says Strategy H has no daily figure instead of giving it a zero column", () => {
+  it("gives Strategy H no column, because a zero column would say it broke even every day", () => {
     render(<DailyPnl view={view()}/>);
     const columns = Array.from(document.querySelectorAll("th[data-column]"))
       .map(n => (n as HTMLElement).dataset.column);
     expect(columns).not.toContain("STRATEGY_H_V2");
-    const note = document.querySelector("[data-no-daily=STRATEGY_H_V2]") as HTMLElement;
-    expect(note.textContent).toContain("자본 장부가 없다");
-    expect(note.textContent).toContain("WATCH 6");
+    // H's own record lives under the strategy picker, not as a banner on this table.
+    expect(document.body.textContent).not.toContain("WATCH 6");
   });
 
   it("says so when no session has been recorded", () => {

@@ -11,9 +11,9 @@
 
 import { useState } from "react";
 import { pnlTone } from "@/components/daily-performance";
-import { EmptyState, StatusBadge } from "@/components/ui";
+import { EmptyState } from "@/components/ui";
 import { etTime, formatSignedUsd, formatUsd } from "@/lib/format";
-import { H_APPROVE, H_REJECT, H_WATCH, type DailyRow, type DailyView } from "@/lib/strategies";
+import type { DailyRow, DailyView } from "@/lib/strategies";
 
 function isFlat(value: string | null | undefined) {
   return value != null && Number(value) === 0;
@@ -87,14 +87,12 @@ export function DailyPnl({ view }: { view: DailyView }) {
   const [open, setOpen] = useState<string | null>(null);
   const columns = view.strategies.filter(s => s.has_daily_pnl)
     .map(s => ({ id: s.strategy_id, label: s.short_name || s.display_name }));
-  const h = view.strategies.find(s => !s.has_daily_pnl);
   const label = (id: string) =>
     view.strategies.find(s => s.strategy_id === id)?.short_name
     || view.strategies.find(s => s.strategy_id === id)?.display_name || id;
   const excluded = Object.entries(view.excluded_before_start || {});
 
-  return <>
-    <section aria-labelledby="daily-title" className="mb-7 min-w-0">
+  return <section aria-labelledby="daily-title" className="mb-7 min-w-0">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
         <h2 id="daily-title" className="font-semibold">일별 손익</h2>
         <p className="text-xs text-muted">
@@ -121,20 +119,5 @@ export function DailyPnl({ view }: { view: DailyView }) {
           `${label(id)}는 공식 시작 전에 움직인 세션이 ${info.sessions}일 있습니다(마지막 ${info.last_session}).`).join(" ")}
         {" "}회계 방식이 달라 이 표에 섞지 않습니다.
       </p>}
-    </section>
-
-    {h && <section aria-labelledby="h-note-title" className="mb-7">
-      <h2 id="h-note-title" className="mb-2 font-semibold">{h.display_name}</h2>
-      <div className="panel flex flex-wrap items-center gap-3 p-4" data-no-daily={h.strategy_id}>
-        <StatusBadge value={h.launch?.status === "LAUNCHED" ? "OBSERVING" : "NOT_LAUNCHED"}
-          label={h.launch?.status === "LAUNCHED" ? "관찰 중" : "미시작"}
-          tone={h.launch?.status === "LAUNCHED" ? "success" : "neutral"}/>
-        <span className="text-sm text-foreground-secondary">{h.reason}</span>
-        {h.decision_counts && <span className="text-sm tabular-nums text-foreground">
-          APPROVE {h.decision_counts[H_APPROVE] ?? 0} · WATCH {h.decision_counts[H_WATCH] ?? 0} ·
-          REJECT {h.decision_counts[H_REJECT] ?? 0}
-        </span>}
-      </div>
-    </section>}
-  </>;
+  </section>;
 }

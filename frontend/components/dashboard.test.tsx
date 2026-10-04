@@ -151,13 +151,9 @@ describe("Dashboard screen", () => {
 
 describe("Strategy information architecture", () => {
   it("names the first strategy tab Strategy A and keeps its route", () => {
-    // The result group lands on the A/E/H comparison, gives Strategy H's forward shadow its own
-    // screen (H-V2-D7), and lists closed research (B, C, D) and A's empty exit-rule experiment
-    // only through the research history.
-    expect(strategyTabs.map(tab => tab.label))
-      .toEqual(["일별 손익", "상세 분석", "H 포워드 섀도", "연구 이력"]);
-    expect(strategyTabs.map(tab => tab.href))
-      .toEqual(["/daily", "/strategy-compare", "/strategy-h", "/strategy-history"]);
+    // The strategy group is one screen (`/daily`), so it has no tabs. The comparison, H's cohort
+    // and the research history keep their routes without being part of the landing screen.
+    expect(strategyTabs).toEqual([]);
   });
 
   it("sends the dashboard cards to the operating screens, not the result screens", () => {

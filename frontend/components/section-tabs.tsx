@@ -19,24 +19,16 @@ export const analysisTabs: SectionTab[] = [
 /** Operating screens are derived from the strategy registry (see lib/strategies.ts), so a strategy
  *  appears here by being enabled in the backend rather than by being written into this file. */
 
-/** Result screens. The comparison is the group's landing screen and answers ALL / A / E / H on its
- *  own; Strategy H keeps a second screen because its per-issuer evidence does not fit a
- *  trade-shaped comparison; closed research (B, C, D) is reachable only through the research history.
+/** The strategy group is a single screen (`/daily`): the sessions, then one strategy's record.
  *
- *  The daily view leads because it answers the operating question - how much this session made or
- *  lost. The comparison tables, the frozen gate and the portfolio simulation are analysis and sit
- *  behind "상세 분석" rather than in front of it.
- *
- *  A's exit-rule experiment (`/shadow`) is deliberately not a tab. Its variants are also labelled
- *  A to E, which collides with Strategy A and Strategy E on this very bar, and the server's
- *  `shadow_trades` table holds 0 rows: the live paper runtime never writes one. The route, its
- *  components and its data stay where they are and the research history links to it. */
-export const strategyTabs: SectionTab[] = [
-  { href: "/daily", label: "일별 손익" },
-  { href: "/strategy-compare", label: "상세 분석" },
-  { href: "/strategy-h", label: "H 포워드 섀도" },
-  { href: "/strategy-history", label: "연구 이력" },
-];
+ *  There is no tab bar for it any more. The analysis screens it used to point at - the metric
+ *  comparison (`/strategy-compare`), Strategy H's valuation cohort (`/strategy-h`), the research
+ *  history (`/strategy-history`) and A's empty exit-rule experiment (`/shadow`) - keep their routes
+ *  and their data, but they answer research questions rather than operating ones and are not part
+ *  of the screen you land on. `strategyTabs` stays exported and empty so `StrategyTabs` renders
+ *  nothing rather than disappearing from the markup those screens still mount.
+ */
+export const strategyTabs: SectionTab[] = [];
 
 export const systemTabs: SectionTab[] = [
   { href: "/runtime", label: "시스템 상태" },

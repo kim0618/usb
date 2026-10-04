@@ -207,9 +207,9 @@ describe("Strategy B screen sections", () => {
     // Strategy E's screen is an operating one, so it highlights 트레이딩. B's old routes still light
     // their group (they now show a CLOSED notice), but B is never a menu of its own.
     expect(navigationItems.find(item => item.label === "트레이딩")!.activePaths).toEqual(["/trading", "/trading-b", "/strategy-e"]);
-    // H-V2-D7 added /strategy-h to this group; B's own route is still in it and is still not a menu.
+    // The group lands on /daily now; B's own route is still in it and is still not a menu.
     expect(navigationItems.find(item => item.label === "전략")!.activePaths)
-      .toEqual(["/strategy-compare", "/strategy-h", "/shadow", "/strategy-history", "/strategy-b"]);
+      .toEqual(["/daily", "/strategy-compare", "/strategy-h", "/shadow", "/strategy-history", "/strategy-b"]);
   });
 
   it("never reaches the Backend, Kiwoom, a socket, or an order path", () => {
