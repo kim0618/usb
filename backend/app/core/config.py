@@ -44,6 +44,10 @@ class Settings(BaseSettings):
     run_kiwoom_live_smoke: bool = False
     run_kiwoom_real_scanner: bool = False
     run_real_market_simulation: bool = False
+    # Off: the entry runtime resolves candidates from the predecessor session exactly as
+    # it does today. On: the A-MOVER-SCANNER-V1.2 run of the entry session's own date is
+    # the only candidate source. See app.services.candidate_source.
+    a_mover_candidate_source_enabled: bool = False
     massive_api_key: SecretStr | None = None
 
     @field_validator("log_level")
