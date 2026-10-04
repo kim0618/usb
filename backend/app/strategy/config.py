@@ -15,6 +15,14 @@ class TrailingMode(StrEnum):
     STRUCTURE = "STRUCTURE"
 
 
+class GapDirection(StrEnum):
+    """Which side of the previous close the premarket gate admits."""
+
+    UP = "UP"
+    DOWN = "DOWN"
+    ANY = "ANY"
+
+
 @dataclass(frozen=True)
 class StrategyConfig:
     version: str = STRATEGY_VERSION
@@ -40,6 +48,9 @@ class StrategyConfig:
     wide_atr_multiplier: Decimal = Decimal("2.0")
     trailing_activation_r: Decimal = Decimal("1")
     max_pyramid_adds: int = 1
+    #: Which gap sign the premarket gate admits. UP is the paper rule (gap >= gap_min), so
+    #: at its default the premarket gate is byte-identical to the one that had no such field.
+    premarket_gap_direction: GapDirection = GapDirection.UP
     max_holding_trading_days: int = 2
     overnight_enabled: bool = True
     overnight_max_positions: int = 1
@@ -62,6 +73,7 @@ class StrategyConfig:
         # decision (and no add intent) is ever produced. 1 is the V1 behaviour.
         if self.max_pyramid_adds < 0:
             raise ValueError("max_pyramid_adds cannot be negative")
+        object.__setattr__(self, "premarket_gap_direction", GapDirection(self.premarket_gap_direction))
 
 
 @dataclass(frozen=True)
