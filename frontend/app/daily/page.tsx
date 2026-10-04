@@ -12,7 +12,7 @@ import { strategiesApi } from "@/lib/strategies";
 export default function StrategyScreen() {
   const state = useApi(() => strategiesApi.daily(), 60_000);
   const [picked, setPicked] = useState<string | null>(null);
-  const header = <PageHeader title="전략" description="세션마다 얼마가 들어오고 나갔는지, 전략을 고르면 그 전략의 기록."/>;
+  const header = <PageHeader title="전략"/>;
   if (state.loading) return <>{header}<LoadingState/></>;
   if (!state.data) return <>{header}<ErrorState message={state.error || "조회 실패"} retry={state.refresh}/></>;
   return <>

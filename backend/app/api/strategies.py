@@ -542,17 +542,14 @@ async def strategy_performance(db: DB) -> dict[str, Any]:
 async def strategy_daily(db: DB, limit: Annotated[int, Query(ge=1, le=400)] = 60) -> dict[str, Any]:
     """One row per session: what each strategy made or lost that day, and what it traded.
 
-    This is the operating question - "how much today, how much yesterday" - answered once, instead
-    of leaving it to be reassembled from four screens. It composes nothing new: the daily points and
-    the trades are the same ones ``/performance`` and ``/ledger`` publish, grouped by session.
-
-    Strategy H has no row here and that is not an omission: it holds no capital, so there is no
-    daily figure to report. Its state is carried in ``strategies`` beside the rows.
+    Every operating strategy gets a column, including one that has booked nothing yet: a column
+    that appears the day a strategy first trades would make the table's shape depend on its luck.
+    A session a strategy has no record for is absent from that row, and the screen shows "-" for
+    it, which is not the same statement as a flat day.
     """
-    books = _books(db)
-    official = {sid: book["official"] for sid, book in books.items()}
+    books = _books(db) | {REG.STRATEGY_H_V2: HV.books()}
     per_day: dict[str, dict[str, Any]] = {}
-    for sid, book in official.items():
+    for sid, book in ((sid, b["official"]) for sid, b in books.items()):
         for point in book.daily:
             row = per_day.setdefault(point.day, {"session": point.day, "strategies": {}, "trades": []})
             row["strategies"][sid] = {"pnl": PERF.money(point.pnl), "equity": PERF.money(point.equity),
@@ -574,27 +571,10 @@ async def strategy_daily(db: DB, limit: Annotated[int, Query(ge=1, le=400)] = 60
         row["total_pnl"] = PERF.money(sum(amounts, Decimal(0))) if amounts else None
         row["trades"].sort(key=lambda t: str(t.get("exit_at") or t.get("entry_at") or ""))
         rows.append(row)
-    # Why a strategy can read as flat for weeks: its own trades may predate the official clock.
-    # Those sessions are in the legacy (V0) book, which charges costs twice and is never mixed in
-    # here. Saying so is the difference between "it made nothing" and "its record is elsewhere".
-    before_start = {}
-    for sid, book in books.items():
-        legacy = [point.day for point in book["legacy"].daily if point.pnl != 0]
-        if legacy:
-            before_start[sid] = {"sessions": len(legacy), "last_session": max(legacy)}
-    h_state = HV.status()["detail"]
     return {
         "currency": "USD", "paper_clock": OFF.state(), "rows": rows,
-        "excluded_before_start": before_start,
         "strategies": [{"strategy_id": sid, "display_name": REG.get(sid).display_name,
-                        "short_name": REG.get(sid).short_name, "has_daily_pnl": True}
-                       for sid in official]
-                      + [{"strategy_id": REG.STRATEGY_H_V2, "display_name": "Strategy H",
-                          "short_name": "H", "has_daily_pnl": False,
-                          "reason": HV.NO_CAPITAL_BOOK,
-                          "decision_counts": h_state["decision_counts"],
-                          "launch": h_state["launch"]}],
-        "note": "일별 손익은 각 전략의 자체 장부에서 읽은 그대로이고, 합계는 단순 합입니다",
+                        "short_name": REG.get(sid).short_name} for sid in books],
     }
 
 

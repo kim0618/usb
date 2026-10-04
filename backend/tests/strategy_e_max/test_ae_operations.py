@@ -544,13 +544,21 @@ async def test_daily_answers_how_much_each_session_made_per_strategy(api) -> Non
 
 
 @pytest.mark.asyncio
-async def test_daily_says_h_has_no_daily_pnl_instead_of_showing_zero(api) -> None:
+async def test_daily_gives_every_operating_strategy_a_column_booked_or_not(api) -> None:
+    """A column that appeared the day a strategy first traded would make the table's shape depend
+    on its luck, so every operating strategy has one from the start."""
     body = await get(api, "/api/v1/strategies/daily")
-    h = next(s for s in body["strategies"] if s["strategy_id"] == H)
-    assert h["has_daily_pnl"] is False and "자본 장부가 없다" in h["reason"]
-    assert set(h["decision_counts"]) == {"APPROVE", "WATCH", "REJECT"}
-    # and H never appears as a strategy column inside a daily row
+    assert [s["strategy_id"] for s in body["strategies"]] == [A, E, H]
+    # H has booked nothing, so it is absent from every row: the screen renders "-", not a zero.
     assert all(H not in row["strategies"] for row in body["rows"])
+    assert all(row["strategies"] for row in body["rows"])
+
+
+@pytest.mark.asyncio
+async def test_daily_carries_no_explanatory_prose(api) -> None:
+    """The table is the whole statement; prose about accounting belongs in the docs, not the screen."""
+    body = await get(api, "/api/v1/strategies/daily")
+    assert set(body) == {"currency", "paper_clock", "rows", "strategies"}
 
 
 @pytest.mark.asyncio
@@ -573,11 +581,3 @@ async def test_daily_money_never_reaches_a_screen_in_exponent_form(api) -> None:
     assert all("E" not in figure.upper() for figure in figures), figures
 
 
-@pytest.mark.asyncio
-async def test_daily_says_which_sessions_sit_before_the_official_clock(api) -> None:
-    """Why a strategy can read as flat: its own moves may predate the official start."""
-    body = await get(api, "/api/v1/strategies/daily")
-    excluded = body["excluded_before_start"]
-    assert A in excluded                                   # the fixture's 2026-09-25 V0 day
-    assert excluded[A]["sessions"] >= 1
-    assert excluded[A]["last_session"] < START             # strictly before the official clock

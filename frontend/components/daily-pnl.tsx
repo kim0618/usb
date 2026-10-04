@@ -85,12 +85,7 @@ function Row({ row, columns, open, onToggle }: {
 
 export function DailyPnl({ view }: { view: DailyView }) {
   const [open, setOpen] = useState<string | null>(null);
-  const columns = view.strategies.filter(s => s.has_daily_pnl)
-    .map(s => ({ id: s.strategy_id, label: s.short_name || s.display_name }));
-  const label = (id: string) =>
-    view.strategies.find(s => s.strategy_id === id)?.short_name
-    || view.strategies.find(s => s.strategy_id === id)?.display_name || id;
-  const excluded = Object.entries(view.excluded_before_start || {});
+  const columns = view.strategies.map(s => ({ id: s.strategy_id, label: s.short_name || s.display_name }));
 
   return <section aria-labelledby="daily-title" className="mb-7 min-w-0">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
@@ -113,11 +108,5 @@ export function DailyPnl({ view }: { view: DailyView }) {
             <tbody>{view.rows.map(row => <Row key={row.session} row={row} columns={columns}
               open={open === row.session} onToggle={() => setOpen(v => v === row.session ? null : row.session)}/>)}</tbody>
           </table></div>}
-      <p className="mt-2 text-xs text-muted">{view.note}. 거래가 있던 날은 세션을 눌러 그날 내역을 봅니다.</p>
-      {excluded.length > 0 && <p className="mt-1 text-xs text-muted" data-excluded-before-start="">
-        {excluded.map(([id, info]) =>
-          `${label(id)}는 공식 시작 전에 움직인 세션이 ${info.sessions}일 있습니다(마지막 ${info.last_session}).`).join(" ")}
-        {" "}회계 방식이 달라 이 표에 섞지 않습니다.
-      </p>}
   </section>;
 }

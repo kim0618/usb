@@ -306,14 +306,9 @@ export type DailyRow = {
 
 export type DailyView = {
   currency: string; paper_clock: PaperClock; rows: DailyRow[];
-  /** Sessions a strategy did move on, but before the official clock started: they sit in the
-   *  legacy (V0) book and are never mixed into these rows. Explains a strategy reading as flat. */
-  excluded_before_start?: Record<string, { sessions: number; last_session: string }>;
-  /** Every operating strategy, with whether it has a daily figure at all. H does not. */
-  strategies: Array<{ strategy_id: string; display_name: string; short_name?: string;
-                      has_daily_pnl: boolean; reason?: string;
-                      decision_counts?: Record<string, number>; launch?: HLaunchState }>;
-  note: string;
+  /** Every operating strategy, in registry order. One gets a column whether or not it has booked
+   *  anything yet, so the table's shape does not depend on when a strategy first trades. */
+  strategies: Array<{ strategy_id: string; display_name: string; short_name?: string }>;
 };
 
 export const strategiesApi = {

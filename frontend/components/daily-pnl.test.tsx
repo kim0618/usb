@@ -32,26 +32,30 @@ const view = (over: Partial<DailyView> = {}): DailyView => ({
                  holding_seconds: 5100, accounting_version: "V0", evaluation: "LEGACY" }] },
   ],
   strategies: [
-    { strategy_id: "STRATEGY_A", display_name: "Strategy A", short_name: "A", has_daily_pnl: true },
-    { strategy_id: "STRATEGY_E_MAX_V1", display_name: "Strategy E", short_name: "E", has_daily_pnl: true },
-    { strategy_id: "STRATEGY_H_V2", display_name: "Strategy H", short_name: "H", has_daily_pnl: false,
-      reason: "H는 자본 장부가 없다. forward shadow는 결정을 관찰한다",
-      decision_counts: { APPROVE: 0, WATCH: 6, REJECT: 2 },
-      launch: { status: "LAUNCHED", launched_at: null, baseline_session: "2026-10-02",
-                decision_session: "2026-09-16", issuers: 8 } },
+    { strategy_id: "STRATEGY_A", display_name: "Strategy A", short_name: "A" },
+    { strategy_id: "STRATEGY_E_MAX_V1", display_name: "Strategy E", short_name: "E" },
+    { strategy_id: "STRATEGY_H_V2", display_name: "Strategy H", short_name: "H" },
   ],
-  excluded_before_start: { STRATEGY_A: { sessions: 2, last_session: "2026-09-22" } },
-  note: "일별 손익은 각 전략의 자체 장부에서 읽은 그대로이고, 합계는 단순 합입니다",
   ...over,
 });
 
 describe("daily pnl", () => {
-  it("gives a column to each strategy that has a daily figure, and a total", () => {
+  it("gives every operating strategy a column, booked or not, plus a total", () => {
     render(<DailyPnl view={view()}/>);
     const columns = Array.from(document.querySelectorAll("th[data-column]"))
       .map(n => (n as HTMLElement).dataset.column);
-    expect(columns).toEqual(["STRATEGY_A", "STRATEGY_E_MAX_V1"]);
+    // H has booked nothing yet and still gets a column: the table's shape must not depend on
+    // when a strategy happens to make its first trade.
+    expect(columns).toEqual(["STRATEGY_A", "STRATEGY_E_MAX_V1", "STRATEGY_H_V2"]);
     expect(screen.getByRole("columnheader", { name: "합계" })).toBeTruthy();
+  });
+
+  it("shows a strategy with no record that session as '-', on every row", () => {
+    render(<DailyPnl view={view()}/>);
+    const cells = Array.from(document.querySelectorAll("[data-cell=STRATEGY_H_V2]"))
+      .map(n => n.textContent!.trim());
+    expect(cells).toHaveLength(view().rows.length);
+    expect(cells.every(c => c === "-")).toBe(true);   // never $0.00
   });
 
   it("lists sessions newest first with each strategy's own figure", () => {
@@ -86,30 +90,16 @@ describe("daily pnl", () => {
     expect(screen.getByRole("button", { name: /2026-10-02/ })).toBeDisabled();
   });
 
-  it("gives Strategy H no column, because a zero column would say it broke even every day", () => {
+  it("carries no explanatory prose: the table is the whole statement", () => {
     render(<DailyPnl view={view()}/>);
-    const columns = Array.from(document.querySelectorAll("th[data-column]"))
-      .map(n => (n as HTMLElement).dataset.column);
-    expect(columns).not.toContain("STRATEGY_H_V2");
-    // H's own record lives under the strategy picker, not as a banner on this table.
+    expect(document.querySelector("[data-excluded-before-start]")).toBeNull();
+    expect(document.body.textContent).not.toContain("단순 합");
+    expect(document.body.textContent).not.toContain("회계 방식이 달라");
     expect(document.body.textContent).not.toContain("WATCH 6");
   });
 
   it("says so when no session has been recorded", () => {
     render(<DailyPnl view={view({ rows: [] })}/>);
     expect(screen.getByText("기록된 세션이 없습니다.")).toBeTruthy();
-  });
-
-  it("explains a flat strategy whose own sessions predate the official clock", () => {
-    render(<DailyPnl view={view()}/>);
-    const note = document.querySelector("[data-excluded-before-start]") as HTMLElement;
-    expect(note.textContent).toContain("A는 공식 시작 전에 움직인 세션이 2일");
-    expect(note.textContent).toContain("2026-09-22");
-    expect(note.textContent).toContain("회계 방식이 달라");
-  });
-
-  it("says nothing about excluded sessions when there are none", () => {
-    render(<DailyPnl view={view({ excluded_before_start: {} })}/>);
-    expect(document.querySelector("[data-excluded-before-start]")).toBeNull();
   });
 });
