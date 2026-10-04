@@ -12,8 +12,20 @@ import { apiFetch } from "@/lib/api";
  *  is the registry's display_name, never a string typed into a screen. */
 export const STRATEGY_A = "STRATEGY_A";
 export const STRATEGY_E = "STRATEGY_E_MAX_V1";
+export const STRATEGY_H = "STRATEGY_H_V2";
 export const PROVISIONAL = "PROVISIONAL_RVOL_BOOTSTRAP";
 export const OFFICIAL = "OFFICIAL_KIWOOM_PAPER";
+
+/** What a strategy does with capital. A and E place simulated orders (SIMULATION_PAPER); H observes
+ *  its own decisions on future data and holds no capital book (FORWARD_SHADOW). Both are operating
+ *  modes, so every screen that asks "is this strategy operating" asks about this set. */
+export const PAPER_MODES: readonly string[] = ["SIMULATION_PAPER", "FORWARD_SHADOW"];
+
+/** The three states Strategy H's decision engine can produce. Only APPROVE could ever hold a
+ *  position, and only once a sizing contract is frozen; WATCH and REJECT never do. */
+export const H_APPROVE = "APPROVE";
+export const H_WATCH = "WATCH";
+export const H_REJECT = "REJECT";
 
 export type StrategyRow = {
   strategy_id: string; display_name: string; version: string; enabled: boolean; mode: string;
@@ -34,7 +46,13 @@ export type StrategyCardData = {
   today_realized_pnl: string | null; today_unrealized_pnl: string | null;
   /** Official = ACCOUNTING_V1 from the official start; legacy = V0 rows, reference only. */
   net_pnl: string | null; equity_change?: string | null; trades: number;
-  official?: BookSummary; legacy?: BookSummary; paper_clock?: PaperClock;
+  official?: BookSummary; legacy?: BookSummary; paper_clock?: PaperClock | null;
+  /** Present only for Strategy H: the counts and states its card shows instead of money. */
+  forward?: {
+    contract_id: string; launch: HLaunchState; decision_counts: Record<string, number>;
+    watchlist: number; rejected: number; approved: number; issuers: number;
+    maturity: HMaturity; evaluation: HEvaluation; sizing_contract: string;
+  };
   last_signal_at: string | null; last_trade_at: string | null; na: Record<string, string>;
 };
 
@@ -66,6 +84,10 @@ export type PerformanceBoard = {
   strategies: Record<string, { strategy_id: string; official: StrategyMetrics; legacy: StrategyMetrics }>;
   combined: StrategyMetrics; legacy_combined: StrategyMetrics;
   gate: Record<string, GateResult>; books: Record<string, string>;
+  /** Strategy H's forward shadow. H is not in `combined` and not in `gate`: it has no capital book
+   *  to sum and the A/E paper gate contract does not list it. */
+  h_forward?: HForwardView;
+  combined_definition?: string;
   excluded: Record<string, { trades: number; sessions: number; reason: string }>;
   e_sessions: Array<{ session: string; phase: string | null; error: boolean }>;
 };
@@ -124,6 +146,9 @@ export type StrategyAccount = {
   source: string; evidence_status?: string | null; empty_reason?: string | null;
   books?: Record<string, { present: boolean; initial_equity: string | null; equity: string | null;
                            realized_pnl: string | null; sessions: number }>;
+  /** Strategy H only: how many issuers sit in each decision state. */
+  decision_counts?: Record<string, number>;
+  na?: Record<string, string>;
 };
 
 export type StrategyPosition = {
@@ -150,6 +175,7 @@ export type StrategyEquity = {
 export const OPERATING_ROUTES: Readonly<Record<string, { href: string }>> = {
   [STRATEGY_A]: { href: "/trading" },
   [STRATEGY_E]: { href: "/strategy-e" },
+  [STRATEGY_H]: { href: "/strategy-h" },
 };
 
 /** "Strategy E · E-MAX V1": the registry's own display name and variant, nothing typed here. */
@@ -161,7 +187,7 @@ export function strategyLabel(row: Pick<StrategyRow, "display_name" | "variant_l
  *  A closed research strategy is listed on the research history screen instead. */
 export function operatingTabs(rows: readonly StrategyRow[]): Array<{ href: string; label: string; strategy_id: string }> {
   return rows
-    .filter(row => row.enabled && row.mode === "SIMULATION_PAPER" && OPERATING_ROUTES[row.strategy_id])
+    .filter(row => row.enabled && PAPER_MODES.includes(row.mode) && OPERATING_ROUTES[row.strategy_id])
     .map(row => ({ strategy_id: row.strategy_id, href: OPERATING_ROUTES[row.strategy_id].href, label: strategyLabel(row) }));
 }
 
@@ -170,6 +196,97 @@ export const RESEARCH_LABELS: Readonly<Record<string, string>> = { PASSED_TO_PAP
 export const OPERATION_LABELS: Readonly<Record<string, string>> = {
   RUNNING: "RUNNING", WAITING_SIGNAL: "WAITING SIGNAL", POSITION_OPEN: "POSITION OPEN",
   PAUSED: "PAUSED", DATA_ERROR: "DATA ERROR",
+};
+export const LIFECYCLE_LABELS: Readonly<Record<string, string>> = {
+  PAPER: "ACTIVE · PAPER", FORWARD_SHADOW: "ACTIVE · FORWARD SHADOW", RETIRED: "RETIRED",
+};
+
+/** The strategy selector on the comparison screen: ALL, or exactly one strategy. */
+export const ALL_STRATEGIES = "ALL";
+export function selectorOptions(rows: readonly StrategyRow[]): Array<{ id: string; label: string }> {
+  return [{ id: ALL_STRATEGIES, label: "ALL" },
+    ...rows.filter(row => row.enabled && PAPER_MODES.includes(row.mode))
+      .map(row => ({ id: row.strategy_id, label: row.short_name || row.display_name }))];
+}
+
+/** Strategy H's forward shadow. None of these shapes exist for A or E: a decision cohort is not a
+ *  trade ledger, and forcing it into one would mean printing empty trade columns beside a WATCH. */
+export type HOutcome = {
+  ticker: string; horizon_sessions: number; baseline_session: string; benchmark: string;
+  maturity_session: string | null; state: "MATURED" | "PENDING" | "INCOMPLETE" | "NO_BASELINE";
+  reason?: string; missing_sessions?: string[];
+  sessions_observed?: number; sessions_required?: number;
+  baseline_price?: number; maturity_price?: number;
+  security_return?: number | null; benchmark_return?: number | null; excess_return?: number | null;
+  mfe?: number | null; mae?: number | null;
+  tp1_hit?: boolean | null; tp2_hit?: boolean | null; bear_breach?: boolean | null;
+  bear_na_reason?: string | null;
+};
+
+export type HCohortRow = {
+  strategy_id: string; ticker: string; cik: string | null; security_id: string | null;
+  cohort_tag: string | null;
+  decision: string | null; previous_decision: string | null; decision_at_launch: string | null;
+  decision_time: string | null; effective_session: string | null; thesis_version: string | null;
+  decision_changes: number;
+  position: null; open_positions: number; position_reason: string;
+  d4_expectation_gap: string | null; d4_gap_confidence: string | null;
+  valuation_method: string | null; valuation_window: string | null;
+  valuation_confidence: string | null; valuation_status: string | null;
+  /** `null` with `bear_na_reason` when the Bear leg was refused. Never rendered as 0. */
+  bear: number | null; bear_na_reason: string | null;
+  tp1: number | null; tp2: number | null;
+  tp1_upside_at_decision: number | null; tp2_upside_at_decision: number | null;
+  range_complete: boolean | null;
+  key_binding_clause: string | null;
+  approve_blockers: string[]; reject_fired: string[]; watch_matched: string[];
+  decision_close: number | null; current_price: number | null; current_price_session: string | null;
+  tp1_distance: number | null; tp2_distance: number | null; bear_distance: number | null;
+  pre_launch_drift: { decision_session: string; decision_close: number | null;
+                      baseline_session: string; baseline_close: number | null;
+                      return_since_decision: number | null; is_forward_evidence: false; note: string };
+  forward: Record<string, HOutcome>;
+  checksums: Record<string, string | null>;
+};
+
+export type HLaunchState = {
+  status: "LAUNCHED" | "NOT_LAUNCHED"; launched_at: string | null; baseline_session: string | null;
+  decision_session: string; d5_contract?: string; issuers: number; cohort_tags?: string[];
+  reason?: string;
+};
+
+export type HMaturity = Record<string, { matured: number; pending: number; incomplete: number;
+                                         no_baseline: number; maturity_session: string | null }>;
+
+export type HEvaluation = {
+  strategy_id: string; contract_id: string; state: string; verdict: string; reasons: string[];
+  sample_needed: Record<string, number>; sample_reached: Record<string, boolean>;
+  maturity: HMaturity; under_ae_paper_gate: false; note: string;
+};
+
+export type HForwardView = {
+  available?: boolean; strategy_id: string;
+  contract: { contract_id: string; contract_sha256: string; step: string; research_build: string;
+              forward_observation: string; d5_contract: string; d6_contract: string;
+              decision_session: string; horizons: number[]; benchmark: string;
+              sizing_contract: string; sample_needed: Record<string, number>;
+              preregistered_forward_questions: string[] };
+  launch: HLaunchState;
+  decision_counts: Record<string, number>;
+  maturity: HMaturity; evaluation: HEvaluation;
+  position_rule: { watch_creates_position: boolean; reject_creates_position: boolean;
+                   approve_creates_position: boolean; approve_creates_entry_candidate: boolean;
+                   sizing_contract: string; why: string };
+  price_store: { source: string; latest_session: string | null; sessions_observed: number };
+  rows: HCohortRow[]; ledger_rows: number; snapshot_rows: number;
+};
+
+export type HIssuerView = HCohortRow & {
+  available?: boolean; state?: string; reason?: string;
+  thesis: { d3: Record<string, unknown> | null; d4: Record<string, unknown> | null;
+            d5: Record<string, unknown> | null; d6: Record<string, unknown> | null };
+  decision_history: Array<Record<string, unknown>>;
+  launch_snapshot: Record<string, unknown>;
 };
 
 export const strategiesApi = {
@@ -183,6 +300,10 @@ export const strategiesApi = {
   cards: () => apiFetch<StrategyCardData[]>("/api/v1/strategies/cards"),
   performance: () => apiFetch<PerformanceBoard>("/api/v1/strategies/performance"),
   portfolio: () => apiFetch<PortfolioView>("/api/v1/strategies/portfolio"),
+  forward: (id: string = STRATEGY_H) =>
+    apiFetch<HForwardView>(`/api/v1/strategies/${encodeURIComponent(id)}/forward`),
+  forwardIssuer: (ticker: string, id: string = STRATEGY_H) =>
+    apiFetch<HIssuerView>(`/api/v1/strategies/${encodeURIComponent(id)}/forward/${encodeURIComponent(ticker)}`),
 };
 
 /** Everything the dashboard needs, fetched per strategy and never summed across them. */

@@ -14,6 +14,7 @@ from typing import Any
 
 STRATEGY_A = "STRATEGY_A"
 STRATEGY_E_MAX_V1 = "STRATEGY_E_MAX_V1"
+STRATEGY_H_V2 = "STRATEGY_H_V2"
 STRATEGY_B = "STRATEGY_B"
 STRATEGY_C = "STRATEGY_C"
 STRATEGY_D = "STRATEGY_D"
@@ -25,7 +26,15 @@ STRATEGY_D = "STRATEGY_D"
 RESEARCH_PASSED_TO_PAPER = "PASSED_TO_PAPER"
 RESEARCH_CLOSED = "CLOSED"
 LIFECYCLE_PAPER = "PAPER"
+LIFECYCLE_FORWARD_SHADOW = "FORWARD_SHADOW"
 LIFECYCLE_RETIRED = "RETIRED"
+
+#: What a strategy does with capital. A and E place simulated orders; H observes its own decisions on
+#: future data and holds no capital book. Both are operating modes and both appear on the paper
+#: screens, so screens select on this set rather than on a single hardcoded string.
+MODE_SIMULATION_PAPER = "SIMULATION_PAPER"
+MODE_FORWARD_SHADOW = "FORWARD_SHADOW"
+PAPER_MODES = (MODE_SIMULATION_PAPER, MODE_FORWARD_SHADOW)
 
 
 @dataclass(frozen=True)
@@ -68,6 +77,14 @@ REGISTRY: tuple[StrategyMeta, ...] = (
         mode="SIMULATION_PAPER", adapter="e_runtime_files", market_data_source="KIWOOM",
         note="09:25 결정, 09:30 진입, 09:34 청산. 증거 등급은 세션 기록이 정한다.",
         short_name="E", variant_label="E-MAX V1"),
+    # H reached paper as a forward shadow rather than as an order-placing strategy: its output is a
+    # decision per issuer (APPROVE / WATCH / REJECT), and only an APPROVE could ever become a
+    # position. It operates beside A and E on the same screens; it shares none of their books.
+    StrategyMeta(
+        strategy_id=STRATEGY_H_V2, display_name="Strategy H", version="H-V2 D7", enabled=True,
+        mode=MODE_FORWARD_SHADOW, adapter="h_forward_files", market_data_source="MASSIVE",
+        note="D1~D6 연구 종결. 미래 데이터만으로 결정을 관찰한다. WATCH·REJECT는 포지션을 만들지 않는다.",
+        short_name="H", variant_label="Forward Shadow", lifecycle=LIFECYCLE_FORWARD_SHADOW),
     # Closed research. Listed so the history screen can say so; never an operating tab, never a card.
     StrategyMeta(
         strategy_id=STRATEGY_B, display_name="Strategy B", version="E1-A", enabled=False,

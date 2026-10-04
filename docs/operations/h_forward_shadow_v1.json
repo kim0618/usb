@@ -1,0 +1,87 @@
+{
+ "declaration": {
+  "contract_id": "H_V2_D7_FORWARD_SHADOW_V1",
+  "step": "H-V2-D7",
+  "declared_at_kst": "2026-10-04",
+  "status": "FROZEN_BEFORE_LAUNCH",
+  "purpose": "Observe Strategy H's already-finished research decisions on future data only, beside Strategy A and Strategy E, without changing either of them.",
+  "checksum_recipe": "sha256 of json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False)",
+  "research_build": "CLOSED",
+  "forward_observation": "ACTIVE"
+ },
+ "upstream": {
+  "d5_contract_required": "D5_D2R_V1",
+  "d5_contract_refused": "D5_D2_V1",
+  "d6_contract": "h_v2_d6_integrated_decision_v1",
+  "d5_d2r_contract": "h_v2_d5_d2r_recent_regime_window_repair_v1",
+  "decision_session": "2026-09-16",
+  "refusal_reason": "A forward shadow launched on the superseded window rule would be observing a valuation the repository has already shown to be wrong on VRRM, so the engine refuses to launch under any contract other than D5_D2R_V1."
+ },
+ "decision_states": {
+  "APPROVE": "the only state that may become a paper entry candidate",
+  "WATCH": "an observed candidate with no position and no return claim",
+  "REJECT": "not selected, no position; kept in the cohort so a rejection is falsifiable",
+  "NOT_DECISION_ELIGIBLE": "an upstream layer abstained; not part of the forward cohort"
+ },
+ "position_rule": {
+  "watch_creates_position": false,
+  "reject_creates_position": false,
+  "approve_creates_position": false,
+  "approve_creates_entry_candidate": true,
+  "sizing_contract": "NOT_DEFINED",
+  "sizing_is_fail_closed": true,
+  "why_not_defined": "Strategy A sizes from risk_v1 (0.5% of equity per 1R) and needs an initial stop; Strategy E sizes 1/3 of equity per slot and needs a same-session exit. D6 produces neither an entry level, a stop nor an exit (its own `d6_never_produced` list says so), so neither existing convention can be applied to H without inventing a parameter H's research never produced. D7 v1 therefore records an APPROVE as an entry candidate and refuses to open a position until a sizing contract is separately frozen.",
+  "execution_convention_when_defined": "the A/E paper convention, unchanged: a decision settled after the close fills at the next regular session's open through app.broker.sim.SimBroker under app.execution.config execution_v0"
+ },
+ "transitions": {
+  "allowed": [
+   "WATCH->APPROVE", "WATCH->REJECT", "WATCH->WATCH",
+   "REJECT->WATCH", "REJECT->APPROVE",
+   "APPROVE->WATCH", "APPROVE->REJECT"
+  ],
+  "cause_required": "D3->D4->D5->D6 re-evaluation on new material evidence",
+  "price_alone_is_not_a_cause": true,
+  "thesis_versions_are_immutable": true
+ },
+ "refresh": {
+  "daily_full_rerun": false,
+  "material_events": ["10-Q", "10-K", "8-K", "EARNINGS_RELEASE", "GUIDANCE", "MATERIAL_CORPORATE_EVENT"],
+  "change_detection": "app.backtest.strategy_h_v2.change_detection (D1/D2), reused unchanged"
+ },
+ "price_monitoring": {
+  "source": "MASSIVE_GROUPED_DAILY",
+  "cadence": "each completed regular session",
+  "store": "H's own append-only session store; the frozen HIST-V1 b_e0 mirror is never written to",
+  "fields": ["close", "high", "low", "volume"]
+ },
+ "outcomes": {
+  "horizons_sessions": [1, 5, 21, 63],
+  "benchmark": "SPY",
+  "measured_from": "LAUNCH_BASELINE_SESSION",
+  "exact_maturation_required": true,
+  "last_available_price_substitution": false,
+  "unmatured_state": "PENDING",
+  "metrics": ["security_return", "benchmark_return", "excess_return", "mfe", "mae", "tp1_hit", "tp2_hit", "bear_breach"],
+  "path_metrics_use": "daily high/low of the sessions inside the horizon"
+ },
+ "evaluation": {
+  "state_at_launch": "RUNNING",
+  "verdict_before_sample": "INCONCLUSIVE",
+  "sample_needed": {"matured_21d_issuers": 8, "matured_63d_issuers": 8},
+  "retuning_forbidden": true,
+  "preregistered_forward_questions": [
+   "does an issuer whose Bull leg sat below its price (IDCC, TP2 -16.6%) cross it",
+   "does any stated invalidation condition fire",
+   "does an issuer whose RECENT_6M window governed get re-rated back toward its FULL_2Y range (the only item that tests D5-D2R)"
+  ]
+ },
+ "isolation": {
+  "ledger_identity": ["strategy_id", "ticker", "thesis_version", "decision_time"],
+  "same_ticker_in_several_strategies_is_normal": true,
+  "a_e_records_untouched": true
+ },
+ "cohort_tags": {
+  "INITIAL_D7_COHORT": "the eight decision-eligible issuers present at launch",
+  "NEW_FORWARD_CANDIDATE": "an issuer admitted after launch through the frozen D1->D6 pipeline"
+ }
+}

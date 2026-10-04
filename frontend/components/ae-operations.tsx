@@ -1,20 +1,27 @@
 "use client";
 
-/** The A/E operating views: performance board, frozen paper gate, the 50/50 portfolio simulation,
- *  and the research history that says which strategies are closed.
+/** The operating views: the A/E/H performance board, the frozen A/E paper gate, the 50/50 A+E
+ *  portfolio simulation, and the research history that says which strategies are closed.
  *
  *  Every figure is the backend's (GET /strategies/performance, /portfolio, /strategies). Nothing is
  *  recomputed here: a missing value renders "N/A" with the backend's reason as its title, a zero
- *  count renders 0, and no strategy name is typed into this file. */
+ *  count renders 0, and no strategy name is typed into this file.
+ *
+ *  Strategy H joined the board in H-V2-D7. Its column comes from the same pure calculator A's and
+ *  E's do, so none of their figures moved; what H does *not* join is the Combined column and the
+ *  portfolio simulation, because both sum initial equities and H has no capital book. The gate panel
+ *  stays A/E: the frozen gate contract does not list H, and H's own state is shown beside it. */
 
 import Link from "next/link";
 import { pnlTone } from "@/components/daily-performance";
 import { EmptyState, StatusBadge } from "@/components/ui";
 import { formatSignedUsd, formatUsd } from "@/lib/format";
 import {
-  OPERATION_LABELS, RESEARCH_LABELS, STRATEGY_A, STRATEGY_E, strategyLabel,
+  ALL_STRATEGIES, LIFECYCLE_LABELS, OPERATION_LABELS, PAPER_MODES, RESEARCH_LABELS,
+  STRATEGY_A, STRATEGY_E, STRATEGY_H, selectorOptions, strategyLabel,
   type GateResult, type PerformanceBoard, type PortfolioView, type StrategyMetrics, type StrategyRow,
 } from "@/lib/strategies";
+import { HBoardRow } from "@/components/h-forward";
 
 const NA = "N/A";
 
@@ -64,22 +71,30 @@ const METRIC_ROWS: Row[] = [
 /** A, E and the A+E combined column for one book, each value exactly as the backend sent it.
  *  ``official`` is ACCOUNTING_V1 from the official start (what the gate reads); ``legacy`` is the V0
  *  rows as recorded, shown for reference and never mixed with official. */
-export function PerformanceTable({ board, rows, book = "official" }: {
+export function PerformanceTable({ board, rows, book = "official", strategy = ALL_STRATEGIES }: {
   board: PerformanceBoard; rows: StrategyRow[]; book?: "official" | "legacy";
+  /** ALL, or one strategy id. ALL shows every operating strategy plus the A+E Combined column. */
+  strategy?: string;
 }) {
   const official = book === "official";
+  const all = strategy === ALL_STRATEGIES;
+  // Which strategies have a column is the registry's answer, not a list typed here.
+  const operating = rows.filter(r => r.enabled && PAPER_MODES.includes(r.mode) && board.strategies[r.strategy_id])
+    .filter(r => all || r.strategy_id === strategy);
   const columns: Array<{ id: string; label: string; metrics: StrategyMetrics }> = [
-    ...[STRATEGY_A, STRATEGY_E].filter(id => board.strategies[id]).map(id => {
-      const row = rows.find(r => r.strategy_id === id);
-      return { id, label: row?.short_name || row?.display_name || id, metrics: board.strategies[id][book] };
-    }),
-    { id: "COMBINED", label: "Combined", metrics: official ? board.combined : board.legacy_combined },
+    ...operating.map(row => ({ id: row.strategy_id, label: row.short_name || row.display_name,
+                               metrics: board.strategies[row.strategy_id][book] })),
+    // Combined is A+E only. It is omitted when one strategy is selected, and when H is that one.
+    ...(all && board.strategies[STRATEGY_A] && board.strategies[STRATEGY_E]
+      ? [{ id: "COMBINED", label: "Combined", metrics: official ? board.combined : board.legacy_combined }]
+      : []),
   ];
+  const showH = official && board.h_forward && (all || strategy === STRATEGY_H);
   const clock = board.paper_clock;
   const titleId = official ? "ae-performance-title" : "ae-legacy-title";
   return <section aria-labelledby={titleId} className="mb-7 min-w-0" data-book={book}>
     <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-      <h2 id={titleId} className="font-semibold">{official ? "Official Paper · A/E 성과" : "Legacy Paper (V0) · 참고용"}</h2>
+      <h2 id={titleId} className="font-semibold">{official ? "Official Paper · 전략별 성과" : "Legacy Paper (V0) · 참고용"}</h2>
       <p className="text-xs text-muted">{official
         ? `ACCOUNTING_V1 · ${clock.official_paper_start ? `${clock.official_paper_start}부터` : "공식 시작 전"} · 통화 ${board.currency}`
         : "ACCOUNTING_V0 · 공식 평가·게이트·합산에서 제외"}</p>
@@ -98,6 +113,8 @@ export function PerformanceTable({ board, rows, book = "official" }: {
           </tr>)}
           <tr><th scope="row" className="font-medium">Operating Sessions</th>
             {columns.map(c => <Cell key={c.id} value={String(c.metrics.operating_sessions)}/>)}</tr>
+          {showH && board.h_forward
+            && <HBoardRow counts={board.h_forward.decision_counts} maturity={board.h_forward.maturity}/>}
         </tbody>
       </table>
     </div>
@@ -106,6 +123,13 @@ export function PerformanceTable({ board, rows, book = "official" }: {
         <li>Combined는 두 공식 장부의 거래와 일별 손익을 더한 회계 합계입니다. 배분 규칙이 아닙니다.</li>
         <li>MFE·MAE는 두 원장 모두 장중 경로를 기록하지 않아 N/A입니다.</li>
         <li>E는 {board.books[STRATEGY_E] || "-"} 장부만 집계합니다.</li>
+        {board.combined_definition && <li>{board.combined_definition}</li>}
+        {board.h_forward && <li>
+          H는 자본 장부가 없어 금액 지표가 N/A이고 Combined·포트폴리오 합산에 들어가지 않습니다.
+          결정 상태는 APPROVE {board.h_forward.decision_counts.APPROVE ?? 0} ·
+          WATCH {board.h_forward.decision_counts.WATCH ?? 0} ·
+          REJECT {board.h_forward.decision_counts.REJECT ?? 0}이며 포지션 0은 정상입니다.
+        </li>}
         {Object.entries(board.excluded).map(([name, info]) => <li key={name}>{name}: 거래 {info.trades}건 · 세션 {info.sessions} · {info.reason}</li>)}
       </> : <li className="tone-warning" data-accounting-warning="">
         V0 순손익은 체결가에 이미 들어간 스프레드·슬리피지를 비용으로 한 번 더 뺀 기록 그대로입니다. 원본은 수정하지 않으며,
@@ -114,13 +138,38 @@ export function PerformanceTable({ board, rows, book = "official" }: {
   </section>;
 }
 
+/** ALL / A / E / H. One strategy at a time, or every operating one side by side. */
+export function StrategySelector({ rows, value, onChange }: {
+  rows: StrategyRow[]; value: string; onChange: (id: string) => void;
+}) {
+  const options = selectorOptions(rows);
+  return <nav aria-label="전략 선택" className="mb-5 flex gap-2 overflow-x-auto" data-strategy-selector={value}>
+    {options.map(option => {
+      const active = option.id === value;
+      return <button key={option.id} type="button" onClick={() => onChange(option.id)}
+        aria-pressed={active} data-strategy-option={option.id}
+        className={`inline-flex h-9 shrink-0 items-center justify-center rounded-lg border px-3.5 text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-primary ${active ? "border-primary bg-primary-soft text-primary" : "border-line bg-surface text-foreground-secondary hover:border-primary hover:bg-primary-soft hover:text-primary"}`}>
+        {option.label}
+      </button>;
+    })}
+  </nav>;
+}
+
 const VERDICT_TONE: Readonly<Record<string, "success" | "warning" | "danger">> = { PASS: "success", INCONCLUSIVE: "warning", FAIL: "danger" };
 
 /** The frozen paper gate per strategy: the verdict, and which condition holds it back. */
-export function GatePanel({ gate, rows }: { gate: Record<string, GateResult>; rows: StrategyRow[] }) {
+export function GatePanel({ gate, rows, board }: {
+  gate: Record<string, GateResult>; rows: StrategyRow[]; board?: PerformanceBoard;
+}) {
+  const h = board?.h_forward;
   return <section aria-labelledby="ae-gate-title" className="mb-7">
     <h2 id="ae-gate-title" className="mb-1 font-semibold">Paper 평가 게이트</h2>
     <p className="mb-3 text-xs text-muted">결과를 보기 전에 고정한 기준(AE_PAPER_EVALUATION_GATE_V1)입니다. 결과에 따라 바꾸지 않습니다.</p>
+    {h && <p className="mb-3 rounded-lg border border-line bg-surface-alt px-3 py-2 text-xs text-foreground-secondary"
+      data-gate-excluded={STRATEGY_H}>
+      Strategy H는 이 게이트의 대상이 아닙니다(동결 계약에 H 항목이 없습니다). H는 {h.contract.contract_id} 아래에서
+      {" "}{h.evaluation.state} · {h.evaluation.verdict}이며, 21D·63D 표본이 찰 때까지 INCONCLUSIVE가 정상입니다.
+    </p>}
     <div className="grid gap-4 xl:grid-cols-2">
       {Object.values(gate).map(result => {
         const row = rows.find(r => r.strategy_id === result.strategy_id);
@@ -212,7 +261,9 @@ export function ResearchHistory({ rows }: { rows: StrategyRow[] }) {
           <th scope="row"><span className="font-semibold">{row.display_name}</span><span className="block text-[11px] text-muted">{row.variant_label || row.version}</span></th>
           <td><StatusBadge value={row.research_lifecycle || "-"} label={RESEARCH_LABELS[row.research_lifecycle || ""] || row.research_lifecycle || "-"}
             tone={closed ? "neutral" : "success"}/></td>
-          <td><StatusBadge value={row.lifecycle || "-"} label={closed ? "RETIRED" : "ACTIVE · PAPER"} tone={closed ? "neutral" : "success"}/></td>
+          <td><StatusBadge value={row.lifecycle || "-"}
+            label={LIFECYCLE_LABELS[row.lifecycle || ""] || (closed ? "RETIRED" : "ACTIVE")}
+            tone={closed ? "neutral" : "success"}/></td>
           <td className="tabular-nums">{row.closed_on || "-"}</td>
           <td className="text-xs text-foreground-secondary">{row.note}{row.closeout && <span className="block text-muted">{row.closeout}</span>}</td>
         </tr>;

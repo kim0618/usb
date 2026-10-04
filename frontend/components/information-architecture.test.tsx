@@ -47,9 +47,17 @@ describe("Final information architecture", () => {
       { strategy_id: "STRATEGY_A", href: "/trading", label: "Strategy A · 기존 전략" },
       { strategy_id: "STRATEGY_E_MAX_V1", href: "/strategy-e", label: "Strategy E · E-MAX V1" },
     ]);
-    expect(Object.keys(OPERATING_ROUTES)).toEqual(["STRATEGY_A", "STRATEGY_E_MAX_V1"]);   // B is not operating
+    // H-V2-D7: Strategy H operates too, as a forward shadow rather than an order-placing paper
+    // strategy, so the filter is the set of paper modes and H gets a tab from the registry.
+    expect(operatingTabs([...registry as never[],
+      { strategy_id: "STRATEGY_H_V2", display_name: "Strategy H", variant_label: "Forward Shadow",
+        enabled: true, mode: "FORWARD_SHADOW" }] as never)).toContainEqual(
+      { strategy_id: "STRATEGY_H_V2", href: "/strategy-h", label: "Strategy H · Forward Shadow" });
+    expect(Object.keys(OPERATING_ROUTES))
+      .toEqual(["STRATEGY_A", "STRATEGY_E_MAX_V1", "STRATEGY_H_V2"]);   // B is not operating
     expect(strategyTabs).toEqual([
-      { href: "/strategy-compare", label: "A/E 성과 비교" },
+      { href: "/strategy-compare", label: "성과 비교" },
+      { href: "/strategy-h", label: "H 포워드 섀도" },
       { href: "/shadow", label: "A 섀도 변형" },
       { href: "/strategy-history", label: "연구 이력" },
     ]);
@@ -81,7 +89,8 @@ describe("Final information architecture", () => {
     pathname = "/strategy-compare";
     render(<StrategyTabs/>);
     expect(screen.getByRole("navigation", { name: "전략 화면" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "A/E 성과 비교" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "성과 비교" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "H 포워드 섀도" })).toHaveAttribute("href", "/strategy-h");
     expect(screen.getByRole("link", { name: "연구 이력" })).toHaveAttribute("href", "/strategy-history");
     expect(screen.queryByRole("link", { name: /전략 B|Strategy B|A\/B/ })).not.toBeInTheDocument();
     pathname = "/trading-b";

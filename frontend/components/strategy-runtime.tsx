@@ -4,14 +4,17 @@
  *
  *  A card never mixes two strategies' money, and a strategy with no trade yet says so in words
  *  instead of printing a zero. Strategy E additionally separates its provisional and official
- *  books; the card labels which book the figures come from. */
+ *  books; the card labels which book the figures come from. Strategy H has no capital book at all,
+ *  so its card shows decision counts and horizon maturity where the others show money, and its
+ *  money fields stay "-" with the backend's reason rather than becoming a break-even-looking zero. */
 
 import Link from "next/link";
 import { CumulativePerformance, SignedMoneyValue, UsdCardValue } from "@/components/daily-performance";
 import { EmptyState, MetricCard, StatusBadge } from "@/components/ui";
 import { formatKrw, formatSignedUsd, formatUsd, dash, etTime, usdToDisplayKrw } from "@/lib/format";
 import {
-  bootstrapLabel, emptyLabel, evidenceLabel, OFFICIAL, OPERATION_LABELS, PROVISIONAL, RESEARCH_LABELS, STRATEGY_E,
+  bootstrapLabel, emptyLabel, evidenceLabel, H_APPROVE, H_REJECT, H_WATCH, OFFICIAL, OPERATION_LABELS,
+  PROVISIONAL, RESEARCH_LABELS, STRATEGY_E,
   type BootstrapState, type StrategyAccount, type StrategyCardData, type StrategyEquity, type StrategyPosition,
   type StrategyRow, type StrategyStatus, type StrategyTrade, type UniverseState,
 } from "@/lib/strategies";
@@ -99,9 +102,33 @@ function OperatingFields({ card }: { card: StrategyCardData }) {
         : <span className="text-foreground-secondary" title={na("last_signal_at")}>-</span>}/>
       <Field label="최근 거래" value={card.last_trade_at ? etTime(card.last_trade_at) : "-"}/>
     </dl>
+    {card.forward && <ForwardFields card={card}/>}
     {card.legacy && card.legacy.trades > 0 && <p className="mt-3 text-[11px] text-muted" data-legacy-summary={card.strategy_id}>
       Legacy Paper (V0, 공식 평가 제외): 거래 {card.legacy.trades}건 · Net {card.legacy.net_pnl == null ? "-" : formatSignedUsd(card.legacy.net_pnl)}
     </p>}
+  </div>;
+}
+
+/** Strategy H's card body: what it decided, and how far the forward observation has got.
+ *  Zero positions is a state here, not a missing figure. */
+function ForwardFields({ card }: { card: StrategyCardData }) {
+  const f = card.forward!;
+  return <div className="mt-3 border-t border-line pt-3" data-forward-fields={card.strategy_id}>
+    <p className="mb-2 text-[11px] text-muted">
+      {f.contract_id} · {f.launch.status === "LAUNCHED" ? `baseline ${f.launch.baseline_session}` : f.launch.reason || "미launch"}
+      {" · "}sizing {f.sizing_contract}
+    </p>
+    <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm sm:grid-cols-3">
+      <Field label="H Paper Positions" value="0"/>
+      <Field label={`H ${H_WATCH}`} value={String(f.decision_counts[H_WATCH] ?? 0)}/>
+      <Field label={`H ${H_REJECT}`} value={String(f.decision_counts[H_REJECT] ?? 0)}/>
+      <Field label={`H ${H_APPROVE}`} value={String(f.decision_counts[H_APPROVE] ?? 0)}/>
+      <Field label="관찰 종목" value={String(f.issuers)}/>
+      <Field label="D7 상태" value={`${f.evaluation.state} · ${f.evaluation.verdict}`}/>
+    </dl>
+    <p className="mt-2 text-[11px] text-muted">
+      {Object.entries(f.maturity).map(([key, row]) => `${key} ${row.matured}/${row.matured + row.pending + row.incomplete}`).join(" · ")}
+    </p>
   </div>;
 }
 

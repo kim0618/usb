@@ -28,7 +28,7 @@ from app.strategies import performance as PERF
 from app.strategies import registry as REG
 from app.strategy_e_max_rt import readback as RB
 
-A, E = REG.STRATEGY_A, REG.STRATEGY_E_MAX_V1
+A, E, H = REG.STRATEGY_A, REG.STRATEGY_E_MAX_V1, REG.STRATEGY_H_V2
 SESSION = "2026-09-25"
 
 # (symbol, qty, entry raw, entry fill, entry cost, exit raw, exit fill, exit cost, weight rank)
@@ -104,15 +104,21 @@ def a_record(*args, **kwargs) -> dict:
 
 # -- registry ------------------------------------------------------------------------------------------
 
-def test_only_a_and_e_are_active_and_b_c_d_are_closed_research() -> None:
-    assert [m.strategy_id for m in REG.enabled()] == [A, E]
+def test_a_e_and_h_are_active_and_b_c_d_are_closed_research() -> None:
+    """H joined operations in H-V2-D7; A's and E's own rows are unchanged by its arrival."""
+    assert [m.strategy_id for m in REG.enabled()] == [A, E, H]
     by_id = {m.strategy_id: m for m in REG.REGISTRY}
     for closed in (REG.STRATEGY_B, REG.STRATEGY_C, REG.STRATEGY_D):
         meta = by_id[closed]
         assert meta.enabled is False and meta.research_lifecycle == "CLOSED" and meta.lifecycle == "RETIRED"
         assert meta.closeout and (Path(__file__).resolve().parents[3] / meta.closeout).exists()
+    # A and E place simulated orders and keep paper books; H observes decisions and keeps none.
     for active in (A, E):
         assert by_id[active].research_lifecycle == "PASSED_TO_PAPER" and by_id[active].lifecycle == "PAPER"
+        assert by_id[active].mode == REG.MODE_SIMULATION_PAPER
+    assert by_id[H].research_lifecycle == "PASSED_TO_PAPER"
+    assert by_id[H].lifecycle == REG.LIFECYCLE_FORWARD_SHADOW
+    assert by_id[H].mode == REG.MODE_FORWARD_SHADOW
 
 
 def test_e_keeps_its_internal_id_and_only_the_display_name_is_e() -> None:
@@ -423,13 +429,23 @@ async def test_ledger_keeps_same_symbol_rows_in_their_own_books(api) -> None:
 @pytest.mark.asyncio
 async def test_cards_split_official_and_legacy(api) -> None:
     cards = await get(api, "/api/v1/strategies/cards")
-    assert [c["strategy_id"] for c in cards] == [A, E]
-    assert [c["display_name"] for c in cards] == ["Strategy A", "Strategy E"]
+    assert [c["strategy_id"] for c in cards] == [A, E, H]
+    assert [c["display_name"] for c in cards] == ["Strategy A", "Strategy E", "Strategy H"]
     by_id = {c["strategy_id"]: c for c in cards}
     assert by_id[A]["official"]["trades"] == 1 and by_id[A]["legacy"]["trades"] == 2
     assert by_id[E]["official"]["trades"] == 1 and by_id[E]["legacy"]["trades"] == 3
     assert by_id[E]["legacy"]["net_pnl"] == RECORDED_0925 and by_id[E]["legacy"]["accounting_versions"] == ["V0"]
     assert by_id[A]["paper_clock"]["official_paper_start"] == START
+    # H has no capital book: zero trades, no money, and its counts in a block of its own.
+    assert by_id[H]["official"]["trades"] == 0 and by_id[H]["legacy"]["trades"] == 0
+    assert by_id[H]["net_pnl"] is None and by_id[H]["equity"] is None
+    assert by_id[H]["paper_clock"] is None
+    # The counts themselves belong to H's own suite (which uses a temporary store); here only the
+    # shape is asserted, so this A/E regression does not depend on the live launch snapshot.
+    forward = by_id[H]["forward"]
+    assert set(forward["decision_counts"]) == {"APPROVE", "WATCH", "REJECT"}
+    assert forward["approved"] == forward["decision_counts"]["APPROVE"]
+    assert by_id[H]["open_positions"] == 0
     for card in cards:
         assert {"equity", "open_positions", "today_realized_pnl", "today_unrealized_pnl", "net_pnl", "trades",
                 "last_signal_at", "last_trade_at", "lifecycle", "operational_status", "official", "legacy"} <= set(card)

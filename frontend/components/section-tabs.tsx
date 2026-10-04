@@ -20,9 +20,11 @@ export const analysisTabs: SectionTab[] = [
  *  appears here by being enabled in the backend rather than by being written into this file. */
 
 /** Result screens. The A/E comparison is the group's landing screen; A's shadow variants keep their
- *  own tab; closed research (B, C, D) is reachable only through the research history. */
+ *  own tab; Strategy H's forward shadow has its own screen because a decision cohort does not fit a
+ *  trade-shaped comparison; closed research (B, C, D) is reachable only through the research history. */
 export const strategyTabs: SectionTab[] = [
-  { href: "/strategy-compare", label: "A/E 성과 비교" },
+  { href: "/strategy-compare", label: "성과 비교" },
+  { href: "/strategy-h", label: "H 포워드 섀도" },
   { href: "/shadow", label: "A 섀도 변형" },
   { href: "/strategy-history", label: "연구 이력" },
 ];

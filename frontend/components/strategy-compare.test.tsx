@@ -170,6 +170,7 @@ describe("Comparison screen", () => {
     expect(page).not.toContain("eyebrow=");
     expect(page).not.toContain("STRATEGY COMPARISON");
     expect(page).not.toContain("MockDataNotice");
-    expect(page).toContain('title="A/E 성과 비교"');
+    // H-V2-D7 renamed the screen: it compares A, E and H now, not only A and E.
+    expect(page).toContain('title="전략 성과 비교"');
   });
 });

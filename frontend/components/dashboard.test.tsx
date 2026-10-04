@@ -151,10 +151,13 @@ describe("Dashboard screen", () => {
 
 describe("Strategy information architecture", () => {
   it("names the first strategy tab Strategy A and keeps its route", () => {
-    // The result group lands on the A/E comparison, keeps A's shadow variants, and lists closed
-    // research (B, C, D) only through the research history.
-    expect(strategyTabs.map(tab => tab.label)).toEqual(["A/E 성과 비교", "A 섀도 변형", "연구 이력"]);
-    expect(strategyTabs.map(tab => tab.href)).toEqual(["/strategy-compare", "/shadow", "/strategy-history"]);
+    // The result group lands on the A/E/H comparison, gives Strategy H's forward shadow its own
+    // screen (H-V2-D7), keeps A's shadow variants, and lists closed research (B, C, D) only
+    // through the research history.
+    expect(strategyTabs.map(tab => tab.label))
+      .toEqual(["성과 비교", "H 포워드 섀도", "A 섀도 변형", "연구 이력"]);
+    expect(strategyTabs.map(tab => tab.href))
+      .toEqual(["/strategy-compare", "/strategy-h", "/shadow", "/strategy-history"]);
   });
 
   it("sends the dashboard cards to the operating screens, not the result screens", () => {

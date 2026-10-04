@@ -1,9 +1,15 @@
-"""Read-only, per-strategy views of what is actually running: Strategy A and Strategy E-MAX V1.
+"""Read-only, per-strategy views of what is running: Strategy A, Strategy E-MAX V1 and Strategy H.
 
-One shape, two very different sources. A's account, positions and trades come from the paper
+One shape, three very different sources. A's account, positions and trades come from the paper
 database it already writes; E's come from its own runtime files, because E deliberately does not
-share A's database. The adapters are the only place that difference lives, so the UI asks the same
-six questions of every strategy in the registry.
+share A's database; H's come from its own append-only forward files, because H holds no capital book
+at all. The adapters are the only place that difference lives, so the UI asks the same six questions
+of every strategy in the registry.
+
+Strategy H was added in H-V2-D7 additively: no A or E branch, book, figure or route in this file
+changed, H is not folded into the A+E combined column or the A/E portfolio simulation (it has no
+initial equity to sum), and H is not judged by the A/E paper gate. H's own questions - the decision
+cohort, the valuation legs, the forward outcomes - are served by the two ``/forward`` routes.
 
 Three rules this layer keeps:
 
@@ -34,6 +40,8 @@ from app.services.performance_baseline import strategy_baseline_equity, strategy
 from app.services.simulation_runtime import get_active_runtime, get_active_sim_broker
 from app.strategies import books as BK
 from app.strategies import official as OFF
+from app.strategies.h_forward import contract as HC
+from app.strategies.h_forward import views as HV
 from app.strategies import paper_gate as GATE
 from app.strategies import performance as PERF
 from app.strategies import registry as REG
@@ -292,6 +300,9 @@ async def list_strategies(db: DB) -> list[dict[str, Any]]:
         elif meta.strategy_id == REG.STRATEGY_E_MAX_V1:
             body |= {k: v for k, v in _e_status().items() if k in ("runtime_status", "paper_status",
                                                                    "evidence_status", "session")}
+        elif meta.strategy_id == REG.STRATEGY_H_V2:
+            body |= {k: v for k, v in HV.status().items() if k in ("runtime_status", "paper_status",
+                                                                   "evidence_status", "session")}
         else:
             body |= {"runtime_status": "NOT_RUNNING", "paper_status": None, "evidence_status": None,
                      "session": None}
@@ -309,6 +320,8 @@ async def strategy_status(strategy_id: str, db: DB) -> dict[str, Any]:
         return body | _a_status(db)
     if strategy_id == REG.STRATEGY_E_MAX_V1:
         return body | _e_status()
+    if strategy_id == REG.STRATEGY_H_V2:
+        return body | HV.status()
     return body | {"runtime_status": "NOT_RUNNING", "paper_status": None, "evidence_status": None,
                    "session": None, "detail": {}}
 
@@ -323,6 +336,8 @@ async def strategy_account(strategy_id: str, db: DB) -> dict[str, Any]:
         return head | _a_account(db)
     if strategy_id == REG.STRATEGY_E_MAX_V1:
         return head | _e_account()
+    if strategy_id == REG.STRATEGY_H_V2:
+        return head | HV.account()
     return head | {"currency": None, "initial_equity": None, "current_equity": None, "today_pnl": None,
                    "total_pnl": None, "open_positions": 0, "closed_trades_today": None,
                    "source": "NONE", "empty_reason": "운영 전략이 아니다"}
@@ -334,6 +349,8 @@ async def strategy_positions(strategy_id: str, db: DB) -> list[dict[str, Any]]:
         return _a_positions(db)
     if strategy_id == REG.STRATEGY_E_MAX_V1:
         return _e_positions()
+    if strategy_id == REG.STRATEGY_H_V2:
+        return HV.positions()                 # a WATCH is an observation, never a position
     return []
 
 
@@ -344,6 +361,8 @@ async def strategy_trades(strategy_id: str, db: DB,
         return _a_trades(db, limit)
     if strategy_id == REG.STRATEGY_E_MAX_V1:
         return _e_trades(limit)
+    if strategy_id == REG.STRATEGY_H_V2:
+        return HV.trades()                    # H writes no trade row; see /forward
     return []
 
 
@@ -353,6 +372,8 @@ async def strategy_equity(strategy_id: str, db: DB) -> dict[str, Any]:
         return _a_equity(db)
     if strategy_id == REG.STRATEGY_E_MAX_V1:
         return _e_equity()
+    if strategy_id == REG.STRATEGY_H_V2:
+        return HV.equity()
     return {"strategy_id": strategy_id, "points": [], "baseline": None, "source": "NONE"}
 
 
@@ -406,6 +427,10 @@ def _card(db: Session, meta: REG.StrategyMeta) -> dict[str, Any]:
             "na": {"last_signal_at": "A 원장(simulation_trades)은 신호 시각을 기록하지 않는다",
                    **({"today_unrealized_pnl": "보유 포지션 시가 평가값 없음"} if unrealized is None else {})},
         }
+    if meta.strategy_id == REG.STRATEGY_H_V2:
+        # H shows states and counts where A and E show money: it has no capital book, so a money
+        # field is None with a reason rather than a zero that would read as break-even.
+        return head | HV.card()
     status, account = _e_status(), _e_account()
     evidence = account["evidence_status"]
     books = BK.e_books()
@@ -450,11 +475,19 @@ async def strategy_ledger(db: DB, strategy_id: str | None = None,
         rows += _a_trades(db, limit)
     if strategy_id in (None, REG.STRATEGY_E_MAX_V1):
         rows += _e_trades(limit)
+    if strategy_id in (None, REG.STRATEGY_H_V2):
+        rows += HV.trades()          # empty by design: H's records are decisions, not trades
     rows.sort(key=lambda r: str(r.get("entry_at") or r.get("session") or ""), reverse=True)
     return rows[:limit]
 
 
 def _books(db: Session) -> dict[str, dict[str, PERF.Book]]:
+    """The books the A+E combined column and the A/E portfolio simulation read. A and E only.
+
+    H is deliberately absent: ``PERF.combined_daily`` sums initial equities, and H has none, so
+    adding it would either force an invented equity or silently return nothing. H's metrics are
+    published as their own column in ``/performance`` instead (``_h_books``).
+    """
     e_open = [p for p in _e_positions() if p.get("evidence_status") == RB.OFFICIAL]
     return {REG.STRATEGY_A: BK.a_books(db, _a_positions(db)), REG.STRATEGY_E_MAX_V1: BK.e_books(e_open)}
 
@@ -471,14 +504,17 @@ async def strategy_performance(db: DB) -> dict[str, Any]:
     clock = OFF.state()
     start = clock["official_paper_start"]
     e_sessions = BK.e_operating_sessions(RB.OFFICIAL, RB.CURRENT, start) if start else []
-    official = {sid: PERF.strategy_metrics(b["official"]) for sid, b in books.items()}
-    legacy = {sid: PERF.strategy_metrics(b["legacy"]) for sid, b in books.items()}
+    # H's book is added to the per-strategy table only, through the same pure calculator, so its
+    # column is computed by the same definitions as A's and E's and none of theirs move.
+    with_h = books | {REG.STRATEGY_H_V2: HV.books()}
+    official = {sid: PERF.strategy_metrics(b["official"]) for sid, b in with_h.items()}
+    legacy = {sid: PERF.strategy_metrics(b["legacy"]) for sid, b in with_h.items()}
     provisional = [BK.e_provisional(acc) for acc in (RB.CURRENT, RB.LEGACY)]
     return {
         "currency": "USD",
         "paper_clock": clock,
         "strategies": {sid: {"strategy_id": sid, "official": official[sid] | {"accounting_version": "V1"},
-                             "legacy": legacy[sid] | {"accounting_version": "V0"}} for sid in books},
+                             "legacy": legacy[sid] | {"accounting_version": "V0"}} for sid in with_h},
         "combined": PERF.combined_metrics([a["official"], e["official"]]) | {"accounting_version": "V1"},
         "legacy_combined": PERF.combined_metrics([a["legacy"], e["legacy"]]) | {"accounting_version": "V0"},
         "gate": {
@@ -489,7 +525,12 @@ async def strategy_performance(db: DB) -> dict[str, Any]:
                 error_sessions=sum(1 for s in e_sessions if s["error"]) if start else None,
                 divergence=BK.e_divergence(start) if start else None),
         },
-        "books": {REG.STRATEGY_A: "PAPER_DB", REG.STRATEGY_E_MAX_V1: f"{RB.BOOK_ROOTS[RB.CURRENT]}/{RB.OFFICIAL}"},
+        "books": {REG.STRATEGY_A: "PAPER_DB", REG.STRATEGY_E_MAX_V1: f"{RB.BOOK_ROOTS[RB.CURRENT]}/{RB.OFFICIAL}",
+                  REG.STRATEGY_H_V2: HV.SOURCE},
+        # H's own state. It is not a gate row: the A/E paper gate contract does not list H, and a
+        # forward observation with no matured horizon has no verdict to give yet.
+        "h_forward": HV.forward(),
+        "combined_definition": "Combined는 A와 E의 공식 장부 합계다. H는 자본 장부가 없어 합산 대상이 아니다",
         "excluded": {"PROVISIONAL_RVOL_BOOTSTRAP": {
             "trades": sum(len(b.trades) for b in provisional), "sessions": sum(len(b.daily) for b in provisional),
             "reason": "부트스트랩 기간 장부는 평가·합산에서 제외한다"}},
@@ -525,3 +566,33 @@ async def strategy_portfolio(db: DB, book: Annotated[str, Query(pattern="^(offic
                                     "note": "E 런타임은 현금 잔고를 기록하지 않는다. 세션 사이에는 전액 현금이다"},
         },
     }
+
+
+# -- Strategy H forward shadow ------------------------------------------------------------------------
+# H-only routes. They exist because a decision cohort has no place in a trade ledger: an issuer with
+# a Bear leg refused, a binding clause and four unmatured horizons is not a trade record with empty
+# columns. A and E never reach these routes and never answer them.
+
+@router.get("/{strategy_id}/forward")
+async def strategy_forward(strategy_id: str) -> dict[str, Any]:
+    """H's cohort: every issuer's decision, valuation legs, live price and forward outcomes."""
+    if strategy_id != REG.STRATEGY_H_V2:
+        return {"strategy_id": strategy_id, "available": False,
+                "state": "NOT_A_FORWARD_SHADOW_STRATEGY",
+                "reason": "forward shadow 기록은 Strategy H만 가진다"}
+    return {"available": True} | HV.forward()
+
+
+@router.get("/{strategy_id}/forward/{ticker}")
+async def strategy_forward_issuer(strategy_id: str, ticker: str) -> dict[str, Any]:
+    """One H issuer in full: D3/D4/D5/D6 legs, decision history and every horizon."""
+    if strategy_id != REG.STRATEGY_H_V2:
+        return {"strategy_id": strategy_id, "ticker": ticker, "available": False,
+                "state": "NOT_A_FORWARD_SHADOW_STRATEGY"}
+    body = HV.issuer(ticker.upper())
+    if body is None:
+        return {"strategy_id": strategy_id, "ticker": ticker.upper(), "available": False,
+                "state": "NOT_IN_COHORT",
+                "reason": "launch snapshot에 없는 종목이다",
+                "contract": HC.state()}
+    return {"available": True} | body
