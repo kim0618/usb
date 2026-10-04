@@ -42,6 +42,10 @@ from app.backtest.mover_scanner_v1.config import MoverScannerConfig
 from app.market.calendar import MarketCalendar
 
 E_UNIVERSE_DIR = "data/runtime/strategy_e_max/rt2"
+#: The identity an E artifact must satisfy to be read. E's own function, named rather than
+#: restated, so the two sides cannot drift into two rules about one file.
+E_IDENTITY_RULE = ("app.strategy_e_max_rt.universe_build.d_minus_1_identity: "
+                   "target_session == session and asof_session == previous trading day")
 #: The prunings applied, named so a report can show that nothing else was.
 PRUNE_RULES = ("ACTIVE_COMMON_STOCK_REFERENCE_CACHE",
                "FULL_DAILY_VOLUME_BASELINE_AT_D_MINUS_1",
@@ -56,7 +60,16 @@ PRUNE_REJECTED = {
 
 
 class UniverseUnavailable(RuntimeError):
-    """A universe input for the session is missing, so no acquisition plan exists."""
+    """A universe input for the session is missing, so no acquisition plan exists.
+
+    ``reason`` is set at the raise site rather than inferred from the message by a caller.
+    The isolation boundary records it verbatim, and a reason read out of prose is a reason
+    that changes when the prose is reworded.
+    """
+
+    def __init__(self, detail: str, reason: str | None = None) -> None:
+        super().__init__(detail)
+        self.reason = reason
 
 
 @dataclass(frozen=True)
@@ -73,6 +86,20 @@ class UnionUniverse:
     pruned_no_daily_baseline: int
     pruned_split_session: int
     e_artifact: str | None
+    #: The artifact on disk that was *refused*, and why. Named so a stale file cannot be
+    #: mistaken for an absent one: "E staged nothing" and "E staged another day" are
+    #: different facts about the morning and A's union is the same either way.
+    e_artifact_rejected: str | None = None
+    e_artifact_rejection_reason: str | None = None
+    e_artifact_rejection_detail: str | None = None
+
+    @property
+    def e_side_status(self) -> str:
+        if self.e_artifact is not None:
+            return "STAGED"
+        if self.e_artifact_rejected is not None:
+            return str(self.e_artifact_rejection_reason or "REJECTED")
+        return "NOT_STAGED_FOR_THIS_SESSION"
 
     @property
     def e_only(self) -> tuple[str, ...]:
@@ -104,36 +131,112 @@ class UnionUniverse:
             "prune_rules_applied": list(PRUNE_RULES),
             "prune_rules_rejected": dict(PRUNE_REJECTED),
             "e_artifact": self.e_artifact,
-            # An absent artifact is said out loud. E's universe is only ever read from the
-            # artifact E itself staged, dated on or before the session, so "no E side" means
-            # "not staged for this session" and never "E has no universe".
-            "e_side_status": ("STAGED" if self.e_artifact
-                              else "NOT_STAGED_FOR_THIS_SESSION"),
+            # An absent artifact is said out loud, and so is a refused one. E's universe is
+            # only ever read from the artifact E staged *for this session*, checked against
+            # E's own D-1 identity rule, so "no E side" means "not staged for this session"
+            # or "a stale file was refused" - never "E has no universe", and never a quietly
+            # substituted universe from another trading day.
+            "e_side_status": self.e_side_status,
+            "e_artifact_rejected": self.e_artifact_rejected,
+            "e_artifact_rejection_reason": self.e_artifact_rejection_reason,
+            "e_artifact_rejection_detail": self.e_artifact_rejection_detail,
+            "e_artifact_identity_rule": E_IDENTITY_RULE,
+            "e_previous_session_fallback": "DISABLED",
             "union_checksum": self.checksum,
         }
 
 
+@dataclass(frozen=True)
+class EStaging:
+    """What E staged for this session, or why what is on disk was refused."""
+
+    symbols: tuple[str, ...]
+    artifact: str | None
+    rejected: str | None = None
+    reason: str | None = None
+    detail: str | None = None
+
+    @property
+    def status(self) -> str:
+        if self.artifact is not None:
+            return "STAGED"
+        if self.rejected is not None:
+            return str(self.reason or "REJECTED")
+        return "NOT_STAGED_FOR_THIS_SESSION"
+
+
 def e_universe_path(repo: Path, session: date, directory: str = E_UNIVERSE_DIR) -> Path | None:
-    """E's canonical artifact for the session, or the newest one on or before it."""
-    base = Path(repo) / directory
-    exact = base / f"universe_{session.isoformat()}.json"
-    if exact.is_file():
-        return exact
+    """E's artifact *for this session*. There is no newest-on-or-before resolution."""
+    exact = Path(repo) / directory / f"universe_{session.isoformat()}.json"
+    return exact if exact.is_file() else None
+
+
+def _newest_prior(base: Path, session: date) -> Path | None:
+    """The newest artifact on disk dated before the session, named only to refuse it."""
     if not base.is_dir():
         return None
-    prior = sorted(path for path in base.glob("universe_*.json")
-                   if date.fromisoformat(path.stem.split("_")[1]) <= session)
-    return prior[-1] if prior else None
+    dated: list[tuple[date, Path]] = []
+    for path in base.glob("universe_*.json"):
+        try:
+            stamp = date.fromisoformat(path.stem.split("_", 1)[1])
+        except ValueError:
+            continue
+        if stamp < session:
+            dated.append((stamp, path))
+    return max(dated)[1] if dated else None
 
 
-def e_symbols(repo: Path, session: date, directory: str = E_UNIVERSE_DIR,
-              ) -> tuple[tuple[str, ...], str | None]:
-    """E's universe as E staged it. A missing artifact is an empty E side, not a guess."""
-    path = e_universe_path(repo, session, directory)
-    if path is None:
-        return (), None
-    body = json.loads(path.read_text(encoding="utf-8"))
-    return tuple(sorted(str(symbol) for symbol in body.get("symbols") or ())), path.name
+def e_staging(repo: Path, session: date, directory: str = E_UNIVERSE_DIR, *,
+              calendar: MarketCalendar | None = None) -> EStaging:
+    """E's artifact for this session, checked against E's own identity rule.
+
+    The reader this replaces took "the newest artifact dated on or before the session". That is
+    a convenience, not E's contract: E's worker refuses to decide on any artifact whose
+    ``target_session`` is not the session it is running and records ``UNIVERSE_NOT_AVAILABLE``
+    instead, "because that would change the B2 denominator". Reading a file E itself would have
+    refused puts another trading day's universe into A's acquisition plan without saying so.
+    It was not hypothetical: on 2026-10-05 the newest file on disk was
+    ``universe_2026-09-22.json``, thirteen sessions old, and it contributed 2,561 symbols and
+    nine E-only names to A's union silently.
+
+    So the rule applied here is E's own ``d_minus_1_identity``, not a second one written beside
+    it. **The filename is not the authority**: a file named for this session whose payload
+    targets another is refused too, which is what makes a hand-copied artifact detectable.
+
+    A refusal is recorded, not fatal. E's side of the union is four to nine symbols of its own;
+    A's authority is A's dated reference cache. So A keeps planning its own universe and the
+    refusal travels in the declaration - the opposite coupling to the one the isolation
+    boundary exists to remove.
+    """
+    from app.strategy_e_max_rt import universe_build as UB
+    base = Path(repo) / directory
+    exact = base / f"universe_{session.isoformat()}.json"
+    if not exact.is_file():
+        newest = _newest_prior(base, session)
+        if newest is None:
+            return EStaging((), None)
+        return EStaging((), None, rejected=newest.name, reason="STALE_STAGING_ARTIFACT",
+                        detail=f"E staged no artifact for {session.isoformat()}; "
+                               f"{newest.name} is the newest on disk and is not reused")
+    try:
+        body = json.loads(exact.read_text(encoding="utf-8"))
+    except ValueError as error:
+        return EStaging((), None, rejected=exact.name, reason="MALFORMED_STAGING_ARTIFACT",
+                        detail=f"{exact.name} is not readable JSON: {error}")
+    if not isinstance(body, dict):
+        return EStaging((), None, rejected=exact.name, reason="MALFORMED_STAGING_ARTIFACT",
+                        detail=f"{exact.name} is not an artifact object")
+    if not (body.get("target_session") or body.get("session")) or not (
+            body.get("asof_session") or body.get("d_minus_1")):
+        return EStaging((), None, rejected=exact.name, reason="MALFORMED_STAGING_ARTIFACT",
+                        detail=f"{exact.name} declares no target or as-of session, so its "
+                               f"identity cannot be checked")
+    usable, why = UB.d_minus_1_identity(body, session, calendar or MarketCalendar())
+    if not usable:
+        return EStaging((), None, rejected=exact.name, reason="STALE_STAGING_ARTIFACT",
+                        detail=f"{exact.name}: {why}")
+    symbols = tuple(sorted(str(symbol) for symbol in body.get("symbols") or ()))
+    return EStaging(symbols, exact.name)
 
 
 def daily_baseline_symbols(daily: D.DailyPanel, symbols: Iterable[str], position: int,
@@ -180,7 +283,9 @@ def build(repo: Path, session: date, *, config: MoverScannerConfig | None = None
     universes = U.load_universes(repo, exclude_non_common=config.exclude_non_common_by_cik_prefix)
     base = U.universe_for(universes, session)
     if base is None:
-        raise UniverseUnavailable(f"no dated reference cache is in force on {session.isoformat()}")
+        raise UniverseUnavailable(
+            f"no dated reference cache is in force on {session.isoformat()}",
+            reason="REFERENCE_UNAVAILABLE")
     splits = U.split_sessions(repo)
     active = sorted(base.symbols)
     if daily is None:
@@ -189,20 +294,23 @@ def build(repo: Path, session: date, *, config: MoverScannerConfig | None = None
         try:
             daily = session_daily_panel(repo, grid, frozenset(active))
         except FileNotFoundError as error:
-            raise UniverseUnavailable(str(error)) from error
+            raise UniverseUnavailable(str(error), reason="NO_GROUPED_DAILY") from error
     position = daily.index[session]
     with_baseline, dropped_baseline = daily_baseline_symbols(
         daily, active, position, config.daily_baseline_sessions)
     a_live = U.eligible_symbols(base, with_baseline, splits, session,
                                exclude_split_sessions=config.exclude_split_execution_sessions)
     dropped_split = len(with_baseline) - len(a_live)
-    e_side, artifact = e_symbols(repo, session, e_directory)
-    union = tuple(sorted(set(a_live) | set(e_side)))
-    return UnionUniverse(session=session, a_symbols=tuple(a_live), e_symbols=e_side,
+    staged = e_staging(repo, session, e_directory, calendar=calendar)
+    union = tuple(sorted(set(a_live) | set(staged.symbols)))
+    return UnionUniverse(session=session, a_symbols=tuple(a_live), e_symbols=staged.symbols,
                          union=union, reference_as_of=base.as_of,
                          reference_checksum=base.checksum, reference_active_rows=len(active),
                          pruned_no_daily_baseline=dropped_baseline,
-                         pruned_split_session=dropped_split, e_artifact=artifact)
+                         pruned_split_session=dropped_split, e_artifact=staged.artifact,
+                         e_artifact_rejected=staged.rejected,
+                         e_artifact_rejection_reason=staged.reason,
+                         e_artifact_rejection_detail=staged.detail)
 
 
 def acquisition_plan(union: UnionUniverse, shard_minute: Sequence[str],

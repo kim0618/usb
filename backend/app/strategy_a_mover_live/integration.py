@@ -6,19 +6,28 @@ against a measured 5 req/s per-API-ID limit. This module is the whole A side of 
 one handle, so the edit on E's side is an import and three guarded expressions, which is what
 ``app.dev.run_e_rt2_dryrun`` now contains:
 
-    a_live = integration.attach(...)                   # None unless the flag is on
-    if a_live is not None:
-        order = a_live.rolling_order(order)
-    rolling_deadline = (a_live.rolling_until() if a_live is not None
+    a_live = integration.attach_isolated(...)          # never raises; handle None unless on
+    if a_live.handle is not None:
+        order = a_live.handle.rolling_order(order)
+    rolling_deadline = (a_live.handle.rolling_until() if a_live.handle is not None
                         else at(FZ.REFRESH_B_AT))      # one deadline for the cycle and its loop
     while now() < rolling_deadline:
         ...
-    if a_live is not None:
-        report["a_mover_live"] = a_live.run_cut()      # wrapped: A never takes E's run down
+    if a_live.active:
+        report["a_mover_live"] = a_live.run_cut()       # fail-closed; A never takes E down
 
-With the flag off, ``attach`` returns None, every expression evaluates to the object it
-evaluates to today, no extra symbol enters any cache and no block runs. That is what makes
-"E unchanged when A is off" a property of the code rather than a promise.
+With the flag off, ``active`` is False and ``handle`` is None, every expression evaluates to
+the object it evaluates to today, no extra symbol enters any cache, no block runs and no key is
+added to E's report. That is what makes "E unchanged when A is off" a property of the code
+rather than a promise.
+
+``attach_isolated`` rather than ``attach`` because ``attach`` is where A reads its data
+authority - the dated reference cache, the grouped daily panel, the split calendar, E's staged
+artifact - and an exception there unwound E's worker, which is official paper trading. Both
+phases now sit behind ``isolation``: an expected data or authority failure makes A fail closed
+with a named reason and zero candidates, an unexpected one is recorded with its traceback, and
+either way E's acquisition, refresh, finalization and paper path run exactly as they do when A
+is off. ``isolation`` states why the unexpected case is audited rather than re-raised.
 
 **A's symbols never enter E's cache dictionary.** E aggregates its availability, its status
 counts and its CSV over ``caches``; adding union-only symbols there would change every one of
@@ -48,6 +57,7 @@ from app.strategy_a_mover_live import config as CFG
 from app.strategy_a_mover_live import contract as LC
 from app.strategy_a_mover_live import features as FEAT
 from app.strategy_a_mover_live import gpt_handoff as GPT
+from app.strategy_a_mover_live import isolation as ISO
 from app.strategy_a_mover_live import raw_store as RAW
 from app.strategy_a_mover_live import scanner as SCAN
 from app.strategy_a_mover_live import universe as UNI
@@ -147,9 +157,17 @@ class SharedCollectorIntegration:
         }
         try:
             panels = FEAT.assemble(self.repo, self.session, snapshots, baselines, self.union)
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except Exception as error:
-            body["scan"] = {"status": str(CFG.Refusal.DATA_UNAVAILABLE),
-                            "detail": f"{type(error).__name__}: {error}",
+            # A named data refusal is A failing closed and is recorded with its reason. Anything
+            # else is A's own code being wrong, and is re-raised to the isolation boundary,
+            # which records it with a traceback instead of filing a bug under DATA_UNAVAILABLE.
+            failure = ISO.classify(error, phase=ISO.Phase.CUT)
+            if not failure.expected:
+                raise
+            body["scan"] = {"status": str(failure.refusal), "reason": str(failure.reason),
+                            "detail": failure.detail, "error": failure.error,
                             "gpt_calls": 0, "candidates": 0}
             self.report = body
             return body
@@ -166,8 +184,9 @@ class SharedCollectorIntegration:
             live = SCAN.run_from_source(LiveRuntimeSource(), self.session,
                                         observed_at=observed)
         except SCAN.LiveScanRefused as refusal:
-            body["scan"] = {"status": str(refusal.refusal), "detail": refusal.detail,
-                            "gpt_calls": 0, "candidates": 0}
+            body["scan"] = {"status": str(refusal.refusal),
+                            "reason": str(ISO.classify(refusal, phase=ISO.Phase.CUT).reason),
+                            "detail": refusal.detail, "gpt_calls": 0, "candidates": 0}
             self.report = body
             return body
         body["scan"] = live.metadata() | {"candidates": live.candidate_count}
@@ -227,6 +246,44 @@ class SharedCollectorIntegration:
                 "candidates": result.candidate_count, "prompt_chars": result.prompt_chars,
                 "gpt_calls": result.gpt_calls_expected, "persisted": True,
                 "human_approval_required": True}
+
+
+def attach_isolated(*, session: date, repo: Path, caches: Mapping[str, FZ.SymbolCache],
+                    shard_minute: Sequence[str], shard_tick: Sequence[str],
+                    lane_minute: FZ.Lane, lane_tick: FZ.Lane, now: Callable[[], datetime],
+                    exchanges: Mapping[str, str], log: Callable[[str], None] = print,
+                    session_factory: Callable[[], Any] | None = None,
+                    calendar: MarketCalendar | None = None,
+                    environ: dict[str, str] | None = None, strict: bool = False,
+                    status_root: str = ISO.STATUS_ROOT) -> ISO.IsolatedAttach:
+    """``attach`` behind A's failure boundary. The call E's worker makes.
+
+    With the flag off this does exactly what ``attach`` does - reads one environment variable
+    and returns - and touches no file, so a disabled A leaves no trace at all, not even an
+    audit record saying it was disabled.
+    """
+    repo_path = Path(repo)
+    if not CFG.enabled(environ):
+        return ISO.IsolatedAttach(active=False, handle=None, session=session, repo=repo_path,
+                                  log=log, status_root=status_root)
+    try:
+        handle = attach(session=session, repo=repo, caches=caches, shard_minute=shard_minute,
+                        shard_tick=shard_tick, lane_minute=lane_minute, lane_tick=lane_tick,
+                        now=now, exchanges=exchanges, log=log,
+                        session_factory=session_factory, calendar=calendar, environ=environ)
+    except (KeyboardInterrupt, SystemExit):
+        raise
+    except Exception as error:
+        failure = ISO.classify(error, phase=ISO.Phase.ATTACH)
+        if strict and not failure.expected:
+            raise
+        isolated = ISO.IsolatedAttach(active=True, handle=None, session=session,
+                                      repo=repo_path, strict=strict, log=log,
+                                      status_root=status_root)
+        isolated.status = isolated.fail(failure)
+        return isolated
+    return ISO.IsolatedAttach(active=handle is not None, handle=handle, session=session,
+                              repo=repo_path, strict=strict, log=log, status_root=status_root)
 
 
 def _symbol_of(item: Any) -> str:

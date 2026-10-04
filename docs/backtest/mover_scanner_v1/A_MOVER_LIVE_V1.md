@@ -115,9 +115,10 @@ Measured on 2026-09-15 from the stores on disk:
 | E universe | not staged for this session (E's artifact is dated 2026-09-22) |
 | union | 4,947 |
 
-The E side is read only from the artifact E itself staged, dated on or before the session, and
-`e_side_status` says `NOT_STAGED_FOR_THIS_SESSION` rather than reporting zero as a fact about
-E. The earlier audit measured E at 2,561 with 4-5 E-only symbols; adding 5 symbols moves A's T1
+The E side is read only from the artifact E staged for the expected session. The reader
+applies E's own `universe_build.d_minus_1_identity`, including its D-1 authority check.
+A prior-only artifact is explicitly recorded as `STALE_STAGING_ARTIFACT` and is never reused;
+an absent artifact remains `NOT_STAGED_FOR_THIS_SESSION`. The earlier audit measured E at 2,561 with 4-5 E-only symbols; adding 5 symbols moves A's T1
 by 0.52 s, and even +300 still fits between the cuts.
 
 **Only three prunings are applied**, and they are the ones derivable before the open: the
@@ -302,7 +303,7 @@ Kiwoom-native strategy for being Kiwoom-native, and the divergence is already me
 ## 8. Refusals: no silent fallback
 
 `config.Refusal` is the whole vocabulary of not running: `DISABLED`, `SCANNER_NOT_RUN`,
-`DATA_UNAVAILABLE`, `CONTRACT_DRIFT`, `NO_CANDIDATES`. Every one means zero GPT calls and zero
+`ATTACH_FAILED`, `DATA_UNAVAILABLE`, `CONTRACT_DRIFT`, `NO_CANDIDATES`. Every one means zero GPT calls and zero
 candidate injection. The legacy scanner is never substituted: that would attribute one
 morning's entries to a scanner that never saw that morning.
 
@@ -374,9 +375,9 @@ be computed for is the next one, 2026-10-05. A session the store does not reach 
 | A universe | 5,015 |
 | pruned, no full twenty-session daily baseline | 221 |
 | pruned, a split executes that morning | 6 |
-| E's staged artifact | `universe_2026-09-22.json`, 2,561 symbols, 9 E-only |
-| union acquisition plan | 5,024 |
-| A T0 / T1 | 09:15:00 / 09:23:43, before E's 09:25 cut |
+| E's staged artifact | `universe_2026-09-22.json` refused as stale; no current artifact |
+| union acquisition plan | 5,015 (A only; no previous-session fallback) |
+| A T0 / T1 | 09:15:00 / 09:23:42, before E's 09:25 cut |
 | E T1 | 09:29:26, before the 09:29:45 Kiwoom deadline |
 | per-lane rate | 4.89/s against the measured 5.0/s per-API-ID limit |
 
@@ -482,9 +483,11 @@ and the sample is A's own universe, which is the question worth asking.
 
 ### Not done, deliberately
 
-Nothing has been pushed, deployed, restarted or enabled; `A_MOVER_LIVE_ENABLED` is still off,
-no migration exists or was applied, and no real order was placed. One exposure is recorded
-rather than changed: `attach` is not wrapped by its caller, so a *genuine* data refusal (a gap
-before the session) would still raise inside E's worker. A's own `run_cut` is wrapped; the
-attach seam is not, and whether a data refusal should take E's run down is the operator's call,
-not a change to make quietly on the way to a deploy.
+Nothing has been pushed, deployed, restarted or enabled by this hardening stage; the flag
+default remains off, no migration was applied, and no real order was placed. Both attach and
+cut now run behind `attach_isolated`: expected data/authority failures leave A fail-closed,
+while unexpected errors are audited with a traceback and kept from stopping E. Strict mode
+re-raises unexpected errors for diagnostics. Failure records are stored per session under
+`data/runtime/strategy_a_mover_live/status`, with duplicate failures counted in one entry.
+A disabled invocation writes nothing. See [operational hardening](A_MOVER_LIVE_OPERATIONAL_HARDENING_V1.md)
+for validation and deployment boundaries.

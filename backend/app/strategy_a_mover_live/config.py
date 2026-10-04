@@ -30,6 +30,9 @@ class Refusal(StrEnum):
     DISABLED = "DISABLED"
     #: The flag is on but the stage did not reach the scan at all.
     SCANNER_NOT_RUN = "SCANNER_NOT_RUN"
+    #: The attach seam itself failed, so A never entered E's collection cycle. A's own
+    #: failure, isolated: E's worker keeps running and records this instead of stopping.
+    ATTACH_FAILED = "ATTACH_FAILED"
     #: The scan was reached and its inputs could not be assembled from the live source.
     DATA_UNAVAILABLE = "DATA_UNAVAILABLE"
     #: The research parent's checksums no longer reproduce, so the rules are not the frozen ones.

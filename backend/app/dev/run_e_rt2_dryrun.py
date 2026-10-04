@@ -254,24 +254,29 @@ def run(universe_path: Path, out_root: Path, *, paper: bool = False,
     report["partition"] = {"method": "sha256(symbol) parity; the minute lane takes the tick shard from its end when "
                                      "its own shard is done", "shard_A": len(shard_a), "shard_B": len(shard_b)}
     log(f"universe {len(universe)} mapped {len(caches)} unmapped {len(unmapped)} shards A {len(shard_a)} B {len(shard_b)}")
-    # A-MOVER-LIVE-V1 shares this process's two lanes. ``attach`` returns None unless
-    # A_MOVER_LIVE_ENABLED is on, and a None handle leaves every expression below exactly as it
-    # is today: E's own caches, E's own rolling order and E's own rolling deadline. A's symbols
-    # are kept in the handle, never in ``caches``, so every E aggregation is over E's universe.
-    a_live = A_LIVE.attach(session=session, repo=Path(__file__).resolve().parents[3],
-                           caches=caches, shard_minute=shard_a, shard_tick=shard_b,
-                           lane_minute=lane_a, lane_tick=lane_b, now=now, exchanges=exch, log=log)
+    # A-MOVER-LIVE-V1 shares this process's two lanes. ``attach_isolated`` returns an inactive
+    # handle unless A_MOVER_LIVE_ENABLED is on, and a None handle leaves every expression below
+    # exactly as it is today: E's own caches, E's own rolling order and E's own rolling
+    # deadline. A's symbols are kept in the handle, never in ``caches``, so every E aggregation
+    # is over E's universe. It is the isolated attach because A's attach reads A's data
+    # authority: a defect there used to raise inside this worker and stop E's paper run.
+    a_live = A_LIVE.attach_isolated(session=session, repo=Path(__file__).resolve().parents[3],
+                                    caches=caches, shard_minute=shard_a, shard_tick=shard_b,
+                                    lane_minute=lane_a, lane_tick=lane_b, now=now,
+                                    exchanges=exch, log=log)
 
     while now() < at(FZ.PREMARKET_START) + timedelta(seconds=5):
         time.sleep(5)
     report["rolling_started_at"] = now().isoformat()
     cycles, refresh_errors = 0, 0
     order = [spy] + [caches[x] for x in shard_a + shard_b]
-    if a_live is not None:
-        order = a_live.rolling_order(order)
-    # One deadline for both the cycle and the loop inside it. With A off this is the value the
-    # two expressions already had; with A on the cycle stops at A's cut instead of E's refresh.
-    rolling_deadline = a_live.rolling_until() if a_live is not None else at(FZ.REFRESH_B_AT)
+    if a_live.handle is not None:
+        order = a_live.handle.rolling_order(order)
+    # One deadline for both the cycle and the loop inside it. With A off - or with A's attach
+    # failed - this is the value the two expressions already had; with A attached the cycle
+    # stops at A's cut instead of E's refresh.
+    rolling_deadline = (a_live.handle.rolling_until() if a_live.handle is not None
+                        else at(FZ.REFRESH_B_AT))
     while now() < rolling_deadline:
         cycles += 1
         for cache in order:
@@ -288,14 +293,12 @@ def run(universe_path: Path, out_root: Path, *, paper: bool = False,
         if cycles == 1:
             report["a_health"].append(a_health())
     report["a_health"].append(a_health())
-    if a_live is not None:
+    if a_live.active:
         # A's cut: 09:15 ET. It runs E's own ``refresh`` over the union, so E's cache is left
         # fresher than its own rolling cycle would have left it and E's tick cost cannot rise.
-        try:
-            report["a_mover_live"] = a_live.run_cut()
-        except Exception as error:                             # A never takes E's run down
-            log(f"A_MOVER_LIVE_FAILED {type(error).__name__}: {error}")
-            report["a_mover_live"] = {"status": "FAILED", "error": f"{type(error).__name__}: {error}"}
+        # ``run_cut`` does not raise: a failed attach returns its recorded refusal and a failed
+        # cut is classified, audited and returned, so E's finalization below always runs.
+        report["a_mover_live"] = a_live.run_cut()
     for cache in [caches[x] for x in shard_b]:                 # tick shard last, in its finalization order
         if now() >= at(FZ.FINALIZE_AT):
             break
