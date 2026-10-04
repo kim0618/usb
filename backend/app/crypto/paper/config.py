@@ -198,8 +198,15 @@ def build_config(
     slippage_model: str, slippage_bps: str, leverage: str,
     risk_limit_source: str, risk_limit_sha256: str,
     fee_basis: str = "ASSUMED_PUBLIC_NON_VIP",
+    instrument: InstrumentSpec | None = None,
 ) -> PaperRunConfig:
-    """Single construction path, so no caller can skip the provenance fields."""
+    """Single construction path, so no caller can skip the provenance fields.
+
+    `instrument` is optional and defaults to the BTCUSDT spec measured in D1, which is what
+    every pre-existing caller gets. A run on another instrument must pass one built from that
+    instrument's own saved `instruments-info` response; it is not derivable from the symbol
+    name, and the engine's quantity rules are only as correct as this object.
+    """
     return PaperRunConfig(
         run_id=run_id,
         starting_capital_krw=_decimal(starting_capital_krw, "starting_capital_krw"),
@@ -210,4 +217,5 @@ def build_config(
                          source=fee_source, effective_date=fee_effective_date, basis=fee_basis),
         slippage=SlippageModel(model=slippage_model, bps=_decimal(slippage_bps, "slippage_bps")),
         leverage=_decimal(leverage, "leverage"),
-        risk_limit_source=risk_limit_source, risk_limit_sha256=risk_limit_sha256)
+        risk_limit_source=risk_limit_source, risk_limit_sha256=risk_limit_sha256,
+        **({"instrument": instrument} if instrument is not None else {}))

@@ -60,6 +60,37 @@ RESTRICTION_CODES = frozenset({-4300})
 #: is choosing a different number.
 ACCOUNT_LEVERAGE_NOT_YET_AVAILABLE = "ACCOUNT_LEVERAGE_NOT_YET_AVAILABLE"
 
+#: Whether Binance's own sentence says the limit belongs to the *account* rather than to the
+#: instrument it was refused on.
+#:
+#: This matters only because the terminal now shows three symbols. `POST /fapi/v1/leverage` is a
+#: per-symbol write, so a refusal is observed on one symbol, and the safe default for the other
+#: two is to assume nothing. But the refusal this module was written for does not say anything
+#: about BTCUSDT at all:
+#:
+#:     "You can start trading with more than 20x leverage by 2026-10-29 01:34 (UTC), because
+#:      higher leverage is available 30 days after Futures account registration."
+#:
+#: The reason it gives is the age of the *Futures account*. That is not a property BTCUSDT has.
+#: Greying 50x out on ETHUSDT because of it is therefore not copying BTC's state across - it is
+#: reporting a sentence that was addressed to the account, and the screen labels it as such and
+#: names the symbol it was heard on.
+#:
+#: The match is deliberately narrow: both an account noun and an age/registration clause must be
+#: present. A refusal that merely contains the word "account" does not qualify, because a false
+#: positive here greys out buttons on symbols Binance never spoke about, which is the exact
+#: mistake the per-symbol default exists to avoid.
+_ACCOUNT_NOUN = re.compile(r"\b(?:futures\s+)?account\b", re.IGNORECASE)
+_ACCOUNT_AGE = re.compile(r"\b(?:\d{1,3}\s*days?\s+after|registration|registered|account\s+age)\b",
+                          re.IGNORECASE)
+
+
+def is_account_scoped(message: str) -> bool:
+    """True when the refusal's stated reason is about the account, not the instrument."""
+    text = message or ""
+    return bool(_ACCOUNT_NOUN.search(text) and _ACCOUNT_AGE.search(text))
+
+
 #: "...more than 20x leverage..." - the threshold the account is currently held to.
 _THRESHOLD = re.compile(r"more than (\d{1,3})\s*x", re.IGNORECASE)
 #: "...by 2026-10-29 01:34 (UTC)..." - when it lifts. Both are read out of Binance's own
@@ -109,6 +140,16 @@ class Restriction:
     source: str = FROM_EXCHANGE
 
     @property
+    def account_scoped(self) -> bool:
+        """Whether Binance's sentence named the account rather than this instrument.
+
+        Read off `exchange_message` rather than stored, so it cannot disagree with the sentence
+        it is derived from, and so a restriction recovered from an old audit line is classified
+        by the same rule as a live one.
+        """
+        return is_account_scoped(self.exchange_message)
+
+    @property
     def until_utc(self) -> str | None:
         if self.until_ms is None:
             return None
@@ -129,7 +170,7 @@ class Restriction:
     def view(self) -> dict[str, Any]:
         return {"above": self.above, "code": self.code, "until_ms": self.until_ms,
                 "until_utc": self.until_utc, "observed_at_ms": self.observed_at_ms,
-                "source": self.source}
+                "source": self.source, "account_scoped": self.account_scoped}
 
     def store(self) -> dict[str, Any]:
         return {**self.view(), "exchange_message": self.exchange_message}
@@ -185,8 +226,9 @@ def _event_symbol(event: Mapping[str, Any]) -> str | None:
     """The symbol a mirror line is about, or None when the line does not name one.
 
     A line written before this field existed does not name one, and at that time this package
-    traded a single symbol, so an unnamed line belongs to the configured symbol. A line that
-    names a *different* symbol is somebody else's restriction and is skipped.
+    traded a single symbol - the default one. So an unnamed line belongs to the **default
+    symbol**, and not to whichever symbol happens to be asking: see `restriction_from_mirror`,
+    where getting that distinction wrong handed one instrument's refusal to all three.
     """
     named = event.get("symbol")
     if isinstance(named, str) and named:
@@ -210,14 +252,22 @@ def _leverage_of(event: Mapping[str, Any]) -> int | None:
     return None
 
 
-def restriction_from_mirror(path: Path, *, symbol: str,
+def restriction_from_mirror(path: Path, *, symbol: str, default_symbol: str | None = None,
                             now_ms: int | None = None) -> BootstrapOutcome:
-    """Recover a still-current account restriction from the LIVE audit mirror. Read only.
+    """Recover a still-current restriction for ONE symbol from the LIVE audit mirror. Read only.
 
     The file is streamed a line at a time and only two event types are consulted. The newest
     refusal in the restriction family wins, and it is discarded when a *later* line shows
     Binance accepting a leverage that refusal said it would reject - the limit has been lifted
     since and the file simply has not been told.
+
+    **Unnamed lines belong to the default symbol only.** The mirror is one file for the whole
+    account and its oldest lines predate the `symbol` field; they were written when this package
+    traded one instrument. Treating such a line as "about whichever symbol is asking" made every
+    symbol adopt it, which is the opposite of the per-symbol isolation this function exists to
+    provide - observed on the real account, where a BTCUSDT refusal recorded on 2026-10-01
+    became ETHUSDT's and SOLUSDT's own stored capability the first time they were built.
+    `default_symbol` defaults to `symbol`, which is the single-symbol behaviour unchanged.
 
     A historical refusal must carry a readable unlock time to be restored, which a live one does
     not. The difference is deliberate: a refusal happening now is authoritative whatever it
@@ -252,7 +302,13 @@ def restriction_from_mirror(path: Path, *, symbol: str,
             if kind not in (REFUSAL_EVENT, RESULT_EVENT):
                 continue
             named = _event_symbol(event)
-            if named is not None and named != symbol:
+            if named is None:
+                # Pre-`symbol` line: the default symbol's, and nobody else's. An account-wide
+                # limit stated in such a line still reaches the other symbols, but through
+                # `account_scope_from_mirror`, which says so and names its provenance.
+                if symbol != (default_symbol or symbol):
+                    continue
+            elif named != symbol:
                 continue
             try:
                 stamp = int(event.get("ts_ms") or 0)
@@ -288,6 +344,93 @@ def restriction_from_mirror(path: Path, *, symbol: str,
             and newest_success[1] > learned.above):
         return BootstrapOutcome(None, CONTRADICTED, scanned, unreadable)
     return BootstrapOutcome(learned, RECOVERED, scanned, unreadable)
+
+
+@dataclass(frozen=True)
+class AccountScopeAdvisory:
+    """An account-wide leverage limit Binance stated on one symbol, reported on the others.
+
+    Separate from `Restriction` and from `LeverageCapability` on purpose. A capability is what
+    *this symbol* has been observed to be refused, and nothing may write into another symbol's
+    capability - that is the per-symbol isolation the multi-symbol screen is required to keep.
+    An advisory is a different claim: Binance said the limit is the account's, and here is the
+    symbol it said it on. The screen can then grey the step with a reason that names its
+    provenance, and nothing has been copied between the per-symbol stores.
+    """
+    restriction: Restriction
+    observed_on_symbol: str | None
+
+    def applies_to(self, leverage: int) -> bool:
+        return int(leverage) > self.restriction.above
+
+    def message(self, leverage: int) -> str:
+        where = f" ({self.observed_on_symbol}에서 관측)" if self.observed_on_symbol else ""
+        return f"{self.restriction.message(leverage)} 계정 전체 제한입니다{where}."
+
+    def view(self) -> dict[str, Any]:
+        return {**self.restriction.view(), "observed_on_symbol": self.observed_on_symbol,
+                "scope": "ACCOUNT"}
+
+
+def account_scope_from_mirror(path: Path, *, now_ms: int | None = None) -> AccountScopeAdvisory | None:
+    """The newest unexpired account-scoped refusal in the audit file, whatever symbol it names.
+
+    Deliberately *not* symbol filtered, which is the one place in this module that is not. The
+    symbol filter in `restriction_from_mirror` exists so one instrument's refusal cannot become
+    another's stored capability. This function answers a different question - "has Binance told
+    this account that its own age caps leverage" - and that question has no symbol in it.
+
+    Only refusals whose own sentence names the account qualify (`is_account_scoped`), and a
+    later success above the threshold discards it exactly as the per-symbol path does. Read
+    only: one local file, no Binance request.
+    """
+    now = _now_ms() if now_ms is None else now_ms
+    if not path.exists():
+        return None
+    newest: tuple[int, Restriction, str | None] | None = None
+    newest_success: tuple[int, int] | None = None
+    with path.open("r", encoding="utf-8", errors="replace") as stream:
+        for line in stream:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if not isinstance(event, Mapping):
+                continue
+            kind = event.get("event_type")
+            if kind not in (REFUSAL_EVENT, RESULT_EVENT):
+                continue
+            try:
+                stamp = int(event.get("ts_ms") or 0)
+            except (TypeError, ValueError):
+                continue
+            leverage = _leverage_of(event)
+            if kind == RESULT_EVENT:
+                if leverage is not None and (newest_success is None or stamp > newest_success[0]):
+                    newest_success = (stamp, leverage)
+                continue
+            if event.get("code") not in RESTRICTION_CODES or leverage is None:
+                continue
+            message = str(event.get("message") or "")
+            if not is_account_scoped(message):
+                continue
+            learned = build_restriction(leverage=leverage, code=event.get("code"),
+                                        message=message, observed_at_ms=stamp,
+                                        source=FROM_MIRROR)
+            if newest is None or stamp > newest[0]:
+                newest = (stamp, learned, _event_symbol(event))
+    if newest is None:
+        return None
+    stamp, learned, named = newest
+    if learned.until_ms is None or learned.expired(now):
+        return None
+    if (newest_success is not None and newest_success[0] > stamp
+            and newest_success[1] > learned.above):
+        return None
+    return AccountScopeAdvisory(restriction=learned, observed_on_symbol=named)
 
 
 class LeverageCapability:
@@ -391,6 +534,7 @@ class LeverageCapability:
                                             observed_at_ms=now), now_ms=now)
 
     def bootstrap_from_mirror(self, mirror_path: Path, *, symbol: str,
+                              default_symbol: str | None = None,
                               now_ms: int | None = None) -> BootstrapOutcome:
         """Recover a known restriction at startup, when nothing is stored yet.
 
@@ -405,7 +549,8 @@ class LeverageCapability:
         now = _now_ms() if now_ms is None else now_ms
         if any(not item.expired(now) for item in self._restrictions):
             return BootstrapOutcome(None, ALREADY_PERSISTED)
-        outcome = restriction_from_mirror(mirror_path, symbol=symbol, now_ms=now)
+        outcome = restriction_from_mirror(mirror_path, symbol=symbol,
+                                          default_symbol=default_symbol, now_ms=now)
         if outcome.restriction is not None:
             self.adopt(outcome.restriction, now_ms=now)
         return outcome

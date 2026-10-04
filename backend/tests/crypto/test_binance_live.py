@@ -25,6 +25,7 @@ from app.crypto.live.mirror import LiveEvent, LiveMirror, MirrorPathRefused
 from app.crypto.live.orders import LiveOrderRouter, OrderRefused
 from app.crypto.live.rest import BinanceError, BinanceFuturesClient, TradingDisabled
 from app.crypto.live.stream import UserDataStream
+from app.crypto.symbols import SUPPORTED_SYMBOLS, SymbolNotSupported
 from tests.crypto.binance_fixtures import (ACCOUNT, COMMISSION_RATE, DEPTH, EXCHANGE_INFO,
                                            FakeBinance, MARK_PRICE, POSITION_MODE_HEDGE,
                                            POSITION_RISK_FLAT, POSITION_RISK_LONG, SYMBOL,
@@ -68,9 +69,48 @@ def test_a_config_without_a_key_still_loads_so_the_status_route_can_explain_itse
         load_credentials({})
 
 
-def test_v1_refuses_a_symbol_other_than_btcusdt_rather_than_attempting_it() -> None:
+def test_only_whitelisted_symbols_load_and_anything_else_is_refused() -> None:
+    """The V1 "BTCUSDT only" rule is now "the whitelist only".
+
+    This test replaces `test_v1_refuses_a_symbol_other_than_btcusdt_rather_than_attempting_it`,
+    which asserted that ETHUSDT raises. ETHUSDT is now supported on purpose, so that assertion
+    had to go; what must not go is the property it was protecting, which is that an unlisted
+    symbol is refused at config load rather than attempted against a real account. Both halves
+    are asserted below so the removal cannot quietly widen the set.
+    """
+    for symbol in SUPPORTED_SYMBOLS:
+        assert load_config({"BINANCE_LIVE_SYMBOL": symbol}).symbol == symbol
+    # Case and whitespace are normalised, not half-matched.
+    assert load_config({"BINANCE_LIVE_SYMBOL": " ethusdt "}).symbol == "ETHUSDT"
+    for refused in ("XRPUSDT", "BTCUSD", "BTCBUSD", "ETH", "BTCUSDT_240927"):
+        with pytest.raises(ValueError):
+            load_config({"BINANCE_LIVE_SYMBOL": refused})
+
+
+def test_a_deployment_can_narrow_the_whitelist_but_never_widen_it() -> None:
+    assert load_config({"BINANCE_LIVE_SYMBOLS": "BTCUSDT,SOLUSDT"}).symbols == ("BTCUSDT", "SOLUSDT")
+    # Whitelist order wins over the order the variable was typed in, so the tab strip is stable.
+    assert load_config({"BINANCE_LIVE_SYMBOLS": "SOLUSDT,BTCUSDT"}).symbols == ("BTCUSDT", "SOLUSDT")
     with pytest.raises(ValueError):
-        load_config({"BINANCE_LIVE_SYMBOL": "ETHUSDT"})
+        load_config({"BINANCE_LIVE_SYMBOLS": "DOGEUSDT"})
+    # A default outside the narrowed set is a contradiction and is refused, not silently moved.
+    with pytest.raises(ValueError):
+        load_config({"BINANCE_LIVE_SYMBOL": "ETHUSDT", "BINANCE_LIVE_SYMBOLS": "BTCUSDT"})
+
+
+def test_for_symbol_repoints_the_config_without_mutating_the_original() -> None:
+    """One config per symbol, built from the deployment's one config. The original must not
+    move: an `AccountReader` already built from it is still about its own instrument."""
+    config = load_config({})
+    eth = config.for_symbol("ETHUSDT")
+    assert (eth.symbol, config.symbol) == ("ETHUSDT", "BTCUSDT")
+    assert eth.symbols == config.symbols
+    # Same symbol is the same object, so the common path allocates nothing.
+    assert config.for_symbol("BTCUSDT") is config
+    with pytest.raises(SymbolNotSupported):
+        config.for_symbol("XRPUSDT")
+    with pytest.raises(SymbolNotSupported):
+        load_config({"BINANCE_LIVE_SYMBOLS": "BTCUSDT"}).for_symbol("ETHUSDT")
 
 
 def test_recv_window_is_bounded_by_binances_own_ceiling() -> None:

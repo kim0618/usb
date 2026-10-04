@@ -15,6 +15,8 @@ from typing import Any, Callable
 
 import httpx
 
+from ..symbols import resolve as resolve_symbol
+
 REST_URL = "https://api.bybit.com"
 SYMBOL = "BTCUSDT"
 PROVIDER_PAGE_LIMIT = 1000
@@ -81,7 +83,11 @@ class BybitChartHistory:
                  *, clock: Callable[[], float] = time.monotonic) -> None:
         self._request = request or self._http_request
         self._clock = clock
-        self._cache: OrderedDict[tuple[str, int | None, int], tuple[float, dict[str, Any]]] = OrderedDict()
+        #: Keyed by symbol first. A cache keyed on (timeframe, before, limit) alone would
+        #: serve BTCUSDT's 1m bars to an ETHUSDT request made within the TTL, which is the one
+        #: way a chart can show the wrong instrument while every label says the right one.
+        self._cache: OrderedDict[tuple[str, str, int | None, int],
+                                 tuple[float, dict[str, Any]]] = OrderedDict()
         self._lock = threading.Lock()
 
     @staticmethod
@@ -96,13 +102,13 @@ class BybitChartHistory:
         return payload
 
     def _source_rows(self, spec: TimeframeSpec, needed: int,
-                     before_ms: int | None) -> tuple[list[dict[str, Any]], bool]:
+                     before_ms: int | None, symbol: str) -> tuple[list[dict[str, Any]], bool]:
         rows: dict[int, dict[str, Any]] = {}
         cursor = before_ms
         exhausted = False
         while len(rows) < needed:
             page_limit = min(PROVIDER_PAGE_LIMIT, needed - len(rows))
-            params: dict[str, Any] = {"category": "linear", "symbol": SYMBOL,
+            params: dict[str, Any] = {"category": "linear", "symbol": symbol,
                                       "interval": spec.source_interval, "limit": page_limit}
             if cursor is not None:
                 params["end"] = cursor - 1
@@ -125,14 +131,23 @@ class BybitChartHistory:
             cursor = oldest
         return [rows[key] for key in sorted(rows)], exhausted
 
-    def get(self, timeframe: str, limit: int, before_ms: int | None = None) -> dict[str, Any]:
+    def get(self, timeframe: str, limit: int, before_ms: int | None = None,
+            symbol: str | None = None) -> dict[str, Any]:
+        """Paged display history for one instrument.
+
+        `symbol` defaults to the module's default, so every existing caller is unchanged. It is
+        resolved against the same whitelist the LIVE path uses rather than passed to Bybit
+        verbatim: this is a public read, but an unvalidated symbol would still let a query
+        parameter name any instrument Bybit lists and put it on a screen labelled otherwise.
+        """
         if timeframe not in SPECS:
             raise ValueError(f"unsupported timeframe: {timeframe}")
         if not 1 <= limit <= MAX_TARGET_BARS:
             raise ValueError(f"limit must be in [1, {MAX_TARGET_BARS}]")
+        instrument = resolve_symbol(symbol)
         spec = SPECS[timeframe]
         normalized_before = (before_ms - before_ms % spec.bucket_ms) if before_ms is not None else None
-        key = (timeframe, normalized_before, limit)
+        key = (instrument, timeframe, normalized_before, limit)
         now = self._clock()
         with self._lock:
             cached = self._cache.get(key)
@@ -141,12 +156,13 @@ class BybitChartHistory:
                 return cached[1]
 
             needed = limit * spec.source_bars_per_bucket + 2
-            source, exhausted = self._source_rows(spec, needed, normalized_before)
+            source, exhausted = self._source_rows(spec, needed, normalized_before, instrument)
             candles = aggregate_rows(source, spec.bucket_ms)
             if normalized_before is not None:
                 candles = [row for row in candles if row["start_ms"] < normalized_before]
             candles = candles[-limit:]
             body = {
+                "symbol": instrument,
                 "timeframe": timeframe, "bucket_ms": spec.bucket_ms,
                 "source": "BYBIT_PUBLIC_KLINE", "source_interval": spec.source_interval,
                 "bars": candles, "has_more": not exhausted and len(candles) == limit,

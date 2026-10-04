@@ -16,6 +16,10 @@ import {
   LivePerformanceSummary, LivePositionCard, LivePositionPanel, LiveTradeBar, useBinanceLive,
 } from "@/components/crypto-live-terminal";
 import { C1AutoControl } from "@/components/crypto-c1-auto-control";
+import {
+  OpenPositionsStrip, SymbolTabs, useOpenPositions, useSelectedSymbol,
+} from "@/components/crypto-symbol-tabs";
+import { DEFAULT_SYMBOL } from "@/lib/crypto-symbols";
 import type { ChartTimeframe } from "@/lib/crypto-paper";
 import { positionOpenedMs } from "@/lib/crypto-paper";
 import { ARM_NOTE, LIVE_CHART_SOURCE_NOTE, LIVE_LOCK_NOTE, liveOverlays, liveTradeGate }
@@ -45,24 +49,54 @@ function useIsWide() {
 }
 
 export default function CryptoPaperPage() {
-  const terminal = useCryptoTerminal();
-  const [timeframe, setTimeframe] = useState<ChartTimeframe>("1m");
-  /** One signal engine, one series, both screens. The PAPER and LIVE trees below are handed the
-   *  same `signals` object, so a C1 event has one id and one marker wherever it is drawn - the
-   *  signal is a property of the market, not of which account is selected. */
-  const signals = useC1Signals();
-  const wide = useIsWide();
-  const live = useLivePnl(terminal.state?.account?.position_side != null);
   /** PAPER unless the operator switches, and the switch is only offered when the backend says a
    *  Binance key is configured. The two accounts never render at the same time. */
   const [source, setSource] = useState<AccountSource>("PAPER");
-  const binance = useBinanceLive(source === "BINANCE_LIVE");
+  /** What the server permits, learned from `/status` and remembered across the PAPER/LIVE
+   *  switch so the tabs do not flicker back to the client's own list. `null` until the first
+   *  status answers, which is what `useSelectedSymbol` treats as "no opinion yet". */
+  const [permitted, setPermitted] = useState<readonly string[] | null>(null);
+  /** The one piece of state both trees read.
+   *
+   *  Held here rather than inside either tree, which is what makes the selection survive the
+   *  PAPER/LIVE switch for free: switching `source` re-renders this component's children and
+   *  leaves this state alone. Reload survival is `localStorage`, inside the hook.
+   */
+  const { symbol, select: selectSymbol } = useSelectedSymbol(permitted);
+  const terminal = useCryptoTerminal(symbol);
+  const [timeframe, setTimeframe] = useState<ChartTimeframe>("1m");
+  /** C1 is a BTCUSDT research result and stays on BTCUSDT.
+   *
+   *  The engine is only polled on the default symbol, so an ETH or SOL screen draws no marker
+   *  and runs no signal poll - not a hidden marker, no request at all. Presenting a BTC signal
+   *  as another instrument's would be the research leaking into a screen it says nothing about.
+   */
+  const c1Enabled = symbol === DEFAULT_SYMBOL;
+  const signals = useC1Signals(c1Enabled);
+  const wide = useIsWide();
+  const live = useLivePnl(terminal.state?.account?.position_side != null, symbol);
+  const binance = useBinanceLive(source === "BINANCE_LIVE", symbol);
+  /** Every symbol's open position, polled while LIVE is on screen. */
+  const positions = useOpenPositions(source === "BINANCE_LIVE");
   /** Raised by the bar and by a CLOSE pressed after the window lapsed. One dialog for both, so
    *  the sentence the operator has to agree to is written once. */
   const [activating, setActivating] = useState(false);
 
+  // The server's list, once it has one. Written from an effect rather than read inline so the
+  // tabs keep the list across a switch back to PAPER, where no status poll runs.
+  useEffect(() => {
+    const served = binance.symbols;
+    if (served && served.length > 0) setPermitted(served);
+  }, [binance.symbols]);
+
   const sourceSwitch = (
     <AccountSourceSwitch value={source} onChange={setSource} available={binance.available} />
+  );
+  /** The tab strip, rendered identically above both trees so the selection reads the same
+   *  whichever account is on screen. Disabled while a write is in flight. */
+  const symbolTabs = (
+    <SymbolTabs value={symbol} onChange={selectSymbol} permitted={permitted}
+      busy={source === "BINANCE_LIVE" ? binance.busy : terminal.busy} />
   );
 
   if (source === "BINANCE_LIVE") {
@@ -76,6 +110,12 @@ export default function CryptoPaperPage() {
     return (
       <div className="mx-auto max-w-[1600px]">
         {sourceSwitch}
+        {/* Every symbol's position first, then the tabs, then the selected symbol's detail.
+            The strip is above the tabs on purpose: what is open is the thing an operator needs
+            before deciding which tab to be on. */}
+        <OpenPositionsStrip summary={positions.summary} selected={symbol}
+          onSelect={selectSymbol} error={positions.error} />
+        {symbolTabs}
         <LiveTradeBar account={account} gate={gate} busy={binance.busy} error={binance.armError}
           onActivate={activate} onDisarm={binance.disarmLive} />
         <LiveActivateDialog open={activating} busy={binance.busy}
@@ -114,7 +154,9 @@ export default function CryptoPaperPage() {
                 {terminal.state && (
                   <ChartSection state={terminal.state} bars={terminal.bars} timeframe={timeframe}
                     onTimeframe={setTimeframe} overlays={liveOverlays(account)}
-                    note={LIVE_CHART_SOURCE_NOTE} c1={signals.state} c1Markers={signals.markers} />
+                    note={LIVE_CHART_SOURCE_NOTE}
+                    c1={c1Enabled ? signals.state : null}
+                    c1Markers={c1Enabled ? signals.markers : []} />
                 )}
                 {/* Wide only: the phone already has the card above the chart, and showing
                     both would print the same position twice. Same split the paper screen uses
@@ -134,9 +176,23 @@ export default function CryptoPaperPage() {
                   onPreview={binance.requestPreview} gate={gate} onActivate={activate}
                   sizing={binance.sizing} />
                 {account.position && !account.position.is_flat && (
-                  <LiveAutoExit guard={binance.exitGuard} onSave={binance.saveExitGuard}
-                    onDisable={binance.disableExitGuard} busy={binance.busy}
-                    error={binance.exitGuardError} />
+                  // AUTO is out of scope for the multi-symbol step, so the guard still watches
+                  // one instrument. On the others the server answers UNAVAILABLE with the
+                  // symbol it does watch, and the panel states that instead of rendering a
+                  // guard that would close a different position than the tab suggests.
+                  binance.exitGuard && (binance.exitGuard as { available?: boolean }).available === false
+                    ? (
+                      <p className="rounded-lg border border-border bg-surface px-3 py-2 text-[11px] text-muted"
+                        data-testid="auto-exit-unavailable" role="status">
+                        {(binance.exitGuard as { unavailable_message?: string }).unavailable_message
+                          ?? "자동청산은 이 심볼에 제공되지 않습니다."}
+                      </p>
+                    )
+                    : (
+                      <LiveAutoExit guard={binance.exitGuard} onSave={binance.saveExitGuard}
+                        onDisable={binance.disableExitGuard} busy={binance.busy}
+                        error={binance.exitGuardError} />
+                    )
                 )}
               </div>
             </div>
@@ -166,6 +222,7 @@ export default function CryptoPaperPage() {
     return (
       <div className="mx-auto max-w-[1600px]">
         {sourceSwitch}
+        {symbolTabs}
         {terminal.error
           ? <ErrorState message={terminal.error} retry={terminal.refresh} />
           : <LoadingState />}
@@ -179,6 +236,7 @@ export default function CryptoPaperPage() {
   return (
     <div className="mx-auto max-w-[1600px]">
       {sourceSwitch}
+      {symbolTabs}
       {terminal.error && (
         <p className="mb-3 rounded-lg bg-warning-soft px-3 py-2 text-xs text-warning" role="status">
           {terminal.error}
@@ -187,8 +245,12 @@ export default function CryptoPaperPage() {
 
       <MarketHeader state={state} performance={terminal.performance}
         onAction={terminal.act} busy={terminal.busy} />
-      <C1AutoControl state={state} markers={signals.markers} busy={terminal.busy}
-        onAction={terminal.act} />
+      {/* C1 AUTO is the default symbol's. Not rendered elsewhere, because the control would
+          otherwise arm a BTC strategy from a screen titled ETH. */}
+      {c1Enabled && state.c1_available !== false && (
+        <C1AutoControl state={state} markers={signals.markers} busy={terminal.busy}
+          onAction={terminal.act} />
+      )}
 
       {/* Phone: the held position comes before the chart, with its own CLOSE. */}
       <div className="xl:hidden">
@@ -199,7 +261,9 @@ export default function CryptoPaperPage() {
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
         <div className="space-y-3">
           <ChartSection state={state} bars={terminal.bars} timeframe={timeframe}
-            onTimeframe={setTimeframe} c1={signals.state} c1Markers={signals.markers} />
+            onTimeframe={setTimeframe}
+            c1={c1Enabled ? signals.state : null}
+            c1Markers={c1Enabled ? signals.markers : []} />
           {/* On a phone the order panel sits here, directly under the chart. The wide layout
               moves it to the right column, which is why it is rendered twice rather than
               repositioned with CSS order: two different trees, each simple. */}

@@ -32,7 +32,7 @@ describe("chart V2 history", () => {
   it("drops a stale timeframe response after switching", async () => {
     let resolveMinute!: (value: ChartHistoryResponse) => void;
     let resolveHour!: (value: ChartHistoryResponse) => void;
-    vi.spyOn(cryptoApi, "chartHistory").mockImplementation((frame) => new Promise(resolve => {
+    vi.spyOn(cryptoApi, "chartHistory").mockImplementation((_symbol, frame) => new Promise(resolve => {
       if (frame === "1m") resolveMinute = resolve;
       else resolveHour = resolve;
     }));
@@ -54,7 +54,24 @@ describe("chart V2 history", () => {
     await act(async () => { await result.current.loadEarlier(); });
     expect(result.current.candles.map(item => item.time)).toEqual([0, 60, 120]);
     expect(result.current.end).toBe(true);
-    expect(cryptoApi.chartHistory).toHaveBeenLastCalledWith("1m", CHART_HISTORY_PAGE, 60_000);
+    expect(cryptoApi.chartHistory).toHaveBeenLastCalledWith("BTCUSDT", "1m", CHART_HISTORY_PAGE, 60_000);
+  });
+
+  it("starts the series over when the symbol changes and keeps the timeframe", async () => {
+    // The bug this guards: with the series keyed on the timeframe alone, switching symbol on
+    // 1m left the previous instrument's candles on screen and merged the new ones into them.
+    vi.spyOn(cryptoApi, "chartHistory")
+      .mockResolvedValueOnce(response("1m", [bar(60_000), bar(120_000)], false))
+      .mockResolvedValueOnce(response("1m", [bar(180_000)], false));
+    const { result, rerender } = renderHook(({ symbol }) => useChartHistory(true, "1m", symbol),
+      { initialProps: { symbol: "BTCUSDT" } });
+    await waitFor(() => expect(result.current.candles).toHaveLength(2));
+    rerender({ symbol: "ETHUSDT" });
+    // The previous symbol's candles are gone immediately, not after the new fetch lands.
+    expect(result.current.candles).toEqual([]);
+    await waitFor(() => expect(result.current.candles.map(item => item.time)).toEqual([180]));
+    expect(cryptoApi.chartHistory).toHaveBeenLastCalledWith(
+      "ETHUSDT", "1m", expect.anything(), null, expect.anything());
   });
 
   it("detects pure prepend so the chart can preserve its logical range", () => {
@@ -77,5 +94,26 @@ describe("chart V2 history", () => {
   it("always carries the date in the crosshair reading", () => {
     expect(kstCrosshairLabel(false)(dayStart)).toBe("10. 01. 09:00");
     expect(kstCrosshairLabel(true)(dayStart)).toBe("10. 01. 09:00:00");
+  });
+});
+
+describe("chart history across a symbol change", () => {
+  it("does not ask about the previous symbol through a stale callback", async () => {
+    // Found in the isolated preview: switching to SOL sent one `chart-history?symbol=BTCUSDT`
+    // 346 ms after the click, because the chart holds `loadEarlier` across renders and calls it
+    // when its visible range resets. The response was discarded downstream, so nothing wrong
+    // reached the screen - but a read about an instrument nobody is looking at should not be
+    // sent, and relying on the downstream guard is how the next change breaks it.
+    const spy = vi.spyOn(cryptoApi, "chartHistory")
+      .mockResolvedValue(response("1m", [bar(60_000), bar(120_000)]));
+    const { result, rerender } = renderHook(({ symbol }) => useChartHistory(true, "1m", symbol),
+      { initialProps: { symbol: "BTCUSDT" } });
+    await waitFor(() => expect(result.current.candles).toHaveLength(2));
+    const stale = result.current.loadEarlier;
+    rerender({ symbol: "SOLUSDT" });
+    spy.mockClear();
+    await act(async () => { await stale(); });
+    const symbols = spy.mock.calls.map(call => call[0]);
+    expect(symbols).not.toContain("BTCUSDT");
   });
 });

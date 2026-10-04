@@ -23,7 +23,8 @@ from pydantic import BaseModel
 from ..paper import pnl_breakdown, sizing, trade_preview
 from ..paper.config import DEFAULT_STARTING_CAPITAL_KRW
 from ..paper.engine import OrderRejected
-from .api import app, error, jsonable, runtime
+from ..symbols import DEFAULT_SYMBOL, SymbolNotSupported, resolve as resolve_symbol
+from .api import app, error, jsonable, paper_feed, paper_session, runtime
 from .trade_candles import TradeCandleFeed
 
 SIDES = ("LONG", "SHORT")
@@ -34,26 +35,29 @@ class ResetRequest(BaseModel):
     out the run's configured default applies."""
     target_krw: str | None = None
     reason: str = "USER_RESET"
+    symbol: str | None = None
 
 
 @app.get("/api/crypto/sizing")
-async def sizing_quote(side: str | None = None) -> Any:
+async def sizing_quote(side: str | None = None, symbol: str | None = None) -> Any:
     """Quantities the engine would actually accept right now, priced per preset.
 
     Both sides are returned by default. They are not mirror images of each other: a LONG walks
     the ask side and a SHORT walks the bid side, so the affordable size differs whenever the
     book is lopsided, and the panel should not guess one from the other.
     """
-    if runtime.session is None:
-        return error(503, "RUN_NOT_CONFIGURED", runtime.error or "paper run is not configured")
-
     requested = SIDES if side is None else (side.upper(),)
     for candidate in requested:
         if candidate not in SIDES:
             return error(400, "UNKNOWN_SIDE", f"side must be LONG or SHORT, got {candidate!r}")
 
-    session = runtime.selected_session()
-    quote = runtime.feed.quote()
+    session, failure = paper_session(symbol)
+    if failure is not None:
+        return failure
+    feed, feed_failure = paper_feed(symbol)
+    if feed_failure is not None:
+        return feed_failure
+    quote = feed.quote()
     if quote is not None:
         # Price the presets against the tick the operator is looking at, not the one that
         # happened to be recorded a second ago.
@@ -62,6 +66,7 @@ async def sizing_quote(side: str | None = None) -> Any:
     engine = session.engine
     payload: dict[str, Any] = {
         "run_id": session.config.run_id,
+        "symbol": session.config.instrument.symbol,
         "leverage": engine.leverage,
         "quote_ts_ms": engine.quote.ts_ms if engine.quote is not None else None,
         "mark_price": engine.quote.mark_price if engine.quote is not None else None,
@@ -80,11 +85,12 @@ async def reset_account(request: ResetRequest) -> Any:
     redrawn. That is the whole difference between this and starting a new run, and it is why
     the trade history stays one continuous record.
     """
-    if runtime.session is None:
-        return error(503, "RUN_NOT_CONFIGURED", runtime.error or "paper run is not configured")
-    if runtime.c1_auto is not None and runtime.c1_auto.state.enabled:
+    session, failure = paper_session(request.symbol)
+    if failure is not None:
+        return failure
+    if (session is runtime.session and runtime.c1_auto is not None
+            and runtime.c1_auto.state.enabled):
         return error(409, "AUTO_MANAGED", "C1 AUTO 중에는 계좌 초기화를 할 수 없습니다.")
-    session = runtime.session
 
     try:
         target = (Decimal(request.target_krw) if request.target_krw is not None
@@ -101,7 +107,10 @@ async def reset_account(request: ResetRequest) -> Any:
         return error(409, "RESET_BLOCKED_OPEN_POSITION",
                      f"{side} 포지션이 열려 있습니다. 청산한 뒤 초기화할 수 있습니다.")
 
-    quote = runtime.feed.quote()
+    feed, feed_failure = paper_feed(request.symbol)
+    if feed_failure is not None:
+        return feed_failure
+    quote = feed.quote()
     ts = quote.ts_ms if quote is not None else int(time.time() * 1000)
     try:
         result = session.command({"command": "ACCOUNT_RESET", "ts_ms": ts,
@@ -113,7 +122,7 @@ async def reset_account(request: ResetRequest) -> Any:
 
 
 @app.get("/api/crypto/pnl-breakdown")
-async def pnl_breakdown_view() -> Any:
+async def pnl_breakdown_view(symbol: str | None = None) -> Any:
     """Price PnL and trading costs, apart, for the open position and every closed trade.
 
     Read-only. The open-position close figures come from a clone that was actually sent the full
@@ -122,9 +131,9 @@ async def pnl_breakdown_view() -> Any:
     second time per second would double its growth on a disk that is the binding limit. The
     quote timestamp is returned so the panel can say which book the preview was priced on.
     """
-    if runtime.session is None:
-        return error(503, "RUN_NOT_CONFIGURED", runtime.error or "paper run is not configured")
-    session = runtime.selected_session()
+    session, failure = paper_session(symbol)
+    if failure is not None:
+        return failure
     engine = session.engine
     rate = session.config.fx.krw_per_usdt
     position = pnl_breakdown.open_position_preview(engine)
@@ -136,6 +145,7 @@ async def pnl_breakdown_view() -> Any:
         row["krw"] = pnl_breakdown.to_krw(row, rate)
     return jsonable({
         "run_id": session.config.run_id,
+        "symbol": session.config.instrument.symbol,
         "krw_per_usdt": rate,
         "position": position,
         "trades": trades[-200:][::-1],
@@ -167,16 +177,19 @@ def _preview_qty(raw: str | None, notional: str | None, side: str, quote: Any,
 
 @app.get("/api/crypto/order-preview")
 async def order_preview(long_qty: str | None = None, short_qty: str | None = None,
-                        notional_usdt: str | None = None) -> Any:
+                        notional_usdt: str | None = None, symbol: str | None = None) -> Any:
     """What entering and immediately closing would cost, per side, before the button is pressed.
 
     Priced on clones advanced to the newest feed quote. Nothing is recorded: not the tape, not
     the ledger. Both sides in one request so the panel refreshes with one round trip.
     """
-    if runtime.session is None:
-        return error(503, "RUN_NOT_CONFIGURED", runtime.error or "paper run is not configured")
-    session = runtime.selected_session()
-    quote = runtime.feed.quote()
+    session, failure = paper_session(symbol)
+    if failure is not None:
+        return failure
+    feed, feed_failure = paper_feed(symbol)
+    if feed_failure is not None:
+        return feed_failure
+    quote = feed.quote()
     engine = trade_preview.advanced(session.engine, quote)
     rate = session.config.fx.krw_per_usdt
     step = session.config.instrument.qty_step
@@ -199,9 +212,11 @@ async def order_preview(long_qty: str | None = None, short_qty: str | None = Non
         sides[side] = row
     # Staleness is judged like the terminal's existing 5 s contract: server clock against the
     # server's own receive time, never against the exchange's timestamp (the clocks can differ).
-    return jsonable({"run_id": session.config.run_id, "server_time_ms": int(time.time() * 1000),
-                     "feed_connected": runtime.feed.telemetry.connected,
-                     "feed_last_message_ms": runtime.feed.telemetry.last_message_ms,
+    return jsonable({"run_id": session.config.run_id,
+                     "symbol": session.config.instrument.symbol,
+                     "server_time_ms": int(time.time() * 1000),
+                     "feed_connected": feed.telemetry.connected,
+                     "feed_last_message_ms": feed.telemetry.last_message_ms,
                      "quote_ts_ms": engine.quote.ts_ms if engine.quote is not None else None,
                      "krw_per_usdt": rate, "sides": sides})
 
@@ -215,21 +230,25 @@ LIVE_FIELDS = (
 
 
 @app.get("/api/crypto/live")
-async def live() -> Any:
+async def live(symbol: str | None = None) -> Any:
     """The open position on the newest feed quote, small enough to poll several times a second.
 
     The engine and the tape keep their 1 Hz rhythm; this answers from a clone advanced to the
     latest tick, so the headline PnL can move with the market without recording it.
     """
-    if runtime.session is None:
-        return error(503, "RUN_NOT_CONFIGURED", runtime.error or "paper run is not configured")
-    session = runtime.selected_session()
-    preview = trade_preview.live_position(session.engine, runtime.feed.quote())
+    session, failure = paper_session(symbol)
+    if failure is not None:
+        return failure
+    feed, feed_failure = paper_feed(symbol)
+    if feed_failure is not None:
+        return feed_failure
+    preview = trade_preview.live_position(session.engine, feed.quote())
     body = {key: preview.get(key) for key in LIVE_FIELDS}
     body["krw"] = pnl_breakdown.to_krw(body, session.config.fx.krw_per_usdt)
+    body["symbol"] = session.config.instrument.symbol
     body["server_time_ms"] = int(time.time() * 1000)
-    body["feed_connected"] = runtime.feed.telemetry.connected
-    body["feed_last_message_ms"] = runtime.feed.telemetry.last_message_ms
+    body["feed_connected"] = feed.telemetry.connected
+    body["feed_last_message_ms"] = feed.telemetry.last_message_ms
     return jsonable(body)
 
 
@@ -240,11 +259,41 @@ async def live() -> Any:
 # execution feed is started exactly as before. `CRYPTO_TRADE_CANDLES=off` disables it without a
 # code change; the 15 s chart then reports itself unavailable and nothing else notices.
 trade_feed = TradeCandleFeed()
+#: One trade-only connection per symbol, keyed by symbol. The default symbol's entry is
+#: `trade_feed` itself, so the attribute keeps its name and its meaning.
+trade_feeds: dict[str, TradeCandleFeed] = {DEFAULT_SYMBOL: trade_feed}
 _original_lifespan = app.router.lifespan_context
 
 
 def trade_candles_enabled() -> bool:
     return os.environ.get("CRYPTO_TRADE_CANDLES", "on").lower() not in {"off", "0", "false"}
+
+
+def trade_feed_for(symbol: str) -> TradeCandleFeed:
+    """The 15 s feed for one symbol, connected on first request.
+
+    Lazy, unlike the default symbol's, which starts with the app. A trade socket per symbol is
+    cheap but not free, and the 15 s chart is a chart: nobody needs ETH trades streaming while
+    the operator is looking at BTC. The consequence is honest and visible - a freshly opened tab
+    has `coverage_from_ms` a few seconds old and the chart says so, rather than implying it has
+    been watching all along.
+
+    For the default symbol the module attribute is the authority, not the registry entry. Two
+    names for one object drift: something that replaces `trade_feed` - which the tests do, and
+    which any future code that rebuilds the feed would - would otherwise leave this route
+    serving the object the registry happened to capture at import time, and the symptom is an
+    empty chart with no error anywhere.
+    """
+    if symbol == DEFAULT_SYMBOL:
+        trade_feeds[symbol] = trade_feed
+        return trade_feed
+    existing = trade_feeds.get(symbol)
+    if existing is not None:
+        return existing
+    feed = TradeCandleFeed(symbol)
+    trade_feeds[symbol] = feed
+    feed.start()
+    return feed
 
 
 @asynccontextmanager
@@ -255,24 +304,31 @@ async def _lifespan_with_trades(application: Any):
         try:
             yield state
         finally:
-            trade_feed.stop()
+            for feed in {id(item): item for item in
+                         [trade_feed, *trade_feeds.values()]}.values():
+                feed.stop()
 
 
 app.router.lifespan_context = _lifespan_with_trades
 
 
 @app.get("/api/crypto/candles-15s")
-async def candles_15s(since_ms: int | None = None) -> Any:
+async def candles_15s(since_ms: int | None = None, symbol: str | None = None) -> Any:
     """Finalized 15 s candles after `since_ms` (all kept history when omitted) plus the open one.
 
     Incremental by design: a client passes the last finalized start it holds and receives only
     what is new, so the full series is never re-sent every tick. Aggregated server-side; raw
     trades never leave the process.
     """
+    try:
+        instrument = resolve_symbol(symbol)
+    except SymbolNotSupported as exc:
+        return error(400, exc.code, exc.message)
     if not trade_candles_enabled():
-        return jsonable({"timeframe": "15s", "status": "DISABLED", "candles": [], "current": None,
+        return jsonable({"symbol": instrument, "timeframe": "15s", "status": "DISABLED",
+                         "candles": [], "current": None,
                          "server_time_ms": int(time.time() * 1000)})
-    return jsonable(trade_feed.view(since_ms=since_ms))
+    return jsonable(trade_feed_for(instrument).view(since_ms=since_ms))
 
 
 # --------------------------------------------------------------------- Binance LIVE routes

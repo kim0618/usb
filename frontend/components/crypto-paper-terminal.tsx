@@ -1,7 +1,8 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { MetricCard, StatusBadge } from "@/components/ui";
+import { DEFAULT_SYMBOL, baseAsset as baseAssetOf } from "@/lib/crypto-symbols";
 import {
   CHART_HEIGHT, CHART_WIDTH, ChartBar, CryptoApiError, CryptoSizing, CryptoState, EVENT_LABELS,
   LedgerEvent, MODE_LABELS, OrderPreview, OrderPreviewParams, OrderPreviewSide, OrderSide,
@@ -24,7 +25,7 @@ export function PriceHeadline({ state }: { state: CryptoState }) {
   return (
     <div className="flex flex-wrap items-end justify-between gap-4">
       <div>
-        <p className="text-xs text-muted">BTCUSDT 무기한 · Mark</p>
+        <p className="text-xs text-muted">{state.symbol ?? "BTCUSDT"} 무기한 · Mark</p>
         <p className="text-3xl font-bold tabular-nums text-foreground" data-testid="mark-price">
           {price(quote?.mark_price)}
         </p>
@@ -43,14 +44,15 @@ export function PriceHeadline({ state }: { state: CryptoState }) {
   );
 }
 
-export function PriceChart({ bars }: { bars: ChartBar[] }) {
+export function PriceChart({ bars, symbol = DEFAULT_SYMBOL }:
+    { bars: ChartBar[]; symbol?: string }) {
   const geometry = chartGeometry(bars);
   if (!geometry) return <p className="py-10 text-center text-sm text-muted">차트 데이터를 받는 중입니다.</p>;
   const stroke = geometry.rising ? "var(--success)" : "var(--danger)";
   return (
     <figure className="mt-4">
       <svg viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`} className="h-[200px] w-full"
-        preserveAspectRatio="none" role="img" aria-label="BTCUSDT 1분봉 종가 추이">
+        preserveAspectRatio="none" role="img" aria-label={`${symbol} 1분봉 종가 추이`}>
         <path d={geometry.path} fill="none" stroke={stroke} strokeWidth="2"
           vectorEffect="non-scaling-stroke" />
         <line x1="0" x2={CHART_WIDTH} y1={geometry.lastY} y2={geometry.lastY} stroke={stroke}
@@ -65,6 +67,7 @@ export function PriceChart({ bars }: { bars: ChartBar[] }) {
 }
 
 export function BookPanel({ state }: { state: CryptoState }) {
+  const unit = baseAssetOf(state.symbol ?? DEFAULT_SYMBOL);
   const quote = state.quote;
   const spreadBps = quote?.spread && quote.mid ? (Number(quote.spread) / Number(quote.mid)) * 10_000 : null;
   return (
@@ -72,12 +75,12 @@ export function BookPanel({ state }: { state: CryptoState }) {
       <div className="panel p-4">
         <p className="text-xs text-muted">Best Bid</p>
         <p className="text-lg font-semibold tabular-nums text-success" data-testid="best-bid">{price(quote?.best_bid)}</p>
-        <p className="text-[11px] text-muted">상위 5호가 {qty(quote?.bid_depth_top5)} BTC</p>
+        <p className="text-[11px] text-muted">상위 5호가 {qty(quote?.bid_depth_top5)} {unit}</p>
       </div>
       <div className="panel p-4">
         <p className="text-xs text-muted">Best Ask</p>
         <p className="text-lg font-semibold tabular-nums text-danger" data-testid="best-ask">{price(quote?.best_ask)}</p>
-        <p className="text-[11px] text-muted">상위 5호가 {qty(quote?.ask_depth_top5)} BTC</p>
+        <p className="text-[11px] text-muted">상위 5호가 {qty(quote?.ask_depth_top5)} {unit}</p>
       </div>
       <div className="panel p-4">
         <p className="text-xs text-muted">Spread</p>
@@ -124,6 +127,7 @@ export function AccountPanel({ state }: { state: CryptoState }) {
 }
 
 export function PositionPanel({ state }: { state: CryptoState }) {
+  const unit = baseAssetOf(state.symbol ?? DEFAULT_SYMBOL);
   const account = state.account;
   if (!account || account.position_side === null) {
     return <div className="panel p-5 text-sm text-muted" data-testid="position-panel">
@@ -132,7 +136,7 @@ export function PositionPanel({ state }: { state: CryptoState }) {
   }
   const long = account.position_side === "LONG";
   const rows: [string, string][] = [
-    ["수량", `${qty(account.position_qty)} BTC`],
+    ["수량", `${qty(account.position_qty)} ${unit}`],
     ["진입가", price(account.avg_entry)],
     ["Mark", price(state.quote?.mark_price)],
     ["명목 (Mark)", usdt(account.mark_notional)],
@@ -174,10 +178,12 @@ export function PositionPanel({ state }: { state: CryptoState }) {
  *  images: a LONG walks the ask and a SHORT walks the bid, so the same preset is a different
  *  quantity and a different liquidation price on each side. Showing one and labelling it "the"
  *  size would be a small lie that only surfaces on a lopsided book. */
-export function PresetReadout({ sizing, preset, leverage }: {
+export function PresetReadout({ sizing, preset, leverage, unit = baseAssetOf(DEFAULT_SYMBOL) }: {
   sizing?: CryptoSizing | null;
   preset: PresetLabel;
   leverage: string;
+  /** The coin a quantity is in. A prop rather than a constant: this panel prints sizes. */
+  unit?: string;
 }) {
   if (!sizing) {
     return <p className="mb-3 rounded-lg border border-line px-3 py-2 text-[11px] text-muted"
@@ -188,7 +194,7 @@ export function PresetReadout({ sizing, preset, leverage }: {
     sizing.sides?.[side]?.presets.find(item => item.label === preset);
 
   const cells: [string, (row?: SizePreset) => string][] = [
-    ["수량 (BTC)", row => qty(row?.qty)],
+    [`수량 (${unit})`, row => qty(row?.qty)],
     ["명목 (USDT)", row => usdt(row?.notional)],
     ["필요 마진", row => usdt(row?.required_total, 4)],
     // Entry and exit are both shown because the size is only offered when both can happen.
@@ -264,6 +270,7 @@ export function OrderPreviewPanel({ preview, state, highRisk, leverage, armed, d
   preview: OrderPreview | null; state: CryptoState; highRisk: boolean; leverage: string; armed: string;
   detailOpen: boolean; onToggle: () => void; children?: React.ReactNode;
 }) {
+  const unit = baseAssetOf(state.symbol ?? DEFAULT_SYMBOL);
   const sides: OrderSide[] = ["LONG", "SHORT"];
   const feed = feedStatus(state);
   const status = feed !== "LIVE" ? feed : preview ? tickFreshness(preview) : "LIVE";
@@ -352,7 +359,7 @@ export function OrderPreviewPanel({ preview, state, highRisk, leverage, armed, d
             return (
               <p key={side} className="mt-1 text-[11px] text-warning" data-testid={`order-preview-reject-${side}`}>
                 {side} 미리보기 불가 · {row.reject_code === "NO_LIQUIDITY" ? "호가 깊이 부족" : rejectLabel(row.reject_code, row.reject_message)}
-                {row.safe_max_qty != null && ` · 현재 안전 최대 ${qty(row.safe_max_qty)} BTC`}
+                {row.safe_max_qty != null && ` · 현재 안전 최대 ${qty(row.safe_max_qty)} ${unit}`}
               </p>
             );
           })}
@@ -389,7 +396,15 @@ export function OrderTicket({ state, sizing, onAction, busy, error, wide = false
   /** Tests inject a preview instead of fetching one. */
   previewOverride?: OrderPreview | null;
 }) {
-  const [size, setSize] = useState("0.001");
+  // Taken from the snapshot this ticket is rendering, not from a prop the caller could forget
+  // to pass: every order below is sent with it, so it must be the same instrument the figures
+  // on screen came from.
+  const symbol = state.symbol ?? DEFAULT_SYMBOL;
+  const unit = baseAssetOf(symbol);
+  // The default size is the instrument's own smallest step, which is 0.001 on BTC, 0.01 on ETH
+  // and 0.1 on SOL. A fixed "0.001" would be below SOL's minimum and the ticket would open
+  // pre-filled with a quantity the engine refuses.
+  const [size, setSize] = useState(() => state.instrument?.qty_step ?? "0.001");
   const [sizeMode, setSizeMode] = useState<"QTY" | "NOTIONAL">("QTY");
   const [preset, setPreset] = useState<PresetLabel | null>(null);
   const [confirmEmergency, setConfirmEmergency] = useState(false);
@@ -437,21 +452,38 @@ export function OrderTicket({ state, sizing, onAction, busy, error, wide = false
   const quoteTs = state.quote?.ts_ms ?? null;
   const paramsRef = useRef(previewParams);
   paramsRef.current = previewParams;
+  /** Drop the previous instrument's preview the moment the symbol changes.
+   *
+   *  The fetch below is debounced by 120 ms and aborted on cleanup, so a late response is
+   *  already discarded. What that does not cover is the answer *already on screen*: without
+   *  this, the fee, break-even and round-trip cost of the previous symbol keep rendering under
+   *  the new tab until the new preview lands. Layout effect, so the cleared panel is what gets
+   *  painted rather than one frame of the wrong instrument's costs.
+   */
+  useLayoutEffect(() => { setFetched(null); }, [symbol]);
   useEffect(() => {
     if (previewOverride !== undefined || !previewEnabled || previewKey === "") {
       if (previewKey === "") setFetched(null);
       return;
     }
     const controller = new AbortController();
+    const asked = symbol;
     const timer = window.setTimeout(() => {
-      cryptoApi.orderPreview(paramsRef.current ?? {}, controller.signal)
-        .then(body => { if (!controller.signal.aborted) setFetched(body); })
+      cryptoApi.orderPreview(asked, paramsRef.current ?? {}, controller.signal)
+        // Checked against the symbol the response names as well as the abort flag: a request
+        // that left before the tab changed can still resolve, and these are the numbers an
+        // operator reads a cost off.
+        .then(body => {
+          if (!controller.signal.aborted && (body.symbol == null || body.symbol === asked)) {
+            setFetched(body);
+          }
+        })
         .catch(() => { /* keep the last answer; the freshness check below retires it */ });
     }, 120);
     return () => { controller.abort(); window.clearTimeout(timer); };
-  }, [previewKey, quoteTs, previewEnabled, previewOverride]);
+  }, [previewKey, quoteTs, previewEnabled, previewOverride, symbol]);
   const orderPreview = previewOverride !== undefined ? previewOverride : fetched;
-  const armedLabel = preset ? preset : `직접 ${size || "-"} ${sizeMode === "QTY" ? "BTC" : "USDT"}`;
+  const armedLabel = preset ? preset : `직접 ${size || "-"} ${sizeMode === "QTY" ? unit : "USDT"}`;
 
   return (
     <div className="panel p-3 sm:p-5" data-testid="order-ticket">
@@ -466,7 +498,7 @@ export function OrderTicket({ state, sizing, onAction, busy, error, wide = false
           <button key={value} type="button" disabled={busy || !flat}
             aria-pressed={state.leverage === value}
             className={`btn-compact h-9 px-0 sm:h-10 ${state.leverage === value ? "btn-compact-active" : ""}`}
-            onClick={() => onAction(() => cryptoApi.leverage(value))}>{value}x</button>
+            onClick={() => onAction(() => cryptoApi.leverage(symbol, value))}>{value}x</button>
         ))}
       </div>
       {!flat && <p className="mb-2 text-[11px] text-muted">보유 중 레버리지 변경 불가</p>}
@@ -507,7 +539,7 @@ export function OrderTicket({ state, sizing, onAction, busy, error, wide = false
           {(["QTY", "NOTIONAL"] as const).map(option => (
             <button key={option} type="button" aria-pressed={sizeMode === option}
               className={`btn-compact ${sizeMode === option ? "btn-compact-active" : ""}`}
-              onClick={() => setSizeMode(option)}>{option === "QTY" ? "수량 (BTC)" : "명목 (USDT)"}</button>
+              onClick={() => setSizeMode(option)}>{option === "QTY" ? `수량 (${unit})` : "명목 (USDT)"}</button>
           ))}
         </div>
         <label className="sr-only" htmlFor="crypto-size">주문 크기</label>
@@ -532,7 +564,7 @@ export function OrderTicket({ state, sizing, onAction, busy, error, wide = false
         {" · "}
         {preset
           ? <>빠른 수량 <span className="font-semibold">{preset}</span></>
-          : <>직접 입력 <span className="font-semibold">{size || "-"}</span> {sizeMode === "QTY" ? "BTC" : "USDT"}</>}
+          : <>직접 입력 <span className="font-semibold">{size || "-"}</span> {sizeMode === "QTY" ? unit : "USDT"}</>}
       </p>
 
       {status !== "LIVE" && <p className="mb-3 rounded-lg bg-warning-soft px-3 py-2 text-[11px] text-warning"
@@ -551,21 +583,21 @@ export function OrderTicket({ state, sizing, onAction, busy, error, wide = false
         <button type="button" className="btn-success-soft h-14 text-base font-bold sm:h-12"
           disabled={busy || blocked || noQuote || !presetUsable("LONG")}
           data-testid="long-button"
-          onClick={() => onAction(() => cryptoApi.order({ side: "LONG", intent: "OPEN", ...body("LONG") }))}>
+          onClick={() => onAction(() => cryptoApi.order(symbol, { side: "LONG", intent: "OPEN", ...body("LONG") }))}>
           LONG{presetFor("LONG")?.feasible && <span className="ml-1.5 text-[11px] font-normal tabular-nums opacity-80">
             {qty(presetFor("LONG")!.qty)}</span>}
         </button>
         <button type="button" className="btn-danger-soft h-14 text-base font-bold sm:h-12"
           disabled={busy || blocked || noQuote || !presetUsable("SHORT")}
           data-testid="short-button"
-          onClick={() => onAction(() => cryptoApi.order({ side: "SHORT", intent: "OPEN", ...body("SHORT") }))}>
+          onClick={() => onAction(() => cryptoApi.order(symbol, { side: "SHORT", intent: "OPEN", ...body("SHORT") }))}>
           SHORT{presetFor("SHORT")?.feasible && <span className="ml-1.5 text-[11px] font-normal tabular-nums opacity-80">
             {qty(presetFor("SHORT")!.qty)}</span>}
         </button>
       </div>
       <button type="button" className="btn-muted mb-3 h-12 w-full text-sm font-bold"
         disabled={busy || flat || noQuote} data-testid="close-button"
-        onClick={() => onAction(() => cryptoApi.order({
+        onClick={() => onAction(() => cryptoApi.order(symbol, {
           side: account!.position_side!, intent: "CLOSE", qty: account!.position_qty }))}>
         CLOSE · 전량 청산
       </button>
@@ -587,7 +619,7 @@ export function OrderTicket({ state, sizing, onAction, busy, error, wide = false
         </label>
         <button type="button" className="btn-danger mt-2 w-full" data-testid="emergency-button"
           disabled={busy || !confirmEmergency}
-          onClick={() => onAction(() => cryptoApi.mode("EMERGENCY_ON", true))}>
+          onClick={() => onAction(() => cryptoApi.mode(symbol, "EMERGENCY_ON", true))}>
           EMERGENCY CLOSE
         </button>
         <p className="mt-2 text-[11px] text-muted">
@@ -599,7 +631,7 @@ export function OrderTicket({ state, sizing, onAction, busy, error, wide = false
       {state.state.mode === "EMERGENCY" && (
         <button type="button" className="btn-muted mt-3 w-full" disabled={busy}
           data-testid="emergency-release"
-          onClick={() => onAction(() => cryptoApi.mode("EMERGENCY_RELEASE"))}>
+          onClick={() => onAction(() => cryptoApi.mode(symbol, "EMERGENCY_RELEASE"))}>
           비상 해제 · 수동 모드로
         </button>
       )}
@@ -982,10 +1014,14 @@ export function RunFooter({ state }: { state: CryptoState }) {
 export const LIVE_POLL_MS = 333;
 export const LIVE_POLL_HIDDEN_MS = 2000;
 
-export function useLivePnl(enabled: boolean, intervalMs = LIVE_POLL_MS) {
+export function useLivePnl(enabled: boolean, symbol: string = DEFAULT_SYMBOL,
+                           intervalMs = LIVE_POLL_MS) {
   const [live, setLive] = useState<LivePnl | null>(null);
   useEffect(() => {
+    // Cleared on a symbol change as well as on disable: `symbol` is in the dependency list, so
+    // this effect re-runs and the previous instrument's PnL does not linger for one tick.
     if (!enabled) { setLive(null); return; }
+    setLive(null);
     let stopped = false;
     let timer: number | undefined;
     let controller: AbortController | null = null;
@@ -1000,18 +1036,26 @@ export function useLivePnl(enabled: boolean, intervalMs = LIVE_POLL_MS) {
       const started = Date.now();
       controller = new AbortController();
       try {
-        const body = await cryptoApi.live(controller.signal);
-        if (!stopped) setLive(body);
+        const body = await cryptoApi.live(symbol, controller.signal);
+        // Discarded when it names another instrument: a poll issued before the tab changed can
+        // resolve after it, and this value is the headline PnL.
+        if (!stopped && (body.symbol == null || body.symbol === symbol)) setLive(body);
       } catch { /* the 1 s account poll remains the fallback */ }
       if (!stopped) timer = window.setTimeout(tick, Math.max(0, intervalMs - (Date.now() - started)));
     };
     void tick();
     return () => { stopped = true; controller?.abort(); if (timer !== undefined) window.clearTimeout(timer); };
-  }, [enabled, intervalMs]);
+  }, [enabled, intervalMs, symbol]);
   return live;
 }
 
-export function useCryptoTerminal(pollMs = 1000) {
+/** The PAPER terminal for one symbol.
+ *
+ *  Same two safety properties as the LIVE hook, for the same reason: state is cleared the
+ *  moment the symbol changes, and a response naming another instrument is discarded. The PAPER
+ *  screen prices orders off these figures, so a stale one is a wrong size, not a wrong label.
+ */
+export function useCryptoTerminal(symbol: string = DEFAULT_SYMBOL, pollMs = 1000) {
   const [state, setState] = useState<CryptoState | null>(null);
   const [bars, setBars] = useState<ChartBar[]>([]);
   const [events, setEvents] = useState<LedgerEvent[]>([]);
@@ -1022,16 +1066,34 @@ export function useCryptoTerminal(pollMs = 1000) {
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const current = useRef(symbol);
+
+  useLayoutEffect(() => {
+    current.current = symbol;
+    setState(null);
+    setBars([]);
+    setEvents([]);
+    setPerformance(null);
+    setTrades([]);
+    setSizing(null);
+    setBreakdown(null);
+    setError(null);
+    setActionError(null);
+  }, [symbol]);
 
   const refresh = useCallback(async () => {
+    const asked = current.current;
+    const still = () => asked === current.current;
     try {
       const [next, ledger, summary, history, sizes] = await Promise.all([
-        cryptoApi.state(), cryptoApi.ledger(60), cryptoApi.performance(), cryptoApi.trades(50),
+        cryptoApi.state(asked), cryptoApi.ledger(asked, 60), cryptoApi.performance(asked),
+        cryptoApi.trades(asked, 50),
         // Sizing moves with the mark and with the balance, so it is refreshed on the same tick
         // as the account rather than only when a preset is pressed. A stale MAX is a rejected
         // order. The engine prices all four presets for both sides in a couple of milliseconds.
-        cryptoApi.sizing(),
+        cryptoApi.sizing(asked),
       ]);
+      if (!still() || (next.symbol != null && next.symbol !== asked)) return;
       setState(next);
       setEvents(ledger.events);
       setPerformance(summary);
@@ -1039,15 +1101,28 @@ export function useCryptoTerminal(pollMs = 1000) {
       setSizing(sizes);
       setError(null);
     } catch (exception) {
-      setError(exception instanceof CryptoApiError ? exception.message : "상태 조회 실패");
+      if (still()) {
+        setError(exception instanceof CryptoApiError ? exception.message : "상태 조회 실패");
+      }
     }
     // Fetched on its own so a server that predates the route (404) or a failed preview never
     // takes the rest of the terminal down with it. Missing breakdown just hides the panel.
-    try { setBreakdown(await cryptoApi.pnlBreakdown()); } catch { setBreakdown(null); }
+    try {
+      const next = await cryptoApi.pnlBreakdown(asked);
+      if (still()) setBreakdown(next);
+    } catch { if (still()) setBreakdown(null); }
   }, []);
 
   const refreshChart = useCallback(async () => {
-    try { setBars((await cryptoApi.chart()).bars); } catch { /* the chart is not the authority */ }
+    const asked = current.current;
+    try {
+      const next = await cryptoApi.chart(asked);
+      // The bars are the one thing on this screen that is pure shape: a wrong-symbol series
+      // looks entirely plausible, so it is checked rather than eyeballed.
+      if (asked === current.current && (next.symbol == null || next.symbol === asked)) {
+        setBars(next.bars);
+      }
+    } catch { /* the chart is not the authority */ }
   }, []);
 
   const act = useCallback((run: () => Promise<unknown>) => {

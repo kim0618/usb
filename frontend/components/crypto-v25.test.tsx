@@ -135,7 +135,7 @@ describe("pre-trade order preview", () => {
   it("re-prices when the size, the mode or the leverage changes", async () => {
     vi.useFakeTimers();
     const calls: unknown[] = [];
-    vi.spyOn(cryptoApi, "orderPreview").mockImplementation(async params => { calls.push(params); return preview(); });
+    vi.spyOn(cryptoApi, "orderPreview").mockImplementation(async (_symbol, params) => { calls.push(params); return preview(); });
     const { rerender } = render(<OrderTicket state={state()} onAction={noop} busy={false} error={null} />);
     await act(async () => { await vi.advanceTimersByTimeAsync(200); });
     expect(calls.at(-1)).toEqual({ long_qty: "0.001", short_qty: "0.001" });

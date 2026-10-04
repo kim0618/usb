@@ -279,7 +279,7 @@ describe("the LIVE client", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
       ok: false, status: 409,
       json: async () => ({ error: { code: "LIVE_TRADING_DISABLED", message: "실주문이 잠겨 있습니다." } }) }));
-    await expect(liveApi.order({ side: "LONG", intent: "OPEN", qty: "0.002" }))
+    await expect(liveApi.order("BTCUSDT", { side: "LONG", intent: "OPEN", qty: "0.002" }))
       .rejects.toMatchObject({ code: "LIVE_TRADING_DISABLED" });
   });
 });

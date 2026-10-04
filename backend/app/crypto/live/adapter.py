@@ -142,12 +142,28 @@ class BinanceLiveAdapter:
         self._snapshot: LiveSnapshot | None = None
         self._full_at_ms: int | None = None
         self._fast_at_ms: int | None = None
+        #: This adapter's own copy of "the account changed since I last read it".
+        #:
+        #: The user data stream is one socket for the whole account, so on a multi-symbol
+        #: terminal several adapters share it. Reading `stream.telemetry.dirty` alone was
+        #: correct with one adapter and is a bug with three: whichever adapter polled first
+        #: would call `clear_dirty()` and the others would never learn that a fill had
+        #: happened - the ETH screen would sit on a cached snapshot after an ETH fill because
+        #: the BTC screen had already consumed the flag. Each adapter therefore keeps its own
+        #: flag, set by the stream's fan-out and cleared only by its own full read.
+        self._stream_dirty = False
 
     # ------------------------------------------------------------------ snapshot
 
     @property
     def dirty(self) -> bool:
-        return bool(self.stream is not None and self.stream.telemetry.dirty)
+        """Either this adapter's own unconsumed event, or the shared socket's current flag.
+
+        Both, rather than only the local flag, so an adapter built *after* an event arrived
+        still starts with a full read, and so the single-symbol behaviour is unchanged.
+        """
+        return bool(self._stream_dirty
+                    or (self.stream is not None and self.stream.telemetry.dirty))
 
     def snapshot(self, *, force: bool = False) -> LiveSnapshot:
         """The account as it stands, refreshed at whichever tier is due."""
@@ -161,6 +177,11 @@ class BinanceLiveAdapter:
             self._snapshot = snapshot
             self._full_at_ms = snapshot.fetched_at_ms
             self._fast_at_ms = snapshot.fetched_at_ms
+            # Local flag first, and unconditionally: it is this adapter's and nobody else
+            # reads it. The shared socket flag is cleared too, which is what the single-adapter
+            # build always did; the other adapters are unaffected because each of them holds
+            # its own `_stream_dirty` that only its own full read can clear.
+            self._stream_dirty = False
             if self.stream is not None:
                 self.stream.clear_dirty()
             if self.mirror is not None:
@@ -204,12 +225,22 @@ class BinanceLiveAdapter:
         self._snapshot = None
         self._full_at_ms = None
         self._fast_at_ms = None
+        self._stream_dirty = False
         return self.snapshot(force=True)
 
     def on_stream_change(self, event: str) -> None:
         """Called from the stream thread. Only marks; the REST read happens on the next poll,
         on the request thread, so a socket frame can never start an HTTP call inside the
-        socket's own loop."""
+        socket's own loop.
+
+        The flag is raised for *every* symbol's adapter rather than only the one the event names.
+        Binance's account events do not always carry a symbol (`ACCOUNT_UPDATE` for a balance
+        change does not name one), and a balance change is an input to every symbol's Safe MAX
+        because the wallet is shared. Marking all of them costs one extra REST read per symbol
+        that is actually on screen; marking only the named one would leave the other screens
+        sizing against a balance that has moved.
+        """
+        self._stream_dirty = True
         if self.mirror is not None:
             self.mirror.append(LiveEvent.STREAM_STATE, state="ACCOUNT_DIRTY", event=event)
 
@@ -373,14 +404,18 @@ class BinanceLiveAdapter:
     # ------------------------------------------------------------------ writes (gated)
 
     def plan_order(self, side: str, intent: str, qty: str | None = None,
-                   notional_usdt: str | None = None) -> OrderPlan:
+                   notional_usdt: str | None = None, *, symbol: str | None = None) -> OrderPlan:
+        """`symbol` is the symbol the *screen* asked for, carried through so the router can
+        check it against the four it already holds. It is not used to select anything: this
+        adapter trades `self.config.symbol` and nothing else, and a mismatch is a refusal."""
         return self.router.plan(side=side, intent=intent, qty=qty, notional_usdt=notional_usdt,
-                                snapshot=self.snapshot())
+                                snapshot=self.snapshot(), symbol=symbol)
 
     def place_order(self, side: str, intent: str, qty: str | None = None,
-                    notional_usdt: str | None = None) -> dict[str, Any]:
+                    notional_usdt: str | None = None, *,
+                    symbol: str | None = None) -> dict[str, Any]:
         """Builds the order and then asks the router to send it. In V1 the router refuses."""
-        plan = self.plan_order(side, intent, qty, notional_usdt)
+        plan = self.plan_order(side, intent, qty, notional_usdt, symbol=symbol)
         response = self.router.submit(plan)
         self.resync()
         return {"plan": plan.view(), "response": response}
@@ -419,7 +454,8 @@ class BinanceLiveAdapter:
 
     def view(self) -> dict[str, Any]:
         snapshot = self.snapshot()
-        return {"source": self.source, "config": self.config.view(),
+        return {"source": self.source, "symbol": self.config.symbol,
+                "config": self.config.view(),
                 "gates": self.router.gate_view(),
                 "snapshot": snapshot.view(),
                 "stream": self.stream.view() if self.stream is not None else None,

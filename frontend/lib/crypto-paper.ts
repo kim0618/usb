@@ -4,6 +4,8 @@
  *  Every KRW figure here is converted by the backend with the run's own fixed rate, which is
  *  pinned once at run start and travels in the run config. */
 
+import { withSymbol } from "@/lib/crypto-symbols";
+
 export const CRYPTO_API_BASE = (process.env.NEXT_PUBLIC_CRYPTO_API_BASE || "http://127.0.0.1:8100").replace(/\/$/, "");
 
 export type Mode = "MANUAL" | "AUTO" | "AUTO_STOPPING" | "EMERGENCY";
@@ -28,6 +30,17 @@ export type CryptoAccount = {
 
 export type CryptoState = {
   recovery: Recovery | null;
+  /** The instrument this snapshot is about, and the set the server permits. Returned so a
+   *  screen can discard a response that arrived after the operator changed tabs. */
+  symbol?: string;
+  symbols?: string[];
+  /** False on every symbol but the default: C1 is a BTCUSDT research result. */
+  c1_available?: boolean;
+  /** This instrument's quantity grid, measured from Bybit. Every field differs per symbol:
+   *  the step is 0.001 on BTC, 0.01 on ETH and 0.1 on SOL. */
+  instrument?: { symbol: string; qty_step: string; min_order_qty: string;
+                 max_mkt_order_qty: string; min_notional_value: string; tick_size: string;
+                 max_leverage: string; source: string };
   run_id: string; engine_version: string; leverage: string; server_time_ms: number;
   started_at_ms: number | null; ledger_event_count: number; input_record_count: number;
   liquidation_count: number; funding_grid_mismatches: number; starting_capital_krw: string;
@@ -111,6 +124,7 @@ export type TradeRow = {
 export type ChartBar = { start_ms: number; open: string; high: string; low: string; close: string; volume: string; confirmed: boolean };
 export type HistoryTimeframe = "1m" | "10m" | "1h" | "4h" | "1d";
 export type ChartHistoryResponse = {
+  symbol?: string;
   timeframe: HistoryTimeframe; bucket_ms: number;
   source: "BYBIT_PUBLIC_KLINE"; source_interval: string;
   bars: ChartBar[]; has_more: boolean; next_before_ms: number | null;
@@ -162,6 +176,7 @@ export type OrderPreviewSide = {
   krw?: Partial<Record<string, string | null>>;
 };
 export type OrderPreview = {
+  symbol?: string;
   run_id: string; server_time_ms: number; feed_connected: boolean; feed_last_message_ms?: number | null;
   quote_ts_ms: number | null; krw_per_usdt: string; sides: Partial<Record<OrderSide, OrderPreviewSide>>;
 };
@@ -177,6 +192,7 @@ export type LivePnl = {
   expected_close_fill_price?: string | null; expected_close_fee?: string | null;
   expected_close_slippage_pnl?: string | null; expected_position_net_if_closed?: string | null;
   expected_segment_net_if_closed?: string | null;
+  symbol?: string;
   krw: Partial<Record<string, string | null>>; server_time_ms: number; feed_connected: boolean;
   feed_last_message_ms?: number | null;
 };
@@ -243,36 +259,62 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return body as T;
 }
 
+/** The PAPER API, every route carrying the symbol it is about.
+ *
+ *  `symbol` is a required first argument for the same reason it is on the LIVE side: an
+ *  optional one means a forgotten argument silently reads BTCUSDT, and a chart or a ladder that
+ *  quietly answers about another instrument looks exactly like a correct one.
+ */
 export const cryptoApi = {
-  state: () => request<CryptoState>("/api/crypto/state"),
-  chart: (limit = 120) => request<{ bars: ChartBar[] }>(`/api/crypto/chart?limit=${limit}`),
-  chartHistory: (timeframe: HistoryTimeframe, limit: number, beforeMs?: number | null,
-                 signal?: AbortSignal) => {
-    const query = new URLSearchParams({ timeframe, limit: String(limit) });
+  state: (symbol: string) => request<CryptoState>(withSymbol("/api/crypto/state", symbol)),
+  chart: (symbol: string, limit = 120) =>
+    request<{ symbol?: string; bars: ChartBar[] }>(
+      withSymbol(`/api/crypto/chart?limit=${limit}`, symbol)),
+  chartHistory: (symbol: string, timeframe: HistoryTimeframe, limit: number,
+                 beforeMs?: number | null, signal?: AbortSignal) => {
+    const query = new URLSearchParams({ timeframe, limit: String(limit), symbol });
     if (beforeMs != null) query.set("before_ms", String(beforeMs));
     return request<ChartHistoryResponse>(`/api/crypto/chart-history?${query.toString()}`, { signal });
   },
-  ledger: (limit = 60) => request<{ total: number; events: LedgerEvent[] }>(`/api/crypto/ledger?limit=${limit}`),
-  performance: () => request<Performance>("/api/crypto/performance"),
-  trades: (limit = 50) => request<{ total: number; trades: TradeRow[] }>(`/api/crypto/trades?limit=${limit}`),
-  order: (body: { side: "LONG" | "SHORT"; intent: "OPEN" | "CLOSE"; qty?: string; notional_usdt?: string }) =>
-    request<{ state: CryptoState }>("/api/crypto/order", { method: "POST", body: JSON.stringify(body) }),
-  leverage: (leverage: string) =>
-    request<{ state: CryptoState }>("/api/crypto/leverage", { method: "POST", body: JSON.stringify({ leverage }) }),
-  mode: (action: string, confirmed = false) =>
-    request<{ state: CryptoState }>("/api/crypto/mode", { method: "POST", body: JSON.stringify({ action, confirmed }) }),
-  emergencyClose: () => request<{ state: CryptoState }>("/api/crypto/emergency-close", { method: "POST" }),
-  sizing: () => request<CryptoSizing>("/api/crypto/sizing"),
-  pnlBreakdown: () => request<PnlBreakdown>("/api/crypto/pnl-breakdown"),
-  orderPreview: (params: OrderPreviewParams, signal?: AbortSignal) => {
+  ledger: (symbol: string, limit = 60) =>
+    request<{ total: number; events: LedgerEvent[] }>(
+      withSymbol(`/api/crypto/ledger?limit=${limit}`, symbol)),
+  performance: (symbol: string) =>
+    request<Performance>(withSymbol("/api/crypto/performance", symbol)),
+  trades: (symbol: string, limit = 50) =>
+    request<{ total: number; trades: TradeRow[] }>(
+      withSymbol(`/api/crypto/trades?limit=${limit}`, symbol)),
+  order: (symbol: string,
+          body: { side: "LONG" | "SHORT"; intent: "OPEN" | "CLOSE"; qty?: string; notional_usdt?: string }) =>
+    request<{ state: CryptoState }>("/api/crypto/order",
+      { method: "POST", body: JSON.stringify({ ...body, symbol }) }),
+  leverage: (symbol: string, leverage: string) =>
+    request<{ state: CryptoState }>("/api/crypto/leverage",
+      { method: "POST", body: JSON.stringify({ leverage, symbol }) }),
+  mode: (symbol: string, action: string, confirmed = false) =>
+    request<{ state: CryptoState }>("/api/crypto/mode",
+      { method: "POST", body: JSON.stringify({ action, confirmed, symbol }) }),
+  emergencyClose: (symbol: string) =>
+    request<{ state: CryptoState }>(withSymbol("/api/crypto/emergency-close", symbol),
+      { method: "POST" }),
+  sizing: (symbol: string) => request<CryptoSizing>(withSymbol("/api/crypto/sizing", symbol)),
+  pnlBreakdown: (symbol: string) =>
+    request<PnlBreakdown>(withSymbol("/api/crypto/pnl-breakdown", symbol)),
+  orderPreview: (symbol: string, params: OrderPreviewParams, signal?: AbortSignal) => {
     const query = new URLSearchParams(Object.entries(params).filter(([, v]) => v != null && v !== "") as [string, string][]);
-    return request<OrderPreview>(`/api/crypto/order-preview?${query.toString()}`, { signal });
+    return request<OrderPreview>(
+      withSymbol(`/api/crypto/order-preview?${query.toString()}`, symbol), { signal });
   },
-  live: (signal?: AbortSignal) => request<LivePnl>("/api/crypto/live", { signal }),
-  candles15s: (sinceMs?: number | null, signal?: AbortSignal) =>
-    request<Candles15sResponse>(`/api/crypto/candles-15s${sinceMs != null ? `?since_ms=${sinceMs}` : ""}`, { signal }),
-  reset: (targetKrw?: string) => request<{ state: CryptoState }>("/api/crypto/reset", {
-    method: "POST", body: JSON.stringify(targetKrw ? { target_krw: targetKrw } : {}) }),
+  live: (symbol: string, signal?: AbortSignal) =>
+    request<LivePnl>(withSymbol("/api/crypto/live", symbol), { signal }),
+  candles15s: (symbol: string, sinceMs?: number | null, signal?: AbortSignal) =>
+    request<Candles15sResponse>(
+      withSymbol(`/api/crypto/candles-15s${sinceMs != null ? `?since_ms=${sinceMs}` : ""}`, symbol),
+      { signal }),
+  reset: (symbol: string, targetKrw?: string) =>
+    request<{ state: CryptoState }>("/api/crypto/reset", {
+      method: "POST",
+      body: JSON.stringify({ ...(targetKrw ? { target_krw: targetKrw } : {}), symbol }) }),
   c1Auto: (enabled: boolean) => request<CryptoState["c1_auto"]>("/api/crypto/paper/c1-auto", {
     method: "POST", body: JSON.stringify({ enabled }) }),
 };
@@ -449,6 +491,7 @@ export type Candle15s = {
 export type Candle15sStatus =
   | "CONNECTED" | "CONNECTED_WAITING_FOR_TRADE" | "STALE" | "RECONNECTING" | "DISCONNECTED" | "DISABLED";
 export type Candles15sResponse = {
+  symbol?: string;
   timeframe: "15s"; status: Candle15sStatus;
   candles: Candle15s[]; current: Candle15s | null; server_time_ms: number;
   coverage_from_ms?: number | null; history_size?: number;

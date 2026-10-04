@@ -64,7 +64,7 @@ describe("mobile position card", () => {
       onAction={run => { sent.push(run); void run(); }} />);
     fireEvent.click(screen.getByTestId("mobile-close-button"));
     expect(sent).toHaveLength(1);
-    expect(spy).toHaveBeenCalledWith({ side: "SHORT", intent: "CLOSE", qty: "0.921" });
+    expect(spy).toHaveBeenCalledWith("BTCUSDT", { side: "SHORT", intent: "CLOSE", qty: "0.921" });
   });
 
   it("disables CLOSE while a request is in flight", () => {
@@ -127,7 +127,7 @@ describe("15 s candles", () => {
       body([c15(0), c15(15_000)], c15(30_000, false)),
       body([c15(30_000)], c15(45_000, false, { close: "9" })),
     ];
-    vi.spyOn(cryptoApi, "candles15s").mockImplementation(async since => { calls.push(since); return replies.shift() ?? body([], c15(45_000, false)); });
+    vi.spyOn(cryptoApi, "candles15s").mockImplementation(async (_symbol, since) => { calls.push(since); return replies.shift() ?? body([], c15(45_000, false)); });
     const { result } = renderHook(() => use15sCandles(true));
     await act(async () => { await vi.advanceTimersByTimeAsync(10); });
     expect(calls[0]).toBeNull();
@@ -164,7 +164,10 @@ describe("15 s candles", () => {
     await waitFor(() => expect(screen.getByTestId("candle-chart-stub")).toHaveAttribute("data-count", "3"));
     const chart = screen.getByTestId("candle-chart-stub");
     expect(chart).toHaveAttribute("data-seconds", "true");
-    expect(chart).toHaveAttribute("data-key", "15s");
+    // The series identity now carries the symbol. Without it, switching instruments on the
+    // same timeframe kept one series and the chart amended it with the new prices rather than
+    // replacing them.
+    expect(chart).toHaveAttribute("data-key", "BTCUSDT|15s");
     expect(screen.getByTestId("candles-15s-note")).toHaveTextContent("15초봉 기록 수집 중");
   });
 

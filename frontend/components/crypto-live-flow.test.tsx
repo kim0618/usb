@@ -142,7 +142,11 @@ describe("BINANCE LIVE, from entering the screen to a filled order", () => {
     expect(screen.getByTestId("live-confirm")).toHaveTextContent("실계좌");
     fireEvent.click(screen.getByTestId("live-submit"));
     await waitFor(() => expect(server.orders).toHaveLength(1));
-    expect(server.orders[0]).toEqual({ side: "LONG", intent: "OPEN", qty: "0.002" });
+    // The symbol is on the wire, not implied. The server checks it against the symbol its own
+    // order path holds, so an order that did not carry one would be relying on the backend's
+    // default being the tab the operator was looking at.
+    expect(server.orders[0]).toEqual({
+      side: "LONG", intent: "OPEN", qty: "0.002", symbol: "BTCUSDT" });
   });
 
   it("never asks the operator to type the confirmation phrase", async () => {

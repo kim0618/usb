@@ -312,6 +312,7 @@ class TradeCandleFeed:
         body = self.book.snapshot(since_ms=since_ms, now_ms=now)
         t = self.telemetry
         body.update({
+            "symbol": self.symbol,
             "timeframe": "15s", "bucket_ms": BUCKET_MS, "server_time_ms": now,
             "status": self.status(now),
             "feed": {"connected": t.connected, "connects": t.connects, "reconnects": t.reconnects,

@@ -10,7 +10,7 @@
  *  The refusal is shown, not hidden. A disabled button that never calls anything would leave the
  *  most dangerous path in the system untested until the day it is armed.
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { MetricCard } from "@/components/ui";
 import { CryptoApiError, holdingDuration, krw, num, price, qty as qtyFmt, signedKrw, signedUsdt,
   toneClass, usdt } from "@/lib/crypto-paper";
@@ -23,6 +23,19 @@ import {
   MARGIN_MODE_READONLY_NOTE, leverageRestriction, liveApi, liveBlockerLabel, livePresetQty,
   liveSideAllowance, liveTradeGate,
 } from "@/lib/crypto-live";
+import { DEFAULT_SYMBOL, baseAsset as baseAssetOf } from "@/lib/crypto-symbols";
+
+/** The unit a quantity on screen is in: Binance's own `baseAsset` when the filters were read,
+ *  and the symbol minus "USDT" when they were not.
+ *
+ *  One helper so a panel cannot print "BTC" because that is what it was written with. Every
+ *  quantity label below goes through it, including the ones in confirmation sentences - a
+ *  dialog that says "SHORT 1.5 BTC" over a SOL order is the one place a wrong unit becomes a
+ *  wrong decision. */
+export function liveUnit(account: LiveAccount | null | undefined,
+                         fallback: string = DEFAULT_SYMBOL): string {
+  return account?.base_asset || baseAssetOf(account?.symbol || fallback);
+}
 
 export const LIVE_POLL_MS = 2_000;
 /** Older than this and the panel says so instead of presenting the figures as current. */
@@ -387,7 +400,7 @@ export function LivePositionPanel({ account, card }: {
         <span className="font-semibold tabular-nums text-foreground-secondary"
           data-testid="live-position-leverage">{leverage}</span>
         <span className="tabular-nums text-foreground-secondary"
-          data-testid="live-position-qty">{qtyFmt(position.qty)} BTC</span>
+          data-testid="live-position-qty">{qtyFmt(position.qty)} {liveUnit(account)}</span>
       </div>
 
       {open && <LiveExposure card={open} testIdPrefix="live-position" />}
@@ -507,7 +520,7 @@ export function LivePositionCard({ card, nowMs, onClose, busy }: {
         <span className="font-semibold tabular-nums text-foreground-secondary"
           data-testid="live-card-leverage">{num(card.leverage)?.toString() ?? "-"}x</span>
         <span className="tabular-nums text-foreground-secondary"
-          data-testid="live-card-qty">{qtyFmt(card.qty)} BTC</span>
+          data-testid="live-card-qty">{qtyFmt(card.qty)} {baseAssetOf(card.symbol || DEFAULT_SYMBOL)}</span>
         {/* Absent rather than wrong: a position whose opening fill is off the fetched page has
             no honest duration, and `positionRisk.updateTime` is the last change, not the open. */}
         <span className="ml-auto text-[11px] text-muted" data-testid="live-card-held">
@@ -741,19 +754,32 @@ export function LiveLeveragePanel({ account, options, onSelect, busy, error, com
         </p>
       )}
 
-      {!compact && <div className="mt-2"><LiveLeverageNotes options={options} /></div>}
+      {!compact && <div className="mt-2">
+        <LiveLeverageNotes options={options} account={account} /></div>}
       {error && <p className="mt-2 rounded-md bg-warning-soft px-3 py-2 text-xs text-warning"
         role="status" data-testid="live-leverage-error">{error}</p>}
     </div>
   );
 }
 
-export function LiveLeverageNotes({ options }: { options: LiveLeverageOptions | null }) {
+export function LiveLeverageNotes({ options, account }: {
+  options: LiveLeverageOptions | null;
+  /** Supplies the example quantity and its unit. Optional so the panel still renders a correct
+   *  sentence before the first account read; the example then falls back to the default
+   *  symbol's minimum, which is what this note always used. */
+  account?: LiveAccount | null;
+}) {
+  const unit = liveUnit(account, options?.symbol || DEFAULT_SYMBOL);
+  // The example is this instrument's own minimum order, not the literal 0.001 the sentence was
+  // written with. On SOLUSDT that literal would have been a quantity Binance refuses, used to
+  // explain a rule - the sentence would be teaching the reader a wrong number.
+  const example = String(account?.filters?.market_min_qty ?? account?.filters?.min_qty ?? "0.001");
   return (
     <>
       <p className="text-[11px] text-muted" data-testid="live-leverage-sizing-note">
-        레버리지는 노출 배수가 아니라 증거금 설정입니다. 0.001 BTC는 1x에서도 50x에서도 0.001 BTC이고,
-        달라지는 것은 묶이는 증거금과 청산가입니다. 주문 크기는 주문 패널에서 따로 고릅니다.
+        레버리지는 노출 배수가 아니라 증거금 설정입니다. {example} {unit}는 1x에서도 50x에서도
+        {" "}{example} {unit}이고, 달라지는 것은 묶이는 증거금과 청산가입니다.
+        주문 크기는 주문 패널에서 따로 고릅니다.
       </p>
       <p className="mt-1 text-[11px] text-muted" data-testid="live-margin-readonly-note">
         {options?.margin_type_note || MARGIN_MODE_READONLY_NOTE}
@@ -781,9 +807,12 @@ export function LiveLeverageNotes({ options }: { options: LiveLeverageOptions | 
  *  side are already add-on sizes: they are computed against `availableBalance`, which is what
  *  is left after the position's own margin.
  */
-export function LiveQuickSize({ sizing, onPick, busy, stale, sides }: {
+export function LiveQuickSize({ sizing, onPick, busy, stale, sides,
+                                unit = baseAssetOf(DEFAULT_SYMBOL) }: {
   sizing: LiveSizing | null;
   onPick: (qty: string) => void;
+  /** The coin the offered sizes are in. A prop because this panel prints quantities. */
+  unit?: string;
   busy?: boolean;
   stale?: boolean;
   /** Defaults to both, the flat case. */
@@ -811,7 +840,7 @@ export function LiveQuickSize({ sizing, onPick, busy, stale, sides }: {
           return (
             <button key={label} type="button" data-testid={`live-preset-${label}`}
               disabled={busy || qty == null}
-              title={qty == null ? (unavailable || reason || undefined) : `${qty} BTC`}
+              title={qty == null ? (unavailable || reason || undefined) : `${qty} ${unit}`}
               onClick={() => qty && onPick(qty)}
               className={`btn-compact h-9 sm:h-10 ${
                 strong ? "font-extrabold tracking-wide ring-1 ring-warning/60" : ""}`}>
@@ -853,10 +882,32 @@ export function LiveOrderTicket({ account, onOrder, busy, error, preview, onPrev
   /** Server-computed quick sizes. Absent means the row renders disabled with a reason. */
   sizing?: LiveSizing | null;
 }) {
+  const unit = liveUnit(account);
   /** The exchange minimum, not a round number. This ticket's default is what gets sent when
    *  somebody presses LONG without touching the size box, so it is set to the smallest order
-   *  Binance will accept: a mis-click then costs the minimum rather than a multiple of it. */
-  const [size, setSize] = useState("0.001");
+   *  Binance will accept: a mis-click then costs the minimum rather than a multiple of it.
+   *
+   *  Read from this symbol's own filters rather than written as "0.001". That literal is
+   *  BTCUSDT's minimum; on SOLUSDT the minimum is 0.1, so the box would have opened pre-filled
+   *  with a hundredth of the smallest valid order - and the refusal would arrive from Binance
+   *  rather than from the screen. */
+  // The smallest size this symbol can actually be ordered at, which is not the same as its
+  // minimum quantity: MIN_NOTIONAL points the other way. On SOLUSDT the minimum quantity is
+  // 0.01, worth ~1.2 USDT, and Binance's minimum notional is 5 - so a box pre-filled with the
+  // minimum quantity opens on a size the exchange refuses, and the refusal arrives from Binance
+  // rather than from the screen. The server already computes the smallest size that clears both
+  // floors; it is used when the ladder has been read and the quantity minimum is the fallback.
+  const smallest = sizing?.sides?.LONG?.instrument?.smallest_orderable_qty
+    ?? sizing?.sides?.SHORT?.instrument?.smallest_orderable_qty;
+  const minimum = String(smallest ?? account.filters?.market_min_qty
+                         ?? account.filters?.min_qty ?? "0.001");
+  const [size, setSize] = useState(minimum);
+  // The ladder arrives after the first render, so the box is corrected once it does - but only
+  // while the operator has not typed, which is what `touched` records.
+  const touched = useRef(false);
+  useEffect(() => {
+    if (!touched.current) setSize(minimum);
+  }, [minimum]);
   const [pending, setPending] = useState<{ side: string; intent: "OPEN" | "CLOSE" } | null>(null);
   const tradable = (gate ?? liveTradeGate(account, null)).tradable;
   const position = account.position;
@@ -888,18 +939,18 @@ export function LiveOrderTicket({ account, onOrder, busy, error, preview, onPrev
         <p className="mb-2 rounded-md bg-surface-alt px-2.5 py-1.5 text-[11px] text-foreground-secondary"
           data-testid="live-ticket-holding">
           보유 <span className="font-bold">{allowance.holding}</span>{" "}
-          <span className="tabular-nums">{qtyFmt(position?.qty)} BTC</span> · 같은 방향 추가 진입만 가능합니다.
+          <span className="tabular-nums">{qtyFmt(position?.qty)} {unit}</span> · 같은 방향 추가 진입만 가능합니다.
         </p>
       )}
-      <LiveQuickSize sizing={sizing ?? null} busy={busy} stale={account.stale}
+      <LiveQuickSize unit={unit} sizing={sizing ?? null} busy={busy} stale={account.stale}
         sides={allowance.allowed} onPick={next => setSize(next)} />
       <label className="block text-[11px] text-muted" htmlFor="live-qty">
-        {hasPosition ? "추가 수량 (BTC)" : "수량 (BTC)"}
+        {hasPosition ? `추가 수량 (${unit})` : `수량 (${unit})`}
       </label>
       {/* Never disabled because a position exists. A position means one side is unavailable,
           not that no size can be chosen. */}
       <input id="live-qty" data-testid="live-qty-input" value={size} inputMode="decimal"
-        onChange={event => setSize(event.target.value)}
+        onChange={event => { touched.current = true; setSize(event.target.value); }}
         className="mt-1 w-full rounded-md border border-line bg-surface px-3 py-2 text-sm tabular-nums" />
       {preview?.sides && (
         <dl className={`mt-3 grid gap-2 text-[11px] ${hasPosition ? "grid-cols-1" : "grid-cols-2"}`}
@@ -960,7 +1011,7 @@ export function LiveOrderTicket({ account, onOrder, busy, error, preview, onPrev
         onClick={() => (tradable ? setPending({ side: position?.side || "LONG", intent: "CLOSE" })
                                  : onActivate?.())}
         className="mt-2 w-full rounded-md border border-line px-3 py-2 text-sm font-bold text-foreground disabled:opacity-40">
-        CLOSE {hasPosition ? `· ${qtyFmt(position?.qty)} BTC` : ""}
+        CLOSE {hasPosition ? `· ${qtyFmt(position?.qty)} ${unit}` : ""}
       </button>
       {!tradable && (
         <p className="mt-2 text-[11px] text-muted" data-testid="live-order-locked">
@@ -976,10 +1027,10 @@ export function LiveOrderTicket({ account, onOrder, busy, error, preview, onPrev
           <p className="text-xs font-bold text-danger">BINANCE LIVE · 실계좌</p>
           <p className="mt-1 text-sm font-semibold text-foreground">
             {pending.intent === "CLOSE"
-              ? `${pending.side} 전량 청산 (${qtyFmt(position?.qty)} BTC)`
+              ? `${pending.side} 전량 청산 (${qtyFmt(position?.qty)} ${unit})`
               : hasPosition
-                ? `${pending.side} 추가 진입 ${size} BTC (보유 ${qtyFmt(position?.qty)} BTC)`
-                : `${pending.side} ${size} BTC`}
+                ? `${pending.side} 추가 진입 ${size} ${unit} (보유 ${qtyFmt(position?.qty)} ${unit})`
+                : `${pending.side} ${size} ${unit}`}
           </p>
           <p className="mt-1 text-[11px] text-muted">
             {account.symbol_config ? `${num(account.symbol_config.leverage)}x · ` : ""}
@@ -1007,6 +1058,9 @@ export function LiveAutoExit({ guard, onSave, onDisable, busy, error }: {
   busy?: boolean;
   error?: string | null;
 }) {
+  // The guard names the symbol it watches; the panel prints that symbol's unit rather than the
+  // selected tab's, because the two can differ while AUTO stays single-symbol.
+  const guardUnit = baseAssetOf((guard as { symbol?: string } | null)?.symbol || DEFAULT_SYMBOL);
   const [takeProfit, setTakeProfit] = useState("");
   const [stopLoss, setStopLoss] = useState("");
   const [editing, setEditing] = useState(false);
@@ -1030,7 +1084,7 @@ export function LiveAutoExit({ guard, onSave, onDisable, busy, error }: {
         {guard?.scaled_in && (
           <p className="mt-2 rounded-md bg-warning-soft px-3 py-2 text-[11px] text-warning"
             role="status" data-testid="exit-scaled-in">
-            추가 진입으로 수량이 {guard.configured_qty} → {guard.position_qty} BTC로 늘었습니다.
+            추가 진입으로 수량이 {guard.configured_qty} → {guard.position_qty} {guardUnit}로 늘었습니다.
             목표 금액은 설정 당시 수량 기준이니 확인하세요.
           </p>
         )}
@@ -1040,7 +1094,7 @@ export function LiveAutoExit({ guard, onSave, onDisable, busy, error }: {
               data-testid="exit-current-net">{signedKrw(guard?.current_net_krw)}</dd></div>
           <div className="flex justify-between gap-2"><dt className="text-muted">대상 수량</dt>
             <dd className="tabular-nums text-foreground-secondary"
-              data-testid="exit-position-qty">{guard?.position_qty ?? "-"} BTC</dd></div>
+              data-testid="exit-position-qty">{guard?.position_qty ?? "-"} {guardUnit}</dd></div>
           <div className="flex justify-between gap-2"><dt className="text-muted">익절</dt>
             <dd className="tabular-nums text-success">+{krw(guard?.take_profit_krw)}</dd></div>
           <div className="flex justify-between gap-2"><dt className="text-muted">손절</dt>
@@ -1086,7 +1140,27 @@ export function LiveAutoExit({ guard, onSave, onDisable, busy, error }: {
 
 /** Status once, then the account on a timer. The status answer is what decides whether the
  *  switch may be used at all, so it is fetched even while the screen is on PAPER. */
-export function useBinanceLive(enabled: boolean, pollMs = LIVE_POLL_MS) {
+/** The LIVE account for one symbol, polled.
+ *
+ *  `symbol` is the second argument and everything in here is about it. Two properties make the
+ *  symbol safe rather than decorative, and both are needed:
+ *
+ *  1. **State is cleared the instant the symbol changes**, synchronously, before any fetch for
+ *     the new symbol has returned. Without this the screen keeps rendering the previous
+ *     symbol's balance, position, ladder and PnL under the new tab for one poll interval -
+ *     every number wrong, every label right, which is the worst possible version of this bug.
+ *
+ *  2. **Every response is checked against the symbol that is current when it arrives**, and
+ *     discarded if it does not match. Clearing alone is not enough: a request for BTCUSDT
+ *     issued before the tab changed can resolve after it, and `setAccount` would then put BTC's
+ *     position on the ETH screen. `AbortSignal` would not cover it either, because the stale
+ *     response may already be in flight past the point abort takes effect.
+ *
+ *  The guard is on the symbol the response *claims*, not on which request was made, so a server
+ *  that answered about the wrong instrument is also caught.
+ */
+export function useBinanceLive(enabled: boolean, symbol: string = DEFAULT_SYMBOL,
+                               pollMs = LIVE_POLL_MS) {
   const [status, setStatus] = useState<LiveStatus | null>(null);
   const [account, setAccount] = useState<LiveAccount | null>(null);
   const [preview, setPreview] = useState<LivePreview | null>(null);
@@ -1103,74 +1177,134 @@ export function useBinanceLive(enabled: boolean, pollMs = LIVE_POLL_MS) {
   const [leverageError, setLeverageError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const previewQty = useRef<string>("");
+  /** The symbol every in-flight request must still be about when it resolves. Updated in the
+   *  same layout pass that clears the state, so there is no window in which the ref and the
+   *  rendered state disagree. */
+  const current = useRef(symbol);
+
+  /** Drop everything about the previous instrument, synchronously.
+   *
+   *  `useLayoutEffect` rather than `useEffect`: the cleared state must be what the browser
+   *  paints, not what it paints one frame later. With `useEffect` the first paint after a tab
+   *  click still carries the old symbol's figures.
+   */
+  useLayoutEffect(() => {
+    current.current = symbol;
+    setAccount(null);
+    setPreview(null);
+    setSizing(null);
+    setPositionCard(null);
+    setExitGuard(null);
+    setPerformance(null);
+    setLeverage(null);
+    setError(null);
+    setActionError(null);
+    setLeverageError(null);
+    setExitGuardError(null);
+    previewQty.current = "";
+    // `arm` and `status.available` are account-wide, not per symbol, so they are deliberately
+    // kept: clearing them would flash "거래불가" on every tab change for no reason.
+  }, [symbol]);
+
+  /** True when `value` is still the symbol on screen.
+   *
+   *  A response with no symbol field at all passes: some routes legitimately answer without one
+   *  (the arm state, an error body), and rejecting those would make the screen go blank. Only a
+   *  response that *names a different* symbol is dropped.
+   */
+  const mine = useCallback((value?: string | null) =>
+    value == null || value === "" || value === current.current, []);
 
   useEffect(() => {
     let cancelled = false;
-    liveApi.status()
-      .then(next => { if (!cancelled) setStatus(next); })
+    liveApi.status(symbol)
+      .then(next => { if (!cancelled && mine(next.symbol)) setStatus(next); })
       .catch((exc: CryptoApiError) => { if (!cancelled) setError(exc.message); });
     return () => { cancelled = true; };
-  }, []);
+  }, [symbol, mine]);
 
   const refresh = useCallback(async () => {
+    const asked = current.current;
     try {
-      const next = await liveApi.account();
-      setAccount(next);
-      setError(null);
+      const next = await liveApi.account(asked);
+      if (mine(next.symbol) && asked === current.current) {
+        setAccount(next);
+        setError(null);
+      }
     } catch (exc) {
-      setError(exc instanceof CryptoApiError ? exc.message : String(exc));
+      if (asked === current.current) {
+        setError(exc instanceof CryptoApiError ? exc.message : String(exc));
+      }
     }
     // Polled with the account rather than on its own timer. The arm window is a countdown the
     // server owns, and a screen that showed "3분 남음" from a stale read would be claiming a
-    // safety property it had not checked.
+    // safety property it had not checked. Account-wide, so it is not symbol-guarded.
     try {
       setArm(await liveApi.armState());
     } catch {
       setArm(null);
     }
-  }, []);
+  }, [mine]);
 
   /** The ladder costs one depth read, so it runs on its own slower timer rather than with the
    *  2s account poll. It is a read: nothing on the trade path is touched. */
   const refreshSizing = useCallback(async () => {
+    const asked = current.current;
     try {
-      setSizing(await liveApi.sizing());
+      const next = await liveApi.sizing(asked);
+      if (mine(next.symbol) && asked === current.current) setSizing(next);
     } catch {
-      setSizing(null);
+      if (asked === current.current) setSizing(null);
     }
-  }, []);
+  }, [mine]);
 
   /** The card costs three extra reads, so it runs on the ladder's slower timer. The server
    *  short-circuits on a flat account, which is the common case. */
   const refreshPositionCard = useCallback(async () => {
+    const asked = current.current;
+    const still = () => asked === current.current;
     try {
-      setPositionCard(await liveApi.positionCard());
+      const next = await liveApi.positionCard(asked);
+      if (mine(next.symbol) && still()) setPositionCard(next);
     } catch {
-      setPositionCard(null);
+      if (still()) setPositionCard(null);
     }
-    try { setExitGuard(await liveApi.exitGuard()); } catch { setExitGuard(null); }
-    try { setPerformance(await liveApi.performance()); } catch { setPerformance(null); }
-  }, []);
+    try {
+      const guard = await liveApi.exitGuard(asked);
+      if (still()) setExitGuard(guard);
+    } catch { if (still()) setExitGuard(null); }
+    try {
+      const perf = await liveApi.performance(asked);
+      if (mine((perf as { symbol?: string }).symbol) && still()) setPerformance(perf);
+    } catch { if (still()) setPerformance(null); }
+  }, [mine]);
 
   const refreshLeverage = useCallback(async () => {
+    const asked = current.current;
     try {
-      setLeverage(await liveApi.leverageOptions());
-      setLeverageError(null);
+      const next = await liveApi.leverageOptions(asked);
+      if (mine(next.symbol) && asked === current.current) {
+        setLeverage(next);
+        setLeverageError(null);
+      }
     } catch (exc) {
-      setLeverageError(exc instanceof CryptoApiError ? exc.message : String(exc));
+      if (asked === current.current) {
+        setLeverageError(exc instanceof CryptoApiError ? exc.message : String(exc));
+      }
     }
-  }, []);
+  }, [mine]);
 
   useEffect(() => {
     if (!enabled) return;
     void refresh();
     const timer = setInterval(() => { void refresh(); }, pollMs);
     return () => clearInterval(timer);
-  }, [enabled, pollMs, refresh]);
+  }, [enabled, pollMs, refresh, symbol]);
 
-  // The bracket table changes with the account's risk tier, not with the tick, so it is read
-  // when LIVE is entered and after a leverage change rather than on the poll.
-  useEffect(() => { if (enabled) void refreshLeverage(); }, [enabled, refreshLeverage]);
+  // The bracket table changes with the account's risk tier and with the symbol, not with the
+  // tick, so it is read when LIVE is entered, when the symbol changes, and after a leverage
+  // change rather than on the poll.
+  useEffect(() => { if (enabled) void refreshLeverage(); }, [enabled, refreshLeverage, symbol]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -1181,21 +1315,26 @@ export function useBinanceLive(enabled: boolean, pollMs = LIVE_POLL_MS) {
       void refreshPositionCard();
     }, SIZING_POLL_MS);
     return () => clearInterval(timer);
-  }, [enabled, refreshSizing, refreshPositionCard]);
+  }, [enabled, refreshSizing, refreshPositionCard, symbol]);
 
   const requestPreview = useCallback((size: string) => {
     if (!enabled || !size) return;
+    const asked = current.current;
     previewQty.current = size;
-    liveApi.preview({ qty: size })
-      .then(next => { if (previewQty.current === size) setPreview(next); })
-      .catch(() => setPreview(null));
-  }, [enabled]);
+    liveApi.preview(asked, { qty: size })
+      .then(next => {
+        if (previewQty.current === size && mine(next.symbol) && asked === current.current) {
+          setPreview(next);
+        }
+      })
+      .catch(() => { if (asked === current.current) setPreview(null); });
+  }, [enabled, mine]);
 
   const order = useCallback(async (body: { side: string; intent: "OPEN" | "CLOSE"; qty?: string }) => {
     setBusy(true);
     setActionError(null);
     try {
-      await liveApi.order(body);
+      await liveApi.order(current.current, body);
       await refresh();
       await refreshPositionCard();
     } catch (exc) {
@@ -1246,7 +1385,7 @@ export function useBinanceLive(enabled: boolean, pollMs = LIVE_POLL_MS) {
     setBusy(true);
     setLeverageError(null);
     try {
-      await liveApi.setLeverage(value);
+      await liveApi.setLeverage(current.current, value);
       previewQty.current = "";
       setPreview(null);
       await refresh();
@@ -1262,7 +1401,7 @@ export function useBinanceLive(enabled: boolean, pollMs = LIVE_POLL_MS) {
 
   const saveExitGuard = useCallback(async (takeProfit: string, stopLoss: string) => {
     setBusy(true); setExitGuardError(null);
-    try { setExitGuard(await liveApi.setExitGuard(takeProfit, stopLoss)); }
+    try { setExitGuard(await liveApi.setExitGuard(current.current, takeProfit, stopLoss)); }
     catch (exc) { setExitGuardError(exc instanceof CryptoApiError ? exc.message : String(exc)); }
     finally { setBusy(false); }
   }, []);
@@ -1274,8 +1413,13 @@ export function useBinanceLive(enabled: boolean, pollMs = LIVE_POLL_MS) {
     finally { setBusy(false); }
   }, []);
 
-  return { status, account, preview, arm, leverage, sizing, positionCard, exitGuard, performance, error, actionError,
-           armError, leverageError, exitGuardError, busy, refresh, order, requestPreview, armLive, disarmLive,
-           changeLeverage, refreshSizing, refreshPositionCard, saveExitGuard, disableExitGuard,
-           available: Boolean(status?.available) };
+  return { symbol, status, account, preview, arm, leverage, sizing, positionCard, exitGuard, performance,
+           error, actionError, armError, leverageError, exitGuardError, busy, refresh, order,
+           requestPreview, armLive, disarmLive, changeLeverage, refreshSizing, refreshPositionCard,
+           saveExitGuard, disableExitGuard,
+           available: Boolean(status?.available),
+           /** What the server permits, never the client's own list. */
+           symbols: status?.symbols ?? null,
+           /** The unit a quantity is in: Binance's `baseAsset` when the filters were read. */
+           baseAsset: account?.base_asset ?? status?.base_asset ?? baseAssetOf(symbol) };
 }

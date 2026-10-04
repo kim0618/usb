@@ -10,6 +10,7 @@
  */
 import { CRYPTO_API_BASE, CryptoApiError, OrderSide, num } from "@/lib/crypto-paper";
 import type { ChartOverlay } from "@/lib/crypto-paper";
+import { DEFAULT_SYMBOL, withSymbol } from "@/lib/crypto-symbols";
 
 export type AccountSource = "PAPER" | "BINANCE_LIVE";
 
@@ -53,8 +54,23 @@ export type LiveLeverageRestriction = {
   source?: string;
 };
 
+/** An account-wide leverage limit Binance stated on one symbol.
+ *
+ *  Distinct from `unavailable`, which is what *this* symbol has been refused. This one is
+ *  reported on every symbol because Binance's own reason named the account's registration age
+ *  rather than an instrument, and it carries the symbol it was heard on so the screen can say
+ *  where it came from instead of looking like a limit nobody observed. */
+export type LiveAccountScope = {
+  above: number; code: number | null; until_ms: number | null; until_utc: string | null;
+  observed_at_ms: number; source?: string; account_scoped?: boolean;
+  observed_on_symbol: string | null; scope: "ACCOUNT";
+  blocked: number[]; messages: Record<string, string>; authority: string;
+};
+
 export type LiveLeverageOptions = {
-  symbol: string; current: string | null; margin_type: string | null;
+  symbol: string; symbols?: string[]; base_asset?: string;
+  account_scope?: LiveAccountScope | null;
+  current: string | null; margin_type: string | null;
   max_leverage: number; options: number[]; brackets: LiveLeverageBracket[];
   notional_coef: number | null; authority: string; margin_type_note: string;
   /** Keyed by the leverage as a decimal string, the way the server sent it. */
@@ -63,10 +79,34 @@ export type LiveLeverageOptions = {
   capability_authority?: string;
 };
 
-/** The restriction on one step, or null when there is none on record. */
+/** The restriction on one step, or null when there is none on record.
+ *
+ *  Two sources, and the per-symbol one wins when both speak. `unavailable` is what Binance has
+ *  refused **on this symbol**; `account_scope` is a refusal whose own sentence named the
+ *  *account* rather than an instrument (the 30-day Futures registration cap), which is reported
+ *  on every symbol because that is what Binance said it was about.
+ *
+ *  Both are needed. Without `account_scope`, a symbol that has never been refused offers 50x
+ *  as a live button and pressing it sends a write Binance rejects - which is precisely the
+ *  "button whose press is a write that will be rejected" this whole layer exists to avoid. And
+ *  without `unavailable` taking precedence, a symbol's own observed refusal would be reported
+ *  with the weaker account-wide wording.
+ */
 export function leverageRestriction(options: LiveLeverageOptions | null, value: number):
     LiveLeverageRestriction | null {
-  return options?.unavailable?.[String(value)] ?? null;
+  const own = options?.unavailable?.[String(value)];
+  if (own) return own;
+  const scope = options?.account_scope;
+  if (!scope || !(scope.blocked ?? []).includes(value)) return null;
+  return {
+    above: scope.above, code: scope.code, until_ms: scope.until_ms, until_utc: scope.until_utc,
+    observed_at_ms: scope.observed_at_ms, code_name: "ACCOUNT_LEVERAGE_NOT_YET_AVAILABLE",
+    // The server's own sentence for this step, which already says it is the account's limit and
+    // names the symbol it was heard on when the audit line carried one.
+    message: scope.messages?.[String(value)]
+      ?? `현재 계정에서 ${value}x를 사용할 수 없습니다.`,
+    source: scope.source,
+  };
 }
 
 /** Asset-denominated figures (`wallet_balance` and friends) come from Binance's `assets[USDT]`
@@ -110,10 +150,17 @@ export type LiveAccount = {
   krw_note: string;
   gates: LiveGates;
   stream: Record<string, unknown> | null;
+  /** Binance's own `baseAsset` for this symbol: the unit every quantity on screen is in.
+   *  Absent only when the filters could not be read, in which case the panel falls back to
+   *  stripping "USDT" from the symbol rather than printing "BTC" on an ETH screen. */
+  base_asset?: string;
+  symbols?: string[];
 };
 
 export type LiveStatus = {
   source: "BINANCE_LIVE"; available: boolean; ready: boolean; blockers: LiveBlocker[];
+  /** What the *server* permits. The tab strip renders this, never the client's own list. */
+  symbol?: string; symbols?: string[]; default_symbol?: string; base_asset?: string;
   gates: LiveGates; config: Record<string, unknown>; runtime_error: string | null;
   endpoints: { name: string; method: string; path: string; security: string; weight: string; doc: string }[];
   stream?: Record<string, unknown> | null;
@@ -297,6 +344,11 @@ export type LiveExitGuard = {
   created_at_ms: number | null; updated_at_ms: number | null; last_error: string | null;
 };
 
+export type LiveExitGuardUnavailable = {
+  state: "UNAVAILABLE"; enabled: false; available: false; guard_symbol: string;
+  requested_symbol: string; unavailable_reason: "AUTO_SINGLE_SYMBOL"; unavailable_message: string;
+};
+
 export type LivePerformance = {
   available: boolean; has_trades: boolean; first_trade_at_ms?: number;
   first_trade_kst_date?: string; running_day?: number;
@@ -323,55 +375,95 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return body as T;
 }
 
+/** Every open position the account holds, for the strip above the tabs.
+ *
+ *  Not per symbol: this is the one call that is deliberately about all of them, so the summary
+ *  cannot disagree with itself across three reads taken at three instants. */
+export type LivePositionsSummary = {
+  source: "BINANCE_LIVE"; symbols: string[]; default_symbol: string;
+  positions: (LivePosition & { available: boolean; base_asset?: string;
+                               krw?: Record<string, string> | null;
+                               reject_code?: string; reject_message?: string })[];
+  /** Positions on symbols this terminal does not trade. Read only, no controls. */
+  others: { symbol: string; side: OrderSide; qty: string; signed_qty: string;
+            unrealized_pnl: string | null; notional: string | null; tradable_here: false }[];
+  krw_per_usdt: string | null; fetched_at_ms: number; authority: string; others_note: string;
+};
+
+/** The whole LIVE API, every route carrying the symbol it is about.
+ *
+ *  `symbol` is a required first argument on every per-symbol call rather than an optional one
+ *  with a default. An optional symbol would mean a forgotten argument silently reads BTCUSDT,
+ *  and a request that quietly answers about the wrong instrument is the failure mode this whole
+ *  change exists to prevent - so the compiler is made to catch it instead.
+ *
+ *  `arm`, `disarm` and `armState` take no symbol: arming is permission over the account, and
+ *  there is one account.
+ */
 export const liveApi = {
-  status: (signal?: AbortSignal) => request<LiveStatus>("/api/crypto/binance/status", { signal }),
-  account: (signal?: AbortSignal) => request<LiveAccount>("/api/crypto/binance/account", { signal }),
-  preview: (params: { side?: OrderSide; qty?: string; notional_usdt?: string }, signal?: AbortSignal) => {
+  status: (symbol: string = DEFAULT_SYMBOL, signal?: AbortSignal) =>
+    request<LiveStatus>(withSymbol("/api/crypto/binance/status", symbol), { signal }),
+  account: (symbol: string, signal?: AbortSignal) =>
+    request<LiveAccount>(withSymbol("/api/crypto/binance/account", symbol), { signal }),
+  positions: (signal?: AbortSignal) =>
+    request<LivePositionsSummary>("/api/crypto/binance/positions", { signal }),
+  preview: (symbol: string, params: { side?: OrderSide; qty?: string; notional_usdt?: string },
+            signal?: AbortSignal) => {
     const query = new URLSearchParams(
       Object.entries(params).filter(([, v]) => v != null && v !== "") as [string, string][]);
-    return request<LivePreview>(`/api/crypto/binance/preview?${query.toString()}`, { signal });
+    return request<LivePreview>(
+      withSymbol(`/api/crypto/binance/preview?${query.toString()}`, symbol), { signal });
   },
   /** Read only. Empty when the account is flat; the server does no extra reads then. */
-  positionCard: (signal?: AbortSignal) =>
-    request<LivePositionCard>("/api/crypto/binance/position", { signal }),
-  performance: (signal?: AbortSignal) =>
-    request<LivePerformance>("/api/crypto/binance/performance", { signal }),
-  exitGuard: (signal?: AbortSignal) =>
-    request<LiveExitGuard>("/api/crypto/binance/exit-guard", { signal }),
-  setExitGuard: (take_profit_krw: string, stop_loss_krw: string) =>
+  positionCard: (symbol: string, signal?: AbortSignal) =>
+    request<LivePositionCard>(withSymbol("/api/crypto/binance/position", symbol), { signal }),
+  performance: (symbol: string, signal?: AbortSignal) =>
+    request<LivePerformance>(withSymbol("/api/crypto/binance/performance", symbol), { signal }),
+  exitGuard: (symbol: string, signal?: AbortSignal) =>
+    request<LiveExitGuard>(withSymbol("/api/crypto/binance/exit-guard", symbol), { signal }),
+  setExitGuard: (symbol: string, take_profit_krw: string, stop_loss_krw: string) =>
     request<LiveExitGuard>("/api/crypto/binance/exit-guard",
-      { method: "POST", body: JSON.stringify({ take_profit_krw, stop_loss_krw }) }),
+      { method: "POST", body: JSON.stringify({ take_profit_krw, stop_loss_krw, symbol }) }),
   disableExitGuard: () => request<LiveExitGuard>("/api/crypto/binance/exit-guard",
     { method: "DELETE" }),
   /** Read only. The server computes the ladder; this never sends or arms anything. */
-  sizing: (signal?: AbortSignal) =>
-    request<LiveSizing>("/api/crypto/binance/sizing", { signal }),
-  fills: (limit = 20) => request<{ total: number; fills: LiveFill[]; authority: string }>(
-    `/api/crypto/binance/fills?limit=${limit}`),
-  funding: (limit = 20) => request<{ total: number; funding: LiveFunding[]; authority: string }>(
-    `/api/crypto/binance/funding?limit=${limit}`),
-  events: (limit = 50) => request<{ total: number; events: LiveEventRow[]; role?: string }>(
-    `/api/crypto/binance/events?limit=${limit}`),
+  sizing: (symbol: string, signal?: AbortSignal) =>
+    request<LiveSizing>(withSymbol("/api/crypto/binance/sizing", symbol), { signal }),
+  fills: (symbol: string, limit = 20) =>
+    request<{ total: number; fills: LiveFill[]; authority: string }>(
+      withSymbol(`/api/crypto/binance/fills?limit=${limit}`, symbol)),
+  funding: (symbol: string, limit = 20) =>
+    request<{ total: number; funding: LiveFunding[]; authority: string }>(
+      withSymbol(`/api/crypto/binance/funding?limit=${limit}`, symbol)),
+  events: (symbol: string, limit = 50) =>
+    request<{ total: number; events: LiveEventRow[]; role?: string }>(
+      withSymbol(`/api/crypto/binance/events?limit=${limit}`, symbol)),
   /** Sends the order. The backend refuses it unless the deployment has the capability flag
    *  *and* the operator has armed a manual window; both refusals come back as real responses,
-   *  so the button exercises the real path rather than a disabled stub. */
-  order: (body: { side: string; intent: "OPEN" | "CLOSE"; qty?: string; notional_usdt?: string }) =>
-    request<{ plan: Record<string, unknown>; response: Record<string, unknown> }>(
-      "/api/crypto/binance/order", { method: "POST", body: JSON.stringify(body) }),
+   *  so the button exercises the real path rather than a disabled stub.
+   *
+   *  The symbol goes in the body and the server checks it against the four symbols its own
+   *  order path already holds, so a mismatch is refused rather than filled. */
+  order: (symbol: string,
+          body: { side: string; intent: "OPEN" | "CLOSE"; qty?: string; notional_usdt?: string }) =>
+    request<{ symbol?: string; plan: Record<string, unknown>; response: Record<string, unknown> }>(
+      "/api/crypto/binance/order", { method: "POST", body: JSON.stringify({ ...body, symbol }) }),
   armState: (signal?: AbortSignal) =>
     request<LiveArmState>("/api/crypto/binance/arm", { signal }),
   arm: (body: { confirmation: string; note?: string; ttl_s?: number }) =>
     request<LiveArmState>("/api/crypto/binance/arm",
       { method: "POST", body: JSON.stringify(body) }),
   disarm: () => request<LiveArmState>("/api/crypto/binance/disarm", { method: "POST" }),
-  leverageOptions: (signal?: AbortSignal) =>
-    request<LiveLeverageOptions>("/api/crypto/binance/leverage", { signal }),
+  leverageOptions: (symbol: string, signal?: AbortSignal) =>
+    request<LiveLeverageOptions>(withSymbol("/api/crypto/binance/leverage", symbol), { signal }),
   /** Asks Binance to change the leverage. The response carries what Binance reports afterwards;
-   *  the caller shows that, never the requested value. */
-  setLeverage: (leverage: number) =>
-    request<{ requested: string; leverage: string | null; response: Record<string, unknown> }>(
+   *  the caller shows that, never the requested value. Binance scopes the write to a symbol, so
+   *  this changes one instrument's setting and leaves the others alone. */
+  setLeverage: (symbol: string, leverage: number) =>
+    request<{ symbol?: string; requested: string; leverage: string | null;
+              response: Record<string, unknown> }>(
       "/api/crypto/binance/leverage",
-      { method: "POST", body: JSON.stringify({ leverage: String(leverage) }) }),
+      { method: "POST", body: JSON.stringify({ leverage: String(leverage), symbol }) }),
 };
 
 /** Whether an order may leave this screen right now, and if not, why not.

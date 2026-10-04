@@ -57,6 +57,11 @@ LEVERAGE_CONSTRAINT_UNAVAILABLE = "LEVERAGE_CONSTRAINT_UNAVAILABLE"
 #: The self-imposed ceiling from `BINANCE_LIVE_MAX_QTY`, distinct from Binance's own
 #: `QTY_ABOVE_MARKET_MAXIMUM` so a report can tell "we refused this" from "the exchange would".
 QTY_ABOVE_LOCAL_MAXIMUM = "QTY_ABOVE_LOCAL_MAXIMUM"
+#: The four-way symbol agreement below failed. This is the refusal that must never be reachable
+#: in a correct build, which is exactly why it is checked: on a multi-symbol screen the
+#: catastrophic failure is not a rejected order, it is an accepted one against the wrong
+#: instrument, and that failure is silent unless something asserts against it.
+SYMBOL_MISMATCH = "SYMBOL_MISMATCH"
 
 
 class OrderRefused(RuntimeError):
@@ -172,9 +177,45 @@ class LiveOrderRouter:
 
     # ------------------------------------------------------------------ planning
 
+    def _agree_on_symbol(self, requested: str | None, state: LiveSnapshot,
+                         position: LivePosition) -> None:
+        """Every symbol on the path must be the same string, or no order is built.
+
+        Five sources are compared, not one: what the screen asked for, what this router's config
+        names, what the reader this router shares with the adapter is pointed at, what the
+        snapshot was taken for, whose filters are about to validate the quantity, and which
+        position Binance just reported. In a correct build they are the same object's symbol
+        copied five times. The check exists because the one bug a multi-symbol terminal can have
+        that costs real money is placing an ETH order through a BTC-shaped path, and nothing
+        downstream would notice: `exchangeInfo` for the wrong symbol yields a plausible step
+        size, `positionRisk` for the wrong symbol yields a plausible flat position, and Binance
+        would fill the result.
+
+        `requested` is `None` when the caller named no symbol, which is the single-symbol path
+        and is not a disagreement.
+        """
+        seen = {
+            "router_config": self.config.symbol,
+            "reader": self.reader.symbol,
+            "snapshot": state.symbol,
+            "filters": state.filters.symbol if state.filters is not None else None,
+            "position": position.symbol,
+        }
+        if requested not in (None, ""):
+            seen["request"] = str(requested).strip().upper()
+        distinct = {value for value in seen.values() if value}
+        if len(distinct) > 1 or None in seen.values():
+            self._record(LiveEvent.ORDER_REFUSED, stage="SYMBOL", code=SYMBOL_MISMATCH,
+                         message="symbol disagreement", symbols=seen)
+            raise OrderRefused(
+                SYMBOL_MISMATCH,
+                "주문 경로의 심볼이 일치하지 않아 주문을 만들지 않았습니다. "
+                f"({', '.join(f'{key}={value}' for key, value in seen.items())})")
+
     def plan(self, *, side: str, intent: str, qty: str | Decimal | None = None,
              notional_usdt: str | Decimal | None = None,
-             snapshot: LiveSnapshot | None = None) -> OrderPlan:
+             snapshot: LiveSnapshot | None = None,
+             symbol: str | None = None) -> OrderPlan:
         """Everything that must hold before an order exists, checked in refusal order.
 
         The request is recorded before the first check. A refusal here (a reverse, an account
@@ -185,10 +226,10 @@ class LiveOrderRouter:
         self._record(LiveEvent.ORDER_INTENT, stage="PLAN", side=side, intent=intent,
                      qty=str(qty) if qty is not None else None,
                      notional_usdt=str(notional_usdt) if notional_usdt is not None else None,
-                     gates=self.gate_view())
+                     symbol=symbol or self.config.symbol, gates=self.gate_view())
         try:
             return self._plan(side=side, intent=intent, qty=qty, notional_usdt=notional_usdt,
-                              snapshot=snapshot)
+                              snapshot=snapshot, symbol=symbol)
         except OrderRefused as exc:
             self._record(LiveEvent.ORDER_REFUSED, stage="PLAN", code=exc.code, message=exc.message)
             raise
@@ -198,7 +239,8 @@ class LiveOrderRouter:
             self.mirror.append(event, **payload)
 
     def _plan(self, *, side: str, intent: str, qty: str | Decimal | None,
-              notional_usdt: str | Decimal | None, snapshot: LiveSnapshot | None) -> OrderPlan:
+              notional_usdt: str | Decimal | None, snapshot: LiveSnapshot | None,
+              symbol: str | None = None) -> OrderPlan:
         if side not in (LONG, SHORT) and intent == OPEN:
             raise OrderRefused("UNKNOWN_SIDE", f"side must be LONG or SHORT, got {side!r}")
         state = snapshot if snapshot is not None else self.reader.snapshot()
@@ -210,6 +252,9 @@ class LiveOrderRouter:
         position = state.position
         if filters is None or book is None or position is None:
             raise OrderRefused(ACCOUNT_NOT_READY, "Binance 계좌 스냅샷이 완성되지 않았습니다.")
+        # Before the quantity is read and before anything is priced: a disagreement here means
+        # every figure that follows is about a different instrument than the operator clicked.
+        self._agree_on_symbol(symbol, state, position)
 
         if intent == CLOSE:
             return self._close_plan(filters, book)
@@ -246,6 +291,15 @@ class LiveOrderRouter:
         reduced elsewhere, and sending the stale size would be an order for coins that are no
         longer there."""
         position = self.reader.position()
+        if position.symbol != filters.symbol:
+            # The fresh read is the quantity that would actually be sent, so it is checked
+            # against the filters that are about to validate it rather than trusted because an
+            # earlier snapshot agreed.
+            self._record(LiveEvent.ORDER_REFUSED, stage="SYMBOL", code=SYMBOL_MISMATCH,
+                         message="close re-read symbol disagreement",
+                         symbols={"filters": filters.symbol, "position": position.symbol})
+            raise OrderRefused(SYMBOL_MISMATCH,
+                               "청산 직전 포지션 재조회의 심볼이 달라 청산을 중단했습니다.")
         if position.is_flat:
             raise OrderRefused(NO_POSITION_TO_CLOSE, "청산할 포지션이 없습니다.")
         side = position.side or LONG
@@ -387,4 +441,4 @@ __all__ = ["LiveOrderRouter", "OrderPlan", "OrderRefused", "OPEN", "CLOSE", "BUY
            "LIVE_TRADING_DISABLED", "REVERSE_NOT_ALLOWED", "NO_POSITION_TO_CLOSE",
            "ACCOUNT_NOT_READY", "QTY_ABOVE_LOCAL_MAXIMUM", "LEVERAGE_POSITION_OPEN",
            "UNSUPPORTED_LEVERAGE", "LEVERAGE_CONSTRAINT_UNAVAILABLE",
-           "ACCOUNT_LEVERAGE_NOT_YET_AVAILABLE", "client_order_id"]
+           "ACCOUNT_LEVERAGE_NOT_YET_AVAILABLE", "SYMBOL_MISMATCH", "client_order_id"]

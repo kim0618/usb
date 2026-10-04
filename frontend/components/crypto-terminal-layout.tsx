@@ -11,6 +11,7 @@ import {
   clockKst, costKrw, costUsdt, percent, previewFreshness, rejectLabel, signedKrw, signedUsdt,
   tickFreshness, toneClass, usdt,
 } from "@/lib/crypto-paper";
+import { DEFAULT_SYMBOL, baseAsset as baseAssetOf } from "@/lib/crypto-symbols";
 import type { Candle, Candle15sStatus, ChartBar, ChartOverlay, ChartPoint, HistoryTimeframe,
   LivePnl, OpenPositionPnl, PositionPnlPreview } from "@/lib/crypto-paper";
 import { activeChip, c1Api, c1xNote, groupDetail, researchNote, toChartMarkers }
@@ -112,7 +113,8 @@ export function MarketHeader({ state, performance, onAction, busy }: {
     <header className="mb-2 sm:mb-3" data-testid="market-header">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <div className="flex items-baseline gap-2">
-          <span className="text-sm font-bold tracking-wide text-foreground">BTCUSDT</span>
+          <span className="text-sm font-bold tracking-wide text-foreground"
+            data-testid="market-header-symbol">{state.symbol ?? DEFAULT_SYMBOL}</span>
           <span className="text-[10px] font-medium text-muted">무기한</span>
         </div>
         <FeedDot status={status} />
@@ -188,7 +190,7 @@ export const CANDLES_15S_POLL_MS = 500;
  *  is new since the last finalized candle plus the open one. Stops when another timeframe is
  *  chosen or the tab is hidden. Runs on its own timer, apart from the 1 s account poll and the
  *  333 ms live PnL, so none of them waits on another. */
-export function use15sCandles(enabled: boolean) {
+export function use15sCandles(enabled: boolean, symbol: string = DEFAULT_SYMBOL) {
   const [finalized, setFinalized] = useState<Candle15s[]>([]);
   const [current, setCurrent] = useState<Candle15s | null>(null);
   const [status, setStatus] = useState<Candle15sStatus | null>(null);
@@ -196,14 +198,24 @@ export function use15sCandles(enabled: boolean) {
   const lastFinal = useRef<number | null>(null);
   useEffect(() => {
     if (!enabled) return;
+    // A symbol change starts the series over. The incremental cursor is the whole reason this
+    // cannot be a filter on arrival: `lastFinal` would carry the previous instrument's last
+    // finalized timestamp into the new symbol's request, and the server would answer with only
+    // the candles after it - a chart with a hole in it, silently.
     let stopped = false;
     let timer: number | undefined;
+    lastFinal.current = null;
+    setFinalized([]);
+    setCurrent(null);
+    setStatus(null);
+    setCoverageFrom(null);
     const tick = async () => {
       if (stopped) return;
       if (typeof document === "undefined" || !document.hidden) {
         try {
-          const body = await cryptoApi.candles15s(lastFinal.current);
+          const body = await cryptoApi.candles15s(symbol, lastFinal.current);
           if (stopped) return;
+          if (body.symbol != null && body.symbol !== symbol) return;
           if (body.candles.length > 0) {
             const tail = body.candles[body.candles.length - 1].start_ms;
             setFinalized(previous => lastFinal.current == null ? body.candles
@@ -221,7 +233,7 @@ export function use15sCandles(enabled: boolean) {
     };
     void tick();
     return () => { stopped = true; if (timer !== undefined) window.clearTimeout(timer); };
-  }, [enabled]);
+  }, [enabled, symbol]);
   const rows = current && current.start_ms > (finalized.at(-1)?.start_ms ?? -1) ? [...finalized, current] : finalized;
   return { candles: candles15sToChart(rows), status, coverageFrom };
 }
@@ -233,10 +245,20 @@ export const CHART_HISTORY_PAGE = 500;
 export const CHART_HISTORY_POLL_MS = 15_000;
 
 /** Paged chart history. Requests are generation-checked as well as aborted, so a late response
- *  from the previous timeframe can never replace the selected series. */
-export function useChartHistory(enabled: boolean, timeframe: HistoryTimeframe) {
-  const [series, setSeries] = useState<{ key: HistoryTimeframe; candles: Candle[] }>(
-    { key: timeframe, candles: [] });
+ *  from the previous timeframe - or the previous *symbol* - can never replace the selected
+ *  series.
+ *
+ *  The series key is `symbol|timeframe`, not `timeframe`. With `timeframe` alone, switching the
+ *  symbol while staying on 1m left `series.key === timeframe` true, so the previous
+ *  instrument's candles kept rendering and the newly fetched ones were *merged into* them -
+ *  two instruments' prices in one series, which looks like a gap or a crash rather than a bug.
+ *  Changing the symbol therefore resets the generation, empties the series and re-seeds, and
+ *  the chosen timeframe is deliberately preserved across the change. */
+export function useChartHistory(enabled: boolean, timeframe: HistoryTimeframe,
+                                symbol: string = DEFAULT_SYMBOL) {
+  const seriesKey = `${symbol}|${timeframe}`;
+  const [series, setSeries] = useState<{ key: string; candles: Candle[] }>(
+    { key: seriesKey, candles: [] });
   const [loading, setLoading] = useState(false);
   const [loadingEarlier, setLoadingEarlier] = useState(false);
   const [end, setEnd] = useState(false);
@@ -244,6 +266,18 @@ export function useChartHistory(enabled: boolean, timeframe: HistoryTimeframe) {
   const before = useRef<number | null>(null);
   const loadingEarlierRef = useRef(false);
   const hasMore = useRef(true);
+  /** The series key the hook is currently about.
+   *
+   *  `loadEarlier` is handed to the chart, which calls it from a visible-range callback it
+   *  holds across renders. On a symbol change the chart's range resets and it asks for more
+   *  history *through the closure it already had*, which still names the previous instrument -
+   *  observed in the preview as one `chart-history?symbol=BTCUSDT` read 346 ms after switching
+   *  to SOL. The response was discarded (the generation and the series key both changed), so
+   *  nothing wrong reached the screen, but the request should not be sent at all: it is a read
+   *  about an instrument nobody is looking at, and the next person to touch this code should
+   *  not have to rediscover that the guard is downstream.
+   */
+  const activeKey = useRef(seriesKey);
 
   useEffect(() => {
     if (!enabled) return;
@@ -254,7 +288,8 @@ export function useChartHistory(enabled: boolean, timeframe: HistoryTimeframe) {
     before.current = null;
     hasMore.current = true;
     loadingEarlierRef.current = false;
-    setSeries({ key: timeframe, candles: [] });
+    activeKey.current = seriesKey;
+    setSeries({ key: seriesKey, candles: [] });
     setLoading(true);
     setLoadingEarlier(false);
     setEnd(false);
@@ -262,17 +297,18 @@ export function useChartHistory(enabled: boolean, timeframe: HistoryTimeframe) {
     const current = () => !stopped && generation.current === ownGeneration;
     const refreshTail = async () => {
       try {
-        const body = await cryptoApi.chartHistory(timeframe, 3, null, controller.signal);
-        if (current()) setSeries(previous => ({ key: timeframe,
-          candles: mergeCandles(previous.key === timeframe ? previous.candles : [], chartBarsToCandles(body.bars)) }));
+        const body = await cryptoApi.chartHistory(symbol, timeframe, 3, null, controller.signal);
+        if (current()) setSeries(previous => ({ key: seriesKey,
+          candles: mergeCandles(previous.key === seriesKey ? previous.candles : [], chartBarsToCandles(body.bars)) }));
       } catch { /* history remains usable when a refresh fails */ }
       if (current()) timer = window.setTimeout(refreshTail, CHART_HISTORY_POLL_MS);
     };
 
-    void cryptoApi.chartHistory(timeframe, CHART_INITIAL_BARS[timeframe], null, controller.signal)
+    void cryptoApi.chartHistory(symbol, timeframe, CHART_INITIAL_BARS[timeframe], null,
+                                controller.signal)
       .then(body => {
         if (!current()) return;
-        setSeries({ key: timeframe, candles: chartBarsToCandles(body.bars) });
+        setSeries({ key: seriesKey, candles: chartBarsToCandles(body.bars) });
         before.current = body.next_before_ms;
         hasMore.current = body.has_more;
         setEnd(!body.has_more);
@@ -282,19 +318,22 @@ export function useChartHistory(enabled: boolean, timeframe: HistoryTimeframe) {
       .finally(() => { if (current()) setLoading(false); });
 
     return () => { stopped = true; controller.abort(); if (timer !== undefined) window.clearTimeout(timer); };
-  }, [enabled, timeframe]);
+  }, [enabled, timeframe, symbol, seriesKey]);
 
   const loadEarlier = useCallback(async () => {
     if (!enabled || loadingEarlierRef.current || !hasMore.current || before.current == null) return;
+    // A call through a closure from the previous symbol or timeframe. Refused before the
+    // request, not after the response.
+    if (activeKey.current !== seriesKey) return;
     const ownGeneration = generation.current;
     const cursor = before.current;
     loadingEarlierRef.current = true;
     setLoadingEarlier(true);
     try {
-      const body = await cryptoApi.chartHistory(timeframe, CHART_HISTORY_PAGE, cursor);
+      const body = await cryptoApi.chartHistory(symbol, timeframe, CHART_HISTORY_PAGE, cursor);
       if (generation.current !== ownGeneration) return;
-      setSeries(previous => ({ key: timeframe,
-        candles: mergeCandles(previous.key === timeframe ? previous.candles : [], chartBarsToCandles(body.bars)) }));
+      setSeries(previous => ({ key: seriesKey,
+        candles: mergeCandles(previous.key === seriesKey ? previous.candles : [], chartBarsToCandles(body.bars)) }));
       before.current = body.next_before_ms;
       hasMore.current = body.has_more && body.next_before_ms !== cursor;
       setEnd(!hasMore.current);
@@ -303,9 +342,9 @@ export function useChartHistory(enabled: boolean, timeframe: HistoryTimeframe) {
       if (generation.current === ownGeneration) setLoadingEarlier(false);
       loadingEarlierRef.current = false;
     }
-  }, [enabled, timeframe]);
+  }, [enabled, timeframe, symbol, seriesKey]);
 
-  return { candles: series.key === timeframe ? series.candles : [], loading, loadingEarlier, end, loadEarlier };
+  return { candles: series.key === seriesKey ? series.candles : [], loading, loadingEarlier, end, loadEarlier };
 }
 
 /** Best bid, ask and spread on one line. They matter to a market order but they are not the
@@ -393,9 +432,17 @@ export function ChartSection({ state, bars, timeframe, onTimeframe, overlays: gi
    *  places and who has to say so. */
   note?: string;
 }) {
-  const fast = use15sCandles(timeframe === "15s");
+  // The instrument being charted, taken from the snapshot this section is rendering.
+  //
+  // Not a prop with a default: both hooks below default to BTCUSDT when handed nothing, and
+  // that is exactly what happened here - every tab drew BTCUSDT candles while the header, the
+  // position and the order panel were all correct about ETH or SOL. It had no visual signature
+  // and was found by tracing the requests the page actually made in the isolated preview, not
+  // by looking at the screen.
+  const symbol = state.symbol ?? DEFAULT_SYMBOL;
+  const fast = use15sCandles(timeframe === "15s", symbol);
   const historyFrame: HistoryTimeframe = timeframe === "15s" ? "1m" : timeframe;
-  const history = useChartHistory(timeframe !== "15s", historyFrame);
+  const history = useChartHistory(timeframe !== "15s", historyFrame, symbol);
   const fallback = timeframe === "1m" ? aggregateCandles(bars, 1) : [];
   const candles: ChartPoint[] = timeframe === "15s" ? fast.candles
     : (history.candles.length > 0 ? history.candles : fallback);
@@ -461,7 +508,10 @@ export function ChartSection({ state, bars, timeframe, onTimeframe, overlays: gi
         <C1SignalStrip state={c1} selected={selected} selectedKind={picked.kind} />
       )}
       <CandleChart candles={candles} overlays={overlays} markers={chartMarkers}
-        onMarkerClick={onMarkerClick} seriesKey={String(timeframe)}
+        // The symbol is part of the series identity. With the timeframe alone, switching
+        // instruments on the same timeframe kept the same series and the chart *amended* it
+        // with the new prices instead of replacing them - two instruments in one line.
+        onMarkerClick={onMarkerClick} seriesKey={`${symbol}|${timeframe}`}
         seconds={timeframe === "15s"} onPriceRange={onPriceRange}
         onNeedMoreHistory={timeframe === "15s" ? undefined : history.loadEarlier} className="h-[200px] sm:h-[280px] xl:h-[520px]" />
     </section>
@@ -627,7 +677,8 @@ export function MobilePositionCard({ state, openedMs, nowMs, preview, live, onAc
         <span className={`rounded px-2 py-0.5 font-bold ${long ? "bg-success-soft text-success" : "bg-danger-soft text-danger"}`}
           data-testid="mobile-position-side">{account.position_side}</span>
         <span className="font-semibold tabular-nums text-foreground-secondary">{num(account.leverage)?.toString() ?? "-"}x</span>
-        <span className="tabular-nums text-foreground-secondary">{qty(account.position_qty)} BTC</span>
+        <span className="tabular-nums text-foreground-secondary">
+          {qty(account.position_qty)} {baseAssetOf(state.symbol ?? DEFAULT_SYMBOL)}</span>
         {held && <span className="ml-auto text-[11px] text-muted">{held} 보유</span>}
       </div>
       <LivePnlHeadline state={state} live={live} preview={preview} />
@@ -639,7 +690,8 @@ export function MobilePositionCard({ state, openedMs, nowMs, preview, live, onAc
       </dl>
       <button type="button" className="btn-muted h-11 w-full text-sm font-bold" data-testid="mobile-close-button"
         disabled={busy || state.quote === null}
-        onClick={() => onAction(() => cryptoApi.order({ side: account.position_side!, intent: "CLOSE", qty: account.position_qty }))}>
+        onClick={() => onAction(() => cryptoApi.order(state.symbol ?? DEFAULT_SYMBOL,
+          { side: account.position_side!, intent: "CLOSE", qty: account.position_qty }))}>
         CLOSE · 전량 청산
       </button>
       <button type="button" className="mt-1.5 flex w-full items-center justify-between py-1 text-[11px] font-medium text-foreground-secondary"
@@ -673,7 +725,7 @@ export function PositionStrip({ state, openedMs, nowMs, preview, live }: {
   const long = account.position_side === "LONG";
   const held = holdingDuration(openedMs, nowMs);
   const rows: [string, string][] = [
-    ["수량", `${qty(account.position_qty)} BTC`],
+    ["수량", `${qty(account.position_qty)} ${baseAssetOf(state.symbol ?? DEFAULT_SYMBOL)}`],
     ["진입가", price(account.avg_entry)],
     ["Mark", price(state.quote?.mark_price)],
     ["청산가", price(account.liquidation_price)],
@@ -761,7 +813,8 @@ export function ResetControl({ state, onAction, busy }: {
                 onClick={() => setAsking(false)}>취소</button>
               <button type="button" className="btn-danger h-10 text-xs font-bold"
                 data-testid="reset-confirm" disabled={busy}
-                onClick={() => { setAsking(false); onAction(() => cryptoApi.reset()); }}>
+                onClick={() => { setAsking(false);
+                  onAction(() => cryptoApi.reset(state.symbol ?? DEFAULT_SYMBOL)); }}>
                 {resetCapitalLabel()}으로 초기화
               </button>
             </div>

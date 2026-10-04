@@ -30,6 +30,20 @@ TOPICS = (BOOK_TOPIC, f"tickers.{SYMBOL}", f"kline.1.{SYMBOL}")
 BOOK_DEPTH = 5
 
 
+def book_topic(symbol: str) -> str:
+    return f"orderbook.50.{symbol}"
+
+
+def topics_for(symbol: str) -> tuple[str, ...]:
+    """The three public topics one instrument needs: its book, its ticker, its 1m candles.
+
+    Derived rather than listed so a feed built for ETHUSDT cannot subscribe to a BTCUSDT topic
+    by having been handed a stale tuple. The module-level `TOPICS` is kept because it is the
+    default symbol's and existing callers read it.
+    """
+    return (book_topic(symbol), f"tickers.{symbol}", f"kline.1.{symbol}")
+
+
 @dataclass
 class FeedTelemetry:
     connected: bool = False
@@ -46,7 +60,16 @@ class FeedTelemetry:
 
 @dataclass
 class BybitPublicFeed:
-    """Owns the live view. `quote()` is the single price authority the engine ever sees."""
+    """Owns the live view. `quote()` is the single price authority the engine ever sees.
+
+    One feed is one instrument: its own socket, its own book, its own ticker and its own
+    candles. A multi-symbol terminal runs one of these per symbol rather than one feed that
+    tracks three, because the book's continuity rule (a sequence gap discards the book and
+    resubscribes) is per instrument, and sharing one socket would mean an ETH gap throwing
+    away the BTC book.
+    """
+    #: The instrument this feed is about. Fixed at construction; every topic is derived from it.
+    symbol: str = SYMBOL
     book: LocalOrderBook = field(default_factory=LocalOrderBook)
     ticker: dict[str, Any] = field(default_factory=dict)
     telemetry: FeedTelemetry = field(default_factory=FeedTelemetry)
@@ -84,6 +107,9 @@ class BybitPublicFeed:
 
     def view(self) -> dict[str, Any]:
         return {
+            # Named so a screen can check that the feed it is reading is the symbol it asked
+            # for, instead of trusting that the request routed correctly.
+            "symbol": self.symbol,
             "connected": self.telemetry.connected,
             "connects": self.telemetry.connects,
             "reconnects": self.telemetry.reconnects,
@@ -109,7 +135,7 @@ class BybitPublicFeed:
                                       headers={"User-Agent": "usb-crypto-d3-terminal/1"})
         try:
             response = http.get("/v5/market/kline", params={
-                "category": "linear", "symbol": SYMBOL, "interval": "1", "limit": limit})
+                "category": "linear", "symbol": self.symbol, "interval": "1", "limit": limit})
             response.raise_for_status()
             payload = response.json()
             if payload.get("retCode") != 0:
@@ -188,7 +214,8 @@ class BybitPublicFeed:
                     self.telemetry.connects += 1
                     self.telemetry.connected = True
                     attempt = 0
-                    await socket.send(json.dumps({"op": "subscribe", "args": list(TOPICS)}))
+                    await socket.send(json.dumps({"op": "subscribe",
+                                                  "args": list(topics_for(self.symbol))}))
                     while not self._stop.is_set():
                         raw = await asyncio.wait_for(socket.recv(), timeout=30)
                         try:
@@ -196,8 +223,9 @@ class BybitPublicFeed:
                         except json.JSONDecodeError:
                             self.telemetry.malformed += 1
                         if self._needs_resync:
-                            await socket.send(json.dumps({"op": "unsubscribe", "args": [BOOK_TOPIC]}))
-                            await socket.send(json.dumps({"op": "subscribe", "args": [BOOK_TOPIC]}))
+                            topic = book_topic(self.symbol)
+                            await socket.send(json.dumps({"op": "unsubscribe", "args": [topic]}))
+                            await socket.send(json.dumps({"op": "subscribe", "args": [topic]}))
                             self._needs_resync = False
                             self.telemetry.book_resyncs += 1
             except (OSError, websockets.ConnectionClosed, asyncio.TimeoutError) as exc:

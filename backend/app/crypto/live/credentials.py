@@ -10,10 +10,11 @@ from __future__ import annotations
 
 import hashlib
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from decimal import Decimal, InvalidOperation
 
 from .endpoints import DEFAULT_BASE_URL, DEFAULT_WS_PRIVATE_URL, DEFAULT_WS_PUBLIC_URL
+from ..symbols import DEFAULT_SYMBOL, SUPPORTED_SYMBOLS, SymbolNotSupported, resolve
 
 API_KEY_ENV = "BINANCE_API_KEY"
 API_SECRET_ENV = "BINANCE_API_SECRET"
@@ -31,10 +32,17 @@ BASE_URL_ENV = "BINANCE_FUTURES_BASE_URL"
 WS_PUBLIC_URL_ENV = "BINANCE_FUTURES_WS_PUBLIC_URL"
 WS_PRIVATE_URL_ENV = "BINANCE_FUTURES_WS_PRIVATE_URL"
 RECV_WINDOW_ENV = "BINANCE_RECV_WINDOW_MS"
+#: Which symbol a screen that names none gets. It is a *default*, not the only one: the set
+#: this build may trade is `symbols.SUPPORTED_SYMBOLS` and every request carries its own symbol.
 SYMBOL_ENV = "BINANCE_LIVE_SYMBOL"
+#: Narrows the whitelist for one deployment, comma separated. Absent means the whole whitelist.
+#: It can only ever remove symbols - a name outside `SUPPORTED_SYMBOLS` is refused rather than
+#: added, so this variable cannot widen what the build supports.
+SYMBOLS_ENV = "BINANCE_LIVE_SYMBOLS"
 
-#: V1 supports exactly one instrument. Anything else is refused rather than attempted.
-SUPPORTED_SYMBOL = "BTCUSDT"
+#: The default instrument. Kept under its original name because `filters.py` and the tests
+#: import it, and because it is still the one symbol every file path in this package is about.
+SUPPORTED_SYMBOL = DEFAULT_SYMBOL
 
 #: Binance's own ceiling for `recvWindow`.
 MAX_RECV_WINDOW_MS = 60_000
@@ -78,7 +86,16 @@ class Credentials:
 
 @dataclass(frozen=True)
 class LiveConfig:
-    """Everything the LIVE path reads from the environment, resolved once."""
+    """Everything the LIVE path reads from the environment, resolved once.
+
+    `symbol` is singular and stays singular. Every object built from a config - the reader, the
+    router, the adapter - is about exactly one instrument, and a multi-symbol terminal is a
+    *set of those objects*, one per symbol, built with `for_symbol`. That is the whole of the
+    isolation property: there is no code path on which a reader could be asked about a symbol
+    its config does not name, so a BTC figure cannot reach an ETH screen by being passed the
+    wrong argument. `symbols` is the permitted set, carried so a route can refuse a symbol
+    without importing the whitelist.
+    """
     symbol: str
     base_url: str
     ws_public_url: str
@@ -89,6 +106,22 @@ class LiveConfig:
     max_open_qty: Decimal | None
     credentials_present: bool
     fingerprint: str | None
+    #: Every symbol this deployment may trade, the default first.
+    symbols: tuple[str, ...] = SUPPORTED_SYMBOLS
+
+    def for_symbol(self, symbol: str) -> "LiveConfig":
+        """The same deployment, pointed at one of its other instruments.
+
+        `replace` rather than a mutable field so a config handed to a reader can never be
+        re-pointed afterwards: an `AccountReader` copies `config.symbol` at construction and the
+        object it holds is frozen, so the symbol it reads is fixed for the life of the reader.
+        """
+        candidate = resolve(symbol)
+        if candidate not in self.symbols:
+            raise SymbolNotSupported(symbol)
+        if candidate == self.symbol:
+            return self
+        return replace(self, symbol=candidate)
 
     @property
     def armed(self) -> bool:
@@ -98,7 +131,7 @@ class LiveConfig:
 
     def view(self) -> dict[str, object]:
         """Safe to serialise. No key, no secret, no prefix of either."""
-        return {"symbol": self.symbol, "base_url": self.base_url,
+        return {"symbol": self.symbol, "symbols": list(self.symbols), "base_url": self.base_url,
                 "ws_private_url": self.ws_private_url,
                 "recv_window_ms": self.recv_window_ms,
                 "trading_enabled": self.trading_enabled,
@@ -171,13 +204,40 @@ def _recv_window(env: dict[str, str]) -> int:
     return value
 
 
+def _symbols(env: dict[str, str]) -> tuple[str, ...]:
+    """The deployment's permitted set, in whitelist order.
+
+    Order is taken from `SUPPORTED_SYMBOLS` rather than from the variable, so the tab strip does
+    not reorder itself because somebody typed the list differently in a unit file.
+    """
+    raw = (env.get(SYMBOLS_ENV) or "").strip()
+    if not raw:
+        return SUPPORTED_SYMBOLS
+    named = set()
+    for piece in raw.split(","):
+        piece = piece.strip()
+        if not piece:
+            continue
+        try:
+            named.add(resolve(piece))
+        except SymbolNotSupported as exc:
+            raise ValueError(str(exc)) from None
+    if not named:
+        return SUPPORTED_SYMBOLS
+    return tuple(item for item in SUPPORTED_SYMBOLS if item in named)
+
+
 def load_config(environ: dict[str, str] | None = None) -> LiveConfig:
     """Resolve the LIVE configuration. Never raises for a missing credential: the status route
     has to be able to say "no key configured" rather than fail."""
     env = dict(os.environ if environ is None else environ)
-    symbol = (env.get(SYMBOL_ENV) or SUPPORTED_SYMBOL).strip().upper()
-    if symbol != SUPPORTED_SYMBOL:
-        raise ValueError(f"V1 supports {SUPPORTED_SYMBOL} only, got {symbol!r}")
+    symbols = _symbols(env)
+    try:
+        symbol = resolve(env.get(SYMBOL_ENV))
+    except SymbolNotSupported as exc:
+        raise ValueError(str(exc)) from None
+    if symbol not in symbols:
+        raise ValueError(f"{SYMBOL_ENV}={symbol} is not in {SYMBOLS_ENV}={','.join(symbols)}")
     try:
         credentials = load_credentials(env)
     except CredentialsMissing:
@@ -193,4 +253,5 @@ def load_config(environ: dict[str, str] | None = None) -> LiveConfig:
         max_open_qty=_max_open_qty(env),
         credentials_present=credentials is not None,
         fingerprint=credentials.fingerprint if credentials is not None else None,
+        symbols=symbols,
     )
