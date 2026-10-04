@@ -76,7 +76,12 @@ class LivePanels:
     @property
     def baseline_provider_mix(self) -> dict[str, Any]:
         """The run's denominator provenance, as section I's named block."""
-        return B.provider_mix(self.baselines)
+        return B.provider_mix({s: self.baselines[s] for s in self.symbols})
+
+    @property
+    def readiness(self) -> dict[str, Any]:
+        return baseline_readiness(self.session, self.universe.a_symbols, self.baselines,
+                                  snapshots=self.snapshots)
 
     def declaration(self) -> dict[str, Any]:
         available = sum(1 for item in self.baselines.values() if item.available)
@@ -92,7 +97,36 @@ class LivePanels:
             "gate_window_available_at_cut": False,
             "premarket_digest": self.digest,
             "universe": self.universe.declaration(),
+            "baseline_readiness": self.readiness,
         }
+
+
+def baseline_readiness(session: date, symbols: Sequence[str],
+                       baselines: Mapping[str, B.AMoverBaseline], *,
+                       snapshots: Mapping[str, SymbolSnapshot] | None = None) -> dict[str, Any]:
+    """Admission is per symbol; missing coverage never becomes a zero denominator."""
+    rows = []
+    for symbol in symbols:
+        item = baselines.get(symbol)
+        count = item.baseline_session_count if item is not None else 0
+        ready = bool(item is not None and item.available and count == B.BASELINE_SESSIONS
+                     and item.entry_session_date == session
+                     and len(set(item.used_sessions)) == B.BASELINE_SESSIONS
+                     and len(item.volumes) == B.BASELINE_SESSIONS
+                     and item.median_volume is not None and np.isfinite(item.median_volume)
+                     and all(day < session for day in item.used_sessions)
+                     and all(np.isfinite(v) and v >= 0 for v in item.volumes))
+        included = ready and (snapshots is None or symbol in snapshots)
+        rows.append({"symbol": symbol, "status": "BASELINE_READY" if ready else "BASELINE_INSUFFICIENT",
+                     "available_session_count": count, "scanner_included": included,
+                     "exclusion_reason": (None if included else "NO_FINALIZED_SNAPSHOT" if ready
+                                          else "BASELINE_INSUFFICIENT")})
+    ready_count = sum(row["status"] == "BASELINE_READY" for row in rows)
+    return {"status": "READY" if ready_count else "BLOCKED",
+            "universe_total": len(rows), "baseline_ready_count": ready_count,
+            "baseline_insufficient_count": len(rows) - ready_count,
+            "scanner_eligible_count": sum(row["scanner_included"] for row in rows),
+            "symbols": rows}
 
 
 def live_daily_panel(repo: Path, session: date, symbols: Sequence[str], *,
@@ -179,7 +213,11 @@ def assemble(repo: Path, session: date, snapshots: Mapping[str, SymbolSnapshot],
     """Assemble the live inputs. Only A's own universe is scanned; E-only symbols are not."""
     config = config or MoverScannerConfig()
     calendar = calendar or MarketCalendar()
-    scan_symbols = tuple(symbol for symbol in union.a_symbols if symbol in snapshots)
+    readiness = baseline_readiness(session, union.a_symbols, baselines, snapshots=snapshots)
+    if not readiness["baseline_ready_count"]:
+        raise MoverDataUnavailableError(DataUnavailable.PREMARKET_BASELINE_TOO_SHORT,
+                                        "no A universe member has 20 covered prior sessions")
+    scan_symbols = tuple(row["symbol"] for row in readiness["symbols"] if row["scanner_included"])
     if not scan_symbols:
         raise MoverDataUnavailableError(
             DataUnavailable.NO_MINUTE_TAPE,
@@ -201,7 +239,8 @@ def scan_input(panels: LivePanels) -> MoverScanInput:
         universe_checksum=panels.universe.reference_checksum,
         premarket_digest=panels.digest,
         baseline_sessions=B.BaselineRule().sessions,
-        baseline_provider_mix=panels.baseline_provider_mix)
+        baseline_provider_mix=panels.baseline_provider_mix,
+        baseline_readiness=panels.readiness)
 
 
 class LivePremarketFeed(MoverPremarketSource):

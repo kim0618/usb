@@ -30,7 +30,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from app.models.scanner import ScannerRun
+from app.models.scanner import ScannerRun, ScannerUniverseInput
 from app.repositories.scanner import ScannerSnapshotRepository
 from app.research.prompt import ResearchPromptService
 from app.strategy_a_mover_live import contract as LC
@@ -76,10 +76,18 @@ def persist(session: Session, live: SCAN.LiveScan, *, now: datetime) -> HandoffR
     run = repository.create_run(
         trading_date=live.session, started_at=live.observed_at, provider=LC.RUN_PROVIDER,
         score_version=LC.RUN_SCORE_VERSION, status="RUNNING",
-        universe_count=live.scan.evaluated, excluded_count=live.scan.evaluated - live.scan.eligible,
+        universe_count=(live.baseline_readiness or {}).get("universe_total", live.scan.evaluated),
+        excluded_count=(live.baseline_readiness or {}).get("universe_total", live.scan.evaluated) - live.scan.eligible,
         candidate_count=live.selection.discovery_pool_size, top8_count=len(rows))
     if rows:
         repository.add_candidates(run.id, rows)
+    if live.baseline_readiness is not None:
+        session.add_all([ScannerUniverseInput(
+            scanner_run_id=run.id, position=position, symbol=row["symbol"],
+            source=LC.RUN_PROVIDER, acquired_at=live.observed_at,
+            outcome="BASELINE_READY" if row["scanner_included"] else "EXCLUDED",
+            exclusion_reason=row["exclusion_reason"], universe_checksum=live.universe_checksum)
+            for position, row in enumerate(live.baseline_readiness["symbols"], start=1)])
     repository.complete_run(run.id, completed_at=now, status="COMPLETED")
     session.commit()
     prompt = (ResearchPromptService(repository).generate_top_for_run(run) if rows else None)

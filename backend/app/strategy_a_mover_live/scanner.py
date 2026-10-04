@@ -54,6 +54,7 @@ class LiveScan:
     #: Section I's denominator provenance, as the source handed it over. None when the source
     #: does not mix providers; never invented here.
     baseline_provider_mix: Mapping[str, Any] | None = None
+    baseline_readiness: Mapping[str, Any] | None = None
 
     @property
     def baseline_stamp(self) -> dict[str, Any]:
@@ -95,6 +96,7 @@ class LiveScan:
             "actionability_rejections": self.selection.rejection_counts,
             "baseline_provider_mix": (dict(self.baseline_provider_mix)
                                       if self.baseline_provider_mix is not None else None),
+            "baseline_readiness": self.baseline_readiness,
         } | self.baseline_stamp
 
 
@@ -131,7 +133,8 @@ def run(scan_input: MoverScanInput, *, observed_at: datetime,
                     universe_as_of=scan_input.universe_as_of,
                     universe_checksum=scan_input.universe_checksum,
                     premarket_digest=scan_input.premarket_digest, observed_at=observed_at,
-                    baseline_provider_mix=scan_input.baseline_provider_mix)
+                    baseline_provider_mix=scan_input.baseline_provider_mix,
+                    baseline_readiness=scan_input.baseline_readiness)
 
 
 def run_from_source(source, session: date, *, observed_at: datetime,
@@ -196,6 +199,9 @@ def candidate_rows(live: LiveScan) -> list[ScannerCandidateData]:
         components["baseline_version"] = contract.baseline_version
         components["baseline_provider_contract"] = contract.baseline_provider_contract
         components.update(live.baseline_stamp)
+        if live.baseline_readiness is not None:
+            components["baseline_readiness"] = {
+                k: v for k, v in live.baseline_readiness.items() if k != "symbols"}
         out.append(ScannerCandidateData(
             symbol=row.symbol, rank=row.rank, is_top8=row.is_top8, score=row.score,
             score_components=components, observed_at=row.observed_at,

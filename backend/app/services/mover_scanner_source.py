@@ -83,6 +83,7 @@ class MoverScanInput:
     #: the live source fills it and the run record carries it. See
     #: ``strategy_a_mover_live.baseline.provider_mix``.
     baseline_provider_mix: Mapping[str, Any] | None = None
+    baseline_readiness: Mapping[str, Any] | None = None
 
 
 class MoverPremarketSource:

@@ -147,6 +147,8 @@ class SharedCollectorIntegration:
         }
         body["forward_observation"] = self._record_forward(snapshots, observed)
         baselines = self._baselines(snapshots)
+        body["baseline_readiness"] = FEAT.baseline_readiness(
+            self.session, self.union.a_symbols, baselines, snapshots=snapshots)
         body["baseline"] = {
             "identity": B.BASELINE_IDENTITY,
             "rule": self.baseline_rule.declaration(),
@@ -227,16 +229,12 @@ class SharedCollectorIntegration:
         if self.session_factory is None:
             return {}
         calendar = self.calendar or MarketCalendar()
-        candidates = [(symbol, self._exchange_of(symbol)) for symbol in snapshots]
+        candidates = [(symbol, self._exchange_of(symbol)) for symbol in self.union.a_symbols]
         with self.session_factory() as database:
             return B.load_baselines(database, candidates, self.session, calendar=calendar,
                                     rule=self.baseline_rule)
 
     def _handoff(self, live: SCAN.LiveScan) -> dict[str, Any]:
-        if live.candidate_count == 0:
-            return {"status": str(CFG.Refusal.NO_CANDIDATES), "gpt_calls": 0,
-                    "persisted": False,
-                    "detail": "the scan ran and admitted nobody; no prompt is rendered"}
         if self.session_factory is None:
             return {"status": "NOT_PERSISTED_NO_DATABASE", "gpt_calls": 0, "persisted": False,
                     "candidates": live.candidate_count}
