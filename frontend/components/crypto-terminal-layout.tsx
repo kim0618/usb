@@ -12,11 +12,29 @@ import {
   tickFreshness, toneClass, usdt,
 } from "@/lib/crypto-paper";
 import { DEFAULT_SYMBOL, baseAsset as baseAssetOf } from "@/lib/crypto-symbols";
-import type { Candle, Candle15sStatus, ChartBar, ChartOverlay, ChartPoint, HistoryTimeframe,
+import type { Candle, Candle15sStatus, ChartBar, ChartOverlay, ChartPoint, CryptoAccount,
+  HistoryTimeframe,
   LivePnl, OpenPositionPnl, PositionPnlPreview } from "@/lib/crypto-paper";
 import { activeChip, c1Api, c1xNote, groupDetail, researchNote, toChartMarkers }
   from "@/lib/crypto-c1";
 import type { C1Marker, C1State, MarkKind } from "@/lib/crypto-c1";
+
+/** One sentence naming the other symbols that are holding part of the wallet, or undefined on
+ *  a run whose symbols each own their cash.
+ *
+ *  The paper wallet is shared the way a Binance futures wallet is: margin posted on one
+ *  instrument is margin another cannot also spend. That makes the paper screen as tight as the
+ *  live one, and it makes "주문가능" on a flat symbol a number this screen cannot explain by
+ *  itself. */
+export function sharedWalletNote(account: CryptoAccount | null | undefined): string | undefined {
+  const cash = account?.cash;
+  if (!cash) return undefined;
+  const others = Object.entries(cash.used_margin_by_symbol)
+    .filter(([, margin]) => Number(margin) > 0);
+  if (others.length === 0) return "세 심볼이 지갑 하나를 함께 씁니다.";
+  const held = others.map(([symbol, margin]) => `${symbol} ${margin}`).join(", ");
+  return `세 심볼이 지갑 하나를 함께 씁니다. 현재 증거금: ${held}`;
+}
 
 /** The signal engine decides once a minute on the backend; a faster poll than this would only
  *  re-fetch the same answer. */
@@ -133,8 +151,13 @@ export function MarketHeader({ state, performance, onAction, busy }: {
           secondary figure because it is what the engine actually settles in. */}
       <dl className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-0.5 sm:mt-2.5 sm:grid-cols-4 sm:gap-y-1.5" data-testid="account-compact">
         <CompactFigure label="자산" value={krw(krwFigures?.equity)} sub={usdt(account?.equity)} />
+        {/* On a shared wallet this is the *wallet's* free balance, not this symbol's. With a
+            position open on another instrument the figure is lower than this screen's own
+            position explains, and without saying so it reads as a bug. The title names which
+            symbols are holding the difference. */}
         <CompactFigure label="주문가능" value={krw(krwFigures?.available_balance)}
-          sub={usdt(account?.available_balance)} />
+          sub={usdt(account?.available_balance)}
+          title={sharedWalletNote(account)} />
         <CompactFigure label="미실현" value={signedKrw(krwFigures?.unrealized_pnl)}
           sub={signedUsdt(account?.unrealized_pnl)} tone={toneClass(account?.unrealized_pnl)} />
         {/* Since the last reset, not since the run began. A reset moves the capital line, so

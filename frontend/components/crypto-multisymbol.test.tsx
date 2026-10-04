@@ -473,3 +473,26 @@ describe("the order preview does not survive a symbol change", () => {
     expect(spy.mock.calls.every(call => call[0] === "SOLUSDT")).toBe(true);
   });
 });
+
+describe("the shared paper wallet is explained on screen", () => {
+  it("names the symbols holding the margin that is missing from 주문가능", async () => {
+    // On a shared wallet the available balance is the wallet's, not this symbol's. With a
+    // position open elsewhere the figure is lower than this screen's own position explains,
+    // and with nothing saying so it reads as a bug.
+    const { sharedWalletNote } = await import("@/components/crypto-terminal-layout");
+    expect(sharedWalletNote(null)).toBeUndefined();
+    expect(sharedWalletNote({ } as never)).toBeUndefined();
+    const flatWallet = sharedWalletNote({ cash: { shared: true, symbols: ["BTCUSDT"],
+      capital_base_usdt: "745.71", wallet_balance: "745.71", used_margin: "0",
+      available_balance: "745.71", used_margin_by_symbol: { BTCUSDT: "0", ETHUSDT: "0" } },
+    } as never);
+    expect(flatWallet).toContain("지갑 하나");
+    const held = sharedWalletNote({ cash: { shared: true, symbols: ["BTCUSDT", "ETHUSDT"],
+      capital_base_usdt: "745.71", wallet_balance: "745.71", used_margin: "13.4891",
+      available_balance: "732.22",
+      used_margin_by_symbol: { BTCUSDT: "0", ETHUSDT: "13.4891" } },
+    } as never);
+    expect(held).toContain("ETHUSDT 13.4891");
+    expect(held).not.toContain("BTCUSDT 0");
+  });
+});

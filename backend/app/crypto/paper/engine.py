@@ -443,7 +443,13 @@ class PaperEngine:
         mark = quote.mark_price if quote is not None else Decimal(0)
         rate = self.config.fx.krw_per_usdt
         before = self.account.equity(mark)
-        self.account.apply_capital_reset(target_usdt, ts_ms)
+        # On a shared wallet the reset is the wallet's, not this symbol's share of it:
+        # re-anchoring one member would leave the others' accumulated deltas in the purse and
+        # the balance would not land on the target.
+        if self.account.cash is not None:
+            self.account.cash.apply_capital_reset(target_usdt, ts_ms)
+        else:
+            self.account.apply_capital_reset(target_usdt, ts_ms)
         after = self.account.equity(mark)
 
         self.ledger.append(

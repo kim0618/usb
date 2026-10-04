@@ -1156,3 +1156,236 @@ def test_a_mirror_line_that_names_no_symbol_belongs_to_the_default_symbol_only(
     # Single-symbol callers that pass no default are unchanged.
     legacy = restriction_from_mirror(mirror, symbol="BTCUSDT", now_ms=UNLOCK_MS - 1)
     assert legacy.restriction is not None
+
+
+# ------------------------------------------------------------------ one PAPER wallet
+
+
+def _account(**over: Any):
+    from app.crypto.paper.account import Account
+    base = {"starting_capital_usdt": Decimal("745.71"), "capital_base_usdt": Decimal("745.71")}
+    return Account(**{**base, **over})
+
+
+def _position(qty: str, entry: str, leverage: str = "10"):
+    from app.crypto.paper.account import Position
+    return Position(signed_qty=Decimal(qty), avg_entry=Decimal(entry), leverage=Decimal(leverage))
+
+
+def test_an_account_with_no_shared_wallet_behaves_exactly_as_before() -> None:
+    """The single-symbol run must not move. Every figure and both invariants, unchanged."""
+    account = _account()
+    assert account.cash is None
+    assert account.wallet_balance == Decimal("745.71")
+    assert account.available_balance == Decimal("745.71")
+    account.position = _position("0.01", "84800")
+    assert account.used_margin == Decimal("84.800")
+    assert account.available_balance == Decimal("745.71") - Decimal("84.800")
+    account.assert_invariants(Decimal("84800"))
+
+
+def test_three_symbols_draw_on_one_wallet_and_do_not_each_bring_their_own(
+) -> None:
+    """Adding an instrument adds an instrument, not another starting balance.
+
+    This is the whole requirement: a real Binance futures wallet is one purse, so margin posted
+    on BTCUSDT is margin ETHUSDT cannot also spend. Before this, each paper symbol had its own
+    745.71 and the screen accepted sizes the live account would refuse - the rehearsal was
+    looser than the thing it rehearses, which is the dangerous direction.
+    """
+    from app.crypto.paper.account import SharedCash
+
+    btc, eth, sol = _account(), _account(), _account()
+    purse = SharedCash(owner="BTCUSDT")
+    for symbol, account in (("BTCUSDT", btc), ("ETHUSDT", eth), ("SOLUSDT", sol)):
+        purse.join(symbol, account)
+
+    # Not 3 x 745.71. The members' own capital bases are ignored; the owner's is the wallet's.
+    assert purse.wallet_balance == Decimal("745.71")
+    assert btc.available_balance == eth.available_balance == sol.available_balance
+
+    btc.position = _position("0.05", "84800")
+    posted = btc.used_margin
+    assert posted == Decimal("424.000")
+    # Every symbol sees the money go, including the two that did nothing.
+    for account in (btc, eth, sol):
+        assert account.available_balance == Decimal("745.71") - posted
+    # Each symbol's own margin is still its own: this is what backs that position.
+    assert (eth.used_margin, sol.used_margin) == (Decimal(0), Decimal(0))
+
+    eth.position = _position("0.1", "2690")
+    assert purse.used_margin == posted + eth.used_margin
+    for account in (btc, eth, sol):
+        assert account.available_balance == Decimal("745.71") - purse.used_margin
+
+
+def test_attaching_a_wallet_carries_the_running_balance_across_untouched() -> None:
+    """Measured against the real server run: capital base 7457.12 after three resets, 1930.80
+    realised, 1102.06 of fees and 75.15 of funding received, leaving 9105.62.
+
+    The purse takes the owner's capital base rather than a seed of its own, so the balance is
+    carried by construction and there is no migration arithmetic to get wrong.
+    """
+    from app.crypto.paper.account import SharedCash
+
+    btc = _account(capital_base_usdt=Decimal("7457.121551081282624906785981"),
+                   realized_pnl=Decimal("1930.803539999999999999999976"),
+                   cumulative_fees=Decimal("1102.060349357"),
+                   cumulative_funding_paid=Decimal("-75.1519110740785"),
+                   charges_at_anchor=Decimal("744.607646"))
+    before = btc.wallet_balance
+    purse = SharedCash(owner="BTCUSDT")
+    purse.join("BTCUSDT", btc)
+    assert purse.wallet_balance == before, "attaching a wallet must not move the money"
+    for symbol in ("ETHUSDT", "SOLUSDT"):
+        purse.join(symbol, _account())
+    assert purse.wallet_balance == before, "a joining symbol must not add a second balance"
+
+
+def test_the_shared_wallet_states_both_invariants_where_they_are_true() -> None:
+    """A6 and P5 cannot be stated per symbol once the wallet is shared.
+
+    P5 reads `equity = available + used_margin + unrealized`; with one wallet behind three
+    screens the left side is the purse's while `used_margin` on the right is one symbol's. The
+    statement is true of the purse, so the check moved there rather than being dropped.
+    """
+    from app.crypto.paper.account import SharedCash
+
+    btc, eth = _account(), _account()
+    purse = SharedCash(owner="BTCUSDT")
+    purse.join("BTCUSDT", btc)
+    purse.join("ETHUSDT", eth)
+    btc.position = _position("0.05", "84800")
+    eth.position = _position("0.1", "2690")
+    marks = {"BTCUSDT": Decimal("85000"), "ETHUSDT": Decimal("2700")}
+    purse.assert_invariants(marks)
+    # The per-symbol check is a no-op on a shared wallet rather than a wrong assertion.
+    btc.assert_invariants(marks["BTCUSDT"])
+    # The purse's P5 is the one that would now catch a mistake: it is the only place where the
+    # wallet on the left and every symbol's margin on the right are the same wallet's.
+    assert purse.available_balance + purse.used_margin == purse.wallet_balance
+    # A member whose margin the purse cannot see would break it, which is what the sum guards.
+    orphan = _account()
+    orphan.position = _position("1", "84800")
+    assert orphan.used_margin not in (Decimal(0),)
+    assert purse.used_margin == btc.used_margin + eth.used_margin, \
+        "the purse must count every member and only members"
+    # And the single-account path still checks itself.
+    solo = _account()
+    solo.position = _position("0.05", "84800")
+    solo.assert_invariants(Decimal("85000"))
+
+
+def test_a_balance_reset_re_anchors_the_whole_wallet_not_one_symbols_share() -> None:
+    from app.crypto.paper.account import SharedCash
+
+    btc, eth, sol = _account(), _account(), _account()
+    purse = SharedCash(owner="BTCUSDT")
+    for symbol, account in (("BTCUSDT", btc), ("ETHUSDT", eth), ("SOLUSDT", sol)):
+        purse.join(symbol, account)
+    btc.realized_pnl = Decimal("300")
+    eth.realized_pnl = Decimal("-120")
+    sol.cumulative_fees = Decimal("5")
+    assert purse.wallet_balance == Decimal("745.71") + Decimal("300") - Decimal("120") - Decimal("5")
+
+    purse.apply_capital_reset(Decimal("1000"), ts_ms=1)
+    # Lands exactly on the target: re-anchoring only the owner would have left the other two
+    # members' deltas still counted in the wallet.
+    assert purse.wallet_balance == Decimal("1000")
+    assert purse.available_balance == Decimal("1000")
+    # Nothing cumulative was rewound, so the per-instrument analytics keep their whole history.
+    assert (btc.realized_pnl, eth.realized_pnl, sol.cumulative_fees) == (
+        Decimal("300"), Decimal("-120"), Decimal("5"))
+
+
+def test_the_runtime_gives_every_symbol_the_same_wallet(monkeypatch, tmp_path: Path) -> None:
+    """End to end through `Runtime`, which is where the purse is actually assembled."""
+    from app.crypto.terminal import api as terminal_api
+
+    runtime = terminal_api.Runtime()
+    accounts: dict[str, Any] = {}
+
+    class FakeSession:
+        def __init__(self, symbol: str) -> None:
+            self.config = type("C", (), {})()
+            self.config.instrument = type("I", (), {"symbol": symbol})()
+            self.config.run_id = f"run-{symbol}"
+            self.engine = type("E", (), {})()
+            self.engine.account = _account()
+            accounts[symbol] = self.engine.account
+
+    btc = FakeSession("BTCUSDT")
+    runtime.session = btc
+    runtime.sessions["BTCUSDT"] = btc
+    from app.crypto.paper.account import SharedCash
+    runtime.cash = SharedCash(owner="BTCUSDT")
+    runtime.cash.join("BTCUSDT", btc.engine.account)
+    for symbol in ("ETHUSDT", "SOLUSDT"):
+        session = FakeSession(symbol)
+        runtime.cash.join(symbol, session.engine.account)
+        runtime.sessions[symbol] = session
+
+    assert runtime.cash.wallet_balance == Decimal("745.71")
+    accounts["BTCUSDT"].position = _position("0.05", "84800")
+    assert accounts["ETHUSDT"].available_balance == Decimal("745.71") - Decimal("424.000")
+    assert accounts["SOLUSDT"].available_balance == accounts["ETHUSDT"].available_balance
+
+
+def test_a_symbol_that_has_traded_joins_the_wallet_before_the_first_request(
+        monkeypatch, tmp_path: Path) -> None:
+    """Sessions are built on first use; the wallet cannot wait for that.
+
+    Observed in the preview: three polls seconds apart returned three different wallet figures,
+    because each lazily built session added its own realised PnL to the purse as it was first
+    visited. A symbol with history on disk contributes to the balance whether or not anybody is
+    looking at it, so those are attached at build time. A symbol that has never traded has no
+    run directory, contributes nothing, and stays lazy.
+
+    Built with the real `Runtime` and real sessions rather than fakes: the thing under test is
+    which symbols end up in the purse after `build`, and a stubbed session cannot answer that.
+    """
+    import json as _json
+    from app.crypto.terminal.api import Runtime
+
+    root = tmp_path / "run"
+    root.mkdir(parents=True)
+    risk = sorted((Path("data/runtime/crypto/BTCUSDT/reference")).glob("risk_limit_*.json"))[-1]
+    config_path = tmp_path / "run_config.json"
+    config_path.write_text(_json.dumps({
+        "run_id": "wallet-test", "starting_capital_krw": "1000000", "fx_krw_per_usdt": "1341.00",
+        "fx_source": "test", "fx_asof_utc": "2026-10-04T00:00:00Z", "fee_version": "v",
+        "fee_taker_rate": "0.00055", "fee_maker_rate": "0.0002", "fee_source": "s",
+        "fee_effective_date": "2026-09-02", "slippage_model": "NONE", "slippage_bps": "0",
+        "leverage": "10", "risk_limit_path": str(risk.resolve()),
+    }))
+
+    # The public feed opens a socket and needs a running loop; this test is about the wallet,
+    # so it is stubbed rather than started.
+    def no_feed(self, symbol=None):
+        return None
+
+    monkeypatch.setattr(Runtime, "feed_for", no_feed)
+
+    # First boot: only the default symbol exists, so only it is in the wallet.
+    first = Runtime()
+    first.build(config_path, root)
+    assert first.cash is not None
+    assert sorted(first.cash.members) == [DEFAULT_SYMBOL]
+
+    # ETHUSDT is visited once, which creates its run directory.
+    first.session_for("ETHUSDT")
+    assert sorted(first.cash.members) == sorted([DEFAULT_SYMBOL, "ETHUSDT"])
+    assert (root / "wallet-test-ETHUSDT").is_dir()
+
+    # Second boot: ETHUSDT is in the wallet before anybody asks for it, SOLUSDT is not.
+    second = Runtime()
+    second.build(config_path, root)
+    assert second.cash is not None
+    members = sorted(second.cash.members)
+    assert "ETHUSDT" in members, "a symbol with history must be in the wallet from the start"
+    assert "SOLUSDT" not in members, "a symbol that never traded should stay lazy"
+
+    # And every member reports the one wallet.
+    wallets = {symbol: account.wallet_balance
+               for symbol, account in second.cash.members.items()}
+    assert len(set(wallets.values())) == 1, wallets

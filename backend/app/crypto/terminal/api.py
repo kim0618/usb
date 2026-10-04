@@ -27,6 +27,7 @@ from ..paper.book import NoLiquidity
 from ..paper.config import PaperRunConfig, build_config
 from ..paper.engine import OrderRejected
 from ..paper.analytics import reconcile, summarize
+from ..paper.account import SharedCash
 from ..paper.instrument import InstrumentSpec, RiskTierTable
 from ..paper.state import TransitionRejected
 from ..paper.c1_auto import (C1AutoController, MANUAL_CLOSE_DURING_AUTO, MANUAL_SOURCE)
@@ -203,6 +204,10 @@ class Runtime:
     def __init__(self) -> None:
         self.feeds: dict[str, BybitPublicFeed] = {}
         self.sessions: dict[str, PaperSession] = {}
+        #: One wallet behind all three engines. Built with the default symbol's session and
+        #: owned by it, so the money that run already holds carries across unchanged and a
+        #: second symbol does not arrive with a starting balance of its own.
+        self.cash: SharedCash | None = None
         #: Why a symbol has no session, keyed by symbol. A missing measurement is reported, not
         #: worked around.
         self.symbol_errors: dict[str, str] = {}
@@ -236,6 +241,44 @@ class Runtime:
         # AUTO is out of scope for the multi-symbol step, so the C1 controller stays bound to
         # the one session it has always been bound to.
         self.c1_auto = C1AutoController(session=self.session)
+        # After recovery, so the capital base the purse inherits is the replayed one rather
+        # than the configured one. A run that has been reset three times holds the figure those
+        # resets left, and that is the balance the other symbols must draw from.
+        self.cash = SharedCash(owner=symbol)
+        self.cash.join(symbol, self.session.engine.account)
+        # Last, because it builds other symbols' sessions and those look the default one up.
+        self._join_symbols_with_history()
+
+    def _join_symbols_with_history(self) -> None:
+        """Attach every symbol that has already traded, before serving the first request.
+
+        Sessions are otherwise built on first use, which is right for a symbol nobody has
+        opened. It is wrong for the wallet: a symbol with realised PnL on disk contributes to
+        the shared balance whether or not anybody is looking at it, so a lazily attached member
+        means the wallet reads high (or low) until that tab is first visited and then silently
+        changes. Observed in the preview as three different wallet figures from three polls
+        taken seconds apart.
+
+        A symbol with no run directory has never traded and contributes nothing, so leaving it
+        lazy costs the wallet nothing and saves a replay.
+        """
+        if self.base_config is None:
+            return
+        for symbol in SUPPORTED_SYMBOLS:
+            if symbol in self.sessions:
+                continue
+            try:
+                config, _ = symbol_run_config(self.base_config, symbol,
+                                              self.named_symbols.get(symbol),
+                                              paper_root=self.root)
+            except (SymbolReferenceMissing, ValueError, OSError):
+                continue        # no measurement; `session_for` reports it when asked
+            if not (self.root / config.run_id).is_dir():
+                continue        # never traded
+            try:
+                self.session_for(symbol)
+            except ConfigMissing:
+                continue
 
     def symbols(self) -> list[str]:
         """Every symbol a PAPER screen may ask for, default first."""
@@ -282,6 +325,11 @@ class Runtime:
             self.symbol_errors[instrument] = message
             raise ConfigMissing(message) from None
         session = PaperSession(config=config, tiers=tiers, root=self.root)
+        if self.cash is not None:
+            # Joins the existing wallet. Its own capital base is ignored by the purse, so this
+            # adds an instrument rather than more money: a BTCUSDT position immediately shrinks
+            # what this symbol may open, which is what the real Binance wallet does.
+            self.cash.join(instrument, session.engine.account)
         self.sessions[instrument] = session
         self.feed_for(instrument)
         return session

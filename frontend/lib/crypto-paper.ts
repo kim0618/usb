@@ -26,6 +26,15 @@ export type CryptoAccount = {
   mark_notional: string; maintenance_margin: string; margin_ratio: string | null;
   liquidation_price: string | null; risk_tier: number | null;
   capital_base_usdt: string; reset_count: number; last_reset_ts_ms: number | null;
+  /** Present only when the symbols share one wallet. `available_balance` above is then the
+   *  wallet's, not this symbol's, and `used_margin_by_symbol` says where the rest of it went. */
+  cash?: {
+    shared: true; symbols: string[]; capital_base_usdt: string; wallet_balance: string;
+    used_margin: string; available_balance: string;
+    used_margin_by_symbol: Record<string, string>;
+  } | null;
+  /** What this symbol alone would hold. Analytics only; the wallet above is what can be spent. */
+  own_wallet_balance?: string | null;
 };
 
 export type CryptoState = {
