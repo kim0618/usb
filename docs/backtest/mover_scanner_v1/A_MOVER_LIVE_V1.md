@@ -360,57 +360,122 @@ PYTHONPATH=backend .venv/bin/python -m app.dev.run_a_mover_live_dry_run bootstra
 PYTHONPATH=backend .venv/bin/python -m app.dev.run_a_mover_live_dry_run backfill-plan --session 2026-09-15
 ```
 
-The local Massive grouped daily store ends at 2026-09-16, so 2026-09-15 is the newest session
-the budget can be computed for; a later session refuses with `NO_GROUPED_DAILY` rather than
-scanning a gap.
+The Massive grouped daily store is current to 2026-10-02, so the newest session the budget can
+be computed for is the next one, 2026-10-05. A session the store does not reach refuses with
+`NO_GROUPED_DAILY` naming the first missing prior session rather than scanning a gap.
+
+### The current session, on the caught-up stores
+
+`budget --session 2026-10-05`, every number read from the real stores:
+
+| | |
+|---|---|
+| reference cache in force | `CS_2026-10-01`, 5,242 active common rows |
+| A universe | 5,015 |
+| pruned, no full twenty-session daily baseline | 221 |
+| pruned, a split executes that morning | 6 |
+| E's staged artifact | `universe_2026-09-22.json`, 2,561 symbols, 9 E-only |
+| union acquisition plan | 5,024 |
+| A T0 / T1 | 09:15:00 / 09:23:43, before E's 09:25 cut |
+| E T1 | 09:29:26, before the 09:29:45 Kiwoom deadline |
+| per-lane rate | 4.89/s against the measured 5.0/s per-API-ID limit |
+
+`dry-run --session 2026-10-05 --symbols 60 --kiwoom-sessions 10`: `SHARED_COLLECTOR_DRY_RUN =
+PASS`, the same 19 checks all true, 0 failed checks, no `NO_GROUPED_DAILY` anywhere. Funnel: 60
+evaluated -> 60 eligible -> 35 pool -> 27 actionable -> **8 GPT output** -> 7 approved (1
+rejected, mocked) -> **7 injected**; 18,300 bars persisted, 0 quarantined. The denominator is
+`MIXED_BOOTSTRAP` with 10 Kiwoom and 10 Massive sessions over 2026-09-04 - 2026-10-02, so the
+newest session in the baseline is the freshly collected one. No profit or loss is computed.
+
+Reproduce, on the stores as they now stand:
+
+```
+PYTHONPATH=backend .venv/bin/python -m app.dev.run_a_mover_live_dry_run budget --session 2026-10-05
+PYTHONPATH=backend .venv/bin/python -m app.dev.run_a_mover_live_dry_run dry-run --session 2026-10-05 --symbols 60 --kiwoom-sessions 10
+PYTHONPATH=backend .venv/bin/python -m app.dev.run_a_mover_live_dry_run bootstrap-coverage --session 2026-10-05 --limit 200
+```
+
+The catch-up itself, which is Massive only and costs nothing on a second run:
+
+```
+PYTHONPATH=backend .venv/bin/python -m app.dev.fetch_strategy_c_selection_raw --start 2026-09-17 --end 2026-10-02 --plan-only
+PYTHONPATH=backend .venv/bin/python -m app.dev.fetch_strategy_c_selection_raw --start 2026-09-17 --end 2026-10-02
+```
 
 ## 10. Status
 
-### The commit graph is incomplete, and the missing piece is not A's
+### The commit graph is complete
 
-A standalone checkout of A's commits **does not import**, and neither does `app.main`:
+`GapDirection` and `StrategyConfig.premarket_gap_direction` are committed, split out of the
+larger uncommitted `strategy/config.py` edit as the two names A actually needs
+(`fix(strategy-a): commit gap direction contract for mover runtime`). Nothing else from that
+session's entry-family and gap-sensitivity research came with them. `UP` is the paper rule and
+the default, the committed engine does not read the field, and A refuses outright on a non-UP
+direction, so no existing config or run changes.
 
-```
-ImportError: cannot import name 'GapDirection' from 'app.strategy.config'
-```
+Measured in an isolated worktree holding committed content only: **35 A entry points import, 0
+failures**, `app.main` imports, and the suites pass 948 (A's own 290 beside config, strategy,
+E-MAX and E-trading). The only thing that worktree needs beyond the commits is the local
+runtime sqlite and `.env` the server already has; with an empty `data/runtime` one E-MAX API
+test fails on a missing table, which is the database's absence and not a missing commit.
 
-`mover_scanner_v1/scan.py` and `actionability.py` read the premarket gate's admitted gap sign
-from `StrategyConfig.premarket_gap_direction`, which is exactly right - the handoff checksum
-includes the gap band, so the mask must come from the deployed config rather than be restated.
-But `GapDirection` and `premarket_gap_direction` exist only as an **uncommitted edit** to
-`backend/app/strategy/config.py`, and that edit is another session's gap-sensitivity and
-entry-family research (`EntryMode`, `time_progress_stop_minutes`,
-`max_breakout_distance_r`, `max_signal_bar_volume_ratio`, `trend_lookback_bars`). It is not
-A's to commit.
+### The live morning demanded the session it was planning
 
-Measured in an isolated worktree holding committed content only: that one name is the whole
-gap. With a two-field shim for it, all 23 A entry points import and A's committed suites pass
-290 tests; without it, 19 of 23 fail at import and `app.main` fails with them.
+Found by catching the daily store up, and fixed (`fix(strategy-a): stop the union plan
+demanding the session it is planning`). `UNI.build` loaded its own daily panel over a grid
+ending *on* the session and `D.load_panel` requires every column's file, so `attach` demanded
+the grouped daily file of the session being scanned. That file is written after that session's
+close, so on any real live morning it could not exist, and `attach` raised uncaught inside E's
+worker. Every session the dry run had been driven on happened to have its own file already, so
+the store's own staleness was hiding it: the refusal moved from naming a prior session to
+naming the session itself the moment the gap closed.
 
-**So a production pull of these commits, without that file, would stop the backend from
-starting.** That is the sharpest reason nothing here is pushed or deployed. The fix is one of:
-the owning session commits its `strategy/config.py` work, or `premarket_gap_direction` is
-split out into a commit of its own with the owner's agreement.
+The union plan now takes the same contract `features.live_daily_panel` already states for the
+scan panel - the session is a grid position and nothing more, a prior missing file is still a
+refusal - and a session whose own file exists is loaded exactly as before.
 
-### Data
+### Data: current
 
-`BLOCKED_STALE_MASSIVE_DAILY_FEED`. The pipeline is implemented, tested and committed with the
-flag off, and the baseline is no longer the blocker: the mixed bootstrap removes both the
-twenty-session wait and the 62.6-77.8 h collection from the critical path.
+`BLOCKED_STALE_MASSIVE_DAILY_FEED` is cleared. The catch-up was Massive only, through the
+existing `fetch_strategy_c_selection_raw` collector, and no minute tape was re-collected:
 
-What is left is **not** A's code. A's hybrid contract makes the Massive grouped daily store
-load-bearing for the previous close, the daily volume baselines and the union universe, and
-that store ends at **2026-09-16**. For the next session (2026-10-05) both
-`universe.build` and `features.live_daily_panel` refuse with `NO_GROUPED_DAILY` naming
-2026-09-17, which is the correct refusal and not a bug: twelve sessions of grouped daily
-(2026-09-17 - 2026-10-02) and the splits store (frozen at 2026-09-16) have to be caught up
-before the first live run, and that is a Massive collection decision rather than part of this
-stage.
+| | |
+|---|---|
+| grouped daily sessions collected | 12 (2026-09-17 - 2026-10-02) |
+| rows per session | 12,572 - 12,626, SPY present in every one |
+| grouped daily continuity | 514 of 514 XNYS sessions 2024-09-16 - 2026-10-02, 0 missing, 0 duplicates |
+| splits | two new range files, calendar contiguous to 2026-10-09 |
+| reference | `CS_2026-10-01`, 6 pages, 5,322 rows, 5,242 active common |
+| HTTP requests | 20, all 200, 0 retries, 0 failures |
 
-The bootstrap half is unaffected by that gap — 188 of 200 sampled symbols already have twenty
-or more covered sessions for a 2026-10-05 entry — so once the daily feed is current, the first
-morning is calculable, the mode is `MASSIVE_BOOTSTRAP`, and it walks itself to `KIWOOM_NATIVE`
-over at most twenty completed forward sessions.
+The forward splits range matters rather than being tidiness: seven tickers have a split
+executing on 2026-10-05, six of them inside A's baseline-eligible set, and the old store ended
+at 2026-09-16 so the "a split executes this morning" prune had nothing to fire on.
 
-Nothing has been pushed, deployed, restarted or enabled, no migration exists or was applied,
-and no real order was placed.
+### The launch window closes on 2026-10-15
+
+The bootstrap half of the denominator reads the frozen local Massive minute tape, which ends at
+**2026-09-16**, and the baseline window is the last 40 sessions. So the tape's contribution
+falls by one session for every forward session that passes:
+
+| first live session | tape sessions inside the window | 20 reachable without Kiwoom |
+|---|---|---|
+| 2026-10-05 | 28 | yes |
+| 2026-10-09 | 24 | yes |
+| 2026-10-15 | 20 | yes, exactly |
+| 2026-10-16 | 19 | **no** |
+
+Once A is running this does not decay: each forward session adds a Kiwoom session as it removes
+a tape one, so the combined count holds. It is the *first* morning that has a deadline. For a
+2026-10-05 entry, 141 of a 200-symbol sample reach twenty covered sessions (median 28, max 28);
+the 59 short are mostly symbols the tape does not carry at all. A symbol without a full
+baseline is a per-symbol `NO_DAILY_VOLUME_BASELINE` refusal, not a run-level one.
+
+### Not done, deliberately
+
+Nothing has been pushed, deployed, restarted or enabled; `A_MOVER_LIVE_ENABLED` is still off,
+no migration exists or was applied, and no real order was placed. One exposure is recorded
+rather than changed: `attach` is not wrapped by its caller, so a *genuine* data refusal (a gap
+before the session) would still raise inside E's worker. A's own `run_cut` is wrapped; the
+attach seam is not, and whether a data refusal should take E's run down is the operator's call,
+not a change to make quietly on the way to a deploy.
