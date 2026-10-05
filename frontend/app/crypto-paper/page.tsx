@@ -17,7 +17,7 @@ import {
 } from "@/components/crypto-live-terminal";
 import { C1AutoControl } from "@/components/crypto-c1-auto-control";
 import {
-  OpenPositionsStrip, SymbolTabs, useOpenPositions, useSelectedSymbol,
+  OpenPositionsStrip, SymbolTabs, useOpenPositions, useSelectedSymbol, useSymbolVolatility,
 } from "@/components/crypto-symbol-tabs";
 import { DEFAULT_SYMBOL } from "@/lib/crypto-symbols";
 import type { ChartTimeframe } from "@/lib/crypto-paper";
@@ -78,6 +78,14 @@ export default function CryptoPaperPage() {
   const binance = useBinanceLive(source === "BINANCE_LIVE", symbol);
   /** Every symbol's open position, polled while LIVE is on screen. */
   const positions = useOpenPositions(source === "BINANCE_LIVE");
+  /** Every symbol's last-hour range, on both accounts.
+   *
+   *  Not gated on `source`: the range is Bybit's market data and says nothing about an account,
+   *  so PAPER and BINANCE LIVE show the same three figures. Switching accounts therefore does
+   *  not restart the poll or blank the badges, for the same reason the selection survives it -
+   *  this state lives above both trees.
+   */
+  const volatility = useSymbolVolatility(permitted);
   /** Raised by the bar and by a CLOSE pressed after the window lapsed. One dialog for both, so
    *  the sentence the operator has to agree to is written once. */
   const [activating, setActivating] = useState(false);
@@ -96,7 +104,8 @@ export default function CryptoPaperPage() {
    *  whichever account is on screen. Disabled while a write is in flight. */
   const symbolTabs = (
     <SymbolTabs value={symbol} onChange={selectSymbol} permitted={permitted}
-      busy={source === "BINANCE_LIVE" ? binance.busy : terminal.busy} />
+      busy={source === "BINANCE_LIVE" ? binance.busy : terminal.busy}
+      volatility={volatility.rows} />
   );
 
   if (source === "BINANCE_LIVE") {
