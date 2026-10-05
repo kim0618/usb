@@ -1,0 +1,28 @@
+[Unit]
+Description=USB Strategy A splits calendar refresh (Massive market-wide splits, rolling window)
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=1800
+StartLimitBurst=3
+
+[Service]
+Type=oneshot
+User=root
+# Same layout as usb-grouped-daily.service: code from the main checkout, the store written where
+# Strategy A actually reads it (the paper runner's own tree), the main checkout's copy kept in
+# step by hardlink (same filesystem, 0 bytes on a 92% full disk).
+WorkingDirectory=/root/usb/backend
+EnvironmentFile=/root/usb/.env
+EnvironmentFile=/root/usb/.env.massive
+Environment=PYTHONPATH=/root/usb/backend
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/root/usb/.venv/bin/python -m app.dev.collect_splits \
+  --repo /root/usb_runtime/strategy_e_paper/src \
+  --mirror-repo /root/usb
+# One Massive request per night (window today-7d .. today+14d, one page).
+TimeoutStartSec=15min
+MemoryMax=300M
+Nice=10
+
+# Evidence outlives the vacuumed journal:
+# <repo>/data/runtime/ops/splits/run_<ts>.json plus a runs.jsonl line.

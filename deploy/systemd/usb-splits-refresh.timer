@@ -1,0 +1,17 @@
+[Unit]
+Description=Keep Strategy A's splits calendar two weeks ahead of the trading day
+
+[Timer]
+# Reference data, not a session publication, so no after-close wait is needed. 00:55 ET sits
+# 15 minutes behind usb-grouped-daily (00:40 ET, one call) and 20 minutes behind usb-e-universe
+# (00:20 ET, ~20s), so the shared Massive key is idle, and 2h50m ahead of the 03:45 ET paper
+# start that attaches A. Daily (not Mon..Fri) so the forward horizon never shrinks over a
+# weekend. America/New_York is DST-safe; no KST hour is written anywhere.
+OnCalendar=*-*-* 00:55:00 America/New_York
+Persistent=true
+AccuracySec=1m
+RandomizedDelaySec=0
+Unit=usb-splits-refresh.service
+
+[Install]
+WantedBy=timers.target
