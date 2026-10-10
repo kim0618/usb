@@ -1,5 +1,7 @@
 # A-MOVER-SCANNER-V1.2 — Pool size finalization
 
+> **REFERENCE.** The frozen research parent of the live scanner (`a-mover-scanner-v1.2`, pool 35, TOP8). Do not change it without a new research stage. Current contract: `docs/operations/A_MOVER_NEXT_SESSION_AUTHORITY_V1.md`.
+
 SELECTED POOL SIZE: **35**. P35 is the smallest authorized value meeting every required bar and the recommended 50% eight-output target. P25 fails output average, median and ≥5 rate; P50 passes but is not the smallest.
 
 83 sessions: 2026-05-18 .. 2026-09-15. Existing local minute/daily/reference caches only; no collection, network, replay or PnL. P25 pool rows reproduce V1 exactly and all P25 handoff rows reproduce V1.1 exactly. Frozen JSON artifacts and research prompt Python source hashes were checked before/after and are unchanged.

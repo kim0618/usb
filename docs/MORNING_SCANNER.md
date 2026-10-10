@@ -1,5 +1,7 @@
 # Morning Scanner operations
 
+> **REFERENCE (legacy `quant_v0` source).** This timer still records `quant_v0` runs, but they are **not** Strategy A's entry authority while `A_MOVER_LIVE_ENTRY_AUTHORITY` is on, and they are never a fallback. Current A contract: `docs/operations/A_MOVER_NEXT_SESSION_AUTHORITY_V1.md`.
+
 `usb-morning-scan.timer` is the sole recurring owner. The Backend does not run
 an embedded Scanner scheduler, and tmux remains manual-only.
 

@@ -1,5 +1,7 @@
 # Strategy A: the morning approval contract, and what the live source did to it
 
+> **SUPERSEDED (2026-10-10).** Kept as the record of the second A authority audit. Its disposition (entry authority off, legacy `quant_v0` bound to entry) is **not** the production configuration. The current contract is `docs/operations/A_MOVER_NEXT_SESSION_AUTHORITY_V1.md`.
+
 Audited 2026-10-10 (Asia/Seoul) against the production database on `trader-j`, read-only
 through a WAL-consistent `sqlite3.Connection.backup()` snapshot. No row was written, no Paper
 trade was created, and no real order exists anywhere in this stage. Status:

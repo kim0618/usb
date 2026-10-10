@@ -1,5 +1,7 @@
 # A-MOVER-LIVE-V1 operational hardening
 
+> **HISTORICAL stage record (2026-10-04).** The isolation it added (`attach_isolated`) is in force; its "not deployed / flag off" statements describe that day only. Current contract: `docs/operations/A_MOVER_NEXT_SESSION_AUTHORITY_V1.md`.
+
 Validated on 2026-10-04 (Asia/Seoul). Scope: isolate A's attach/cut failures from E's worker,
 and refuse E staging artifacts from another session. No deployment action is authorized by
 this stage. Status: **READY_FOR_PRODUCTION_DEPLOY for this hardening scope**; this does not

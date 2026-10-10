@@ -1,5 +1,7 @@
 # Strategy A Splits Refresh V1 (2026-10-05)
 
+> **REFERENCE runbook, in production.** Current A contract: `docs/operations/A_MOVER_NEXT_SESSION_AUTHORITY_V1.md`.
+
 ```text
 entrypoint  app.dev.collect_splits               backend/app/dev/collect_splits.py
 units       usb-splits-refresh.service / .timer  deploy/systemd/

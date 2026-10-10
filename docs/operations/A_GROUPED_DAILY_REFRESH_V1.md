@@ -1,5 +1,7 @@
 # Strategy A Grouped Daily Refresh V1 (2026-10-05)
 
+> **REFERENCE runbook, in production.** Section 5's splits gap is closed by `A_SPLITS_REFRESH_V1.md`. Current A contract: `docs/operations/A_MOVER_NEXT_SESSION_AUTHORITY_V1.md`.
+
 ```text
 entrypoint  app.dev.collect_grouped_daily          backend/app/dev/collect_grouped_daily.py
 collector   a-grouped-daily-refresh/2026-10-05.a

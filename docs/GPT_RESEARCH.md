@@ -1,5 +1,7 @@
 # USB GPT Research — Stage 4
 
+> **Note (2026-10-10).** The "latest COMPLETED ScannerRun" below is resolved by `app.research.current_run`: under the A mover authority it is the newest `a_mover_live_v1` run, and its approvals are traded on `next_trading_day(run.trading_date)`. The APPROVE count is no longer capped at two here; RiskConfig caps what is entered. Current A contract: `docs/operations/A_MOVER_NEXT_SESSION_AUTHORITY_V1.md`.
+
 ## Purpose and manual workflow
 
 Stage 4 preserves three independent judgments: stored Quant rank/score, manual-web-research GPT rank/scores, and Human APPROVE/REJECT. It never recalculates or updates Quant snapshots.

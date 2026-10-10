@@ -1,9 +1,39 @@
 # Strategy A: the mover scan is reviewed in the Korean day and traded the next session
 
-Status: **A_MOVER_NEXT_SESSION_AUTHORITY_READY** (local only; not committed, not pushed, not
-deployed). No real order exists anywhere in this stage, no past Paper trade was created, and
-the production database was read through a `mode=ro` connection with `PRAGMA query_only=ON`
-whose mtimes are unchanged before and after. The production `.env` is untouched.
+> **CURRENT PRODUCTION CONTRACT for Strategy A.** This is the one document that states what A
+> is. Every other A document is research history, a superseded stage record, or a reference
+> runbook, and says so in its first lines. Deployment state, dates and commit SHAs live in
+> `A_CURRENT_STATUS_20261010.md`, not here.
+
+Code commit: `4b0e7baa3e2a719a4f45bdb0896baa867de24e3b`
+(`fix(strategy-a): restore mover next-session approval authority`). Sections 6 and 8 below are
+the record of the stage that wrote this contract (2026-10-10); sections 1-5, 7 and 9-12 are the
+contract itself. No real order exists anywhere in A. The stage read the production database
+through a `mode=ro` connection with `PRAGMA query_only=ON` whose mtimes were unchanged.
+
+## 0. A on one screen
+
+| item | value | where it is enforced |
+|---|---|---|
+| status | **PRODUCTION / FORWARD PAPER** | `usb-backend` entry runtime, `SimulationBroker` |
+| candidate source | `ScannerRun.score_version = a_mover_live_v1`, provider `KIWOOM_AE_SHARED_PREMARKET` | `strategy_a_mover_live.contract` |
+| live scanner | `A-MOVER-LIVE-V1`, checksum `382ba2c16409cb1009006b992c2c0d05e0c8a25c29ee768f997c5027fbd3f22b` | `strategy_a_mover_live.contract.verify` |
+| research parent | `a-mover-scanner-v1.2`, handoff checksum `f05e53cce5a431e8e132a0fc1698085b64f8e1d015e11028a77dc62754a11f25` | `mover_scanner_v1.contract.verify` (`ContractDrift` on mismatch) |
+| scan cut | **09:15 ET** of session D (`SCAN_CUT_MINUTE = 555`), run stamped `trading_date = D` | `mover_scanner_v1.contract` |
+| pool | **TOP35** (`POOL_SIZE = 35`) | `mover_scanner_v1.contract` |
+| handoff | actionable mask, then **at most TOP8** (`top_count = 8`; fewer is normal) | `mover_scanner_v1.handoff` |
+| baseline | `A_MOVER_PM_VOLUME_V1`, median, **per symbol**: a symbol with fewer than 20 covered prior sessions inside the 40-session lookback is excluded from that scan (`INSUFFICIENT_COVERED_SESSIONS`) and joins automatically once it has 20. The run refuses only when **no** symbol is ready | `strategy_a_mover_live.baseline` / `features.baseline_readiness` |
+| review | next **Korean day** after the cut: manual GPT research, manual APPROVE / REJECT | `api.router`, `research.authority` |
+| entry session | **`next_trading_day(D)`** | `research.current_run.entry_session_for` |
+| runtime read | `previous_trading_day(E) = D` -> exactly the mover run of D -> active GPT analysis -> `APPROVE` rows | `entry_management_runtime.analysis_session_date`, `paper_adapter.live_run_for` |
+| entry / risk | unchanged Strategy V0 -> Risk V0 -> `SimulationBroker` | `EntryLifecycleService.evaluate` |
+| legacy `quant_v0` | recorded by `usb-morning-scan`, **not entry authority**, never a fallback | `current_run.source_criteria` |
+| GPT | **manual** (no API call, `NO_GPT_CALL`) | `strategy_a_mover_live.config` |
+| human | **manual** (no auto-approve) | `api.router` |
+| real orders | **0** | Paper only |
+
+`APPROVE != BUY`. An APPROVE registers the symbol for that night's Strategy V0 / Risk V0
+evaluation and nothing else.
 
 This supersedes the disposition in `A_MORNING_APPROVAL_CONTRACT_V1.md`, which is kept as the
 record of that audit. That stage restored the morning review by *unbinding* entry from the live
@@ -106,10 +136,10 @@ word nor a false word is not guessed at - `entry_authority_unparsed` names it, `
 it, and the authority stays off, which is the side that trades less. Asking for the authority
 without the scan is still `entry_authority_misconfigured`, reported and never absorbed.
 
-**Deploy impact.** The production `.env` declares `A_MOVER_LIVE_ENABLED=true` and does not
-declare `A_MOVER_LIVE_ENTRY_AUTHORITY`. Deploying this change therefore binds entry to the
-mover source with no `.env` edit. That is the intended contract, and it is the one decision in
-this stage that changes a running process.
+**Production declares both flags explicitly**: `A_MOVER_LIVE_ENABLED=true` and
+`A_MOVER_LIVE_ENTRY_AUTHORITY=true`. The "follows the scan flag" default above only matters for
+an environment that omits the second flag; production does not rely on it, so a future change
+to the default cannot silently move the authority.
 
 ## 6. The production snapshot under the new mapping
 
@@ -165,3 +195,65 @@ the scan session, and must, because the scan is still of session D.
 Known pre-existing breakage, unrelated and not introduced here: 20 test modules fail to import
 `SettlementAction` from `app.services.entry_management_runtime`. That name does not exist at
 HEAD either, and this stage does not modify that file.
+
+## 9. The operator's day
+
+| step | when (KST) | who | what |
+|---|---|---|---|
+| 1 | D 22:15-22:27 | system | mover run D is cut at 09:15 ET and COMPLETED |
+| 2 | D+1 09:00-18:00 | operator | open the review UI. It shows **Analysis Session D** and **Entry Session `next_trading_day(D)`** for the current mover run |
+| 3 | same | operator | copy the GPT research prompt, run it in ChatGPT by hand |
+| 4 | same | operator | import the returned JSON. The import is refused if it targets a run the bound source does not own |
+| 5 | same | operator | APPROVE / REJECT each symbol. No decision = `NO_DECISION`, nothing is traded, and that is not a strategy failure |
+| 6 | D+1 22:45-23:30 | system | the entry runtime reads the run of `previous_trading_day(E)` and evaluates the APPROVE rows only, 09:45-10:30 ET |
+| 7 | after | operator | read the Paper result (evaluations, positions, PnL) |
+
+After 22:27 KST of D+1 the review board moves on to the next mover run; the runtime does not
+read the board, it reads the run through the mapping in section 3, so the night's entry is
+unaffected. Pinned by `test_mover_next_session_authority.py`.
+
+## 10. Data the scan depends on
+
+All three inputs are read from `<repo>/data/runtime/strategy_c/raw/`, where `<repo>` is the
+attaching process's tree (`/root/usb_runtime/strategy_e_paper/src` in production, mirrored by
+hardlink into `/root/usb`).
+
+| input | producer | schedule | ledger | runbook |
+|---|---|---|---|---|
+| grouped daily (D-1 close, 20-session ADV) | `usb-grouped-daily.service` / `.timer` (`app.dev.collect_grouped_daily`) | **Mon..Fri 00:40 America/New_York**, Persistent | `data/runtime/ops/grouped_daily/runs.jsonl` | `A_GROUPED_DAILY_REFRESH_V1.md` |
+| splits (same-morning split prune) | `usb-splits-refresh.service` / `.timer` (`app.dev.collect_splits`) | **daily 00:55 America/New_York**, Persistent, rolling window `[today_ET - 7d, today_ET + 14d]` | `data/runtime/ops/splits/runs.jsonl` | `A_SPLITS_REFRESH_V1.md` |
+| reference (active common stocks) | **no automated producer.** One snapshot, `tickers/CS_2026-10-01.json.gz` | manual | - | `A_GROUPED_DAILY_REFRESH_V1.md` section 5 |
+
+A missing prior grouped-daily session refuses the run (`NO_GROUPED_DAILY`, fail closed). The
+reference snapshot is taken as "newest on or before the session", so it ages rather than
+expires: new listings are missed and delisted names linger until a new snapshot is placed.
+
+## 11. Tests that protect this contract
+
+| test | protects |
+|---|---|
+| `backend/tests/test_mover_next_session_authority.py` | `entry_session_for` / `analysis_session_date` inverse on every 2026 XNYS session, holidays, DST, Korean review day, no `quant_v0` fallback, APPROVE -> `SimBroker` |
+| `backend/tests/strategy_a_mover_live/test_a_live_ui_approval_chain.py` | UI/API current run = runtime run, over HTTP |
+| `backend/tests/test_current_run_authority.py` | the single current-run resolver |
+| `backend/tests/strategy_a_mover_live/test_a_live_paper.py` | APPROVE-only injection, live source filter |
+| `backend/tests/strategy_a_mover_live/test_per_symbol_readiness.py`, `test_a_live_baseline*.py`, `test_a_live_mixed_baseline.py` | per-symbol 20-session readiness, bootstrap + forward baseline |
+| `backend/tests/strategy_a_mover_live/test_a_live_scanner.py`, `test_a_live_handoff.py`, `test_a_live_contract.py` | live checksum, TOP35 -> actionable -> TOP8 |
+| `backend/tests/test_mover_scanner_v1.py`, `_v1_1.py`, `_v1_2.py` | the frozen research parent (pool 35, handoff checksum) |
+| `backend/tests/test_collect_grouped_daily.py`, `test_collect_splits.py` | data automation: idempotency, validation, quarantine |
+| `backend/tests/test_morning_approval_contract.py` | the explicit opt-out (`A_MOVER_LIVE_ENTRY_AUTHORITY=false`) end to end |
+| `backend/tests/test_research_stage4.py`, `test_entry_management_runtime.py`, `test_multi_approval_entry_caps.py`, `test_market_calendar.py`, `test_sim_broker_stage6.py` | GPT import, HumanDecision, entry runtime, calendar, SimBroker |
+
+`test_research_overnight_authority.py` and about twenty other modules fail at import on
+`SettlementAction`, which does not exist at HEAD. That breakage predates A's authority work.
+
+## 12. Do not
+
+- revert entry authority to legacy `quant_v0`, or add any `quant_v0` fallback
+- require a same-session or same-night GPT/approval (the 22:27-23:30 KST window is retired)
+- call GPT automatically, or approve automatically
+- intersect or union legacy and mover candidates without a new research stage
+- change scanner thresholds, pool 35, TOP8, score weights or gap bounds without a research stage
+- backfill past analyses, approvals, evaluations or trades onto old mover runs
+- treat `NO_DECISION` as a strategy failure
+- change Strategy V0, Risk V0 or exit rules as part of scanner or data work
+- edit a mover run's `trading_date`: it records the observed premarket session; only the consuming session moves

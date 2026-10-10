@@ -1,5 +1,7 @@
 # Strategy A Findings V1 (9/18 Gap 스윕 재분석)
 
+> **RESEARCH HISTORY (pre-mover A).** Not the current A. Current contract: `docs/operations/A_MOVER_NEXT_SESSION_AUTHORITY_V1.md`.
+
 작성 2026-09-19, 집 PC(`DESKTOP-CR3T63A`). **새 백테스트 실행 0건.** 2026-09-18 회사 PC(`DESKTOP-C4EV6UM`)가
 남긴 드라이브 아티팩트를 읽어 재집계한 기록이다. 코드, 설정, 규칙, 결과 파일은 아무것도 바꾸지 않았다.
 

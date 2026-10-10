@@ -1,7 +1,9 @@
 # A-MOVER-LIVE-V1
 
-Strategy A's mover pipeline on the shared Kiwoom premarket collector. Pre-production: this
-document describes what is implemented and committed, not what is deployed.
+> **REFERENCE.** Design and implementation record of the live mover pipeline. The current production contract (authority mapping, flags, timers, status) is `docs/operations/A_MOVER_NEXT_SESSION_AUTHORITY_V1.md`; where the two differ, that document wins.
+
+Strategy A's mover pipeline on the shared Kiwoom premarket collector. This document describes
+the implementation; deployment state lives in `docs/operations/A_CURRENT_STATUS_20261010.md`.
 
 | | |
 |---|---|
@@ -287,9 +289,11 @@ stay distinguishable from a morning the scanner never ran — and renders no pro
 
 **Paper injection modifies no deployed file.** `EntryManagementRuntime` already takes its
 lifecycle service as a constructor argument, so `MoverLiveEntryLifecycleService` overrides
-exactly two things — `analysis_session_date` (the live run's `trading_date` *is* the entry
-session; the legacy predecessor rule belongs to the trade-value scanner that ranks after the
-close) and `approved_candidates` (source-filtered, no union, no fallback). `evaluate` is
+exactly one member with behaviour, `approved_candidates` (source-filtered, no union, no
+fallback). It inherits `analysis_session_date = previous_trading_day(entry)`: a run of D is
+traded on `next_trading_day(D)`. (The original V1 override that made the run's own
+`trading_date` the entry session was removed on 2026-10-10 by `4b0e7ba`; see
+`docs/operations/A_MOVER_NEXT_SESSION_AUTHORITY_V1.md`.) `evaluate` is
 inherited verbatim, so every candidate travels `EntryLifecycleService.evaluate` ->
 `StrategyV0Engine` -> `RiskEngine` -> `StrategyLifecycleRunner` -> position and exit.
 
@@ -486,8 +490,8 @@ and the sample is A's own universe, which is the question worth asking.
 
 ### Not done, deliberately
 
-Nothing has been pushed, deployed, restarted or enabled by this hardening stage; the flag
-default remains off, no migration was applied, and no real order was placed. Both attach and
+(Historical, 2026-10-04.) Nothing has been pushed, deployed, restarted or enabled by this
+hardening stage; the flag default remains off, no migration was applied, and no real order was placed. Both attach and
 cut now run behind `attach_isolated`: expected data/authority failures leave A fail-closed,
 while unexpected errors are audited with a traceback and kept from stopping E. Strict mode
 re-raises unexpected errors for diagnostics. Failure records are stored per session under

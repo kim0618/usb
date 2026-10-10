@@ -1,5 +1,7 @@
 # A-MOVER-SCANNER-V1: Strategy A premarket mover scanner
 
+> **RESEARCH HISTORY.** Superseded by V1.1 (handoff) and V1.2 (pool 35). Current contract: `docs/operations/A_MOVER_NEXT_SESSION_AUTHORITY_V1.md`.
+
 | | |
 |---|---|
 | Contract | `a-mover-scanner-v1`, score version `mover_v1` |
