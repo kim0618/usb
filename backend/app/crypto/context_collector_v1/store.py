@@ -23,9 +23,11 @@ adds is narrow:
 from __future__ import annotations
 
 import gzip
+import hashlib
 import json
 import os
 import shutil
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -38,6 +40,34 @@ from .contract import (COMPRESSED_KINDS, COMPRESSED_SUFFIX, CONTEXT_KINDS, DROPP
 
 #: Suffix of a compression in progress. Never read as data; removed at the next open.
 COMPRESS_TMP_SUFFIX = ".gz.tmp"
+
+
+def state_cache_target(root: Path, cache_dir: Path) -> Path:
+    """The cache directory for one root: one subdirectory per root, so two roots never share."""
+    digest = hashlib.sha256(str(root.resolve()).encode()).hexdigest()[:16]
+    return cache_dir / f"ctx-state-{digest}"
+
+
+def install_state_cache(root: Path, cache_dir: Path) -> dict[str, Any]:
+    """CONTRACT_CTX_V1_1 section 3: make `<root>/state` a link to a volatile directory.
+
+    Called with the writer lock held. A real directory found there is renamed aside, never
+    deleted; a link to somewhere else is replaced. Readers keep reading `<root>/state/...`.
+    """
+    link = root / STATE_DIRNAME
+    target = state_cache_target(root, cache_dir)
+    target.mkdir(parents=True, exist_ok=True, mode=0o700)
+    report: dict[str, Any] = {"link": str(link), "target": str(target), "moved_aside": None}
+    if link.is_symlink():
+        if Path(os.readlink(link)) == target:
+            return report
+        link.unlink()
+    elif link.exists():
+        aside = root / f"{STATE_DIRNAME}.disk-{int(time.time() * 1000)}"
+        os.replace(link, aside)
+        report["moved_aside"] = str(aside)
+    link.symlink_to(target, target_is_directory=True)
+    return report
 
 
 class StorageFailed(RuntimeError):
@@ -138,19 +168,49 @@ class ContextStore(Store):
     latest_bytes: int = 0
     latest_last_error: str | None = None
     storage_error: str | None = None
+    #: CONTRACT_CTX_V1_1 section 3. None keeps the cache on disk under the root, as V1 did.
+    state_cache_dir: Path | None = None
+    state_cache: dict[str, Any] = field(default_factory=dict)
+    state_cache_recreated: int = 0
 
     @classmethod
     def open(cls, root: Path, session_id: str, *, started_ns: int, recover: bool = True,
-             shadow_bytes: bool = False) -> "ContextStore":
+             shadow_bytes: bool = False, state_cache_dir: Path | None = None
+             ) -> "ContextStore":
         store = super().open(root, session_id, started_ns=started_ns, recover=recover)
         assert isinstance(store, ContextStore)
         store.shadow_bytes = shadow_bytes
         try:
             store.compaction = compact_root(root) if recover else {}
+            if state_cache_dir is not None:
+                store.state_cache_dir = Path(state_cache_dir)
+                store.state_cache = install_state_cache(root, store.state_cache_dir)
         except BaseException:
             store.close()
             raise
         return store
+
+    def _ensure_state_cache(self) -> None:
+        """A volatile target can vanish (reboot, cleanup, deletion). Recreate it, never fail."""
+        if self.state_cache_dir is None:
+            return
+        target = state_cache_target(self.root, self.state_cache_dir)
+        if not target.is_dir():
+            try:
+                target.mkdir(parents=True, exist_ok=True, mode=0o700)
+                self.state_cache_recreated += 1
+            except OSError:
+                return
+        link = self.root / STATE_DIRNAME
+        if not link.is_symlink():
+            try:
+                install_state_cache(self.root, self.state_cache_dir)
+            except OSError:
+                return
+
+    def write_state(self, payload: dict[str, Any]) -> int:
+        self._ensure_state_cache()
+        return super().write_state(payload)
 
     # ------------------------------------------------------------------ writing
 
@@ -204,6 +264,7 @@ class ContextStore(Store):
             self.latest_writes_failed += 1
             self.latest_last_error = "StoreAuthorityLost: writer lock is no longer provable"
             return 0
+        self._ensure_state_cache()
         directory = self.root / STATE_DIRNAME
         temporary = directory / f".{LATEST_FILENAME}.{os.getpid()}.tmp"
         try:
@@ -256,8 +317,10 @@ class ContextStore(Store):
                               "bytes": self.latest_bytes, "last_error": self.latest_last_error,
                               "path": str(self.latest_path())}
         out["storage_error"] = self.storage_error
+        out["state_cache"] = {"volatile": self.state_cache_dir is not None, **self.state_cache,
+                              "recreated": self.state_cache_recreated}
         return out
 
 
 __all__ = ["ContextStore", "CompressingKindWriter", "StorageFailed", "compress_sealed",
-           "compact_root", "COMPRESS_TMP_SUFFIX"]
+           "compact_root", "COMPRESS_TMP_SUFFIX", "install_state_cache", "state_cache_target"]

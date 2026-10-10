@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from ..liquidity_map.view import JOURNAL_STALE_MS
 from ..market_structure_v0 import EXCHANGE, SYMBOL
-from ..market_structure_v0.contract import DEPTH_STALE_MS, KINDS, TRADE_STALE_MS
+from ..market_structure_v0.contract import DEPTH_STALE_MS, KINDS, TRADE_STALE_MS, WALL_BAND
 from .mcv1_vendored import liquidity as MCL
 
 # --------------------------------------------------------------------------- persistence policy
@@ -88,6 +88,35 @@ WALL_V2_TRACKED: tuple[str, ...] = ("price", "coverage", "generation", "bin_memb
 CLOSE_NOT_SELECTED = "NOT_SELECTED"
 CLOSE_NO_READING = "NO_USABLE_READING"
 CLOSE_SESSION_END = "SESSION_END"
+
+# --------------------------------------------------------------------------- V1.1 (CONTRACT_CTX_V1_1)
+
+#: Section 1. The warm-up gate's reason. Its length is `lm-wall.v2 MIN_PERSISTENCE_MS`, imported
+#: where it is used; no number of its own.
+WARMUP_REASON = "WALL_PERSISTENCE_WARMUP"
+
+#: Section 2. End classes of a display disappearance, in the order they are checked.
+END_UNKNOWN = "UNKNOWN"
+END_RANK_EVICTED = "RANK_EVICTED"
+END_OUT_OF_COVERAGE = "OUT_OF_COVERAGE"
+END_TRUE_ENDED = "TRUE_ENDED"
+END_CLASSES: tuple[str, ...] = (END_UNKNOWN, END_RANK_EVICTED, END_OUT_OF_COVERAGE,
+                                END_TRUE_ENDED)
+#: Section 2. Classes that are an end, and so may carry the panel's verdict.
+END_CLASSES_PUBLISHED_AS_VANISHED: tuple[str, ...] = (END_TRUE_ENDED, END_UNKNOWN)
+RANK_BELOW_DISPLAY_FILTER = "BELOW_DISPLAY_FILTER"
+RANK_BEYOND_DISPLAY_LIMIT = "BEYOND_DISPLAY_LIMIT"
+COVERAGE_OUTSIDE_KNOWN_INTERVAL = "OUTSIDE_KNOWN_INTERVAL"
+COVERAGE_BEYOND_CANDIDATE_BAND = "BEYOND_V0_CANDIDATE_BAND"
+#: The V0 candidate band (`btc-ms.v0.1 WALL_BAND`), restated by import.
+CANDIDATE_BAND = WALL_BAND
+
+#: Section 3. Where the volatile current-state cache directory may be named.
+STATE_CACHE_ENV = "CTX_V1_STATE_CACHE"
+
+#: Section 4. Which wall stream a forward study treats as primary.
+WALL_ROLES = {"PRIMARY": "wall_r0 (OPENED_ROW values; reproduces Market Context R0)",
+              "SECONDARY_DIAGNOSTIC": "wall_v2 (CURRENT values; the panel's semantics)"}
 
 # --------------------------------------------------------------------------- borrowed bounds
 

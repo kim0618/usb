@@ -26,7 +26,10 @@ nothing from `app.crypto.paper`, `app.crypto.live`, `app.crypto.terminal` or `ap
 """
 
 #: Identity of this collector's own output: the `context` and `wall_v2` record shapes.
-VERSION = "ctx-collector.v1"
-COLLECTOR_VERSION = "ctx-collector.code.0.1"
+VERSION = "ctx-collector.v1.1"
+COLLECTOR_VERSION = "ctx-collector.code.1.1"
+#: The frozen contract this code implements, and its hash.
+CONTRACT_RELATIVE_PATH = "docs/crypto/context_collector_v1/CONTRACT_CTX_V1_1.md"
+CONTRACT_SHA256 = "a9f8becfd18aaf920bc2cc2ad96b4d465c5a1faa3a9e8652d261fdded03297fc"
 
-__all__ = ["VERSION", "COLLECTOR_VERSION"]
+__all__ = ["VERSION", "COLLECTOR_VERSION", "CONTRACT_RELATIVE_PATH", "CONTRACT_SHA256"]

@@ -253,9 +253,13 @@ async def status() -> Any:
     except J.JournalEmpty:
         pass
     view = judged(root, now_ms=now_ms)
+    link = root / STATE_DIRNAME
+    cache = {"volatile": link.is_symlink(),
+             "target": os.readlink(link) if link.is_symlink() else None,
+             "target_present": link.exists()}
     return {"mode": MODE, "version": VERSION, "root": str(root), "session": session_view,
             "collector": view.get("collector"), "read": view.get("read"),
-            "writer": writer_holder(root), "disk": _disk(root),
+            "writer": writer_holder(root), "disk": _disk(root), "state_cache": cache,
             "storage_stats": stats, "server_time_ms": now_ms}
 
 

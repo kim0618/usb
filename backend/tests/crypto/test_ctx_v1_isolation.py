@@ -122,7 +122,7 @@ def test_the_api_process_loads_no_trading_module_and_opens_no_venue_client():
 
 # --------------------------------------------------------------------------- reach
 
-def test_the_only_environment_variable_read_is_the_root():
+def test_the_only_environment_variables_read_are_the_root_and_the_cache():
     keys = set()
     for path in modules():
         for node in ast.walk(ast.parse(path.read_text())):
@@ -132,9 +132,25 @@ def test_the_only_environment_variable_read_is_the_root():
                     keys.add(ast.unparse(node.args[0]))
             if isinstance(node, ast.Subscript) and ast.unparse(node.value) == "os.environ":
                 keys.add(ast.unparse(node.slice))
-    assert keys == {"ROOT_ENV"}
-    from app.crypto.context_collector_v1 import api, collector
+    assert keys == {"ROOT_ENV", "STATE_CACHE_ENV"}
+    from app.crypto.context_collector_v1 import api, collector, contract
     assert api.ROOT_ENV == collector.ROOT_ENV == "CTX_V1_ROOT"
+    assert contract.STATE_CACHE_ENV == "CTX_V1_STATE_CACHE"
+
+
+#: Module path segments that name a way to change an account or place an order.
+MUTATION_SEGMENT = re.compile(
+    r"(^|_)(order|orders|account|accounts|leverage|arm|armed|auto|position|positions|"
+    r"live|paper|terminal|broker|execution|trade_executor)(_|$)")
+
+
+def test_no_loaded_module_path_names_an_order_account_leverage_arm_or_auto_path():
+    """The transitive graph of both processes, by module name segment."""
+    for entry in (f"{PACKAGE}.collector", f"{PACKAGE}.api"):
+        loaded = loaded_modules(entry)
+        offenders = [m for m in loaded if m.startswith("app.")
+                     and any(MUTATION_SEGMENT.search(part) for part in m.split("."))]
+        assert offenders == [], (entry, offenders)
 
 
 @pytest.mark.parametrize("path", modules(), ids=lambda p: p.name)

@@ -32,11 +32,12 @@ from typing import Any
 from ..market_structure_v0 import collector as V0
 from ..market_structure_v0.envelope import Session, now_ms, now_ns
 from ..market_structure_v0.store import StoreAuthorityLost, StoreLocked
-from . import COLLECTOR_VERSION, VERSION
+from . import COLLECTOR_VERSION, CONTRACT_SHA256, VERSION
 from .context import ContextEngine
 from .contract import (CONTEXT_KIND, DISPLAY_MIN_NOTIONAL_USDT, DISPLAY_WALL_LIMIT,
                        DROPPED_V0_KINDS, FEED_STALE, FEED_UNKNOWN, PERSISTED_V0_KINDS,
-                       SUPPORTED_SYMBOL, WALL_R0_KIND, WALL_V2_KIND)
+                       STATE_CACHE_ENV, SUPPORTED_SYMBOL, WALL_R0_KIND, WALL_ROLES,
+                       WALL_V2_KIND)
 from .store import ContextStore, StorageFailed
 from .wallr0 import OpenRowFilter
 
@@ -44,6 +45,20 @@ from .wallr0 import OpenRowFilter
 ROOT_ENV = "CTX_V1_ROOT"
 #: The context step failed for this sample. The record is still written, as UNKNOWN.
 COMPUTE_ERROR = "CONTEXT_COMPUTE_ERROR"
+
+
+class UnsupportedSymbol(ValueError):
+    """CONTRACT_CTX_V1_1 section 5: this collector exists for BTCUSDT and nothing else."""
+
+
+def require_btc(symbol: str) -> str:
+    """Refuse every symbol but BTCUSDT, before a lock, a socket or a file is touched."""
+    if symbol != SUPPORTED_SYMBOL:
+        raise UnsupportedSymbol(
+            f"{symbol!r} is not supported: the context collector is BTCUSDT only (the V0 "
+            f"stream URLs, the wall rule and every validated layer are BTC). ETH and SOL manual "
+            f"trading is a separate system and is not served by this collector.")
+    return symbol
 
 
 @dataclass
@@ -183,16 +198,21 @@ class ContextRunner(V0.Runner):
                     "own_kinds": [CONTEXT_KIND, WALL_V2_KIND, WALL_R0_KIND],
                     "display_min_notional_usdt": DISPLAY_MIN_NOTIONAL_USDT,
                     "display_wall_limit": DISPLAY_WALL_LIMIT,
-                    "shadow_bytes": getattr(self.collector.store, "shadow_bytes", False)})
+                    "shadow_bytes": getattr(self.collector.store, "shadow_bytes", False),
+                    "contract_sha256": CONTRACT_SHA256, "symbol": SUPPORTED_SYMBOL,
+                    "wall_roles": WALL_ROLES,
+                    "state_cache": dict(getattr(self.collector.store, "state_cache", {}))})
         return out
 
 
 def build(root: Path, *, duration_s: float, shadow_bytes: bool = False,
-          session: Session | None = None) -> ContextRunner:
+          session: Session | None = None, symbol: str = SUPPORTED_SYMBOL,
+          state_cache_dir: Path | None = None) -> ContextRunner:
     """Open the store (which takes the writer lock) and wire the collector and runner."""
+    require_btc(symbol)
     session = session or Session()
     store = ContextStore.open(root, session.session_id, started_ns=session.started_ns,
-                              shadow_bytes=shadow_bytes)
+                              shadow_bytes=shadow_bytes, state_cache_dir=state_cache_dir)
     collector = ContextCollector(store=store, session=session, engine=ContextEngine(root=root))
     return ContextRunner(collector=collector, duration_s=duration_s)
 
@@ -205,17 +225,29 @@ def main(argv: list[str] | None = None) -> int:
                         help=f"output directory (or {ROOT_ENV})")
     parser.add_argument("--duration", type=float, default=0.0,
                         help="seconds to run; 0 runs until stopped")
+    parser.add_argument("--symbol", default=SUPPORTED_SYMBOL,
+                        help="must be BTCUSDT; anything else is refused before startup")
+    parser.add_argument("--state-cache-dir", default=os.environ.get(STATE_CACHE_ENV),
+                        help=f"volatile directory for the current-state cache (or "
+                             f"{STATE_CACHE_ENV}); omitted keeps it on disk under the root")
     parser.add_argument("--shadow-bytes", action="store_true",
                         help="also serialize every dropped record to count what a research "
                              "collector would have written; measurement only")
     args = parser.parse_args(argv)
+    try:
+        require_btc(args.symbol)
+    except UnsupportedSymbol as exc:
+        print(json.dumps({"event": "REFUSED", "reason": "UNSUPPORTED_SYMBOL",
+                          "symbol": args.symbol, "detail": str(exc)}, indent=2), flush=True)
+        return 2
     if not args.root:
         parser.error(f"--root or {ROOT_ENV} is required")
     root = Path(args.root).expanduser().resolve()
+    cache = None if not args.state_cache_dir else Path(args.state_cache_dir).expanduser()
     session = Session()
     try:
         runner = build(root, duration_s=args.duration, shadow_bytes=args.shadow_bytes,
-                       session=session)
+                       session=session, symbol=args.symbol, state_cache_dir=cache)
     except StoreLocked as exc:
         print(json.dumps({"event": "REFUSED", "reason": "WRITER_LOCK_HELD", "root": str(root),
                           "detail": str(exc)}, indent=2), flush=True)
@@ -241,4 +273,5 @@ def main(argv: list[str] | None = None) -> int:
     return 0 if not str(stats.get("stop_reason") or "").startswith("storage_error") else 4
 
 
-__all__ = ["ContextCollector", "ContextRunner", "build", "main", "ROOT_ENV", "COMPUTE_ERROR"]
+__all__ = ["ContextCollector", "ContextRunner", "build", "main", "ROOT_ENV", "COMPUTE_ERROR",
+           "UnsupportedSymbol", "require_btc"]
