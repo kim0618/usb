@@ -142,11 +142,19 @@ def read_segment(run_dir: Path, manifest: SegmentManifest) -> Iterator[dict[str,
 
 
 def scan_segment(path: Path) -> tuple[int, int | None, int | None]:
-    """Count records and find the first and last timestamp, without holding the file."""
+    """Count records and find the first and last timestamp, without holding the file.
+
+    Reads a gzipped segment transparently. That matters on the repair path below: a crash
+    between the plain file's removal and the manifest's write leaves a `.gz` nobody has
+    described, and declaring it to hold zero records would undercount the run's tape for the
+    rest of its life. The count is reporting, not replay - but it is the number the session
+    continues the tape sequence from, so a wrong one is not harmless.
+    """
     records = 0
     first: int | None = None
     last: int | None = None
-    with path.open() as handle:
+    opener = gzip.open if path.suffix == ".gz" else open
+    with opener(path, "rt") as handle:      # type: ignore[operator]
         for line in handle:
             if not line.strip():
                 continue
@@ -160,27 +168,54 @@ def scan_segment(path: Path) -> tuple[int, int | None, int | None]:
 
 
 def load_manifests(run_dir: Path) -> list[SegmentManifest]:
-    """Every closed segment in order, repairing a manifest a crash left unwritten."""
+    """Every closed segment in order, exactly once, repairing a manifest a crash left unwritten.
+
+    Keyed by segment index rather than by filename, and that is the whole point. A compressing
+    rotation writes `NNNNNN.input.jsonl.gz` beside the plain file it was made from and only then
+    removes the plain one, so a crash in that window leaves *two* files whose names both begin
+    with the same index. Walking the glob directly described the plain file, wrote its manifest,
+    and then - on the `.gz` in the same loop - found that freshly written manifest and appended
+    it a second time. A full replay would then apply that segment twice, and the ledger it
+    rebuilt would hold every fill in it twice over. Nothing in the archive is wrong; the reading
+    of it was.
+
+    One entry per index, therefore, and the tie is broken the way the write order makes safe:
+
+    * a manifest, when present, is the authority on which file to read. It is written *after*
+      the plain file is removed, so a manifest can never be describing a file that has a
+      surviving plain twin.
+    * with no manifest, the plain file wins. It arrived by an atomic rename of the active tape,
+      so its bytes are proven; the `.gz` beside it may be a truncated write that never got as
+      far as its round-trip check.
+
+    A `.gz` left orphaned this way is not deleted here. It costs space and nothing else, and a
+    recovery path that removes tape is a worse thing to own than one that leaves litter.
+    """
     directory = run_dir / SEGMENT_DIR
     if not directory.exists():
         return []
-    manifests: list[SegmentManifest] = []
+    candidates: dict[int, list[Path]] = {}
     for segment in sorted(directory.glob("*.input.jsonl*")):
         if segment.name.endswith(".tmp"):
             continue
-        index = int(segment.name.split(".", 1)[0])
+        candidates.setdefault(int(segment.name.split(".", 1)[0]), []).append(segment)
+    manifests: list[SegmentManifest] = []
+    for index in sorted(candidates):
         manifest_path = directory / f"{index:06d}.manifest.json"
         if manifest_path.exists():
             manifests.append(SegmentManifest.load(json.loads(manifest_path.read_text())))
             continue
         # The rename landed but the manifest did not. The segment is immutable, so it can be
         # described now; refusing here would strand a perfectly good file.
+        files = candidates[index]
+        segment = next((item for item in files if item.suffix != ".gz"), files[0])
         compressed = segment.suffix == ".gz"
-        records, first, last = (0, None, None) if compressed else scan_segment(segment)
+        records, first, last = scan_segment(segment)
         manifest = SegmentManifest(
             index=index, path=f"{SEGMENT_DIR}/{segment.name}", records=records,
             bytes=segment.stat().st_size, sha256=sha256_file(segment),
-            first_ts_ms=first, last_ts_ms=last, compressed=compressed)
+            first_ts_ms=first, last_ts_ms=last, compressed=compressed,
+            uncompressed_sha256=None)
         write_atomic(manifest_path, json.dumps(manifest.view(), indent=2, sort_keys=True) + "\n")
         manifests.append(manifest)
     return sorted(manifests, key=lambda item: item.index)
@@ -431,4 +466,9 @@ class SegmentedTape:
             "total_bytes": segment_bytes + active_bytes,
             "records": self.total_records(),
             "compressed_segments": sum(1 for m in manifests if m.compressed),
+            #: Whether *new* cuts will be compressed, which is not the same question as how many
+            #: of the existing ones are. An archive mid-transition answers the two differently,
+            #: and an operator who turned the flag on needs to see that the running process
+            #: agreed rather than infer it from a count that will not move until the next cut.
+            "compress_new_segments": self.compress,
         }

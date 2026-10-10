@@ -69,6 +69,37 @@ class ConfigMissing(RuntimeError):
 SYMBOL_REFERENCE_ENV = "CRYPTO_SYMBOL_REFERENCE_ROOT"
 SYMBOL_REFERENCE_ROOT = Path("data/runtime/crypto")
 
+#: Gzip each segment as it is cut. Off unless the variable says one of `COMPRESS_TRUE` exactly.
+#:
+#: The tape is the dominant consumer of this server's disk - about 80 MB a day across three
+#: symbols against roughly a gigabyte of headroom - and a segment compresses to about a tenth
+#: of its size, so this is the difference between a fortnight of runway and a third of a year.
+#: It is a flag and not simply the new default because turning it on changes what a *recovery*
+#: reads, and that is a thing an operator should be able to turn back off without a deploy.
+#:
+#: Only new cuts are affected. Nothing already sealed is touched, converted or re-described.
+COMPRESS_SEGMENTS_ENV = "CRYPTO_PAPER_COMPRESS_SEGMENTS"
+COMPRESS_TRUE = ("on", "1", "true", "yes")
+COMPRESS_FALSE = ("", "off", "0", "false", "no")
+
+
+def compress_segments_setting() -> tuple[bool, str, bool]:
+    """`(enabled, raw, recognised)` for the segment-compression flag.
+
+    Fail closed, and say so. An unrecognised value resolves to *off* rather than raising,
+    because the thing on the other side of this call is a trading terminal holding a live
+    position: refusing to boot over a typo in a disk-retention flag would turn a cosmetic
+    mistake into an outage. What it must never do is resolve a typo to *on* and quietly change
+    what a recovery reads, so the allow-lists are exact and anything outside them is reported
+    as unrecognised - in the startup line below and in `/api/crypto/state`, where
+    `storage.compress_new_segments` shows what the running process actually settled on.
+    """
+    raw = os.environ.get(COMPRESS_SEGMENTS_ENV, "")
+    token = raw.strip().lower()
+    if token in COMPRESS_TRUE:
+        return True, raw, True
+    return False, raw, token in COMPRESS_FALSE
+
 
 def symbol_reference_roots(paper_root: Path | None = None) -> list[Path]:
     """Every directory a symbol's measured responses may live in, in priority order."""
@@ -218,6 +249,7 @@ class Runtime:
         self.base_config: PaperRunConfig | None = None
         self.named_symbols: dict[str, Any] = {}
         self.root: Path = DEFAULT_ROOT
+        self.compress_segments: bool = False
         self._pump: asyncio.Task | None = None
 
     # ------------------------------------------------------------------ construction
@@ -234,7 +266,9 @@ class Runtime:
         except (OSError, json.JSONDecodeError):
             self.named_symbols = {}
         symbol = config.instrument.symbol
-        self.session = PaperSession(config=config, tiers=tiers, root=root)
+        self.compress_segments = compress_segments_setting()[0]
+        self.session = PaperSession(config=config, tiers=tiers, root=root,
+                                    compress_segments=self.compress_segments)
         self.sessions[symbol] = self.session
         self.feeds[symbol] = self.feed
         self.feed.symbol = symbol
@@ -324,7 +358,11 @@ class Runtime:
             message = f"{type(exc).__name__}: {exc}"
             self.symbol_errors[instrument] = message
             raise ConfigMissing(message) from None
-        session = PaperSession(config=config, tiers=tiers, root=self.root)
+        # Resolved once in `build`, not re-read here: every symbol in one process must cut its
+        # tape the same way, and an environment that changed under a long-running server would
+        # otherwise leave BTC compressing while ETH did not.
+        session = PaperSession(config=config, tiers=tiers, root=self.root,
+                               compress_segments=self.compress_segments)
         if self.cash is not None:
             # Joins the existing wallet. Its own capital base is ignored by the purse, so this
             # adds an instrument rather than more money: a BTCUSDT position immediately shrinks
@@ -470,6 +508,16 @@ def paper_feed(symbol: str | None):
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     config_path = Path(os.environ.get(CONFIG_ENV, DEFAULT_ROOT / "run_config.json"))
     root = Path(os.environ.get("CRYPTO_PAPER_ROOT", DEFAULT_ROOT))
+    # One line, before the build, naming what the flag resolved to and what it was asked to
+    # resolve. The unit runs with PYTHONUNBUFFERED=1 so this lands in the journal, and it is
+    # the only record of the raw value: `storage.compress_new_segments` reports the decision
+    # but not the string that produced it, and an unrecognised string is exactly the case where
+    # the difference between the two is the thing worth seeing.
+    enabled, raw, recognised = compress_segments_setting()
+    print(json.dumps({"event": "PAPER_SEGMENT_COMPRESSION", "env": COMPRESS_SEGMENTS_ENV,
+                      "raw": raw, "effective": enabled,
+                      "value": "RECOGNISED" if recognised else "UNRECOGNISED_FAIL_CLOSED"}),
+          flush=True)
     try:
         runtime.build(config_path, root)
     except Exception as exc:
