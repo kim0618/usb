@@ -46,7 +46,7 @@ A has no unit of its own. A change to the authority needs a `usb-backend` restar
 | per-symbol readiness audit | `4ad46e2` | yes | **no** (see open item 1) |
 | grouped daily automation | `55fea13` | yes (units + CLI) | n/a |
 | splits automation | `a650252` | yes (units + CLI) | n/a |
-| **next-session authority** | **`4b0e7ba`** | see Production | n/a (authority is backend-only) |
+| **next-session authority** | **`4b0e7ba`** | **yes** (`db41f04`, 2026-10-10) | n/a (authority is backend-only) |
 | this consolidation (docs only) | see `git log` of this file | docs are not deployed | n/a |
 
 "Scan runtime tree" is `/root/usb_runtime/strategy_e_paper/src/backend`, a file copy that
@@ -67,11 +67,31 @@ splits `2026-10-10T00:56 ET` window 10-03..10-24, OK, 79 events.
 
 ## Production
 
-Filled in by the apply step of this stage; see the section below.
+Applied 2026-10-10 17:55 KST on `trader-j`. `4b0e7ba` alone was cherry-picked; `origin/main`
+was **not** merged, so the crypto/H commits between `98feb31` and `4b0e7ba` are not in
+`/root/usb`.
+
+| item | value |
+|---|---|
+| previous HEAD | `98feb31` |
+| current HEAD | `db41f04` (= cherry-pick of `4b0e7ba`; the 17 A files are byte-identical to `4b0e7ba`, non-A files changed 0) |
+| `.env` | `A_MOVER_LIVE_ENABLED=true`, `A_MOVER_LIVE_ENTRY_AUTHORITY=true` (added), backup `.env.bak-20261010-a-authority` |
+| restart | `usb-backend` only, PID 720154 -> 1556760, NRestarts 0, traceback 0 |
+| startup log | `A: entry candidate authority is A_MOVER_LIVE_V1 (09:15 ET premarket cut of D); analysis D -> entry next_trading_day(D) either way` |
+| `/api/v1/scanner/latest` | run 29, `a_mover_live_v1`, `KIWOOM_AE_SHARED_PREMARKET`, trading_date 2026-10-09, top8 8 |
+| `/api/v1/trading/entry-board` | run 29, analysis_session_date **2026-10-09**, entry_session_date **2026-10-12**, `NO_ACTIVE_ANALYSIS` |
+| `/api/v1/research/current`, `/research/prompt` | run 29 |
+| legacy run 30 | reachable by explicit id only (`/scanner/runs/30` 200); never the current run |
+| DB writes | 0 (`sqlite3` 2026-10-09 22:26:21, `-wal` 2026-10-10 07:01:23, unchanged before and after) |
+| other services | frontend 1551071, crypto-paper 1537967, crypto-liqfwd 3250885, e-rvol 2515148 unchanged; e-paper timer-driven, untouched |
+| past runs | no analysis, decision, evaluation or trade added to mover runs 21-29 |
+| real orders | 0 (`BROKER: SIMULATION`, Kiwoom ordering disabled) |
+
+Rollback: `git revert --no-edit db41f04`, restore `.env` from the backup, restart `usb-backend`.
 
 ## Current blockers
 
-NONE for the contract. Open items, none of which stops A from running:
+NONE. The authority is live in production. Open items, none of which stops A from running:
 
 1. **The scan runtime tree lacks `4ad46e2`.** Five A files in
    `/root/usb_runtime/strategy_e_paper/src/backend` (`features.py`, `gpt_handoff.py`,
