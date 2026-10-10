@@ -203,3 +203,54 @@ Kiwoom 연결 시에도 기존 Strategy/Risk 코드 수정 없이 Adapter로 추
 ### Scope
 
 - V2 항목을 구현하지 않았는지 확인
+
+---
+
+## 14. Production 운영 규칙 (CRYPTO 포함)
+
+운영 중인 실거래 화면과 실계좌가 걸려 있으므로 아래는 예외 없이 적용한다.
+
+### 배포
+
+- 운영 배포 직전 STOP하고 보고한다. 배포 자체가 승인된 작업이어도 배포 시점은 보고 후다.
+- Next 빌드는 운영 서버에서 하지 않는다. 운영 호스트는 RAM과 디스크가 모두 빠듯하다.
+  production-equivalent 격리 빌드를 다른 곳에서 만들어 산출물만 올린다.
+- 빌드는 반드시 clean한 소스에서 한다. 공용 워크트리의 dirty 파일이 산출물에 섞이면
+  다른 세션의 미완성 변경이 운영에 배포된다.
+- 교체 전 이전 산출물을 rollback 경로로 보존한다.
+- 무엇이 배포되어 있는지는 산출물과 런타임으로 판정한다. 서버의 git HEAD로 판정하지 않는다.
+  재시작은 재빌드가 아니고, 백엔드는 repo가 아닌 런타임 복사본에서 돌 수 있다.
+
+### 측정과 증명
+
+- 렌더링하거나 실측하지 않고 "정상"이라고 단정하지 않는다.
+- "없다"는 결과에는 반드시 대조군을 둔다. 있어야 할 문자열이 같은 방법으로 검출되는지
+  먼저 확인하고, 그 다음에 없음을 주장한다.
+- LIVE order path를 건드린 변경은 mutation 0을 증명한다. 집계는 같은 축으로 재측정한다.
+
+### 손대지 않는 것
+
+- 다른 세션이 수정 중인 파일은 읽기만 한다. 덮어쓰지 않고, 포인터 한 줄도 추가하지 않는다.
+- `git add .`를 쓰지 않는다. 변경 파일을 명시해 staging하고 `git diff --cached`로 전수 확인한다.
+- 다른 세션의 미push commit이 섞여 있으면 main을 push하지 않는다.
+- `reset --hard`, `rebase`로 다른 세션의 history를 재작성하지 않는다.
+- 공용 repo에서 `git stash`, `git checkout`으로 트리를 바꾸지 않는다. 비교는 `git show`로 한다.
+
+### 기본값 OFF
+
+- Market Context는 env 기본값 OFF를 유지한다. `NEXT_PUBLIC_MARKET_CONTEXT_BASE_URL`은
+  별도 승인 없이 설정하지 않는다. 미설정이 곧 "기존 화면과 동일"이어야 한다.
+- QA 전용 preview 컴포넌트의 mutation sentinel은 운영자의 주문을 막는다.
+  운영자가 쓰는 route에 절대 올리지 않는다.
+- crypto segment historical migration은 별도 승인 사항이다. 신규 segment 압축과 구분한다.
+- exit-guard는 V2 전까지 운영에서 활성화하지 않는다. 단일 예외로 영구 비활성되는 구조이고
+  rate-limit 문제가 남아 있다.
+- AUTO, order, leverage, Safe MAX는 요청 범위 밖에서 바꾸지 않는다.
+
+### 문서 역할 분리
+
+- Instruction file(`AGENTS.md`) = 원칙
+- `docs/crypto/CRYPTO_CURRENT_STATUS_*.md` = 현황, 수치, commit, 날짜
+- `docs/crypto/CRYPTO_SERVER_RUNBOOK_V1.md` = 절차
+
+서로 섞지 않는다. 수치가 원칙 파일에 들어가면 금방 낡고, 원칙이 현황 문서에 들어가면 묻힌다.
