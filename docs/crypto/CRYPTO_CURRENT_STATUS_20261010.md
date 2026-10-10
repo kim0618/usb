@@ -116,7 +116,17 @@ principle does not belong here, and neither belongs in the third.
      MS V0 collector process is running (measured).
 * **With `NEXT_PUBLIC_MARKET_CONTEXT_BASE_URL` unset the screen is the one already deployed.**
   `marketContextSlot()` returns `undefined`, so the panel is never rendered and its chunk is
-  never requested. The flag is inlined at build time, so this costs the critical path nothing.
+  never requested. Verified three ways on the artifact that is now deployed: chunk `592` is in no
+  page entry list, the served HTML contains none of `market-context`, `8012` or `592.` while the
+  control strings `crypto-paper` and `BTCUSDT` are both found, and a real browser load of this
+  artifact at 390, 1440 and 1600 px issued **0** context requests.
+* **The unset flag is not constant-folded, and that is worth knowing before anyone sets it.**
+  Webpack inlines `process.env.NEXT_PUBLIC_*` only for variables that are *defined* at build
+  time, so in this artifact `NEXT_PUBLIC_CRYPTO_API_BASE` is a literal (`/crypto-api`) while
+  `NEXT_PUBLIC_MARKET_CONTEXT_BASE_URL` survives as a property read on the client process shim,
+  which has no such key in a browser and therefore yields `undefined`. The practical consequence:
+  the OFF state is enforced by the variable being absent, not by the build having hard-coded
+  `false`. Keep it off the `usb-frontend` unit and out of `.env*`.
 * **The unset default is deliberately not harmless-looking.** The panel module's development
   default base is `http://127.0.0.1:8012`, which in a production build is the *operator's own
   laptop*. A panel shipped without the configured check would poll nothing once a second and show
@@ -146,11 +156,20 @@ API. Quoted from `ec3df85`.
   regression.
 * **P0 is untouched.** The order path, the price and the symbol tabs are unchanged, because the
   chart renders only after they are already on screen.
-* **Structurally verified in the artifact.** The deployed build's
-  `react-loadable-manifest.json` has two entries, `crypto-candle-chart.tsx -> lightweight-charts`
-  and `crypto-terminal-layout.tsx -> @/components/crypto-candle-chart`, which is the two-hop
-  chain. The new build has one chart entry whose two files are fetched together: the 162 KB
-  library chunk and the 15.5 KB component chunk.
+* **Structurally verified, before and after.** The replaced build's
+  `react-loadable-manifest.json` had two chart entries,
+  `crypto-candle-chart.tsx -> lightweight-charts` and
+  `crypto-terminal-layout.tsx -> @/components/crypto-candle-chart`, which is the two-hop chain.
+  The deployed build has a single chart entry whose two files are fetched together: the 162 KB
+  library chunk and the 15.5 KB component chunk. A real browser load of the deployed artifact
+  requested them at 177 ms and 178 ms, one millisecond apart, which is the round trip the change
+  was meant to remove.
+* **The manifest still has two entries in total**, because the second is the Market Context panel
+  (`592`), which is lazy and never requested. Count the *chart* entries, not the entries.
+* Note the method, because the obvious grep fails: `CrosshairMode` and the other library
+  identifiers are mangled in this build, so searching for them finds nothing in either artifact.
+  The reliable fingerprint is the string literal `TradingView` or `lightweight-charts`, which
+  appears in exactly one chunk.
 
 ## Deployment standing
 
@@ -158,12 +177,18 @@ API. Quoted from `ec3df85`.
   fix) are both ancestors of it and are deployed.
 * `origin/main` is now `5cead43`, carrying `1df41d3` (test safety), `9bbc2da` (Market Context
   frontend, inert unless configured), `ec3df85` (initial-load performance) and this document.
-* **`ec3df85` is pushed and not deployed.** Measured on the host after the push: the running
-  artifact is still `DSqckYX5fRU5ep1myq5SC` built at 13:13, its `react-loadable-manifest.json`
-  still carries the two-entry chart chain, the served page chunk is still
-  `page-fa532e180c061050.js`, and `usb-frontend` is still PID 1515161 with 0 restarts. The
-  production checkout is still `98feb31` and was not pulled. Being on `origin/main` is not
-  deployment, which is the same lesson as the bullet below from the other direction.
+* **`ec3df85` is deployed.** The frontend artifact was swapped on 2026-10-10 at 17:10 KST and
+  `BUILD_ID` went `DSqckYX5fRU5ep1myq5SC` to **`sX7LPUBG-wazp9sit6KZi`**. The served page chunk
+  went `page-fa532e180c061050.js` to `page-b770ddd106e989d0.js`, and the chart entry in
+  `react-loadable-manifest.json` now ships the library and the component together. Only
+  `usb-frontend` was stopped and started; it came back in about 33 s and answered 200. Backend,
+  crypto, liqfwd, e-rvol and nginx kept their PIDs with 0 restarts.
+* **The artifact was built elsewhere and uploaded; the production checkout was deliberately not
+  pulled** and is still `98feb31`. This is the normal path on this host, so the repository
+  checkout and the deployed artifact are expected to disagree. Judge from `BUILD_ID`.
+* **Rollback**: `.next-build.pre-perf-20261010-171034` holds `DSqckYX5fRU5ep1myq5SC`, and
+  `.next-build.before-vol1h` remains as the older step. Recovery is a stop, a directory swap and
+  a start, with no rebuild.
 * **The production repository checkout is not the deployed artifact.** `/root/usb` was at
   `98feb31` while the running frontend artifact was built at 2026-10-10 13:13 and the crypto
   backend runs from `/root/usb_runtime/crypto_paper/src/backend` by `PYTHONPATH`, not from
