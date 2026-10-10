@@ -1,6 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
+import {
+  CandlestickSeries, CrosshairMode, HistogramSeries, createChart, createSeriesMarkers,
+} from "lightweight-charts";
 import type {
   AutoscaleInfo, IChartApi, IPriceLine, ISeriesApi, ISeriesMarkersPluginApi, SeriesMarker, Time,
 } from "lightweight-charts";
@@ -162,10 +165,14 @@ export function CandleChart({ candles, overlays, markers = [], className = "h-[3
     const priceLines = lines.current;
 
     (async () => {
-      const lib = await import("lightweight-charts");
+      // The library is imported at the top of this module rather than awaited here, which is
+      // what collapses the old three-request chain into one. Both end up in the same
+      // `next/dynamic` chunk, so by the time this effect runs there is nothing left to fetch.
+      // The function stays async: the body below still awaits nothing, but the early returns
+      // and the disposal flag are written against a suspended effect and are left as they are.
       if (disposed || !holder.current) return;
 
-      const created = lib.createChart(holder.current, {
+      const created = createChart(holder.current, {
         autoSize: true,
         layout: {
           background: { color: "transparent" },
@@ -176,7 +183,7 @@ export function CandleChart({ candles, overlays, markers = [], className = "h-[3
           vertLines: { color: "rgba(148,163,184,0.10)" },
           horzLines: { color: "rgba(148,163,184,0.10)" },
         },
-        crosshair: { mode: lib.CrosshairMode.Normal },
+        crosshair: { mode: CrosshairMode.Normal },
         rightPriceScale: { borderColor: "rgba(148,163,184,0.25)", scaleMargins: { top: 0.08, bottom: 0.28 } },
         timeScale: {
           borderColor: "rgba(148,163,184,0.25)",
@@ -189,7 +196,7 @@ export function CandleChart({ candles, overlays, markers = [], className = "h-[3
         handleScale: true,
       });
 
-      const price = created.addSeries(lib.CandlestickSeries, {
+      const price = created.addSeries(CandlestickSeries, {
         upColor: "#16a34a", downColor: "#dc2626",
         borderUpColor: "#16a34a", borderDownColor: "#dc2626",
         wickUpColor: "#16a34a", wickDownColor: "#dc2626",
@@ -200,7 +207,7 @@ export function CandleChart({ candles, overlays, markers = [], className = "h-[3
 
       // Volume shares the pane but lives on its own scale pinned to the bottom quarter, so a
       // volume spike cannot squash the candles.
-      const volume = created.addSeries(lib.HistogramSeries, {
+      const volume = created.addSeries(HistogramSeries, {
         priceFormat: { type: "volume" },
         priceScaleId: "volume",
       });
@@ -211,7 +218,7 @@ export function CandleChart({ candles, overlays, markers = [], className = "h-[3
       volumeSeries.current = volume;
       // Markers are a plugin in v5 rather than a series method; one instance per series, kept so
       // the marker effect can replace the set without touching the candles.
-      markerPlugin.current = lib.createSeriesMarkers(price, markerSpecs.current);
+      markerPlugin.current = createSeriesMarkers(price, markerSpecs.current);
       created.timeScale().subscribeVisibleLogicalRangeChange(() => report());
       created.subscribeClick(param => {
         const listener = markerListener.current;

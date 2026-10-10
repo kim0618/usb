@@ -90,6 +90,21 @@ export function useC1Signals(enabled = true) {
   return { state, markers };
 }
 
+/** The chart, in one chunk with the library it draws with.
+ *
+ *  Measured on the deployed artifact at 150 ms / 5 Mbps, first candles landed at 3.34 s while the
+ *  data for them had been in hand since 1.7 s. The wait was neither the API nor the 2,880 bars:
+ *  it was three requests in a row. This `dynamic` fetched a 6.9 KB component chunk, the component
+ *  mounted, and only then did its effect `await import("lightweight-charts")` and pull 184 KB.
+ *
+ *  `crypto-candle-chart` now imports the library directly, so webpack puts both in this one
+ *  chunk and the middle hop is gone - one request, issued the moment `ChartSection` first
+ *  renders. Nothing moved ahead of P0: that render happens after the price, the position and the
+ *  order ticket are already on screen, so the first state, the ticket and the tabs are untouched.
+ *
+ *  The library stays out of the critical path and out of the server bundle because this is the
+ *  only reference to that module and it is `ssr: false`.
+ */
 const CandleChart = dynamic(
   () => import("@/components/crypto-candle-chart").then(module => module.CandleChart),
   { ssr: false, loading: () => <div className="h-[260px] w-full animate-pulse rounded-lg bg-surface-alt sm:h-[300px] xl:h-[520px]" /> },
