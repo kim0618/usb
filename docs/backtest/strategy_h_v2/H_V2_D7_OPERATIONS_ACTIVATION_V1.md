@@ -6,9 +6,11 @@ the session that was the launch baseline. This step changes no strategy semantic
 updater that already exists to the schedule A and E already run on, and collects the sessions that
 were missed in between.
 
-Status of this document: sections A-C, E-G and J were established before any production change.
-Sections D, H, I and K record the activation itself and are marked with what had and had not been
-applied when they were written.
+**Result: FAILED, H-only rollback applied (2026-10-10 18:01-18:0x KST).** The price catch-up
+succeeded and is kept; the timer was removed because the production host has no SEC submissions
+cache, so every scheduled run would rewrite the refresh queue as a false `NO_SUBMISSIONS_CACHE`.
+Sections A-C, E-G and J were written before the production change; D.2, H, I and K record what
+actually happened. Section B.2 is the cause of the failure.
 
 ---
 
@@ -86,6 +88,20 @@ exit 0 while rewriting all eight issuers as `NO_SUBMISSIONS_CACHE` - turning AEY
 same. The queue would look answered when it had been erased. `WorkingDirectory=/root/usb` is
 therefore load-bearing, and
 `backend/tests/strategy_h_v2/forward/test_d7_operations_schedule.py` holds it there.
+
+### B.2 What B.1 did not check, and what failed in production
+
+B.1 was measured **on the development machine only**. The production host was never asked whether
+the caches exist at all. They do not: on `/root/usb` all four submission roots are missing, and
+`data/runtime/strategy_h_v2/` holds nothing but `d7/` (locally the same roots hold 773 MB + 68 MB).
+
+So the launch and its refresh scan ran locally and only `d7/` was copied to the server. The valid
+queue production served from 2026-10-04 was a **copy**, byte-identical to the local one - which is
+exactly why the audit's local/server equivalence check passed and hid that production cannot
+regenerate it. The first scan actually run on the server (the catch-up, cwd `/root/usb`, correct)
+wrote all eight issuers as `NO_SUBMISSIONS_CACHE` and an empty `refresh_due`, erasing AEYE's real
+`REFRESH_DUE`. The working-directory fix was right and insufficient: the right directory with no
+data in it fails the same way as the wrong directory.
 
 ## C. Scheduler Design
 
@@ -179,9 +195,41 @@ wider D4 universe, which is what `cohort_symbols()` falls back to before a launc
 sessions collected after it carry 9 (the launch cohort plus SPY). Outcomes read only the cohort and
 the benchmark.
 
-### D.2 Execution
+### D.2 Execution (2026-10-10, applied)
 
-*(Recorded at activation - see section K for whether it had been applied.)*
+Pre-change state re-recorded first, because the server had moved since the plan was approved: HEAD
+`98feb31` -> `db41f04` (another session's Strategy A deploy, server-local, not on origin) and
+`usb-backend`/`usb-frontend` had been restarted by it. That commit touches no H module, no Massive
+client and no calendar; the 50 `app.*` modules the update path loads intersect its changed modules
+in nothing; the H store was still byte-identical to local (aggregate `55de6fbb...`).
+
+Backup of the whole H store first: `/root/h_d7_backup_pre_activation_20261010-180116.tar.gz`.
+Units installed (sha256 `1b43b52f...` service, `111678d0...` timer, equal to local commit `75c42c0`),
+`daemon-reload`, `enable --now usb-h-forward.timer`. The timer did not fire on enable.
+
+The catch-up was run once as `systemctl start usb-h-forward.service`: the same ExecStart as the
+approved command (same flock, interpreter and arguments, cwd `/root/usb`), with `.env` and
+`.env.massive` loaded through the unit's own EnvironmentFile contract, and with the journal and
+exit status as evidence. 18:01:50 -> 18:02:47 KST, `Result=success`, exit 0, 2.13 s CPU.
+
+```text
+Massive grouped_daily calls  5
+requested   2026-10-05 2026-10-06 2026-10-07 2026-10-08 2026-10-09
+written     2026-10-05 2026-10-06 2026-10-07 2026-10-08 2026-10-09
+no_result   []      failed  {}
+price sessions  12 (09-17..10-02)  ->  17 (09-17..10-09); 6 on or after the baseline
+```
+
+| session | symbols | SPY close | vs A's grouped store (close/high/low/volume) |
+|---|---|---|---|
+| 2026-10-05 | 9 | 774.83 | identical, 9/9 |
+| 2026-10-06 | 9 | 779.09 | identical, 9/9 |
+| 2026-10-07 | 9 | 777.22 | identical, 9/9 |
+| 2026-10-08 | 9 | 773.93 | identical, 9/9 |
+| 2026-10-09 | 9 | 778.57 | A collects it Monday; H fetched it directly |
+
+Nothing was entered by hand. `launch_snapshot.jsonl` and `forward_ledger.jsonl` kept their sha256
+(`dba04d4b...`, `6cd6009d...`), the ledger stayed at 8 rows, `verify` returned `problems = []`.
 
 ## E. Outcome Maturation
 
@@ -252,13 +300,56 @@ Local regression, with no Python source changed at all:
 
 `systemd-analyze verify` on both new units: exit 0.
 
+### E.1 After the catch-up
+
+1D matured 8/8 on 2026-10-05 and 5D 8/8 on 2026-10-09 (published by then: the run was at 05:01 ET
+on 2026-10-10). 21D and 63D are PENDING. Recorded as observations; nothing here feeds any decision.
+
+| ticker | decision | 1D security | 1D SPY | 1D excess | 5D security | 5D SPY | 5D excess |
+|---|---|---|---|---|---|---|---|
+| COLL | WATCH  | -0.681% | +0.674% | -1.356% | +0.318%  | +1.160% | -0.842%  |
+| DORM | WATCH  | +0.309% | +0.674% | -0.366% | -2.162%  | +1.160% | -3.322%  |
+| FG   | WATCH  | +0.411% | +0.674% | -0.264% | -12.135% | +1.160% | -13.295% |
+| SCCO | WATCH  | -0.122% | +0.674% | -0.796% | +1.786%  | +1.160% | +0.625%  |
+| TG   | WATCH  | -0.427% | +0.674% | -1.101% | +0.000%  | +1.160% | -1.160%  |
+| VRRM | WATCH  | +2.135% | +0.674% | +1.461% | +4.626%  | +1.160% | +3.466%  |
+| AEYE | REJECT | -2.746% | +0.674% | -3.420% | +0.145%  | +1.160% | -1.016%  |
+| IDCC | REJECT | +0.913% | +0.674% | +0.239% | -1.140%  | +1.160% | -2.300%  |
+
+Decisions: APPROVE 0 / WATCH 6 / REJECT 2, `decisions_changed = 0`. VRRM: window `RECENT_6M`, frozen
+`upside_to_tp1` +24.80% (snapshot unchanged), Bear N/A (`NEGATIVE_IMPLIED_EQUITY`); `tp1_distance`
+moved +57.2% -> +50.3% with the price 2.81 -> 2.94, as J.3 said it would.
+
 ## H. UI/API Smoke
 
-*(Recorded at activation.)*
+API on the production backend, after the rollback: `/api/v1/strategies`, `/cards`, `/performance`,
+`/STRATEGY_H_V2/forward`, `/STRATEGY_H_V2/forward/VRRM`, `/STRATEGY_H_V2/status` all HTTP 200. H
+reports `session 2026-10-09`, `price_sessions_observed 6`, `FORWARD_SHADOW_RUNNING`.
+`last_update` still reads 2026-10-04T08:34:30Z: it is the newest *decision* time, not a price
+time, so a price catch-up correctly leaves it alone.
+
+UI `/dashboard`, `/strategy-h`, `/strategy-compare`: HTTP 200. **Not rendered in a browser**, so the
+selector and the per-horizon display were not visually confirmed.
+
+A/E, compared with the values recorded before the change (trades hashed as well as counted):
+
+```text
+A  session 2026-10-09  equity 7509.398546173644750679827318  init 7428.92  pnl 80.4785...  open 0  trades 3   sha b218acca  unchanged
+E  session 2026-10-09  equity 10190.38592  init 10000  pnl 190.38592  open 0  trades 28  sha 30a75b11  unchanged
+```
+
+MainPIDs of usb-backend, usb-frontend, usb-crypto-paper, usb-crypto-liqfwd and usb-e-rvol identical
+before and after; all 20 other usb unit files identical by sha256; server HEAD and dirty set
+unchanged. No other unit was started, stopped or restarted.
 
 ## I. Timer Verification
 
-*(Recorded at activation.)*
+While installed: `enabled`, `active (waiting)`, trigger Mon 2026-10-12 14:10 KST, no last trigger,
+service `static`/inactive, enable symlink in `timers.target.wants` (the reboot-survival mechanism).
+The one service run: `Result=success`, exit 0, journal shows Starting / Finished / Deactivated
+successfully and the full JSON report.
+
+**Then removed** (section K). Now: no unit file, no wants symlink, absent from `list-timers`.
 
 ## J. Remaining Limitations
 
@@ -279,4 +370,24 @@ Local regression, with no Python source changed at all:
 
 ## K. Final Health
 
-*(Recorded at activation.)*
+```text
+H-V2 D7 OPERATIONS = FAILED, H-only rollback applied
+                     (price/outcome catch-up succeeded and is kept)
+```
+
+Rollback, as approved: `disable --now` the timer, remove both unit files, `daemon-reload`. In
+addition, `refresh_queue.json` alone was restored from the pre-activation backup (sha256
+`43123c04...`, identical to before) because the degraded version was a false statement being served;
+the degraded copy is kept at `/root/h_d7_refresh_queue_DEGRADED_20261010-1802.json`. The five price
+sessions were **not** rolled back: they are correct, append-only, verified field by field against
+an independent store, and removing them would only re-hide 1D/5D results that exist.
+
+To activate for real, production needs the SEC submissions for the eight cohort CIKs at a path the
+scan reads, which is a data deployment or a code change - neither was in this approval:
+
+1. copy the eight `CIK*.json.gz` submission files (raw, read-only, no fetch) into one of the
+   `SUBMISSION_ROOTS` on the server, then reinstall the same two units unchanged; or
+2. make `refresh_scan` fail closed when no cache root exists (refuse to rewrite the queue rather
+   than write `NO_SUBMISSIONS_CACHE`), which would let prices run daily now while the queue waits.
+
+Either way the queue would only be *regenerated*, not *current* (section F).
