@@ -1,0 +1,46 @@
+[Unit]
+Description=US-B CRYPTO context collector (BTCUSDT public market data, read only: no order, no account, no key)
+Documentation=file:/root/usb_runtime/crypto_context/src/docs/crypto/context_collector_v1/PRODUCTION_PREDEPLOY_V1_1.md
+After=network-online.target
+Wants=network-online.target
+# No Requires=/Wants=/PartOf= on any other usb unit, and no unit depends on this one. A failure
+# here stays here. Five failed starts in ten minutes leave the unit failed instead of looping
+# (a full disk exits 4 on every start).
+StartLimitIntervalSec=600
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/usb_runtime/crypto_context
+EnvironmentFile=/root/usb_runtime/crypto_context/config/context.env
+# Its own source snapshot, not /root/usb/backend and not crypto_paper/src. The venv is shared
+# read-only with the other usb units; nothing is installed into it for this service.
+Environment=PYTHONPATH=/root/usb_runtime/crypto_context/src/backend
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+# CONTRACT_CTX_V1_1 section 3: the current-state cache is volatile. /run is tmpfs; systemd
+# creates this directory at start and removes it at stop. A lost cache costs one sample of
+# readability and never a journal row.
+RuntimeDirectory=usb-crypto-context
+RuntimeDirectoryMode=0700
+ExecStart=/root/usb/.venv/bin/python -m app.crypto.context_collector_v1 collect \
+  --root ${CTX_V1_ROOT} --state-cache-dir ${CTX_V1_STATE_CACHE} --symbol BTCUSDT --duration 0
+StandardOutput=append:/root/usb_runtime/crypto_context/logs/collector.log
+StandardError=append:/root/usb_runtime/crypto_context/logs/collector.log
+Restart=on-failure
+RestartSec=10
+# 2 = symbol refused, 3 = writer lock held by another collector. Restarting cannot fix either.
+RestartPreventExitStatus=2 3
+KillSignal=SIGTERM
+TimeoutStopSec=30
+# Measured: RSS 41-44 MB, CPU about 4% (V1.1 report I/M). The caps are the blast radius on a
+# host that has been OOM-hit before, not a capacity target.
+MemoryMax=200M
+CPUQuota=25%
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+
+[Install]
+WantedBy=multi-user.target

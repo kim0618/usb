@@ -1,0 +1,54 @@
+# Exact production release of the context collector. One path per line, relative to the
+# repository root. stage_release.sh exports only these, from one commit, with their sha256.
+# Source: the import closure of collect / serve / prune (no tests, research, recordings).
+backend/app/__init__.py
+backend/app/crypto/__init__.py
+backend/app/crypto/context_collector_v1/__init__.py
+backend/app/crypto/context_collector_v1/__main__.py
+backend/app/crypto/context_collector_v1/api.py
+backend/app/crypto/context_collector_v1/collector.py
+backend/app/crypto/context_collector_v1/context.py
+backend/app/crypto/context_collector_v1/contract.py
+backend/app/crypto/context_collector_v1/mcv1_vendored/__init__.py
+backend/app/crypto/context_collector_v1/mcv1_vendored/contract.py
+backend/app/crypto/context_collector_v1/mcv1_vendored/flow.py
+backend/app/crypto/context_collector_v1/mcv1_vendored/liquidity.py
+backend/app/crypto/context_collector_v1/retention.py
+backend/app/crypto/context_collector_v1/store.py
+backend/app/crypto/context_collector_v1/wallr0.py
+backend/app/crypto/liquidity_map/__init__.py
+backend/app/crypto/liquidity_map/checkpoint.py
+backend/app/crypto/liquidity_map/continuity.py
+backend/app/crypto/liquidity_map/journal.py
+backend/app/crypto/liquidity_map/view.py
+backend/app/crypto/liquidity_map/wallrule.py
+backend/app/crypto/liquidity_map/wallstate.py
+backend/app/crypto/market_structure_v0/__init__.py
+backend/app/crypto/market_structure_v0/bands.py
+backend/app/crypto/market_structure_v0/book.py
+backend/app/crypto/market_structure_v0/collector.py
+backend/app/crypto/market_structure_v0/contract.py
+backend/app/crypto/market_structure_v0/envelope.py
+backend/app/crypto/market_structure_v0/flow.py
+backend/app/crypto/market_structure_v0/safety.py
+backend/app/crypto/market_structure_v0/store.py
+backend/app/crypto/market_structure_v0/trades.py
+backend/app/crypto/market_structure_v0/walls.py
+# Frozen contracts the code hashes at start (parents[4] = the snapshot root), and this release.
+docs/crypto/market_structure_v0/DATA_CONTRACT_V0.md
+docs/crypto/market_structure_v0/DATA_CONTRACT_V0.sha256
+docs/crypto/liquidity_map_v1/WALL_RULE_V2.md
+docs/crypto/liquidity_map_v1/WALL_RULE_V2.sha256
+docs/crypto/liquidity_map_v1/WALL_CONTINUITY_V1_2.md
+docs/crypto/liquidity_map_v1/WALL_CONTINUITY_V1_2.sha256
+docs/crypto/context_collector_v1/CONTRACT_CTX_V1_1.md
+docs/crypto/context_collector_v1/CONTRACT_CTX_V1_1.sha256
+docs/crypto/context_collector_v1/RETENTION_CTX_V1_1.md
+docs/crypto/context_collector_v1/RETENTION_CTX_V1_1.sha256
+docs/crypto/context_collector_v1/PRODUCTION_PREDEPLOY_V1_1.md
+# Host configuration. Installed outside the snapshot (see PRODUCTION_PREDEPLOY_V1_1.md R).
+deploy/crypto_context/context.env
+deploy/crypto_context/usb-crypto-context.service
+deploy/crypto_context/usb-crypto-context-api.service
+deploy/crypto_context/usb-crypto-context-retention.service
+deploy/crypto_context/usb-crypto-context-retention.timer

@@ -1,0 +1,28 @@
+[Unit]
+Description=US-B CRYPTO context collector retention (delete sealed context files older than CTX_V1_RETENTION_DAYS)
+Documentation=file:/root/usb_runtime/crypto_context/src/docs/crypto/context_collector_v1/RETENTION_CTX_V1_1.md
+# Nothing depends on this unit and it depends on nothing. A failure leaves old files on disk and
+# marks this unit failed; the collector, its API and every trading service are untouched.
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/root/usb_runtime/crypto_context
+EnvironmentFile=/root/usb_runtime/crypto_context/config/context.env
+Environment=PYTHONPATH=/root/usb_runtime/crypto_context/src/backend
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+# Deletes only sealed files under CTX_V1_ROOT/<kind>/ that are old on both clocks (seal mtime and
+# the UTC date in the name). Never .open files, the state cache, the writer lock, or the running
+# session's header. A root without .writer.lock and context/ is refused (exit 2) before listing.
+# flock -n: a hand-run prune and the timer never overlap; the lock lives in /run and is never
+# unlinked.
+ExecStart=/usr/bin/flock -n /run/usb-crypto-context-retention.lock \
+  /root/usb/.venv/bin/python -m app.crypto.context_collector_v1 prune \
+  --root ${CTX_V1_ROOT} --days ${CTX_V1_RETENTION_DAYS} --apply
+StandardOutput=append:/root/usb_runtime/crypto_context/logs/retention.log
+StandardError=append:/root/usb_runtime/crypto_context/logs/retention.log
+TimeoutStartSec=10min
+MemoryMax=100M
+Nice=19
+IOSchedulingClass=idle
