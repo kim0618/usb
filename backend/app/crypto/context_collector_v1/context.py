@@ -39,10 +39,15 @@ from ..liquidity_map import wallrule as R
 from ..liquidity_map.wallstate import WallFilter, WallFollower
 from ..market_structure_v0.contract import COMPLETE, PARTIAL
 from . import VERSION
-from .contract import (CLOSE_NO_READING, CLOSE_NOT_SELECTED, CLOSE_SESSION_END,
-                       DISPLAY_MIN_NOTIONAL_USDT, DISPLAY_WALL_LIMIT, FEED_LIVE, FEED_PARTIAL,
-                       FEED_STALE, FEED_SYNCING, FEED_UNKNOWN, SUPPORTED_SYMBOL, VENUE,
-                       WALL_V2_CHANGE, WALL_V2_CLOSE, WALL_V2_OPEN, WALL_V2_TRACKED)
+from .contract import (CANDIDATE_BAND, CLOSE_NO_READING, CLOSE_NOT_SELECTED,
+                       CLOSE_SESSION_END, COVERAGE_BEYOND_CANDIDATE_BAND,
+                       COVERAGE_OUTSIDE_KNOWN_INTERVAL, DISPLAY_MIN_NOTIONAL_USDT,
+                       DISPLAY_WALL_LIMIT, END_CLASSES, END_CLASSES_PUBLISHED_AS_VANISHED,
+                       END_OUT_OF_COVERAGE, END_RANK_EVICTED, END_TRUE_ENDED, END_UNKNOWN,
+                       FEED_LIVE, FEED_PARTIAL, FEED_STALE, FEED_SYNCING, FEED_UNKNOWN,
+                       RANK_BELOW_DISPLAY_FILTER, RANK_BEYOND_DISPLAY_LIMIT, SUPPORTED_SYMBOL,
+                       VENUE, WALL_V2_CHANGE, WALL_V2_CLOSE, WALL_V2_OPEN, WALL_V2_TRACKED,
+                       WARMUP_REASON)
 from .mcv1_vendored import contract as MCC
 from .mcv1_vendored import flow as MCF
 from .mcv1_vendored import liquidity as MCL
@@ -59,7 +64,11 @@ FULL_SELECTION_LIMIT = 1_000_000
 SYNC_NO_SESSION = "SESSION_RECORD_NOT_YET_FLUSHED"
 SYNC_BOOK = "BOOK_UNSYNCED"
 SYNC_FLOW_WARMUP = "FLOW_WINDOW_WARMUP"
-SYNC_WALL_WARMUP = "WALL_PERSISTENCE_WARMUP"
+SYNC_WALL_WARMUP = WARMUP_REASON
+#: The state file this process just wrote names a symbol other than BTCUSDT.
+SYMBOL_MISMATCH = "STATE_SYMBOL_IS_NOT_BTCUSDT"
+#: How many classified ends `vanished.recent` keeps, the panel tracker's own bound.
+RECENT_LIMIT = 20
 
 
 def record_from_state(file: CP.StateFile) -> dict[str, Any] | None:
@@ -209,7 +218,8 @@ def _flow_brief(flow_layer: dict[str, Any], snapshot: dict[str, Any]) -> dict[st
 def _vanish_brief(item: dict[str, Any]) -> dict[str, Any]:
     return {key: item.get(key) for key in (
         "state", "reason", "side", "bin_low", "bin_high", "price", "notional_usdt",
-        "last_seen_ms", "observed_at_ms", "path_samples", "mid_path_touched_bin")}
+        "last_seen_ms", "observed_at_ms", "path_samples", "mid_path_touched_bin",
+        "end_class", "end_reason", "mc_v1_raw_state") if key in item}
 
 
 def _absorption_brief(row: dict[str, Any] | None) -> dict[str, Any] | None:
@@ -218,6 +228,61 @@ def _absorption_brief(row: dict[str, Any] | None) -> dict[str, Any] | None:
     return {key: row.get(key) for key in (
         "state", "reason", "side", "window", "aggressive_usdt", "wall_notional_usdt",
         "wall_price", "bin_low", "bin_high", "wall_persistence_ms") if key in row}
+
+
+# --------------------------------------------------------------------------- V1.1 rules
+
+
+def apply_warmup_gate(liquidity: dict[str, Any], gate: dict[str, Any]) -> dict[str, Any]:
+    """CONTRACT_CTX_V1_1 section 1: while the gate is closed, NONE and LIVE are not readings.
+
+    Returns a new payload; the input (the panel's own output) is left as it was. Values are not
+    touched, only the words that would claim a complete observation.
+    """
+    out = dict(liquidity)
+    out["warmup"] = gate
+    if not gate.get("active"):
+        return out
+    reasons = [WARMUP_REASON] + [r for r in (liquidity.get("reasons") or []) if r != WARMUP_REASON]
+    if out.get("state") in (MCC.LIVE, PARTIAL):
+        out["state"] = MCC.UNKNOWN
+        out["reasons"] = reasons
+    sides = {}
+    for key, side in (liquidity.get("sides") or {}).items():
+        side = dict(side)
+        if side.get("wall_state") == MCC.WALL_NONE:
+            side["wall_state"] = MCC.UNKNOWN
+            side["wall_state_reason"] = WARMUP_REASON
+        sides[key] = side
+    if sides:
+        out["sides"] = sides
+    return out
+
+
+def classify_end(item: dict[str, Any], *, selection: dict[str, list[dict[str, Any]]],
+                 mid: Decimal | None, known_low: Decimal | None,
+                 known_high: Decimal | None) -> tuple[str, str | None]:
+    """CONTRACT_CTX_V1_1 section 2, in its stated order. Returns (end class, reason)."""
+    if item.get("state") == MCC.UNKNOWN or mid is None or known_low is None \
+            or known_high is None:
+        return END_UNKNOWN, item.get("reason") if item.get("state") == MCC.UNKNOWN \
+            else "NO_MID_OR_KNOWN_INTERVAL"
+    side, low = str(item.get("side")), str(item.get("bin_low"))
+    for wall in selection.get(side) or []:
+        if str(wall.get("bin_low")) == low:
+            notional = V._d(wall.get("notional_usdt"))
+            below = notional is not None and notional < Decimal(DISPLAY_MIN_NOTIONAL_USDT)
+            return END_RANK_EVICTED, (RANK_BELOW_DISPLAY_FILTER if below
+                                      else RANK_BEYOND_DISPLAY_LIMIT)
+    bin_low, bin_high = V._d(item.get("bin_low")), V._d(item.get("bin_high"))
+    if bin_low is None or bin_high is None:
+        return END_UNKNOWN, "BIN_UNPARSEABLE"
+    if bin_low < known_low or bin_high > known_high:
+        return END_OUT_OF_COVERAGE, COVERAGE_OUTSIDE_KNOWN_INTERVAL
+    nearest_edge = bin_low if side == R.SIDE_ASK else bin_high
+    if mid > 0 and abs(nearest_edge - mid) / mid > CANDIDATE_BAND:
+        return END_OUT_OF_COVERAGE, COVERAGE_BEYOND_CANDIDATE_BAND
+    return END_TRUE_ENDED, None
 
 
 # --------------------------------------------------------------------------- engine
@@ -238,6 +303,17 @@ class ContextEngine:
     observation_since_ms: int | None = None
     last_hard_ms: int | None = None
     last_hard_fingerprint: str | None = None
+    #: CONTRACT_CTX_V1_1 section 1 counters.
+    warmup_samples: int = 0
+    #: The panel's own LIQUIDITY said LIVE with a NONE side while the gate was closed (prevented).
+    prevented_live_none: int = 0
+    #: The same, after the gate, in what this process publishes. Must stay zero.
+    false_live_none: int = 0
+    #: CONTRACT_CTX_V1_1 section 2: classified ends, newest first, and their totals.
+    recent_classified: list[dict[str, Any]] = field(default_factory=list)
+    classified_totals: dict[str, int] = field(
+        default_factory=lambda: {name: 0 for name in END_CLASSES})
+    end_reasons: dict[str, int] = field(default_factory=dict)
     samples: int = 0
     wall_v2_events: dict[str, int] = field(
         default_factory=lambda: {WALL_V2_OPEN: 0, WALL_V2_CHANGE: 0, WALL_V2_CLOSE: 0})
@@ -258,12 +334,36 @@ class ContextEngine:
         reading = read_viewer(self.root, self.follower, now_ms=now_ms,
                               wall_filter=self.wall_filter, wall_limit=self.wall_limit)
         snapshot = reading.snapshot
-        liquidity = MCL.liquidity_view(snapshot, symbol=SUPPORTED_SYMBOL)
-        flow = MCF.flow_view(snapshot, liquidity, symbol=SUPPORTED_SYMBOL, tracker=self.tracker)
-        self._note_transition(reading, session_started_ms)
-        events = self._wall_v2_events(reading, sample_index=sample_index, now_ms=now_ms)
+        symbol = (snapshot.get("source") or {}).get("symbol")
+        if symbol not in (None, SUPPORTED_SYMBOL):
+            # CONTRACT_CTX_V1_1 section 5: never publish a reading of another instrument.
+            snapshot = V.empty_view(root=str(self.root), now_ms=now_ms, reason=SYMBOL_MISMATCH)
+            reading = Reading(snapshot)
+        liquidity_panel = MCL.liquidity_view(snapshot, symbol=SUPPORTED_SYMBOL)
+        # FLOW is computed from the panel's own LIQUIDITY payload, exactly as the panel does.
+        flow = MCF.flow_view(snapshot, liquidity_panel, symbol=SUPPORTED_SYMBOL,
+                             tracker=self.tracker)
+        self._note_observation(reading)
+        gate = self._gate(reading)
+        liquidity = apply_warmup_gate(liquidity_panel, gate)
+        if gate["active"]:
+            self.warmup_samples += 1
+            if liquidity_panel.get("state") == MCC.LIVE and any(
+                    (side or {}).get("wall_state") == MCC.WALL_NONE
+                    for side in (liquidity_panel.get("sides") or {}).values()):
+                self.prevented_live_none += 1
+        selection = full_selection(reading) if self._usable(reading) else {}
+        flow = self._classify_disappearances(flow, reading, selection)
+        events = self._wall_v2_events(reading, sample_index=sample_index, now_ms=now_ms,
+                                      selection=selection)
         collector = self._collector_state(snapshot, liquidity, flow, now_ms=now_ms,
-                                          session_started_ms=session_started_ms)
+                                          session_started_ms=session_started_ms, gate=gate)
+        if symbol not in (None, SUPPORTED_SYMBOL):
+            collector["reasons"] = [SYMBOL_MISMATCH] + collector["reasons"]
+        if gate["active"] and liquidity.get("state") == MCC.LIVE and any(
+                (side or {}).get("wall_state") == MCC.WALL_NONE
+                for side in (liquidity.get("sides") or {}).values()):
+            self.false_live_none += 1
         self.collector_states[collector["state"]] = (
             self.collector_states.get(collector["state"], 0) + 1)
         absorption = flow.get("absorption") or {}
@@ -308,6 +408,8 @@ class ContextEngine:
             "flow": _flow_brief(flow, snapshot),
             "vanished": [_vanish_brief(item)
                          for item in ((flow.get("vanished") or {}).get("this_reading") or [])],
+            "display_exits": [_vanish_brief(item) for item in flow.get("display_exits") or []],
+            "warmup": gate,
             "absorption": _absorption_brief(flow.get("absorption")),
             "open_v2_bins": {side: sum(1 for key in self.open_bins if key[0] == side)
                              for side in (R.SIDE_ASK, R.SIDE_BID)},
@@ -331,33 +433,79 @@ class ContextEngine:
 
     # ------------------------------------------------------------------ collector state
 
-    def _note_transition(self, reading: Reading, session_started_ms: int) -> None:
-        """Restart the persistence window at each new HARD transition the collector publishes.
+    def _hard_transition_is_new(self, reading: Reading) -> bool:
+        """Whether the collector has published a HARD transition not seen before.
 
-        A transition is recognised by its content, not by its time: the interruption a gap
-        produces carries `receive_ms: null`, so keying on time would mistake one transition for a
-        new one every sample. A transition seen for the first time without a time of its own is
-        dated by the sample it was first seen in.
+        Recognised by content, not by time: the interruption a gap produces carries
+        `receive_ms: null`, and keying on time mistook it for a new transition every sample.
         """
-        if self.observation_since_ms is None:
-            self.observation_since_ms = session_started_ms
         state = reading.state_file
         last = ((state.continuity if state is not None else {}) or {}).get("last_transition")
         if not isinstance(last, dict) or last.get("refresh_type") != "HARD":
-            return
+            return False
         fingerprint = json.dumps(last, sort_keys=True, default=str)
         if fingerprint == self.last_hard_fingerprint:
-            return
+            return False
         self.last_hard_fingerprint = fingerprint
         at = last.get("receive_ms")
-        at = at if isinstance(at, int) else reading.latest_sample_ms
-        if isinstance(at, int):
-            self.last_hard_ms = at
-            self.observation_since_ms = max(self.observation_since_ms or 0, at)
+        self.last_hard_ms = at if isinstance(at, int) else reading.latest_sample_ms
+        return True
+
+    def _note_observation(self, reading: Reading) -> None:
+        """CONTRACT_CTX_V1_1 section 1: when the current wall observation window began."""
+        quality = reading.snapshot.get("quality") or {}
+        synced = quality.get("book_state") == "SYNCED"
+        sample_ms = reading.latest_sample_ms
+        hard = self._hard_transition_is_new(reading)
+        if not synced or sample_ms is None:
+            self.observation_since_ms = None
+        elif hard or self.observation_since_ms is None:
+            self.observation_since_ms = sample_ms
+
+    def _gate(self, reading: Reading) -> dict[str, Any]:
+        since, now = self.observation_since_ms, reading.latest_sample_ms
+        observed = None if since is None or now is None else max(0, now - since)
+        return {"active": observed is None or observed < R.MIN_PERSISTENCE_MS,
+                "observation_since_ms": since, "observed_ms": observed,
+                "required_ms": R.MIN_PERSISTENCE_MS, "rule": "lm-wall.v2 R4"}
+
+    @staticmethod
+    def _usable(reading: Reading) -> bool:
+        return (reading.mid is not None and reading.wall_set is not None
+                and reading.wall_set.coverage == COMPLETE)
+
+    def _classify_disappearances(self, flow: dict[str, Any], reading: Reading,
+                                 selection: dict[str, list[dict[str, Any]]]) -> dict[str, Any]:
+        """CONTRACT_CTX_V1_1 section 2. The panel's verdicts are kept; ends are separated."""
+        vanished = flow.get("vanished")
+        if not isinstance(vanished, dict):
+            return flow
+        ends, exits = [], []
+        for item in vanished.get("this_reading") or []:
+            end_class, reason = classify_end(item, selection=selection, mid=reading.mid,
+                                             known_low=reading.known_low,
+                                             known_high=reading.known_high)
+            self.classified_totals[end_class] += 1
+            key = f"{end_class}:{reason}"
+            self.end_reasons[key] = self.end_reasons.get(key, 0) + 1
+            row = {**item, "end_class": end_class, "end_reason": reason}
+            if end_class in END_CLASSES_PUBLISHED_AS_VANISHED:
+                ends.append(row)
+            else:
+                row["mc_v1_raw_state"] = row.pop("state")
+                exits.append(row)
+        if ends:
+            self.recent_classified = (ends + self.recent_classified)[:RECENT_LIMIT]
+        out = dict(flow)
+        out["vanished"] = {**vanished, "this_reading": ends, "recent": self.recent_classified,
+                           "totals_are": "MC_V1_TRACKER_RAW_INCLUDING_DISPLAY_EXITS",
+                           "classified_totals": dict(self.classified_totals)}
+        out["display_exits"] = exits
+        return out
 
     def _collector_state(self, snapshot: dict[str, Any], liquidity: dict[str, Any],
-                         flow: dict[str, Any], *, now_ms: int,
-                         session_started_ms: int) -> dict[str, Any]:
+                         flow: dict[str, Any], *, now_ms: int, session_started_ms: int,
+                         gate: dict[str, Any]) -> dict[str, Any]:
         """A word about the collector process, never about the market and never a roll-up.
 
         The per-layer states stay where the panel's contract puts them. This answers the one
@@ -387,8 +535,7 @@ class ContextEngine:
         if any((window or {}).get("coverage_reason") == "WARMUP"
                and (window or {}).get("coverage") != COMPLETE for window in windows.values()):
             syncing.append(SYNC_FLOW_WARMUP)
-        since = self.observation_since_ms or session_started_ms
-        if now_ms - since < R.MIN_PERSISTENCE_MS:
+        if gate.get("active"):
             syncing.append(SYNC_WALL_WARMUP)
         if syncing:
             return self._state_view(FEED_SYNCING, syncing, now_ms, session_started_ms)
@@ -413,14 +560,13 @@ class ContextEngine:
 
     # ------------------------------------------------------------------ wall_v2
 
-    def _wall_v2_events(self, reading: Reading, *, sample_index: int,
-                        now_ms: int) -> list[dict[str, Any]]:
+    def _wall_v2_events(self, reading: Reading, *, sample_index: int, now_ms: int,
+                        selection: dict[str, list[dict[str, Any]]]) -> list[dict[str, Any]]:
         sample_ms = reading.latest_sample_ms
-        usable = (reading.mid is not None and reading.wall_set is not None
-                  and reading.wall_set.coverage == COMPLETE)
+        usable = self._usable(reading)
         current: dict[tuple[str, str], dict[str, Any]] = {}
         if usable:
-            for side, walls in full_selection(reading).items():
+            for side, walls in selection.items():
                 for wall in walls:
                     current[(side, str(wall.get("bin_low")))] = wall
         events: list[dict[str, Any]] = []
@@ -479,6 +625,11 @@ class ContextEngine:
             "wall_v2_events": dict(self.wall_v2_events),
             "open_v2_bins": len(self.open_bins),
             "vanish_totals": dict(self.tracker.totals),
+            "vanish_classified_totals": dict(self.classified_totals),
+            "vanish_end_reasons": dict(self.end_reasons),
+            "warmup_samples": self.warmup_samples,
+            "prevented_live_none": self.prevented_live_none,
+            "false_live_none": self.false_live_none,
             "absorption_candidates": self.absorption_candidates,
             "collector_states": dict(self.collector_states),
             "compute_ms_mean": (round(self.compute_ns_total / self.samples / 1e6, 3)

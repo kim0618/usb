@@ -41,7 +41,10 @@ def records(root: Path, kind: str, session8: str | None = None) -> list[dict[str
         return []
     out: list[dict[str, Any]] = []
     for path in sorted(directory.iterdir()):
-        if not (path.name.endswith(".jsonl") or path.name.endswith(COMPRESSED_SUFFIX)):
+        # Sealed, compressed, and the file still being written: a live `.open` file is read
+        # up to its last complete line, exactly like a sealed one.
+        if not (path.name.endswith(".jsonl") or path.name.endswith(COMPRESSED_SUFFIX)
+                or path.name.endswith(".jsonl.open")):
             continue
         if session8 is not None and f"-{session8}-" not in path.name:
             continue
@@ -60,6 +63,16 @@ class Second:
     context: dict[str, Any]
     walls_display: dict[str, dict[str, dict[str, Any]]] = field(default_factory=dict)
     walls_r0: dict[str, list[dict[str, Any]]] = field(default_factory=dict)
+
+    @property
+    def walls_primary(self) -> dict[str, list[dict[str, Any]]]:
+        """CONTRACT_CTX_V1_1 section 4: the research primary, OPENED-row values (R0)."""
+        return self.walls_r0
+
+    @property
+    def walls_secondary_current(self) -> dict[str, dict[str, dict[str, Any]]]:
+        """CONTRACT_CTX_V1_1 section 4: SECONDARY_DIAGNOSTIC, current values (the panel)."""
+        return self.walls_display
 
 
 def _decimal(value: Any) -> Decimal | None:
