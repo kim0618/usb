@@ -14,7 +14,7 @@ from dataclasses import dataclass, field, replace
 from decimal import Decimal, InvalidOperation
 
 from .endpoints import DEFAULT_BASE_URL, DEFAULT_WS_PRIVATE_URL, DEFAULT_WS_PUBLIC_URL
-from ..symbols import DEFAULT_SYMBOL, SUPPORTED_SYMBOLS, SymbolNotSupported, resolve
+from ..symbols import DEFAULT_SYMBOL, SUPPORTED_SYMBOLS, SymbolNotSupported, is_dynamic, resolve
 
 API_KEY_ENV = "BINANCE_API_KEY"
 API_SECRET_ENV = "BINANCE_API_SECRET"
@@ -117,7 +117,9 @@ class LiveConfig:
         object it holds is frozen, so the symbol it reads is fixed for the life of the reader.
         """
         candidate = resolve(symbol)
-        if candidate not in self.symbols:
+        # The HOT symbol is admitted at runtime by the HOT service after Binance confirmed it,
+        # and is permitted beside the deployment's own list.
+        if candidate not in self.symbols and not is_dynamic(candidate):
             raise SymbolNotSupported(symbol)
         if candidate == self.symbol:
             return self

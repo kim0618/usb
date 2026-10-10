@@ -154,7 +154,9 @@ class InFlightRegistry:
         self._unresolved: dict[str, int] = {}
 
     @contextmanager
-    def sending(self, symbol: str) -> Iterator[None]:
+    def sending(self, symbol: str, *, unknown_on_error: bool = True) -> Iterator[None]:
+        """`unknown_on_error=False` for a local engine (paper), whose outcome is never unknown:
+        an exception there means nothing was filled, so it must not leave the symbol locked."""
         with self._lock:
             self._counts[symbol] = self._counts.get(symbol, 0) + 1
         answered = False
@@ -168,7 +170,7 @@ class InFlightRegistry:
                     self._counts[symbol] = left
                 else:
                     self._counts.pop(symbol, None)
-                if not answered:
+                if not answered and unknown_on_error:
                     self._unresolved[symbol] = self._unresolved.get(symbol, 0) + 1
 
     def reconciled(self, symbol: str) -> None:

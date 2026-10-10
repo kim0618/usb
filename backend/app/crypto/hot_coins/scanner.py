@@ -324,6 +324,11 @@ class HotScanner:
         self._exchange_info = (now, rows)
         return rows
 
+    def symbol_row(self, symbol: str) -> Mapping[str, Any] | None:
+        """The symbol's exchangeInfo row from the cached universe (read once if not cached)."""
+        rows = self._symbols(ApiMeter())
+        return next((row for row in rows if row.get("symbol") == symbol), None)
+
     def scan(self) -> ScanResult:
         started = self._monotonic()
         meter = ApiMeter()

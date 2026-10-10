@@ -49,7 +49,9 @@ from ..live.models import LiveFieldMissing, LivePosition
 from ..live.rest import BinanceError, BinanceFuturesClient, TradingDisabled
 from ..live.stream import UserDataStream
 from ..symbols import (DEFAULT_SYMBOL, SUPPORTED_SYMBOLS, SymbolNotSupported,
-                            base_asset, resolve as resolve_symbol)
+                            base_asset, dynamic_symbols, is_dynamic, resolve as resolve_symbol)
+from ..hot_coins.lock import InFlightRegistry, SymbolExposure
+from ..hot_coins.slot import controller as hot_slot
 from .api import app, error, jsonable, runtime
 
 LIVE_ROOT_ENV = "CRYPTO_LIVE_ROOT"
@@ -486,6 +488,101 @@ def _entry(symbol: str | None) -> tuple[SymbolRuntime | None, JSONResponse | Non
     return entry, None
 
 
+# --------------------------------------------------------------------- HOT symbol (Dynamic HOT V1)
+
+#: Binance order requests sent and not yet answered, per symbol. Read by the HOT lock.
+live_in_flight = InFlightRegistry()
+#: LIVE orders and leverage writes on the HOT symbol stay refused until this is turned on. The
+#: HOT symbol's read paths (filters, brackets, position, Safe MAX) work regardless; what this
+#: gates is the first real order on an instrument chosen at runtime, which is a decision the
+#: operator makes on purpose after the order path has been validated on the real account.
+HOT_LIVE_ORDERS_ENV = "BINANCE_LIVE_HOT_ORDERS"
+
+
+def hot_live_orders_enabled() -> bool:
+    return os.environ.get(HOT_LIVE_ORDERS_ENV, "off").strip().lower() in {"on", "1", "true", "yes"}
+
+
+def _hot_live_refusal(symbol: str) -> JSONResponse | None:
+    if is_dynamic(symbol) and not hot_live_orders_enabled():
+        return error(409, "HOT_LIVE_ORDERS_DISABLED",
+                     f"HOT 심볼({symbol})의 LIVE 주문·레버리지 변경은 아직 꺼져 있습니다 "
+                     f"({HOT_LIVE_ORDERS_ENV}).")
+    return None
+
+
+def _permitted(configured: Any) -> list[str]:
+    """The deployment's own symbols, then the HOT symbol admitted at runtime."""
+    base = list(configured)
+    return base + [s for s in dynamic_symbols() if s not in base]
+
+
+class LiveExposure:
+    """The Binance account's exposure on one symbol, read fresh: position, resting orders, and
+    order requests this process has in flight. No key configured means there is no account to
+    hold anything, which is zero exposure, not an unknown one. A failed read raises, and the HOT
+    lock treats a raise as unknown and blocks."""
+
+    def exposure(self, symbol: str) -> SymbolExposure:
+        if not _shared_ready():
+            if live_runtime.config is not None and live_runtime.config.credentials_present:
+                raise RuntimeError(live_runtime.error or "LIVE runtime could not be built")
+            return SymbolExposure(symbol, Decimal(0), 0, live_in_flight.count(symbol))
+        client = live_runtime.client
+        assert client is not None
+        rows = client.call("position_risk", {"symbol": symbol})
+        orders = client.call("open_orders", {"symbol": symbol})
+        if not isinstance(rows, list) or not isinstance(orders, list):
+            raise RuntimeError("positionRisk/openOrders response shape changed")
+        amount = Decimal(0)
+        for row in rows:
+            if isinstance(row, dict) and row.get("symbol") == symbol:
+                amount += abs(Decimal(str(row.get("positionAmt") or "0")))
+        _reconcile_in_flight(symbol)
+        return SymbolExposure(symbol, amount, len(orders), live_in_flight.count(symbol))
+
+
+def _reconcile_in_flight(symbol: str) -> None:
+    """An order whose request raised is unknown until the account has been read since. Reading
+    positionRisk and openOrders for the symbol is that read, so the unknown is resolved here."""
+    live_in_flight.reconciled(symbol)
+
+
+def _shared_ready() -> bool:
+    """`_build_shared` under the runtime's own lock: the HOT paths call it from a worker thread,
+    and two unlocked first builds would make two clients and two mirrors."""
+    with live_runtime._lock:
+        return live_runtime._build_shared()
+
+
+def _bracket_provider(symbol: str) -> list[dict[str, Any]] | None:
+    if not _shared_ready() or live_runtime.client is None:
+        return None
+    try:
+        body = live_runtime.client.call("leverage_bracket", {"symbol": symbol})
+    except Exception:
+        return None
+    rows = body if isinstance(body, list) else [body]
+    for row in rows:
+        if isinstance(row, dict) and row.get("symbol") == symbol and row.get("brackets"):
+            return list(row["brackets"])
+    return None
+
+
+def _evict_symbol_runtime(symbol: str) -> None:
+    """Drop a former HOT symbol's per-symbol LIVE objects. Never the default symbol's."""
+    if symbol == live_runtime._default_symbol():
+        return
+    with live_runtime._lock:
+        live_runtime.symbols.pop(symbol, None)
+
+
+live_exposure = LiveExposure()
+hot_slot.add_source(live_exposure)
+hot_slot.bracket_provider = _bracket_provider
+hot_slot.on_retire.append(_evict_symbol_runtime)
+
+
 @app.get("/api/crypto/binance/status")
 async def binance_status(symbol: str | None = None) -> Any:
     """Whether LIVE can be offered at all, and why not when it cannot.
@@ -501,7 +598,7 @@ async def binance_status(symbol: str | None = None) -> Any:
     except SymbolNotSupported as exc:
         return _symbol_error(exc)
     config_view = _config_view()
-    permitted = config_view.get("symbols") or list(SUPPORTED_SYMBOLS)
+    permitted = _permitted(config_view.get("symbols") or list(SUPPORTED_SYMBOLS))
     adapter = None if requested not in permitted else live_runtime.build(requested)
     body: dict[str, Any] = {"source": "BINANCE_LIVE", "config": config_view,
                             "symbol": requested, "symbols": permitted,
@@ -658,6 +755,9 @@ async def binance_order(request: LiveOrderRequest) -> Any:
     if failure is not None:
         return failure
     assert entry is not None
+    refused = _hot_live_refusal(entry.symbol)
+    if refused is not None:
+        return refused
     adapter = entry.adapter
     intent = request.intent.upper()
     if intent not in (OPEN, CLOSE):
@@ -698,8 +798,15 @@ async def binance_order(request: LiveOrderRequest) -> Any:
                 account_timestamp_ms=preflight.get("account_timestamp_ms"),
                 final_resync_timestamp_ms=preflight.get("final_resync_timestamp_ms"))
         return error(502, "BINANCE_ERROR", exc.message)
+    # In flight from before the HOT replacement flag is read, so a HOT scan either sees this
+    # order or this order sees the replacement (see `hot_coins.slot.HotSlotController`). A
+    # request that raises has an unknown outcome and keeps the symbol locked until the account
+    # is read again (`_reconcile_in_flight`).
     try:
-        result = adapter.router.submit(plan)
+        with live_in_flight.sending(entry.symbol):
+            if hot_slot.replacing == entry.symbol:
+                return error(409, "HOT_REPLACING", "HOT 심볼 교체가 진행 중이라 주문을 보내지 않았습니다.")
+            result = adapter.router.submit(plan)
     except OrderRefused as exc:
         # The expected V1 outcome: the plan is returned with the refusal so the UI can show
         # exactly what would have been sent.
@@ -720,6 +827,9 @@ async def binance_leverage(request: LiveLeverageRequest) -> Any:
     if failure is not None:
         return failure
     assert entry is not None
+    refused = _hot_live_refusal(entry.symbol)
+    if refused is not None:
+        return refused
     adapter = entry.adapter
     try:
         value = _decimal(request.leverage, "leverage")
@@ -825,7 +935,7 @@ async def binance_positions() -> Any:
         return error(502, "BINANCE_ERROR", exc.message)
     if not isinstance(rows, list):
         return error(502, "BINANCE_ERROR", "positionRisk 응답 형식이 바뀌었습니다.")
-    permitted = list(adapter.config.symbols)
+    permitted = _permitted(adapter.config.symbols)
     rate = _krw_rate()
     positions: list[dict[str, Any]] = []
     for symbol in permitted:

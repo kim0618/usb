@@ -33,6 +33,49 @@ DEFAULT_SYMBOL = SUPPORTED_SYMBOLS[0]
 #: Reject code, carried to the API so a refusal reads the same wherever it was raised.
 SYMBOL_NOT_SUPPORTED = "SYMBOL_NOT_SUPPORTED"
 
+#: Symbols admitted at runtime: the current HOT symbol, and nothing else.
+#:
+#: The whitelist above stays the policy for the instruments this build is *about*. Dynamic HOT
+#: Trading adds exactly one more: whichever USDT perpetual the HOT scan selected, admitted by
+#: the HOT service only after Binance's own `exchangeInfo` said PERPETUAL, TRADING, USDT, and
+#: retired when the HOT slot moves on. A query parameter still cannot admit anything; only
+#: `admit_dynamic` can, and only the HOT service calls it.
+_dynamic: set[str] = set()
+
+
+def _shape_ok(symbol: str) -> bool:
+    """A conservative shape check on top of the exchange's word: USDT-quoted, no separators or
+    whitespace, bounded length. Binance names some perpetuals in Chinese characters, so letters
+    are not limited to ASCII."""
+    return (4 < len(symbol) <= 40 and symbol.endswith("USDT")
+            and all(ch.isalnum() for ch in symbol))
+
+
+def admit_dynamic(symbol: str) -> str:
+    candidate = symbol.strip().upper() if isinstance(symbol, str) else ""
+    if not _shape_ok(candidate):
+        raise SymbolNotSupported(symbol)
+    _dynamic.add(candidate)
+    return candidate
+
+
+def retire_dynamic(symbol: str) -> None:
+    _dynamic.discard(symbol)
+
+
+def dynamic_symbols() -> tuple[str, ...]:
+    return tuple(sorted(_dynamic))
+
+
+def is_dynamic(symbol: object) -> bool:
+    """Admitted at runtime and not one of the build's own instruments."""
+    return isinstance(symbol, str) and symbol in _dynamic and symbol not in SUPPORTED_SYMBOLS
+
+
+def permitted_symbols() -> tuple[str, ...]:
+    """The whitelist, then whatever is admitted at runtime."""
+    return SUPPORTED_SYMBOLS + tuple(s for s in sorted(_dynamic) if s not in SUPPORTED_SYMBOLS)
+
 
 class SymbolNotSupported(ValueError):
     """A symbol outside the whitelist. Raised before anything is read or sent."""
@@ -48,7 +91,8 @@ class SymbolNotSupported(ValueError):
 
 
 def is_supported(symbol: object) -> bool:
-    return isinstance(symbol, str) and symbol.strip().upper() in SUPPORTED_SYMBOLS
+    return isinstance(symbol, str) and (symbol.strip().upper() in SUPPORTED_SYMBOLS
+                                        or symbol.strip().upper() in _dynamic)
 
 
 def resolve(symbol: object | None) -> str:
@@ -66,7 +110,7 @@ def resolve(symbol: object | None) -> str:
     candidate = symbol.strip().upper()
     if not candidate:
         return DEFAULT_SYMBOL
-    if candidate not in SUPPORTED_SYMBOLS:
+    if candidate not in SUPPORTED_SYMBOLS and candidate not in _dynamic:
         raise SymbolNotSupported(symbol)
     return candidate
 
@@ -84,4 +128,5 @@ def base_asset(symbol: str) -> str:
 
 
 __all__ = ["SUPPORTED_SYMBOLS", "DEFAULT_SYMBOL", "SYMBOL_NOT_SUPPORTED", "SymbolNotSupported",
-           "base_asset", "is_supported", "resolve"]
+           "admit_dynamic", "base_asset", "dynamic_symbols", "is_dynamic", "is_supported",
+           "permitted_symbols", "resolve", "retire_dynamic"]

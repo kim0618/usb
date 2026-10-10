@@ -76,3 +76,181 @@ async def hot_coins(debug: bool = False) -> Any:
     if debug:
         body["rejections"] = dict(sorted(result.rejections.items()))
     return jsonable(body)
+
+
+# =========================================================================== HOT slot (V1)
+#
+# The persistent HOT symbol beside BTC. `GET /api/crypto/hot` reads it and its lock;
+# `POST /api/crypto/hot/scan` is the only thing that changes it, through the guarded scan in
+# `hot_coins.slot`. The paper exposure source is registered here; the Binance one is registered
+# by `live_routes`, which is the one module allowed to read the account.
+
+import os  # noqa: E402
+from contextlib import asynccontextmanager  # noqa: E402
+from decimal import Decimal  # noqa: E402
+from pathlib import Path  # noqa: E402
+
+from ..hot_coins import market as hot_market  # noqa: E402
+from ..hot_coins.lock import SymbolExposure  # noqa: E402
+from ..hot_coins.slot import HOT_SCAN_IN_PROGRESS, controller  # noqa: E402
+from ..symbols import (DEFAULT_SYMBOL, admit_dynamic, permitted_symbols,  # noqa: E402
+                       retire_dynamic, SUPPORTED_SYMBOLS)
+from .api import runtime  # noqa: E402
+
+SLOT_PATH_ENV = "CRYPTO_HOT_SLOT_PATH"
+
+
+class PaperExposure:
+    """The paper engine's exposure on one symbol: its position and its orders in flight.
+
+    Paper orders are market orders filled in the same call, so there is never a resting one."""
+
+    def exposure(self, symbol: str) -> SymbolExposure:
+        session = runtime.sessions.get(symbol) or runtime.retired.get(symbol)
+        qty = session.engine.account.position.signed_qty if session is not None else Decimal(0)
+        return SymbolExposure(symbol, Decimal(qty), 0, controller.paper_in_flight.count(symbol))
+
+
+paper_exposure = PaperExposure()
+controller.add_source(paper_exposure)
+
+
+def _prepare(symbol: str, metrics: Any) -> str | None:
+    """Re-confirm the new HOT symbol on Binance and measure what its paper run needs."""
+    scanner = service._scanner_instance()
+    row = scanner.symbol_row(symbol)
+    if (row is None or row.get("contractType") != "PERPETUAL" or row.get("status") != "TRADING"
+            or row.get("quoteAsset") != "USDT"):
+        raise ScanFailed("HOT_SYMBOL_NOT_TRADABLE", f"{symbol}은 거래 가능한 USDT 무기한 선물이 아닙니다.")
+    if symbol in SUPPORTED_SYMBOLS or runtime.base_config is None:
+        return None
+    if hot_market.find_reference(runtime.root, symbol) is not None:
+        return None
+    try:
+        hot_market.fetch_reference(runtime.root, symbol, row,
+                                   bracket_provider=controller.bracket_provider)
+    except hot_market.MarginTableUnavailable as exc:
+        return str(exc)
+    except Exception as exc:  # the HOT symbol is still valid; only its paper run is not
+        return f"{symbol} PAPER 기준 응답 측정 실패: {type(exc).__name__}"
+    return None
+
+
+def _admit(symbol: str) -> None:
+    admit_dynamic(symbol)
+
+
+def _release_sync(symbol: str) -> None:
+    if symbol == DEFAULT_SYMBOL:
+        return
+    from . import server
+    server.retire_trade_feed(symbol)
+
+
+controller.prepare = _prepare
+controller.on_commit.append(_admit)
+controller.on_retire.append(_release_sync)
+
+
+def slot_path() -> Path:
+    named = (os.environ.get(SLOT_PATH_ENV) or "").strip()
+    if named:
+        return Path(named)
+    return Path(os.environ.get("CRYPTO_PAPER_ROOT", "data/runtime/crypto/paper")) / "hot_slot.json"
+
+
+_original_hot_lifespan = app.router.lifespan_context
+
+
+@asynccontextmanager
+async def _lifespan_with_hot(application: Any):
+    # Before the paper runtime builds, so the HOT symbol is permitted when its run is opened.
+    slot = controller.configure(slot_path())
+    if slot is not None:
+        try:
+            admit_dynamic(slot.symbol)
+        except Exception:
+            pass
+    async with _original_hot_lifespan(application) as state:
+        yield state
+
+
+app.router.lifespan_context = _lifespan_with_hot
+
+
+def _paper_view(symbol: str | None) -> dict[str, Any] | None:
+    if symbol is None:
+        return None
+    if runtime.base_config is None:
+        return {"available": False, "reason": runtime.error or "PAPER 런 설정이 없습니다."}
+    if symbol in runtime.sessions or symbol in runtime.retired or symbol in SUPPORTED_SYMBOLS:
+        return {"available": True, "reason": None}
+    if hot_market.find_reference(runtime.root, symbol) is None:
+        return {"available": False, "reason": runtime.symbol_errors.get(symbol)
+                or f"{symbol} PAPER 마진표가 측정되지 않았습니다."}
+    return {"available": True, "reason": None}
+
+
+def _hot_body(lock_decision: Any | None = None) -> dict[str, Any]:
+    slot = controller.current()
+    decision = lock_decision or controller.lock()
+    held = [s for s in runtime.held_symbols() if s not in (DEFAULT_SYMBOL, slot.symbol if slot else None)]
+    return {
+        "main": DEFAULT_SYMBOL,
+        "hot": slot.as_dict() if slot else None,
+        "lock": decision.as_dict(),
+        "scanning": controller.scanning,
+        "held": held,
+        "permitted": list(permitted_symbols()),
+        "paper": _paper_view(slot.symbol if slot else None),
+        "server_time_ms": int(__import__("time").time() * 1000),
+    }
+
+
+@app.get("/api/crypto/hot")
+async def hot_state() -> Any:
+    """The current HOT symbol and whether 코인탐색 may replace it right now."""
+    body = await asyncio.to_thread(_hot_body)
+    return jsonable(body)
+
+
+@app.post("/api/crypto/hot/scan")
+async def hot_scan() -> Any:
+    """Scan, and replace the HOT symbol with the scan's #1 if the lock allows it at both ends."""
+    def run():
+        return controller.scan_and_replace(lambda: service.scan().result)
+    try:
+        outcome = await asyncio.to_thread(run)
+    except ScanFailed as exc:
+        return error(_FAILURE_STATUS.get(exc.code, 502), exc.code, exc.message)
+    except Exception as exc:
+        return error(502, "HOT_SCAN_FAILED", f"탐색에 실패했습니다: {type(exc).__name__}")
+    if outcome.code == HOT_SCAN_IN_PROGRESS:
+        return error(409, HOT_SCAN_IN_PROGRESS, "이미 탐색 중입니다.")
+    if not outcome.decision.allowed:
+        body = {"error": {"code": outcome.decision.code, "message": outcome.decision.message},
+                **_hot_body(outcome.decision)}
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=409, content=jsonable(body))
+    released = None
+    if outcome.changed and outcome.previous:
+        previous = outcome.previous
+        try:
+            released = await runtime.retire(previous)
+            if previous not in SUPPORTED_SYMBOLS:
+                retire_dynamic(previous)
+        except RuntimeError as exc:
+            # A position appeared after the lock: the symbol stays admitted and is served as a
+            # held symbol so it can be closed. The new HOT symbol stands.
+            released = {"symbol": previous, "kept": str(exc)}
+    result = outcome.result
+    body = _hot_body(outcome.decision)
+    body.update({
+        "status": outcome.code, "changed": outcome.changed, "previous": outcome.previous,
+        "released": released, "paper_note": outcome.prepare_error,
+        "scan": {"scanned_at_ms": result.scanned_at_ms, "universe_size": result.universe_size,
+                 "stages": result.stage_counts, "rejection_counts": result.rejection_counts(),
+                 "api": {**result.api.as_dict(), "duration_ms": result.duration_ms}}
+        if result is not None else None,
+    })
+    return jsonable(body)

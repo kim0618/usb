@@ -23,7 +23,8 @@ from pydantic import BaseModel
 from ..paper import pnl_breakdown, sizing, trade_preview
 from ..paper.config import DEFAULT_STARTING_CAPITAL_KRW
 from ..paper.engine import OrderRejected
-from ..symbols import DEFAULT_SYMBOL, SymbolNotSupported, resolve as resolve_symbol
+from ..hot_coins import market as hot_market
+from ..symbols import DEFAULT_SYMBOL, SymbolNotSupported, is_dynamic, resolve as resolve_symbol
 from .api import app, error, jsonable, paper_feed, paper_session, runtime
 from .trade_candles import TradeCandleFeed
 
@@ -290,10 +291,23 @@ def trade_feed_for(symbol: str) -> TradeCandleFeed:
     existing = trade_feeds.get(symbol)
     if existing is not None:
         return existing
-    feed = TradeCandleFeed(symbol)
+    # The HOT symbol's trades are Binance's, like the rest of its market data.
+    feed = (hot_market.BinanceTradeCandleFeed(symbol) if is_dynamic(symbol)
+            else TradeCandleFeed(symbol))
     trade_feeds[symbol] = feed
     feed.start()
     return feed
+
+
+def retire_trade_feed(symbol: str) -> bool:
+    """Stop and forget a former HOT symbol's 15 s feed. Never the default symbol's."""
+    if symbol == DEFAULT_SYMBOL:
+        return False
+    feed = trade_feeds.pop(symbol, None)
+    if feed is None:
+        return False
+    feed.stop()
+    return True
 
 
 @asynccontextmanager

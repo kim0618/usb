@@ -31,8 +31,10 @@ from ..paper.account import SharedCash
 from ..paper.instrument import InstrumentSpec, RiskTierTable
 from ..paper.state import TransitionRejected
 from ..paper.c1_auto import (C1AutoController, MANUAL_CLOSE_DURING_AUTO, MANUAL_SOURCE)
-from ..symbols import (DEFAULT_SYMBOL, SUPPORTED_SYMBOLS, SymbolNotSupported,
-                            resolve as resolve_symbol)
+from ..symbols import (DEFAULT_SYMBOL, SUPPORTED_SYMBOLS, SymbolNotSupported, admit_dynamic,
+                            is_dynamic, permitted_symbols, resolve as resolve_symbol)
+from ..hot_coins import market as hot_market
+from ..hot_coins.slot import controller as hot_slot
 from .chart_history import BybitChartHistory
 from .feed import BybitPublicFeed
 from .session import PaperSession
@@ -40,6 +42,17 @@ from .session import PaperSession
 DEFAULT_ROOT = Path("data/runtime/crypto/paper")
 CONFIG_ENV = "CRYPTO_PAPER_RUN_CONFIG"
 chart_history = BybitChartHistory()
+#: The HOT symbol's display history. Binance's, because a HOT symbol may not be listed on Bybit.
+hot_chart_history = hot_market.BinanceChartHistory()
+
+
+def history_for(symbol: str | None):
+    """Which history provider answers for a symbol: Binance for the HOT symbol, Bybit otherwise."""
+    try:
+        instrument = resolve_symbol(symbol)
+    except SymbolNotSupported:
+        return chart_history     # it raises the same refusal it always has
+    return hot_chart_history if is_dynamic(instrument) else chart_history
 
 REQUIRED_CONFIG_FIELDS = (
     "run_id", "starting_capital_krw", "fx_krw_per_usdt", "fx_source", "fx_asof_utc",
@@ -193,6 +206,28 @@ def symbol_run_config(base: PaperRunConfig, symbol: str,
     return config, tiers
 
 
+def dynamic_run_config(base: PaperRunConfig, symbol: str,
+                       paper_root: Path) -> tuple[PaperRunConfig, RiskTierTable]:
+    """The same run on the HOT symbol, from the responses the HOT service measured and saved.
+
+    Binance's filters (the venue the HOT symbol trades on) and a margin table that was measured,
+    never assumed. Leverage starts at the run's own figure, capped at what that table allows:
+    a run configured at 10x cannot be built on an instrument whose table stops at 5x.
+    """
+    paths = hot_market.find_reference(paper_root, symbol)
+    if paths is None:
+        raise SymbolReferenceMissing(
+            f"{symbol}: HOT 기준 응답(Binance 필터·마진표)이 측정되지 않아 PAPER를 구성하지 않습니다.")
+    instrument, tiers = hot_market.load_reference(paths)
+    leverage = min(base.leverage, instrument.max_leverage).to_integral_value(rounding="ROUND_FLOOR")
+    config = PaperRunConfig(
+        run_id=f"{base.run_id}-{symbol}", starting_capital_krw=base.starting_capital_krw,
+        fx=base.fx, fees=base.fees, slippage=base.slippage, leverage=max(leverage, Decimal(1)),
+        risk_limit_source=str(paths.risk_limit), risk_limit_sha256=tiers.source_sha256,
+        instrument=instrument)
+    return config, tiers
+
+
 def load_run_config(path: Path) -> tuple[PaperRunConfig, RiskTierTable]:
     """Every provenance field is mandatory. A missing fee or FX figure stops the run here
     rather than being filled in with a plausible number."""
@@ -233,7 +268,7 @@ class Runtime:
     """
 
     def __init__(self) -> None:
-        self.feeds: dict[str, BybitPublicFeed] = {}
+        self.feeds: dict[str, Any] = {}
         #: The kline seed for each symbol: the symbols that have one, and the in-flight or
         #: last-failed task for the ones that do not yet. Holding the task rather than a flag is
         #: what makes the seed exactly-once for free - ten concurrent chart requests for ETHUSDT
@@ -249,6 +284,10 @@ class Runtime:
         #: Why a symbol has no session, keyed by symbol. A missing measurement is reported, not
         #: worked around.
         self.symbol_errors: dict[str, str] = {}
+        #: Sessions of symbols that were the HOT symbol and no longer are. Off the 1 Hz loop and
+        #: off every route, but still wallet members when they traded, because their realised
+        #: PnL and charges are money the shared purse holds.
+        self.retired: dict[str, PaperSession] = {}
         self.feed = BybitPublicFeed()
         self.session: PaperSession | None = None
         self.c1_auto: C1AutoController | None = None
@@ -320,10 +359,91 @@ class Runtime:
                 self.session_for(symbol)
             except ConfigMissing:
                 continue
+        self._join_dynamic_runs_with_history()
+
+    def _dynamic_run_symbols(self) -> list[str]:
+        """Symbols of former HOT runs on disk: `<run_id>-<SYMBOL>` beside the default run."""
+        if self.base_config is None or not self.root.is_dir():
+            return []
+        prefix = f"{self.base_config.run_id}-"
+        found = []
+        for path in self.root.iterdir():
+            name = path.name
+            if path.is_dir() and name.startswith(prefix):
+                symbol = name[len(prefix):]
+                if (symbol not in SUPPORTED_SYMBOLS and symbol.endswith("USDT")
+                        and all(ch.isalnum() for ch in symbol)):
+                    found.append(symbol)
+        return sorted(found)
+
+    def _join_dynamic_runs_with_history(self) -> None:
+        """Former HOT runs join the wallet at boot exactly like ETH and SOL do.
+
+        A former HOT run that still holds a position (a crash between an order and a HOT
+        change, say) is not left unreachable: it is admitted again and served like the HOT
+        symbol, so the operator can see and close it.
+        """
+        assert self.base_config is not None
+        for symbol in self._dynamic_run_symbols():
+            if symbol in self.sessions or symbol in self.retired:
+                continue
+            try:
+                config, tiers = dynamic_run_config(self.base_config, symbol, self.root)
+                session = PaperSession(config=config, tiers=tiers, root=self.root,
+                                       compress_segments=self.compress_segments)
+            except (SymbolReferenceMissing, ValueError, OSError):
+                continue
+            if self.cash is not None:
+                self.cash.join(symbol, session.engine.account)
+            if session.engine.account.position.is_flat:
+                self.retired[symbol] = session
+            else:
+                admit_dynamic(symbol)
+                self.sessions[symbol] = session
+                self.feed_for(symbol)
+
+    def held_symbols(self) -> list[str]:
+        """Symbols other than the default that hold an open paper position."""
+        return sorted(symbol for symbol, session in self.sessions.items()
+                      if symbol != DEFAULT_SYMBOL and not session.engine.account.position.is_flat)
+
+    async def retire(self, symbol: str) -> dict[str, Any]:
+        """Release everything a former HOT symbol held, except money.
+
+        Its socket pair stops, its seed and cached history go, it leaves the 1 Hz loop. Its
+        session moves to `retired` if it ever traded (the wallet still counts it) and is
+        dropped, wallet membership included, if it never did.
+        """
+        released: dict[str, Any] = {"symbol": symbol}
+        session = self.sessions.pop(symbol, None)
+        if session is not None:
+            account = session.engine.account
+            if not account.position.is_flat:
+                # The HOT lock refuses a replacement before this point; this is the backstop.
+                self.sessions[symbol] = session
+                raise RuntimeError(f"{symbol} still holds a position; it cannot be retired")
+            traded = any(event.get("event_type") in ("FILL", "FUNDING", "LIQUIDATION", "ACCOUNT_RESET")
+                         for event in session.engine.ledger.events)
+            if traded:
+                self.retired[symbol] = session
+            elif self.cash is not None and self.cash._members.get(symbol) is account:
+                del self.cash._members[symbol]
+            released["session"] = "RETIRED" if traded else "DROPPED"
+        feed = self.feeds.pop(symbol, None)
+        if feed is not None:
+            await feed.stop()
+            released["feed"] = "STOPPED"
+        self._seeded.discard(symbol)
+        task = self._seeds.pop(symbol, None)
+        if task is not None and not task.done():
+            task.cancel()
+        self.symbol_errors.pop(symbol, None)
+        released["history_pages_dropped"] = hot_chart_history.forget(symbol)
+        return released
 
     def symbols(self) -> list[str]:
         """Every symbol a PAPER screen may ask for, default first."""
-        return list(SUPPORTED_SYMBOLS)
+        return list(permitted_symbols())
 
     def feed_for(self, symbol: str | None = None) -> BybitPublicFeed:
         """The feed for one symbol, started on first use.
@@ -336,7 +456,9 @@ class Runtime:
         existing = self.feeds.get(instrument)
         if existing is not None:
             return existing
-        feed = BybitPublicFeed(symbol=instrument)
+        # The HOT symbol's market data is Binance's; the build's own instruments stay on Bybit.
+        feed = (hot_market.BinancePublicFeed(symbol=instrument) if is_dynamic(instrument)
+                else BybitPublicFeed(symbol=instrument))
         self.feeds[instrument] = feed
         feed.start()
         return feed
@@ -427,15 +549,25 @@ class Runtime:
         existing = self.sessions.get(instrument)
         if existing is not None:
             return existing
+        revived = self.retired.pop(instrument, None)
+        if revived is not None:
+            # The HOT slot came back to a symbol that traded before: same session, same wallet
+            # membership, nothing replayed twice.
+            self.sessions[instrument] = revived
+            self.feed_for(instrument)
+            return revived
         failure = self.symbol_errors.get(instrument)
         if failure is not None:
             raise ConfigMissing(failure)
         if self.base_config is None:
             raise ConfigMissing(self.error or "paper session is not configured")
         try:
-            config, tiers = symbol_run_config(self.base_config, instrument,
-                                              self.named_symbols.get(instrument),
-                                              paper_root=self.root)
+            if is_dynamic(instrument):
+                config, tiers = dynamic_run_config(self.base_config, instrument, self.root)
+            else:
+                config, tiers = symbol_run_config(self.base_config, instrument,
+                                                  self.named_symbols.get(instrument),
+                                                  paper_root=self.root)
         except (SymbolReferenceMissing, ValueError, OSError) as exc:
             message = f"{type(exc).__name__}: {exc}"
             self.symbol_errors[instrument] = message
@@ -732,7 +864,10 @@ def create_app() -> FastAPI:
                                   symbol: str | None = None) -> Any:
         """Paged display history. It never feeds orders, sizing, PnL or the paper ledger."""
         try:
-            body = await asyncio.to_thread(chart_history.get, timeframe, limit, before_ms, symbol)
+            provider = history_for(symbol)
+            if provider is hot_chart_history:
+                symbol = resolve_symbol(symbol)
+            body = await asyncio.to_thread(provider.get, timeframe, limit, before_ms, symbol)
         except SymbolNotSupported as exc:
             return error(400, exc.code, exc.message)
         except ValueError as exc:
@@ -845,7 +980,14 @@ def create_app() -> FastAPI:
                    "qty": str(qty), "intent": request.intent,
                    "request_id": f"{request.intent.lower()}-{quote.ts_ms}-{len(session.tape)}",
                    "reason": request.reason}
-        result = session.command(payload, quote=None)
+        instrument = session.config.instrument.symbol
+        # Registered in flight *before* the HOT replacement flag is read, which is the order the
+        # HOT slot relies on: either the scan's re-check sees this order, or this order sees
+        # the replacement and refuses. An order can never land on a symbol being swapped out.
+        with hot_slot.paper_in_flight.sending(instrument, unknown_on_error=False):
+            if hot_slot.replacing == instrument:
+                return error(409, "HOT_REPLACING", "HOT 심볼 교체가 진행 중이라 주문을 보내지 않았습니다.")
+            result = session.command(payload, quote=None)
         if result["rejection"] is not None:
             rejection = result["rejection"]
             return error(409, str(rejection["code"]), str(rejection["message"]))
