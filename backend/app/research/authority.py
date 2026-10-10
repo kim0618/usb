@@ -10,6 +10,7 @@ from app.core.exceptions import ResearchError
 from app.models.research import GPTAnalysis, HumanDecisionRecord
 from app.models.scanner import ScannerRun
 from app.repositories.research import ResearchRepository
+from app.research import current_run as CR
 
 
 class CurrentAuthorityStatus(StrEnum):
@@ -30,12 +31,18 @@ class CurrentAuthority:
 
 
 def latest_completed_run(session: Session) -> ScannerRun | None:
-    return session.scalar(
-        select(ScannerRun)
-        .where(ScannerRun.status == "COMPLETED", ScannerRun.completed_at.is_not(None))
-        .order_by(ScannerRun.completed_at.desc(), ScannerRun.id.desc())
-        .limit(1)
-    )
+    """The newest COMPLETED run of any source. Kept under its own name; see below."""
+    return CR.newest_completed_run(session)
+
+
+def current_run(session: Session) -> ScannerRun | None:
+    """The run this service resolves authority for.
+
+    Not ``latest_completed_run``: with the live candidate source on, the newest run overall is
+    the legacy trade-value run for most of the day, and an analysis activated on it is never
+    read by the entry runtime. ``app.research.current_run`` states that in full.
+    """
+    return CR.current_run(session)
 
 
 class ResearchAuthorityService:
@@ -50,14 +57,14 @@ class ResearchAuthorityService:
         ScannerRun without its own analysis has no current analysis at all.
         """
         if scanner_run_id is None:
-            run = latest_completed_run(self.session)
+            run = current_run(self.session)
             if run is None:
                 return None
             scanner_run_id = run.id
         return self.repository.get_active_analysis(scanner_run_id)
 
     def current(self) -> CurrentAuthority:
-        run = latest_completed_run(self.session)
+        run = current_run(self.session)
         if run is None:
             return CurrentAuthority(CurrentAuthorityStatus.NO_SCANNER_RUN, None, None, 0)
         analysis = self.repository.get_active_analysis(run.id)

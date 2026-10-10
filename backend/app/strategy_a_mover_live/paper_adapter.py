@@ -2,15 +2,22 @@
 
 ``EntryManagementRuntime`` already takes its lifecycle service as a constructor argument, so
 the injection seam exists and needs no new one. This module supplies a subclass of
-``EntryLifecycleService`` that changes exactly two things and overrides nothing else:
+``EntryLifecycleService`` that changes exactly one thing and overrides nothing else:
 
-* ``analysis_session_date`` - the live scan is taken at 09:15 ET *of the session it will
-  trade*, so its ``trading_date`` **is** the entry session. The legacy predecessor rule
-  (``previous_trading_day``) applies to the trade-value scanner, which ranks after the close,
-  and must not be applied to a run stamped with the morning it was taken;
-* ``approved_candidates`` - the run is resolved with the live source filter, so a live entry
+* ``approved_candidates`` - the run is resolved with the live source filter, so an entry
   session consumes the live run and nothing else. There is no union and no fallback: an entry
   session served by two scanners would attribute one day's trades to both.
+
+What it deliberately does **not** change is the date rule. ``analysis_session_date`` stays the
+inherited ``previous_trading_day``, so the chain is
+
+    mover scan of session D (09:15 ET cut, ``trading_date = D``)
+        -> GPT research and human APPROVE through the Korean day
+            -> entry evaluation on ``next_trading_day(D)``
+
+for the live source exactly as it is for the morning trade-value scanner. The scan's own date
+is untouched - a live run still records the premarket session it observed - and only the
+session that consumes it is the next one.
 
 ``evaluate`` is **not** overridden, which is the point. Every approved candidate still travels
 ``EntryLifecycleService.evaluate`` -> ``StrategyV0Engine`` -> ``RiskEngine`` ->
@@ -22,9 +29,10 @@ Only ``APPROVE`` reaches entry: the query filters on ``HumanDecisionRecord.decis
 "APPROVE"``, so a REJECT and the absence of any decision are both simply not candidates.
 Authority stays where it is - GPT analyses and scores, a human approves or rejects.
 
-Legacy rows are untouched. A legacy run keeps ``quant_v0`` and resolves through the unchanged
-predecessor path; a research forward run keeps ``mover_v1.2``; this service only ever reads
-runs stamped ``a_mover_live_v1``.
+Legacy rows are untouched. A legacy run keeps ``quant_v0``; a research forward run keeps
+``mover_v1.2``; this service only ever reads runs stamped ``a_mover_live_v1``. There is no
+fallback onto either: an entry session whose predecessor has no completed live run, no active
+analysis or no APPROVE resolves zero candidates and trades nothing.
 """
 
 from __future__ import annotations
@@ -92,26 +100,34 @@ def baseline_stamp_of(session: Session, run: ScannerRun) -> dict[str, Any]:
             for name, default in NO_BASELINE_STAMP.items()}
 
 
-def live_run_for(session: Session, entry_session_date: date) -> ScannerRun | None:
-    """The newest completed live run stamped with this entry session. Source-filtered."""
+def live_run_for(session: Session, analysis_session_date: date) -> ScannerRun | None:
+    """The newest completed live run stamped with this *analysis* session. Source-filtered.
+
+    ``analysis_session_date`` is the session the scan observed, which is the run's own
+    ``trading_date``, and is ``previous_trading_day`` of the session that consumes it. The
+    caller does that arithmetic once, in ``EntryLifecycleService.analysis_session_date``, so
+    that this query and the legacy ``load_approved_candidates`` are keyed identically and
+    cannot drift apart by a session.
+    """
     return session.scalar(
         select(ScannerRun).where(
-            ScannerRun.trading_date == entry_session_date,
+            ScannerRun.trading_date == analysis_session_date,
             ScannerRun.status == "COMPLETED",
             ScannerRun.score_version == LC.RUN_SCORE_VERSION,
             ScannerRun.provider == LC.RUN_PROVIDER,
         ).order_by(ScannerRun.completed_at.desc(), ScannerRun.id.desc()).limit(1))
 
 
-def load_live_approved_candidates(session: Session, entry_session_date: date,
+def load_live_approved_candidates(session: Session, analysis_session_date: date,
                                   ) -> tuple[EMR.ApprovedCandidate, ...]:
     """``load_approved_candidates`` with one difference: which run is resolved.
 
-    The run selection is source-filtered and dated with the entry session; everything after it
-    - the research authority resolution, the APPROVE join and the ordering - is the deployed
-    query, kept identical on purpose so the two paths cannot diverge in what "approved" means.
+    The run selection is source-filtered; the date it is keyed by is the analysis session,
+    exactly as the deployed loader's is. Everything after the selection - the research
+    authority resolution, the APPROVE join and the ordering - is the deployed query, kept
+    identical on purpose so the two paths cannot diverge in what "approved" means.
     """
-    run = live_run_for(session, entry_session_date)
+    run = live_run_for(session, analysis_session_date)
     if run is None:
         return ()
     analysis = ResearchAuthorityService(session).resolve(run.id)
@@ -139,14 +155,25 @@ def load_live_approved_candidates(session: Session, entry_session_date: date,
 
 
 class MoverLiveEntryLifecycleService(EMR.EntryLifecycleService):
-    """The deployed entry lifecycle, resolving candidates from the live mover run."""
+    """The deployed entry lifecycle, resolving candidates from the live mover run.
+
+    ``analysis_session_date`` is **not** overridden, and that is the restored contract. The
+    inherited rule - the analysis an entry session consumes is the one stamped with its
+    ``previous_trading_day`` - is the rule for both scanners, because it is a property of the
+    workflow and not of the scanner: a ranking is produced, a human reviews it, and the next
+    session trades it.
+
+    A-MOVER-LIVE-V1 originally overrode it to the identity, reasoning that a cut taken at
+    09:15 ET of session D is "about" session D. The arithmetic was right and the contract was
+    wrong: with entry bound to the identity, the candidates of the session being traded do not
+    exist until 09:27 ET and the entry deadline is 10:30 ET, so the whole GPT research and
+    human APPROVE had to happen inside a 63-minute window at 22:27-23:30 KST. Under the
+    predecessor rule the same run is reviewed through the whole Korean day that follows it and
+    traded that night. The run keeps its own ``trading_date``; only the consumer moves.
+    """
 
     candidate_source = str(LiveCandidateSource.A_MOVER_LIVE_V1)
     scanner_version = LC.LIVE_VERSION
-
-    def analysis_session_date(self, entry_session_date: date) -> date:
-        """The live scan's ``trading_date`` is the entry session itself; no predecessor shift."""
-        return entry_session_date
 
     def approved_candidates(self, analysis_session_date: date
                             ) -> tuple[EMR.ApprovedCandidate, ...]:
@@ -155,8 +182,9 @@ class MoverLiveEntryLifecycleService(EMR.EntryLifecycleService):
 
     def session_metadata(self, entry_session_date: date) -> dict[str, Any]:
         """What this entry session's candidates came from, for a record or a report."""
+        analysis_session = self.analysis_session_date(entry_session_date)
         with self.runtime.session_factory() as session:
-            run = live_run_for(session, entry_session_date)
+            run = live_run_for(session, analysis_session)
             baseline = baseline_stamp_of(session, run) if run is not None else NO_BASELINE_STAMP
         return {"entry_session_date": entry_session_date.isoformat(),
                 "candidate_source": self.candidate_source,
@@ -165,17 +193,22 @@ class MoverLiveEntryLifecycleService(EMR.EntryLifecycleService):
                 "run_score_version": LC.RUN_SCORE_VERSION,
                 "run_provider": LC.RUN_PROVIDER,
                 "scanner_run_id": run.id if run else None,
-                "analysis_session_date": self.analysis_session_date(
-                    entry_session_date).isoformat(),
-                "legacy_predecessor_rule_applied": False,
+                "analysis_session_date": analysis_session.isoformat(),
+                "analysis_session_rule": "previous_trading_day",
                 "baseline_version": LC.BASELINE_VERSION,
                 "baseline_provider_contract": LC.BASELINE_PROVIDER_CONTRACT} | baseline
 
 
 def lifecycle_for(runtime, *, calendar: MarketCalendar | None = None,
                   environ: dict[str, str] | None = None) -> EMR.EntryLifecycleService:
-    """The lifecycle service this process should use. Off: the deployed one, unchanged."""
-    if CFG.enabled(environ):
+    """The lifecycle service this process should use. Authority off: the pre-live one.
+
+    The switch is ``A_MOVER_LIVE_ENTRY_AUTHORITY``, which defaults to the scan flag: with the
+    live scan on, the live runs are the candidate authority, and the opt-out is explicit.
+    ``app.strategy_a_mover_live.config`` states both switches. Either branch resolves one
+    source only - there is no fallback between them in either direction.
+    """
+    if CFG.entry_authority(environ):
         return MoverLiveEntryLifecycleService(runtime, calendar=calendar)
     return EMR.EntryLifecycleService(runtime, calendar=calendar)
 
@@ -189,16 +222,17 @@ def build_runtime(runtime, provider_factory, *, calendar: MarketCalendar | None 
 
 
 def start(runtime, provider_factory, *, environ: dict[str, str] | None = None):
-    """Start the entry runtime. Flag off, this *is* the deployed starter, called unchanged.
+    """Start the entry runtime. Authority off, this *is* the deployed starter, unchanged.
 
-    Flag on, the same ownership bookkeeping is performed with the live lifecycle injected.
+    ``A_MOVER_LIVE_ENTRY_AUTHORITY`` on, the same ownership bookkeeping is performed with the
+    live lifecycle injected.
     The two module-level owner attributes are assigned here because the deployed starter takes
     no lifecycle argument and this stage does not modify that file; a two-line optional
     parameter on ``start_entry_management_runtime`` would be the cleaner home for it and is a
     reviewable change rather than one made quietly here.
     """
     import asyncio
-    if not CFG.enabled(environ):
+    if not CFG.entry_authority(environ):
         return EMR.start_entry_management_runtime(runtime, provider_factory)
     task = getattr(EMR, "_task", None)
     if task is not None and not task.done():

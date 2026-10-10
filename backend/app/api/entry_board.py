@@ -18,8 +18,10 @@ from app.market.calendar import MarketCalendar
 from app.models.research import GPTCandidateAnalysis
 from app.models.scanner import ScannerRun
 from app.models.strategy import PremarketDiagnosticRecord, StrategyStateRecord
+from app.research import current_run as CR
 from app.research.authority import CurrentAuthorityStatus, ResearchAuthorityService
 from app.services.entry_management_runtime import intended_entry_bar_at, load_approved_candidates
+from app.strategy_a_mover_live.paper_adapter import load_live_approved_candidates
 from app.strategy.config import StrategyConfig
 from app.strategy.lifecycle import StrategyPhase
 
@@ -75,7 +77,7 @@ def entry_board(session: Session, *, calendar: MarketCalendar, as_of: datetime,
                 config: StrategyConfig | None = None) -> dict[str, Any]:
     authority = ResearchAuthorityService(session).current()
     run, analysis = authority.run, authority.analysis
-    entry_session = None if run is None else calendar.next_trading_day(run.trading_date)
+    entry_session = None if run is None else CR.entry_session_for(run, calendar)
     board: dict[str, Any] = {
         "status": EntryBoardStatus.NO_SCANNER_RUN.value,
         "scanner_run_id": None if run is None else run.id,
@@ -101,8 +103,13 @@ def entry_board(session: Session, *, calendar: MarketCalendar, as_of: datetime,
 
 
 def _approved(session: Session, run: ScannerRun):  # type: ignore[no-untyped-def]
-    # The runtime's own loader: the board can never list a symbol the runtime skips.
-    return [candidate for candidate in load_approved_candidates(session, run.trading_date)
+    # The runtime's own loader, picked by this run's source, so the board can never list a
+    # symbol the runtime skips. Both are keyed the same way, by the analysis session, which is
+    # the run's own ``trading_date``; the entry session the board reports is
+    # ``next_trading_day`` of it for either source. The only difference between the two
+    # loaders is the source filter on the run.
+    loader = load_live_approved_candidates if CR.is_live_run(run) else load_approved_candidates
+    return [candidate for candidate in loader(session, run.trading_date)
             if candidate.scanner_run_id == run.id]
 
 

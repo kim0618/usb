@@ -28,6 +28,7 @@ from app.services.position_management_runtime import (
 from app.services.simulation_runtime import (
     activate_operator_simulation_runtime, clear_active_sim_broker,
 )
+from app.strategy_a_mover_live import config as mover_live_config
 from app.strategy_a_mover_live import paper_adapter as mover_live_entry
 from app.strategy_e_max_rt import runtime as strategy_e_max_runtime
 
@@ -60,11 +61,26 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
                 lambda: market_factory.build_kiwoom_provider(current),
             )
             # A-MOVER-LIVE-V1 candidate injection is a lifecycle choice, not a new runtime.
-            # With A_MOVER_LIVE_ENABLED off this call *is* ``start_entry_management_runtime``;
-            # with it on, the same runtime is started with the live candidate source injected
-            # through ``EntryManagementRuntime``'s own lifecycle argument. Either way every
-            # candidate travels EntryLifecycleService.evaluate -> StrategyV0Engine -> Risk ->
-            # position and exit unchanged.
+            # With A_MOVER_LIVE_ENTRY_AUTHORITY off this call *is*
+            # ``start_entry_management_runtime``; with it on, the same runtime is started with
+            # the live candidate source injected through ``EntryManagementRuntime``'s own
+            # lifecycle argument. Either way every candidate travels
+            # EntryLifecycleService.evaluate -> StrategyV0Engine -> Risk -> position and exit
+            # unchanged. The authority flag is not the scan flag: see
+            # ``app.strategy_a_mover_live.config``.
+            if mover_live_config.entry_authority_misconfigured():
+                logger.warning(
+                    "A: %s is set without %s; entry keeps the pre-live source",
+                    mover_live_config.ENV_ENTRY_AUTHORITY_FLAG, mover_live_config.ENV_FLAG)
+            if (unparsed := mover_live_config.entry_authority_unparsed()) is not None:
+                logger.warning(
+                    "A: %s=%r is neither a true nor a false word; entry authority is off",
+                    mover_live_config.ENV_ENTRY_AUTHORITY_FLAG, unparsed)
+            logger.warning("A: entry candidate authority is %s; analysis D -> entry "
+                           "next_trading_day(D) either way",
+                           "A_MOVER_LIVE_V1 (09:15 ET premarket cut of D)"
+                           if mover_live_config.entry_authority()
+                           else "PRE_LIVE_TRADE_VALUE (post-close ranking of D)")
             mover_live_entry.start(runtime, provider_factory)
             start_position_management_runtime(runtime, provider_factory)
             # The closing review is a second cadence over the same broker, not a

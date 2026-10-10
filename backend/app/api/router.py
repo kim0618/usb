@@ -1,5 +1,6 @@
 """FastAPI V1 router. Domain rules remain in existing services."""
 
+import json
 from datetime import date, datetime, time, timezone
 from decimal import Decimal
 from typing import Annotated, Any
@@ -32,6 +33,7 @@ from app.repositories.scanner import ScannerSnapshotRepository
 from app.repositories.simulation import SimulationStateRepository
 from app.research.prompt import ResearchPromptService
 from app.research.versions import DETAIL_PROMPT_VERSION, EVIDENCE_VERSION, GPT_SCHEMA_VERSION, TOP8_PROMPT_VERSION
+from app.research import current_run as CR
 from app.research.adoption import ADOPTION_FILTER_VERSION
 from app.research.authority import ResearchAuthorityService
 from app.scanner.config import ScannerConfig
@@ -122,8 +124,45 @@ async def research_detail_prompt(symbol: str, db: DB, scanner_run_id: int | None
     return {"scanner_run_id": run.id, "symbol": candidate.symbol, "prompt_version": DETAIL_PROMPT_VERSION, "prompt": prompt}
 
 
+def require_current_run_target(db: Session, raw_json: str) -> None:
+    """Refuse an import aimed at a run the entry runtime will not read.
+
+    The binding between an analysis and a run is the ``scanner_run_id`` the GPT JSON echoes
+    back from the prompt, so an import is only ever as correct as the run the prompt was
+    rendered for. Between 2026-10-05 and 10-09 the prompt was rendered for the legacy run
+    while the runtime read the live one, and nothing said so: the import succeeded, the
+    analysis activated, the approvals were recorded, and the live run stayed empty. This makes
+    that case an error at the moment it happens rather than a silent no-trade session.
+
+    The check is symmetric, because the mismatch is: with the pre-live trade-value source
+    bound to entry, an analysis imported against a live run would be just as unreadable as the
+    other way round, and in the same silence. It is a source check only - the date rule is now
+    the same for both sources, so a run of either kind is reviewed for
+    ``next_trading_day(trading_date)`` and the only way an import can miss is by source.
+
+    Only the source boundary is checked. A malformed payload, a missing run, a wrong
+    trading_date and the Top-candidate match are ``GPTImportService``'s own refusals and are
+    left to it, which is why an unreadable ``scanner_run_id`` falls through to it unchanged.
+    """
+    try:
+        target = int(json.loads(raw_json)["scanner_run_id"])
+    except (TypeError, ValueError, KeyError, json.JSONDecodeError):
+        return
+    run = db.get(ScannerRun, target)
+    if run is None or CR.run_is_authoritative(run):
+        return
+    current = CR.current_run(db)
+    raise ResearchError(
+        f"GPT analysis targets scanner run {target} ({run.score_version}), whose approvals "
+        f"the entry runtime does not read: entry resolves candidates from the "
+        f"{'A live mover' if CR.live_source_active() else 'pre-live trade-value'} source. The "
+        f"current run is {'none' if current is None else current.id}; render the prompt again "
+        f"and import that.")
+
+
 @router.post("/research/import", tags=["Research"], status_code=201)
 async def research_import(body: ResearchImportRequest, db: DB) -> dict[str, Any]:
+    require_current_run_target(db, body.raw_json)
     analysis = GPTImportService(ResearchRepository(db), ScannerSnapshotRepository(db)).import_json(body.raw_json)
     count = int(db.scalar(select(func.count()).select_from(GPTCandidateAnalysis).where(GPTCandidateAnalysis.gpt_analysis_id == analysis.id)) or 0)
     active_id = db.get(ScannerRun, analysis.scanner_run_id).active_gpt_analysis_id

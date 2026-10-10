@@ -9,6 +9,7 @@ from app.models.scanner import ScannerUniverseInput, ScannerRun
 from app.services.mover_scanner_source import DataUnavailable, MoverDataUnavailableError
 from app.strategy_a_mover_live import baseline as B, features as F, scanner as S, gpt_handoff as G
 from app.strategy_a_mover_live import universe as U
+from app.strategy_a_mover_live import config as CFG
 from tests.strategy_a_mover_live.fixtures import SESSION, daily_panel
 from tests.strategy_a_mover_live.test_a_live_scanner import baseline_for, snapshot_for, OBSERVED, ON
 from tests.strategy_a_mover_live.test_a_live_mixed_baseline import database, store, prior, CAL
@@ -182,7 +183,9 @@ def test_production_runner_to_import_human_and_durable_paper(tmp_path, monkeypat
         assert kwargs["session_factory"] is factory
         return original(**(kwargs | {"repo": tmp_path}))
     monkeypatch.setattr(I, "attach_isolated", attach)
-    for key, value in {"A_MOVER_LIVE_ENABLED": "true", "STRATEGY_E_MAX_ENABLED": "false",
+    for key, value in {"A_MOVER_LIVE_ENABLED": "true",
+                       "A_MOVER_LIVE_ENTRY_AUTHORITY": "true",
+                       "STRATEGY_E_MAX_ENABLED": "false",
                        "RT2_DRY_RUN": "true", "NO_ORDER_MODE": "true"}.items():
         monkeypatch.setenv(key, value)
     artifact = {"format": UB.ARTIFACT_FORMAT, "target_session": str(SESSION),
@@ -222,10 +225,15 @@ def test_production_runner_to_import_human_and_durable_paper(tmp_path, monkeypat
         assert all(c.score_components_json["baseline_readiness"]["baseline_insufficient_count"] == 2 for c in candidates)
         assert db.scalar(select(ScannerUniverseInput).where(ScannerUniverseInput.symbol == "ONLY19")).exclusion_reason == "BASELINE_INSUFFICIENT"
     runtime = SimulationRuntimeContext(SimBroker(Decimal("10000")), account_id, factory)
-    service = PA.lifecycle_for(runtime, environ=ON)
-    injected = service.approved_candidates_for_entry_session(SESSION)
+    # ``ON`` is the scan switch; binding entry to the live candidates is the second one.
+    service = PA.lifecycle_for(runtime, environ=ON | {CFG.ENV_ENTRY_AUTHORITY_FLAG: "true"})
+    # ``SESSION`` is the session the scan observed, so its approvals are the next session's.
+    entry_session = service.calendar.next_trading_day(SESSION)
+    assert service.analysis_session_date(entry_session) == SESSION
+    injected = service.approved_candidates_for_entry_session(entry_session)
     assert len(injected) == 1
-    service.evaluate(injected[0], FakeMarketDataProvider(), as_of=datetime.combine(SESSION, time(9, 31), tzinfo=ET))
+    service.evaluate(injected[0], FakeMarketDataProvider(),
+                     as_of=datetime.combine(entry_session, time(9, 31), tzinfo=ET))
     with factory() as db:
         records = list(db.scalars(select(PaperEntryEvaluation)))
         assert len(records) == 1 and records[0].symbol == injected[0].symbol

@@ -15,6 +15,7 @@ from app.models.research import GPTAnalysis, GPTCandidateAnalysis, GPTSource, Hu
 from app.models.runtime import RuntimeFailureRecord, RuntimeStateRecord
 from app.models.scanner import ScannerCandidate, ScannerRun
 from app.models.strategy import StrategyStateRecord
+from app.research import current_run as CR
 from app.research.adoption import ADOPTION_FILTER_VERSION, AdoptionInput, evaluate, recommendation_key
 
 
@@ -48,9 +49,18 @@ class APIQueryService:
         self.session, self.settings = session, settings
 
     def latest_run(self, trading_date: date | None = None, score_version: str | None = None) -> ScannerRun | None:
+        """The newest COMPLETED run. Unasked, the one the entry runtime resolves from.
+
+        With no ``score_version`` asked for, the filter of whichever source the entry runtime
+        is bound to is applied, so the run this serves - the candidate board, and the GPT
+        prompt rendered from it - is the run that will consume the approval. A run of the other
+        source stays reachable by asking for its ``score_version`` explicitly.
+        ``app.research.current_run`` states why the filter is symmetric.
+        """
         stmt = select(ScannerRun).where(ScannerRun.status == "COMPLETED", ScannerRun.completed_at.is_not(None))
         if trading_date is not None: stmt = stmt.where(ScannerRun.trading_date == trading_date)
         if score_version is not None: stmt = stmt.where(ScannerRun.score_version == score_version)
+        else: stmt = stmt.where(*CR.source_criteria())
         return self.session.scalar(stmt.order_by(ScannerRun.completed_at.desc(), ScannerRun.id.desc()).limit(1))
 
     def scanner_run(self, run: ScannerRun) -> dict[str, Any]:

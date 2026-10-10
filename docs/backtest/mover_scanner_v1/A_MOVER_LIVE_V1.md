@@ -16,7 +16,10 @@ document describes what is implemented and committed, not what is deployed.
 | baseline provider contract | `KIWOOM_PREFERRED_PER_SESSION+MASSIVE_TAPE_BOOTSTRAP` |
 | `ScannerRun.score_version` | `a_mover_live_v1` |
 | `ScannerRun.provider` | `KIWOOM_AE_SHARED_PREMARKET` |
-| config flag | `A_MOVER_LIVE_ENABLED`, default **off** |
+| config flag | `A_MOVER_LIVE_ENABLED`, default **off** - runs the scan and records it |
+| entry authority flag | `A_MOVER_LIVE_ENTRY_AUTHORITY`, **defaults to the scan flag** - binds entry and the review UI to the live candidates. Declining is explicit (`false`), which leaves the pre-live trade-value source bound; see `docs/operations/A_MOVER_NEXT_SESSION_AUTHORITY_V1.md` |
+| analysis session | the run's own `trading_date` = the session whose premarket the 09:15 ET cut observed |
+| entry session | `next_trading_day(trading_date)`, the same rule the trade-value scanner has. A run of session D is reviewed through the Korean day after the cut and traded on D+1 |
 
 The research contract is preserved unchanged and keeps its own artifacts. Its checksum is
 recomputed before every live run and a live run refuses if it has moved. The live checksum is

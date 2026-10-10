@@ -32,11 +32,18 @@ from app.strategy_a_mover_live import gpt_handoff as GPT
 from app.strategy_a_mover_live import paper_adapter as PA
 from app.strategy_a_mover_live import scanner as SCAN
 from tests.strategy_a_mover_live.fixtures import SESSION
+
+#: ``SESSION`` is the session the scan observed; the entry session that consumes its approvals
+#: is the next XNYS one, so that is what ``session_metadata`` is asked about.
+ENTRY = MarketCalendar().next_trading_day(SESSION)
 from tests.strategy_a_mover_live.test_a_live_scanner import baseline_for, panel_input
 
 CAL = MarketCalendar("America/New_York")
 OBSERVED = datetime(2026, 9, 15, 13, 15, tzinfo=timezone.utc)
-ON = {CFG.ENV_FLAG: "true"}
+#: Both switches: the live scan runs *and* entry resolves candidates from it. The scan
+#: flag alone keeps the deployed predecessor contract, which
+#: ``tests/test_morning_approval_contract.py`` covers.
+ON = {CFG.ENV_FLAG: "true", CFG.ENV_ENTRY_AUTHORITY_FLAG: "true"}
 STAMP_KEYS = ("baseline_mode", "baseline_session_count", "kiwoom_session_count",
               "massive_session_count")
 
@@ -160,7 +167,7 @@ def test_session_metadata_reports_the_mode_the_morning_actually_divided_by(facto
     live = mixed_scan(6, 14)
     with factory() as session:
         GPT.persist(session, live, now=OBSERVED)
-    body = entry_service(factory).session_metadata(SESSION)
+    body = entry_service(factory).session_metadata(ENTRY)
     assert body["baseline_mode"] == "MIXED_BOOTSTRAP"
     assert body["kiwoom_session_count"] == 6
     assert body["massive_session_count"] == 14
@@ -169,7 +176,7 @@ def test_session_metadata_reports_the_mode_the_morning_actually_divided_by(facto
 
 
 def test_an_entry_session_with_no_live_run_reports_unknown_not_zero(factory):
-    body = entry_service(factory).session_metadata(SESSION)
+    body = entry_service(factory).session_metadata(ENTRY)
     assert body["scanner_run_id"] is None
     assert body["baseline_mode"] == "UNKNOWN"
     assert body["kiwoom_session_count"] is None
@@ -184,7 +191,7 @@ def test_a_run_that_admitted_nobody_reports_unknown_not_zero(factory):
                          excluded_count=10, candidate_count=0, top8_count=0)
         session.add(run)
         session.commit()
-    body = entry_service(factory).session_metadata(SESSION)
+    body = entry_service(factory).session_metadata(ENTRY)
     assert body["scanner_run_id"] is not None
     assert body["baseline_mode"] == "UNKNOWN"
 
@@ -203,7 +210,7 @@ def test_a_legacy_run_is_not_read_as_a_live_denominator(factory):
                                      observed_at=OBSERVED, available_at=OBSERVED))
         session.commit()
         legacy_id = run.id
-    body = entry_service(factory).session_metadata(SESSION)
+    body = entry_service(factory).session_metadata(ENTRY)
     # the live resolver is source-filtered, so the legacy run is simply not this session's run
     assert body["scanner_run_id"] != legacy_id
     assert body["scanner_run_id"] is None
