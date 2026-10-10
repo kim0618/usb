@@ -1,0 +1,320 @@
+{
+ "390": {
+  "before": {
+   "tabs": {
+    "x": 16,
+    "y": 135,
+    "width": 282.6,
+    "height": 44
+   },
+   "ticket": {
+    "x": 16,
+    "y": 748,
+    "width": 358,
+    "height": 615
+   },
+   "button": {
+    "x": 306.6,
+    "y": 135,
+    "width": 67.4,
+    "height": 26
+   },
+   "overflow": {
+    "sw": 390,
+    "cw": 390
+   }
+  },
+  "scanning_label": "탐색 중…",
+  "scanning_disabled": true,
+  "after_scan": {
+   "tabs": {
+    "x": 16,
+    "y": 135,
+    "width": 282.6,
+    "height": 44
+   },
+   "ticket": {
+    "x": 16,
+    "y": 748,
+    "width": 358,
+    "height": 615
+   },
+   "panel": {
+    "x": 16,
+    "y": 183,
+    "width": 358,
+    "height": 605.5
+   },
+   "overflow": {
+    "sw": 390,
+    "cw": 390
+   }
+  },
+  "rows": [
+   "BATUSDT",
+   "USUSDT",
+   "MAGICUSDT",
+   "FOLKSUSDT",
+   "WALUSDT"
+  ],
+  "scanned_at": "10. 10. 21:24:05 KST 탐색",
+  "status": "조회 전용 · 거래 심볼과 주문은 바뀌지 않습니다",
+  "selected_tab": "symbol-tab-BTCUSDT",
+  "hot_requests_after_dblclick": 1,
+  "selected_tab_after_row_click": "symbol-tab-BTCUSDT",
+  "stored_symbol": null,
+  "failure_status": "Binance 시장 데이터를 읽지 못했습니다 · 이전 결과를 유지합니다",
+  "rows_after_failure": [
+   "BATUSDT",
+   "USUSDT",
+   "MAGICUSDT",
+   "FOLKSUSDT",
+   "WALUSDT"
+  ],
+  "hot_requests_during_12s_idle": 0,
+  "closed": {
+   "tabs": {
+    "x": 16,
+    "y": 135,
+    "width": 258.6,
+    "height": 44
+   },
+   "ticket": {
+    "x": 16,
+    "y": 748,
+    "width": 358,
+    "height": 615
+   },
+   "overflow": {
+    "sw": 390,
+    "cw": 390
+   }
+  },
+  "reload_rows": [
+   "BATUSDT",
+   "USUSDT",
+   "MAGICUSDT",
+   "FOLKSUSDT",
+   "WALUSDT"
+  ],
+  "reload_scanned_at": "10. 10. 21:24:05 KST 탐색",
+  "reload_scanned_requests": 0,
+  "browser_methods": [
+   "GET"
+  ],
+  "browser_hot_requests_total": 2,
+  "browser_requests_total": 128
+ },
+ "1440": {
+  "before": {
+   "tabs": {
+    "x": 276,
+    "y": 139,
+    "width": 1052.6,
+    "height": 44
+   },
+   "ticket": {
+    "x": 1044,
+    "y": 419,
+    "width": 360,
+    "height": 647
+   },
+   "button": {
+    "x": 1336.6,
+    "y": 139,
+    "width": 67.4,
+    "height": 26
+   },
+   "overflow": {
+    "sw": 1440,
+    "cw": 1440
+   }
+  },
+  "scanning_label": "탐색 중…",
+  "scanning_disabled": true,
+  "after_scan": {
+   "tabs": {
+    "x": 276,
+    "y": 139,
+    "width": 1052.6,
+    "height": 44
+   },
+   "ticket": {
+    "x": 1044,
+    "y": 419,
+    "width": 360,
+    "height": 647
+   },
+   "panel": {
+    "x": 988,
+    "y": 187,
+    "width": 416,
+    "height": 520.5
+   },
+   "overflow": {
+    "sw": 1440,
+    "cw": 1440
+   }
+  },
+  "rows": [
+   "BATUSDT",
+   "USUSDT",
+   "MAGICUSDT",
+   "FOLKSUSDT",
+   "WALUSDT"
+  ],
+  "scanned_at": "10. 10. 21:24:32 KST 탐색",
+  "status": "조회 전용 · 거래 심볼과 주문은 바뀌지 않습니다",
+  "selected_tab": "symbol-tab-BTCUSDT",
+  "hot_requests_after_dblclick": 1,
+  "selected_tab_after_row_click": "symbol-tab-BTCUSDT",
+  "stored_symbol": null,
+  "failure_status": "Binance 시장 데이터를 읽지 못했습니다 · 이전 결과를 유지합니다",
+  "rows_after_failure": [
+   "BATUSDT",
+   "USUSDT",
+   "MAGICUSDT",
+   "FOLKSUSDT",
+   "WALUSDT"
+  ],
+  "hot_requests_during_12s_idle": 0,
+  "closed": {
+   "tabs": {
+    "x": 276,
+    "y": 139,
+    "width": 1028.6,
+    "height": 44
+   },
+   "ticket": {
+    "x": 1044,
+    "y": 419,
+    "width": 360,
+    "height": 647
+   },
+   "overflow": {
+    "sw": 1440,
+    "cw": 1440
+   }
+  },
+  "reload_rows": [
+   "BATUSDT",
+   "USUSDT",
+   "MAGICUSDT",
+   "FOLKSUSDT",
+   "WALUSDT"
+  ],
+  "reload_scanned_at": "10. 10. 21:24:32 KST 탐색",
+  "reload_scanned_requests": 0,
+  "browser_methods": [
+   "GET"
+  ],
+  "browser_hot_requests_total": 2,
+  "browser_requests_total": 128
+ },
+ "1600": {
+  "before": {
+   "tabs": {
+    "x": 276,
+    "y": 139,
+    "width": 1212.6,
+    "height": 44
+   },
+   "ticket": {
+    "x": 1204,
+    "y": 419,
+    "width": 360,
+    "height": 647
+   },
+   "button": {
+    "x": 1496.6,
+    "y": 139,
+    "width": 67.4,
+    "height": 26
+   },
+   "overflow": {
+    "sw": 1600,
+    "cw": 1600
+   }
+  },
+  "scanning_label": "탐색 중…",
+  "scanning_disabled": true,
+  "after_scan": {
+   "tabs": {
+    "x": 276,
+    "y": 139,
+    "width": 1212.6,
+    "height": 44
+   },
+   "ticket": {
+    "x": 1204,
+    "y": 419,
+    "width": 360,
+    "height": 647
+   },
+   "panel": {
+    "x": 1148,
+    "y": 187,
+    "width": 416,
+    "height": 520.5
+   },
+   "overflow": {
+    "sw": 1600,
+    "cw": 1600
+   }
+  },
+  "rows": [
+   "GRIFFAINUSDT",
+   "BATUSDT",
+   "USUSDT",
+   "MAGICUSDT",
+   "WALUSDT"
+  ],
+  "scanned_at": "10. 10. 21:25:00 KST 탐색",
+  "status": "조회 전용 · 거래 심볼과 주문은 바뀌지 않습니다",
+  "selected_tab": "symbol-tab-BTCUSDT",
+  "hot_requests_after_dblclick": 1,
+  "selected_tab_after_row_click": "symbol-tab-BTCUSDT",
+  "stored_symbol": null,
+  "failure_status": "Binance 시장 데이터를 읽지 못했습니다 · 이전 결과를 유지합니다",
+  "rows_after_failure": [
+   "GRIFFAINUSDT",
+   "BATUSDT",
+   "USUSDT",
+   "MAGICUSDT",
+   "WALUSDT"
+  ],
+  "hot_requests_during_12s_idle": 0,
+  "closed": {
+   "tabs": {
+    "x": 276,
+    "y": 139,
+    "width": 1188.6,
+    "height": 44
+   },
+   "ticket": {
+    "x": 1204,
+    "y": 419,
+    "width": 360,
+    "height": 647
+   },
+   "overflow": {
+    "sw": 1600,
+    "cw": 1600
+   }
+  },
+  "reload_rows": [
+   "GRIFFAINUSDT",
+   "BATUSDT",
+   "USUSDT",
+   "MAGICUSDT",
+   "WALUSDT"
+  ],
+  "reload_scanned_at": "10. 10. 21:25:00 KST 탐색",
+  "reload_scanned_requests": 0,
+  "browser_methods": [
+   "GET"
+  ],
+  "browser_hot_requests_total": 2,
+  "browser_requests_total": 134
+ }
+}

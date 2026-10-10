@@ -1,0 +1,129 @@
+{
+ "status": "OK",
+ "scanned_at_ms": 1791634329035,
+ "scanned_at": "2026-10-10T12:12:09.035000Z",
+ "cached": false,
+ "coalesced": false,
+ "top": [
+  {
+   "rank": 1,
+   "symbol": "BATUSDT",
+   "last_price": 0.15067,
+   "one_hour_range_pct": 14.987992654329698,
+   "one_hour_change_pct": 6.625229552196638,
+   "direction": "UP",
+   "twenty_four_hour_range_pct": 43.985637342908426,
+   "one_hour_quote_volume": 32088400.089099,
+   "twenty_four_hour_quote_volume": 152989770.317142,
+   "spread_bps": 3.301310620315902,
+   "estimated_round_trip_slippage_bps_1000": 9.27603753612025,
+   "scanned_at_ms": 1791634329035
+  },
+  {
+   "rank": 2,
+   "symbol": "USUSDT",
+   "last_price": 0.025452,
+   "one_hour_range_pct": 11.768,
+   "one_hour_change_pct": 1.7479999999999996,
+   "direction": "UP",
+   "twenty_four_hour_range_pct": 46.17808770282955,
+   "one_hour_quote_volume": 20889093.137107,
+   "twenty_four_hour_quote_volume": 625082680.022651,
+   "spread_bps": 1.5702901110982337,
+   "estimated_round_trip_slippage_bps_1000": 6.768145903374025,
+   "scanned_at_ms": 1791634329035
+  },
+  {
+   "rank": 3,
+   "symbol": "MAGICUSDT",
+   "last_price": 0.10757,
+   "one_hour_range_pct": 11.300827319133958,
+   "one_hour_change_pct": -5.5007921140644305,
+   "direction": "DOWN",
+   "twenty_four_hour_range_pct": 115.43992678781541,
+   "one_hour_quote_volume": 37029711.273092,
+   "twenty_four_hour_quote_volume": 982098842.028687,
+   "spread_bps": 0.9299297903004718,
+   "estimated_round_trip_slippage_bps_1000": 3.2094791246374874,
+   "scanned_at_ms": 1791634329035
+  },
+  {
+   "rank": 4,
+   "symbol": "FOLKSUSDT",
+   "last_price": 2.432,
+   "one_hour_range_pct": 10.246758678377251,
+   "one_hour_change_pct": 1.6729401923881237,
+   "direction": "UP",
+   "twenty_four_hour_range_pct": 29.740431148262214,
+   "one_hour_quote_volume": 2530358.3909,
+   "twenty_four_hour_quote_volume": 26134280.4595,
+   "spread_bps": 4.1076196344214,
+   "estimated_round_trip_slippage_bps_1000": 10.609463061267267,
+   "scanned_at_ms": 1791634329035
+  },
+  {
+   "rank": 5,
+   "symbol": "ORCAUSDT",
+   "last_price": 2.529,
+   "one_hour_range_pct": 6.98619008935825,
+   "one_hour_change_pct": 2.7213647441104682,
+   "direction": "UP",
+   "twenty_four_hour_range_pct": 16.491511721907838,
+   "one_hour_quote_volume": 6919022.9685,
+   "twenty_four_hour_quote_volume": 42070858.4257,
+   "spread_bps": 3.9533504645182447,
+   "estimated_round_trip_slippage_bps_1000": 4.501560905096375,
+   "scanned_at_ms": 1791634329035
+  }
+ ],
+ "universe_size": 524,
+ "stages": {
+  "universe": 524,
+  "after_batch_prefilter": 98,
+  "after_1h_volume": 83,
+  "books_read": 8,
+  "eligible_in_books_read": 5
+ },
+ "rejection_counts": {
+  "EXCLUDED_MAIN_SYMBOL": 1,
+  "HIGH_SLIPPAGE": 1,
+  "LOW_1H_VOLUME": 15,
+  "LOW_24H_VOLUME": 425,
+  "NOT_EVALUATED": 76,
+  "NOT_PERPETUAL": 220,
+  "NOT_TRADING": 134,
+  "NOT_USDT_QUOTED": 45,
+  "WIDE_SPREAD": 2
+ },
+ "api": {
+  "requests": 109,
+  "weight": 160,
+  "failed": 0,
+  "by_endpoint": {
+   "/fapi/v1/exchangeInfo": 1,
+   "/fapi/v1/ticker/24hr": 1,
+   "/fapi/v1/ticker/bookTicker": 1,
+   "/fapi/v1/klines": 98,
+   "/fapi/v1/depth": 8
+  },
+  "max_used_weight_1m": 155,
+  "duration_ms": 902
+ },
+ "lock": {
+  "state": "ALLOWED",
+  "code": "NO_ACTIVE_HOT_SYMBOL",
+  "symbol": null,
+  "message": "현재 HOT 심볼이 없어 탐색할 수 있습니다."
+ },
+ "contract": {
+  "version": "HOT_V0",
+  "universe": "Binance USD-M PERPETUAL, TRADING, USDT-quoted, BTCUSDT excluded",
+  "rank": "one_hour_range_pct desc",
+  "min_quote_volume_24h": 20000000.0,
+  "min_quote_volume_1h": 500000.0,
+  "max_spread_bps": 10.0,
+  "max_round_trip_slippage_bps": 20.0,
+  "slippage_notional_usdt": 1000.0,
+  "top_n": 5
+ }
+}

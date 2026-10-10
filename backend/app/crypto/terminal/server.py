@@ -351,3 +351,10 @@ from . import live_routes  # noqa: E402,F401
 # It is off unless `CRYPTO_C1_SIGNAL=on`. Importing it therefore does not change a running
 # terminal: no venue is polled and every route answers 503 until the environment says otherwise.
 from . import c1_routes  # noqa: E402,F401
+
+# --------------------------------------------------------------------- HOT Coin Finder (read-only)
+#
+# Same arrangement again: `hot_routes` registers one GET, `/api/crypto/hot-coins`, that scans
+# Binance's public market data on demand. It holds no key, reads no account and has no order
+# path; importing it starts nothing - the first scan happens when the button is pressed.
+from . import hot_routes  # noqa: E402,F401

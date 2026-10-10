@@ -16,6 +16,7 @@ import {
   LivePerformanceSummary, LivePositionCard, LivePositionPanel, LiveTradeBar, useBinanceLive,
 } from "@/components/crypto-live-terminal";
 import { C1AutoControl } from "@/components/crypto-c1-auto-control";
+import { HotCoinFinder } from "@/components/crypto-hot-coins";
 import {
   OpenPositionsStrip, SymbolTabs, useOpenPositions, useSelectedSymbol, useSymbolVolatility,
 } from "@/components/crypto-symbol-tabs";
@@ -117,9 +118,18 @@ export function CryptoTerminal({ marketContext }: {
   /** The tab strip, rendered identically above both trees so the selection reads the same
    *  whichever account is on screen. Disabled while a write is in flight. */
   const symbolTabs = (
-    <SymbolTabs value={symbol} onChange={selectSymbol} permitted={permitted}
-      busy={source === "BINANCE_LIVE" ? binance.busy : terminal.busy}
-      volatility={volatility.rows} />
+    // [코인탐색] sits at the end of the tab row and is read-only. It takes no `symbol` and no
+    // `onChange`, so nothing it shows can select a tab, re-point the chart or reach an order.
+    // `items-stretch` makes the finder as tall as the tab row, so its panel opens below the
+    // tabs' range line instead of over it.
+    <div className="flex items-stretch gap-2">
+      <div className="min-w-0 flex-1">
+        <SymbolTabs value={symbol} onChange={selectSymbol} permitted={permitted}
+          busy={source === "BINANCE_LIVE" ? binance.busy : terminal.busy}
+          volatility={volatility.rows} />
+      </div>
+      <HotCoinFinder />
+    </div>
   );
 
   if (source === "BINANCE_LIVE") {
