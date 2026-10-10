@@ -170,6 +170,8 @@ export type LiveStatus = {
 
 export type LivePreviewSide = {
   side: OrderSide; feasible: boolean; qty?: string; notional?: string; leverage?: string | null;
+  configured_leverage?: string | null; bracket_max_leverage?: string | null;
+  leverage_capped_by_bracket?: boolean; bracket?: number;
   required_margin?: string | null; entry_fill_price?: string; entry_fee?: string;
   expected_entry_vwap?: string; expected_entry_notional?: string;
   expected_entry_fee?: string; expected_entry_slippage_cost?: string;
@@ -204,7 +206,11 @@ export type LiveSizePreset = {
 };
 
 export type LiveSideSizing = {
+  /** The leverage MAX is priced at: the configured setting, capped by the leverage band the
+   *  resulting position falls in. `configured_leverage` is the setting itself. */
   side: OrderSide; leverage: string | null; available_balance: string | null;
+  configured_leverage?: string | null; bracket_max_leverage?: string | null;
+  leverage_capped_by_bracket?: boolean;
   local_max_qty: string | null; max_qty: string; max_feasible: boolean;
   reject_code: string | null; reject_message: string | null; max_definition: string;
   instrument: Record<string, string>;
@@ -659,3 +665,19 @@ export function liveOverlays(account: LiveAccount | null | undefined): ChartOver
 /** What the LIVE chart's candles actually are, said on screen beside them. */
 export const LIVE_CHART_SOURCE_NOTE =
   "차트 캔들은 페이퍼 피드(Bybit)입니다. 진입·청산·Mark 선은 Binance 실포지션 값입니다.";
+
+
+/** The leverage an OPEN on `side` is priced at, as the confirmation states it.
+ *
+ *  The server prices margin at min(configured, the band's maximum). When the band caps the
+ *  setting the sentence says both, so the operator confirming the order reads the leverage the
+ *  margin was actually computed at rather than the account setting. */
+export function liveLeverageLabel(configured: string | null | undefined,
+                                  side?: Pick<LiveSideSizing, "leverage" | "configured_leverage"
+                                    | "bracket_max_leverage" | "leverage_capped_by_bracket"> | null): string | null {
+  const setting = configured ?? side?.configured_leverage ?? null;
+  if (side?.leverage_capped_by_bracket && side.leverage != null) {
+    return `${Number(side.leverage)}x (설정 ${Number(setting)}x · 구간 최대 ${Number(side.bracket_max_leverage)}x)`;
+  }
+  return setting != null ? `${Number(setting)}x` : null;
+}

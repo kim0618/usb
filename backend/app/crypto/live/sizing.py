@@ -31,6 +31,7 @@ from typing import Any
 
 from .filters import SymbolFilters
 from .models import LONG, SHORT, CommissionRate, LivePosition, MarkPrice
+from .brackets import LeverageBrackets
 from .preview import entry
 
 #: The quick-size ladder the panel offers, as fractions of MAX.
@@ -95,10 +96,18 @@ def _refused(qty: Decimal, code: str, message: str, **extra: Any) -> dict[str, A
     return {"qty": qty, "feasible": False, "reject_code": code, "reject_message": message, **extra}
 
 
+def held_notional(position: LivePosition | None, side: str, mark: MarkPrice) -> Decimal:
+    """What is already held on `side`, valued at mark: the leverage band an order is judged in
+    is the band of the whole position it leaves, not of the order alone."""
+    if position is None or position.is_flat or position.side != side:
+        return Decimal(0)
+    return abs(position.qty) * mark.mark_price
+
+
 def check(*, side: str, qty: Decimal, depth: dict[str, Any], mark: MarkPrice,
           commission: CommissionRate, filters: SymbolFilters, leverage: Decimal | None,
-          available: Decimal | None, ceiling: Decimal | None,
-          position: LivePosition | None) -> dict[str, Any]:
+          brackets: LeverageBrackets | None, available: Decimal | None,
+          ceiling: Decimal | None, position: LivePosition | None) -> dict[str, Any]:
     """Everything that must hold for `qty` to be placeable right now."""
     if qty <= 0:
         return _refused(qty, "QTY_NOT_POSITIVE", "수량은 0보다 커야 합니다.")
@@ -109,7 +118,8 @@ def check(*, side: str, qty: Decimal, depth: dict[str, Any], mark: MarkPrice,
     # Binance requires to accept this opening order. ``ceiling`` is retained in the call shape
     # for compatibility, but the deprecated BINANCE_LIVE_MAX_QTY is deliberately not applied.
     priced = entry(side=side, qty=qty, depth=depth, mark=mark, commission=commission,
-                   filters=filters, leverage=leverage)
+                   filters=filters, leverage=leverage, brackets=brackets,
+                   held_notional=held_notional(position, side, mark))
     if not priced.get("feasible"):
         return _refused(qty, str(priced.get("reject_code") or "NOT_FEASIBLE"),
                         str(priced.get("reject_message") or "이 수량은 주문할 수 없습니다."),
@@ -136,8 +146,9 @@ def check(*, side: str, qty: Decimal, depth: dict[str, Any], mark: MarkPrice,
 
 
 def max_open(*, side: str, depth: dict[str, Any], mark: MarkPrice, commission: CommissionRate,
-             filters: SymbolFilters, leverage: Decimal | None, available: Decimal | None,
-             ceiling: Decimal | None, position: LivePosition | None) -> dict[str, Any]:
+             filters: SymbolFilters, leverage: Decimal | None, brackets: LeverageBrackets | None,
+             available: Decimal | None, ceiling: Decimal | None,
+             position: LivePosition | None) -> dict[str, Any]:
     """The largest grid quantity that passes every rule above.
 
     Binary search, biased upward so it cannot stall when the bounds are one step apart. The
@@ -146,8 +157,8 @@ def max_open(*, side: str, depth: dict[str, Any], mark: MarkPrice, commission: C
     step = filters.market_qty_step
     floor_qty = smallest_qty(filters, reference_price(depth, side))
     probe = lambda size: check(side=side, qty=size, depth=depth, mark=mark, commission=commission,
-                               filters=filters, leverage=leverage, available=available,
-                               ceiling=ceiling, position=position)
+                               filters=filters, leverage=leverage, brackets=brackets,
+                               available=available, ceiling=ceiling, position=position)
     smallest = probe(floor_qty)
     if not smallest.get("feasible"):
         # Not even the exchange minimum fits. Carry the real reason rather than inventing one.
@@ -178,8 +189,8 @@ def max_open(*, side: str, depth: dict[str, Any], mark: MarkPrice, commission: C
 
 
 def presets(*, side: str, depth: dict[str, Any], mark: MarkPrice, commission: CommissionRate,
-            filters: SymbolFilters, leverage: Decimal | None, available: Decimal | None,
-            ceiling: Decimal | None, position: LivePosition | None,
+            filters: SymbolFilters, leverage: Decimal | None, brackets: LeverageBrackets | None,
+            available: Decimal | None, ceiling: Decimal | None, position: LivePosition | None,
             fractions: tuple[Decimal, ...] = DEFAULT_FRACTIONS) -> dict[str, Any]:
     """MAX, plus each fraction of it, every one re-checked rather than scaled down.
 
@@ -189,8 +200,8 @@ def presets(*, side: str, depth: dict[str, Any], mark: MarkPrice, commission: Co
     """
     step = filters.market_qty_step
     ceiling_quote = max_open(side=side, depth=depth, mark=mark, commission=commission,
-                             filters=filters, leverage=leverage, available=available,
-                             ceiling=ceiling, position=position)
+                             filters=filters, leverage=leverage, brackets=brackets,
+                             available=available, ceiling=ceiling, position=position)
     rows: list[dict[str, Any]] = []
     for fraction in fractions:
         label = FRACTION_LABELS.get(fraction, f"{fraction * 100:.0f}%")
@@ -202,13 +213,17 @@ def presets(*, side: str, depth: dict[str, Any], mark: MarkPrice, commission: Co
         size = (ceiling_quote["qty"] if fraction == 1
                 else floor_to_step(ceiling_quote["qty"] * fraction, step))
         row = check(side=side, qty=size, depth=depth, mark=mark, commission=commission,
-                    filters=filters, leverage=leverage, available=available,
-                    ceiling=ceiling, position=position)
+                    filters=filters, leverage=leverage, brackets=brackets,
+                    available=available, ceiling=ceiling, position=position)
         rows.append({**row, "label": label, "fraction": fraction})
 
     return {
         "side": side,
-        "leverage": leverage,
+        # The leverage MAX is priced at (the band can cap the setting), and the setting itself.
+        "leverage": ceiling_quote.get("leverage", leverage) if ceiling_quote.get("feasible") else leverage,
+        "configured_leverage": leverage,
+        "bracket_max_leverage": brackets.max_leverage if brackets is not None else None,
+        "leverage_capped_by_bracket": bool(ceiling_quote.get("leverage_capped_by_bracket")),
         "available_balance": available,
         "local_max_qty": None,
         "max_qty": ceiling_quote["qty"] if ceiling_quote.get("feasible") else Decimal(0),

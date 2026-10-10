@@ -38,7 +38,7 @@ from .orders import CLOSE, OPEN, LiveOrderRouter, OrderPlan, OrderRefused
 from .position_card import card as position_card
 from .preview import round_trip
 from .rest import BinanceError, BinanceFuturesClient
-from .sizing import check as sizing_check, presets as sizing_presets
+from .sizing import check as sizing_check, held_notional, presets as sizing_presets
 from .stream import UserDataStream
 
 PAPER = "PAPER"
@@ -294,7 +294,8 @@ class BinanceLiveAdapter:
         leverage = snapshot.symbol_config.leverage if snapshot.symbol_config else None
         return round_trip(side=side, qty=size, depth=depth, mark=snapshot.mark,
                           commission=snapshot.commission, filters=snapshot.filters,
-                          leverage=leverage)
+                          leverage=leverage, brackets=snapshot.brackets,
+                          held_notional=held_notional(snapshot.position, side, snapshot.mark))
 
     def get_sizing(self, depth_limit: int = 20, *, force: bool = True) -> dict[str, Any]:
         """Quick-size ladder for both sides, computed here rather than on the screen.
@@ -325,6 +326,7 @@ class BinanceLiveAdapter:
             "sides": {side: sizing_presets(side=side, depth=depth, mark=snapshot.mark,
                                            commission=snapshot.commission,
                                            filters=snapshot.filters, leverage=leverage,
+                                           brackets=snapshot.brackets,
                                            available=available,
                                            ceiling=None,
                                            position=snapshot.position)
@@ -364,12 +366,12 @@ class BinanceLiveAdapter:
         available = snapshot.balance.available_balance
         result = sizing_check(side=side, qty=size, depth=depth, mark=snapshot.mark,
                               commission=snapshot.commission, filters=snapshot.filters,
-                              leverage=leverage, available=available, ceiling=None,
-                              position=snapshot.position)
+                              leverage=leverage, brackets=snapshot.brackets,
+                              available=available, ceiling=None, position=snapshot.position)
         ladder = sizing_presets(side=side, depth=depth, mark=snapshot.mark,
                                 commission=snapshot.commission, filters=snapshot.filters,
-                                leverage=leverage, available=available, ceiling=None,
-                                position=snapshot.position)
+                                leverage=leverage, brackets=snapshot.brackets,
+                                available=available, ceiling=None, position=snapshot.position)
         return {**result, "qty": size, "safe_max_qty": ladder["max_qty"],
                 "available_balance": available, "account_timestamp_ms": snapshot.fetched_at_ms,
                 "final_resync_timestamp_ms": int(time.time() * 1000)}

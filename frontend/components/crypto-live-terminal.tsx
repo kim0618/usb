@@ -22,6 +22,7 @@ import {
   LivePreview, LiveSizing, LiveStatus, LiveTradeGate, MARGIN_MODE_LABELS,
   MARGIN_MODE_READONLY_NOTE, leverageRestriction, liveApi, liveBlockerLabel, livePresetQty,
   liveSideAllowance, liveTradeGate,
+  liveLeverageLabel,
 } from "@/lib/crypto-live";
 import { DEFAULT_SYMBOL, baseAsset as baseAssetOf } from "@/lib/crypto-symbols";
 
@@ -1033,7 +1034,11 @@ export function LiveOrderTicket({ account, onOrder, busy, error, preview, onPrev
                 : `${pending.side} ${size} ${unit}`}
           </p>
           <p className="mt-1 text-[11px] text-muted">
-            {account.symbol_config ? `${num(account.symbol_config.leverage)}x · ` : ""}
+            {(() => {
+              const label = liveLeverageLabel(account.symbol_config?.leverage,
+                pending.intent === "OPEN" ? sizing?.sides?.[pending.side as OrderSide] : null);
+              return label ? <span data-testid="live-confirm-leverage">{label} · </span> : null;
+            })()}
             {LIVE_LOCK_NOTE}
           </p>
           <div className="mt-2 flex gap-2">

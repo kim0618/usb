@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Any
 
+from .brackets import BracketsMalformed, LeverageBrackets
 from .credentials import LiveConfig
 from .filters import SymbolFilters
 from .models import (AccountBalance, BookTop, CommissionRate, IncomeRow, LiveFieldMissing,
@@ -60,6 +61,11 @@ class LiveSnapshot:
     mark: MarkPrice | None = None
     book: BookTop | None = None
     filters: SymbolFilters | None = None
+    #: The symbol's leverage bands. Not a blocker when missing: the account can still be shown,
+    #: and every margin figure refuses on its own (`live.brackets`) instead of being priced at
+    #: the configured setting.
+    brackets: LeverageBrackets | None = None
+    brackets_error: str | None = None
     blockers: list[Blocker] = field(default_factory=list)
 
     @property
@@ -88,6 +94,8 @@ class LiveSnapshot:
             "mark": self.mark.view() if self.mark else None,
             "book": self.book.view() if self.book else None,
             "filters": self.filters.view() if self.filters else None,
+            "brackets": self.brackets.view() if self.brackets else None,
+            "brackets_error": self.brackets_error,
             "source": "BINANCE_LIVE",
         }
 
@@ -107,6 +115,10 @@ class AccountReader:
         self._filters_fetched_ms: int | None = None
         #: Filters change rarely; refetching them every second would spend weight for nothing.
         self.filters_ttl_ms = 3_600_000
+        self._brackets: LeverageBrackets | None = None
+        self._brackets_fetched_ms: int | None = None
+        #: Bands change about as rarely as filters, and on the same scale of notice.
+        self.brackets_ttl_ms = 3_600_000
 
     # ------------------------------------------------------------------ pieces
 
@@ -118,6 +130,15 @@ class AccountReader:
             self._filters = SymbolFilters.from_exchange_info(payload, self.symbol, fetched_at_ms=now)
             self._filters_fetched_ms = now
         return self._filters
+
+    def brackets(self, *, force: bool = False) -> LeverageBrackets:
+        now = int(time.time() * 1000)
+        if (force or self._brackets is None or self._brackets_fetched_ms is None
+                or now - self._brackets_fetched_ms > self.brackets_ttl_ms):
+            payload = self.client.call("leverage_bracket", {"symbol": self.symbol})
+            self._brackets = LeverageBrackets.from_payload(payload, self.symbol)
+            self._brackets_fetched_ms = now
+        return self._brackets
 
     def position(self) -> LivePosition:
         rows = self.client.call("position_risk", {"symbol": self.symbol})
@@ -190,6 +211,10 @@ class AccountReader:
                 self.client.call("symbol_config", {"symbol": self.symbol}), self.symbol)
             snapshot.commission = CommissionRate.from_payload(
                 self.client.call("commission_rate", {"symbol": self.symbol}))
+            try:
+                snapshot.brackets = self.brackets()
+            except (BinanceError, BracketsMalformed) as exc:
+                snapshot.brackets_error = f"{type(exc).__name__}: {exc}"
         except BinanceError as exc:
             snapshot.blockers.append(Blocker(*_binance_blocker(exc)))
         except LiveFieldMissing as exc:

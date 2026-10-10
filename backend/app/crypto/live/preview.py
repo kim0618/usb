@@ -23,6 +23,7 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Any, Iterable, Sequence
 
+from .brackets import LeverageBrackets, LeverageRefused, effective_leverage
 from .filters import QuantityRejected, SymbolFilters
 from .models import LONG, SHORT, CommissionRate, MarkPrice
 
@@ -59,6 +60,24 @@ def walk(levels: Sequence[Sequence[Any]], qty: Decimal) -> Decimal:
     raise NoLiquidity(f"visible depth covers {qty - remaining} of {qty}")
 
 
+def _margin(*, leverage: Decimal | None, brackets: LeverageBrackets | None, qty: Decimal,
+            fill_price: Decimal, mark_price: Decimal, notional: Decimal,
+            held_notional: Decimal) -> dict[str, Any]:
+    """The leverage an order is priced at and the margin that follows from it.
+
+    `leverage` is the account's configured figure. It is capped by the leverage band the whole
+    resulting position falls in (see `live.brackets`); without a usable band table there is no
+    margin figure, and the caller refuses the size rather than pricing it at the setting.
+    """
+    if not leverage or leverage <= 0:
+        return {"leverage": leverage, "required_margin": None}
+    basis = held_notional + qty * max(fill_price, mark_price)
+    decided = effective_leverage(leverage, brackets, basis)
+    if isinstance(decided, LeverageRefused):
+        return {"refused": decided}
+    return {**decided.view(), "required_margin": notional / decided.effective}
+
+
 def _levels(depth: dict[str, Any], key: str) -> Iterable[Sequence[Any]]:
     rows = depth.get(key)
     if not isinstance(rows, list):
@@ -68,7 +87,8 @@ def _levels(depth: dict[str, Any], key: str) -> Iterable[Sequence[Any]]:
 
 def round_trip(*, side: str, qty: Decimal, depth: dict[str, Any], mark: MarkPrice,
                commission: CommissionRate, filters: SymbolFilters,
-               leverage: Decimal | None) -> dict[str, Any]:
+               leverage: Decimal | None, brackets: LeverageBrackets | None,
+               held_notional: Decimal = Decimal(0)) -> dict[str, Any]:
     """Enter `qty` and close it immediately, priced on the book as it stands."""
     base: dict[str, Any] = {"side": side, "qty": qty, "feasible": False,
                             "mark_price": mark.mark_price, "source": "BINANCE_LIVE",
@@ -94,6 +114,11 @@ def round_trip(*, side: str, qty: Decimal, depth: dict[str, Any], mark: MarkPric
 
     rate = commission.taker
     notional = entry_price * qty
+    margin = _margin(leverage=leverage, brackets=brackets, qty=qty, fill_price=entry_price,
+                     mark_price=mark.mark_price, notional=notional, held_notional=held_notional)
+    if "refused" in margin:
+        return {**base, "reject_stage": "LEVERAGE", "reject_code": margin["refused"].code,
+                "reject_message": margin["refused"].message}
     entry_fee = notional * rate
     exit_fee = exit_price * qty * rate
     gross = (exit_price - entry_price) * qty if side == LONG else (entry_price - exit_price) * qty
@@ -114,11 +139,9 @@ def round_trip(*, side: str, qty: Decimal, depth: dict[str, Any], mark: MarkPric
         **base,
         "feasible": True,
         "notional": notional,
-        "leverage": leverage,
-        # Binance's own initial margin for a new position is notional / leverage; it is shown as
-        # an estimate because the account's real requirement also depends on its risk tier,
-        # which this preview does not read.
-        "required_margin": (notional / leverage) if leverage and leverage > 0 else None,
+        # Binance's initial margin for the order is notional / leverage, at the leverage the
+        # position's band allows (`_margin`), never above the configured setting.
+        **margin,
         "entry_fill_price": entry_price,
         "entry_fee": entry_fee,
         "expected_entry_vwap": entry_price,
@@ -147,7 +170,8 @@ def round_trip(*, side: str, qty: Decimal, depth: dict[str, Any], mark: MarkPric
 
 def entry(*, side: str, qty: Decimal, depth: dict[str, Any], mark: MarkPrice,
           commission: CommissionRate, filters: SymbolFilters,
-          leverage: Decimal | None) -> dict[str, Any]:
+          leverage: Decimal | None, brackets: LeverageBrackets | None,
+          held_notional: Decimal = Decimal(0)) -> dict[str, Any]:
     """Price only the new MARKET entry.
 
     Entry feasibility must not depend on hypothetical close-side liquidity or a future close
@@ -177,9 +201,13 @@ def entry(*, side: str, qty: Decimal, depth: dict[str, Any], mark: MarkPrice,
                 "reject_message": str(exc)}
 
     notional = fill_price * qty
+    margin = _margin(leverage=leverage, brackets=brackets, qty=qty, fill_price=fill_price,
+                     mark_price=mark.mark_price, notional=notional, held_notional=held_notional)
+    if "refused" in margin:
+        return {**base, "reject_stage": "LEVERAGE", "reject_code": margin["refused"].code,
+                "reject_message": margin["refused"].message}
     fee = notional * commission.taker
-    return {**base, "feasible": True, "notional": notional, "leverage": leverage,
-            "required_margin": (notional / leverage) if leverage and leverage > 0 else None,
+    return {**base, "feasible": True, "notional": notional, **margin,
             "entry_fill_price": fill_price, "entry_fee": fee,
             "expected_entry_vwap": fill_price, "expected_entry_notional": notional,
             "expected_entry_fee": fee,
