@@ -355,7 +355,7 @@ def test_route_failure_is_an_error_body(route_service) -> None:
     assert response.json()["error"]["code"] == "HOT_SCAN_UPSTREAM"
 
 
-def test_hot_route_is_get_only() -> None:
+def test_the_scan_route_is_get_only() -> None:
     methods = {m for r in app.routes if getattr(r, "path", "") == "/api/crypto/hot-coins"
                for m in getattr(r, "methods", set())}
     assert methods == {"GET"}
@@ -488,17 +488,22 @@ def test_hot_code_imports_no_account_order_or_paper_engine_module() -> None:
 
 
 def test_hot_code_names_no_mutating_endpoint() -> None:
+    """The HOT package and its routes reach Binance's public market data only. The one write
+    they own is the HOT slot itself (`POST /api/crypto/hot/scan`); account reads and writes live
+    in `live_routes`, which registers its exposure source from outside."""
     forbidden = ("/fapi/v1/order", "/fapi/v1/batchOrders", "/fapi/v1/leverage", "/fapi/v1/marginType",
                  "/fapi/v1/listenKey", "/fapi/v2/account", "/fapi/v3/account", "positionRisk",
-                 "openOrders", "signature=", "hmac", "X-MBX-APIKEY", ".post(", ".put(", ".delete(")
+                 "openOrders", "signature=", "hmac", "X-MBX-APIKEY", ".put(", ".delete(")
     for path in HOT_FILES:
         text = path.read_text(encoding="utf-8")
         for needle in forbidden:
             assert needle not in text, (path, needle)
+        assert ".post(" not in text.replace('@app.post("/api/crypto/hot/scan")', ""), path
 
 
-def test_hot_routes_registers_only_get() -> None:
+def test_hot_routes_registers_get_and_the_one_scan_post() -> None:
     tree = ast.parse((APP / "crypto" / "terminal" / "hot_routes.py").read_text(encoding="utf-8"))
-    verbs = [d.func.attr for n in ast.walk(tree) if isinstance(n, ast.AsyncFunctionDef)
-             for d in n.decorator_list if isinstance(d, ast.Call) and isinstance(d.func, ast.Attribute)]
-    assert verbs == ["get"]
+    routes = [(d.func.attr, d.args[0].value) for n in ast.walk(tree) if isinstance(n, ast.AsyncFunctionDef)
+              for d in n.decorator_list if isinstance(d, ast.Call) and isinstance(d.func, ast.Attribute)]
+    assert sorted(routes) == [("get", "/api/crypto/hot"), ("get", "/api/crypto/hot-coins"),
+                              ("post", "/api/crypto/hot/scan")]

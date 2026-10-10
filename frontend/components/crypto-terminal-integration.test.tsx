@@ -28,7 +28,28 @@ import type { MarketContextPayload } from "@/lib/market-context";
  */
 
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
-beforeEach(() => { try { window.localStorage.clear(); } catch { /* private window */ } });
+beforeEach(() => {
+  try { window.localStorage.clear(); } catch { /* private window */ }
+  HOT.current = "ETHUSDT";
+  HOT.next = null;
+  HOT.scans = 0;
+});
+
+/** The HOT slot the fake server holds (Dynamic HOT V1). ETH and SOL have no fixed tab any more;
+ *  they reach the screen through the HOT slot, which a scan replaces. */
+const HOT = { current: "ETHUSDT" as string | null, next: null as string | null, scans: 0, stamp: 1 };
+
+function hotState() {
+  HOT.stamp += 1;
+  return {
+    main: "BTCUSDT",
+    hot: HOT.current ? { symbol: HOT.current, selected_at_ms: HOT.stamp, scanned_at_ms: HOT.stamp,
+                         metrics: {}, top: [] } : null,
+    lock: { state: "ALLOWED", code: "HOT_SYMBOL_FLAT", symbol: HOT.current, message: "" },
+    scanning: false, held: [], permitted: [], paper: { available: true, reason: null },
+    server_time_ms: 0,
+  };
+}
 
 /** Both backends' real answers, captured from a live run of this very preview.
  *
@@ -120,6 +141,13 @@ function fakeBackends({ context = (symbol: string) => CONTEXT[symbol],
   vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
     const method = (init?.method ?? "GET").toUpperCase();
+    if (url.includes("/api/crypto/hot/scan") && method === "POST") {
+      HOT.scans += 1;
+      if (HOT.next) HOT.current = HOT.next;
+      return ok({ ...hotState(), status: "HOT_REPLACED", changed: true, previous: null,
+                  paper_note: null, scan: null });
+    }
+    if (url.includes("/api/crypto/hot")) return ok(hotState());
     if (method !== "GET" && method !== "HEAD") {
       tally.writes.push({ url, method });
       return ok({ state: paper.BTCUSDT.state });
@@ -224,13 +252,24 @@ describe("the deployed route is what it was", () => {
   it("renders the same tree with the slot absent as with the slot undefined", async () => {
     stubViewport(WIDE[0]);
     fakeBackends();
+    // The HOT tab is settled by the server's answer in both renders before comparing: the first
+    // render paints "HOT 없음" until it arrives, the second paints the copy the first one kept.
+    const hotSettled = async () => {
+      await waitFor(() => expect(
+        screen.getByTestId("symbol-tab-hot").getAttribute("data-symbol")).toBe("ETHUSDT"));
+      // The kept copy paints the tab before the server answers; the button turning on is the
+      // server's answer, so both renders are compared after it.
+      await waitFor(() => expect(screen.getByTestId("hot-scan-button")).not.toBeDisabled());
+    };
     const route = render(<CryptoPaperPage />);
     await terminalReady();
+    await hotSettled();
     const fromRoute = route.container.innerHTML;
     cleanup();
     fakeBackends();
     const direct = render(<CryptoTerminal marketContext={undefined} />);
     await terminalReady();
+    await hotSettled();
     expect(direct.container.innerHTML).toBe(fromRoute);
   });
 });
@@ -356,10 +395,27 @@ describe("390px", () => {
 // --------------------------------------------------------------------------- symbol isolation
 
 describe("symbol isolation", () => {
+  /** BTC is a fixed tab. Any other symbol reaches the screen through the HOT slot: make it the
+   *  server's next HOT, press 코인탐색, then press the HOT tab (or follow it there). */
   const switchTo = async (symbol: string) => {
-    fireEvent.click(screen.getByTestId(`symbol-tab-${symbol}`));
+    if (symbol === "BTCUSDT") {
+      fireEvent.click(screen.getByTestId("symbol-tab-BTCUSDT"));
+      await waitFor(() => expect(
+        screen.getByTestId("symbol-tab-BTCUSDT").getAttribute("aria-selected")).toBe("true"));
+      return;
+    }
+    if (screen.getByTestId("symbol-tab-hot").getAttribute("data-symbol") !== symbol) {
+      HOT.next = symbol;
+      await waitFor(() => expect(screen.getByTestId("hot-scan-button")).not.toBeDisabled());
+      fireEvent.click(screen.getByTestId("hot-scan-button"));
+      await waitFor(() => expect(
+        screen.getByTestId("symbol-tab-hot").getAttribute("data-symbol")).toBe(symbol));
+    }
+    if (screen.getByTestId("symbol-tab-hot").getAttribute("aria-selected") !== "true") {
+      fireEvent.click(screen.getByTestId("symbol-tab-hot"));
+    }
     await waitFor(() => expect(
-      screen.getByTestId(`symbol-tab-${symbol}`).getAttribute("aria-selected")).toBe("true"));
+      screen.getByTestId("symbol-tab-hot").getAttribute("aria-selected")).toBe("true"));
   };
 
   it("shows BTC's full context on BTC", async () => {
@@ -453,10 +509,12 @@ describe("symbol isolation", () => {
       screen.getByTestId("market-context-panel").getAttribute("data-symbol")).toBe("BTCUSDT"));
     expect(screen.getByTestId("mc-liquidity")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByTestId("symbol-tab-ETHUSDT"));
-    fireEvent.click(screen.getByTestId("symbol-tab-SOLUSDT"));
+    // ETH is the HOT symbol; BTC → ETH → BTC → ETH as fast as the tabs can be pressed.
+    await waitFor(() => expect(
+      screen.getByTestId("symbol-tab-hot").getAttribute("data-symbol")).toBe("ETHUSDT"));
+    fireEvent.click(screen.getByTestId("symbol-tab-hot"));
     fireEvent.click(screen.getByTestId("symbol-tab-BTCUSDT"));
-    fireEvent.click(screen.getByTestId("symbol-tab-ETHUSDT"));
+    fireEvent.click(screen.getByTestId("symbol-tab-hot"));
     // Nothing released yet: the panel must be showing no symbol's reading rather than the last
     // one it had.
     await waitFor(() => expect(

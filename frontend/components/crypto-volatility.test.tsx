@@ -426,7 +426,7 @@ describe("the tab strip with a reading", () => {
   it("states the window and the ranking in the tooltip", () => {
     const row = symbolRange1h("SOLUSDT", windowOf(1.83, "DOWN"));
     expect(tabTitle("SOLUSDT", row, true)).toContain("최근 60분 변동폭 1.83% 하락");
-    expect(tabTitle("SOLUSDT", row, true)).toContain("3종목 중 최대");
+    expect(tabTitle("SOLUSDT", row, true)).toContain("표시 종목 중 최대");
     expect(tabTitle("SOLUSDT", row, false)).not.toContain("최대");
     expect(tabTitle("SOLUSDT", null, false)).toContain("읽는 중");
   });

@@ -1,0 +1,223 @@
+{
+ "start": {
+  "hot": "USUSDT",
+  "tabs": [
+   [
+    "symbol-tab-BTCUSDT",
+    "BTCUSDT",
+    "BTC 1H 0.08% ↑ 상승"
+   ],
+   [
+    "symbol-tab-hot",
+    "USUSDT",
+    "🔥 US HOT 1H 16.41% ↓ 하락"
+   ]
+  ],
+  "selected": "symbol-tab-BTCUSDT",
+  "ticket": [
+   1044,
+   419,
+   360,
+   669
+  ],
+  "overflow": [
+   1440,
+   1440
+  ]
+ },
+ "A_btc": {
+  "side": "LONG",
+  "qty": "0.008",
+  "hot_lock": "HOT_SYMBOL_FLAT"
+ },
+ "B_chart": {
+  "canvas": 7,
+  "header": "USUSDT\n무기한\n●\n실시간\n0.0\n+0.00% vs Index\n자산\n999,385원\n743.59 USDT\n주문가능\n910,367원\n677.3",
+  "feed_source": "BINANCE_PUBLIC",
+  "instrument": {
+   "symbol": "USUSDT",
+   "qty_step": "1",
+   "min_order_qty": "1",
+   "max_mkt_order_qty": "4000000",
+   "min_notional_value": "5",
+   "tick_size": "0.0000010",
+   "max_leverage": "20.00",
+   "source": "binance GET /fapi/v1/exchangeInfo /tmp/claude-1000/-home-tjd618/8bbdfdf2-dc8c-4f0d-8bce-c1ea176e386c/scratchpad/v1qa/paper/reference/USUSDT/reference/binance_exchange_info_1791638285.json sha256 202360479d8c56fc0d3fa35c58c8344a7a1ebf734befa95def7ab79036809ecf; margin /tmp/claude-1000/-home-tjd618/8bbdfdf2-dc8c-4f0d-8bce-c1ea176e386c/scratchpad/v1qa/paper/reference/USUSDT/reference/risk_limit_1791638285.json"
+  }
+ },
+ "B_positions": {
+  "hot": [
+   "LONG",
+   "893"
+  ],
+  "order_qty": "893",
+  "btc_unchanged": true
+ },
+ "C_blocked": {
+  "blocked_after_s": 0.0,
+  "button_disabled": true,
+  "title": "현재 HOT 심볼에 포지션이 있어 탐색할 수 없습니다.",
+  "server_lock": "HOT_POSITION_OPEN",
+  "direct_post": [
+   409,
+   "HOT_POSITION_OPEN"
+  ]
+ },
+ "D_closed": {
+  "hot_flat": true,
+  "button_reenabled_after_s": 0.0,
+  "btc_unchanged": true,
+  "server_lock": "HOT_SYMBOL_FLAT"
+ },
+ "E_rescan": {
+  "posts": 1,
+  "previous": "USUSDT",
+  "now": "USUSDT",
+  "selected": "USUSDT",
+  "top": [
+   "USUSDT",
+   "BATUSDT",
+   "LUMIAUSDT",
+   "ERAUSDT",
+   "JCTUSDT"
+  ]
+ },
+ "reload": {
+  "hot_tab": "USUSDT",
+  "selected": "USUSDT"
+ },
+ "requests_1440": {
+  "total": 102,
+  "methods": [
+   "GET",
+   "POST"
+  ],
+  "non_get": [
+   [
+    "POST",
+    "/api/crypto/hot/scan"
+   ],
+   [
+    "POST",
+    "/api/crypto/order"
+   ]
+  ],
+  "binance_live_non_get": 0
+ },
+ "layout_390": {
+  "tabs": [
+   [
+    "symbol-tab-BTCUSDT",
+    "BTCUSDT",
+    16,
+    86,
+    true
+   ],
+   [
+    "symbol-tab-hot",
+    "USUSDT",
+    106,
+    89,
+    true
+   ]
+  ],
+  "strip": [
+   259,
+   259
+  ],
+  "button": [
+   283,
+   135,
+   67,
+   26
+  ],
+  "ticket": [
+   16,
+   1016,
+   358,
+   637
+  ],
+  "overflow": [
+   390,
+   390
+  ],
+  "hot_selected_overflow": [
+   390,
+   390
+  ],
+  "hot_ticket": [
+   16,
+   675,
+   358,
+   816
+  ],
+  "panel": [
+   16,
+   183,
+   358,
+   622
+  ],
+  "panel_overflow": [
+   390,
+   390
+  ]
+ },
+ "layout_1600": {
+  "tabs": [
+   [
+    "symbol-tab-BTCUSDT",
+    "BTCUSDT",
+    276,
+    87,
+    true
+   ],
+   [
+    "symbol-tab-hot",
+    "USUSDT",
+    367,
+    94,
+    true
+   ]
+  ],
+  "strip": [
+   1189,
+   1189
+  ],
+  "button": [
+   1473,
+   139,
+   67,
+   26
+  ],
+  "ticket": [
+   1204,
+   419,
+   360,
+   669
+  ],
+  "overflow": [
+   1600,
+   1600
+  ],
+  "hot_selected_overflow": [
+   1600,
+   1600
+  ],
+  "hot_ticket": [
+   1204,
+   365,
+   360,
+   862
+  ],
+  "panel": [
+   1148,
+   187,
+   416,
+   520
+  ],
+  "panel_overflow": [
+   1600,
+   1600
+  ]
+ }
+}
