@@ -234,6 +234,13 @@ class Runtime:
 
     def __init__(self) -> None:
         self.feeds: dict[str, BybitPublicFeed] = {}
+        #: The kline seed for each symbol: the symbols that have one, and the in-flight or
+        #: last-failed task for the ones that do not yet. Holding the task rather than a flag is
+        #: what makes the seed exactly-once for free - ten concurrent chart requests for ETHUSDT
+        #: all await the same object - and `_seeded` is a plain set because the lifespan's own
+        #: seed has to be recorded from outside and a resolved future would be bound to a loop.
+        self._seeded: set[str] = set()
+        self._seeds: dict[str, asyncio.Task] = {}
         self.sessions: dict[str, PaperSession] = {}
         #: One wallet behind all three engines. Built with the default symbol's session and
         #: owned by it, so the money that run already holds carries across unchanged and a
@@ -333,6 +340,81 @@ class Runtime:
         self.feeds[instrument] = feed
         feed.start()
         return feed
+
+    async def seeded_feed_for(self, symbol: str | None = None) -> BybitPublicFeed:
+        """`feed_for`, plus the guarantee that its chart history has been fetched once.
+
+        Every symbol gets the same history contract, which is the point. The default symbol is
+        seeded in the lifespan before its socket starts; a lazily created symbol had no seed at
+        all, so after a restart its chart began at one bar and took two hours to look like the
+        others while BTC showed a full window immediately. The fix is not to seed all three
+        eagerly - a socket and a REST read for a screen nobody is looking at is exactly what
+        `feed_for` is lazy to avoid - but to make the first look pay for the history.
+
+        Deliberately *not* folded into `feed_for`. That one is synchronous and is called from
+        thirteen places, among them the order and order-preview routes, and the seed is a
+        blocking HTTP read that has to go to a thread. Making it awaited everywhere would put a
+        new suspension point and a new failure mode (an exchange kline read) inside the order
+        path, to fix a chart. `klines` is read in exactly one place, `feed.chart()`, so the
+        await belongs where the history is actually wanted.
+
+        Exactly once, by holding the seed as the task that performs it: ten concurrent chart
+        requests for ETHUSDT all await the same object, so there is no lock here and no state
+        to keep in step with reality. `shield` is what makes that safe - a caller that goes away
+        mid-seed must not cancel the seed the other nine are waiting on.
+
+        A failed seed is not sticky: the next look starts a new one. That is the whole retry
+        policy, and the next reasonable moment is the next request.
+        """
+        feed = self.feed_for(symbol)
+        if feed.symbol in self._seeded:
+            return feed
+        task = self._seeds.get(feed.symbol)
+        if task is None or (task.done() and not task.cancelled() and task.exception() is not None):
+            task = asyncio.create_task(asyncio.to_thread(feed.seed_klines))
+            self._seeds[feed.symbol] = task
+        try:
+            await asyncio.shield(task)
+            self._seeded.add(feed.symbol)
+        except Exception as exc:
+            # The handling the default symbol's seed has always had: the feed keeps running on
+            # live bars and the reason goes on the telemetry, rather than the symbol becoming
+            # permanently dead over one REST read. The task stays so `seed_state` can say
+            # FAILED instead of pretending nobody ever asked.
+            feed.telemetry.last_error = f"kline seed failed: {exc}"
+        return feed
+
+    def seed_state(self, symbol: str | None = None) -> str:
+        """`UNSEEDED` / `SEEDING` / `READY` / `FAILED`, derived rather than stored.
+
+        So a chart that is short because its history never arrived cannot be mistaken for a
+        chart that is short because the market is new.
+        """
+        try:
+            instrument = resolve_symbol(symbol)
+        except SymbolNotSupported:
+            return "UNSEEDED"
+        if instrument in self._seeded:
+            return "READY"
+        task = self._seeds.get(instrument)
+        if task is None:
+            return "UNSEEDED"
+        if not task.done():
+            return "SEEDING"
+        # Done but not in `_seeded`: it raised, or it was cancelled. Either way the history
+        # did not arrive, and a cancelled seed must not read as a successful one.
+        return "FAILED"
+
+    def mark_seeded(self, symbol: str) -> None:
+        """Record a seed performed outside this method.
+
+        The lifespan seeds the default symbol itself, against `runtime.feed` and before the
+        socket starts, and that order is the one the engine has always had - routing it through
+        `seeded_feed_for` would go via `feed_for`, which on a failed `build` would create and
+        *start* a second BTC feed. A plain set membership is also the only form of this record
+        that is not bound to an event loop.
+        """
+        self._seeded.add(resolve_symbol(symbol))
 
     def session_for(self, symbol: str | None = None) -> PaperSession:
         """The paper session for one symbol, built on first use.
@@ -504,6 +586,14 @@ def paper_feed(symbol: str | None):
         return None, error(400, exc.code, exc.message)
 
 
+async def seeded_paper_feed(symbol: str | None):
+    """`paper_feed` for the routes that read chart history rather than the live quote."""
+    try:
+        return await runtime.seeded_feed_for(symbol), None
+    except SymbolNotSupported as exc:
+        return None, error(400, exc.code, exc.message)
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     config_path = Path(os.environ.get(CONFIG_ENV, DEFAULT_ROOT / "run_config.json"))
@@ -524,6 +614,9 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         runtime.error = f"{type(exc).__name__}: {exc}"
     try:
         await asyncio.to_thread(runtime.feed.seed_klines)
+        # Recorded as this symbol's seed, so the first chart request reads the history that is
+        # already here instead of fetching it a second time.
+        runtime.mark_seeded(runtime.feed.symbol)
     except Exception as exc:
         runtime.feed.telemetry.last_error = f"kline seed failed: {exc}"
     runtime.start()
@@ -622,12 +715,16 @@ def create_app() -> FastAPI:
 
     @app.get("/api/crypto/chart")
     async def chart(limit: int = 120, symbol: str | None = None) -> Any:
-        feed, failure = paper_feed(symbol)
+        # Awaited, so the first look at a symbol returns its history rather than the one bar
+        # the socket has managed to push since the tab was opened.
+        feed, failure = await seeded_paper_feed(symbol)
         if failure is not None:
             return failure
         # The symbol is returned with the bars so the chart can discard a response that arrived
-        # after the operator changed tabs, instead of drawing it under the new label.
-        return jsonable({"symbol": feed.symbol, "bars": feed.chart(min(limit, 600))})
+        # after the operator changed tabs, instead of drawing it under the new label. `seed`
+        # goes with them so a short window reads as a seed that failed rather than as the truth.
+        return jsonable({"symbol": feed.symbol, "bars": feed.chart(min(limit, 600)),
+                         "seed": runtime.seed_state(feed.symbol)})
 
     @app.get("/api/crypto/chart-history")
     async def chart_history_route(timeframe: str, limit: int = 500,

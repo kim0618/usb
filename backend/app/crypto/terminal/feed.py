@@ -129,7 +129,16 @@ class BybitPublicFeed:
     # ------------------------------------------------------------------ seed
 
     def seed_klines(self, *, limit: int = 120, client: httpx.Client | None = None) -> None:
-        """One REST read so the chart is not empty for the first two minutes."""
+        """One REST read so the chart is not empty for the first two minutes.
+
+        Fills history; it does not overwrite it. The default symbol is seeded before its socket
+        starts, so `klines` is empty and the seed simply becomes the history. A lazily created
+        symbol's feed is already running by the time anyone asks for its chart, and replacing
+        the list there would throw away bars this process actually observed in favour of a REST
+        snapshot taken a moment later - including the open bar, whose live version is the fresher
+        of the two. So only the bars older than the oldest one already held are prepended, which
+        is a no-op whenever there is nothing to protect.
+        """
         owned = client is None
         http = client or httpx.Client(base_url=REST_URL, timeout=20,
                                       headers={"User-Agent": "usb-crypto-d3-terminal/1"})
@@ -141,11 +150,17 @@ class BybitPublicFeed:
             if payload.get("retCode") != 0:
                 raise RuntimeError(f"kline seed failed: {payload.get('retCode')} {payload.get('retMsg')}")
             rows = payload["result"]["list"]
-            self.klines = [
+            seeded = [
                 {"start_ms": int(row[0]), "open": row[1], "high": row[2], "low": row[3],
                  "close": row[4], "volume": row[5], "confirmed": True}
                 for row in sorted(rows, key=lambda item: int(item[0]))
             ]
+            if self.klines:
+                oldest_held = self.klines[0]["start_ms"]
+                self.klines = ([bar for bar in seeded if bar["start_ms"] < oldest_held]
+                               + self.klines)[-600:]
+            else:
+                self.klines = seeded
         finally:
             if owned:
                 http.close()
