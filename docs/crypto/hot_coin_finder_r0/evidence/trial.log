@@ -1,0 +1,7 @@
+20:14:42 snap 0 uni=525 dur=109s maxW=902 calls={'exchangeInfo': 1, 'ticker24hr_all': 1, 'bookTicker_all': 1, 'premiumIndex_all': 1, 'klines_1m62': 525, 'depth50': 525, 'openInterest': 25}
+20:19:42 snap 1 uni=525 dur=108s maxW=901 calls={'exchangeInfo': 1, 'ticker24hr_all': 1, 'bookTicker_all': 1, 'premiumIndex_all': 1, 'klines_1m62': 525, 'depth50': 525, 'openInterest': 25}
+20:24:42 snap 2 uni=525 dur=108s maxW=900 calls={'exchangeInfo': 1, 'ticker24hr_all': 1, 'bookTicker_all': 1, 'premiumIndex_all': 1, 'klines_1m62': 525, 'depth50': 525, 'openInterest': 25}
+20:29:41 snap 3 uni=525 dur=108s maxW=901 calls={'exchangeInfo': 1, 'ticker24hr_all': 1, 'bookTicker_all': 1, 'premiumIndex_all': 1, 'klines_1m62': 525, 'depth50': 525, 'openInterest': 25}
+20:34:41 snap 4 uni=525 dur=108s maxW=902 calls={'exchangeInfo': 1, 'ticker24hr_all': 1, 'bookTicker_all': 1, 'premiumIndex_all': 1, 'klines_1m62': 525, 'depth50': 525, 'openInterest': 25}
+20:39:42 snap 5 uni=525 dur=108s maxW=900 calls={'exchangeInfo': 1, 'ticker24hr_all': 1, 'bookTicker_all': 1, 'premiumIndex_all': 1, 'klines_1m62': 525, 'depth50': 525, 'openInterest': 25}
+20:44:41 snap 6 uni=525 dur=108s maxW=900 calls={'exchangeInfo': 1, 'ticker24hr_all': 1, 'bookTicker_all': 1, 'premiumIndex_all': 1, 'klines_1m62': 525, 'depth50': 525, 'openInterest': 25}

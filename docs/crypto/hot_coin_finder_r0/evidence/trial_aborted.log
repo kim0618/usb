@@ -1,0 +1,1 @@
+20:12:25 snap 0 uni=525 dur=115s maxW=898 calls={'exchangeInfo': 1, 'ticker24hr_all': 1, 'bookTicker_all': 1, 'premiumIndex_all': 1, 'klines_1m62': 520, 'depth50': 520, 'openInterest': 25}

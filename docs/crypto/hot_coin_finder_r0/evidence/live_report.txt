@@ -1,0 +1,274 @@
+snapshots=7  20:12..20:42 KST  gates={'spread_bps': 10.0, 'rt_slip_1000_bps': 20.0, 'qv24h': 20000000.0, 'qv1h': 500000.0}
+
+=== B. UNIVERSE (snap 0)
+exchange symbols total 924 status counts {'PERPETUAL|USDT|TRADING': 525, 'PERPETUAL|USDT|SETTLING': 133, 'PERPETUAL|BTC|TRADING': 1, 'PERPETUAL|USDC|TRADING': 38, 'PERPETUAL|USDC|SETTLING': 1, 'PERPETUAL|USDT|PENDING_TRADING': 1, 'TRADIFI_PERPETUAL|USDT|TRADING': 216, 'PERPETUAL|USD1|TRADING': 2, 'CURRENT_QUARTER|USDT|TRADING': 2, 'PERPETUAL|U|TRADING': 2, 'TRADIFI_PERPETUAL|USD1|TRADING': 1, 'NEXT_QUARTER|USDT|TRADING': 2}
+universe sizes per snap [525, 525, 525, 525, 525, 525, 525]
+flags {}
+non-ascii symbols ['币安人生USDT', '我踏马来了USDT', '龙虾USDT', '牛来USDT', '哈基米USDT']
+rows missing data []
+underlyingSubType counts {"['AI', 'Crypto']": 55, "['Alpha', 'AI', 'Crypto']": 1, "['Alpha', 'Crypto']": 68, "['Alpha', 'DeFi', 'Crypto']": 1, "['Chinese', 'Crypto']": 5, "['Crypto']": 27, "['DeFi', 'Crypto']": 112, "['Gaming', 'Crypto']": 27, "['Index', 'Crypto']": 2, "['Infrastructure', 'Crypto']": 59, "['Layer-1', 'Crypto']": 49, "['Layer-2', 'Crypto']": 21, "['Meme', 'Crypto']": 46, "['Metaverse', 'Crypto']": 9, "['NFT', 'Crypto']": 11, "['Payment', 'Crypto']": 7, "['PoW', 'Crypto']": 15, "['RWA', 'Crypto']": 4, "['Storage', 'Crypto']": 5, '[]': 1}
+
+=== D. VOLATILITY DISTRIBUTION (all snaps pooled, BTC excluded)
+1H range %   p10=0.44 p25=0.58 p50=0.85 p75=1.31 p90=2.26 p99=14.71 (n=3668)
+24H range %  p10=3.45 p25=4.58 p50=6.28 p75=9.02 p90=14.58 p99=41.50 (n=3668)
+|24H chg| %  p10=0.53 p25=1.25 p50=2.62 p75=4.65 p90=7.53 p99=26.20 (n=3668)
+per-snapshot counts: time | r1h>=2/3/5/10 | r24h>=10/20/30/50 | top1h | top24h
+  20:12 | [60, 28, 17, 11] | [113, 29, 15, 2] | WALUSDT 19.3 | MAGICUSDT 114.4
+  20:17 | [58, 32, 18, 9] | [113, 31, 15, 2] | AIOTUSDT 18.8 | MAGICUSDT 115.1
+  20:22 | [59, 31, 18, 9] | [113, 31, 15, 2] | AIOTUSDT 19.3 | MAGICUSDT 115.5
+  20:27 | [63, 30, 17, 8] | [113, 31, 15, 2] | AIOTUSDT 19.7 | MAGICUSDT 115.2
+  20:32 | [64, 34, 19, 8] | [113, 31, 15, 2] | AIOTUSDT 19.6 | MAGICUSDT 115.5
+  20:37 | [64, 35, 19, 7] | [111, 30, 15, 2] | GRIFFAINUSDT 21.9 | MAGICUSDT 115.4
+  20:42 | [66, 36, 19, 6] | [111, 30, 14, 2] | GRIFFAINUSDT 21.9 | MAGICUSDT 114.2
+BTC reference 1H range p50=0.10 (n=7) 24H p50=1.52 (n=7)
+
+=== E. LIQUIDITY DISTRIBUTION (snap 0, universe excl BTC)
+spread bps    p10=0.95 p25=1.84 p50=3.50 p75=5.43 p90=7.63 p99=11.84 (n=524)
+qv24h M       p10=0.85 p25=1.38 p50=3.15 p75=11.73 p90=48.99 p99=633.99 (n=524)
+qv1h M        p10=0.02 p25=0.04 p50=0.09 p75=0.40 p90=1.75 p99=19.84 (n=524)
+top-of-book notional (min side)  p10=8.31 p25=27.35 p50=81.47 p75=247.97 p90=883.95 p99=31323.33 (n=524)
+depth ±0.1% min side USDT        p10=283.12 p25=553.29 p50=1196.26 p75=3281.31 p90=16225.58 p99=432389.13 (n=524)
+depth ±0.25% min side USDT       p10=2483.36 p25=3997.75 p50=7512.23 p75=18326.49 p90=76365.78 p99=677601.98 (n=524)
+depth ±0.25% truncated (50lvl didn't reach band) 29
+round-trip slip   100 USDT bps  p10=1.32 p25=2.80 p50=4.70 p75=6.86 p90=9.08 p99=13.02 (n=524) exhausted=0
+round-trip slip   500 USDT bps  p10=2.21 p25=5.00 p50=7.88 p75=11.32 p90=14.65 p99=22.43 (n=524) exhausted=0
+round-trip slip  1000 USDT bps  p10=3.03 p25=6.67 p50=10.90 p75=15.03 p90=19.74 p99=28.39 (n=524) exhausted=0
+round-trip slip  5000 USDT bps  p10=6.97 p25=14.72 p50=23.55 p75=32.45 p90=42.12 p99=61.00 (n=520) exhausted=4
+gate pass counts per snap (spread / slip / volume / all):
+  20:12 valid=524 spread_ok=506 slip_ok=474 vol_ok=90 all_ok=89
+  20:17 valid=524 spread_ok=507 slip_ok=467 vol_ok=89 all_ok=88
+  20:22 valid=524 spread_ok=510 slip_ok=473 vol_ok=90 all_ok=89
+  20:27 valid=524 spread_ok=513 slip_ok=483 vol_ok=90 all_ok=90
+  20:32 valid=524 spread_ok=509 slip_ok=487 vol_ok=86 all_ok=85
+  20:37 valid=524 spread_ok=506 slip_ok=486 vol_ok=86 all_ok=84
+  20:42 valid=524 spread_ok=513 slip_ok=488 vol_ok=85 all_ok=82
+
+=== F. VOLATILITY vs EXECUTABILITY
+  top 5 by 1H range: pass-rate mean 0.40 min 0.40 | by 24H: mean 1.00 min 1.00
+  top10 by 1H range: pass-rate mean 0.53 min 0.50 | by 24H: mean 0.80 min 0.80
+  top20 by 1H range: pass-rate mean 0.59 min 0.55 | by 24H: mean 0.62 min 0.60
+  top50 by 1H range: pass-rate mean 0.45 min 0.42 | by 24H: mean 0.44 min 0.42
+  raw 1H rank of filtered-combined HOT#1: [6, 5, 4, 4, 5, 3, 3]
+  raw 1H rank of filtered-by-1H HOT#1: [1, 2, 2, 2, 2, 3, 3]
+  rejection reason counts among (top20 1H + top20 24H) pooled: {'WIDE_SPREAD': 36, 'HIGH_SLIPPAGE': 43, 'LOW_VOLUME': 98}
+  category counts (symbol-snapshots): {'HIGH_VOL_GOOD_LIQUIDITY': 107, 'HIGH_VOL_BUT_THIN': 86, 'HIGH_VOL_WIDE_SPREAD': 5, 'HIGH_VOLUME_LOW_VOL': 98}
+  HIGH_VOLUME_LOW_VOL symbols seen: ['ADAUSDT', 'BNBUSDT', 'DOGEUSDT', 'ENAUSDT', 'ETHUSDT', 'HYPEUSDT', 'NEARUSDT', 'PUMPUSDT', 'SOLUSDT', 'STRKUSDT', 'SUIUSDT', 'UNIUSDT', 'XRPUSDT', 'ZECUSDT']
+
+=== C/G. SNAPSHOT REPORTS
+
+TIME 20:12 KST  universe=525 valid=524 pass=89 scan=109s maxW=902
+ Raw volatility (by 1H range):
+  1. WALUSDT        1H 19.28% (+5.81) 24H  30.48% (+14.6) qv24    20.1M qv1h  15.46M spr  5.19bp rt1k   7.3bp  OK 
+  2. APRUSDT        1H 17.26% (-9.78) 24H  35.62% (-26.9) qv24    16.8M qv1h   5.48M spr 12.75bp rt1k  20.2bp  REJ WIDE_SPREAD,HIGH_SLIPPAGE,LOW_VOLUME 
+  3. GRIFFAINUSDT   1H 15.90% (-13.92) 24H  22.54% (+3.8) qv24    17.8M qv1h   3.41M spr 17.02bp rt1k  35.0bp  REJ WIDE_SPREAD,HIGH_SLIPPAGE,LOW_VOLUME 
+  4. CAPUSDT        1H 12.44% (+3.07) 24H  37.44% (+18.5) qv24    82.9M qv1h   8.60M spr  3.49bp rt1k   9.8bp  OK 
+  5. BULLAUSDT      1H 12.41% (-8.59) 24H  15.73% (-3.3) qv24     7.9M qv1h   1.36M spr  6.20bp rt1k  16.0bp  REJ LOW_VOLUME 
+ Raw volatility (by 24H range):
+  1. MAGICUSDT      1H 10.08% (+5.72) 24H 114.42% (+45.4) qv24   949.0M qv1h  55.34M spr  1.77bp rt1k   3.9bp  OK
+  2. LUMIAUSDT      1H  9.29% (-3.08) 24H  74.11% (+36.2) qv24   107.5M qv1h   9.54M spr  1.82bp rt1k   7.3bp  OK
+  3. ERAUSDT        1H  8.28% (+1.87) 24H  47.78% (+34.1) qv24   102.9M qv1h  19.84M spr  1.21bp rt1k   5.7bp  OK
+ After liquidity, by 1H range: WALUSDT, CAPUSDT, USUSDT, BATUSDT, ARPAUSDT
+ After liquidity, by 24H range: MAGICUSDT, LUMIAUSDT, ERAUSDT, USUSDT, PIXELUSDT
+ Combined (mean pct-rank 1H & 24H, liquidity-passed):
+  1. USUSDT         1H 12.19% (+7.14) 24H  46.39% (-15.2) qv24   634.0M qv1h  12.84M spr  2.03bp rt1k   8.4bp combo=0.992 rk1=6 rk24=4 
+  2. CAPUSDT        1H 12.44% (+3.07) 24H  37.44% (+18.5) qv24    82.9M qv1h   8.60M spr  3.49bp rt1k   9.8bp combo=0.991 rk1=4 rk24=7 
+  3. MAGICUSDT      1H 10.08% (+5.72) 24H 114.42% (+45.4) qv24   949.0M qv1h  55.34M spr  1.77bp rt1k   3.9bp combo=0.990 rk1=11 rk24=1 
+  4. LUMIAUSDT      1H  9.29% (-3.08) 24H  74.11% (+36.2) qv24   107.5M qv1h   9.54M spr  1.82bp rt1k   7.3bp combo=0.988 rk1=13 rk24=2 
+  5. WALUSDT        1H 19.28% (+5.81) 24H  30.48% (+14.6) qv24    20.1M qv1h  15.46M spr  5.19bp rt1k   7.3bp combo=0.987 rk1=1 rk24=15 
+
+TIME 20:17 KST  universe=525 valid=524 pass=88 scan=108s maxW=901
+ Raw volatility (by 1H range):
+  1. AIOTUSDT       1H 18.85% (+9.27) 24H  26.15% (+21.9) qv24    11.0M qv1h   2.16M spr 13.33bp rt1k  33.4bp  REJ WIDE_SPREAD,HIGH_SLIPPAGE,LOW_VOLUME 
+  2. WALUSDT        1H 18.64% (+4.03) 24H  30.42% (+13.1) qv24    20.9M qv1h  16.16M spr  2.62bp rt1k   7.3bp  OK 
+  3. APRUSDT        1H 17.26% (-7.83) 24H  35.56% (-26.2) qv24    17.2M qv1h   5.72M spr 12.48bp rt1k  17.8bp  REJ WIDE_SPREAD,LOW_VOLUME 
+  4. GRIFFAINUSDT   1H 15.96% (-10.83) 24H  23.34% (+2.8) qv24    19.2M qv1h   4.38M spr  9.91bp rt1k  26.3bp  REJ HIGH_SLIPPAGE,LOW_VOLUME 
+  5. USUSDT         1H 15.85% (+13.02) 24H  46.93% (-13.3) qv24   635.2M qv1h  16.23M spr  5.31bp rt1k   8.9bp  OK 
+ Raw volatility (by 24H range):
+  1. MAGICUSDT      1H  9.58% (+5.55) 24H 115.12% (+46.2) qv24   950.1M qv1h  55.47M spr  1.78bp rt1k   4.1bp  OK
+  2. LUMIAUSDT      1H  9.24% (-3.22) 24H  74.03% (+35.8) qv24   108.0M qv1h   9.17M spr  4.53bp rt1k   8.6bp  OK
+  3. ERAUSDT        1H  7.87% (-0.77) 24H  47.55% (+32.5) qv24   103.5M qv1h  19.52M spr  2.43bp rt1k   8.0bp  OK
+ After liquidity, by 1H range: WALUSDT, USUSDT, CAPUSDT, BATUSDT, MAGICUSDT
+ After liquidity, by 24H range: MAGICUSDT, LUMIAUSDT, ERAUSDT, USUSDT, PIXELUSDT
+ Combined (mean pct-rank 1H & 24H, liquidity-passed):
+  1. USUSDT         1H 15.85% (+13.02) 24H  46.93% (-13.3) qv24   635.2M qv1h  16.23M spr  5.31bp rt1k   8.9bp combo=0.993 rk1=5 rk24=4 
+  2. MAGICUSDT      1H  9.58% (+5.55) 24H 115.12% (+46.2) qv24   950.1M qv1h  55.47M spr  1.78bp rt1k   4.1bp combo=0.991 rk1=10 rk24=1 
+  3. LUMIAUSDT      1H  9.24% (-3.22) 24H  74.03% (+35.8) qv24   108.0M qv1h   9.17M spr  4.53bp rt1k   8.6bp combo=0.989 rk1=11 rk24=2 
+  4. CAPUSDT        1H 12.39% (+3.39) 24H  37.48% (+18.5) qv24    83.0M qv1h   8.57M spr  2.32bp rt1k   9.5bp combo=0.989 rk1=6 rk24=7 
+  5. WALUSDT        1H 18.64% (+4.03) 24H  30.42% (+13.1) qv24    20.9M qv1h  16.16M spr  2.62bp rt1k   7.3bp combo=0.986 rk1=2 rk24=15 
+
+TIME 20:22 KST  universe=525 valid=524 pass=89 scan=108s maxW=900
+ Raw volatility (by 1H range):
+  1. AIOTUSDT       1H 19.34% (+10.05) 24H  27.44% (+23.0) qv24    11.9M qv1h   2.75M spr  9.56bp rt1k  24.8bp  REJ HIGH_SLIPPAGE,LOW_VOLUME 
+  2. WALUSDT        1H 18.64% (+5.29) 24H  30.48% (+14.5) qv24    21.6M qv1h  16.85M spr  2.59bp rt1k   9.0bp  OK 
+  3. APRUSDT        1H 17.14% (-8.46) 24H  35.59% (-25.9) qv24    17.4M qv1h   5.87M spr 12.52bp rt1k  12.5bp  REJ WIDE_SPREAD,LOW_VOLUME 
+  4. USUSDT         1H 17.05% (+10.53) 24H  48.23% (-9.0) qv24   635.9M qv1h  18.80M spr  0.79bp rt1k   9.3bp  OK 
+  5. GRIFFAINUSDT   1H 15.98% (-10.48) 24H  23.34% (+2.9) qv24    19.5M qv1h   4.62M spr  6.58bp rt1k  20.1bp  REJ HIGH_SLIPPAGE,LOW_VOLUME 
+ Raw volatility (by 24H range):
+  1. MAGICUSDT      1H  8.70% (+0.05) 24H 115.46% (+45.6) qv24   951.9M qv1h  51.94M spr  0.89bp rt1k   3.6bp  OK
+  2. LUMIAUSDT      1H  8.09% (-3.69) 24H  74.14% (+35.8) qv24   108.3M qv1h   8.75M spr  2.71bp rt1k   9.2bp  OK
+  3. USUSDT         1H 17.05% (+10.53) 24H  48.23% (-9.0) qv24   635.9M qv1h  18.80M spr  0.79bp rt1k   9.3bp  OK
+ After liquidity, by 1H range: WALUSDT, USUSDT, BATUSDT, CAPUSDT, ARPAUSDT
+ After liquidity, by 24H range: MAGICUSDT, LUMIAUSDT, USUSDT, ERAUSDT, PIXELUSDT
+ Combined (mean pct-rank 1H & 24H, liquidity-passed):
+  1. USUSDT         1H 17.05% (+10.53) 24H  48.23% (-9.0) qv24   635.9M qv1h  18.80M spr  0.79bp rt1k   9.3bp combo=0.995 rk1=4 rk24=3 
+  2. MAGICUSDT      1H  8.70% (+0.05) 24H 115.46% (+45.6) qv24   951.9M qv1h  51.94M spr  0.89bp rt1k   3.6bp combo=0.990 rk1=11 rk24=1 
+  3. LUMIAUSDT      1H  8.09% (-3.69) 24H  74.14% (+35.8) qv24   108.3M qv1h   8.75M spr  2.71bp rt1k   9.2bp combo=0.989 rk1=12 rk24=2 
+  4. CAPUSDT        1H 12.18% (+3.99) 24H  37.27% (+19.2) qv24    83.2M qv1h   8.64M spr  2.32bp rt1k   9.2bp combo=0.989 rk1=7 rk24=7 
+  5. WALUSDT        1H 18.64% (+5.29) 24H  30.48% (+14.5) qv24    21.6M qv1h  16.85M spr  2.59bp rt1k   9.0bp combo=0.986 rk1=2 rk24=15 
+
+TIME 20:27 KST  universe=525 valid=524 pass=90 scan=108s maxW=901
+ Raw volatility (by 1H range):
+  1. AIOTUSDT       1H 19.65% (+2.75) 24H  26.99% (+12.0) qv24    12.7M qv1h   3.52M spr  4.11bp rt1k  23.2bp  REJ HIGH_SLIPPAGE,LOW_VOLUME 
+  2. WALUSDT        1H 17.84% (+6.14) 24H  30.50% (+15.8) qv24    22.3M qv1h  17.49M spr  2.58bp rt1k   9.6bp  OK 
+  3. APRUSDT        1H 16.86% (-5.39) 24H  35.39% (-25.8) qv24    17.6M qv1h   6.13M spr 12.17bp rt1k  13.5bp  REJ WIDE_SPREAD,LOW_VOLUME 
+  4. USUSDT         1H 16.57% (+11.00) 24H  47.61% (-12.3) qv24   634.6M qv1h  19.03M spr  1.96bp rt1k   6.6bp  OK 
+  5. GRIFFAINUSDT   1H 15.87% (-12.11) 24H  23.26% (+1.6) qv24    19.6M qv1h   4.67M spr 19.46bp rt1k  27.2bp  REJ WIDE_SPREAD,HIGH_SLIPPAGE,LOW_VOLUME 
+ Raw volatility (by 24H range):
+  1. MAGICUSDT      1H  7.10% (+2.46) 24H 115.18% (+44.9) qv24   953.5M qv1h  44.62M spr  2.67bp rt1k   4.4bp  OK
+  2. LUMIAUSDT      1H  7.61% (-2.25) 24H  74.18% (+36.6) qv24   108.8M qv1h   8.31M spr  2.72bp rt1k  10.0bp  OK
+  3. ERAUSDT        1H  7.92% (-5.28) 24H  47.64% (+31.1) qv24   105.2M qv1h  15.96M spr  3.71bp rt1k   7.2bp  OK
+ After liquidity, by 1H range: WALUSDT, USUSDT, BATUSDT, CAPUSDT, ARPAUSDT
+ After liquidity, by 24H range: MAGICUSDT, LUMIAUSDT, ERAUSDT, USUSDT, PIXELUSDT
+ Combined (mean pct-rank 1H & 24H, liquidity-passed):
+  1. USUSDT         1H 16.57% (+11.00) 24H  47.61% (-12.3) qv24   634.6M qv1h  19.03M spr  1.96bp rt1k   6.6bp combo=0.994 rk1=4 rk24=4 
+  2. MAGICUSDT      1H  7.10% (+2.46) 24H 115.18% (+44.9) qv24   953.5M qv1h  44.62M spr  2.67bp rt1k   4.4bp combo=0.989 rk1=13 rk24=1 
+  3. LUMIAUSDT      1H  7.61% (-2.25) 24H  74.18% (+36.6) qv24   108.8M qv1h   8.31M spr  2.72bp rt1k  10.0bp combo=0.989 rk1=12 rk24=2 
+  4. ERAUSDT        1H  7.92% (-5.28) 24H  47.64% (+31.1) qv24   105.2M qv1h  15.96M spr  3.71bp rt1k   7.2bp combo=0.989 rk1=11 rk24=3 
+  5. CAPUSDT        1H 12.16% (+3.20) 24H  37.06% (+18.0) qv24    83.4M qv1h   8.60M spr  3.48bp rt1k   8.8bp combo=0.989 rk1=7 rk24=7 
+
+TIME 20:32 KST  universe=525 valid=524 pass=85 scan=108s maxW=902
+ Raw volatility (by 1H range):
+  1. AIOTUSDT       1H 19.62% (+4.09) 24H  26.88% (+11.6) qv24    13.1M qv1h   3.83M spr 19.03bp rt1k  35.1bp  REJ WIDE_SPREAD,HIGH_SLIPPAGE,LOW_VOLUME 
+  2. WALUSDT        1H 17.51% (+4.05) 24H  30.40% (+13.9) qv24    22.8M qv1h  17.96M spr  5.17bp rt1k   7.4bp  OK 
+  3. APRUSDT        1H 17.01% (-2.43) 24H  35.39% (-22.8) qv24    18.2M qv1h   6.80M spr 11.83bp rt1k  22.9bp  REJ WIDE_SPREAD,HIGH_SLIPPAGE,LOW_VOLUME 
+  4. GRIFFAINUSDT   1H 16.23% (-9.40) 24H  23.36% (-0.8) qv24    20.2M qv1h   4.45M spr 14.75bp rt1k  36.6bp  REJ WIDE_SPREAD,HIGH_SLIPPAGE 
+  5. USUSDT         1H 15.41% (+11.22) 24H  46.85% (-12.4) qv24   633.4M qv1h  19.33M spr  2.31bp rt1k   7.1bp  OK 
+ Raw volatility (by 24H range):
+  1. MAGICUSDT      1H  6.77% (+0.59) 24H 115.47% (+46.8) qv24   955.2M qv1h  42.09M spr  0.89bp rt1k   3.7bp  OK
+  2. LUMIAUSDT      1H  7.72% (-1.25) 24H  73.96% (+36.0) qv24   109.4M qv1h   8.30M spr  3.59bp rt1k  11.1bp  OK
+  3. ERAUSDT        1H  6.97% (-4.93) 24H  47.45% (+30.9) qv24   105.7M qv1h  14.64M spr  2.44bp rt1k   7.9bp  OK
+ After liquidity, by 1H range: WALUSDT, USUSDT, BATUSDT, CAPUSDT, ORCAUSDT
+ After liquidity, by 24H range: MAGICUSDT, LUMIAUSDT, ERAUSDT, USUSDT, PIXELUSDT
+ Combined (mean pct-rank 1H & 24H, liquidity-passed):
+  1. USUSDT         1H 15.41% (+11.22) 24H  46.85% (-12.4) qv24   633.4M qv1h  19.33M spr  2.31bp rt1k   7.1bp combo=0.993 rk1=5 rk24=4 
+  2. LUMIAUSDT      1H  7.72% (-1.25) 24H  73.96% (+36.0) qv24   109.4M qv1h   8.30M spr  3.59bp rt1k  11.1bp combo=0.989 rk1=12 rk24=2 
+  3. MAGICUSDT      1H  6.77% (+0.59) 24H 115.47% (+46.8) qv24   955.2M qv1h  42.09M spr  0.89bp rt1k   3.7bp combo=0.988 rk1=14 rk24=1 
+  4. CAPUSDT        1H 10.94% (-0.41) 24H  36.95% (+18.7) qv24    83.5M qv1h   8.14M spr  3.46bp rt1k  10.4bp combo=0.988 rk1=8 rk24=7 
+  5. ERAUSDT        1H  6.97% (-4.93) 24H  47.45% (+30.9) qv24   105.7M qv1h  14.64M spr  2.44bp rt1k   7.9bp combo=0.987 rk1=13 rk24=3 
+
+TIME 20:37 KST  universe=525 valid=524 pass=84 scan=108s maxW=900
+ Raw volatility (by 1H range):
+  1. GRIFFAINUSDT   1H 21.91% (-11.32) 24H  29.51% (-7.9) qv24    21.1M qv1h   5.01M spr 19.54bp rt1k  43.4bp  REJ WIDE_SPREAD,HIGH_SLIPPAGE 
+  2. AIOTUSDT       1H 19.61% (+7.99) 24H  26.96% (+16.9) qv24    13.6M qv1h   4.29M spr  9.76bp rt1k  25.4bp  REJ HIGH_SLIPPAGE,LOW_VOLUME 
+  3. USUSDT         1H 18.23% (+15.13) 24H  46.72% (-8.5) qv24   633.4M qv1h  22.07M spr  2.64bp rt1k   8.4bp  OK 
+  4. APRUSDT        1H 16.94% (-2.42) 24H  35.46% (-22.1) qv24    18.9M qv1h   7.37M spr 11.91bp rt1k  15.3bp  REJ WIDE_SPREAD,LOW_VOLUME 
+  5. WALUSDT        1H 16.74% (+2.82) 24H  30.35% (+13.2) qv24    23.3M qv1h  18.38M spr  2.61bp rt1k   8.9bp  OK 
+ Raw volatility (by 24H range):
+  1. MAGICUSDT      1H  6.59% (-0.35) 24H 115.40% (+49.1) qv24   958.3M qv1h  36.56M spr  0.87bp rt1k   4.0bp  OK
+  2. LUMIAUSDT      1H  7.67% (-0.75) 24H  73.99% (+37.1) qv24   110.0M qv1h   8.08M spr  3.59bp rt1k  11.6bp  OK
+  3. ERAUSDT        1H  5.16% (-4.32) 24H  47.41% (+31.6) qv24   106.5M qv1h  13.03M spr  3.71bp rt1k   6.8bp  OK
+ After liquidity, by 1H range: USUSDT, WALUSDT, BATUSDT, CAPUSDT, ORCAUSDT
+ After liquidity, by 24H range: MAGICUSDT, LUMIAUSDT, ERAUSDT, USUSDT, PIXELUSDT
+ Combined (mean pct-rank 1H & 24H, liquidity-passed):
+  1. USUSDT         1H 18.23% (+15.13) 24H  46.72% (-8.5) qv24   633.4M qv1h  22.07M spr  2.64bp rt1k   8.4bp combo=0.995 rk1=3 rk24=4 
+  2. LUMIAUSDT      1H  7.67% (-0.75) 24H  73.99% (+37.1) qv24   110.0M qv1h   8.08M spr  3.59bp rt1k  11.6bp combo=0.989 rk1=11 rk24=2 
+  3. MAGICUSDT      1H  6.59% (-0.35) 24H 115.40% (+49.1) qv24   958.3M qv1h  36.56M spr  0.87bp rt1k   4.0bp combo=0.989 rk1=13 rk24=1 
+  4. CAPUSDT        1H  9.87% (+1.09) 24H  36.97% (+18.0) qv24    83.6M qv1h   7.00M spr  2.31bp rt1k   3.9bp combo=0.988 rk1=8 rk24=7 
+  5. BATUSDT        1H 14.87% (+8.72) 24H  33.26% (+23.0) qv24   134.5M qv1h  20.37M spr  4.26bp rt1k   8.0bp combo=0.985 rk1=6 rk24=12 
+
+TIME 20:42 KST  universe=525 valid=524 pass=82 scan=108s maxW=900
+ Raw volatility (by 1H range):
+  1. GRIFFAINUSDT   1H 21.92% (-2.42) 24H  29.50% (+5.9) qv24    22.1M qv1h   5.84M spr 12.24bp rt1k  29.0bp  REJ WIDE_SPREAD,HIGH_SLIPPAGE 
+  2. AIOTUSDT       1H 20.04% (+8.92) 24H  26.99% (+15.5) qv24    13.9M qv1h   4.46M spr  5.92bp rt1k  17.4bp  REJ LOW_VOLUME 
+  3. USUSDT         1H 18.02% (+12.98) 24H  46.19% (-11.3) qv24   633.0M qv1h  22.67M spr  4.57bp rt1k   7.6bp  OK 
+  4. APRUSDT        1H 16.90% (-1.61) 24H  35.42% (-20.8) qv24    19.3M qv1h   8.13M spr 11.58bp rt1k  17.4bp  REJ WIDE_SPREAD,LOW_VOLUME 
+  5. WALUSDT        1H 16.00% (+2.42) 24H  30.40% (+13.9) qv24    23.6M qv1h  18.63M spr  5.20bp rt1k   8.8bp  OK 
+ Raw volatility (by 24H range):
+  1. MAGICUSDT      1H  6.65% (-0.20) 24H 114.17% (+46.9) qv24   961.8M qv1h  36.06M spr  0.87bp rt1k   3.9bp  OK
+  2. LUMIAUSDT      1H  7.65% (-0.79) 24H  73.88% (+36.9) qv24   110.4M qv1h   7.98M spr  0.90bp rt1k  12.7bp  OK
+  3. ERAUSDT        1H  5.22% (-2.11) 24H  46.89% (+31.4) qv24   107.2M qv1h  12.25M spr  3.67bp rt1k   7.0bp  OK
+ After liquidity, by 1H range: USUSDT, WALUSDT, BATUSDT, CAPUSDT, ORCAUSDT
+ After liquidity, by 24H range: MAGICUSDT, LUMIAUSDT, ERAUSDT, USUSDT, PIXELUSDT
+ Combined (mean pct-rank 1H & 24H, liquidity-passed):
+  1. USUSDT         1H 18.02% (+12.98) 24H  46.19% (-11.3) qv24   633.0M qv1h  22.67M spr  4.57bp rt1k   7.6bp combo=0.995 rk1=3 rk24=4 
+  2. LUMIAUSDT      1H  7.65% (-0.79) 24H  73.88% (+36.9) qv24   110.4M qv1h   7.98M spr  0.90bp rt1k  12.7bp combo=0.990 rk1=10 rk24=2 
+  3. MAGICUSDT      1H  6.65% (-0.20) 24H 114.17% (+46.9) qv24   961.8M qv1h  36.06M spr  0.87bp rt1k   3.9bp combo=0.990 rk1=11 rk24=1 
+  4. CAPUSDT        1H  9.46% (-1.76) 24H  36.82% (+19.9) qv24    83.9M qv1h   5.26M spr  2.29bp rt1k   6.0bp combo=0.989 rk1=7 rk24=7 
+  5. BATUSDT        1H 14.71% (+7.80) 24H  33.35% (+24.1) qv24   134.9M qv1h  20.50M spr  2.82bp rt1k   5.9bp combo=0.985 rk1=6 rk24=12 
+
+=== H. PERSISTENCE of combined HOT#1 (and filtered-by-1H HOT#1)
+
+ -- HOT#1 definition _fc
+  20:12 USUSDT       r1h=12.19 r15m=9.28 rk15m? | 5m: f#1 raw#5 ok 15m#3 r15x1.30 | 15m: f#1 raw#4 ok 15m#2 r15x0.99 | 30m: f#1 raw#3 ok 15m#4 r15x0.76
+  20:17 USUSDT       r1h=15.85 r15m=12.02 rk15m? | 5m: f#1 raw#4 ok 15m#3 r15x0.78 | 15m: f#1 raw#5 ok 15m#5 r15x0.47
+  20:22 USUSDT       r1h=17.05 r15m=9.35 rk15m? | 5m: f#1 raw#4 ok 15m#2 r15x0.98 | 15m: f#1 raw#3 ok 15m#3 r15x0.89
+  20:27 USUSDT       r1h=16.57 r15m=9.17 rk15m? | 5m: f#1 raw#5 ok 15m#5 r15x0.61 | 15m: f#1 raw#3 ok 15m#4 r15x0.77
+  20:32 USUSDT       r1h=15.41 r15m=5.60 rk15m? | 5m: f#1 raw#3 ok 15m#3 r15x1.48
+  20:37 USUSDT       r1h=18.23 r15m=8.28 rk15m? | 5m: f#1 raw#3 ok 15m#4 r15x0.85
+  20:42 USUSDT       r1h=18.02 r15m=7.02 rk15m?
+  summary (n, top1, top5, top10, raw1H top20, liq ok, median spread ratio, median slip ratio, median r15m ratio, r15m rank<=20, r15m >= 2x universe median):
+    5m: n=6 gone=0 top1=6 top5=6 top10=6 raw20=6 liq=6 spr×1.45 slip×1.06 r15m×0.91 rk15≤20=6 r15≥2×med=6
+   15m: n=4 gone=0 top1=4 top5=4 top10=4 raw20=4 liq=4 spr×1.65 slip×0.85 r15m×0.83 rk15≤20=4 r15≥2×med=4
+   30m: n=1 gone=0 top1=1 top5=1 top10=1 raw20=1 liq=1 spr×2.25 slip×0.91 r15m×0.76 rk15≤20=1 r15≥2×med=1
+
+ -- HOT#1 definition _f1
+  20:12 WALUSDT      r1h=19.28 r15m=11.69 rk15m? | 5m: f#1 raw#2 ok 15m#6 r15x0.36 | 15m: f#1 raw#2 ok 15m#9 r15x0.27 | 30m: f#2 raw#5 ok 15m#17 r15x0.22
+  20:17 WALUSDT      r1h=18.64 r15m=4.22 rk15m? | 5m: f#1 raw#2 ok 15m#12 r15x0.63 | 15m: f#1 raw#2 ok 15m#9 r15x0.75
+  20:22 WALUSDT      r1h=18.64 r15m=2.67 rk15m? | 5m: f#1 raw#2 ok 15m#9 r15x1.16 | 15m: f#2 raw#5 ok 15m#14 r15x1.07
+  20:27 WALUSDT      r1h=17.84 r15m=3.11 rk15m? | 5m: f#1 raw#2 ok 15m#9 r15x1.01 | 15m: f#2 raw#5 ok 15m#17 r15x0.83
+  20:32 WALUSDT      r1h=17.51 r15m=3.15 rk15m? | 5m: f#2 raw#5 ok 15m#14 r15x0.91
+  20:37 USUSDT       r1h=18.23 r15m=8.28 rk15m? | 5m: f#1 raw#3 ok 15m#4 r15x0.85
+  20:42 USUSDT       r1h=18.02 r15m=7.02 rk15m?
+  summary (n, top1, top5, top10, raw1H top20, liq ok, median spread ratio, median slip ratio, median r15m ratio, r15m rank<=20, r15m >= 2x universe median):
+    5m: n=6 gone=0 top1=5 top5=6 top10=6 raw20=6 liq=6 spr×0.99 slip×1.03 r15m×0.88 rk15≤20=6 r15≥2×med=6
+   15m: n=4 gone=0 top1=2 top5=4 top10=4 raw20=4 liq=4 spr×1.49 slip×1.00 r15m×0.79 rk15≤20=4 r15≥2×med=4
+   30m: n=1 gone=0 top1=0 top5=1 top10=1 raw20=1 liq=1 spr×1.00 slip×1.22 r15m×0.22 rk15≤20=1 r15≥2×med=1
+
+=== Q5. ONE-SHOT STABILITY
+ _fc: HOT#1 sequence: ['USUSDT', 'USUSDT', 'USUSDT', 'USUSDT', 'USUSDT', 'USUSDT', 'USUSDT']
+   distinct=1 changes between consecutive=0/6
+   #1-#2 gap: p10=0.00 p50=0.00 p90=0.01 (n=7)
+   top5 overlap with next snapshot (of 5): [5, 5, 4, 5, 4, 5]
+ _f1: HOT#1 sequence: ['WALUSDT', 'WALUSDT', 'WALUSDT', 'WALUSDT', 'WALUSDT', 'USUSDT', 'USUSDT']
+   distinct=2 changes between consecutive=1/6
+   #1-#2 gap: p10=1.27 p50=2.02 p90=6.84 (n=7)
+   top5 overlap with next snapshot (of 5): [4, 4, 5, 4, 5, 5]
+
+=== I. SHORTLIST CAPTURE (batch-ticker prefilter then top-K detail)
+ K=20: combined HOT#1 inside shortlist 7/7, top5 captured 35/35; prefilter size [99, 99, 99]...
+ K=30: combined HOT#1 inside shortlist 7/7, top5 captured 35/35; prefilter size [99, 99, 99]...
+ K=50: combined HOT#1 inside shortlist 7/7, top5 captured 35/35; prefilter size [99, 99, 99]...
+ K=80: combined HOT#1 inside shortlist 7/7, top5 captured 35/35; prefilter size [99, 99, 99]...
+ K=20: filtered-by-1H HOT#1 inside 24H-range shortlist 7/7
+ K=30: filtered-by-1H HOT#1 inside 24H-range shortlist 7/7
+ K=50: filtered-by-1H HOT#1 inside 24H-range shortlist 7/7
+ K=80: filtered-by-1H HOT#1 inside 24H-range shortlist 7/7
+
+=== API calls per snapshot [({'exchangeInfo': 1, 'ticker24hr_all': 1, 'bookTicker_all': 1, 'premiumIndex_all': 1, 'klines_1m62': 525, 'depth50': 525, 'openInterest': 25}, 902, 109), ({'exchangeInfo': 1, 'ticker24hr_all': 1, 'bookTicker_all': 1, 'premiumIndex_all': 1, 'klines_1m62': 525, 'depth50': 525, 'openInterest': 25}, 901, 108)]
+scan durations s: [109, 108, 108, 108, 108, 108, 108] batch phase s: [0.5, 0.6, 0.6, 0.5, 0.4]
+max weight per snap: [902, 901, 900, 901, 902, 900, 900]
+
+=== DIAG funding/OI of combined top5 (not used in ranking)
+  20:12 [('USUSDT', 0.005, 17.7), ('CAPUSDT', 0.0109, 17.7), ('MAGICUSDT', -0.4556, 16.2), ('LUMIAUSDT', 0.0045, 9.0), ('WALUSDT', -0.0181, 3.9)]
+  20:17 [('USUSDT', 0.005, 18.0), ('MAGICUSDT', -0.4588, 16.3), ('LUMIAUSDT', 0.005, 9.1), ('CAPUSDT', 0.0102, 17.7), ('WALUSDT', -0.0257, 3.8)]
+  20:22 [('USUSDT', 0.007, 18.1), ('MAGICUSDT', -0.4608, 16.2), ('LUMIAUSDT', 0.005, 9.1), ('CAPUSDT', 0.0099, 17.7), ('WALUSDT', -0.0339, 3.9)]
+  20:27 [('USUSDT', 0.005, 17.7), ('MAGICUSDT', -0.4617, 16.3), ('LUMIAUSDT', 0.005, 9.2), ('ERAUSDT', -1.2898, 6.4), ('CAPUSDT', 0.0098, 17.6)]
+  20:32 [('USUSDT', 0.0058, 18.0), ('LUMIAUSDT', 0.005, 9.2), ('MAGICUSDT', -0.4616, 16.4), ('CAPUSDT', 0.0095, 17.8), ('ERAUSDT', -1.2398, 6.4)]
+  20:37 [('USUSDT', 0.0079, 18.6), ('LUMIAUSDT', 0.005, 9.3), ('MAGICUSDT', -0.4619, 16.4), ('CAPUSDT', 0.0101, 17.6), ('BATUSDT', -0.0287, 10.3)]
+  20:42 [('USUSDT', 0.0079, 18.2), ('LUMIAUSDT', 0.005, 9.3), ('MAGICUSDT', -0.4647, 16.3), ('CAPUSDT', 0.0107, 18.0), ('BATUSDT', -0.0296, 10.3)]
+
+=== SENSITIVITY: volume gate variants (spread+slip gates unchanged)
+ base            pass(snap0)=89 HOT#1(by 1H) seq=['WALUSDT', 'WALUSDT', 'WALUSDT', 'WALUSDT', 'WALUSDT', 'USUSDT', 'USUSDT']
+ qv1h>=2M only   pass(snap0)=47 HOT#1(by 1H) seq=['WALUSDT', 'WALUSDT', 'WALUSDT', 'WALUSDT', 'WALUSDT', 'USUSDT', 'AIOTUSDT']
+ qv24h>=50M      pass(snap0)=52 HOT#1(by 1H) seq=['CAPUSDT', 'USUSDT', 'USUSDT', 'USUSDT', 'USUSDT', 'USUSDT', 'USUSDT']
+
+=== VOLUME-GATE SUFFICIENCY: among symbols passing the volume gate, share failing spread/slip
+  20:12 vol-pass=90 then-fail=1 [('C98USDT', ['WIDE_SPREAD'])] | among 1H-top20 vol-pass=12 then-fail=1
+  20:17 vol-pass=89 then-fail=1 [('C98USDT', ['WIDE_SPREAD'])] | among 1H-top20 vol-pass=12 then-fail=1
+  20:22 vol-pass=90 then-fail=1 [('C98USDT', ['WIDE_SPREAD'])] | among 1H-top20 vol-pass=12 then-fail=1
+  20:27 vol-pass=90 then-fail=0 [] | among 1H-top20 vol-pass=13 then-fail=0
+  20:32 vol-pass=86 then-fail=1 [('GRIFFAINUSDT', ['WIDE_SPREAD', 'HIGH_SLIPPAGE'])] | among 1H-top20 vol-pass=14 then-fail=1
+  20:37 vol-pass=86 then-fail=2 [('C98USDT', ['WIDE_SPREAD']), ('GRIFFAINUSDT', ['WIDE_SPREAD', 'HIGH_SLIPPAGE'])] | among 1H-top20 vol-pass=14 then-fail=2
+  20:42 vol-pass=85 then-fail=3 [('C98USDT', ['WIDE_SPREAD']), ('GRIFFAINUSDT', ['WIDE_SPREAD', 'HIGH_SLIPPAGE']), ('FOLKSUSDT', ['HIGH_SLIPPAGE'])] | among 1H-top20 vol-pass=15 then-fail=3
+  among liquidity-passed HOT top5 (combined+f1), round-trip slip 1000/5000 USDT bps:
+   1000: p50=8.36 p90=10.18 p100=13.21 (n=35)  5000: p50=16.72 p90=22.59 p100=26.42 (n=35) exhausted5000= 0

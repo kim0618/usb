@@ -1,0 +1,37 @@
+window 10-03 20:40 .. 10-10 19:35 KST, decision points=2004, symbols=524
+gated universe size per point: [ 68.  78.  93. 103. 111.]
+gated symbols with 1H range >=3% per point: [  6.  12.  18.  25. 105.]  >=5%: [ 1.  4.  8. 12. 90.]
+points with zero gated symbols >=3%: 0 / 2004
+HOT#1 1H range %: [ 9.75 12.   15.85 21.59 30.43]
+raw 1H rank of gated HOT#1: [1. 1. 1. 2.]  share where raw #1 itself passes: 0.79
+BTC 1H range median 0.35
+
+=== H. FORWARD PERSISTENCE (non-overlapping future window, gated universe)
+h | HOT#1 fwd-rank median | in fwd top5 | top10 | top20 | fwd range / univ median (HOT#1 median) | same for a random gated symbol | same for gated #20 | fwd hourly qv still>=0.5M | fwd/trailing-15m ratio
+ 5m | 2 (n=2004) | 0.80 | 0.94 | 0.99 | 7.58x (p25 4.73) | 1.00x | 1.61x | 1.00
+15m | 2 (n=2004) | 0.82 | 0.94 | 0.99 | 7.25x (p25 4.72) | 0.98x | 1.57x | 1.00 | 15m fwd/trailing median 0.80, share <0.5 (movement faded) 0.21
+30m | 2 (n=2004) | 0.81 | 0.93 | 0.98 | 6.97x (p25 4.67) | 1.00x | 1.58x | 1.00
+60m | 2 (n=2004) | 0.81 | 0.94 | 0.98 | 6.60x (p25 4.56) | 0.99x | 1.59x | 1.00
+
+=== same-definition rank persistence (trailing 1H rank of selected symbol later; overlapping windows)
+ +5m: still #1 0.86, top5 1.00, top10 1.00 (n=2003)
+ +15m: still #1 0.67, top5 0.98, top10 1.00 (n=2001)
+ +30m: still #1 0.47, top5 0.93, top10 0.99 (n=1998)
+ +60m: still #1 0.29, top5 0.78, top10 0.93 (n=1992)
+
+=== Q5. ONE-SHOT STABILITY
+HOT#1 changes between consecutive 5m points: 0.14
+  #1 differs from #1 15m later: 0.33
+  #1 differs from #1 30m later: 0.53
+  #1 differs from #1 60m later: 0.71
+  #1 differs from #1 4h later: 0.87
+distinct HOT#1 per day: [11, 19, 18, 11, 17, 16, 16]
+most frequent HOT#1: [('AINUSDT', 272), ('RLCUSDT', 229), ('龙虾USDT', 186), ('GTCUSDT', 142), ('USUSDT', 102), ('LYNUSDT', 78), ('BTWUSDT', 71), ('OGNUSDT', 69), ('JCTUSDT', 69), ('BRUSDT', 68)]
+#1-#2 1H-range gap (pct points): [ 0.59  1.66  3.99  8.06 15.26]
+share of points where #1 leads #2 by <0.5pp (coin-flip): 0.084
+top5 overlap with 5m later (mean of 5): 4.46  30m later: 3.32
+
+=== HOUR OF DAY (KST): median gated symbols with 1H range >=3%, median HOT#1 1H range
+00:20/18.2 01:23/19.0 02:19/17.1 03:19/16.4 04:16/12.6 05:13/11.9 06:13/11.7 07:13/16.8 08:9/13.4 09:12/13.0 10:17/15.5 11:17/18.1 12:18/14.3 13:18/11.5 14:20/13.8 15:18/18.7 16:18/18.4 17:19/24.7 18:20/16.2 19:19/15.1 20:19/14.2 21:20/18.5 22:19/19.0 23:20/15.8
+
+single-5m-bar share of HOT#1 1H range: [0.43 0.52 0.64 0.79]  share >0.7: 0.184
