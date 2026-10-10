@@ -5,8 +5,8 @@ records a stage result as of its own date and is never edited after the fact. Wh
 and a result document disagree about the present, this document wins. When they disagree about
 what happened in a past stage, the result document wins.
 
-Last verified: 2026-10-10, against the repository, the local runtime and the production host
-(read-only).
+Last verified: 2026-10-10 18:51 KST, after the production activation, against the repository and the
+production host.
 
 ## A. Purpose
 
@@ -21,7 +21,7 @@ intraday strategy and it never shares a book with A or E.
 Research build (D1-D6)   = COMPLETE, CLOSED unless a structural bug is found
 D7 forward shadow        = LAUNCHED 2026-10-04T08:34:30Z (baseline session 2026-10-02)
 Forward observation      = ACTIVE (prices and outcomes validated, 1D/5D matured)
-Production operations    = READY FOR DEPLOYMENT (repair 81f06c8, timer not installed)
+Production operations    = HEALTHY (repair 81f06c8 deployed, timer ENABLED, 2026-10-10)
 ```
 
 No further research is planned. A return to research is allowed only for a structural bug. It is
@@ -39,7 +39,8 @@ not allowed because APPROVE has not appeared or because of forward results.
 | D6 integrated decision | COMPLETE | `H_V2_D6_INTEGRATED_DECISION_ENGINE_PILOT_V1.md` |
 | D7 forward shadow | LAUNCHED | `H_V2_D7_FORWARD_SHADOW_PAPER_INTEGRATION_V1.md` |
 | D7 operations, 1st activation | FAILED, rolled back | `H_V2_D7_OPERATIONS_ACTIVATION_V1.md` |
-| D7 operations repair | READY FOR PRODUCTION | `H_V2_D7_OPERATIONS_REPAIR_V1.md` |
+| D7 operations repair | DEPLOYED | `H_V2_D7_OPERATIONS_REPAIR_V1.md` |
+| D7 production activation | HEALTHY | `H_V2_D7_PRODUCTION_ACTIVATION_V1.md` |
 
 ## D. Frozen contracts in force
 
@@ -130,8 +131,13 @@ usb-h-forward.service  →  run_h_v2_d7 update
 
 ## K. Known limitations (not health failures)
 
-* **AEYE REFRESH_DUE** (8-K 2026-09-18, accession 0001104659-26-108940). A re-evaluation needs operator
-  approval because it costs model calls. Until then AEYE stays REJECT and in the queue.
+* **Refresh queue = AEYE, FG, VRRM REFRESH_DUE** (as of the 2026-10-10 SEC cache):
+  * AEYE: 8-K 2026-09-18 `0001104659-26-108940` (items 1.01/2.03/9.01).
+  * FG: 8-K 2026-10-05 `0001934850-26-000095` (2.02 results of operations, 7.01).
+  * VRRM: 8-K 2026-10-02 `0001193125-26-412497` (5.02 officer/director change, 7.01, 9.01).
+
+  A D3→D6 re-evaluation needs operator approval because it costs model calls. Until then the
+  decisions stand (AEYE REJECT, FG/VRRM WATCH).
 * **sizing = NOT_DEFINED.** An APPROVE becomes an entry candidate only. Position creation is refused
   with `SIZING_CONTRACT_REQUIRED`, so today's answer to "can a position be created" is NO.
 * 21D/63D are PENDING until their own maturity sessions.
@@ -141,25 +147,34 @@ usb-h-forward.service  →  run_h_v2_d7 update
 ## L. Production deployment state
 
 ```text
-code (D7 launch, UI, API)   = DEPLOYED (server HEAD db41f04)
-D7 runtime files            = present on the server, verify PASS
-H operations timer          = NOT INSTALLED (rolled back 2026-10-10 18:01 KST)
-operations repair           = READY FOR DEPLOYMENT, not applied
+code (D7 launch, UI, API)   = DEPLOYED (server git HEAD db41f04)
+operations repair           = DEPLOYED as files over db41f04, source 81f06c8
+D7 production               = ACTIVE
+price / outcome             = ACTIVE
+SEC submissions refresh     = ACTIVE (8 cohort CIKs, 8/8 on 2026-10-10)
+material scan               = ACTIVE
+timer                       = ENABLED, Mon..Fri 01:10 America/New_York
+first unattended run        = Mon 2026-10-12 01:10 ET
 ```
+
+Deployed sha256: `run_h_v2_d7.py` `d28534bf…`, `sec_refresh.py` `55a0cec7…`, service `fd7d81a5…`,
+timer `111678d0…`. Queue `b7dc6482…`, status `a3658e40…` (as of the smoke run).
 
 History: the first activation (2026-10-10) failed. The server had no SEC submissions cache, so
 `refresh_scan` wrote all 8 issuers as NO_SUBMISSIONS_CACHE and AEYE's REFRESH_DUE was lost. The
-timer was rolled back, the queue was restored from backup (sha256 `43123c04…`) and the price catch-up
-was kept. Repair 81f06c8 split price/outcome from SEC refresh/scan into separate failure domains, so
-a missing or stale SEC cache can no longer overwrite the research queue.
+timer was rolled back, the queue was restored (`43123c04…`) and the price catch-up was kept. Repair
+81f06c8 split price/outcome from SEC refresh/scan into separate failure domains, so a missing or
+stale SEC cache can no longer overwrite the research queue. It was deployed the same day
+(`H_V2_D7_PRODUCTION_ACTIVATION_V1.md`).
 
 ## M. Next operational actions
 
-1. Deploy repair 81f06c8, bootstrap the 8 CIKs' SEC cache, install and enable the timer.
-2. After that, observe only: daily forward outcomes, new material filings, WATCH/REJECT transitions,
-   a future APPROVE, and 21D (2026-11-02) / 63D (2027-01-04) maturation.
-3. Operator decisions still open: the AEYE re-evaluation, and whether to freeze a sizing contract
-   (not urgent while APPROVE = 0).
+Observation only. No research unless a structural bug is found:
+
+1. Check the first timer run's journal (Mon 2026-10-12 01:10 ET): `refresh_run=OK`, integrity PASS.
+2. Watch daily forward outcomes, new material filings, WATCH/REJECT transitions and a future APPROVE.
+3. Watch 21D (2026-11-02) and 63D (2027-01-04) maturation.
+4. Operator decisions still open: re-evaluating AEYE/FG/VRRM, and whether to freeze a sizing contract.
 
 ## N. Authoritative commits
 
@@ -175,3 +190,5 @@ a missing or stale SEC cache can no longer overwrite the research queue.
 | 75c42c0 | D7 operations scheduler units | yes |
 | 49502bc | failed activation result | no (local) |
 | 81f06c8 | D7 operations repair (runtime source) | no (local) |
+| c44dc79 | pre-production authoritative sync (docs) | no (local) |
+| e64c08f | production activation result (docs) | no (local) |
