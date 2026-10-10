@@ -156,8 +156,14 @@ API. Quoted from `ec3df85`.
 
 * `origin/main` was at `12759f2` before this work. `6464b0f` (compression) and `12759f2` (seed
   fix) are both ancestors of it and are deployed.
-* Unpushed at the time of writing: `1df41d3` (test safety), `9bbc2da` (Market Context frontend,
-  inert unless configured) and `ec3df85` (initial-load performance).
+* `origin/main` is now `5cead43`, carrying `1df41d3` (test safety), `9bbc2da` (Market Context
+  frontend, inert unless configured), `ec3df85` (initial-load performance) and this document.
+* **`ec3df85` is pushed and not deployed.** Measured on the host after the push: the running
+  artifact is still `DSqckYX5fRU5ep1myq5SC` built at 13:13, its `react-loadable-manifest.json`
+  still carries the two-entry chart chain, the served page chunk is still
+  `page-fa532e180c061050.js`, and `usb-frontend` is still PID 1515161 with 0 restarts. The
+  production checkout is still `98feb31` and was not pulled. Being on `origin/main` is not
+  deployment, which is the same lesson as the bullet below from the other direction.
 * **The production repository checkout is not the deployed artifact.** `/root/usb` was at
   `98feb31` while the running frontend artifact was built at 2026-10-10 13:13 and the crypto
   backend runs from `/root/usb_runtime/crypto_paper/src/backend` by `PYTHONPATH`, not from
