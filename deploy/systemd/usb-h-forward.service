@@ -1,5 +1,5 @@
 [Unit]
-Description=USB Strategy H-V2 D7 forward shadow daily update (prices, outcome maturation, refresh queue)
+Description=USB Strategy H-V2 D7 forward shadow daily update (prices and outcomes, then SEC material refresh)
 After=network-online.target
 Wants=network-online.target
 # H reads Massive itself and does not read Strategy A's grouped store, so there is no data
@@ -15,15 +15,12 @@ StartLimitBurst=3
 [Service]
 Type=oneshot
 User=root
-# WorkingDirectory is the repository root, NOT backend/, and this is load-bearing. The updater's
-# refresh scan resolves the SEC submissions caches through repository-relative paths
-# ("data/runtime/strategy_h_v2/d1_1/sec_raw", "data/runtime/strategy_c/e0/raw", ...). From
-# /root/usb/backend those paths do not exist, _cached_submissions returns nothing, and every
-# issuer is rewritten as NO_SUBMISSIONS_CACHE - a run that exits 0 while turning AEYE's real
-# REFRESH_DUE into a false "no cache". Measured both ways: cwd=/root/usb reads 688 AEYE
-# submission rows, cwd=/root/usb/backend reads 0.
-# The append-only store itself is immune (it resolves from the module's own path), so only the
-# refresh queue would have degraded - silently.
+# WorkingDirectory is the repository root, NOT backend/. On 2026-10-10 the refresh scan resolved
+# its SEC caches through repository-relative paths and, finding none, rewrote all eight issuers as
+# NO_SUBMISSIONS_CACHE - AEYE's real REFRESH_DUE was lost by a run that exited 0. The scan now reads
+# only H's own dated cache under data/runtime/strategy_h_v2/d7/sec_submissions (module-relative), and
+# a missing or stale cache leaves the queue byte-identical. The root is kept anyway: it is where every
+# other usb unit runs and what the EnvironmentFile and runbook paths below assume.
 WorkingDirectory=/root/usb
 EnvironmentFile=/root/usb/.env
 EnvironmentFile=/root/usb/.env.massive
@@ -35,10 +32,15 @@ Environment=PYTHONUNBUFFERED=1
 # unlinked: flock locks an inode, not a path, so deleting it would let a second writer in.
 ExecStart=/usr/bin/flock -w 300 /run/usb-h-forward.lock \
   /root/usb/.venv/bin/python -m app.dev.run_h_v2_d7 update
-# Steady state is two Massive grouped_daily calls (the settled session, plus today's which is not
-# settled yet and is reported as no_result). The client's own limiter paces every call to the
-# Basic plan's 5/minute, so even the five-session catch-up stays near one minute. The ceiling
-# covers flock's 300s wait plus a full provider backoff.
+# One run is two failure domains, in this order:
+#   1. prices and outcomes. Steady state is two Massive grouped_daily calls (the settled session,
+#      plus today's which is not settled yet and is reported as no_result), paced by the client's
+#      own 5/minute limiter. An integrity failure of the snapshot or ledger exits 2 = unit failure.
+#   2. SEC submissions for the launch cohort's CIKs only (8 calls through sec_store's 5/s limiter
+#      and the D1.1 User-Agent), then the material scan. Any failure here exits 0 - prices were
+#      collected - but prints REFRESH_DEGRADED to stderr, writes it to refresh_status.json, and
+#      leaves refresh_queue.json byte-identical. It is never a silent success.
+# The ceiling covers flock's 300s wait plus a full provider backoff on both.
 TimeoutStartSec=20min
 # Measured, not assumed: one update peaks at 132 MB resident. 300M matches usb-grouped-daily and
 # leaves better than 2x headroom on a host that has been OOM-hit before.

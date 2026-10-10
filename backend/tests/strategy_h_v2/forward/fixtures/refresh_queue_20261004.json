@@ -1,0 +1,131 @@
+{
+ "claim_limit": "이 큐는 로컬 SEC 캐시만 읽는다. 캐시 날짜 이후의 공시는 보지 못하므로 NO_NEW_MATERIAL_EVIDENCE_AS_OF_CACHE는 '새 증거 없음'이 아니라 '캐시 시점까지 새 증거 없음'이다",
+ "contract": "H_V2_D7_FORWARD_SHADOW_V1",
+ "fetch_owner": "app.dev.acquire_strategy_h_v2_fundamentals (raw-source immutable, cached)",
+ "fetch_performed": false,
+ "generated_at": "2026-10-04T08:49:48+00:00",
+ "issuers": [
+  {
+   "cache_fetched_on": "2026-09-28",
+   "cik": "0001362190",
+   "decision_session": "2026-09-16",
+   "evidence_known_through": "2026-09-28",
+   "latest_material_filing": "2026-09-18",
+   "new_material_filings": [
+    {
+     "accession": "0001104659-26-108940",
+     "filingDate": "2026-09-18",
+     "form": "8-K"
+    }
+   ],
+   "state": "REFRESH_DUE",
+   "submissions_cache": "data/runtime/strategy_h_v2/d1_1/sec_raw/submissions/CIK0001362190/CIK0001362190.json.gz",
+   "thesis_research_id": "D3.3-AEYE-20261001T005808.540691+0000",
+   "ticker": "AEYE"
+  },
+  {
+   "cache_fetched_on": "2026-09-21",
+   "cik": "0001267565",
+   "decision_session": "2026-09-16",
+   "evidence_known_through": "2026-09-21",
+   "latest_material_filing": "2026-08-13",
+   "new_material_filings": [],
+   "state": "NO_NEW_MATERIAL_EVIDENCE_AS_OF_CACHE",
+   "submissions_cache": "data/runtime/strategy_c/e0/raw/submissions/CIK0001267565/CIK0001267565.json.gz",
+   "thesis_research_id": "D3.3-COLL-20261001T010357.196313+0000",
+   "ticker": "COLL"
+  },
+  {
+   "cache_fetched_on": "2026-09-21",
+   "cik": "0000868780",
+   "decision_session": "2026-09-16",
+   "evidence_known_through": "2026-09-21",
+   "latest_material_filing": "2026-08-04",
+   "new_material_filings": [],
+   "state": "NO_NEW_MATERIAL_EVIDENCE_AS_OF_CACHE",
+   "submissions_cache": "data/runtime/strategy_c/e0/raw/submissions/CIK0000868780/CIK0000868780.json.gz",
+   "thesis_research_id": "D3.3-DORM-20260930T053752.478891+0000",
+   "ticker": "DORM"
+  },
+  {
+   "cache_fetched_on": "2026-09-28",
+   "cik": "0001934850",
+   "decision_session": "2026-09-16",
+   "evidence_known_through": "2026-09-28",
+   "latest_material_filing": "2026-08-06",
+   "new_material_filings": [],
+   "state": "NO_NEW_MATERIAL_EVIDENCE_AS_OF_CACHE",
+   "submissions_cache": "data/runtime/strategy_h_v2/d1_1/sec_raw/submissions/CIK0001934850/CIK0001934850.json.gz",
+   "thesis_research_id": "D3.3-FG-20261001T011111.014641+0000",
+   "ticker": "FG"
+  },
+  {
+   "cache_fetched_on": "2026-09-21",
+   "cik": "0001405495",
+   "decision_session": "2026-09-16",
+   "evidence_known_through": "2026-09-21",
+   "latest_material_filing": "2026-07-30",
+   "new_material_filings": [],
+   "state": "NO_NEW_MATERIAL_EVIDENCE_AS_OF_CACHE",
+   "submissions_cache": "data/runtime/strategy_c/e0/raw/submissions/CIK0001405495/CIK0001405495.json.gz",
+   "thesis_research_id": "D3.3-IDCC-20260930T053154.092662+0000",
+   "ticker": "IDCC"
+  },
+  {
+   "cache_fetched_on": "2026-09-21",
+   "cik": "0001001838",
+   "decision_session": "2026-09-16",
+   "evidence_known_through": "2026-09-21",
+   "latest_material_filing": "2026-07-31",
+   "new_material_filings": [],
+   "state": "NO_NEW_MATERIAL_EVIDENCE_AS_OF_CACHE",
+   "submissions_cache": "data/runtime/strategy_c/e0/raw/submissions/CIK0001001838/CIK0001001838.json.gz",
+   "thesis_research_id": "D3.3-SCCO-20260929T022654.623272+0000",
+   "ticker": "SCCO"
+  },
+  {
+   "cache_fetched_on": "2026-09-28",
+   "cik": "0000850429",
+   "decision_session": "2026-09-16",
+   "evidence_known_through": "2026-09-28",
+   "latest_material_filing": "2026-09-15",
+   "new_material_filings": [],
+   "state": "NO_NEW_MATERIAL_EVIDENCE_AS_OF_CACHE",
+   "submissions_cache": "data/runtime/strategy_h_v2/d1_1/sec_raw/submissions/CIK0000850429/CIK0000850429.json.gz",
+   "thesis_research_id": "D3.3-TG-20260930T055141.900738+0000",
+   "ticker": "TG"
+  },
+  {
+   "cache_fetched_on": "2026-09-21",
+   "cik": "0001682745",
+   "decision_session": "2026-09-16",
+   "evidence_known_through": "2026-09-21",
+   "latest_material_filing": "2026-08-05",
+   "new_material_filings": [],
+   "state": "NO_NEW_MATERIAL_EVIDENCE_AS_OF_CACHE",
+   "submissions_cache": "data/runtime/strategy_c/e0/raw/submissions/CIK0001682745/CIK0001682745.json.gz",
+   "thesis_research_id": "D3.3-VRRM-20261001T011556.714762+0000",
+   "ticker": "VRRM"
+  }
+ ],
+ "material_forms": [
+  "10-K",
+  "10-Q",
+  "8-K",
+  "EARNINGS_RELEASE",
+  "GUIDANCE",
+  "MATERIAL_CORPORATE_EVENT"
+ ],
+ "refresh_due": [
+  "AEYE"
+ ],
+ "unverified_since_cache": [
+  "COLL",
+  "DORM",
+  "FG",
+  "IDCC",
+  "SCCO",
+  "TG",
+  "VRRM"
+ ]
+}

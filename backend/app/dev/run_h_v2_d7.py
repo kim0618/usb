@@ -24,8 +24,10 @@ calls, zero research cost. Commands::
     python -m app.dev.run_h_v2_d7 preflight      # replay, verify, show what launch would write
     python -m app.dev.run_h_v2_d7 launch         # write the snapshot and the ledger (once)
     python -m app.dev.run_h_v2_d7 collect-prices # fetch missing sessions into H's own store
-    python -m app.dev.run_h_v2_d7 update         # the daily job: prices, outcomes, refresh queue
+    python -m app.dev.run_h_v2_d7 update         # the daily job: prices, outcomes, then SEC refresh
+    python -m app.dev.run_h_v2_d7 sec-refresh    # fetch today's submissions for the cohort CIKs only
     python -m app.dev.run_h_v2_d7 refresh-scan   # which issuers have new material evidence
+    python -m app.dev.run_h_v2_d7 refresh-scan --dry-run  # the same, without replacing the queue
     python -m app.dev.run_h_v2_d7 status         # the cohort as the files state it
     python -m app.dev.run_h_v2_d7 verify         # integrity of the snapshot, ledger and contract
 """
@@ -40,7 +42,6 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-from app.backtest.strategy_c_e0.sec_store import read_gz_json, rows_of
 from app.backtest.strategy_h_v2.decision.d6_contract import Eligibility, decide
 from app.backtest.strategy_h_v2.valuation.fair_value import WindowSelectionContract
 from app.market.calendar import MarketCalendar
@@ -48,6 +49,7 @@ from app.strategies.h_forward import cohort as CO
 from app.strategies.h_forward import contract as C
 from app.strategies.h_forward import outcomes as OUT
 from app.strategies.h_forward import prices as PR
+from app.strategies.h_forward import sec_refresh as SR
 from app.strategies.h_forward import store as ST
 from app.strategies.h_forward import views as VW
 
@@ -56,17 +58,6 @@ RUNTIME_ROOT = Path("data/runtime/strategy_h_v2")
 D2R_DIR = RUNTIME_ROOT / "d5_d2r"
 D2_1_ROOT = RUNTIME_ROOT / "d2_1"
 REFRESH_QUEUE = "refresh_queue.json"
-
-#: Where this repository already keeps raw SEC submissions. The refresh scan reads these caches and
-#: never fetches: the acquisition layer owns fetching (``app.dev.acquire_strategy_h_v2_fundamentals``)
-#: and its raw-source immutability guarantees are not re-implemented here.
-SUBMISSION_ROOTS = (
-    RUNTIME_ROOT / "d1_1/sec_raw",
-    Path("data/runtime/strategy_h/h_pv2c/sec_raw"),
-    Path("data/runtime/strategy_c/e0/raw"),
-    Path("data/runtime/strategy_h/h0_5/sec_raw"),
-)
-
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
@@ -370,75 +361,146 @@ def ledger_rows_for(snapshot: Sequence[Mapping[str, Any]], *, launched_at: str,
 
 
 # -------------------------------------------------------------------------------------------------
-# Material-event refresh queue (§13): what would need re-evaluating, from cached SEC filings only
+# Material-event refresh queue (§13): what would need re-evaluating, from H's own SEC cache only
 # -------------------------------------------------------------------------------------------------
 
-def _cached_submissions(cik: str) -> tuple[list[dict[str, Any]], str | None]:
-    name = f"CIK{str(cik).zfill(10)}"
-    for root in SUBMISSION_ROOTS:
-        path = root / "submissions" / name / f"{name}.json.gz"
-        if path.is_file():
-            return rows_of(read_gz_json(path)), str(path)
-    return [], None
-
-
-def refresh_scan() -> dict[str, Any]:
-    """Which cohort issuers have material evidence the thesis has not seen.
-
-    Reads only the caches this repository already holds, and is careful about what that licenses it
-    to say. A cache fetched before the decision session cannot show a newer filing at all
-    (``CACHE_NOT_NEWER_THAN_THESIS``). A cache fetched after it, but before today, licenses only
-    "nothing new *as of the cache date*" (``NO_NEW_MATERIAL_EVIDENCE_AS_OF_CACHE``), which is a
-    weaker claim than "nothing new"; every row therefore carries ``evidence_known_through``. Only a
-    cache refreshed today supports the flat ``NO_NEW_MATERIAL_EVIDENCE``. Dropping that qualifier is
-    how a stale cache turns into a false all-clear.
-    """
-    today = datetime.now(timezone.utc).date().isoformat()
+def _scan_issuers(caches: Mapping[str, SR.Cache], today: str) -> tuple[list[dict[str, Any]], list[str]]:
     forms = set(C.material_events()) | {"10-Q", "10-K", "8-K"}
     out: list[dict[str, Any]] = []
     for snap in ST.launch_rows():
         cik = snap.get("cik")
         thesis_cutoff = (snap.get("d3") or {}).get("research_id") or ""
-        asof = snap.get("snapshot_date")
-        rows, source = _cached_submissions(cik) if cik else ([], None)
+        cache = caches.get(snap["ticker"])
+        rows = cache.rows if cache else []
         material = [r for r in rows if r.get("form") in forms and r.get("filingDate")]
         latest = max((r["filingDate"] for r in material), default=None)
-        cache_mtime = None
-        if source:
-            cache_mtime = datetime.fromtimestamp(Path(source).stat().st_mtime, timezone.utc).date().isoformat()
+        fetched_on = cache.fetched_on if cache else None
         decision = snap.get("decision_session")
         newer = [r for r in material if decision and r["filingDate"] > decision]
         out.append({
             "ticker": snap["ticker"], "cik": cik,
             "thesis_research_id": thesis_cutoff,
             "decision_session": decision,
-            "submissions_cache": source,
-            "cache_fetched_on": cache_mtime,
+            "submissions_cache": cache.path if cache else None,
+            "cache_fetched_on": fetched_on,
             "latest_material_filing": latest,
             "new_material_filings": [{"form": r["form"], "filingDate": r["filingDate"],
                                       "accession": r.get("accessionNumber")} for r in newer],
-            "evidence_known_through": cache_mtime,
-            "state": ("NO_SUBMISSIONS_CACHE" if source is None
+            "evidence_known_through": fetched_on,
+            "state": ("NO_SUBMISSIONS_CACHE" if cache is None
                       else "REFRESH_DUE" if newer
-                      else "CACHE_NOT_NEWER_THAN_THESIS" if (cache_mtime or "") <= (decision or "")
-                      else "NO_NEW_MATERIAL_EVIDENCE" if cache_mtime == today
+                      else "CACHE_NOT_NEWER_THAN_THESIS" if (fetched_on or "") <= (decision or "")
+                      else "NO_NEW_MATERIAL_EVIDENCE" if fetched_on == today
                       else "NO_NEW_MATERIAL_EVIDENCE_AS_OF_CACHE"),
         })
-    body = {"generated_at": _now(), "contract": C.contract_id(), "material_forms": sorted(forms),
+    return out, sorted(forms)
+
+
+def refresh_scan(*, dry_run: bool = False, ready: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    """Which cohort issuers have material evidence the thesis has not seen.
+
+    Reads only H's own dated submissions cache (``sec_refresh``), and only when every cohort CIK is
+    present in one root fetched within ``MAX_CACHE_AGE_DAYS``. Otherwise the scan is not run, the
+    existing queue is left byte-identical, and the result says ``REFRESH_DATA_NOT_READY`` - an
+    infrastructure state, which never overwrites an issuer's research state. A missing cache used to
+    be written into the queue as ``NO_SUBMISSIONS_CACHE`` for every issuer; that is how AEYE's real
+    ``REFRESH_DUE`` was lost on 2026-10-10.
+
+    What a ready cache licenses is still qualified: a cache fetched before the decision session
+    cannot show a newer filing (``CACHE_NOT_NEWER_THAN_THESIS``), one fetched before today licenses
+    only "nothing new as of the cache" (``NO_NEW_MATERIAL_EVIDENCE_AS_OF_CACHE``), and only a cache
+    fetched today supports the flat ``NO_NEW_MATERIAL_EVIDENCE``.
+
+    A scan replaces the queue only after ``SR.validate`` accepts it, through a temp file and an
+    atomic rename, so a failure at any point leaves the previous queue in place.
+    """
+    today = datetime.now(timezone.utc).date().isoformat()
+    target = ST.path(REFRESH_QUEUE)
+    previous = SR.read_json(target)
+    sha_before = SR.file_sha(target)
+    launch = ST.launch_rows()
+    ready = ready if ready is not None else SR.readiness(launch, today=today)
+    kept = {"replaced": False, "queue_sha256_before": sha_before, "queue_sha256_after": sha_before,
+            "refresh_due": list((previous or {}).get("refresh_due") or []),
+            "refresh_data": ready["state"], "refresh_data_reasons": list(ready["reasons"]),
+            "cache_root": ready.get("root"), "cache_as_of": ready.get("as_of")}
+    if ready["state"] != SR.DATA_READY:
+        return kept | {"scan_performed": False, "problems": [], "issuers": None}
+    out, forms = _scan_issuers(ready["caches"], today)
+    body = {"generated_at": _now(), "contract": C.contract_id(), "material_forms": forms,
             "fetch_performed": False,
-            "fetch_owner": "app.dev.acquire_strategy_h_v2_fundamentals (raw-source immutable, cached)",
+            "fetch_owner": "app.strategies.h_forward.sec_refresh (sec_store, dated roots, cohort CIKs only)",
+            "cache_root": ready["root"], "cache_as_of": ready["as_of"],
             "issuers": out,
             "refresh_due": [r["ticker"] for r in out if r["state"] == "REFRESH_DUE"],
             "unverified_since_cache": [r["ticker"] for r in out
                                        if r["state"] == "NO_NEW_MATERIAL_EVIDENCE_AS_OF_CACHE"],
-            "claim_limit": ("이 큐는 로컬 SEC 캐시만 읽는다. 캐시 날짜 이후의 공시는 보지 못하므로 "
+            "claim_limit": ("이 큐는 H 전용 SEC 캐시만 읽는다. 캐시 날짜 이후의 공시는 보지 못하므로 "
                             "NO_NEW_MATERIAL_EVIDENCE_AS_OF_CACHE는 '새 증거 없음'이 아니라 "
                             "'캐시 시점까지 새 증거 없음'이다")}
-    target = ST.path(REFRESH_QUEUE)
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(json.dumps(body, indent=1, ensure_ascii=False, sort_keys=True) + "\n",
-                      encoding="utf-8")
-    return body
+    problems = SR.validate(body, previous, launch)
+    if problems or dry_run:
+        return kept | {"scan_performed": True, "dry_run": dry_run, "problems": problems,
+                       "candidate_refresh_due": body["refresh_due"], "issuers": out}
+    sha_after = SR.atomic_write_json(target, body)
+    return body | {"replaced": True, "scan_performed": True, "problems": [],
+                   "queue_sha256_before": sha_before, "queue_sha256_after": sha_after,
+                   "refresh_data": ready["state"], "refresh_data_reasons": []}
+
+
+def sec_refresh() -> dict[str, Any]:
+    """Fetch today's submissions for the launch cohort's CIKs (and nothing else) into H's cache."""
+    return SR.fetch(ST.launch_rows(), required_from=C.decision_session())
+
+
+def _material_refresh() -> dict[str, Any]:
+    """Step 2 and 3 of the daily job. Never raises; a failure is reported as REFRESH_DEGRADED."""
+    reasons: list[str] = []
+    fetch: dict[str, Any] | None = None
+    scan: dict[str, Any] | None = None
+    try:
+        fetch = sec_refresh()
+        if not fetch["complete"]:
+            failed = sorted(t for t, i in fetch["issuers"].items() if i.get("status") != "OK")
+            reasons.append(f"SEC_FETCH_INCOMPLETE:{','.join(failed)}"
+                           + (f":{fetch['error']}" if fetch.get("error") else ""))
+    except Exception as exc:                                   # never into the price step
+        reasons.append(f"SEC_FETCH_ERROR:{type(exc).__name__}")
+    try:
+        if reasons:
+            # Today's fetch is incomplete: do not rescan an older root as if it were today's news.
+            target = ST.path(REFRESH_QUEUE)
+            sha = SR.file_sha(target)
+            ready = SR.readiness(ST.launch_rows())
+            scan = {"replaced": False, "scan_performed": False, "queue_sha256_before": sha,
+                    "queue_sha256_after": sha,
+                    "refresh_due": list((SR.read_json(target) or {}).get("refresh_due") or []),
+                    "refresh_data": ready["state"], "refresh_data_reasons": ready["reasons"],
+                    "cache_as_of": ready.get("as_of")}
+        else:
+            scan = refresh_scan()
+            if not scan.get("scan_performed"):
+                reasons.append("MATERIAL_SCAN_SKIPPED:" + ";".join(scan["refresh_data_reasons"]))
+            elif not scan.get("replaced"):
+                reasons.append("QUEUE_REPLACEMENT_REFUSED:" + ";".join(scan["problems"]))
+    except Exception as exc:
+        reasons.append(f"MATERIAL_SCAN_ERROR:{type(exc).__name__}: {exc}")
+    run = SR.RUN_OK if not reasons else SR.RUN_DEGRADED
+    status = {
+        "checked_at": _now(), "refresh_run": run, "reasons": reasons,
+        "refresh_data": (scan or {}).get("refresh_data", SR.DATA_NOT_READY),
+        "cache_as_of": (scan or {}).get("cache_as_of"),
+        "fetch": fetch,
+        "queue_replaced": bool((scan or {}).get("replaced")),
+        "queue_sha256": (scan or {}).get("queue_sha256_after"),
+        "research_refresh_due": (scan or {}).get("refresh_due", []),
+    }
+    try:
+        SR.write_status(status)
+    except Exception as exc:
+        status["reasons"].append(f"STATUS_WRITE_ERROR:{type(exc).__name__}")
+        status["refresh_run"] = SR.RUN_DEGRADED
+    return status
 
 
 # -------------------------------------------------------------------------------------------------
@@ -499,17 +561,26 @@ def launch() -> dict[str, Any]:
 
 
 def update() -> dict[str, Any]:
-    """The daily job: collect the settled session, re-read outcomes, refresh the event queue.
+    """The daily job, in two failure domains.
+
+    1. prices and outcomes - the forward shadow itself. A failure here is the run's failure.
+    2. SEC submissions refresh, then the material scan - only after step 1 has been written, and
+       unable to undo it. A failure here is reported as ``REFRESH_DEGRADED`` (stderr and
+       ``refresh_status.json``) and leaves the refresh queue byte-identical.
 
     No decision moves here. A transition requires a D3->D4->D5->D6 re-evaluation on new material
     evidence, which this command can only queue, never perform.
     """
     price_report = collect_prices()
     body = VW.forward()
-    queue = refresh_scan() if ST.launched() else {"refresh_due": []}
+    integrity = verify()
+    refresh = _material_refresh() if ST.launched() else {"refresh_run": "NOT_LAUNCHED",
+                                                         "research_refresh_due": []}
     return {"prices": price_report, "decision_counts": body["decision_counts"],
             "maturity": body["maturity"], "evaluation": body["evaluation"],
-            "refresh_due": queue["refresh_due"],
+            "integrity": integrity["verdict"], "integrity_problems": integrity["problems"],
+            "refresh": refresh,
+            "refresh_due": refresh["research_refresh_due"],
             "decisions_changed": 0,
             "note": "가격 갱신은 결정을 바꾸지 않는다 (D7 계약 §transitions)"}
 
@@ -571,19 +642,36 @@ def status() -> dict[str, Any]:
 
 
 COMMANDS = {"preflight": preflight, "launch": launch, "collect-prices": collect_prices,
-            "update": update, "refresh-scan": refresh_scan, "status": status, "verify": verify}
+            "update": update, "sec-refresh": sec_refresh, "refresh-scan": refresh_scan,
+            "status": status, "verify": verify}
+
+#: ``update`` exits non-zero only for the forward shadow's own integrity. A degraded SEC refresh is
+#: success for the unit (prices were collected) but is never silent: it is printed to stderr, kept in
+#: ``refresh_status.json`` and present in the JSON on stdout.
+EXIT_INTEGRITY_FAILURE = 2
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("command", choices=sorted(COMMANDS))
     parser.add_argument("--no-collect", action="store_true", help="preflight without fetching prices")
+    parser.add_argument("--dry-run", action="store_true", help="refresh-scan without replacing the queue")
     args = parser.parse_args(argv)
     if args.command == "preflight":
         body = preflight(collect=not args.no_collect)
+    elif args.command == "refresh-scan":
+        body = refresh_scan(dry_run=args.dry_run)
     else:
         body = COMMANDS[args.command]()
     print(json.dumps(body, indent=1, ensure_ascii=False, default=str))
+    if args.command == "update":
+        refresh = body.get("refresh") or {}
+        if refresh.get("refresh_run") == SR.RUN_DEGRADED:
+            print(f"{SR.RUN_DEGRADED}: {'; '.join(refresh.get('reasons') or [])} "
+                  f"(prices and outcomes were updated; refresh queue left unchanged)", file=sys.stderr)
+        if body.get("integrity") != "PASS":
+            print(f"H_FORWARD_INTEGRITY_FAILURE: {body.get('integrity_problems')}", file=sys.stderr)
+            return EXIT_INTEGRITY_FAILURE
     return 0
 
 

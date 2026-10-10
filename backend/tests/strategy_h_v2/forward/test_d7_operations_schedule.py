@@ -54,15 +54,19 @@ def test_both_units_are_shipped_in_the_repository() -> None:
     assert SERVICE.is_file() and TIMER.is_file()
 
 
-def test_the_service_runs_from_the_repository_root_because_the_sec_caches_are_repo_relative() -> None:
-    """The trap: from backend/ the refresh scan finds no cache and says so as if that were a fact."""
+def test_the_service_runs_from_the_repository_root() -> None:
+    """Kept at the repository root, where every usb unit runs and the EnvironmentFiles live."""
     assert one(SERVICE, "WorkingDirectory") == "/root/usb"
-    # Stated rather than assumed: the paths the scan resolves really are repository-relative, so a
-    # working directory one level down cannot find them.
-    assert D7.SUBMISSION_ROOTS, "the refresh scan reads no submissions cache at all"
-    for root in D7.SUBMISSION_ROOTS:
-        assert not root.is_absolute(), f"{root} is absolute; this test no longer guards anything"
-        assert str(root).startswith("data/runtime/")
+    assert "PYTHONPATH=/root/usb/backend" in directives(SERVICE, "Environment")
+
+
+def test_the_refresh_cache_no_longer_depends_on_the_working_directory(tmp_path, monkeypatch) -> None:
+    """The 2026-10-10 trap: repository-relative SEC paths read as "no cache" from backend/."""
+    from app.strategies.h_forward import sec_refresh as SR
+    monkeypatch.delenv("STRATEGY_H_FORWARD_DIR", raising=False)
+    monkeypatch.chdir(tmp_path)
+    assert SR.sec_root().is_absolute()
+    assert not hasattr(D7, "SUBMISSION_ROOTS"), "the scan must not read repository-relative caches"
 
 
 def test_the_timer_runs_the_update_command_and_can_never_relaunch() -> None:

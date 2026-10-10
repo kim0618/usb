@@ -420,34 +420,38 @@ def test_a_gap_in_the_store_is_reported_rather_than_filled(store) -> None:
 
 
 # -- the refresh queue says only what its caches license ---------------------------------------------
+#
+# The scan reads H's own dated SEC cache and runs only when every cohort CIK is present and fresh, so
+# these tests hand it a ready cache directly. Readiness, queue preservation and the AEYE regression
+# live in test_d7_refresh_independence.py.
 
-def _cache_file(path: Path, *, days_old: int) -> str:
-    """A stand-in submissions cache whose mtime is what the scan reads as "known through"."""
-    path.write_text("x", encoding="utf-8")
-    when = time.time() - days_old * 86400
-    os.utime(path, (when, when))
-    return str(path)
+def _ready(caches: dict, *, root: str = "test") -> dict:
+    from app.strategies.h_forward import sec_refresh as SR
+    return {"state": SR.DATA_READY, "reasons": [], "root": root,
+            "as_of": min(c.fetched_on for c in caches.values()), "caches": caches}
 
 
-def test_a_stale_cache_cannot_claim_there_is_no_new_evidence(store, monkeypatch, tmp_path) -> None:
+def _cache(rows: list, *, days_old: int):
+    from datetime import datetime, timedelta, timezone
+    from app.strategies.h_forward import sec_refresh as SR
+    fetched = (datetime.now(timezone.utc) - timedelta(days=days_old)).date().isoformat()
+    return SR.Cache(rows=rows, path=f"/cache/{days_old}", fetched_on=fetched)
+
+
+def test_a_stale_cache_cannot_claim_there_is_no_new_evidence(store) -> None:
     """A cache dated before today licenses "nothing new as of the cache", not "nothing new"."""
     from app.dev import run_h_v2_d7 as D7
 
     ST.append_snapshots([snapshot_row("TG", C.WATCH), snapshot_row("ZZ", C.WATCH)])
     caches = {
-        # nothing after the decision session, but the cache is two weeks old
-        "TG": ([{"form": "10-Q", "filingDate": "2026-08-01", "accessionNumber": "a"}],
-               _cache_file(tmp_path / "tg.json.gz", days_old=14)),
+        # nothing after the decision session, and the cache is two days old
+        "TG": _cache([{"form": "10-Q", "filingDate": "2026-08-01", "accessionNumber": "a"}], days_old=2),
         # a filing that landed after the thesis was settled
-        "ZZ": ([{"form": "8-K", "filingDate": "2026-09-18", "accessionNumber": "b"}],
-               _cache_file(tmp_path / "zz.json.gz", days_old=1)),
+        "ZZ": _cache([{"form": "8-K", "filingDate": "2026-09-18", "accessionNumber": "b"}], days_old=1),
     }
-    order = iter([caches["TG"], caches["ZZ"]])
-    monkeypatch.setattr(D7, "_cached_submissions", lambda cik: next(order))
-
-    body = D7.refresh_scan()
+    body = D7.refresh_scan(ready=_ready(caches))
     by_ticker = {r["ticker"]: r for r in body["issuers"]}
-    assert body["fetch_performed"] is False                  # the queue never fetches
+    assert body["fetch_performed"] is False                  # the scan never fetches
     assert by_ticker["TG"]["state"] == "NO_NEW_MATERIAL_EVIDENCE_AS_OF_CACHE"
     assert by_ticker["TG"]["evidence_known_through"] is not None
     assert by_ticker["ZZ"]["state"] == "REFRESH_DUE"
@@ -457,26 +461,24 @@ def test_a_stale_cache_cannot_claim_there_is_no_new_evidence(store, monkeypatch,
     assert "캐시 시점까지" in body["claim_limit"]
 
 
-def test_a_cache_older_than_the_thesis_says_it_could_not_have_seen_anything(store, monkeypatch,
-                                                                           tmp_path) -> None:
+def test_a_cache_older_than_the_thesis_says_it_could_not_have_seen_anything(store) -> None:
     from app.dev import run_h_v2_d7 as D7
 
     ST.append_snapshots([snapshot_row("TG", C.WATCH)])
     # the decision session is 2026-09-16; a cache from well before it proves nothing either way
-    old = _cache_file(tmp_path / "tg.json.gz", days_old=400)
-    monkeypatch.setattr(D7, "_cached_submissions",
-                        lambda cik: ([{"form": "10-K", "filingDate": "2025-02-01",
-                                       "accessionNumber": "a"}], old))
-    body = D7.refresh_scan()
+    caches = {"TG": _cache([{"form": "10-K", "filingDate": "2025-02-01", "accessionNumber": "a"}],
+                           days_old=400)}
+    body = D7.refresh_scan(ready=_ready(caches))
     assert body["issuers"][0]["state"] == "CACHE_NOT_NEWER_THAN_THESIS"
     assert body["refresh_due"] == []
 
 
-def test_an_issuer_with_no_cache_says_so_rather_than_claiming_nothing_new(store, monkeypatch) -> None:
+def test_an_issuer_with_no_cache_is_not_scanned_and_nothing_is_written(store) -> None:
+    """Formerly written into the queue as NO_SUBMISSIONS_CACHE - the 2026-10-10 incident."""
     from app.dev import run_h_v2_d7 as D7
+    from app.strategies.h_forward import sec_refresh as SR
 
     ST.append_snapshots([snapshot_row("TG", C.WATCH)])
-    monkeypatch.setattr(D7, "_cached_submissions", lambda cik: ([], None))
     body = D7.refresh_scan()
-    assert body["issuers"][0]["state"] == "NO_SUBMISSIONS_CACHE"
-    assert body["refresh_due"] == [] and body["unverified_since_cache"] == []
+    assert body["scan_performed"] is False and body["refresh_data"] == SR.DATA_NOT_READY
+    assert not ST.path(D7.REFRESH_QUEUE).exists()
