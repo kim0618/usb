@@ -1,12 +1,12 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import {
   AccountPanel, BookPanel, LedgerTable, OrderTicket, PerformancePanel, PositionPanel, PriceChart,
   PriceHeadline, RunFooter, SourceBanner, TradeHistory, describe as describeEvent,
 } from "@/components/crypto-paper-terminal";
 import {
-  chartGeometry, duration, feedAgeSeconds, isHighRisk, percent, rateBps, rejectLabel, signedUsdt,
-  toneClass,
+  chartGeometry, cryptoApi, duration, feedAgeSeconds, isHighRisk, percent, rateBps, rejectLabel,
+  signedUsdt, toneClass,
 } from "@/lib/crypto-paper";
 import type {
   ChartBar, CryptoSizing, CryptoState, Performance, SideSizing, SizePreset, TradeBreakdown, TradeRow,
@@ -109,7 +109,7 @@ const withPosition = (side: "LONG" | "SHORT" = "LONG"): CryptoState => {
   };
 };
 
-afterEach(cleanup);
+afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
 describe("price and book", () => {
   it("shows the mark price as the headline because that is what the account values with", () => {
@@ -531,12 +531,21 @@ describe("quick position size", () => {
 
   it("sends the engine's quantity for the side that was clicked, with no confirmation step", () => {
     const sent: unknown[] = [];
+    // The order call is mocked, the way the mobile card's CLOSE test mocks it. It used to be
+    // invoked for real with `fetch` unstubbed and the rejection swallowed by `.catch(() => {})`,
+    // which is harmless on a machine with nothing on port 8100 and is not harmless otherwise:
+    // with a paper terminal running there - the ordinary state of a machine being used to look
+    // at this screen - running the suite opened a 0.008 BTC position on it. Found that way, by
+    // reading a ledger that had five events in it and no explanation.
+    const spy = vi.spyOn(cryptoApi, "order").mockResolvedValue({ state: baseState() });
     render(<OrderTicket state={baseState()} sizing={baseSizing()} busy={false} error={null}
-      onAction={run => { sent.push(run); void run().catch(() => {}); }} />);
+      onAction={run => { sent.push(run); void run(); }} />);
     fireEvent.click(screen.getByTestId("preset-MAX"));
     fireEvent.click(screen.getByTestId("long-button"));
     // One click, one order: the press itself dispatched the action.
     expect(sent).toHaveLength(1);
+    expect(spy).toHaveBeenCalledWith("BTCUSDT",
+                                     { side: "LONG", intent: "OPEN", qty: "0.008" });
   });
 
   it("resolves a preset per side rather than reusing one side's quantity for both", () => {
