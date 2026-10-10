@@ -1,0 +1,1364 @@
+{
+ "contract": {
+  "agrees": true,
+  "contract_path": "docs/crypto/market_context_v1/CONTRACT_MC_V1.md",
+  "contract_sha256": "25891d6267dcd9e4e0b0e719802e1f95c79a6aa6b1d99676fc637870e169a3b1",
+  "contract_sha256_recorded": "25891d6267dcd9e4e0b0e719802e1f95c79a6aa6b1d99676fc637870e169a3b1",
+  "contract_version": "mc-display.v1"
+ },
+ "cost": {
+  "elapsed_ms": 2,
+  "structure_recompute_ms": 106
+ },
+ "freshness_bounds": {
+  "depth_stale_ms": 2000,
+  "derivatives_stale_ms": 60000,
+  "journal_stale_ms": 3000,
+  "structure_grace_ms": 90000,
+  "trade_stale_ms": 5000
+ },
+ "journal": {
+  "cadence": "ONE_PER_CLOSED_MINUTE_PLUS_ONE_PER_STRUCTURE_CHANGE",
+  "enabled": true,
+  "last_error": null,
+  "last_path": "/tmp/claude-1000/-home-tjd618/7332d178-de64-4010-a2db-a9c4860221e7/scratchpad/tape/context-20261005.jsonl",
+  "last_written_ms": 1791175860702,
+  "linked_to_orders": false,
+  "note": "forward context journal\uc740 \uc8fc\ubb38\uacfc \uc5f0\uacb0\ub418\uc9c0 \uc54a\uace0 \uc218\ub3d9\ub9e4\ub9e4\ub97c \uac15\uc81c \uae30\ub85d\ud558\uc9c0\ub3c4 \uc54a\uc2b5\ub2c8\ub2e4. \uc2dc\uc7a5 context\ub9cc append-only\ub85c \ub0a8\uae30\uba70, Market Context R0\uc758 Q1~Q3\uac00 Layer B 3.61\uc2dc\uac04\uc5d0 \ub9c9\ud614\ub358 \uc6d0\uc790\ub8cc\ub97c \uc783\uc9c0 \uc54a\ub294 \uac83\uc774 \ubaa9\uc801\uc785\ub2c8\ub2e4. \ud328\ub110\uc740 \uc774 \ud30c\uc77c\uc744 \ub2e4\uc2dc \uc77d\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4.",
+  "read_back_by_the_panel": false,
+  "record": "MC_V1_FORWARD_CONTEXT",
+  "records_written": 2,
+  "root": "/tmp/claude-1000/-home-tjd618/7332d178-de64-4010-a2db-a9c4860221e7/scratchpad/tape",
+  "root_env": "MC_V1_JOURNAL_ROOT",
+  "schema_version": 1,
+  "skipped_as_duplicate": 53,
+  "stale_after_ms": 180000,
+  "states": [
+   "OFF",
+   "REFUSED",
+   "AUTHORITY_LOST",
+   "ERROR",
+   "STALE",
+   "WRITING",
+   "WAITING"
+  ],
+  "status": "WRITING",
+  "symbols_written": [
+   "BTCUSDT"
+  ],
+  "writer": {
+   "blocked_writes": 0,
+   "blocks_the_panel": false,
+   "fail_closed": true,
+   "lock": {
+    "acquired_ms": 1791175823682,
+    "held": true,
+    "holder": null,
+    "inode": 915379,
+    "lock_version": "mc-v1-journal-lock.1",
+    "path": "/tmp/claude-1000/-home-tjd618/7332d178-de64-4010-a2db-a9c4860221e7/scratchpad/tape/.writer.lock",
+    "pid": 81825,
+    "session_id": "81825-1791175823682"
+   },
+   "recovery": "A lock file is not a lock. `flock` lives on the open file description, so the kernel drops it when the holder exits for any reason - clean stop, crash, SIGKILL - and the next writer acquires immediately. There is therefore no stale-lock timeout and no break-the-lock path: a lock file naming a dead pid is read as a hint and overwritten in place by whoever next acquires it, and this writer never removes or replaces another process's lock file. The one case the lock alone cannot cover is the file being deleted or replaced underneath a live holder, because the replacement is a different inode and locks cleanly; the holder therefore re-checks the inode before every append and stops writing when it can no longer prove it owns the root.",
+   "refusal": null,
+   "session_id": "81825-1791175823682",
+   "single_writer": true,
+   "writable": true
+  },
+  "wrote_this_poll": false
+ },
+ "layer_order": [
+  "PRICE",
+  "LIQUIDITY",
+  "FLOW",
+  "DERIVATIVES",
+  "AUXILIARY"
+ ],
+ "layer_states": {
+  "AUXILIARY": "STALE",
+  "DERIVATIVES": "LIVE",
+  "FLOW": "LIVE",
+  "LIQUIDITY": "LIVE",
+  "PRICE": "LIVE"
+ },
+ "layers": {
+  "AUXILIARY": {
+   "c1": {
+    "c1x_records": 0,
+    "contract_evaluated": false,
+    "engine_state": {
+     "armed": true,
+     "bars": 47520,
+     "contract_sha256": "c49cd0e577a8b81321c943a8eb6fe20b59635592816191efc30f67454bc8cf81",
+     "last_decided_at_ms": 1790926620000,
+     "schema_version": "C1_SIGNAL_V1",
+     "signals": 0
+    },
+    "engine_state_age_ms": 249183541,
+    "last_decision_age_ms": 249264337,
+    "latest_c1x": null,
+    "latest_signal": null,
+    "latest_signal_age_ms": null,
+    "read_mode": "BYTES_ONLY_NO_C1_MODULE_IMPORTED",
+    "reasons": [
+     "C1_ENGINE_LAST_DECIDED_OLDER_THAN_FRESHNESS_BOUND",
+     "signals.jsonl:FILE_NOT_FOUND",
+     "c1x.jsonl:FILE_NOT_FOUND"
+    ],
+    "root": "data/runtime/crypto/c1",
+    "root_exists": true,
+    "signal_records": 0,
+    "stale_ms": 300000,
+    "state": "STALE",
+    "weight": "auxiliary"
+   },
+   "directional": {
+    "artifact": "data/research/crypto/directional_probability_r0/results.json",
+    "bounds": [
+     {
+      "finding": "a calibrated magnitude predictor; its directional AUC was 0.502 to 0.533",
+      "record": "data/research/crypto/btc_p1/model_results_v1.json",
+      "study": "BTC-P1"
+     },
+     {
+      "finding": "direction layer STRONG 0/64, all four primary cells below 0.5, and the P1 gate made direction worse; P3 NOT_AUTHORIZED",
+      "record": "data/research/crypto/btc_p2/results_v1.json",
+      "study": "BTC-P2"
+     }
+    ],
+    "computed_for_now": false,
+    "horizons": {
+     "120": {
+      "buckets": {
+       "LONG": {
+        "auc": 0.5405481167435997,
+        "base_rate": 0.41734931117710344,
+        "brier_skill": 0.005507776260562092,
+        "calibration_error": 0.005508461931026108
+       },
+       "SHORT": {
+        "auc": 0.5365576304758126,
+        "base_rate": 0.42226314283757155,
+        "brier_skill": 0.003518402160983758,
+        "calibration_error": 0.004508253474111817
+       }
+      },
+      "first": "2022-01-01 00:00:00+00:00",
+      "horizon_min": 120,
+      "last": "2026-09-22 19:55:00+00:00",
+      "samples": 496354
+     },
+     "240": {
+      "buckets": {
+       "LONG": {
+        "auc": 0.5219479920498069,
+        "base_rate": 0.44001861574601997,
+        "brier_skill": 0.0010746071843238392,
+        "calibration_error": 0.005462866666305667
+       },
+       "SHORT": {
+        "auc": 0.5166991432432531,
+        "base_rate": 0.44759989845956716,
+        "brier_skill": -0.0004458301858243363,
+        "calibration_error": 0.011414355132771333
+       }
+      },
+      "first": "2022-01-01 00:00:00+00:00",
+      "horizon_min": 240,
+      "last": "2026-09-22 19:55:00+00:00",
+      "samples": 496354
+     },
+     "30": {
+      "buckets": {
+       "LONG": {
+        "auc": 0.5909924959157594,
+        "base_rate": 0.34095826768798077,
+        "brier_skill": 0.02294980101195343,
+        "calibration_error": 0.006521102157500775
+       },
+       "SHORT": {
+        "auc": 0.5861680684879621,
+        "base_rate": 0.3447136519500195,
+        "brier_skill": 0.021934486542068754,
+        "calibration_error": 0.01372089518768895
+       }
+      },
+      "first": "2022-01-01 00:00:00+00:00",
+      "horizon_min": 30,
+      "last": "2026-09-22 19:55:00+00:00",
+      "samples": 496354
+     },
+     "60": {
+      "buckets": {
+       "LONG": {
+        "auc": 0.564732340787607,
+        "base_rate": 0.38399005548459364,
+        "brier_skill": 0.012711199125500894,
+        "calibration_error": 0.004495220900943765
+       },
+       "SHORT": {
+        "auc": 0.55810219788052,
+        "base_rate": 0.38888776961604016,
+        "brier_skill": 0.010933102012455564,
+        "calibration_error": 0.010815739263967837
+       }
+      },
+      "first": "2022-01-01 00:00:00+00:00",
+      "horizon_min": 60,
+      "last": "2026-09-22 19:55:00+00:00",
+      "samples": 496354
+     }
+    },
+    "inference_run": false,
+    "note": "Directional Probability R0\uc740 verdict=WEAK_DIRECTIONAL_MODEL, usable_horizons=[]\uc785\ub2c8\ub2e4. BTC-P1\uc758 \ubc29\ud5a5 AUC\ub294 0.502~0.533\uc774\uc5c8\uace0 BTC-P2\ub294 \ubc29\ud5a5\ub808\uc774\uc5b4 STRONG 0/64\uc5d0 P3 NOT_AUTHORIZED\ub85c \uc885\uacb0\ub410\uc2b5\ub2c8\ub2e4. \uc774 \uce78\uc740 '\ubb34\uc5c7\uc774 \uc788\uace0 \ubb34\uc5c7\uc73c\ub85c \ub05d\ub0ac\ub294\uc9c0'\uc785\ub2c8\ub2e4.",
+    "reasons": [],
+    "state": "LIVE",
+    "usable_horizons": [],
+    "verdict": "WEAK_DIRECTIONAL_MODEL",
+    "weak_horizons": [
+     30,
+     60,
+     120
+    ],
+    "weight": "weak_auxiliary"
+   },
+   "note": "BTCUSDT \uc804\uc6a9\uc785\ub2c8\ub2e4. C1/C1x\ub294 auxiliary, Directional Probability\ub294 weak_auxiliary\uc774\uba70 \ud604\uc7ac \uc2dc\uc810 \ud655\ub960\uc744 \uacc4\uc0b0\ud558\uc9c0 \uc54a\uace0 \ub3d9\uacb0 \uc544\ud2f0\ud329\ud2b8\uc758 verdict\uc640 \ubc94\uc704\ub97c \uadf8\ub300\ub85c \uc77d\uc2b5\ub2c8\ub2e4. ETHUSDT\u00b7SOLUSDT\uc5d0\ub294 \uc774 \uce78 \uc790\uccb4\uac00 \uc5c6\uc2b5\ub2c8\ub2e4(\ube48 \uce78\uc774 \uc544\ub2c8\ub77c \ubd80\uc7ac).",
+   "reasons": [
+    "C1_ENGINE_LAST_DECIDED_OLDER_THAN_FRESHNESS_BOUND",
+    "signals.jsonl:FILE_NOT_FOUND",
+    "c1x.jsonl:FILE_NOT_FOUND"
+   ],
+   "rendered": true,
+   "state": "STALE",
+   "symbol": "BTCUSDT"
+  },
+  "DERIVATIVES": {
+   "basis": {
+    "age_ms": 1334,
+    "available": true,
+    "basis_usdt": "-33.74913043",
+    "estimated_settle_price": "85659.87630672",
+    "formula": "basis = mark - index; premium_pct = (mark - index) / index * 100",
+    "index_price": "85579.24913043",
+    "mark_price": "85545.50000000",
+    "premium_pct": "-0.039436",
+    "unavailable_reason": null,
+    "venue_time_ms": 1791175883003
+   },
+   "funding": {
+    "age_ms": 1334,
+    "available": true,
+    "interest_rate": "0.00010000",
+    "last_rate": "0.00007176",
+    "last_rate_pct": "0.00717600",
+    "next_funding_time_ms": 1791187200000,
+    "unavailable_reason": null,
+    "venue_time_ms": 1791175883003
+   },
+   "note": "\ud30c\uc0dd \uc815\ubcf4\ub294 \uacf5\uac1c \uc5d4\ub4dc\ud3ec\uc778\ud2b8\uc5d0\uc11c \uc77d\uc740 \uc6d0\uac12\uc785\ub2c8\ub2e4. basis = mark - index, premium_pct = (mark - index) / index \ub450 \uac1c\ub9cc \uc0b0\uc220 \ud658\uc0b0\uc774\uace0, \uadf8 \ubc16\uc758 \ud30c\uc0dd \uc2e0\ud638\ub294 \ub9cc\ub4e4\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4(OI \ub300\ube44 \uac00\uaca9, funding regime, \ud63c\uc7a1\ub3c4 \ub4f1 \uc5c6\uc74c).",
+   "open_interest": {
+    "age_ms": 2401,
+    "available": true,
+    "base": "98596.705",
+    "unavailable_reason": null,
+    "unit": "BASE_ASSET",
+    "venue_time_ms": 1791175881936
+   },
+   "open_interest_change": {
+    "available": true,
+    "buckets": 60,
+    "newest_bucket_ms": 1791175500000,
+    "newest_sum_open_interest": "98666.78700000",
+    "newest_sum_open_interest_value": "8444555221.30030200",
+    "period": "5m",
+    "source": "CLOSED_VENUE_BUCKETS_NOT_LOCAL_POLLS",
+    "unavailable_reason": null,
+    "windows": {
+     "15m": {
+      "available": true,
+      "base": "245.00700000",
+      "base_pct": "0.2489",
+      "from_bucket_ms": 1791174600000,
+      "to_bucket_ms": 1791175500000,
+      "unavailable_reason": null,
+      "value_usdt": "5852119.74430200"
+     },
+     "1h": {
+      "available": true,
+      "base": "126.78300000",
+      "base_pct": "0.1287",
+      "from_bucket_ms": 1791171900000,
+      "to_bucket_ms": 1791175500000,
+      "unavailable_reason": null,
+      "value_usdt": "-51855134.99764900"
+     },
+     "4h": {
+      "available": true,
+      "base": "528.73200000",
+      "base_pct": "0.5388",
+      "from_bucket_ms": 1791161100000,
+      "to_bucket_ms": 1791175500000,
+      "unavailable_reason": null,
+      "value_usdt": "-53169484.63631000"
+     },
+     "5m": {
+      "available": true,
+      "base": "-3.96800000",
+      "base_pct": "-0.0040",
+      "from_bucket_ms": 1791175200000,
+      "to_bucket_ms": 1791175500000,
+      "unavailable_reason": null,
+      "value_usdt": "4209503.22280200"
+     }
+    }
+   },
+   "read_at_ms": 1791175883038,
+   "reasons": [],
+   "state": "LIVE",
+   "symbol": "BTCUSDT"
+  },
+  "FLOW": {
+   "absorption": {
+    "aggressive_usdt": "7015072.0079",
+    "bin_high": "85485",
+    "bin_low": "85480",
+    "note": "absorption\uc740 candidate\ub9cc \ud45c\uc2dc\ud558\uba70 \ud310\uc815\uc774 \uc544\ub2d9\ub2c8\ub2e4. order_identity_proven=false\uc774\uace0, \uc9d1\uacc4\ud558\uc9c0 \uc54a\uc73c\uba70 \ubc29\ud5a5 \uc0c9\uc744 \ubd99\uc774\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4. 3.61\uc2dc\uac04 \uc800\ub110\uc5d0\uc11c \uc18c\ube44 \ud6c4\ubcf4\ub294 15\uac74\uc774\uc5c8\uc2b5\ub2c8\ub2e4.",
+    "order_identity_proven": false,
+    "reason": "AGGRESSIVE_FLOW_AT_OR_ABOVE_WALL_NOTIONAL_AND_WALL_STILL_PRESENT",
+    "side": "BID",
+    "state": "ABSORPTION_CANDIDATE",
+    "wall_notional_usdt": "586234.1844",
+    "wall_persistence_ms": 65648,
+    "wall_price": "85481.8",
+    "window": "60s"
+   },
+   "absorption_note": "absorption\uc740 candidate\ub9cc \ud45c\uc2dc\ud558\uba70 \ud310\uc815\uc774 \uc544\ub2d9\ub2c8\ub2e4. order_identity_proven=false\uc774\uace0, \uc9d1\uacc4\ud558\uc9c0 \uc54a\uc73c\uba70 \ubc29\ud5a5 \uc0c9\uc744 \ubd99\uc774\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4. 3.61\uc2dc\uac04 \uc800\ub110\uc5d0\uc11c \uc18c\ube44 \ud6c4\ubcf4\ub294 15\uac74\uc774\uc5c8\uc2b5\ub2c8\ub2e4.",
+   "aggressor_rule": "aggressor=SELL if buyer is maker (m=true), else BUY",
+   "clock": "LOCAL_MONOTONIC_RECEIPT",
+   "imbalance_note": "imbalance\ub294 \ub450 \uad00\uce21 \uce21\uba74\uc758 \uc815\uaddc\ud654 \ube44\uc728\uc774\uba70 \ubc29\ud5a5 \ud310\uc815\uc774 \uc544\ub2d9\ub2c8\ub2e4",
+   "reasons": [],
+   "state": "LIVE",
+   "symbol": "BTCUSDT",
+   "trade_stream": {
+    "age_measured_from": "THE_SAMPLE_THE_COLLECTOR_WROTE",
+    "age_ms": 32,
+    "connected": true,
+    "journal_state": "LIVE",
+    "last_receive_ms": 1791175884248,
+    "stale_ms": 5000,
+    "state": "LIVE"
+   },
+   "vanish_base_rate": {
+    "ask_touched_bin_pct": 3.8,
+    "bid_touched_bin_pct": 6.9,
+    "window": "Market Context R0, 3.61h journal, 15 consumption candidates in total"
+   },
+   "vanish_note": "\uc0ac\ub77c\uc9c4 \ubcbd\uc744 CONSUMED\ub85c \ub2e8\uc815\ud558\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4. btc-ms.v0.1\uc740 \uc8fc\ubb38 identity\ub97c \uc99d\uba85\ud558\uc9c0 \ubabb\ud574 \ubd80\ubd84\uccb4\uacb0\ub85c \uba85\ubaa9 \ud558\ud55c \uc544\ub798\ub85c \ub5a8\uc5b4\uc9c4 \ubcbd\uacfc \ucde8\uc18c\ub41c \ubcbd\uc774 \uac19\uc740 \uce78\uc5d0 \ub4e4\uc5b4\uac11\ub2c8\ub2e4. \uc2e4\uce21\uc740 \uac00\uaca9\uc774 bin\uc5d0 \ub2ff\uc740 \uacbd\uc6b0\uac00 ask 3.8% / bid 6.9%\ub85c, \ubcbd\uc740 \ub300\uac1c \ucde8\uc18c\ub429\ub2c8\ub2e4.",
+   "vanished": {
+    "path_samples": 1,
+    "recent": [
+     {
+      "bin_high": "85540",
+      "bin_low": "85535",
+      "last_seen_ms": 1791175882282,
+      "mid_path_touched_bin": false,
+      "notional_usdt": "567804.563",
+      "observed_at_ms": 1791175883280,
+      "order_identity_proven": false,
+      "path_samples": 1,
+      "price": "85538.5",
+      "reason": "MID_PATH_NEVER_REACHED_THE_BIN",
+      "side": "BID",
+      "state": "CANCEL_LIKE"
+     },
+     {
+      "bin_high": "85450",
+      "bin_low": "85445",
+      "last_seen_ms": 1791175882282,
+      "mid_path_touched_bin": false,
+      "notional_usdt": "702624.1026",
+      "observed_at_ms": 1791175883280,
+      "order_identity_proven": false,
+      "path_samples": 1,
+      "price": "85446.2",
+      "reason": "MID_PATH_NEVER_REACHED_THE_BIN",
+      "side": "BID",
+      "state": "CANCEL_LIKE"
+     },
+     {
+      "bin_high": "85430",
+      "bin_low": "85425",
+      "last_seen_ms": 1791175881281,
+      "mid_path_touched_bin": false,
+      "notional_usdt": "655400.5472",
+      "observed_at_ms": 1791175882282,
+      "order_identity_proven": false,
+      "path_samples": 1,
+      "price": "85427.6",
+      "reason": "MID_PATH_NEVER_REACHED_THE_BIN",
+      "side": "BID",
+      "state": "CANCEL_LIKE"
+     },
+     {
+      "bin_high": "85620",
+      "bin_low": "85615",
+      "last_seen_ms": 1791175880281,
+      "mid_path_touched_bin": false,
+      "notional_usdt": "619531.1244",
+      "observed_at_ms": 1791175881281,
+      "order_identity_proven": false,
+      "path_samples": 1,
+      "price": "85617.9",
+      "reason": "MID_PATH_NEVER_REACHED_THE_BIN",
+      "side": "ASK",
+      "state": "CANCEL_LIKE"
+     },
+     {
+      "bin_high": "85450",
+      "bin_low": "85445",
+      "last_seen_ms": 1791175878281,
+      "mid_path_touched_bin": false,
+      "notional_usdt": "508932.4572",
+      "observed_at_ms": 1791175879281,
+      "order_identity_proven": false,
+      "path_samples": 1,
+      "price": "85448.7",
+      "reason": "MID_PATH_NEVER_REACHED_THE_BIN",
+      "side": "BID",
+      "state": "CANCEL_LIKE"
+     },
+     {
+      "bin_high": "85415",
+      "bin_low": "85410",
+      "last_seen_ms": 1791175878281,
+      "mid_path_touched_bin": false,
+      "notional_usdt": "801444.2535",
+      "observed_at_ms": 1791175879281,
+      "order_identity_proven": false,
+      "path_samples": 1,
+      "price": "85414.5",
+      "reason": "MID_PATH_NEVER_REACHED_THE_BIN",
+      "side": "BID",
+      "state": "CANCEL_LIKE"
+     },
+     {
+      "bin_high": "85650",
+      "bin_low": "85645",
+      "last_seen_ms": 1791175875282,
+      "mid_path_touched_bin": false,
+      "notional_usdt": "662046.672",
+      "observed_at_ms": 1791175876281,
+      "order_identity_proven": false,
+      "path_samples": 1,
+      "price": "85646.4",
+      "reason": "MID_PATH_NEVER_REACHED_THE_BIN",
+      "side": "ASK",
+      "state": "CANCEL_LIKE"
+     },
+     {
+      "bin_high": "85590",
+      "bin_low": "85585",
+      "last_seen_ms": 1791175874281,
+      "mid_path_touched_bin": false,
+      "notional_usdt": "858284.4864",
+      "observed_at_ms": 1791175875282,
+      "order_identity_proven": false,
+      "path_samples": 1,
+      "price": "85588.8",
+      "reason": "MID_PATH_NEVER_REACHED_THE_BIN",
+      "side": "ASK",
+      "state": "CANCEL_LIKE"
+     },
+     {
+      "bin_high": "85640",
+      "bin_low": "85635",
+      "last_seen_ms": 1791175874281,
+      "mid_path_touched_bin": false,
+      "notional_usdt": "2599339.2096",
+      "observed_at_ms": 1791175875282,
+      "order_identity_proven": false,
+      "path_samples": 1,
+      "price": "85639.8",
+      "reason": "MID_PATH_NEVER_REACHED_THE_BIN",
+      "side": "ASK",
+      "state": "CANCEL_LIKE"
+     },
+     {
+      "bin_high": "85675",
+      "bin_low": "85670",
+      "last_seen_ms": 1791175873281,
+      "mid_path_touched_bin": false,
+      "notional_usdt": "1201615.8356",
+      "observed_at_ms": 1791175874281,
+      "order_identity_proven": false,
+      "path_samples": 1,
+      "price": "85670.6",
+      "reason": "MID_PATH_NEVER_REACHED_THE_BIN",
+      "side": "ASK",
+      "state": "CANCEL_LIKE"
+     },
+     {
+      "bin_high": "85635",
+      "bin_low": "85630",
+      "last_seen_ms": 1791175871282,
+      "mid_path_touched_bin": false,
+      "notional_usdt": "959532.3315",
+      "observed_at_ms": 1791175872282,
+      "order_identity_proven": false,
+      "path_samples": 1,
+      "price": "85634.3",
+      "reason": "MID_PATH_NEVER_REACHED_THE_BIN",
+      "side": "ASK",
+      "state": "CANCEL_LIKE"
+     },
+     {
+      "bin_high": "85410",
+      "bin_low": "85405",
+      "last_seen_ms": 1791175869281,
+      "mid_path_touched_bin": false,
+      "notional_usdt": "534300.5616",
+      "observed_at_ms": 1791175870281,
+      "order_identity_proven": false,
+      "path_samples": 1,
+      "price": "85406.1",
+      "reason": "MID_PATH_NEVER_REACHED_THE_BIN",
+      "side": "BID",
+      "state": "CANCEL_LIKE"
+     },
+     {
+      "bin_high": "85575",
+      "bin_low": "85570",
+      "last_seen_ms": 1791175861283,
+      "mid_path_touched_bin": false,
+      "notional_usdt": "728298.1854",
+      "observed_at_ms": 1791175862282,
+      "order_identity_proven": false,
+      "path_samples": 1,
+      "price": "85571.4",
+      "reason": "MID_PATH_NEVER_REACHED_THE_BIN",
+      "side": "ASK",
+      "state": "CANCEL_LIKE"
+     },
+     {
+      "bin_high": "85650",
+      "bin_low": "85645",
+      "last_seen_ms": 1791175861283,
+      "mid_path_touched_bin": false,
+      "notional_usdt": "637393.9044",
+      "observed_at_ms": 1791175862282,
+      "order_identity_proven": false,
+      "path_samples": 1,
+      "price": "85648.2",
+      "reason": "MID_PATH_NEVER_REACHED_THE_BIN",
+      "side": "ASK",
+      "state": "CANCEL_LIKE"
+     },
+     {
+      "bin_high": "85430",
+      "bin_low": "85425",
+      "last_seen_ms": 1791175861283,
+      "mid_path_touched_bin": false,
+      "notional_usdt": "646606.0458",
+      "observed_at_ms": 1791175862282,
+      "order_identity_proven": false,
+      "path_samples": 1,
+      "price": "85428.2",
+      "reason": "MID_PATH_NEVER_REACHED_THE_BIN",
+      "side": "BID",
+      "state": "CANCEL_LIKE"
+     },
+     {
+      "bin_high": "85670",
+      "bin_low": "85665",
+      "last_seen_ms": 1791175853631,
+      "mid_path_touched_bin": false,
+      "notional_usdt": "576642.7507",
+      "observed_at_ms": 1791175854632,
+      "order_identity_proven": false,
+      "path_samples": 1,
+      "price": "85669.7",
+      "reason": "MID_PATH_NEVER_REACHED_THE_BIN",
+      "side": "ASK",
+      "state": "CANCEL_LIKE"
+     },
+     {
+      "bin_high": "85435",
+      "bin_low": "85430",
+      "last_seen_ms": 1791175853631,
+      "mid_path_touched_bin": false,
+      "notional_usdt": "641007.5505",
+      "observed_at_ms": 1791175854632,
+      "order_identity_proven": false,
+      "path_samples": 1,
+      "price": "85433.5",
+      "reason": "MID_PATH_NEVER_REACHED_THE_BIN",
+      "side": "BID",
+      "state": "CANCEL_LIKE"
+     },
+     {
+      "bin_high": "85425",
+      "bin_low": "85420",
+      "last_seen_ms": 1791175853631,
+      "mid_path_touched_bin": false,
+      "notional_usdt": "688167.688",
+      "observed_at_ms": 1791175854632,
+      "order_identity_proven": false,
+      "path_samples": 1,
+      "price": "85423",
+      "reason": "MID_PATH_NEVER_REACHED_THE_BIN",
+      "side": "BID",
+      "state": "CANCEL_LIKE"
+     },
+     {
+      "bin_high": "85590",
+      "bin_low": "85585",
+      "last_seen_ms": 1791175851632,
+      "mid_path_touched_bin": false,
+      "notional_usdt": "969623.0533",
+      "observed_at_ms": 1791175852632,
+      "order_identity_proven": false,
+      "path_samples": 1,
+      "price": "85587.7",
+      "reason": "MID_PATH_NEVER_REACHED_THE_BIN",
+      "side": "ASK",
+      "state": "CANCEL_LIKE"
+     },
+     {
+      "bin_high": "85640",
+      "bin_low": "85635",
+      "last_seen_ms": 1791175850632,
+      "mid_path_touched_bin": false,
+      "notional_usdt": "2361945.684",
+      "observed_at_ms": 1791175851632,
+      "order_identity_proven": false,
+      "path_samples": 1,
+      "price": "85639.8",
+      "reason": "MID_PATH_NEVER_REACHED_THE_BIN",
+      "side": "ASK",
+      "state": "CANCEL_LIKE"
+     }
+    ],
+    "this_reading": [],
+    "totals": {
+     "CANCEL_LIKE": 41,
+     "CONSUMED_CANDIDATE": 1,
+     "UNKNOWN": 3,
+     "observed_disappearances": 45
+    },
+    "tracked_bins": 8
+   },
+   "windows": {
+    "15s": {
+     "buy_btc": "16.596",
+     "buy_usdt": "1419674.5481",
+     "coverage": "COMPLETE",
+     "coverage_age_ms": 134774,
+     "coverage_reason": null,
+     "imbalance_btc": "-0.2723924767",
+     "imbalance_usdt": "-0.2723998302",
+     "is_lower_bound": false,
+     "net_btc": "-12.426",
+     "net_usdt": "-1062998.9433",
+     "sell_btc": "29.022",
+     "sell_usdt": "2482673.4914",
+     "state": "LIVE",
+     "trades": 289,
+     "window": "15s"
+    },
+    "5s": {
+     "buy_btc": "4.209",
+     "buy_usdt": "360059.3229",
+     "coverage": "COMPLETE",
+     "coverage_age_ms": 134774,
+     "coverage_reason": null,
+     "imbalance_btc": "-0.726199382",
+     "imbalance_usdt": "-0.726197508",
+     "is_lower_bound": false,
+     "net_btc": "-22.327",
+     "net_usdt": "-1909947.4306",
+     "sell_btc": "26.536",
+     "sell_usdt": "2270006.7535",
+     "state": "LIVE",
+     "trades": 172,
+     "window": "5s"
+    },
+    "60s": {
+     "buy_btc": "46.675",
+     "buy_usdt": "3992664.5822",
+     "coverage": "COMPLETE",
+     "coverage_age_ms": 134774,
+     "coverage_reason": null,
+     "imbalance_btc": "-0.2745344897",
+     "imbalance_usdt": "-0.2745711983",
+     "is_lower_bound": false,
+     "net_btc": "-35.326",
+     "net_usdt": "-3022407.4257",
+     "sell_btc": "82.001",
+     "sell_usdt": "7015072.0079",
+     "state": "LIVE",
+     "trades": 1127,
+     "window": "60s"
+    }
+   }
+  },
+  "LIQUIDITY": {
+   "band_imbalance": {
+    "band_pct": "0.1",
+    "coverage": "COMPLETE",
+    "is_lower_bound": false,
+    "notional_ask": "21119681.1754",
+    "notional_bid": "23169374.4855"
+   },
+   "book": {
+    "best_ask": "85522.1",
+    "best_bid": "85522",
+    "mid": "85522.05",
+    "observed_high": "85676.3",
+    "observed_high_pct": "0.1804",
+    "observed_low": "85405.2",
+    "observed_low_pct": "-0.1366",
+    "observed_symmetric_pct": "0.1366",
+    "snapshot_limit": 1000,
+    "spread_bps": "0.01"
+   },
+   "coverage": {
+    "bands": [
+     {
+      "ask_coverage": "COMPLETE",
+      "band_pct": "0.1",
+      "bid_coverage": "COMPLETE",
+      "coverage": "COMPLETE",
+      "is_lower_bound": false,
+      "observed_notional_ask": "21119681.1754",
+      "observed_notional_bid": "23169374.4855",
+      "observed_qty_ask": "246.822",
+      "observed_qty_bid": "271.08",
+      "qty_ask": "246.822",
+      "qty_bid": "271.08"
+     },
+     {
+      "ask_coverage": "PARTIAL",
+      "band_pct": "0.25",
+      "bid_coverage": "PARTIAL",
+      "coverage": "PARTIAL",
+      "is_lower_bound": true,
+      "observed_notional_ask": "42323270.1148",
+      "observed_notional_bid": "33725466.9239",
+      "observed_qty_ask": "494.404",
+      "observed_qty_bid": "394.656",
+      "qty_ask": null,
+      "qty_bid": null
+     },
+     {
+      "ask_coverage": "PARTIAL",
+      "band_pct": "0.5",
+      "bid_coverage": "PARTIAL",
+      "coverage": "PARTIAL",
+      "is_lower_bound": true,
+      "observed_notional_ask": "42323270.1148",
+      "observed_notional_bid": "33725466.9239",
+      "observed_qty_ask": "494.404",
+      "observed_qty_bid": "394.656",
+      "qty_ask": null,
+      "qty_bid": null
+     },
+     {
+      "ask_coverage": "PARTIAL",
+      "band_pct": "1",
+      "bid_coverage": "PARTIAL",
+      "coverage": "PARTIAL",
+      "is_lower_bound": true,
+      "observed_notional_ask": "42323270.1148",
+      "observed_notional_bid": "33725466.9239",
+      "observed_qty_ask": "494.404",
+      "observed_qty_bid": "394.656",
+      "qty_ask": null,
+      "qty_bid": null
+     }
+    ],
+    "complete_bands": [
+     "0.1"
+    ],
+    "lower_bound_marker": "\u2265",
+    "lower_bounds_identical": true,
+    "partial_bands": [
+     "0.25",
+     "0.5",
+     "1"
+    ]
+   },
+   "journal": {
+    "book_generation": 3,
+    "book_state": "SYNCED",
+    "depth_age_ms": 63,
+    "exchange": "binance_usdm",
+    "feed_state": "LIVE",
+    "journal_age_ms": 41,
+    "root": "/tmp/claude-1000/-home-tjd618/7332d178-de64-4010-a2db-a9c4860221e7/scratchpad/ms_v0",
+    "sample_receive_ms": 1791175884281,
+    "session_age_ms": 143690,
+    "session_ended": false,
+    "session_id": "16a0e93d-beb3-4a6a-ad62-884a247cb8e0",
+    "symbol": "BTCUSDT"
+   },
+   "observed_range_note": "\uad00\uce21 \uad6c\uac04(known_low~known_high) \ubc16\uc740 '\ud638\uac00\uac00 \uc587\ub2e4'\uac00 \uc544\ub2c8\ub77c '\ubcf4\uc9c0 \ubabb\ud588\ub2e4'\uc785\ub2c8\ub2e4. limit=1000 \uc2a4\ub0c5\uc0f7\uc740 \uc57d \u00b10.15%\ub97c \ub36e\uc73c\ubbc0\ub85c \u00b10.25%\u00b7\u00b10.5%\u00b7\u00b11% \ubc34\ub4dc\ub294 \ud558\ud55c\uac12\uc785\ub2c8\ub2e4.",
+   "presence_base_rate": {
+    "ask_pct": 99.0,
+    "bid_pct": 98.5,
+    "mean_per_side_when_present": 8.8,
+    "window": "Market Context R0, 3.61h / 12,779 samples, walls within 10 bp"
+   },
+   "presence_note": "\ubcbd\uc758 \uc874\uc7ac \uc790\uccb4\ub294 \uc2e0\ud638\uac00 \uc544\ub2d9\ub2c8\ub2e4. 10bp \uc774\ub0b4 ask\ubcbd\uc740 \uc0d8\ud50c\uc758 99.0%, bid\ubcbd\uc740 98.5%\uc5d0\uc11c \uad00\uce21\ub410\uace0 \uc788\uc744 \ub54c \ud3c9\uade0 8.8\uac1c/\uce21\uc774\uc5c8\uc2b5\ub2c8\ub2e4. 99% \ucc38\uc778 \uc870\uac74\uc740 \uc0c1\ud0dc\ub97c \uac00\ub974\uc9c0 \ubabb\ud558\ubbc0\ub85c \uac70\ub9ac\u00b7\uba85\ubaa9\ub9cc \uce21\uc815\uac12\uc73c\ub85c \ud45c\uc2dc\ud558\uace0 bullish/bearish \ud45c\uc2dd\uc740 \ubd99\uc774\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4.",
+   "reasons": [],
+   "sides": {
+    "ASK": {
+     "candidates_total": 155,
+     "coverage": "COMPLETE",
+     "depth": [
+      {
+       "band_pct": "0.1",
+       "coverage": "COMPLETE",
+       "imbalance_usdt": "0.0462799055",
+       "is_lower_bound": false,
+       "levels": 641,
+       "notional": "21119681.1754",
+       "observed_notional": "21119681.1754",
+       "observed_qty": "246.822",
+       "price_high": "85607.57205",
+       "price_low": "85522.05",
+       "qty": "246.822"
+      },
+      {
+       "band_pct": "0.25",
+       "coverage": "PARTIAL",
+       "imbalance_usdt": null,
+       "is_lower_bound": true,
+       "levels": 1079,
+       "notional": null,
+       "observed_notional": "42323270.1148",
+       "observed_qty": "494.404",
+       "price_high": "85735.855125",
+       "price_low": "85522.05",
+       "qty": null
+      },
+      {
+       "band_pct": "0.5",
+       "coverage": "PARTIAL",
+       "imbalance_usdt": null,
+       "is_lower_bound": true,
+       "levels": 1079,
+       "notional": null,
+       "observed_notional": "42323270.1148",
+       "observed_qty": "494.404",
+       "price_high": "85949.66025",
+       "price_low": "85522.05",
+       "qty": null
+      },
+      {
+       "band_pct": "1",
+       "coverage": "PARTIAL",
+       "imbalance_usdt": null,
+       "is_lower_bound": true,
+       "levels": 1079,
+       "notional": null,
+       "observed_notional": "42323270.1148",
+       "observed_qty": "494.404",
+       "price_high": "86377.2705",
+       "price_low": "85522.05",
+       "qty": null
+      }
+     ],
+     "nearest_wall": {
+      "bin_candidate_notional_is_lower_bound": true,
+      "bin_candidate_notional_usdt": "523138.9074",
+      "bin_high": "85565",
+      "bin_low": "85560",
+      "bin_members": 1,
+      "carried_members": 1,
+      "carried_persistence_ms": 50649,
+      "continuity_status": "CARRIED",
+      "coverage": "PARTIAL",
+      "distance_bps": "4.92",
+      "distance_pct": "0.0492",
+      "first_seen_ms": 1791175834632,
+      "generation": 3,
+      "multiple": "24.67312348668280871670702179",
+      "not_carried_reason": null,
+      "notional_usdt": "523138.9074",
+      "own_persistence_ms": 49649,
+      "persistence_ms": 50649,
+      "persistence_source": "CARRIED",
+      "price": "85564.1",
+      "qty_btc": "6.114",
+      "values_as_of": "CHECKPOINT_CURRENT"
+     },
+     "side": "ASK",
+     "wall_state": "OK",
+     "wall_state_reason": null,
+     "walls": [
+      {
+       "bin_candidate_notional_is_lower_bound": true,
+       "bin_candidate_notional_usdt": "523138.9074",
+       "bin_high": "85565",
+       "bin_low": "85560",
+       "bin_members": 1,
+       "carried_members": 1,
+       "carried_persistence_ms": 50649,
+       "continuity_status": "CARRIED",
+       "coverage": "PARTIAL",
+       "distance_bps": "4.92",
+       "distance_pct": "0.0492",
+       "first_seen_ms": 1791175834632,
+       "generation": 3,
+       "multiple": "24.67312348668280871670702179",
+       "not_carried_reason": null,
+       "notional_usdt": "523138.9074",
+       "own_persistence_ms": 49649,
+       "persistence_ms": 50649,
+       "persistence_source": "CARRIED",
+       "price": "85564.1",
+       "qty_btc": "6.114",
+       "values_as_of": "CHECKPOINT_CURRENT"
+      },
+      {
+       "bin_candidate_notional_is_lower_bound": true,
+       "bin_candidate_notional_usdt": "1754946.4281",
+       "bin_high": "85660",
+       "bin_low": "85655",
+       "bin_members": 3,
+       "carried_members": 2,
+       "carried_persistence_ms": 142609,
+       "continuity_status": "CARRIED",
+       "coverage": "PARTIAL",
+       "distance_bps": "15.73",
+       "distance_pct": "0.1573",
+       "first_seen_ms": 1791175834632,
+       "generation": 3,
+       "multiple": "21.52924594785059901338971106",
+       "not_carried_reason": null,
+       "notional_usdt": "785042.739",
+       "own_persistence_ms": 49649,
+       "persistence_ms": 62649,
+       "persistence_source": "CARRIED",
+       "price": "85656.6",
+       "qty_btc": "9.165",
+       "values_as_of": "CHECKPOINT_CURRENT"
+      },
+      {
+       "bin_candidate_notional_is_lower_bound": true,
+       "bin_candidate_notional_usdt": "687552.1056",
+       "bin_high": "85670",
+       "bin_low": "85665",
+       "bin_members": 1,
+       "carried_members": 0,
+       "carried_persistence_ms": null,
+       "continuity_status": "NEW",
+       "coverage": "PARTIAL",
+       "distance_bps": "16.79",
+       "distance_pct": "0.1679",
+       "first_seen_ms": 1791175872282,
+       "generation": 3,
+       "multiple": "7.357227976899807498395819965",
+       "not_carried_reason": "NO_EARLIER_OBSERVATION",
+       "notional_usdt": "687552.1056",
+       "own_persistence_ms": 11999,
+       "persistence_ms": 11999,
+       "persistence_source": "OWN",
+       "price": "85665.6",
+       "qty_btc": "8.026",
+       "values_as_of": "CHECKPOINT_CURRENT"
+      },
+      {
+       "bin_candidate_notional_is_lower_bound": true,
+       "bin_candidate_notional_usdt": "1152012.5582",
+       "bin_high": "85675",
+       "bin_low": "85670",
+       "bin_members": 1,
+       "carried_members": 1,
+       "carried_persistence_ms": 142609,
+       "continuity_status": "CARRIED",
+       "coverage": "PARTIAL",
+       "distance_bps": "17.37",
+       "distance_pct": "0.1737",
+       "first_seen_ms": 1791175834632,
+       "generation": 3,
+       "multiple": "13.67955239064089521871820956",
+       "not_carried_reason": null,
+       "notional_usdt": "1152012.5582",
+       "own_persistence_ms": 49649,
+       "persistence_ms": 142609,
+       "persistence_source": "CARRIED",
+       "price": "85670.6",
+       "qty_btc": "13.447",
+       "values_as_of": "CHECKPOINT_CURRENT"
+      }
+     ],
+     "walls_selected": 12,
+     "walls_shown": 4
+    },
+    "BID": {
+     "candidates_total": 125,
+     "coverage": "COMPLETE",
+     "depth": [
+      {
+       "band_pct": "0.1",
+       "coverage": "COMPLETE",
+       "imbalance_usdt": "0.0462799055",
+       "is_lower_bound": false,
+       "levels": 698,
+       "notional": "23169374.4855",
+       "observed_notional": "23169374.4855",
+       "observed_qty": "271.08",
+       "price_high": "85522.05",
+       "price_low": "85436.52795",
+       "qty": "271.08"
+      },
+      {
+       "band_pct": "0.25",
+       "coverage": "PARTIAL",
+       "imbalance_usdt": null,
+       "is_lower_bound": true,
+       "levels": 931,
+       "notional": null,
+       "observed_notional": "33725466.9239",
+       "observed_qty": "394.656",
+       "price_high": "85522.05",
+       "price_low": "85308.244875",
+       "qty": null
+      },
+      {
+       "band_pct": "0.5",
+       "coverage": "PARTIAL",
+       "imbalance_usdt": null,
+       "is_lower_bound": true,
+       "levels": 931,
+       "notional": null,
+       "observed_notional": "33725466.9239",
+       "observed_qty": "394.656",
+       "price_high": "85522.05",
+       "price_low": "85094.43975",
+       "qty": null
+      },
+      {
+       "band_pct": "1",
+       "coverage": "PARTIAL",
+       "imbalance_usdt": null,
+       "is_lower_bound": true,
+       "levels": 931,
+       "notional": null,
+       "observed_notional": "33725466.9239",
+       "observed_qty": "394.656",
+       "price_high": "85522.05",
+       "price_low": "84666.8295",
+       "qty": null
+      }
+     ],
+     "nearest_wall": {
+      "bin_candidate_notional_is_lower_bound": true,
+      "bin_candidate_notional_usdt": "586234.1844",
+      "bin_high": "85485",
+      "bin_low": "85480",
+      "bin_members": 1,
+      "carried_members": 1,
+      "carried_persistence_ms": 65648,
+      "continuity_status": "CARRIED",
+      "coverage": "PARTIAL",
+      "distance_bps": "4.71",
+      "distance_pct": "0.0471",
+      "first_seen_ms": 1791175834632,
+      "generation": 3,
+      "multiple": "21.6750948166877370417193426",
+      "not_carried_reason": null,
+      "notional_usdt": "586234.1844",
+      "own_persistence_ms": 49649,
+      "persistence_ms": 65648,
+      "persistence_source": "CARRIED",
+      "price": "85481.8",
+      "qty_btc": "6.858",
+      "values_as_of": "CHECKPOINT_CURRENT"
+     },
+     "side": "BID",
+     "wall_state": "OK",
+     "wall_state_reason": null,
+     "walls": [
+      {
+       "bin_candidate_notional_is_lower_bound": true,
+       "bin_candidate_notional_usdt": "586234.1844",
+       "bin_high": "85485",
+       "bin_low": "85480",
+       "bin_members": 1,
+       "carried_members": 1,
+       "carried_persistence_ms": 65648,
+       "continuity_status": "CARRIED",
+       "coverage": "PARTIAL",
+       "distance_bps": "4.71",
+       "distance_pct": "0.0471",
+       "first_seen_ms": 1791175834632,
+       "generation": 3,
+       "multiple": "21.6750948166877370417193426",
+       "not_carried_reason": null,
+       "notional_usdt": "586234.1844",
+       "own_persistence_ms": 49649,
+       "persistence_ms": 65648,
+       "persistence_source": "CARRIED",
+       "price": "85481.8",
+       "qty_btc": "6.858",
+       "values_as_of": "CHECKPOINT_CURRENT"
+      },
+      {
+       "bin_candidate_notional_is_lower_bound": true,
+       "bin_candidate_notional_usdt": "538784.3175",
+       "bin_high": "85455",
+       "bin_low": "85450",
+       "bin_members": 1,
+       "carried_members": 0,
+       "carried_persistence_ms": null,
+       "continuity_status": "NEW",
+       "coverage": "PARTIAL",
+       "distance_bps": "8.02",
+       "distance_pct": "0.0802",
+       "first_seen_ms": 1791175834632,
+       "generation": 3,
+       "multiple": "7.022722209846290933392737804",
+       "not_carried_reason": "NO_EARLIER_OBSERVATION",
+       "notional_usdt": "538784.3175",
+       "own_persistence_ms": 49649,
+       "persistence_ms": 49649,
+       "persistence_source": "OWN",
+       "price": "85453.5",
+       "qty_btc": "6.305",
+       "values_as_of": "CHECKPOINT_CURRENT"
+      },
+      {
+       "bin_candidate_notional_is_lower_bound": true,
+       "bin_candidate_notional_usdt": "1512335.7819",
+       "bin_high": "85450",
+       "bin_low": "85445",
+       "bin_members": 4,
+       "carried_members": 0,
+       "carried_persistence_ms": null,
+       "continuity_status": "NEW",
+       "coverage": "PARTIAL",
+       "distance_bps": "8.58",
+       "distance_pct": "0.0858",
+       "first_seen_ms": 1791175854632,
+       "generation": 3,
+       "multiple": "5.473258592170556882925932733",
+       "not_carried_reason": "NO_EARLIER_OBSERVATION",
+       "notional_usdt": "508932.4572",
+       "own_persistence_ms": 29649,
+       "persistence_ms": 29649,
+       "persistence_source": "OWN",
+       "price": "85448.7",
+       "qty_btc": "5.956",
+       "values_as_of": "CHECKPOINT_CURRENT"
+      },
+      {
+       "bin_candidate_notional_is_lower_bound": true,
+       "bin_candidate_notional_usdt": "699628.0339",
+       "bin_high": "85440",
+       "bin_low": "85435",
+       "bin_members": 1,
+       "carried_members": 0,
+       "carried_persistence_ms": null,
+       "continuity_status": "NEW",
+       "coverage": "PARTIAL",
+       "distance_bps": "10.17",
+       "distance_pct": "0.1017",
+       "first_seen_ms": 1791175834632,
+       "generation": 3,
+       "multiple": "35.20636285468615649183147034",
+       "not_carried_reason": "NO_EARLIER_OBSERVATION",
+       "notional_usdt": "699628.0339",
+       "own_persistence_ms": 49649,
+       "persistence_ms": 49649,
+       "persistence_source": "OWN",
+       "price": "85435.1",
+       "qty_btc": "8.189",
+       "values_as_of": "CHECKPOINT_CURRENT"
+      }
+     ],
+     "walls_selected": 14,
+     "walls_shown": 4
+    }
+   },
+   "state": "LIVE",
+   "symbol": "BTCUSDT",
+   "walls": {
+    "candidate_count": 280,
+    "carried": 27,
+    "continuity_rule": "lm-continuity.v5",
+    "coverage": "COMPLETE",
+    "filter_min_notional_usdt": "500000",
+    "rule": "lm-wall.v2",
+    "source": "COLLECTOR_STATE_CHECKPOINT",
+    "unverified_reason": null,
+    "verified_by": "COLLECTOR_STATE_CHECKPOINT",
+    "walls_selected": 26
+   }
+  },
+  "PRICE": {
+   "events": {
+    "breakout_age_min": 491,
+    "breakout_at_ms": 1791146400000,
+    "breakout_confirm_tf": "5m",
+    "breakout_level_id": 13,
+    "breakout_state": "UP",
+    "failed_break_state": "NONE",
+    "retest_direction": "UP",
+    "retest_level_id": 13,
+    "retest_state": "HELD",
+    "sweep_age_min": 3731,
+    "sweep_at_ms": 1790952000000,
+    "sweep_direction": "DOWN",
+    "sweep_level_id": 3
+   },
+   "levels": {
+    "resistance": {
+     "available": false,
+     "confirm_tf": null,
+     "distance_pct": null,
+     "level_id": null,
+     "lifecycle": null,
+     "origin_kind": null,
+     "price": null,
+     "side": "RESISTANCE",
+     "sources": null,
+     "strength": null,
+     "touches": null,
+     "unavailable_reason": "NO_PUBLISHED_LEVEL_ON_THIS_SIDE"
+    },
+    "support": {
+     "available": true,
+     "confirm_tf": "5m",
+     "distance_pct": -0.1734,
+     "level_id": 13,
+     "lifecycle": "CONFIRMED",
+     "origin_kind": "SWING_HIGH",
+     "price": 85390.3,
+     "side": "SUPPORT",
+     "sources": "5m",
+     "strength": 7,
+     "touches": 6,
+     "unavailable_reason": null
+    }
+   },
+   "note": "\ub808\ubca8 \ubd81\uc740 R1 \ud050\ub808\uc774\uc158 \uadf8\ub300\ub85c\uc774\uace0 \uc2dc\ub9ac\uc988 \uc2dc\uc791\uc810\uc740 \ud504\ub85c\uc138\uc2a4 \uc2dc\uc791 \uc2dc \ud55c \ubc88 \uace0\uc815\ud569\ub2c8\ub2e4. \ub864\ub9c1 \uc708\ub3c4\uc6b0\uba74 \uacfc\uac70\uac00 \ub4a4\uc5d0\uc11c \ub5a8\uc5b4\uc838 \ub098\uac00\uba70 \ub808\ubca8 \uc218\uba85\uc774 \ubc14\ub00c\uc5b4 repaint\uc640 \uac19\uc544\uc9d1\ub2c8\ub2e4. \ud655\uc815\ub41c \ub9c8\uc9c0\ub9c9 1\ubd84\ubd09\ub9cc \ud45c\uc2dc\ud558\ubbc0\ub85c \uc2e4\uc2dc\uac04\ubcf4\ub2e4 \ucd5c\ub300 1\ubd84 \ub4a4\uc785\ub2c8\ub2e4.",
+   "prev_session": {
+    "high": 86770.0,
+    "high_distance_pct": 1.4396,
+    "in_level_book": false,
+    "low": 84677.3,
+    "low_distance_pct": -1.0069,
+    "note": "\uc804\uc77c \uace0\uc800\ub294 \ub808\ubca8 \ubd81 \ubc16\uc758 \ubcc4\ub3c4 context\uc785\ub2c8\ub2e4. R2\uc5d0\uc11c \uc774 \uc18c\uc2a4\ub97c \ubd81\uc5d0 \uba38\uc9c0\ud558\uba74 27\uac74 \uc911 1\uac74 \uc99d\uac00\uc600\uace0 \uadf8 1\uac74\ub3c4 \uc0c8 \uc120\uc774 \uc544\ub2c8\ub77c PROVISIONAL \uc2b9\uaca9\uc774\uc5c8\uc2b5\ub2c8\ub2e4. 27\uac74 \ud45c\ubcf8\uc758 \ud574\uc0c1\ub3c4 \ud55c\uacc4\ub77c production rule\ub85c \uc62c\ub9ac\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4."
+   },
+   "range": {
+    "high": null,
+    "low": null,
+    "position": null,
+    "state": "NO_RANGE"
+   },
+   "reasons": [],
+   "row": {
+    "active_level_count": 3,
+    "atr_1h": 328.84,
+    "atr_5m": 139.76,
+    "bar_age_ms": 24337,
+    "bar_close_ms": 1791175860000,
+    "bar_open_ms": 1791175800000,
+    "close": 85538.6,
+    "last_high_label": "UNLABELED",
+    "last_low_label": "UNLABELED",
+    "published_prices": [
+     84853.4,
+     84994.9,
+     85390.3
+    ],
+    "trend_structure": "NEUTRAL",
+    "vwap_position": "BELOW",
+    "vwap_z": -1.8726
+   },
+   "series": {
+    "anchor_ms": 1790899200000,
+    "anchor_rule": "FIXED_AT_PROCESS_START_EXTENDED_FORWARD_ONLY",
+    "computed_at_ms": 1791175860702,
+    "fetch_ms": 74,
+    "publish_from_ms": 1791089460000,
+    "publish_to_ms": 1791175860000,
+    "published_minutes": 1441,
+    "recompute_ms": 106,
+    "repaint_violations": 0,
+    "series_first_ms": 1790899200000,
+    "series_last_open_ms": 1791175800000,
+    "series_rows": 4611,
+    "theta_1h": 3.0,
+    "theta_5m": 6.0,
+    "vanished_levels": 0,
+    "venue": "binance_usdm"
+   },
+   "state": "LIVE",
+   "symbol": "BTCUSDT"
+  }
+ },
+ "missing_value": "-",
+ "mode": "READ_ONLY_CONTEXT_PANEL",
+ "notes": {
+  "absorption": "absorption\uc740 candidate\ub9cc \ud45c\uc2dc\ud558\uba70 \ud310\uc815\uc774 \uc544\ub2d9\ub2c8\ub2e4. order_identity_proven=false\uc774\uace0, \uc9d1\uacc4\ud558\uc9c0 \uc54a\uc73c\uba70 \ubc29\ud5a5 \uc0c9\uc744 \ubd99\uc774\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4. 3.61\uc2dc\uac04 \uc800\ub110\uc5d0\uc11c \uc18c\ube44 \ud6c4\ubcf4\ub294 15\uac74\uc774\uc5c8\uc2b5\ub2c8\ub2e4.",
+  "auxiliary": "BTCUSDT \uc804\uc6a9\uc785\ub2c8\ub2e4. C1/C1x\ub294 auxiliary, Directional Probability\ub294 weak_auxiliary\uc774\uba70 \ud604\uc7ac \uc2dc\uc810 \ud655\ub960\uc744 \uacc4\uc0b0\ud558\uc9c0 \uc54a\uace0 \ub3d9\uacb0 \uc544\ud2f0\ud329\ud2b8\uc758 verdict\uc640 \ubc94\uc704\ub97c \uadf8\ub300\ub85c \uc77d\uc2b5\ub2c8\ub2e4. ETHUSDT\u00b7SOLUSDT\uc5d0\ub294 \uc774 \uce78 \uc790\uccb4\uac00 \uc5c6\uc2b5\ub2c8\ub2e4(\ube48 \uce78\uc774 \uc544\ub2c8\ub77c \ubd80\uc7ac).",
+  "derivatives": "\ud30c\uc0dd \uc815\ubcf4\ub294 \uacf5\uac1c \uc5d4\ub4dc\ud3ec\uc778\ud2b8\uc5d0\uc11c \uc77d\uc740 \uc6d0\uac12\uc785\ub2c8\ub2e4. basis = mark - index, premium_pct = (mark - index) / index \ub450 \uac1c\ub9cc \uc0b0\uc220 \ud658\uc0b0\uc774\uace0, \uadf8 \ubc16\uc758 \ud30c\uc0dd \uc2e0\ud638\ub294 \ub9cc\ub4e4\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4(OI \ub300\ube44 \uac00\uaca9, funding regime, \ud63c\uc7a1\ub3c4 \ub4f1 \uc5c6\uc74c).",
+  "directional": "Directional Probability R0\uc740 verdict=WEAK_DIRECTIONAL_MODEL, usable_horizons=[]\uc785\ub2c8\ub2e4. BTC-P1\uc758 \ubc29\ud5a5 AUC\ub294 0.502~0.533\uc774\uc5c8\uace0 BTC-P2\ub294 \ubc29\ud5a5\ub808\uc774\uc5b4 STRONG 0/64\uc5d0 P3 NOT_AUTHORIZED\ub85c \uc885\uacb0\ub410\uc2b5\ub2c8\ub2e4. \uc774 \uce78\uc740 '\ubb34\uc5c7\uc774 \uc788\uace0 \ubb34\uc5c7\uc73c\ub85c \ub05d\ub0ac\ub294\uc9c0'\uc785\ub2c8\ub2e4.",
+  "journal": "forward context journal\uc740 \uc8fc\ubb38\uacfc \uc5f0\uacb0\ub418\uc9c0 \uc54a\uace0 \uc218\ub3d9\ub9e4\ub9e4\ub97c \uac15\uc81c \uae30\ub85d\ud558\uc9c0\ub3c4 \uc54a\uc2b5\ub2c8\ub2e4. \uc2dc\uc7a5 context\ub9cc append-only\ub85c \ub0a8\uae30\uba70, Market Context R0\uc758 Q1~Q3\uac00 Layer B 3.61\uc2dc\uac04\uc5d0 \ub9c9\ud614\ub358 \uc6d0\uc790\ub8cc\ub97c \uc783\uc9c0 \uc54a\ub294 \uac83\uc774 \ubaa9\uc801\uc785\ub2c8\ub2e4. \ud328\ub110\uc740 \uc774 \ud30c\uc77c\uc744 \ub2e4\uc2dc \uc77d\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4.",
+  "missing_value": "\uad00\uce21\ud558\uc9c0 \ubabb\ud55c \uac12\uc740 0\uc774 \uc544\ub2c8\ub77c '-'\uc640 \uc0ac\uc720\ub85c \ud45c\uc2dc\ud569\ub2c8\ub2e4. 0\uc740 \uc774 \ud638\uac00\ucc3d\uacfc \ud50c\ub85c\uc6b0 \ucc3d\uc758 \uc2e4\uc81c \uad00\uce21\uac12\uc774\ub77c '\ubbf8\uad00\uce21'\uacfc \uad6c\ubd84\ub418\uc5b4\uc57c \ud569\ub2c8\ub2e4.",
+  "no_rollup": "\ub808\uc774\uc5b4 5\uac1c\ub97c \ud558\ub098\uc758 \uc0c1\ud0dc\ub85c \ud569\uce58\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4. \uc804\uccb4 Market Context\ub97c NEUTRAL\ub85c \ud45c\uc2dc\ud558\ub294 \uce78\uc740 \uc5c6\uace0, \ub370\uc774\ud130\uac00 \ubaa8\uc790\ub77c\uba74 \uadf8 \ub808\uc774\uc5b4\uac00 UNKNOWN\uc785\ub2c8\ub2e4. Market Context R0\uc5d0\uc11c \uacb0\ud569 \ubaa8\ub378\uc740 A_NO_CONTEXT_EDGE\uc600\uc2b5\ub2c8\ub2e4(T1 NOT_MEASURABLE, \uce21\uc815\ub41c \ucd5c\ub300 \ud6a8\uacfc +4.83bp < \uc655\ubcf5\ube44\uc6a9 11.25bp).",
+  "observed_range": "\uad00\uce21 \uad6c\uac04(known_low~known_high) \ubc16\uc740 '\ud638\uac00\uac00 \uc587\ub2e4'\uac00 \uc544\ub2c8\ub77c '\ubcf4\uc9c0 \ubabb\ud588\ub2e4'\uc785\ub2c8\ub2e4. limit=1000 \uc2a4\ub0c5\uc0f7\uc740 \uc57d \u00b10.15%\ub97c \ub36e\uc73c\ubbc0\ub85c \u00b10.25%\u00b7\u00b10.5%\u00b7\u00b11% \ubc34\ub4dc\ub294 \ud558\ud55c\uac12\uc785\ub2c8\ub2e4.",
+  "prev_session": "\uc804\uc77c \uace0\uc800\ub294 \ub808\ubca8 \ubd81 \ubc16\uc758 \ubcc4\ub3c4 context\uc785\ub2c8\ub2e4. R2\uc5d0\uc11c \uc774 \uc18c\uc2a4\ub97c \ubd81\uc5d0 \uba38\uc9c0\ud558\uba74 27\uac74 \uc911 1\uac74 \uc99d\uac00\uc600\uace0 \uadf8 1\uac74\ub3c4 \uc0c8 \uc120\uc774 \uc544\ub2c8\ub77c PROVISIONAL \uc2b9\uaca9\uc774\uc5c8\uc2b5\ub2c8\ub2e4. 27\uac74 \ud45c\ubcf8\uc758 \ud574\uc0c1\ub3c4 \ud55c\uacc4\ub77c production rule\ub85c \uc62c\ub9ac\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4.",
+  "scope": "\uc77d\uae30 \uc804\uc6a9 \ucee8\ud14d\uc2a4\ud2b8 \ud328\ub110\uc785\ub2c8\ub2e4. \ubc29\ud5a5 \ud310\uc815(LONG/SHORT)\u00b7score\u00b7\ud655\ub960\uc744 \ub9cc\ub4e4\uc9c0 \uc54a\uace0, \uc8fc\ubb38\u00b7AUTO\u00b7C1 \uacc4\uc57d\uc744 \uac74\ub4dc\ub9ac\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4. \ubaa8\ub4e0 \uc218\uce58\ub294 \uac01\uc790\uc758 \ub3d9\uacb0 \uacc4\uc57d\uc5d0\uc11c \uadf8\ub300\ub85c \uc77d\uc2b5\ub2c8\ub2e4.",
+  "structure_series": "\ub808\ubca8 \ubd81\uc740 R1 \ud050\ub808\uc774\uc158 \uadf8\ub300\ub85c\uc774\uace0 \uc2dc\ub9ac\uc988 \uc2dc\uc791\uc810\uc740 \ud504\ub85c\uc138\uc2a4 \uc2dc\uc791 \uc2dc \ud55c \ubc88 \uace0\uc815\ud569\ub2c8\ub2e4. \ub864\ub9c1 \uc708\ub3c4\uc6b0\uba74 \uacfc\uac70\uac00 \ub4a4\uc5d0\uc11c \ub5a8\uc5b4\uc838 \ub098\uac00\uba70 \ub808\ubca8 \uc218\uba85\uc774 \ubc14\ub00c\uc5b4 repaint\uc640 \uac19\uc544\uc9d1\ub2c8\ub2e4. \ud655\uc815\ub41c \ub9c8\uc9c0\ub9c9 1\ubd84\ubd09\ub9cc \ud45c\uc2dc\ud558\ubbc0\ub85c \uc2e4\uc2dc\uac04\ubcf4\ub2e4 \ucd5c\ub300 1\ubd84 \ub4a4\uc785\ub2c8\ub2e4.",
+  "vanish": "\uc0ac\ub77c\uc9c4 \ubcbd\uc744 CONSUMED\ub85c \ub2e8\uc815\ud558\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4. btc-ms.v0.1\uc740 \uc8fc\ubb38 identity\ub97c \uc99d\uba85\ud558\uc9c0 \ubabb\ud574 \ubd80\ubd84\uccb4\uacb0\ub85c \uba85\ubaa9 \ud558\ud55c \uc544\ub798\ub85c \ub5a8\uc5b4\uc9c4 \ubcbd\uacfc \ucde8\uc18c\ub41c \ubcbd\uc774 \uac19\uc740 \uce78\uc5d0 \ub4e4\uc5b4\uac11\ub2c8\ub2e4. \uc2e4\uce21\uc740 \uac00\uaca9\uc774 bin\uc5d0 \ub2ff\uc740 \uacbd\uc6b0\uac00 ask 3.8% / bid 6.9%\ub85c, \ubcbd\uc740 \ub300\uac1c \ucde8\uc18c\ub429\ub2c8\ub2e4.",
+  "wall_presence": "\ubcbd\uc758 \uc874\uc7ac \uc790\uccb4\ub294 \uc2e0\ud638\uac00 \uc544\ub2d9\ub2c8\ub2e4. 10bp \uc774\ub0b4 ask\ubcbd\uc740 \uc0d8\ud50c\uc758 99.0%, bid\ubcbd\uc740 98.5%\uc5d0\uc11c \uad00\uce21\ub410\uace0 \uc788\uc744 \ub54c \ud3c9\uade0 8.8\uac1c/\uce21\uc774\uc5c8\uc2b5\ub2c8\ub2e4. 99% \ucc38\uc778 \uc870\uac74\uc740 \uc0c1\ud0dc\ub97c \uac00\ub974\uc9c0 \ubabb\ud558\ubbc0\ub85c \uac70\ub9ac\u00b7\uba85\ubaa9\ub9cc \uce21\uc815\uac12\uc73c\ub85c \ud45c\uc2dc\ud558\uace0 bullish/bearish \ud45c\uc2dd\uc740 \ubd99\uc774\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4."
+ },
+ "panel": {
+  "anchor_days": 3,
+  "anchor_ms": 1790899200000,
+  "polls": 55,
+  "started_ms": 1791175823682,
+  "structure_recomputes": 2
+ },
+ "panel_version": "mc-v1.0",
+ "rollup": {
+  "exists": false,
+  "measurement": "Market Context R0: A_NO_CONTEXT_EDGE. T1 NOT_MEASURABLE (796/799 resistance approaches OUTSIDE_JOURNAL), T3 best effect +4.83bp against an 11.25bp round trip, T2's significant cells carried the wrong sign.",
+  "note": "\ub808\uc774\uc5b4 5\uac1c\ub97c \ud558\ub098\uc758 \uc0c1\ud0dc\ub85c \ud569\uce58\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4. \uc804\uccb4 Market Context\ub97c NEUTRAL\ub85c \ud45c\uc2dc\ud558\ub294 \uce78\uc740 \uc5c6\uace0, \ub370\uc774\ud130\uac00 \ubaa8\uc790\ub77c\uba74 \uadf8 \ub808\uc774\uc5b4\uac00 UNKNOWN\uc785\ub2c8\ub2e4. Market Context R0\uc5d0\uc11c \uacb0\ud569 \ubaa8\ub378\uc740 A_NO_CONTEXT_EDGE\uc600\uc2b5\ub2c8\ub2e4(T1 NOT_MEASURABLE, \uce21\uc815\ub41c \ucd5c\ub300 \ud6a8\uacfc +4.83bp < \uc655\ubcf5\ube44\uc6a9 11.25bp).",
+  "reason": "NO_JOINT_READING_IS_PUBLISHED"
+ },
+ "server_time_ms": 1791175884337,
+ "supported_symbols": [
+  "BTCUSDT",
+  "ETHUSDT",
+  "SOLUSDT"
+ ],
+ "symbol": "BTCUSDT",
+ "symbol_support": {
+  "AUXILIARY": {
+   "reason": null,
+   "supported": true
+  },
+  "DERIVATIVES": {
+   "reason": null,
+   "supported": true
+  },
+  "FLOW": {
+   "reason": null,
+   "supported": true
+  },
+  "LIQUIDITY": {
+   "reason": null,
+   "supported": true
+  },
+  "PRICE": {
+   "reason": null,
+   "supported": true
+  }
+ }
+}
