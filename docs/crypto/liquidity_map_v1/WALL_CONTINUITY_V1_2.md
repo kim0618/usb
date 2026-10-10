@@ -1,12 +1,13 @@
 # Liquidity Map wall continuity rule V1.2: HARD and SOFT resync, frozen
 
-Status: FROZEN, 2026-10-04 (KST). Rule version: **`lm-continuity.v4`**.
-Supersedes `lm-continuity.v3` (sha256 `9637ef1be41e9eb679eb50634990801b28677fc5122bcca35ba956bd4d17231d`),
+Status: FROZEN, 2026-10-04 (KST). Rule version: **`lm-continuity.v5`**.
+Supersedes `lm-continuity.v4` (sha256 `0ed46edcc0a58957b99cc14bf5b8bba92a4111eb94026b7353311042e58327b3`),
+`lm-continuity.v3` (sha256 `9637ef1be41e9eb679eb50634990801b28677fc5122bcca35ba956bd4d17231d`),
 `lm-continuity.v2` (sha256 `596339b66cc170b4bd1550b93e44f63e35f81c13e28f833dc9a446e67b691576`)
 and `lm-continuity.v1` (sha256 `d68a26ce2a170d5549f5e8bec5db02b8fc91d7bfd489f31d97e39653a0148656`),
 the first of which was frozen **before** the resulting carry rates were examined. Every version
-since has been frozen the same way, this one included: v4 was written and hashed before a single
-V1.4 refresh was observed.
+since has been frozen the same way, this one included: v5 was written and hashed before a single
+V1.5 refresh, test or live session was observed.
 Changes require a new version, never a silent edit, and never a re-tuning against an outcome
 somebody preferred. What changed in each version, and why, is recorded at the end of this
 document.
@@ -34,7 +35,8 @@ allowed to shorten one, to create a wall, to remove a wall, or to change a thres
 ## The defect being fixed
 
 V1.1 added two voluntary resnapshot triggers: a coverage-edge refresh when the protected
-±0.1% band is about to leave the snapshot's known interval (cooldown 300 s), and a safety
+±0.1% band is about to leave the snapshot's known interval (floor between refreshes 300 s at
+the time, 10 s since v5), and a safety
 refresh after 3600 s on one snapshot. Both are necessary and both were measured: the live
 coverage-edge refresh on 2026-10-04 restored the margin from 0.62 bp to 4.56 bp in 130 ms and
 the ±0.1% band stayed COMPLETE across the transition.
@@ -170,9 +172,10 @@ existing V1.3 operational limit and is not changed here, nor is it a continuity 
 were ever raised, the exemption's practical ceiling would rise with it, and that is a
 consequence a future version has to accept deliberately rather than inherit.
 
-Every transition publishes which of the three cases its window was in - `WITHIN_MAX`,
-`EXEMPT_REPLAYED_CHAIN`, or `EXCEEDED_MAX` - alongside the measured window and the ceiling, so a
-screen can never show a carry that used the exemption without showing that it used it.
+Every transition publishes which of the four cases its window was in - `WITHIN_MAX`,
+`EXEMPT_REPLAYED_CHAIN`, `EXCEEDED_MAX` or `NOT_MEASURED` - alongside the measured window and the
+ceiling, so a screen can never show a carry that used the exemption without showing that it used
+it.
 
 **S5 OVERLAP.** The pre-refresh and post-refresh known intervals overlap, the overlap is
 non-degenerate, and it contains both the pre-refresh mid and the post-refresh mid. At least one
@@ -253,6 +256,16 @@ contract kind with an open event vocabulary) and in the collector's compact stat
 * the carried identities themselves, bounded and with a `truncated` flag, so the carry is
   auditable from the journal alone
 
+Every REST snapshot response publishes, on the raw `snapshot` record and on the telemetry event
+that disposed of it:
+
+* `snapshot_request_id` and `refresh_attempt_id`: which request this answers, and which refresh
+  attempt owned that request if one did
+* `purpose`: `SOFT_REFRESH`, `HARD_RECOVERY` or `INITIAL_SYNC`
+* `response_disposition`: `APPLIED`, `DISCARDED_ABORTED`, `DISCARDED_EXPIRED` or
+  `DISCARDED_WRONG_OWNER`
+* `response_age_ms`: how long the response took from its own request
+
 ## Where a carry may be read from
 
 The ledger travels in the collector's compact state checkpoint and in the `wall_continuity`
@@ -285,6 +298,88 @@ differing levels should silently end a few hundred wall histories. The check kee
 job: it is computed on every swap, published on the transition, and gates nothing. Adding a
 threshold to it would be inventing a number, which is the thing this work refuses to do.
 
+## Snapshot request ownership
+
+Every REST snapshot request carries an identity, and a response may only be installed by the
+attempt that asked for it. Four facts are recorded when the request goes out and travel with the
+response: `snapshot_request_id`, `refresh_attempt_id` when a refresh owns it, `purpose` - one of
+`SOFT_REFRESH`, `HARD_RECOVERY`, `INITIAL_SYNC` - and the request's `state`, one of `ACTIVE`,
+`APPLIED`, `ABORTED`, `EXPIRED`.
+
+The rule:
+
+* A response whose request is **not** `ACTIVE` is discarded. It is never installed, never
+  promoted to the recovery path, and never reused by a later attempt.
+* A `SOFT_REFRESH` response may reach the live book only through the staged swap, and only while
+  the attempt that requested it is still the collector's current attempt. If that attempt was
+  abandoned for any reason - its deadline, a fault on the live chain, a buffer overflow, a hole
+  in the replay - the response is discarded even when the live book has meanwhile become
+  unusable and a snapshot is exactly what the recovery path wants. The recovery path asks for its
+  own, with its own identity.
+* A `HARD_RECOVERY` response may be installed only by the HARD attempt that issued it, and an
+  `INITIAL_SYNC` response only by the initial attempt that issued it.
+* A request still outstanding when a newer request is issued becomes `EXPIRED` at once, so two
+  outstanding requests can never both be installable.
+* A `SOFT_REFRESH` response older than the staged deadline (1,000 ms) is `EXPIRED` even if
+  nothing else ended its attempt.
+* A recovery or initial response has **no age limit**. Whether it can still be used is decided by
+  the chain rule in `apply_snapshot` and by what the prefix buffer can bridge, which are
+  measurements rather than a clock; and the book it would replace is already unusable, so there
+  is nothing it can roll back.
+
+Why this belongs in a continuity rule and not only in an operations note. The defect it closes
+was measured on 2026-10-04: a staged refresh abandoned at its 1,000 ms deadline left its snapshot
+in flight, the response arrived to find no refresh in progress, and the generic recovery path
+installed it onto a **healthy** book with no newer-check. The book moved back about 141,000
+update ids and the next frame was a `GAP_FIRST_DELTA`. That is an S2 fault manufactured by the
+collector itself - the gap it then recovers from never happened on the wire - and a rule whose
+default is HARD must not be allowed to generate its own HARD transitions.
+
+What a discarded response may change: nothing. The live book's levels, bounds, `last_update_id`,
+`generation` and invalidation state are untouched, and the discard does not ask for a recovery of
+its own. If a recovery is due, the fault that invalidated the book already asked for it. Every
+response publishes its `response_disposition` - `APPLIED`, `DISCARDED_ABORTED`,
+`DISCARDED_EXPIRED` or `DISCARDED_WRONG_OWNER` - next to the request id, the attempt id, the
+purpose and the response's age in milliseconds.
+
+## Refresh floors, per trigger
+
+A coverage-edge refresh exists to keep the ±0.1% band's COMPLETE claim true. It is a data quality
+guarantee and not strategy logic: nothing reads it to decide anything, no order path is reachable
+from it, and the only thing it can affect is whether the viewer is allowed to call a band
+COMPLETE.
+
+v1 to v4 put a single floor under both voluntary triggers - 300 s between successful refreshes -
+justified by what a generation transition costs the wall ledger. v5 separates them:
+
+| trigger | floor between successful refreshes |
+|---|---|
+| `coverage_edge` | **10 s** |
+| `safety_refresh` | 300 s, and it is hourly in any case |
+| fault-driven recovery | none; immediate, as the contract has always required |
+
+Why the coverage floor moved. The 300 s floor was measured breaking the promise it was supposed
+to be worth paying for. In 30 natural minutes on 2026-10-04 the coverage margin was negative for
+72 seconds, worst case -1.85 bp, and the whole negative stretch sat inside one cooldown: the
+refresh installed at t=406 s, the margin left the trigger at t=544 s, and it recovered the moment
+the cooldown expired at t=707 s. A floor that makes the band's COMPLETE claim false is not a
+conservative setting, it is a wrong one.
+
+What the 300 s floor protected was wall observation, and that argument is weaker than it was when
+v1 set it. A coverage refresh is now staged, and a staged refresh that passes the five gates
+carries its candidates instead of ending them - measured at 92.5% carried across 33 transitions.
+The cost of a refresh is no longer a whole history. It is still not zero, which is why there is
+still a floor, and why both the floor and the count of refreshes that used it are published.
+
+What has **not** changed: one staged refresh at a time; a failed attempt consumes no floor and
+takes the 10 s backoff; consecutive failures are counted and published as a storm; and a
+successful coverage refresh starts its floor at the swap, not at the request.
+
+A refresh that installs and still leaves the margin below the trigger is published as such. That
+is evidence, not a gate: the collector keeps refreshing, because the band's claim is the thing
+being protected, and a book whose own bounds cannot cover ±0.1% is a fact an operator needs to
+see rather than one the collector should hide by backing off.
+
 ## What this rule still does not do
 
 No direction. No rating or composite number of any kind. No spoofing, absorption or iceberg
@@ -300,9 +395,11 @@ is nothing in this rule an operator can move from a screen.
 
 Nothing. A staged refresh that cannot reach S3 is abandoned: the live book keeps its levels, its
 bounds, its ids and its generation, no wall observation ends, and no `wall` record is written. So
-a failure is not allowed to consume the 300 s cooldown either - that floor exists to bound how
-often a **successful** refresh destroys wall observation, and an attempt that changed nothing
-destroyed nothing. A failed attempt takes a short backoff instead.
+a failure is not allowed to consume its trigger's floor either - a floor exists to bound how
+often a **successful** refresh costs the wall ledger a transition, and an attempt that changed
+nothing cost nothing. A failed attempt takes the 10 s backoff instead. A response that arrives
+after its attempt has been abandoned costs nothing either, and may not be installed: see
+**Snapshot request ownership**.
 
 This is not a licence to retry without limit: consecutive failures are counted and published, so
 a refresh that can never succeed is visible as a pattern rather than as a trickle of single
@@ -310,7 +407,33 @@ failures nobody adds up.
 
 ## Changelog
 
-**v4 (2026-10-04, this document).** One change, and it is to when S4 applies rather than to what
+**v5 (2026-10-04, this document).** Two changes - one to the install path, one to a floor - and
+one editorial correction:
+
+1. **Snapshot request ownership.** Every REST snapshot request carries an id, a purpose and a
+   state, and a response may be installed only by the attempt that asked for it. A response whose
+   request is no longer `ACTIVE` is discarded, never promoted to the recovery path and never
+   reused by a later attempt. The section above states it exactly. This closes a measured defect
+   in which an abandoned staged attempt's late snapshot was installed onto a healthy book by the
+   recovery path, rolling it back about 141,000 update ids and producing a gap that never
+   happened on the wire.
+2. **The coverage-edge floor is 10 s, not 300 s.** The safety refresh keeps the 300 s floor on
+   top of its hourly interval, and fault-driven recovery stays immediate. What the old floor was
+   measured costing, and why a staged refresh no longer justifies it, are in the section above.
+3. Editorial: the sentence under S4 said a transition publishes "which of the three cases its
+   window was in" and then named three, while the published field has four values - `NOT_MEASURED`
+   was missing from the sentence though not from the telemetry section. Corrected to four. No
+   rule changed.
+
+Unchanged in v5, explicitly: S1, S2, S3, S4 and S5, including the 300 ms window value and the v4
+exemption with all five of its conditions; HARD as the default and the exhaustive HARD list; the
+per-candidate verdicts; the bin-level identity rule; the effect on R4; every `lm-wall.v2`
+threshold and the 500,000 USDT display filter; the session boundary being HARD; a journal
+reconstruction carrying nothing; a failed refresh consuming no floor and taking the 10 s backoff;
+one staged refresh at a time and the 1,000 ms staged deadline; and the replay divergence check
+remaining evidence rather than a gate.
+
+**v4 (2026-10-04).** One change, and it is to when S4 applies rather than to what
 it says:
 
 1. **S4 BOUNDED WINDOW gains one exemption.** A staged refresh whose chain was preserved, and

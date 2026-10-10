@@ -25,6 +25,7 @@ from app.crypto.market_structure_v0.envelope import Session
 from app.crypto.market_structure_v0.store import Store
 
 from tests.crypto.ms_v0_fixtures import depth_frame
+from tests.crypto.ms_v0_fixtures import snapshot as thin_snapshot
 from tests.crypto.liquidity_map_fixtures import wall_snapshot
 
 S = 1_000_000_000
@@ -110,20 +111,20 @@ def test_mid_drifting_towards_the_snapshot_bound_asks_for_a_refresh(running):
     assert collector.refresh_wanted is True and collector.coverage_refreshes == 1
 
 
-def test_the_cooldown_follows_the_refresh_that_installed_not_the_one_that_asked(running):
-    """V1.3 moved the cooldown clock from the request to the swap.
+def test_the_floor_follows_the_refresh_that_installed_not_the_one_that_asked(running):
+    """V1.3 moved the floor clock from the request to the swap.
 
-    The 300 s floor exists to bound how often a *successful* refresh destroys wall observation.
+    A floor exists to bound how often a *successful* refresh costs the wall ledger a transition.
     V1.1 started it when the refresh was requested, so an attempt that never installed still cost
-    five minutes of unguarded band - measured twice in 23 minutes on a moving book, while the
-    margin went negative. Here the request is made and nothing installs, so the only thing
-    standing between this attempt and the next is the short failure backoff.
+    minutes of unguarded band - measured twice in 23 minutes on a moving book, while the margin
+    went negative. Here the request is made and nothing installs, so the only thing standing
+    between this attempt and the next is the short failure backoff.
     """
     collector, base_ms, base_ns = running
     move_mid(collector, to="84800", receive_ms=base_ms + 1_000, mono_ns=base_ns + S)
     assert collector.check_resnapshot_policy(at_ns=base_ns + S,
                                              at_ms=base_ms + 1_000) == C.REFRESH_COVERAGE_EDGE
-    assert collector.last_coverage_refresh_ns is None, "asking is not installing"
+    assert collector.last_refresh_applied_ns == {}, "asking is not installing"
 
     collector.abandon_refresh("TEST", receive_ms=base_ms + 1_100, mono_ns=base_ns + 11 * 10 ** 8)
     # Inside the backoff, nothing is asked for again.
@@ -138,8 +139,14 @@ def test_the_cooldown_follows_the_refresh_that_installed_not_the_one_that_asked(
     assert collector.refresh_failures == 1
 
 
-def test_an_installed_refresh_does_take_the_full_cooldown(running):
-    """The other half: what the 300 s floor is actually for."""
+def test_an_installed_coverage_refresh_takes_ten_seconds_and_not_five_minutes(running):
+    """The other half, and the V1.5 change: the coverage floor is 10 s.
+
+    V1.1 to V1.4 put 300 s here, and that floor was measured breaking the promise it was meant
+    to protect: 72 consecutive seconds of negative margin in 30 natural minutes, the whole
+    stretch inside one cooldown. The trigger is live throughout this test, so what is being
+    measured is the floor and nothing else.
+    """
     collector, base_ms, base_ns = running
     move_mid(collector, to="84800", receive_ms=base_ms + 500, mono_ns=base_ns + 5 * 10 ** 8)
     collector.check_resnapshot_policy(at_ns=base_ns + S, at_ms=base_ms + 1_000)
@@ -149,16 +156,102 @@ def test_an_installed_refresh_does_take_the_full_cooldown(running):
         receive_ms=base_ms + 1_100, mono_ns=base_ns + 11 * 10 ** 8,
         request_ms=base_ms + 1_000, request_mono_ns=base_ns + S)
     assert collector.refreshes_applied == 1
-    assert collector.last_coverage_refresh_ns is not None
+    assert C.REFRESH_COVERAGE_EDGE in collector.last_refresh_applied_ns
     # `move_mid`'s frame has to chain onto the book, which the swap left where it was.
     move_mid(collector, to="84815", receive_ms=base_ms + 2_000, mono_ns=base_ns + 2 * S,
              last_u=collector.depth.last_update_id + 6)
     margin = collector.coverage_margin_bps()
     assert margin is not None and margin < C.COVERAGE_MARGIN_TRIGGER_BPS, (
-        "the trigger has to be live, or the cooldown is not what is holding it back")
-    for second in (30, 120, 299):
+        "the trigger has to be live, or the floor is not what is holding it back")
+    for second in (2, 5, 10):
         assert collector.check_resnapshot_policy(at_ns=base_ns + second * S,
                                                  at_ms=base_ms + second * 1_000) is None
+    # Eleven seconds after the swap, which is 289 seconds before v4 would have allowed it.
+    assert collector.check_resnapshot_policy(
+        at_ns=base_ns + 12 * S, at_ms=base_ms + 12_000) == C.REFRESH_COVERAGE_EDGE
+    assert collector.coverage_refreshes == 2
+
+
+def test_a_successful_coverage_refresh_does_not_create_a_five_minute_lock(running):
+    """The v1-to-v4 behaviour, stated as the thing that must no longer happen.
+
+    299 seconds after an installed refresh, v4 was still refusing. The assertion is written at
+    both ends - free at 11 s and still free at 299 s - so a future floor change between the two
+    cannot pass this test by accident.
+    """
+    collector, base_ms, base_ns = running
+    move_mid(collector, to="84800", receive_ms=base_ms + 500, mono_ns=base_ns + 5 * 10 ** 8)
+    collector.check_resnapshot_policy(at_ns=base_ns + S, at_ms=base_ms + 1_000)
+    collector.mark_snapshot_requested(receive_ms=base_ms + 1_000, mono_ns=base_ns + S)
+    collector.on_snapshot(
+        dict(wall_snapshot(), lastUpdateId=collector.depth.last_update_id),
+        receive_ms=base_ms + 1_100, mono_ns=base_ns + 11 * 10 ** 8,
+        request_ms=base_ms + 1_000, request_mono_ns=base_ns + S)
+    assert collector.refreshes_applied == 1
+    swap_ns = base_ns + 11 * 10 ** 8
+    assert collector.refresh_floor_remaining_s(C.REFRESH_COVERAGE_EDGE,
+                                               at_ns=swap_ns + 11 * S) == 0.0
+    assert collector.refresh_floor_remaining_s(C.REFRESH_COVERAGE_EDGE,
+                                               at_ns=swap_ns + 299 * S) == 0.0
+    # And the floor really is 10 s rather than absent: one second after the swap it holds.
+    assert collector.refresh_floor_remaining_s(
+        C.REFRESH_COVERAGE_EDGE, at_ns=swap_ns + S) == pytest.approx(9.0)
+
+
+def test_the_safety_trigger_keeps_the_three_hundred_second_floor(running):
+    """V1.5 separated the floors rather than removing one, so this one is still 300 s.
+
+    It cannot bind in practice - the trigger itself needs an hour on one snapshot - so it is
+    measured directly rather than through a scenario that cannot happen.
+    """
+    collector, base_ms, base_ns = running
+    installed_ns = base_ns + S
+    collector.last_refresh_applied_ns[C.REFRESH_SAFETY] = installed_ns
+    assert collector.refresh_floor_remaining_s(
+        C.REFRESH_SAFETY, at_ns=installed_ns + S) == pytest.approx(299.0)
+    assert collector.refresh_floor_remaining_s(C.REFRESH_SAFETY,
+                                               at_ns=installed_ns + 301 * S) == 0.0
+    # Through the policy: an hour has passed on the snapshot, but the safety floor has not.
+    collector.last_snapshot_ns = installed_ns - int(C.SAFETY_REFRESH_S * 1e9)
+    inside = installed_ns + 100 * S
+    assert collector.check_resnapshot_policy(at_ns=inside, at_ms=base_ms + 100_000) is None
+    outside = installed_ns + 301 * S
+    assert collector.check_resnapshot_policy(
+        at_ns=outside, at_ms=base_ms + 301_000) == C.REFRESH_SAFETY
+    assert collector.safety_refreshes == 1
+
+
+def test_a_refresh_that_installs_and_still_cannot_cover_the_band_says_so(running):
+    """Evidence, not a gate: the 10 s floor keeps applying and the futility is published.
+
+    The snapshot installed here is five levels deep each side, so its own bounds sit 5.3 bps
+    from its own mid: it installs correctly, it recentres nothing, and +-0.1% is still outside
+    the known interval afterwards. A thin book is the real shape of this - a `limit=1000` read
+    only reaches +-0.15% when there are 1,000 levels to reach it with.
+    """
+    collector, base_ms, base_ns = running
+    sink = []
+    collector.sink = sink.append
+    move_mid(collector, to="84800", receive_ms=base_ms + 500, mono_ns=base_ns + 5 * 10 ** 8)
+    collector.check_resnapshot_policy(at_ns=base_ns + S, at_ms=base_ms + 1_000)
+    collector.mark_snapshot_requested(receive_ms=base_ms + 1_000, mono_ns=base_ns + S)
+    collector.on_snapshot(
+        dict(thin_snapshot(levels=5), lastUpdateId=collector.depth.last_update_id),
+        receive_ms=base_ms + 1_100, mono_ns=base_ns + 11 * 10 ** 8,
+        request_ms=base_ms + 1_000, request_mono_ns=base_ns + S)
+    assert collector.refreshes_applied == 1
+    margin = collector.coverage_margin_bps()
+    assert margin is not None and margin < C.COVERAGE_MARGIN_TRIGGER_BPS
+    events = [record["payload"] for record in sink
+              if record["kind"] == "telemetry"
+              and record["payload"]["event"] == C.REFRESH_INEFFECTIVE]
+    assert len(events) == 1
+    assert events[0]["reason"] == C.REFRESH_COVERAGE_EDGE
+    assert events[0]["min_interval_s"] == C.COVERAGE_REFRESH_MIN_INTERVAL_S
+    # And the policy is not backing off: ten seconds later it asks again.
+    later = base_ns + 12 * S
+    assert collector.check_resnapshot_policy(
+        at_ns=later, at_ms=base_ms + 12_000) == C.REFRESH_COVERAGE_EDGE
 
 
 def test_the_trigger_is_recorded_with_the_margin_that_produced_it(running):
@@ -183,12 +276,23 @@ def test_an_hour_on_one_snapshot_asks_for_a_fresh_one(running):
     assert collector.safety_refreshes == 1
 
 
-def test_the_safety_interval_is_an_hour_and_the_cooldown_is_five_minutes():
-    """Both are bounded by the wall history a resnapshot destroys, not by API weight."""
+def test_the_two_triggers_keep_their_own_floors():
+    """V1.5 separated them. The safety floor is kept and the coverage one is 10 s.
+
+    Neither is bounded by API weight: a `limit=1000` read is weight 20 against 2,400 a minute,
+    so even one every 10 s is 5% of the budget. What they bound is the wall ledger, and for the
+    coverage trigger that cost is now mostly carried rather than destroyed.
+    """
     assert C.SAFETY_REFRESH_S == 3_600.0
-    assert C.COVERAGE_REFRESH_COOLDOWN_S == 300.0
+    assert C.COVERAGE_REFRESH_MIN_INTERVAL_S == 10.0
+    assert C.SAFETY_REFRESH_MIN_INTERVAL_S == 300.0
+    assert C.REFRESH_MIN_INTERVAL_S == {C.REFRESH_COVERAGE_EDGE: 10.0,
+                                        C.REFRESH_SAFETY: 300.0}
     assert C.PROTECTED_BAND_BPS == Decimal("10")
     assert C.COVERAGE_MARGIN_TRIGGER_BPS == Decimal("1.0")
+    assert not hasattr(C, "COVERAGE_REFRESH_COOLDOWN_S"), (
+        "the single shared cooldown is gone, not renamed: a constant that still existed would "
+        "be read as the policy by the next reader")
 
 
 # --- the request, and refusing one that would make things worse -------------------------------

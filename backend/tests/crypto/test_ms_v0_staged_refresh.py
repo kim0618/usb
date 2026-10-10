@@ -402,27 +402,33 @@ def test_samples_keep_producing_candidates_across_a_staged_refresh(live):
     assert summary["wall_carried"] == before
 
 
-# --- cooldown, backoff, storms and concurrency ---------------------------------------------
+# --- floors, backoff, storms and concurrency ------------------------------------------------
 
-def test_a_failed_refresh_consumes_no_cooldown_and_takes_the_short_backoff(live):
+def test_a_failed_refresh_consumes_no_floor_and_takes_the_short_backoff(live):
     collector, base_ms, base_ns = live
     request_ms, request_ns = request(collector, 2, base_ms, base_ns)
-    assert collector.last_coverage_refresh_ns is None
+    assert collector.last_refresh_applied_ns == {}
     collector.on_snapshot_failed("TimeoutError", receive_ms=request_ms + 100,
                                  mono_ns=request_ns + 10 ** 8)
-    assert collector.last_coverage_refresh_ns is None, "a failure costs no cooldown"
+    assert collector.last_refresh_applied_ns == {}, "a failure costs no floor"
     assert collector.refresh_retry_after_ns is not None
     backoff = (collector.refresh_retry_after_ns - (request_ns + 10 ** 8)) / 1e9
     assert backoff == pytest.approx(C.REFRESH_RETRY_BACKOFF_S)
-    assert C.REFRESH_RETRY_BACKOFF_S < C.COVERAGE_REFRESH_COOLDOWN_S
+    # V1.5 made the two the same length, which is the point: an attempt that changed nothing and
+    # an attempt that cost a generation now wait the same 10 s, and neither waits five minutes.
+    assert C.REFRESH_RETRY_BACKOFF_S == C.COVERAGE_REFRESH_MIN_INTERVAL_S
 
 
-def test_an_applied_refresh_starts_the_cooldown(live):
+def test_an_applied_refresh_starts_its_own_triggers_floor_and_no_other(live):
+    """V1.5: the floors are per trigger, and one trigger cannot spend another's."""
     collector, base_ms, base_ns = live
     request_ms, request_ns = request(collector, 2, base_ms, base_ns)
     deliver(collector, request_ms, request_ns,
             last_update_id=collector.depth.last_update_id)
-    assert collector.last_coverage_refresh_ns is not None
+    assert set(collector.last_refresh_applied_ns) == {C.REFRESH_COVERAGE_EDGE}
+    at_ns = request_ns + 10 ** 8
+    assert collector.refresh_floor_remaining_s(C.REFRESH_COVERAGE_EDGE, at_ns=at_ns) > 0
+    assert collector.refresh_floor_remaining_s(C.REFRESH_SAFETY, at_ns=at_ns) == 0.0
     assert collector.refresh_retry_after_ns is None
     assert collector.refresh_failures == 0
 

@@ -78,7 +78,7 @@ def test_the_frozen_document_is_present_and_its_recorded_hash_still_agrees():
     identity = CN.rule_identity()
     assert identity["status"] == "PRESENT"
     assert identity["sha256_agrees"] is True, "the frozen rule changed without a new version"
-    assert identity["rule_version"] == "lm-continuity.v4"
+    assert identity["rule_version"] == "lm-continuity.v5"
     assert len(identity["rule_sha256"]) == 64
 
 
@@ -98,15 +98,18 @@ def test_the_document_states_the_gates_the_code_requires():
 def test_the_document_records_what_each_version_bump_changed():
     """A version that moved without saying what moved is a silent edit with extra steps."""
     text = " ".join(CN.rule_path().read_text(encoding="utf-8").split())
-    assert "Supersedes `lm-continuity.v3`" in text
+    assert "Supersedes `lm-continuity.v4`" in text
+    assert "0ed46edcc0a58957b99cc14bf5b8bba92a4111eb94026b7353311042e58327b3" in text
     assert "9637ef1be41e9eb679eb50634990801b28677fc5122bcca35ba956bd4d17231d" in text
     assert "596339b66cc170b4bd1550b93e44f63e35f81c13e28f833dc9a446e67b691576" in text
     assert "d68a26ce2a170d5549f5e8bec5db02b8fc91d7bfd489f31d97e39653a0148656" in text
     assert "S4 BOUNDED WINDOW: 1000 ms to 300 ms" in text
     assert "S3 NEWER became S3 CHAIN" in text
     assert "S4 BOUNDED WINDOW gains one exemption" in text
+    assert "Snapshot request ownership" in text
+    assert "The coverage-edge floor is 10 s, not 300 s" in text
     assert ("Unchanged in v2" in text and "Unchanged in v3" in text
-            and "Unchanged in v4" in text)
+            and "Unchanged in v4" in text and "Unchanged in v5" in text)
 
 
 def test_the_document_states_the_staged_install_and_what_it_preserves():
@@ -373,7 +376,7 @@ def test_the_panel_says_so_when_the_collector_publishes_no_ledger():
     assert view["unavailable_reason"] == CN.NOT_CARRIED_NO_LEDGER
     assert view["active_carried_in_view"] == 0
     # The rule identity is still published: a drifted rule has to be visible either way.
-    assert view["rule"]["rule_version"] == "lm-continuity.v4"
+    assert view["rule"]["rule_version"] == "lm-continuity.v5"
 
 
 def test_the_panel_counts_the_carried_candidates_actually_in_the_view():

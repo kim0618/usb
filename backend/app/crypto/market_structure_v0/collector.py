@@ -71,6 +71,14 @@ SHUTDOWN = "shutdown"
 #: ledger. An added `event` on an existing contract kind, so the carry is auditable from the
 #: journal alone without a `wall` payload changing shape.
 WALL_CONTINUITY = "wall_continuity"
+#: Liquidity Map V1.5: a REST snapshot response that was *not* installed, and who owned the
+#: request it answers. The event exists because the alternative to publishing a discard is a
+#: silence that looks exactly like a read that never happened.
+SNAPSHOT_DISCARDED = "snapshot_discarded"
+#: Liquidity Map V1.5: a coverage refresh that installed and still left the margin under the
+#: trigger. Evidence, not a gate: the collector keeps refreshing, because the band's COMPLETE
+#: claim is the thing being protected.
+REFRESH_INEFFECTIVE = "refresh_ineffective"
 
 DEPTH_STREAM = "depth"
 TRADE_STREAM = "trade"
@@ -113,11 +121,24 @@ PROTECTED_BAND_BPS = Decimal("10")
 #: snapshot just before the promise breaks rather than after.
 COVERAGE_MARGIN_TRIGGER_BPS = Decimal("1.0")
 
-#: Floor between two coverage-driven resnapshots. Without it, a market that oscillates across the
-#: trigger would resnapshot continuously and no candidate would ever accumulate persistence. With
-#: it, the worst case is one lost wall history per five minutes, and in between the affected band
-#: reports PARTIAL - which is true, and is what PARTIAL is for.
-COVERAGE_REFRESH_COOLDOWN_S = 300.0
+#: Floor between two coverage-driven resnapshots that **installed**. V1.1 to V1.4 set this at
+#: 300 s, on the ground that a transition ends every wall observation. V1.5 cuts it to 10 s,
+#: because the 300 s floor was measured breaking the promise it was supposed to be worth paying
+#: for: in 30 natural minutes on 2026-10-04 the margin was negative for 72 s, worst case
+#: -1.85 bp, and the whole negative stretch sat inside one cooldown - installed at t=406 s, out
+#: of the trigger at t=544 s, recovered the instant the cooldown expired at t=707 s. The cost
+#: side of that trade also shrank: a coverage refresh is staged now, and a staged refresh that
+#: passes the five continuity gates carries its candidates instead of ending them (92.5% across
+#: 33 measured transitions). The floor is not zero because a transition still costs the ledger
+#: something; it is 10 s because that is the shortest interval at which the band's COMPLETE
+#: claim can be kept true without the policy becoming a poll.
+COVERAGE_REFRESH_MIN_INTERVAL_S = 10.0
+
+#: Floor between two safety refreshes that installed. Unchanged at 300 s, and it never binds:
+#: the safety trigger itself needs 3,600 s on one snapshot. It is kept because `lm-continuity`
+#: separates the two triggers' floors rather than deleting one of them, and a floor that is
+#: stated and never reached is cheaper to reason about than one that was quietly dropped.
+SAFETY_REFRESH_MIN_INTERVAL_S = 300.0
 
 #: Conservative safety refresh: re-centre the known interval when no snapshot has been installed
 #: for this long. A snapshot's bounds are fixed at the moment it was taken while the book around
@@ -138,6 +159,13 @@ REFRESH_APPLIED = "refresh_applied"
 #: Consecutive failures have crossed a reporting step. Published so a refresh that can never
 #: succeed is visible as a pattern rather than as a slow trickle of single failures.
 REFRESH_STORM = "refresh_storm"
+
+#: The floor each voluntary trigger keeps between two of its own *installed* refreshes. A
+#: fault-driven recovery has no floor and never had one: the contract requires it immediately.
+REFRESH_MIN_INTERVAL_S = {
+    REFRESH_COVERAGE_EDGE: COVERAGE_REFRESH_MIN_INTERVAL_S,
+    REFRESH_SAFETY: SAFETY_REFRESH_MIN_INTERVAL_S,
+}
 
 # ----------------------------------------------------------------- staged refresh (V1.3)
 #
@@ -206,6 +234,54 @@ ABANDON_SUPERSEDED = "REFRESH_SUPERSEDED"
 ATTACH_STRADDLE = "FIRST_FRAME_STRADDLES_SNAPSHOT_ID"
 ATTACH_SUCCESSOR = "FIRST_FRAME_IS_IMMEDIATE_SUCCESSOR"
 
+# ----------------------------------------------------------------- request ownership (V1.5)
+#
+# V1.3 and V1.4 let a snapshot response be identified by nothing at all. `on_snapshot` asked
+# "is a refresh in flight?", and if the answer was no it handed the payload to the recovery
+# path. That is the whole defect: a staged attempt abandoned at its 1,000 ms deadline leaves its
+# REST read in flight, and when the response lands there is no refresh in progress any more, so
+# the recovery path installs a snapshot that is now **older than the live book** onto a book that
+# is perfectly healthy. Measured under forced delay: the book moved back about 141,000 update
+# ids and the next frame took `GAP_FIRST_DELTA`. The collector manufactured a gap that never
+# happened on the wire, and then recovered from it.
+#
+# So a request is an object with an owner, and a response can only be installed by the attempt
+# that asked for it. The rule is in `lm-continuity.v5` under "Snapshot request ownership"; what
+# the code adds is that the *only* path from a SOFT_REFRESH response to the live book is
+# `_swap_refresh`, and the only path from a HARD_RECOVERY or INITIAL_SYNC response is an install
+# whose request is still ACTIVE. There is deliberately no path that takes one purpose's response
+# and uses it for another purpose, including the case where the fall-through would have been
+# convenient: a refresh whose book faulted mid-flight no longer donates its snapshot to the
+# recovery that the fault asked for, because "convenient" is how the 141,000-id rollback got in.
+
+#: Why a snapshot was requested. One of these is fixed when the request goes out and never
+#: changes: a request cannot be reinterpreted on arrival.
+PURPOSE_SOFT_REFRESH = "SOFT_REFRESH"
+PURPOSE_HARD_RECOVERY = "HARD_RECOVERY"
+PURPOSE_INITIAL_SYNC = "INITIAL_SYNC"
+
+#: A request's lifecycle. Only ACTIVE may be installed.
+REQUEST_ACTIVE = "ACTIVE"
+REQUEST_APPLIED = "APPLIED"
+REQUEST_ABORTED = "ABORTED"
+REQUEST_EXPIRED = "EXPIRED"
+
+#: What happened to a response that arrived.
+RESPONSE_APPLIED = "APPLIED"
+RESPONSE_DISCARDED_ABORTED = "DISCARDED_ABORTED"
+RESPONSE_DISCARDED_EXPIRED = "DISCARDED_EXPIRED"
+RESPONSE_DISCARDED_WRONG_OWNER = "DISCARDED_WRONG_OWNER"
+
+#: Why a request stopped being installable, when it was not the owning attempt that ended it.
+EXPIRE_SUPERSEDED = "SUPERSEDED_BY_NEWER_REQUEST"
+EXPIRE_PAST_DEADLINE = "RESPONSE_PAST_REFRESH_DEADLINE"
+EXPIRE_ORPHANED = "OWNING_ATTEMPT_IS_NOT_THE_CURRENT_ONE"
+
+#: How many request records are kept so a late response can still be named rather than only
+#: refused. One request is outstanding at a time, so this is two orders of magnitude of history;
+#: it is bounded like every other buffer here.
+SNAPSHOT_REQUEST_HISTORY = 64
+
 #: Most resting candidates published in the compact state file, largest notional first. The
 #: contract bounds every other buffer in this collector and this is the same discipline; 2,000 is
 #: an order of magnitude above the 284 observed on a real book.
@@ -217,7 +293,11 @@ STATE_TELEMETRY_EVENTS = 12
 #: `continuity` section and six additive `continuity_*` fields on each wall row. A reader of the
 #: previous version sees a file it does not recognize rather than one it misreads, which is why
 #: this moves even though every addition is backwards compatible.
-STATE_VERSION = "ms-v0-state.v1-2"
+#: V1.5 (`v1-3`) moves it for the opposite reason: the `resnapshot` section's coverage keys were
+#: *replaced*, not added to. `coverage_cooldown_s` and `coverage_cooldown_remaining_s` are gone
+#: and the per-trigger floors took their place, so a v1-2 reader handed a v1-3 file would print a
+#: cooldown that no longer exists. It also adds the request-ownership fields.
+STATE_VERSION = "ms-v0-state.v1-3"
 
 
 @dataclass
@@ -249,6 +329,52 @@ class StreamState:
 
 
 @dataclass
+class SnapshotRequest:
+    """One REST snapshot request, and who is allowed to install its response.
+
+    The identity is the point. A response carries this request's id back, and the only thing
+    that may install it is the attempt named here while this record is still `ACTIVE`. Nothing
+    about a request is decided on arrival: the purpose is fixed when it goes out.
+    """
+
+    request_id: str
+    purpose: str
+    requested_ms: int
+    requested_ns: int
+    #: The staged attempt that owns this request, for `PURPOSE_SOFT_REFRESH`. None otherwise,
+    #: which is itself the check: a recovery response can never belong to a refresh.
+    refresh_attempt_id: str | None = None
+    #: The refresh trigger, when one asked. Kept so a discard can say what was being attempted.
+    reason: str | None = None
+    state: str = REQUEST_ACTIVE
+    #: Why it stopped being installable, when the owning attempt was not what ended it.
+    closed_reason: str | None = None
+    closed_ms: int | None = None
+    #: How the response was disposed of, once one arrived.
+    disposition: str | None = None
+    response_age_ms: int | None = None
+
+    def ownership(self) -> dict[str, Any]:
+        """The four facts `lm-continuity.v5` requires on every snapshot record."""
+        return {
+            "snapshot_request_id": self.request_id,
+            "refresh_attempt_id": self.refresh_attempt_id,
+            "purpose": self.purpose,
+            "request_state": self.state,
+        }
+
+    def view(self) -> dict[str, Any]:
+        published = self.ownership()
+        published.update({
+            "requested_ms": self.requested_ms, "trigger": self.reason,
+            "closed_reason": self.closed_reason, "closed_ms": self.closed_ms,
+            "response_disposition": self.disposition,
+            "response_age_ms": self.response_age_ms,
+        })
+        return published
+
+
+@dataclass
 class RefreshAttempt:
     """One staged voluntary refresh: its buffer, its second book, and how it ended.
 
@@ -257,6 +383,7 @@ class RefreshAttempt:
     serving exactly as it was.
     """
 
+    attempt_id: str
     reason: str
     requested_ms: int
     requested_ns: int
@@ -278,6 +405,9 @@ class RefreshAttempt:
     frames_after_snapshot: int = 0
     #: How the first frame after the snapshot attached to the staged book, once that is known.
     attachment: str | None = None
+    #: The request this attempt issued, once it has issued one. An attempt that was abandoned
+    #: before its request went out never has one, and a response can then belong to nothing.
+    request_id: str | None = None
     outcome: str | None = None
     failure: str | None = None
     swapped_ms: int | None = None
@@ -293,6 +423,8 @@ class RefreshAttempt:
         # `trigger` rather than `reason`: `reason` is the telemetry vocabulary's own field and
         # these views are splatted into telemetry calls that set it to the event's reason.
         return {
+            "refresh_attempt_id": self.attempt_id,
+            "snapshot_request_id": self.request_id,
             "trigger": self.reason, "state": self.state, "outcome": self.outcome,
             "failure": self.failure, "requested_ms": self.requested_ms,
             "generation_at_request": self.generation,
@@ -340,10 +472,23 @@ class Collector:
     refresh_retry_after_ns: int | None = None
     refreshes_applied: int = 0
     last_snapshot_ns: int | None = None
-    last_coverage_refresh_ns: int | None = None
+    #: When each voluntary trigger last **installed**, so its own floor can be measured. Keyed
+    #: by trigger, because V1.5 gives the two triggers different floors and a single timestamp
+    #: cannot carry two floors.
+    last_refresh_applied_ns: dict[str, int] = field(default_factory=dict)
     coverage_refreshes: int = 0
     safety_refreshes: int = 0
     refreshes_rejected: int = 0
+    #: Request ownership (V1.5). `snapshot_request` is the most recently issued request whatever
+    #: its state; `snapshot_requests` is the bounded history a late response is resolved against.
+    snapshot_request: "SnapshotRequest | None" = None
+    snapshot_requests: deque = field(
+        default_factory=lambda: deque(maxlen=SNAPSHOT_REQUEST_HISTORY))
+    snapshot_requests_issued: int = 0
+    refresh_attempts_started: int = 0
+    #: Responses that were not installed, by disposition. A counter rather than a flag because
+    #: "it happened once" and "it is happening every minute" are different situations.
+    snapshot_responses_discarded: dict[str, int] = field(default_factory=dict)
     #: The last generation transition this collector has already published the outcome of.
     #: Compared by identity, so a transition is reported exactly once.
     published_transition: dict[str, Any] | None = None
@@ -477,7 +622,130 @@ class Collector:
             self.record_refresh_frame(frame, receive_ms, mono_ns)
         return outcome
 
-    def mark_snapshot_requested(self, *, receive_ms: int, mono_ns: int) -> None:
+    # ------------------------------------------------------------------ request ownership
+
+    def _close_request(self, request: "SnapshotRequest | None", state: str,
+                       reason: str | None, *, receive_ms: int) -> None:
+        """End a request's life. Only an ACTIVE request can be closed, and only once.
+
+        First write wins, so the word that ended a request is the first thing that ended it:
+        a deadline abort that is later superseded still reads ABORTED.
+        """
+        if request is None or request.state != REQUEST_ACTIVE:
+            return
+        request.state = state
+        request.closed_reason = reason
+        request.closed_ms = receive_ms
+
+    def _request_by_id(self, request_id: str | None) -> "SnapshotRequest | None":
+        if request_id is None:
+            return None
+        for request in reversed(self.snapshot_requests):
+            if request.request_id == request_id:
+                return request
+        return None
+
+    def _resolve_request(self, request_id: str | None) -> "SnapshotRequest | None":
+        """Which request a response answers.
+
+        An explicit id is authority and is looked up in the bounded history, so a response from
+        two requests ago resolves to *that* request rather than to whatever is outstanding now.
+        A caller that passes no id gets the newest request, whatever state it is in - which is
+        what makes the ownership check work for a response that arrived after its request was
+        already aborted, and that is the measured defect this exists for.
+        """
+        if request_id is not None:
+            return self._request_by_id(request_id)
+        return self.snapshot_request
+
+    def _response_disposition(self, request: "SnapshotRequest | None", *,
+                              response_age_ms: int) -> tuple[str | None, str | None]:
+        """May this response be installed? Returns (disposition, reason), None to install.
+
+        Fail closed in both directions: a response nobody is waiting for may not touch a usable
+        book, and a response whose owner is gone may not be adopted by anybody else.
+        """
+        if request is None:
+            # Either nothing asked for this, or the request fell out of a 64-deep history. It is
+            # installable only when there is no usable book to damage, which is also the only
+            # situation in which it could help: a snapshot cannot roll back a book that is
+            # already UNSYNCED, and the fault that invalidated it is waiting for exactly this.
+            if self.depth.state == B.SYNCED:
+                return RESPONSE_DISCARDED_WRONG_OWNER, None
+            return None, None
+        if request.state == REQUEST_ABORTED:
+            return RESPONSE_DISCARDED_ABORTED, None
+        if request.state == REQUEST_EXPIRED:
+            return RESPONSE_DISCARDED_EXPIRED, None
+        if request.state == REQUEST_APPLIED:
+            # A second delivery of a request that was already answered.
+            return RESPONSE_DISCARDED_WRONG_OWNER, None
+        if request is not self.snapshot_request:
+            # ACTIVE but not the newest: impossible through `mark_snapshot_requested`, which
+            # supersedes, so reaching this means a caller built a request another way.
+            return RESPONSE_DISCARDED_WRONG_OWNER, None
+        if request.purpose != PURPOSE_SOFT_REFRESH:
+            return None, None
+        if self.refresh is None or self.refresh.attempt_id != request.refresh_attempt_id:
+            # The attempt that asked is no longer the collector's attempt. `abandon_refresh`
+            # normally closes the request on its way out, so this is the belt to that braces.
+            return RESPONSE_DISCARDED_EXPIRED, EXPIRE_ORPHANED
+        if response_age_ms > REFRESH_DEADLINE_MS:
+            return RESPONSE_DISCARDED_EXPIRED, EXPIRE_PAST_DEADLINE
+        return None, None
+
+    def _unowned_ownership(self, request_id: str | None) -> dict[str, Any]:
+        return {"snapshot_request_id": request_id, "refresh_attempt_id": None,
+                "purpose": None, "request_state": None}
+
+    def _discard_snapshot(self, request: "SnapshotRequest | None", payload: dict[str, Any],
+                          disposition: str, closed_reason: str | None, *, receive_ms: int,
+                          mono_ns: int, response_age_ms: int,
+                          request_id: str | None) -> None:
+        """Record a response that may not be installed, and change nothing else.
+
+        The live book is not a parameter of this and neither is `snapshot_wanted`. That is the
+        whole fix: a late response has no way to move the chain, bump the generation, or ask for
+        a recovery of its own. If a recovery is due, the fault that invalidated the book asked
+        for it and that request has its own identity.
+        """
+        self.snapshot_responses_discarded[disposition] = (
+            self.snapshot_responses_discarded.get(disposition, 0) + 1)
+        if request is not None:
+            self._close_request(request, REQUEST_EXPIRED, closed_reason, receive_ms=receive_ms)
+            request.disposition = disposition
+            request.response_age_ms = response_age_ms
+        detail = request.view() if request is not None else self._unowned_ownership(request_id)
+        snapshot_update_id: int | None
+        try:
+            snapshot_update_id = int(payload["lastUpdateId"])
+        except (KeyError, TypeError, ValueError):
+            snapshot_update_id = None
+        live = self.depth.last_update_id
+        detail.update({
+            "response_disposition": disposition,
+            "response_age_ms": response_age_ms,
+            "snapshot_update_id": snapshot_update_id,
+            "live_last_update_id": live,
+            # What installing it would have cost, which is the number that makes the discard
+            # worth publishing rather than only counting.
+            "would_have_rolled_back_ids": (
+                None if snapshot_update_id is None or live is None
+                else max(0, live - snapshot_update_id)),
+            "live_book_state": self.depth.state,
+            "generation": self.depth.generation,
+        })
+        self.telemetry(SNAPSHOT_DISCARDED, stream=DEPTH_STREAM, receive_ms=receive_ms,
+                       mono_ns=mono_ns, reason=disposition, **detail)
+
+    def mark_snapshot_requested(self, *, receive_ms: int,
+                                mono_ns: int) -> "SnapshotRequest":
+        """Issue one REST request, with an owner and a purpose that cannot change on arrival.
+
+        Returns the request so the runner can carry its id back with the response. The purpose is
+        decided here and only here: a read that began as a refresh of a healthy book and arrived
+        after that book was invalidated is not a recovery, it is an abandoned refresh.
+        """
         self.snapshot_in_flight = True
         # A voluntary refresh is only a refresh while the book it would replace is still usable.
         # If the book has since been invalidated, this request is the ordinary recovery path and
@@ -485,30 +753,70 @@ class Collector:
         self.refresh_in_flight = bool(self.refresh_wanted and self.refresh is not None
                                       and self.depth.state == B.SYNCED)
         reason = self.refresh_reason if self.refresh_in_flight else None
+        attempt = self.refresh if self.refresh_in_flight else None
         if self.refresh is not None and not self.refresh_in_flight:
             self.abandon_refresh(ABANDON_BOOK_UNUSABLE, receive_ms=receive_ms, mono_ns=mono_ns)
+        # Whatever was outstanding stops being installable the moment a newer request exists.
+        self._close_request(self.snapshot_request, REQUEST_EXPIRED, EXPIRE_SUPERSEDED,
+                            receive_ms=receive_ms)
+        if self.refresh_in_flight:
+            purpose = PURPOSE_SOFT_REFRESH
+        elif self.last_snapshot_ns is None:
+            # No snapshot has ever been installed in this session. Not `depth.snapshot_update_id`,
+            # which `invalidate` clears, so a book that faulted would keep looking like a
+            # cold start and a recovery would be filed as one.
+            purpose = PURPOSE_INITIAL_SYNC
+        else:
+            purpose = PURPOSE_HARD_RECOVERY
+        self.snapshot_requests_issued += 1
+        request = SnapshotRequest(
+            request_id=f"snapshot-{self.snapshot_requests_issued}", purpose=purpose,
+            requested_ms=receive_ms, requested_ns=mono_ns, reason=reason,
+            refresh_attempt_id=None if attempt is None else attempt.attempt_id)
+        if attempt is not None:
+            attempt.request_id = request.request_id
+        self.snapshot_request = request
+        self.snapshot_requests.append(request)
         self.snapshot_wanted = False
         self.refresh_wanted = False
         self.telemetry(SNAPSHOT_REQUEST, stream=DEPTH_STREAM, receive_ms=receive_ms,
                        mono_ns=mono_ns, url=DEPTH_REST_URL, limit=DEPTH_REST_LIMIT,
                        generation=self.depth.generation, voluntary=self.refresh_in_flight,
-                       reason=reason)
+                       reason=reason, **request.ownership())
+        return request
 
-    def on_snapshot_failed(self, reason: str, *, receive_ms: int, mono_ns: int) -> None:
-        self.snapshot_in_flight = False
+    def on_snapshot_failed(self, reason: str, *, receive_ms: int, mono_ns: int,
+                           request_id: str | None = None) -> None:
+        request = self._resolve_request(request_id)
+        # Only the newest request's answer clears the in-flight flag. A response from an older
+        # request must not make the collector think the read it is still waiting for came back.
+        if request is None or request is self.snapshot_request:
+            self.snapshot_in_flight = False
+        owned_by_current_attempt = (
+            request is not None and request.purpose == PURPOSE_SOFT_REFRESH
+            and request.state == REQUEST_ACTIVE and self.refresh is not None
+            and self.refresh.attempt_id == request.refresh_attempt_id)
+        ownership = (request.ownership() if request is not None
+                     else self._unowned_ownership(request_id))
         # A failed *voluntary* refresh leaves a usable book in place, so it must not set
         # `snapshot_wanted`: that would ask the recovery path to replace a book that is fine.
         # It is simply dropped, and the next policy check will ask again if it still applies.
-        if self.refresh_in_flight:
+        if owned_by_current_attempt:
             self.refresh_in_flight = False
             self.telemetry(SNAPSHOT_FAILED, stream=DEPTH_STREAM, receive_ms=receive_ms,
-                           mono_ns=mono_ns, reason=reason, voluntary=True)
+                           mono_ns=mono_ns, reason=reason, voluntary=True, **ownership)
+            # `abandon_refresh` closes the request, so the word that ended it is the failure.
             self.abandon_refresh(ABANDON_SNAPSHOT_FAILED, receive_ms=receive_ms,
                                  mono_ns=mono_ns)
             return
-        self.snapshot_wanted = True
+        self._close_request(request, REQUEST_ABORTED, ABANDON_SNAPSHOT_FAILED,
+                            receive_ms=receive_ms)
+        # A failure on a request whose SOFT attempt is already gone is not a reason to run the
+        # recovery path: the book it would have refreshed is still the book that is serving.
+        if request is None or request.purpose != PURPOSE_SOFT_REFRESH:
+            self.snapshot_wanted = True
         self.telemetry(SNAPSHOT_FAILED, stream=DEPTH_STREAM, receive_ms=receive_ms,
-                       mono_ns=mono_ns, reason=reason)
+                       mono_ns=mono_ns, reason=reason, **ownership)
 
     def _book_window(self) -> W.BookWindow:
         """The book as a continuity proof needs to see it, with the levels copied.
@@ -552,23 +860,60 @@ class Collector:
         return proof
 
     def on_snapshot(self, payload: dict[str, Any], *, receive_ms: int, mono_ns: int,
-                    request_ms: int, request_mono_ns: int) -> str:
-        """Store the raw snapshot with its request and receive times, then install it."""
-        self.snapshot_in_flight = False
+                    request_ms: int, request_mono_ns: int,
+                    request_id: str | None = None) -> str:
+        """Store the raw snapshot with its request and receive times, then install it.
+
+        Ownership is resolved here, once, before anything else looks at the payload. Three
+        outcomes and no fourth: the owner installs it, the staged swap installs it, or it is
+        discarded with the live book untouched.
+        """
         buffered = len(self.depth.buffer)
+        response_age_ms = max(0, (mono_ns - request_mono_ns) // 1_000_000)
+        request = self._resolve_request(request_id)
+        # Only the newest request's answer clears the in-flight flag; see `on_snapshot_failed`.
+        if request is None or request is self.snapshot_request:
+            self.snapshot_in_flight = False
+        disposition, closed_reason = self._response_disposition(
+            request, response_age_ms=response_age_ms)
+        ownership = (request.ownership() if request is not None
+                     else self._unowned_ownership(request_id))
         self.emit("snapshot", {
             "request_ms": request_ms,
             "request_mono_ns": request_mono_ns,
             "receive_ms": receive_ms,
-            "round_trip_ms": max(0, (mono_ns - request_mono_ns) // 1_000_000),
+            "round_trip_ms": response_age_ms,
             "url": DEPTH_REST_URL,
             "limit": DEPTH_REST_LIMIT,
             "buffered_frames": buffered,
+            # `APPLIED` here means the response reached the attempt that asked for it. Whether
+            # that attempt then swapped is `refresh_applied` or `refresh_rejected`, which is a
+            # different question and has its own records.
+            "response_disposition": disposition or RESPONSE_APPLIED,
+            "response_age_ms": response_age_ms,
+            **ownership,
+            # The raw stream is the replay authority, so a read that happened is written down
+            # even when it was refused - and then it has to say that it was refused, because a
+            # replay that applied every `snapshot` record it found would reproduce the exact
+            # defect this guard exists to prevent.
+            **({} if disposition is None else {
+                "not_applied_note": (
+                    "this response was not applied to the live book; a replay must honour "
+                    "response_disposition rather than installing every snapshot record")}),
             "response": payload,
         }, receive_ms=receive_ms, mono_ns=mono_ns,
             connection_id=self.depth_stream.connection_id)
 
-        if self.refresh_in_flight and self.refresh is not None:
+        if disposition is not None:
+            self._discard_snapshot(request, payload, disposition, closed_reason,
+                                   receive_ms=receive_ms, mono_ns=mono_ns,
+                                   response_age_ms=response_age_ms, request_id=request_id)
+            return self.depth.state
+        if request is not None:
+            request.disposition = RESPONSE_APPLIED
+            request.response_age_ms = response_age_ms
+
+        if request is not None and request.purpose == PURPOSE_SOFT_REFRESH:
             # A voluntary refresh never hands the snapshot to the live book. It builds a second
             # one, replays the round trip onto it, and swaps only once the two stand at the same
             # update id. If any of that fails the live book has not been touched, so there is
@@ -576,15 +921,18 @@ class Collector:
             self.refresh_in_flight = False
             self.install_refresh(payload, receive_ms=receive_ms, mono_ns=mono_ns,
                                  request_mono_ns=request_mono_ns)
-            if self.depth.state == B.SYNCED:
-                return self.depth.state
-            # The book faulted while the read was in flight; the refresh was abandoned above and
-            # this snapshot becomes the recovery the invalidation asked for.
+            # And it stops here whatever happened. V1.3 and V1.4 fell through to the recovery
+            # path when the book had faulted mid-flight, which is the same promotion that let an
+            # abandoned attempt's late snapshot roll a healthy book back 141,000 ids. The fault
+            # that invalidated the book has already set `snapshot_wanted`, so the recovery gets
+            # its own read with its own identity rather than inheriting this one.
+            return self.depth.state
         self.refresh_in_flight = False
 
         # Taken before `apply_snapshot` replaces the levels and the bounds.
         before = self._book_window()
         state = self.depth.apply_snapshot(payload, receive_ms, mono_ns)
+        self._close_request(request, REQUEST_APPLIED, None, receive_ms=receive_ms)
         if state != B.SYNCED:
             self.snapshot_wanted = True
             self.telemetry(GAP, stream=DEPTH_STREAM, receive_ms=receive_ms, mono_ns=mono_ns,
@@ -605,7 +953,9 @@ class Collector:
                        snapshot_update_id=self.depth.snapshot_update_id,
                        last_update_id=self.depth.last_update_id,
                        refresh_type=proof.refresh_type,
-                       continuity_reason=proof.continuity_reason)
+                       continuity_reason=proof.continuity_reason,
+                       response_disposition=RESPONSE_APPLIED,
+                       response_age_ms=response_age_ms, **ownership)
         # The classification, with its gates and its overlap measurement, as its own record. The
         # counts it will produce are not known yet: they belong to the first sample of the new
         # generation, which publishes them under the same event.
@@ -764,43 +1114,61 @@ class Collector:
 
         margin = self.coverage_margin_bps()
         if margin is not None and margin < COVERAGE_MARGIN_TRIGGER_BPS:
-            elapsed = (None if self.last_coverage_refresh_ns is None
-                       else (at_ns - self.last_coverage_refresh_ns) / 1e9)
-            if elapsed is None or elapsed >= COVERAGE_REFRESH_COOLDOWN_S:
-                # The cooldown clock is **not** started here. V1.1 started it on the request, so
-                # an attempt that never installed still cost five minutes of unguarded band -
-                # measured, twice in 23 minutes, while the margin went negative. It is started by
-                # the swap instead, which is the event the cooldown is about.
+            if self.refresh_floor_remaining_s(REFRESH_COVERAGE_EDGE, at_ns=at_ns) <= 0:
+                # The floor clock is **not** started here. V1.1 started it on the request, so an
+                # attempt that never installed still cost the unguarded band - measured, twice
+                # in 23 minutes, while the margin went negative. It is started by the swap
+                # instead, which is the event the floor is about.
                 self.coverage_refreshes += 1
                 self._want_refresh(REFRESH_COVERAGE_EDGE, at_ns=at_ns, at_ms=at_ms,
                                    margin_bps=decimal_out(margin.quantize(Decimal("0.01"))),
                                    trigger_bps=str(COVERAGE_MARGIN_TRIGGER_BPS),
-                                   protected_band_bps=str(PROTECTED_BAND_BPS))
+                                   protected_band_bps=str(PROTECTED_BAND_BPS),
+                                   min_interval_s=COVERAGE_REFRESH_MIN_INTERVAL_S)
                 return REFRESH_COVERAGE_EDGE
-            # Inside the cooldown the band is left reporting PARTIAL, which is what it is.
+            # Inside the floor the band is left reporting PARTIAL, which is what it is. V1.5
+            # made that floor 10 s rather than 300 s, because 300 s was measured leaving the
+            # band outside the known interval for 72 consecutive seconds.
             return None
 
         since = (None if self.last_snapshot_ns is None
                  else (at_ns - self.last_snapshot_ns) / 1e9)
-        if since is not None and since >= SAFETY_REFRESH_S:
+        if (since is not None and since >= SAFETY_REFRESH_S
+                and self.refresh_floor_remaining_s(REFRESH_SAFETY, at_ns=at_ns) <= 0):
             self.safety_refreshes += 1
             self._want_refresh(REFRESH_SAFETY, at_ns=at_ns, at_ms=at_ms,
                                snapshot_age_s=round(since, 1),
-                               interval_s=SAFETY_REFRESH_S)
+                               interval_s=SAFETY_REFRESH_S,
+                               min_interval_s=SAFETY_REFRESH_MIN_INTERVAL_S)
             return REFRESH_SAFETY
         return None
+
+    def refresh_floor_remaining_s(self, trigger: str, *, at_ns: int) -> float:
+        """Seconds until this trigger may install again. Zero when it may install now.
+
+        One function and one table, because the two triggers now have different floors and the
+        thing that must never happen is a floor applying to the trigger it was not written for.
+        """
+        floor = REFRESH_MIN_INTERVAL_S.get(trigger)
+        last = self.last_refresh_applied_ns.get(trigger)
+        if floor is None or last is None:
+            return 0.0
+        return max(0.0, floor - (at_ns - last) / 1e9)
 
     def _want_refresh(self, reason: str, *, at_ns: int, at_ms: int, **detail: Any) -> None:
         self.refresh_wanted = True
         self.refresh_reason = reason
         # Buffering starts here rather than when the request goes out, so no frame between the
         # decision and the socket write can be missing from the chain the replay has to match.
+        self.refresh_attempts_started += 1
         self.refresh = RefreshAttempt(
+            attempt_id=f"refresh-{self.refresh_attempts_started}",
             reason=reason, requested_ms=at_ms, requested_ns=at_ns,
             generation=self.depth.generation, faults=self._fault_counters(),
             live_update_id=self.depth.last_update_id)
         self.telemetry(reason, stream=DEPTH_STREAM, receive_ms=at_ms, mono_ns=at_ns,
-                       reason=reason, generation=self.depth.generation, **detail)
+                       reason=reason, generation=self.depth.generation,
+                       refresh_attempt_id=self.refresh.attempt_id, **detail)
 
     # ------------------------------------------------------------------ staged refresh
 
@@ -829,6 +1197,11 @@ class Collector:
         attempt.outcome = "ABANDONED"
         attempt.failure = failure
         attempt.elapsed_ms = attempt.age_ms(mono_ns)
+        # The request this attempt issued stops being installable here, by the same word that
+        # ended the attempt. A response that arrives afterwards is discarded on that record
+        # alone: nothing downstream has to remember that an attempt used to exist.
+        self._close_request(self._request_by_id(attempt.request_id), REQUEST_ABORTED, failure,
+                            receive_ms=receive_ms)
         self.refresh = None
         self.refresh_wanted = False
         self.refresh_in_flight = False
@@ -1020,10 +1393,12 @@ class Collector:
         self.refresh_failures = 0
         self.refresh_retry_after_ns = None
         self.last_snapshot_ns = mono_ns
-        # A refresh that installed is the one that consumes the cooldown, because it is the one
-        # that cost a generation.
-        self.last_coverage_refresh_ns = (mono_ns if attempt.reason == REFRESH_COVERAGE_EDGE
-                                         else self.last_coverage_refresh_ns)
+        # A refresh that installed is the one that consumes its trigger's floor, because it is
+        # the one that cost a generation. Per trigger since V1.5: the coverage edge waits 10 s,
+        # the safety refresh 300 s, and neither floor can be spent by the other.
+        self.last_refresh_applied_ns[attempt.reason] = mono_ns
+        self._close_request(self._request_by_id(attempt.request_id), REQUEST_APPLIED, None,
+                            receive_ms=receive_ms)
         self.refreshes_applied += 1
 
         proof = W.classify_refresh(
@@ -1049,6 +1424,20 @@ class Collector:
                        **classified)
         self.emit("checkpoint", self.depth.checkpoint(), receive_ms=receive_ms, mono_ns=mono_ns,
                   connection_id=self.depth_stream.connection_id)
+        margin = self.coverage_margin_bps()
+        if (attempt.reason == REFRESH_COVERAGE_EDGE and margin is not None
+                and margin < COVERAGE_MARGIN_TRIGGER_BPS):
+            # The refresh installed and the band is still not covered, which means this book's
+            # own bounds cannot reach +-0.1% of mid. Published, not acted on: the collector keeps
+            # refreshing on the 10 s floor, because the band's COMPLETE claim is the thing being
+            # protected and backing off would hide the fact rather than fix it.
+            self.telemetry(REFRESH_INEFFECTIVE, stream=DEPTH_STREAM, receive_ms=receive_ms,
+                           mono_ns=mono_ns, reason=attempt.reason,
+                           margin_bps=decimal_out(margin.quantize(Decimal("0.01"))),
+                           trigger_bps=str(COVERAGE_MARGIN_TRIGGER_BPS),
+                           protected_band_bps=str(PROTECTED_BAND_BPS),
+                           min_interval_s=COVERAGE_REFRESH_MIN_INTERVAL_S,
+                           generation=self.depth.generation)
 
     def _replay_divergence(self, staging: B.DepthBook) -> dict[str, Any]:
         """Where the two books disagree inside the interval they both claim to know.
@@ -1117,17 +1506,30 @@ class Collector:
             "coverage_margin_bps": (None if margin is None
                                     else decimal_out(margin.quantize(Decimal("0.01")))),
             "coverage_trigger_bps": str(COVERAGE_MARGIN_TRIGGER_BPS),
-            "coverage_cooldown_s": COVERAGE_REFRESH_COOLDOWN_S,
+            # V1.5: per trigger, and the coverage one is a floor of 10 s rather than the 300 s
+            # cooldown v1 to v4 shared. The old keys are gone rather than left reading 300 while
+            # the policy says 10, because a stale number on a screen is worse than a missing one.
+            "coverage_min_interval_s": COVERAGE_REFRESH_MIN_INTERVAL_S,
+            "safety_refresh_min_interval_s": SAFETY_REFRESH_MIN_INTERVAL_S,
+            "coverage_is_data_quality_not_strategy": True,
             "safety_refresh_s": SAFETY_REFRESH_S,
             "snapshot_age_s": (None if self.last_snapshot_ns is None
                                else round((at_ns - self.last_snapshot_ns) / 1e9, 1)),
-            "coverage_cooldown_remaining_s": (
-                None if self.last_coverage_refresh_ns is None else max(
-                    0.0, round(COVERAGE_REFRESH_COOLDOWN_S
-                               - (at_ns - self.last_coverage_refresh_ns) / 1e9, 1))),
+            "coverage_min_interval_remaining_s": round(
+                self.refresh_floor_remaining_s(REFRESH_COVERAGE_EDGE, at_ns=at_ns), 1),
+            "safety_min_interval_remaining_s": round(
+                self.refresh_floor_remaining_s(REFRESH_SAFETY, at_ns=at_ns), 1),
             "coverage_refreshes": self.coverage_refreshes,
             "safety_refreshes": self.safety_refreshes,
             "refreshes_rejected": self.refreshes_rejected,
+            # Request ownership (V1.5). The counters are the ones an operator needs without
+            # reading a journal: a response that was not installed is either a rarity or a
+            # pattern, and the two look identical until they are counted.
+            "snapshot_requests_issued": self.snapshot_requests_issued,
+            "snapshot_request": (None if self.snapshot_request is None
+                                 else self.snapshot_request.view()),
+            "snapshot_responses_discarded": dict(self.snapshot_responses_discarded),
+            "late_response_can_install": False,
             "resyncs": self.depth.resyncs,
             "generation": self.depth.generation,
             "pending_reason": self.refresh_reason if self.refresh_wanted else None,
@@ -1140,7 +1542,10 @@ class Collector:
                 "ledger continues the levels it proved; a fault-driven resync is HARD and "
                 "carries nothing. A voluntary refresh is staged on a second book and swapped in "
                 "only at an identical update id, so it never rolls the live book back and an "
-                "attempt that fails costs nothing but the attempt"),
+                "attempt that fails costs nothing but the attempt. Every REST request carries an "
+                "owner, and a response that arrives after its attempt ended is discarded rather "
+                "than installed. The coverage refresh exists to keep the band's COMPLETE claim "
+                "true: it is a data quality guarantee and nothing reads it to decide anything"),
         }
 
     def state_payload(self, *, derived: dict[str, Any], at_ns: int, at_ms: int) -> dict[str, Any]:
@@ -1416,11 +1821,14 @@ class Runner:
                 if isinstance(message, dict):
                     self.collector.on_depth_frame(message, receive_ms=at_ms, mono_ns=at_ns_)
             elif kind == "SNAPSHOT":
-                payload, request_ms, request_ns = data
+                payload, request_ms, request_ns, request_id = data
                 self.collector.on_snapshot(payload, receive_ms=at_ms, mono_ns=at_ns_,
-                                           request_ms=request_ms, request_mono_ns=request_ns)
+                                           request_ms=request_ms, request_mono_ns=request_ns,
+                                           request_id=request_id)
             elif kind == "SNAPSHOT_FAILED":
-                self.collector.on_snapshot_failed(str(data), receive_ms=at_ms, mono_ns=at_ns_)
+                error, request_id = data
+                self.collector.on_snapshot_failed(str(error), receive_ms=at_ms, mono_ns=at_ns_,
+                                                  request_id=request_id)
             if self._should_request_snapshot(snapshot_task):
                 snapshot_task = self._request_snapshot()
 
@@ -1442,19 +1850,27 @@ class Runner:
 
     def _request_snapshot(self) -> asyncio.Task:
         request_ms, request_ns = now_ms(), now_ns()
-        self.collector.mark_snapshot_requested(receive_ms=request_ms, mono_ns=request_ns)
-        return asyncio.ensure_future(self._fetch_snapshot(request_ms, request_ns))
+        request = self.collector.mark_snapshot_requested(receive_ms=request_ms,
+                                                         mono_ns=request_ns)
+        # The id travels with the read and comes back with the response, so the book worker can
+        # tell which request a payload answers rather than assuming it answers the current one.
+        # A read that outlives its request is exactly the case this exists for.
+        return asyncio.ensure_future(
+            self._fetch_snapshot(request_ms, request_ns, request.request_id))
 
-    async def _fetch_snapshot(self, request_ms: int, request_ns: int) -> None:
+    async def _fetch_snapshot(self, request_ms: int, request_ns: int,
+                              request_id: str) -> None:
         assert self._depth_queue is not None
         try:
             fetcher = self.snapshot_fetcher or _rest_snapshot
             payload = await fetcher()
             self._depth_queue.put_nowait(
-                ("SNAPSHOT", (payload, request_ms, request_ns), now_ms(), now_ns()))
+                ("SNAPSHOT", (payload, request_ms, request_ns, request_id),
+                 now_ms(), now_ns()))
         except Exception as exc:
             self._depth_queue.put_nowait(
-                ("SNAPSHOT_FAILED", f"{type(exc).__name__}: {exc}", now_ms(), now_ns()))
+                ("SNAPSHOT_FAILED", (f"{type(exc).__name__}: {exc}", request_id),
+                 now_ms(), now_ns()))
 
     # ------------------------------------------------------------------ trades
 

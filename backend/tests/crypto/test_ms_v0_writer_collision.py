@@ -57,7 +57,7 @@ def opened(root: Path, session: str = SESSION_A) -> Store:
 
 def state_payload(pid: int, *, session: str = SESSION_A, written_ms: int | None = None,
                   ended: bool = False) -> dict:
-    return {"state_version": "ms-v0-state.v1-2", "is_authority": False,
+    return {"state_version": "ms-v0-state.v1-3", "is_authority": False,
             "written_ms": int(time.time() * 1000) if written_ms is None else written_ms,
             "session": {"session_id": session, "ended": ended, "seq": 1},
             "collector": {"pid": pid}}

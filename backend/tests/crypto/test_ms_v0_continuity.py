@@ -712,7 +712,7 @@ def test_the_state_file_publishes_the_ledger_beside_the_counts_it_could_not_prov
     assert ledger["wall_ended_total"] == 0 and ledger["wall_unknown_total"] == 0
     assert ledger["gates_required"] == list(W.SOFT_GATES)
     assert ledger["window_max_ms"] == W.SOFT_WINDOW_MAX_MS
-    assert state["state_version"] == "ms-v0-state.v1-2"
+    assert state["state_version"] == "ms-v0-state.v1-3"
 
 
 def test_the_classification_and_its_outcome_are_both_in_the_journal(live):

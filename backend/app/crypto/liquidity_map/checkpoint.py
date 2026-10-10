@@ -46,10 +46,13 @@ from ..market_structure_v0.contract import COMPLETE, PARTIAL, UNKNOWN
 STATE_DIRNAME = "state"
 STATE_FILENAME = "collector_state.json"
 
-#: Shapes the reader understands. `v1-2` adds the continuity ledger; `v1-1` is still accepted
-#: and simply carries no ledger, in which case no wall is ever carried and the screen behaves
-#: exactly as it did before. Reading an older file is not the same as inventing a carry for it.
-SUPPORTED_STATE_VERSIONS = ("ms-v0-state.v1-1", "ms-v0-state.v1-2")
+#: Shapes the reader understands. `v1-3` replaced the resnapshot section's coverage cooldown
+#: keys with the per-trigger floors and added the request-ownership fields; `v1-2` adds the
+#: continuity ledger; `v1-1` is still accepted and simply carries no ledger, in which case no
+#: wall is ever carried and the screen behaves exactly as it did before. Reading an older file is
+#: not the same as inventing a carry for it, and an older file's missing policy keys are reported
+#: as missing by the panel that would have shown them rather than filled in by this reader.
+SUPPORTED_STATE_VERSIONS = ("ms-v0-state.v1-1", "ms-v0-state.v1-2", "ms-v0-state.v1-3")
 
 #: How old the file may be before it stops describing now. It is rewritten every sample, so
 #: three sample intervals is the first age that cannot be explained by scheduling.

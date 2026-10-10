@@ -83,9 +83,10 @@ IDENTICAL_BOUNDS_NOTE = ("±0.25/0.5/1% 하한값이 서로 같은 것은 정상
 WALL_RULE_V2_NOTE = ("wall 판정은 동결된 lm-wall.v2 규칙이며 화면에서 바꿀 수 없습니다. notional "
                      "필터만 운영자가 움직이는 표시 범위입니다")
 RESNAPSHOT_NOTE = ("재스냅샷은 고정 주기 폴링이 아닙니다. gap·재접속·stale·crossed는 즉시, "
-                   "관측 구간이 ±0.1% 약속에 가까워지면 쿨다운 안에서 1회, 그 밖에는 1시간 "
-                   "안전 갱신입니다. 재스냅샷은 generation을 올려 모든 wall 관측을 UNKNOWN으로 "
-                   "끝내므로 빈도는 그 손실로 묶여 있습니다")
+                   "관측 구간이 ±0.1% 약속에 가까워지면 최소간격 10초를 두고, 그 밖에는 1시간 "
+                   "안전 갱신입니다. 재스냅샷은 generation을 올리므로 연속성 게이트를 통과하지 "
+                   "못한 wall 관측은 그 시점에 UNKNOWN으로 끝납니다. 구간 갱신은 전략 판단이 "
+                   "아니라 ±0.1% COMPLETE 약속을 지키기 위한 데이터 품질 동작입니다")
 CONTINUITY_NOTE = ("재스냅샷은 HARD와 SOFT로 나뉩니다. gap·재접속·stale·crossed·overflow는 HARD이고 "
                    "wall 관측 이력을 반드시 종료합니다. coverage edge와 안전 갱신은 게이트 5개가 "
                    "전부 통과할 때만 SOFT이고, 그때만 동일 side·동일 가격이 새 스냅샷에 존재함을 "

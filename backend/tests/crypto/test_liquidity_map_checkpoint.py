@@ -251,6 +251,20 @@ def test_a_reader_polling_during_a_write_never_sees_half_a_file(tmp_path):
     assert list((root / CP.STATE_DIRNAME).glob("*.tmp")) == []
 
 
+def test_the_reader_accepts_every_version_the_collector_has_ever_written():
+    """A version list that drifts behind the writer shows an empty screen with no error.
+
+    V1.5 bumped the writer to `v1-3` because the resnapshot section's coverage keys were
+    replaced rather than added to, so this is the assertion that the two moved together.
+    """
+    from app.crypto.market_structure_v0.collector import STATE_VERSION
+
+    assert STATE_VERSION == "ms-v0-state.v1-3"
+    assert STATE_VERSION in CP.SUPPORTED_STATE_VERSIONS
+    assert CP.SUPPORTED_STATE_VERSIONS == ("ms-v0-state.v1-1", "ms-v0-state.v1-2",
+                                           "ms-v0-state.v1-3")
+
+
 @pytest.mark.parametrize("payload", ["[]", "null", '"text"', "7"])
 def test_a_file_that_is_not_an_object_is_refused(tmp_path, payload):
     directory = tmp_path / CP.STATE_DIRNAME

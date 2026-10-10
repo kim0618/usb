@@ -1,4 +1,10 @@
-"""Read a harness run's journal and report the V1.4 facts from it, not from the collector."""
+"""Read a harness run's journal and report the facts from it, not from the collector.
+
+V1.5 added the sections below the V1.4 ones: what happened to every REST response and who owned
+it, the coverage series computed from `derived` rather than from a counter, and the one check that
+names the incident V1.5 closed - an install whose snapshot id was *behind* the chain position the
+book had already reached.
+"""
 import json, sys
 from pathlib import Path
 
@@ -90,3 +96,97 @@ for r in cp:
         gens.append(g)
 print("\ncheckpoints=%d  last_update_id decreases=%d  generation %s..%s" % (
     len(cp), drops, gens[0] if gens else None, gens[-1] if gens else None))
+
+
+# --------------------------------------------------------------------------- V1.5
+
+print("\n--- V1.5 snapshot responses, by disposition ---")
+snapshots = [payload(r) for r in rows("snapshot")]
+by_disposition = {}
+for s in snapshots:
+    key = s.get("response_disposition") or "UNRECORDED"
+    by_disposition[key] = by_disposition.get(key, 0) + 1
+print(" reads=%d  %s" % (len(snapshots), json.dumps(by_disposition)))
+for s in snapshots:
+    print(" %-12s %-14s purpose=%-14s attempt=%-12s age=%-6s state=%s" % (
+        s.get("snapshot_request_id"), s.get("response_disposition"), s.get("purpose"),
+        s.get("refresh_attempt_id"), s.get("response_age_ms"), s.get("request_state")))
+
+discarded = [payload(r) for r in tel if payload(r).get("event") == "snapshot_discarded"]
+print("\n--- V1.5 discarded responses (none of these touched the live book) ---")
+print(" count=%d" % len(discarded))
+for d in discarded:
+    print(" %-12s %-22s closed=%-34s age=%-6s snap=%-14s live=%-14s rollback_avoided=%s" % (
+        d.get("snapshot_request_id"), d.get("response_disposition"), d.get("closed_reason"),
+        d.get("response_age_ms"), d.get("snapshot_update_id"), d.get("live_last_update_id"),
+        d.get("would_have_rolled_back_ids")))
+
+ineffective = [payload(r) for r in tel if payload(r).get("event") == "refresh_ineffective"]
+print("\n--- V1.5 refreshes that installed and still could not cover the band ---")
+print(" count=%d" % len(ineffective))
+for i in ineffective:
+    print(" margin=%s trigger=%s generation=%s" % (
+        i.get("margin_bps"), i.get("trigger_bps"), i.get("generation")))
+
+# The incident signature, straight from the journal: an install whose snapshot id sits behind
+# the chain position the book had already reached. One of these is the 141,000-id rollback.
+print("\n--- V1.5 install-behind-chain check (the V1.4 defect's signature) ---")
+derived = [payload(r) for r in rows("derived")]
+seen_u, behind = None, 0
+timeline = []
+for r in rows("telemetry") + rows("derived"):
+    p = payload(r)
+    if p.get("event") == "resync":
+        timeline.append(("resync", p))
+for kind, p in timeline:
+    snap = p.get("snapshot_update_id")
+    if seen_u is not None and isinstance(snap, int) and snap < seen_u and not p.get("staged"):
+        behind += 1
+        print(" BEHIND resync snapshot_update_id=%s < previous last_update_id=%s" % (snap, seen_u))
+    last = p.get("last_update_id")
+    if isinstance(last, int):
+        seen_u = last if seen_u is None else max(seen_u, last)
+print(" installs behind the chain: %d" % behind)
+
+print("\n--- V1.5 coverage series, computed from derived ---")
+margins, complete, total = [], 0, 0
+for d in derived:
+    book = d.get("book") or {}
+    mid, low, high = book.get("mid"), book.get("known_low"), book.get("known_high")
+    if book.get("state") == "SYNCED" and mid and low and high:
+        mid_f, low_f, high_f = float(mid), float(low), float(high)
+        if mid_f > 0:
+            reach = min((mid_f - low_f) / mid_f, (high_f - mid_f) / mid_f) * 10_000
+            margins.append(reach - 10.0)
+    for band in book.get("bands") or []:
+        if str(band.get("band_pct")) != "0.1":
+            continue
+        for side in ("bid", "ask"):
+            total += 1
+            complete += 1 if (band.get(side) or {}).get("coverage") == "COMPLETE" else 0
+if margins:
+    ordered = sorted(margins)
+    negative = [m for m in margins if m < 0]
+    runs, run = [], 0
+    for m in margins:
+        if m < 0:
+            run += 1
+        elif run:
+            runs.append(run); run = 0
+    if run:
+        runs.append(run)
+    print(" samples=%d min=%.2f p05=%.2f median=%.2f max=%.2f" % (
+        len(margins), ordered[0], ordered[int(0.05 * len(ordered))],
+        ordered[len(ordered) // 2], ordered[-1]))
+    print(" below trigger (1.0 bp): %.2f%%   negative: %.2f%% (%d samples, longest run %ds)" % (
+        100.0 * sum(1 for m in margins if m < 1.0) / len(margins),
+        100.0 * len(negative) / len(margins), len(negative), max(runs) if runs else 0))
+if total:
+    print(" +-0.1%% band COMPLETE: %d/%d = %.2f%%" % (complete, total, 100.0 * complete / total))
+
+print("\n--- V1.5 coverage floor between installed coverage refreshes ---")
+coverage_applied = [a for a in applied if a.get("reason") == "coverage_edge"]
+stamps = [a.get("swapped_ms") for a in coverage_applied if a.get("swapped_ms")]
+gaps_s = [round((b - a) / 1000.0, 1) for a, b in zip(stamps, stamps[1:])]
+print(" installed coverage refreshes=%d  intervals_s=%s  min=%s  floor=10.0" % (
+    len(coverage_applied), gaps_s, min(gaps_s) if gaps_s else None))

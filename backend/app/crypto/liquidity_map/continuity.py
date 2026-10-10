@@ -52,9 +52,11 @@ from ..market_structure_v0.walls import (CARRY_CARRIED, CARRY_NEW, CARRY_PROOF, 
 #: reconstruction carries nothing; v3 replaced S3 NEWER with S3 CHAIN, because a voluntary
 #: refresh is now staged on a second book and swapped in at an identical update id instead of
 #: replacing the live one; v4 exempted that staged case from the 300 ms ceiling, because a
-#: window in which every frame was replayed individually bounds nothing. The frozen document's
-#: changelog records all of it.
-RULE_VERSION = "lm-continuity.v4"
+#: window in which every frame was replayed individually bounds nothing; v5 gave every snapshot
+#: request an owner, so a response that arrives after its attempt ended can no longer be
+#: installed by the recovery path, and separated the two voluntary triggers' floors. The frozen
+#: document's changelog records all of it.
+RULE_VERSION = "lm-continuity.v5"
 RULE_RELATIVE_PATH = "docs/crypto/liquidity_map_v1/WALL_CONTINUITY_V1_2.md"
 
 #: Which span R4 was measured against. Published on every wall, so a carried span can never

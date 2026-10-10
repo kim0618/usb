@@ -1,4 +1,7 @@
-# 24-hour isolated trial: runbook and readiness, V1.4
+# 24-hour isolated trial: runbook and readiness, V1.5
+
+The file keeps its V1.4 name so the V1.4 report and the status document keep resolving; the
+content below is V1.5.
 
 Isolated means: read-only public Binance endpoints, its own output root, its own process, no
 production deploy, nothing shared with the paper or live trading runtime.
@@ -55,7 +58,9 @@ Free space on the workstation at the time of writing: 863 GB. 6.14 GB/day is 0.7
 ## What the trial is for
 
 The four things V1.4 could not settle, in order of what a day of wall-clock is most likely to
-produce:
+produce. V1.5 removed a fifth - a late snapshot installing onto a healthy book - by giving every
+request an owner, so the trial now measures that the discard path stays quiet rather than
+watching for the install:
 
 1. **A real live HARD.** Still never observed outside forced conditions. A day should contain at
    least one reconnect or stale socket, and the question is whether `carried_lost` and the three
@@ -91,6 +96,17 @@ Acceptance, stated before the run:
 * `refresh_storm` count and every `refresh_rejected` reason accounted for
 * dropped records 0
 
+V1.5 adds four, and the analyzer prints each of them:
+
+* every `snapshot` record's `response_disposition` accounted for, and **every** response whose
+  disposition is not `APPLIED` has no `resync` and no generation change beside it
+* **installs behind the chain: 0.** The analyzer's own check, and the signature of the V1.4
+  defect: a `resync` whose `snapshot_update_id` is below the chain position already reached
+* between two installed `coverage_edge` refreshes, at least **10 s**
+* the +-0.1% band's COMPLETE ratio over the whole session, with the negative-margin runs. The
+  pre-synchronisation samples at session start are UNKNOWN rather than COMPLETE and are counted
+  separately: a book that does not exist yet is not a broken promise
+
 ## Readiness
 
 **Ready to start.** The trial needs nothing that does not exist: the collector CLI takes
@@ -98,11 +114,16 @@ Acceptance, stated before the run:
 preview reads the live root without writing to it, and the acceptance criteria above are
 written down before the run rather than after it.
 
-**One known risk to watch**, carried over from the V1.4 report: if a REST read ever exceeds
-1,000 ms, the staged attempt is abandoned and the late snapshot is then installed by the
-recovery path onto a healthy book without a newer-check, which rolled the book back about
-141,000 ids and produced a `GAP_FIRST_DELTA` under forced conditions. Reads observed in
-production are 75-175 ms, so this is unlikely in any one day, but a 24 h session is the first
-thing long enough to meet a bad minute. If it happens the journal will show
-`refresh_rejected ... REFRESH_DEADLINE_EXCEEDED` followed by a `resync` whose
-`snapshot_update_id` is *below* the previous `last_update_id`, and then a gap.
+**The V1.4 risk is closed.** It read: if a REST read ever exceeds 1,000 ms, the staged attempt
+is abandoned and the late snapshot is then installed by the recovery path onto a healthy book
+without a newer-check, which rolled the book back about 141,000 ids and produced a
+`GAP_FIRST_DELTA` under forced conditions. V1.5 gives every request an owner and discards a
+response whose attempt has ended, and the two forced sessions of 2026-10-04 measured 24 late
+responses - 17 at a 1,400 ms delay and 7 at 2,500 ms - with **0 installs, 0 rollbacks, 0 gaps**
+and an avoided rollback of 61,800 to 153,754 ids per response.
+
+What to watch instead, in a 24 h session, is the opposite failure: a late response being
+discarded when the book genuinely needed a recovery. The journal shows it as a
+`snapshot_discarded` followed by a `snapshot_request` whose purpose is `HARD_RECOVERY`, and the
+cost is one extra round trip of UNSYNCED time. If that sequence appears with the book UNSYNCED
+for more than a second or two, the recovery request is not being issued and that is a defect.
