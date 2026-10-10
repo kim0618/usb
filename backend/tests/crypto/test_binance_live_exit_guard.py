@@ -9,6 +9,7 @@ from app.crypto.live.exit_guard import ARMED, COMPLETE, ERROR, OFF, ExitGuard
 from app.crypto.live.filters import SymbolFilters
 from app.crypto.live.models import CommissionRate, MarkPrice
 from app.crypto.live.preview import round_trip
+from tests.crypto.binance_fixtures import WIDE_BRACKETS
 from tests.crypto.binance_fixtures import EXCHANGE_INFO
 
 
@@ -25,7 +26,7 @@ def test_entry_cost_uses_best_quote_to_vwap_market_impact() -> None:
         commission=CommissionRate.from_payload({"symbol": "BTCUSDT",
                                                 "makerCommissionRate": "0.0002",
                                                 "takerCommissionRate": "0.0005"}),
-        filters=filters(), leverage=Decimal("10"))
+        filters=filters(), leverage=Decimal("10"), brackets=WIDE_BRACKETS)
     assert result["expected_entry_vwap"] == Decimal("101")
     assert result["expected_entry_notional"] == Decimal("202")
     assert result["expected_entry_fee"] == Decimal("0.1010")

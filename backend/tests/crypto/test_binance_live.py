@@ -26,6 +26,7 @@ from app.crypto.live.orders import LiveOrderRouter, OrderRefused
 from app.crypto.live.rest import BinanceError, BinanceFuturesClient, TradingDisabled
 from app.crypto.live.stream import UserDataStream
 from app.crypto.symbols import SUPPORTED_SYMBOLS, SymbolNotSupported
+from tests.crypto.binance_fixtures import WIDE_BRACKETS
 from tests.crypto.binance_fixtures import (ACCOUNT, COMMISSION_RATE, DEPTH, EXCHANGE_INFO,
                                            FakeBinance, MARK_PRICE, POSITION_MODE_HEDGE,
                                            POSITION_RISK_FLAT, POSITION_RISK_LONG, SYMBOL,
@@ -710,7 +711,7 @@ def test_the_round_trip_uses_the_accounts_own_taker_rate() -> None:
     row = preview.round_trip(side="LONG", qty=D("0.002"), depth=DEPTH,
                              mark=models.MarkPrice.from_payload(MARK_PRICE),
                              commission=models.CommissionRate.from_payload(COMMISSION_RATE),
-                             filters=filters, leverage=D("10"))
+                             filters=filters, leverage=D("10"), brackets=WIDE_BRACKETS)
     assert row["feasible"] and row["fee_rate"] == D("0.000400")
     assert row["entry_fee"] == row["notional"] * D("0.000400")
     assert row["required_margin"] == row["notional"] / D("10")
@@ -723,7 +724,7 @@ def test_the_breakeven_exit_actually_nets_zero() -> None:
     row = preview.round_trip(side="LONG", qty=qty, depth=DEPTH,
                              mark=models.MarkPrice.from_payload(MARK_PRICE),
                              commission=models.CommissionRate.from_payload(COMMISSION_RATE),
-                             filters=filters, leverage=D("10"))
+                             filters=filters, leverage=D("10"), brackets=WIDE_BRACKETS)
     exit_price = row["breakeven_exit_fill_price"]
     gross = (exit_price - row["entry_fill_price"]) * qty
     net = gross - row["entry_fee"] - exit_price * qty * row["fee_rate"]
@@ -735,7 +736,7 @@ def test_a_size_below_the_exchange_minimum_is_refused_by_the_preview() -> None:
     row = preview.round_trip(side="LONG", qty=D("0.0005"), depth=DEPTH,
                              mark=models.MarkPrice.from_payload(MARK_PRICE),
                              commission=models.CommissionRate.from_payload(COMMISSION_RATE),
-                             filters=filters, leverage=D("10"))
+                             filters=filters, leverage=D("10"), brackets=WIDE_BRACKETS)
     assert row["feasible"] is False and row["reject_code"] == "QTY_BELOW_MINIMUM"
 
 

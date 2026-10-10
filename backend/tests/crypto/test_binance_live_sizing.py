@@ -21,6 +21,7 @@ from app.crypto.live.models import CommissionRate, LivePosition, MarkPrice
 from app.crypto.live.sizing import (DEFAULT_FRACTIONS, MAX_DEFINITION, check, floor_to_step,
                                     max_open, presets)
 
+from tests.crypto.binance_fixtures import WIDE_BRACKETS
 from tests.crypto.binance_fixtures import (ACCOUNT, COMMISSION_RATE, DEPTH, EXCHANGE_INFO, FakeBinance, MARK_PRICE,
                                POSITION_RISK_FLAT, POSITION_RISK_LONG, SYMBOL, make_client,
                                make_config)
@@ -36,7 +37,7 @@ DEEP = {"bids": [["83499.90", "500"]], "asks": [["83500.10", "500"]]}
 
 def ladder(**overrides):
     params = dict(side="LONG", depth=DEEP, mark=MARK, commission=COMMISSION, filters=FILTERS,
-                  leverage=Decimal(10), available=Decimal("874.475"), ceiling=None,
+                  leverage=Decimal(10), brackets=WIDE_BRACKETS, available=Decimal("874.475"), ceiling=None,
                   position=FLAT)
     params.update(overrides)
     return presets(**params)
@@ -63,12 +64,12 @@ def test_max_is_the_largest_size_that_passes_every_rule_not_a_balance_times_leve
     # margin is the binding constraint (the smallest deterministic drift reserve possible).
     step = FILTERS.market_qty_step
     assert check(side="LONG", qty=max_qty, depth=DEEP, mark=MARK, commission=COMMISSION,
-                 filters=FILTERS, leverage=Decimal(10), available=Decimal("874.475"),
+                 filters=FILTERS, leverage=Decimal(10), brackets=WIDE_BRACKETS, available=Decimal("874.475"),
                  ceiling=None, position=FLAT)["feasible"] is True
     assert result["reserve_policy"] == "ONE_QTY_STEP_WHEN_MARGIN_BINDS"
     assert result["reserve_steps"] == 1
     assert check(side="LONG", qty=max_qty + step * 2, depth=DEEP, mark=MARK, commission=COMMISSION,
-                 filters=FILTERS, leverage=Decimal(10), available=Decimal("874.475"),
+                 filters=FILTERS, leverage=Decimal(10), brackets=WIDE_BRACKETS, available=Decimal("874.475"),
                  ceiling=None, position=FLAT)["feasible"] is False
 
 
@@ -112,7 +113,7 @@ def test_deprecated_local_ceiling_does_not_cap_the_actual_account() -> None:
 
 def test_a_size_below_the_exchange_minimum_is_refused_rather_than_rounded_up() -> None:
     refused = check(side="LONG", qty=Decimal("0.0005"), depth=DEEP, mark=MARK,
-                    commission=COMMISSION, filters=FILTERS, leverage=Decimal(10),
+                    commission=COMMISSION, filters=FILTERS, leverage=Decimal(10), brackets=WIDE_BRACKETS,
                     available=Decimal("874.475"), ceiling=None, position=FLAT)
     assert refused["feasible"] is False
     assert refused["reject_code"] == "QTY_BELOW_MINIMUM"
@@ -140,7 +141,7 @@ def test_the_ladder_reports_the_smallest_size_that_could_be_ordered_at_all() -> 
 def test_a_notional_under_the_exchange_minimum_is_refused() -> None:
     # MIN_NOTIONAL is 100 USDT in the fixture; 0.001 BTC at ~83,500 is 83.5.
     refused = check(side="LONG", qty=Decimal("0.001"), depth=DEEP, mark=MARK,
-                    commission=COMMISSION, filters=FILTERS, leverage=Decimal(10),
+                    commission=COMMISSION, filters=FILTERS, leverage=Decimal(10), brackets=WIDE_BRACKETS,
                     available=Decimal("874.475"), ceiling=None, position=FLAT)
     assert refused["reject_code"] == "NOTIONAL_BELOW_MINIMUM"
 
@@ -153,7 +154,7 @@ def test_notional_filter_maximum_is_enforced_when_binance_publishes_it() -> None
     ]}]}
     filters = SymbolFilters.from_exchange_info(info, SYMBOL, fetched_at_ms=1)
     refused = check(side="LONG", qty=Decimal("0.010"), depth=DEEP, mark=MARK,
-                    commission=COMMISSION, filters=filters, leverage=Decimal(10),
+                    commission=COMMISSION, filters=filters, leverage=Decimal(10), brackets=WIDE_BRACKETS,
                     available=Decimal("1000"), ceiling=None, position=FLAT)
     assert refused["reject_code"] == "NOTIONAL_ABOVE_MAXIMUM"
 
@@ -177,7 +178,7 @@ def test_entry_sizing_does_not_reserve_hypothetical_close_liquidity() -> None:
     # The entry fills on the deep ask. A future close is a round-trip preview concern, not an
     # opening margin requirement.
     refused = check(side="LONG", qty=Decimal("0.010"), depth=thin, mark=MARK,
-                    commission=COMMISSION, filters=FILTERS, leverage=Decimal(10),
+                    commission=COMMISSION, filters=FILTERS, leverage=Decimal(10), brackets=WIDE_BRACKETS,
                     available=Decimal("874.475"), ceiling=None, position=FLAT)
     assert refused["feasible"] is True
 
@@ -236,7 +237,7 @@ def test_an_uncapped_search_still_stops_at_the_margin_the_account_has() -> None:
     assert top["required_total"] <= Decimal("874.475")
     step = FILTERS.market_qty_step
     over = check(side="LONG", qty=result["max_qty"] + step * 2, depth=DEEP, mark=MARK,
-                 commission=COMMISSION, filters=FILTERS, leverage=Decimal(10),
+                 commission=COMMISSION, filters=FILTERS, leverage=Decimal(10), brackets=WIDE_BRACKETS,
                  available=Decimal("874.475"), ceiling=None, position=FLAT)
     assert over["feasible"] is False
     assert over["reject_code"] == "INSUFFICIENT_MARGIN"
@@ -249,7 +250,7 @@ def test_an_uncapped_search_still_stops_at_the_depth_the_book_shows() -> None:
     assert result["max_feasible"] is True
     assert result["max_qty"] <= Decimal("0.020")
     over = check(side="LONG", qty=Decimal("0.021"), depth=thin, mark=MARK, commission=COMMISSION,
-                 filters=FILTERS, leverage=Decimal(10), available=Decimal("100000"),
+                 filters=FILTERS, leverage=Decimal(10), brackets=WIDE_BRACKETS, available=Decimal("100000"),
                  ceiling=None, position=FLAT)
     assert over["reject_code"] == "NO_LIQUIDITY"
 

@@ -221,3 +221,27 @@ describe("the sizing client", () => {
     expect(result.current.preview).toBeNull();
   });
 });
+
+describe("the leverage the confirmation states", () => {
+  const confirmFor = (sides: LiveSizing["sides"], configured = "20") => {
+    const acct = account({ symbol_config: { ...account().symbol_config!, leverage: configured } });
+    render(<LiveOrderTicket account={acct} gate={liveTradeGate(acct, null)} onOrder={vi.fn()}
+      sizing={sizing({ sides })} />);
+    fireEvent.click(screen.getByTestId("live-preset-MAX"));
+    fireEvent.click(screen.getByTestId("live-long"));
+    return screen.getByTestId("live-confirm-leverage").textContent;
+  };
+
+  it("says the band's leverage when the band caps the setting (GTC: 20x set, 10x allowed)", () => {
+    const capped = side({ leverage: "10", configured_leverage: "20", bracket_max_leverage: "10",
+                          leverage_capped_by_bracket: true });
+    expect(confirmFor({ LONG: capped, SHORT: side({ side: "SHORT" }) }))
+      .toBe("10x (설정 20x · 구간 최대 10x) · ");
+  });
+
+  it("says the setting when the band allows it, exactly as before", () => {
+    const free = side({ leverage: "20", configured_leverage: "20", bracket_max_leverage: "150",
+                        leverage_capped_by_bracket: false });
+    expect(confirmFor({ LONG: free, SHORT: side({ side: "SHORT" }) })).toBe("20x · ");
+  });
+});

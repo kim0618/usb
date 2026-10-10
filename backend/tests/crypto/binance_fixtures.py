@@ -236,3 +236,15 @@ def make_config(*, trading_enabled: bool = False, credentials: bool = True,
         env.update({"BINANCE_API_KEY": "test-api-key-0123456789",
                     "BINANCE_API_SECRET": "test-api-secret-abcdef"})
     return load_config(env)
+
+
+def wide_brackets(symbol: str = SYMBOL):
+    """One band from 0 to 10^15 at 200x: every leverage the tests configure is allowed at every
+    notional, so a test that is not about brackets prices margin exactly as it always has."""
+    from app.crypto.live.brackets import LeverageBrackets
+    return LeverageBrackets.from_payload([{"symbol": symbol, "brackets": [
+        {"bracket": 1, "initialLeverage": 200, "notionalCap": 10 ** 15, "notionalFloor": 0,
+         "maintMarginRatio": 0.004, "cum": 0}]}], symbol)
+
+
+WIDE_BRACKETS = wide_brackets()

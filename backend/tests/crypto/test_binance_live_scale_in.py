@@ -29,6 +29,7 @@ from app.crypto.live.position_card import (EXPOSURE_FROM_NOTIONAL, EXPOSURE_FROM
                                            MARGIN_FROM_POSITION_RISK, card, exposure)
 from app.crypto.live.sizing import INSUFFICIENT_MARGIN, presets
 
+from tests.crypto.binance_fixtures import WIDE_BRACKETS
 from tests.crypto.binance_fixtures import (COMMISSION_RATE, DEPTH, EXCHANGE_INFO,
                                            INCOME_FUNDING, POSITION_RISK_FLAT, SYMBOL,
                                            USER_TRADES, FakeBinance, make_client, make_config)
@@ -63,7 +64,7 @@ def held(side: str, qty: str = "0.080", *, entry: str = "83938.05",
 
 def ladder(side: str, *, position: LivePosition, available: str):
     return presets(side=side, depth=DEEP, mark=MARK, commission=COMMISSION, filters=FILTERS,
-                   leverage=Decimal(20), available=Decimal(available), ceiling=None,
+                   leverage=Decimal(20), brackets=WIDE_BRACKETS, available=Decimal(available), ceiling=None,
                    position=position)
 
 
