@@ -1,0 +1,52 @@
+[Unit]
+Description=USB Strategy H-V2 D7 forward shadow daily update (prices, outcome maturation, refresh queue)
+After=network-online.target
+Wants=network-online.target
+# H reads Massive itself and does not read Strategy A's grouped store, so there is no data
+# dependency to express. This After= only orders the two if they are ever queued in the same
+# transaction (they are 30 minutes apart, so normally never). Wants= is deliberately absent:
+# pulling usb-grouped-daily.service in would make an H run execute a Strategy A collection,
+# which is a side effect on A that H is not allowed to have.
+After=usb-grouped-daily.service
+# A once-a-day job must not crash-loop between timers; same bound as usb-grouped-daily.service.
+StartLimitIntervalSec=1800
+StartLimitBurst=3
+
+[Service]
+Type=oneshot
+User=root
+# WorkingDirectory is the repository root, NOT backend/, and this is load-bearing. The updater's
+# refresh scan resolves the SEC submissions caches through repository-relative paths
+# ("data/runtime/strategy_h_v2/d1_1/sec_raw", "data/runtime/strategy_c/e0/raw", ...). From
+# /root/usb/backend those paths do not exist, _cached_submissions returns nothing, and every
+# issuer is rewritten as NO_SUBMISSIONS_CACHE - a run that exits 0 while turning AEYE's real
+# REFRESH_DUE into a false "no cache". Measured both ways: cwd=/root/usb reads 688 AEYE
+# submission rows, cwd=/root/usb/backend reads 0.
+# The append-only store itself is immune (it resolves from the module's own path), so only the
+# refresh queue would have degraded - silently.
+WorkingDirectory=/root/usb
+EnvironmentFile=/root/usb/.env
+EnvironmentFile=/root/usb/.env.massive
+Environment=PYTHONPATH=/root/usb/backend
+Environment=PYTHONUNBUFFERED=1
+# systemd never runs a oneshot unit concurrently with itself, but a hand-run catch-up from a
+# shell can collide with a timer firing. flock serialises the two over one writer. -w 300 waits
+# for a hand-run rather than failing the timer over it. The lock file lives in /run and is never
+# unlinked: flock locks an inode, not a path, so deleting it would let a second writer in.
+ExecStart=/usr/bin/flock -w 300 /run/usb-h-forward.lock \
+  /root/usb/.venv/bin/python -m app.dev.run_h_v2_d7 update
+# Steady state is two Massive grouped_daily calls (the settled session, plus today's which is not
+# settled yet and is reported as no_result). The client's own limiter paces every call to the
+# Basic plan's 5/minute, so even the five-session catch-up stays near one minute. The ceiling
+# covers flock's 300s wait plus a full provider backoff.
+TimeoutStartSec=20min
+# Measured, not assumed: one update peaks at 132 MB resident. 300M matches usb-grouped-daily and
+# leaves better than 2x headroom on a host that has been OOM-hit before.
+MemoryMax=300M
+Nice=10
+# No Restart=: this is Type=oneshot, and a provider refusal must stay a single visible failure.
+# A failed collection stores nothing, so the missing session stays a gap and the outcome layer
+# refuses to mature a horizon across it. There is no path by which a failure here produces a
+# wrong price - the last available price is never substituted.
+# Nothing in A, E, usb-backend or usb-frontend depends on this unit, so its failure is isolated
+# to itself. The CLI prints the whole run as JSON on stdout, which is what lands in the journal.

@@ -1,0 +1,33 @@
+[Unit]
+Description=Update the Strategy H-V2 forward shadow once a session, after Massive publishes it
+
+[Timer]
+# Measured against the same evidence usb-grouped-daily.timer was set from: a session is published
+# after midnight ET on its next calendar day, and the grouped store's files for 2026-10-05..08 were
+# each written at 00:40 ET the following morning. 01:10 ET is therefore safely past publication.
+#
+# It is also where the shared Massive key is idle: usb-e-universe runs 00:20 ET, usb-grouped-daily
+# 00:40 ET and usb-splits-refresh 00:55 ET. The Basic plan allows 5 calls per minute across all of
+# them and each client paces only itself, so H is placed 15 minutes behind the last of the three
+# rather than alongside any of them. It is 2h35m ahead of the 03:45 ET paper start that attaches A.
+#
+# 01:10 ET is also inside the band where the server's own date (the host runs KST) and the ET
+# session date agree - 01:10 ET is 14:10 KST the same day - so the updater's "today" upper bound
+# cannot run a day ahead of the sessions it is asking for. No KST hour is written here;
+# America/New_York keeps this DST-safe.
+#
+# Mon..Fri, the same cadence as the grouped-daily source it shadows: a Friday session is collected
+# on Monday, and a holiday Monday re-asks for Friday as a no-op. Between Friday's close and Monday
+# the store simply carries the gap, which is the honest state - outcomes report PENDING rather than
+# maturing against a substituted price. Weekends make no external call at all.
+OnCalendar=Mon..Fri 01:10 America/New_York
+# A missed run (host down, suspended) fires once on the next boot. Harmless by construction: the
+# updater recomputes which sessions are missing from the store, so a late run collects exactly the
+# same gaps a punctual one would have.
+Persistent=true
+AccuracySec=1m
+RandomizedDelaySec=0
+Unit=usb-h-forward.service
+
+[Install]
+WantedBy=timers.target
