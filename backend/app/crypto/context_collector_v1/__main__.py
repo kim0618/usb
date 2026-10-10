@@ -1,4 +1,4 @@
-"""`python -m app.crypto.context_collector_v1 collect|serve ...`"""
+"""`python -m app.crypto.context_collector_v1 collect|serve|prune ...`"""
 from __future__ import annotations
 
 import sys
@@ -6,14 +6,17 @@ import sys
 
 def main(argv: list[str] | None = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
-    if not args or args[0] not in ("collect", "serve"):
-        print("usage: python -m app.crypto.context_collector_v1 collect|serve [options]",
+    if not args or args[0] not in ("collect", "serve", "prune"):
+        print("usage: python -m app.crypto.context_collector_v1 collect|serve|prune [options]",
               file=sys.stderr)
         return 2
     command, rest = args[0], args[1:]
     if command == "collect":
         from .collector import main as collect
         return collect(rest)
+    if command == "prune":
+        from .retention import main as prune
+        return prune(rest)
     from .api import main as serve
     return serve(rest)
 

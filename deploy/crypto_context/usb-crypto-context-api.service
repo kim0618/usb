@@ -1,0 +1,31 @@
+[Unit]
+Description=US-B CRYPTO context collector API (GET /health /snapshot /status on 127.0.0.1, read only)
+Documentation=file:/root/usb_runtime/crypto_context/src/docs/crypto/context_collector_v1/PRODUCTION_PREDEPLOY_V1_1.md
+After=network-online.target
+# Deliberately not Requires=/BindsTo= the collector: with the collector stopped this API answers
+# UNKNOWN / NO_CONTEXT_FILE, which is the truth. nginx does not route to it in this release.
+StartLimitIntervalSec=600
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/usb_runtime/crypto_context
+EnvironmentFile=/root/usb_runtime/crypto_context/config/context.env
+Environment=PYTHONPATH=/root/usb_runtime/crypto_context/src/backend
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/root/usb/.venv/bin/python -m app.crypto.context_collector_v1 serve \
+  --root ${CTX_V1_ROOT} --host 127.0.0.1 --port ${CTX_V1_API_PORT}
+StandardOutput=append:/root/usb_runtime/crypto_context/logs/api.log
+StandardError=append:/root/usb_runtime/crypto_context/logs/api.log
+Restart=on-failure
+RestartSec=5
+KillSignal=SIGTERM
+TimeoutStopSec=15
+MemoryMax=150M
+CPUQuota=10%
+Nice=10
+
+[Install]
+WantedBy=multi-user.target

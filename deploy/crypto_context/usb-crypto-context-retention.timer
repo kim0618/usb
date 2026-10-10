@@ -1,0 +1,15 @@
+[Unit]
+Description=Daily retention of the US-B CRYPTO context collector journal
+
+[Timer]
+# Once a day at 04:40 KST, away from the equity timers (00:20-01:10 ET = 13:20-14:10 KST) and the
+# 03:45 ET paper start. A run deletes at most one day of hourly files (about 55 MB); the first run
+# that can delete anything is seven days after the first sealed file.
+OnCalendar=*-*-* 04:40:00 Asia/Seoul
+Persistent=true
+AccuracySec=1m
+RandomizedDelaySec=0
+Unit=usb-crypto-context-retention.service
+
+[Install]
+WantedBy=timers.target

@@ -23,6 +23,7 @@ nothing from `app.crypto.paper`, `app.crypto.live`, `app.crypto.terminal` or `ap
 
     python -m app.crypto.context_collector_v1 collect --root /path --duration 0
     python -m app.crypto.context_collector_v1 serve --root /path --port 8013
+    python -m app.crypto.context_collector_v1 prune --root /path [--apply]
 """
 
 #: Identity of this collector's own output: the `context` and `wall_v2` record shapes.
