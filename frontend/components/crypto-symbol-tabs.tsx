@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { cryptoApi, qty as qtyFmt, signedKrw, toneClass } from "@/lib/crypto-paper";
 import { liveApi } from "@/lib/crypto-live";
 import type { LivePositionsSummary } from "@/lib/crypto-live";
@@ -17,21 +17,30 @@ import type { SymbolVolatility, VolatilityUnknownReason } from "@/lib/crypto-vol
  *
  *  The selection has to survive three things the operator will do: reload the page, switch
  *  between PAPER and LIVE, and come back tomorrow. PAPER/LIVE is free because both render from
- *  this one piece of page state; the other two need storage, which is why the initial value is
- *  read from `localStorage` rather than defaulted to BTC and corrected afterwards.
+ *  this one piece of page state; the other two need storage.
  *
- *  `permitted` is the server's list once `/status` has answered. Until then it is the client's
- *  own, which is only used to render the tabs - a symbol the server refuses can never be
- *  selected, because the effect below moves the selection off it.
+ *  The remembered value is read through `useSyncExternalStore` with BTC as the server snapshot.
+ *  The page is prerendered without storage, and reading storage in a `useState` initialiser made
+ *  the first client render disagree with the prerendered HTML: React kept the prerendered
+ *  `aria-selected="true"` on BTC while the screen acted on the remembered symbol, so two tabs
+ *  read as pressed. With a server snapshot React hydrates on BTC and then re-renders on the
+ *  remembered symbol, patching every attribute. Nothing subscribes to storage events: another
+ *  browser tab changing its selection must never move this tab's trading symbol.
+ *
+ *  `permitted` is what may be selected once it is known; `null` means not yet, and the
+ *  remembered symbol is then held provisionally. The effect below moves the selection to BTC as
+ *  soon as the list says the remembered symbol is not on it.
  */
+const noSubscription = () => () => {};
+
 export function useSelectedSymbol(permitted?: readonly string[] | null) {
-  // Read inside the initialiser so the first render is already on the remembered symbol. A
-  // `useEffect` correction would paint BTC for one frame on every load, and on a slow first
-  // paint that frame is long enough to start reading.
-  const [symbol, setSymbol] = useState<string>(() => readStoredSymbol());
+  const remembered = useSyncExternalStore(noSubscription, () => readStoredSymbol(null),
+                                          () => DEFAULT_SYMBOL);
+  const [chosen, setChosen] = useState<string | null>(null);
+  const symbol = chosen ?? remembered;
 
   const select = useCallback((next: string) => {
-    setSymbol(next);
+    setChosen(next);
     storeSymbol(next);
   }, []);
 
@@ -39,10 +48,10 @@ export function useSelectedSymbol(permitted?: readonly string[] | null) {
     if (!permitted || permitted.length === 0) return;
     if (permitted.includes(symbol)) return;
     // The server narrowed its list (or this browser remembered a symbol from a build that
-    // supported more). Move to its default rather than leaving a tab selected that every
-    // request will refuse.
+    // supported more, or a HOT symbol that has since been replaced). Move to its default
+    // rather than leaving a tab selected that every request will refuse.
     const fallback = permitted.includes(DEFAULT_SYMBOL) ? DEFAULT_SYMBOL : permitted[0];
-    setSymbol(fallback);
+    setChosen(fallback);
     storeSymbol(fallback);
   }, [permitted, symbol]);
 
@@ -134,7 +143,7 @@ export function useSymbolVolatility(symbols?: readonly string[] | null, enabled 
  *  tab leaves the selection, the chart and the order ticket where they were - switching is the
  *  operator pressing a tab, which is the only thing that has ever switched them.
  */
-export function SymbolTabs({ value, onChange, permitted, busy, volatility }: {
+export function SymbolTabs({ value, onChange, permitted, busy, volatility, hotSlot }: {
   value: string;
   onChange: (symbol: string) => void;
   permitted?: readonly string[] | null;
@@ -143,74 +152,93 @@ export function SymbolTabs({ value, onChange, permitted, busy, volatility }: {
    *  flight, which renders `--` rather than an absent line - the row has to hold its height
    *  from the first paint or the whole screen moves 13 px when the figures land. */
   volatility?: Record<string, SymbolVolatility> | null;
+  /** Dynamic HOT V1: the HOT slot after the fixed tabs. `symbol: null` renders "HOT 없음",
+   *  disabled. Absent means the strip renders exactly as it did before. */
+  hotSlot?: { symbol: string | null } | null;
 }) {
   const symbols = permitted && permitted.length > 0 ? permitted : CRYPTO_SYMBOLS;
+  const hotSymbol = hotSlot?.symbol ?? null;
+  const onScreen = hotSymbol && !symbols.includes(hotSymbol) ? [...symbols, hotSymbol] : symbols;
   // Ranked over the symbols actually on screen, so a reading for an instrument this build does
   // not render can never hold the badge that no visible tab would then carry.
-  const hot = hotSymbols(symbols.map(symbol => volatility?.[symbol])
+  const hot = hotSymbols(onScreen.map(symbol => volatility?.[symbol])
     .filter((row): row is SymbolVolatility => row != null));
+
+  const tab = (symbol: string, slot: boolean) => {
+    const selected = symbol === value;
+    const reading = volatility?.[symbol] ?? null;
+    const isHot = hot.has(symbol);
+    return (
+      <button key={slot ? "hot-slot" : symbol} type="button" role="tab" aria-selected={selected}
+        // Disabled while an order or a leverage write is in flight. Changing the symbol
+        // mid-write would leave the response landing on a screen that is no longer about
+        // the instrument it was sent for.
+        disabled={busy && !selected}
+        data-testid={slot ? "symbol-tab-hot" : `symbol-tab-${symbol}`}
+        data-symbol={symbol}
+        title={volatility ? tabTitle(symbol, reading, isHot) : (slot ? `HOT ${symbol}` : undefined)}
+        onClick={() => { if (!selected) onChange(symbol); }}
+        // Same shape as the PAPER / BINANCE LIVE switch directly above, deliberately: the
+        // two rows sit together and a tab that styled its selection differently would read
+        // as a different kind of control.
+        //
+        // `bg-accent` / `text-accent-foreground` / `bg-surface-muted` were used here first
+        // and none of them is a token in this design system, so the selected tab rendered
+        // with no border, no fill and no change beyond inheriting the text colour - there
+        // was no pressed state on screen at all. Every class below is in tailwind.config.
+        className={`shrink-0 rounded-md border text-xs font-bold tracking-wide
+          transition-colors ${volatility ? "px-2.5 py-1" : "px-3 py-1.5"} ${
+          selected
+            ? "border-primary bg-surface-alt text-foreground"
+            : "border-line text-muted hover:text-foreground"
+        } ${busy && !selected ? "cursor-not-allowed opacity-40" : ""} ${slot ? "max-w-[9.5rem]" : ""}`}>
+        <span className="flex items-center justify-center gap-1">
+          {slot && <span aria-hidden="true">🔥</span>}
+          <span className={slot ? "min-w-0 truncate" : undefined}>{symbolLabel(symbol)}</span>
+          {volatility && (
+            // Always rendered, hidden when the symbol is not the widest, so the badge
+            // appearing on another tab does not change any tab's width. The word is the
+            // badge: colour alone would say nothing to a reader who cannot see it, and
+            // nothing on this strip is distinguished by colour anywhere else.
+            <span data-testid={`symbol-hot-${symbol}`} data-hot={isHot}
+              aria-hidden={!isHot || undefined}
+              className={`rounded-sm border px-1 text-[9px] leading-[1.45] tracking-wider
+                tone-warning ${isHot ? "" : "invisible"}`}>HOT</span>
+          )}
+        </span>
+        {volatility && (
+          <span className="mt-0.5 flex items-baseline justify-center gap-0.5 text-[10px]
+            font-semibold tabular-nums" data-testid={`symbol-range-${symbol}`}>
+            {/* The "1H" label is the first thing to go on a phone: the tabs have to stay
+                on one line at 390 px, and the window is stated in the tooltip and in the
+                screen-reader text either way. */}
+            <span className="hidden text-muted sm:inline">1H</span>
+            <span>{rangeLabel(reading)}</span>
+            {reading?.state === "COMPLETE" && (
+              <>
+                <span aria-hidden="true">{DIRECTION_ARROW[reading.direction]}</span>
+                <span className="sr-only">{DIRECTION_WORD[reading.direction]}</span>
+              </>
+            )}
+          </span>
+        )}
+      </button>
+    );
+  };
+
   return (
     <div className="mb-2 flex items-center gap-1 overflow-x-auto" role="tablist"
       aria-label="거래 심볼" data-testid="symbol-tabs">
-      {symbols.map(symbol => {
-        const selected = symbol === value;
-        const reading = volatility?.[symbol] ?? null;
-        const isHot = hot.has(symbol);
-        return (
-          <button key={symbol} type="button" role="tab" aria-selected={selected}
-            // Disabled while an order or a leverage write is in flight. Changing the symbol
-            // mid-write would leave the response landing on a screen that is no longer about
-            // the instrument it was sent for.
-            disabled={busy && !selected}
-            data-testid={`symbol-tab-${symbol}`}
-            title={volatility ? tabTitle(symbol, reading, isHot) : undefined}
-            onClick={() => { if (!selected) onChange(symbol); }}
-            // Same shape as the PAPER / BINANCE LIVE switch directly above, deliberately: the
-            // two rows sit together and a tab that styled its selection differently would read
-            // as a different kind of control.
-            //
-            // `bg-accent` / `text-accent-foreground` / `bg-surface-muted` were used here first
-            // and none of them is a token in this design system, so the selected tab rendered
-            // with no border, no fill and no change beyond inheriting the text colour - there
-            // was no pressed state on screen at all. Every class below is in tailwind.config.
-            className={`shrink-0 rounded-md border text-xs font-bold tracking-wide
-              transition-colors ${volatility ? "px-2.5 py-1" : "px-3 py-1.5"} ${
-              selected
-                ? "border-primary bg-surface-alt text-foreground"
-                : "border-line text-muted hover:text-foreground"
-            } ${busy && !selected ? "cursor-not-allowed opacity-40" : ""}`}>
-            <span className="flex items-center justify-center gap-1">
-              {symbolLabel(symbol)}
-              {volatility && (
-                // Always rendered, hidden when the symbol is not the widest, so the badge
-                // appearing on another tab does not change any tab's width. The word is the
-                // badge: colour alone would say nothing to a reader who cannot see it, and
-                // nothing on this strip is distinguished by colour anywhere else.
-                <span data-testid={`symbol-hot-${symbol}`} data-hot={isHot}
-                  aria-hidden={!isHot || undefined}
-                  className={`rounded-sm border px-1 text-[9px] leading-[1.45] tracking-wider
-                    tone-warning ${isHot ? "" : "invisible"}`}>HOT</span>
-              )}
-            </span>
-            {volatility && (
-              <span className="mt-0.5 flex items-baseline justify-center gap-0.5 text-[10px]
-                font-semibold tabular-nums" data-testid={`symbol-range-${symbol}`}>
-                {/* The "1H" label is the first thing to go on a phone: three tabs have to stay
-                    on one line at 390 px, and the window is stated in the tooltip and in the
-                    screen-reader text either way. */}
-                <span className="hidden text-muted sm:inline">1H</span>
-                <span>{rangeLabel(reading)}</span>
-                {reading?.state === "COMPLETE" && (
-                  <>
-                    <span aria-hidden="true">{DIRECTION_ARROW[reading.direction]}</span>
-                    <span className="sr-only">{DIRECTION_WORD[reading.direction]}</span>
-                  </>
-                )}
-              </span>
-            )}
-          </button>
-        );
-      })}
+      {symbols.map(symbol => tab(symbol, false))}
+      {hotSlot !== undefined && (hotSymbol && !symbols.includes(hotSymbol) ? tab(hotSymbol, true) : !hotSymbol && (
+        <button type="button" role="tab" aria-selected={false} disabled data-testid="symbol-tab-hot"
+          title="코인탐색을 누르면 HOT 1위가 여기에 들어갑니다."
+          className={`shrink-0 cursor-not-allowed rounded-md border border-dashed border-line text-xs
+            font-bold tracking-wide text-muted opacity-70 ${volatility ? "px-2.5 py-1" : "px-3 py-1.5"}`}>
+          <span className="flex items-center justify-center gap-1"><span aria-hidden="true">🔥</span>HOT 없음</span>
+          {volatility && <span className="mt-0.5 block text-[10px]">--</span>}
+        </button>
+      ))}
     </div>
   );
 }
@@ -226,7 +254,7 @@ export function tabTitle(symbol: string, row: SymbolVolatility | null, isHot: bo
     UNKNOWN_NOTES[row.reason]})`;
   const window = `${kstMinute(row.windowStartMs)}~${kstMinute(row.windowEndMs + 60_000)}`;
   return `${symbolLabel(symbol)} · 최근 60분 변동폭 ${rangeLabel(row)} ${
-    DIRECTION_WORD[row.direction]} · ${window} KST${isHot ? " · 3종목 중 최대" : ""}`;
+    DIRECTION_WORD[row.direction]} · ${window} KST${isHot ? " · 표시 종목 중 최대" : ""}`;
 }
 
 const UNKNOWN_NOTES: Record<VolatilityUnknownReason, string> = {

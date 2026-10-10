@@ -376,10 +376,34 @@ export const costUsdt = (value: string | null | undefined, digits = 4) => {
   if (amount == null) return "-";
   return roundedTo(amount, digits) === 0 ? usdt("0", digits) : `-${usdt(value, digits)}`;
 };
-export const price = (value: string | null | undefined, digits = 1) => {
+/** Decimals for a price nobody fixed the digits of. At 100 and above it is the one decimal the
+ *  terminal has always shown for BTC, ETH and SOL. Below that a HOT symbol can trade at 0.0247
+ *  or 0.000012, and one decimal would print "0.0" for every figure on its screen, so the
+ *  decimals grow with the magnitude to keep about five significant digits. */
+export function priceDigits(amount: number): number {
+  const size = Math.abs(amount);
+  if (size === 0 || size >= 100) return 1;
+  if (size >= 1) return 4;
+  return Math.min(10, Math.max(4, -Math.floor(Math.log10(size)) + 4));
+}
+
+export const price = (value: string | null | undefined, digits?: number) => {
   const amount = num(value);
-  return amount == null ? "-" : amount.toLocaleString("en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  if (amount == null) return "-";
+  let decimals = digits ?? priceDigits(amount);
+  // A caller that fixed the digits (a spread at 2) still must not print 0 for a value that is
+  // not 0 - a HOT symbol's one-tick spread is 0.000001.
+  if (digits != null && amount !== 0 && Math.abs(amount) < 0.5 * 10 ** -digits) decimals = priceDigits(amount);
+  return amount.toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 };
+
+/** Chart price format from the instrument's tick: BTC's 0.10 keeps the one decimal it has. */
+export function chartPriceFormat(tickSize: string | null | undefined): { precision: number; minMove: number } {
+  const tick = num(tickSize ?? null);
+  if (tick == null || tick <= 0) return { precision: 1, minMove: 0.1 };
+  const precision = Math.max(1, Math.min(10, Math.round(-Math.log10(tick) + 1e-9)));
+  return { precision, minMove: Number(tick.toFixed(precision)) };
+}
 export const qty = (value: string | null | undefined) => {
   const amount = num(value);
   return amount == null ? "-" : amount.toLocaleString("en-US", { minimumFractionDigits: 3, maximumFractionDigits: 3 });

@@ -1,12 +1,15 @@
 import { CRYPTO_API_BASE, CryptoApiError } from "@/lib/crypto-paper";
 
-/** HOT Coin Finder V0: read-only.
+/** Dynamic HOT Trading V1: BTC is the fixed main instrument, the HOT slot holds one more.
  *
- *  One GET, `/api/crypto/hot-coins`, and nothing else. The browser never calls Binance itself:
- *  the backend owns the request budget, the single-flight guard and the encoding of symbols such
- *  as 龙虾USDT. A HOT result is a list to look at. It is held in its own storage key and its own
- *  state, never in the selected trading symbol, so no result can move the chart, the order
- *  ticket or the tabs.
+ *  The slot is the server's. `GET /api/crypto/hot` says which symbol it holds, since when, and
+ *  whether 코인탐색 may replace it right now; `POST /api/crypto/hot/scan` is the only thing that
+ *  replaces it, and the server checks the lock on the current HOT symbol before the scan and
+ *  again before the swap. The screen never decides the lock: a button that re-enabled because
+ *  the page *thought* a position was closed is exactly what the backend check exists to prevent.
+ *
+ *  What the browser keeps is a copy of the last slot it saw, so a reload paints the HOT tab
+ *  before the first answer arrives. The server's answer always replaces it.
  */
 export type HotDirection = "UP" | "DOWN" | "FLAT";
 
@@ -25,97 +28,123 @@ export type HotCoin = {
   scanned_at_ms: number;
 };
 
-export type HotScanResponse = {
-  status: "OK";
+export type HotSlotView = {
+  symbol: string;
+  selected_at_ms: number;
   scanned_at_ms: number;
-  scanned_at: string;
-  cached: boolean;
-  coalesced: boolean;
+  metrics: HotCoin;
   top: HotCoin[];
-  universe_size: number;
-  api: { requests: number; weight: number; duration_ms: number };
 };
 
-/** What the screen holds and restores after a reload. */
-export type HotSnapshot = {
-  scannedAtMs: number;
-  top: HotCoin[];
-  universeSize: number;
+export type HotLock = {
+  state: "ALLOWED" | "BLOCKED";
+  code: string;
+  symbol: string | null;
+  message: string;
 };
 
+export type HotState = {
+  main: string;
+  hot: HotSlotView | null;
+  lock: HotLock;
+  scanning: boolean;
+  held: string[];
+  permitted: string[];
+  paper: { available: boolean; reason: string | null } | null;
+  server_time_ms: number;
+};
+
+export type HotScanAnswer = HotState & {
+  status: "HOT_SELECTED" | "HOT_REPLACED" | "HOT_UNCHANGED";
+  changed: boolean;
+  previous: string | null;
+  paper_note: string | null;
+  scan: { scanned_at_ms: number; universe_size: number;
+          api: { requests: number; weight: number; duration_ms: number } } | null;
+};
+
+export const HOT_POLL_MS = 5_000;
 export const HOT_SCAN_TIMEOUT_MS = 30_000;
-const STORAGE_KEY = "usb.crypto.hotCoins.v0";
+const STORAGE_KEY = "usb.crypto.hotSlot.v1";
+export const HOT_STORAGE_KEY = STORAGE_KEY;
 
-export async function fetchHotCoins(signal?: AbortSignal): Promise<HotScanResponse> {
+type ErrorBody = { error?: { code?: string; message?: string } } & Partial<HotState>;
+
+/** A refusal that still carries the server's current view (409 on a blocked scan does). */
+export class HotRefused extends CryptoApiError {
+  constructor(status: number, code: string, message: string, public state: HotState | null) {
+    super(status, code, message);
+    this.name = "HotRefused";
+  }
+}
+
+async function call<T>(path: string, init: RequestInit): Promise<T> {
   let response: Response;
   try {
-    response = await fetch(`${CRYPTO_API_BASE}/api/crypto/hot-coins`, {
-      method: "GET", cache: "no-store", signal,
-    });
+    response = await fetch(`${CRYPTO_API_BASE}${path}`, { ...init, cache: "no-store" });
   } catch (exception) {
     if (exception instanceof DOMException && exception.name === "AbortError") {
       throw new CryptoApiError(0, "REQUEST_ABORTED", "탐색 시간이 초과되었습니다.");
     }
     throw new CryptoApiError(0, "NETWORK_ERROR", "탐색 서버에 연결할 수 없습니다.");
   }
-  const body = await response.json().catch(() => null) as
-    (HotScanResponse & { error?: { code?: string; message?: string } }) | null;
+  const body = await response.json().catch(() => null) as ErrorBody | null;
   if (!response.ok || !body) {
-    throw new CryptoApiError(response.status, body?.error?.code || "HTTP_ERROR",
-      body?.error?.message || `HTTP ${response.status}`);
+    const state = body && isHotState(body) ? body as HotState : null;
+    throw new HotRefused(response.status, body?.error?.code || "HTTP_ERROR",
+      body?.error?.message || `HTTP ${response.status}`, state);
   }
-  if (!isSnapshotRows(body.top) || typeof body.scanned_at_ms !== "number") {
-    throw new CryptoApiError(response.status, "BAD_RESPONSE", "탐색 응답 형식이 올바르지 않습니다.");
-  }
-  return body;
+  return body as T;
 }
 
-export function toSnapshot(body: HotScanResponse): HotSnapshot {
-  return { scannedAtMs: body.scanned_at_ms, top: body.top, universeSize: body.universe_size };
+export const fetchHotState = (signal?: AbortSignal) =>
+  call<HotState>("/api/crypto/hot", { method: "GET", signal });
+
+export const postHotScan = (signal?: AbortSignal) =>
+  call<HotScanAnswer>("/api/crypto/hot/scan", { method: "POST", signal });
+
+export function isHotState(value: unknown): value is HotState {
+  const body = value as HotState | null;
+  return body != null && typeof body === "object" && typeof body.main === "string"
+    && body.lock != null && typeof body.lock.state === "string"
+    && (body.hot === null || isSlot(body.hot));
 }
 
-/** A response only replaces what is held if it is not older. A slow answer to an earlier
- *  request must never paint over a newer result. */
-export function shouldReplace(held: HotSnapshot | null, next: HotSnapshot): boolean {
-  return held == null || next.scannedAtMs >= held.scannedAtMs;
+function isSlot(value: unknown): value is HotSlotView {
+  const slot = value as HotSlotView | null;
+  return slot != null && typeof slot.symbol === "string" && typeof slot.scanned_at_ms === "number"
+    && typeof slot.selected_at_ms === "number" && Array.isArray(slot.top);
 }
 
-function isSnapshotRows(rows: unknown): rows is HotCoin[] {
-  return Array.isArray(rows) && rows.length > 0 && rows.every(row =>
-    row != null && typeof row === "object"
-    && typeof (row as HotCoin).symbol === "string"
-    && typeof (row as HotCoin).one_hour_range_pct === "number"
-    && typeof (row as HotCoin).twenty_four_hour_range_pct === "number"
-    && typeof (row as HotCoin).spread_bps === "number"
-    && typeof (row as HotCoin).estimated_round_trip_slippage_bps_1000 === "number");
+/** An answer only replaces the held slot when it is not older. A slow poll that was sent before
+ *  a scan finished must not put the previous HOT symbol back on the tab. */
+export function shouldReplaceSlot(held: HotSlotView | null, next: HotSlotView | null): boolean {
+  if (next == null) return held == null;
+  if (held == null) return true;
+  return next.scanned_at_ms >= held.scanned_at_ms;
 }
 
-/** `localStorage` throws in a private window and under blocked site data; both read as "nothing
- *  held". A stored value that fails the shape check is ignored rather than half-rendered. */
-export function readStoredHot(): HotSnapshot | null {
+export function readStoredSlot(): HotSlotView | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<HotSnapshot>;
-    if (typeof parsed.scannedAtMs !== "number" || !isSnapshotRows(parsed.top)) return null;
-    return { scannedAtMs: parsed.scannedAtMs, top: parsed.top,
-      universeSize: typeof parsed.universeSize === "number" ? parsed.universeSize : 0 };
+    const parsed = JSON.parse(raw) as unknown;
+    return isSlot(parsed) ? parsed : null;
   } catch {
     return null;
   }
 }
 
-export function storeHot(snapshot: HotSnapshot): void {
+export function storeSlot(slot: HotSlotView | null): void {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
+    if (slot) window.localStorage.setItem(STORAGE_KEY, JSON.stringify(slot));
+    else window.localStorage.removeItem(STORAGE_KEY);
   } catch {
-    // Not remembered across a reload; the result on screen is unaffected.
+    // Not remembered across a reload; the server still has it.
   }
 }
-
-export const HOT_STORAGE_KEY = STORAGE_KEY;
 
 export const hotPct = (value: number) => `${value.toFixed(value >= 10 ? 1 : 2)}%`;
 export const hotSignedPct = (value: number) => `${value > 0 ? "+" : ""}${value.toFixed(2)}%`;

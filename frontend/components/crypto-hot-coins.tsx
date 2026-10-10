@@ -3,82 +3,142 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CryptoApiError } from "@/lib/crypto-paper";
 import {
-  HOT_SCAN_TIMEOUT_MS, fetchHotCoins, hotBps, hotLabel, hotPct, hotPrice, hotSignedPct, hotTime,
-  hotVolume, readStoredHot, shouldReplace, storeHot, toSnapshot,
+  HOT_POLL_MS, HOT_SCAN_TIMEOUT_MS, HotRefused, fetchHotState, hotBps, hotLabel, hotPct, hotPrice,
+  hotSignedPct, hotTime, hotVolume, postHotScan, readStoredSlot, shouldReplaceSlot, storeSlot,
 } from "@/lib/crypto-hot-coins";
-import type { HotCoin, HotSnapshot } from "@/lib/crypto-hot-coins";
+import type { HotCoin, HotSlotView, HotState } from "@/lib/crypto-hot-coins";
 
-/** The last HOT result, a scan on demand, and nothing on a timer.
+export type HotSlotController = ReturnType<typeof useHotSlot>;
+
+/** The HOT slot as the server holds it, plus a guarded way to ask for a new one.
  *
- *  `scan()` is the only thing that reaches the network, and only from a click. A second click
- *  while one scan is running is ignored here (and coalesced again by the server). A failed scan
- *  - timeout, network, Binance down - leaves the held result exactly as it was and says so. An
- *  answer older than what is held is dropped.
+ *  `loaded` is false until the server has answered once. Until then the tab may show the copy
+ *  this browser kept, but the button stays off: whether a scan is allowed is the server's
+ *  answer, and "no answer yet" is not "allowed".
  *
- *  The held result is restored from storage after mount rather than in the initialiser: the page
- *  is prerendered without storage, and React does not repaint attributes it believes it already
- *  rendered, which is how the symbol tabs ended up showing BTC pressed while acting on SOL.
+ *  The lock is re-read on a timer because the event that releases it - a HOT position closing -
+ *  happens on the backend, and the button must come back on when the backend says flat, not when
+ *  this page last saw a CLOSE succeed. The poll reads no market data and starts no scan.
  */
-export function useHotCoins(timeoutMs = HOT_SCAN_TIMEOUT_MS) {
-  const [held, setHeld] = useState<HotSnapshot | null>(null);
+export function useHotSlot(pollMs = HOT_POLL_MS, timeoutMs = HOT_SCAN_TIMEOUT_MS) {
+  const [slot, setSlot] = useState<HotSlotView | null>(null);
+  const [server, setServer] = useState<HotState | null>(null);
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const heldRef = useRef<HotSnapshot | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  const slotRef = useRef<HotSlotView | null>(null);
   const inFlight = useRef(false);
-  const generation = useRef(0);
+  const alive = useRef(true);
+
+  const applySlot = useCallback((next: HotSlotView | null) => {
+    if (!shouldReplaceSlot(slotRef.current, next)) return;
+    slotRef.current = next;
+    setSlot(next);
+    storeSlot(next);
+  }, []);
+
+  const applyState = useCallback((body: HotState) => {
+    setServer(body);
+    applySlot(body.hot);
+  }, [applySlot]);
+
+  /** Ask the server now rather than at the next poll. Called when the screen sees a position
+   *  change, so the button turns off as soon as a HOT position opens and back on as soon as the
+   *  backend reports it flat - still the server's answer, just not five seconds late. */
+  const refresh = useCallback(async () => {
+    try {
+      const body = await fetchHotState();
+      if (alive.current) applyState(body);
+    } catch {
+      // The poll will try again.
+    }
+  }, [applyState]);
 
   useEffect(() => {
-    const stored = readStoredHot();
-    if (stored && shouldReplace(heldRef.current, stored)) {
-      heldRef.current = stored;
-      setHeld(stored);
+    alive.current = true;
+    const cached = readStoredSlot();
+    if (cached && slotRef.current == null) {
+      slotRef.current = cached;
+      setSlot(cached);
     }
-    return () => { generation.current += 1; };
-  }, []);
+    const controller = new AbortController();
+    let timer: number | undefined;
+    const read = async () => {
+      try {
+        const body = await fetchHotState(controller.signal);
+        if (alive.current) applyState(body);
+      } catch {
+        // A failed poll keeps the last answer; the next poll tries again.
+      }
+      if (alive.current) timer = window.setTimeout(() => { void read(); }, pollMs);
+    };
+    void read();
+    return () => {
+      alive.current = false;
+      controller.abort();
+      if (timer !== undefined) window.clearTimeout(timer);
+    };
+  }, [applyState, pollMs]);
 
   const scan = useCallback(async () => {
     if (inFlight.current) return;
     inFlight.current = true;
-    const mine = ++generation.current;
     setScanning(true);
     setError(null);
+    setNote(null);
     const controller = new AbortController();
     const timer = window.setTimeout(() => controller.abort(), timeoutMs);
     try {
-      const body = await fetchHotCoins(controller.signal);
-      if (mine !== generation.current) return;
-      const next = toSnapshot(body);
-      if (shouldReplace(heldRef.current, next)) {
-        heldRef.current = next;
-        setHeld(next);
-        storeHot(next);
-      }
+      const body = await postHotScan(controller.signal);
+      if (!alive.current) return;
+      applyState(body);
+      setNote(body.paper_note);
     } catch (exception) {
-      if (mine !== generation.current) return;
+      if (!alive.current) return;
+      if (exception instanceof HotRefused && exception.state) applyState(exception.state);
       setError(exception instanceof CryptoApiError ? exception.message : "탐색에 실패했습니다.");
     } finally {
       window.clearTimeout(timer);
-      if (mine === generation.current) {
-        inFlight.current = false;
-        setScanning(false);
-      }
+      inFlight.current = false;
+      if (alive.current) setScanning(false);
     }
-  }, [timeoutMs]);
+  }, [applyState, timeoutMs]);
 
-  return { held, scanning, error, scan };
+  return {
+    slot,
+    symbol: slot?.symbol ?? null,
+    lock: server?.lock ?? null,
+    held: server?.held ?? [],
+    paper: server?.paper ?? null,
+    loaded: server != null,
+    scanning: scanning || (server?.scanning ?? false),
+    error,
+    note,
+    scan,
+    refresh,
+  };
 }
 
-/** [코인탐색] and its result panel.
+/** Why the button may not be pressed right now, or null when it may. */
+export function scanBlocker(hot: Pick<HotSlotController, "loaded" | "scanning" | "lock">,
+                            busy = false): string | null {
+  if (!hot.loaded) return "HOT 상태를 확인하는 중입니다.";
+  if (hot.scanning) return "탐색 중입니다.";
+  if (busy) return "주문 처리 중에는 탐색할 수 없습니다.";
+  if (!hot.lock || hot.lock.state !== "ALLOWED") return hot.lock?.message ?? "HOT 상태를 알 수 없습니다.";
+  return null;
+}
+
+/** [코인탐색] and its panel.
  *
- *  The panel floats over the page instead of taking a row, so opening it moves neither the
- *  symbol tabs nor the order ticket. The rows are text, not buttons: in V0 a HOT coin is
- *  something to look at, and there is deliberately no click path from a row to the selected
- *  trading symbol, the chart or an order.
+ *  The panel floats over the page instead of taking a row, so opening it moves neither the tabs
+ *  nor the order ticket. The TOP5 rows are text: the HOT tab carries #1, and choosing to trade it
+ *  is pressing that tab, never a row here.
  */
-export function HotCoinFinder() {
-  const { held, scanning, error, scan } = useHotCoins();
+export function HotCoinFinder({ hot, busy = false }: { hot: HotSlotController; busy?: boolean }) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
+  const blocker = scanBlocker(hot, busy);
 
   useEffect(() => {
     if (!open) return;
@@ -95,63 +155,65 @@ export function HotCoinFinder() {
   }, [open]);
 
   return (
-    <div ref={root} className="relative mb-2 flex shrink-0 items-start gap-1"
-      data-testid="hot-finder">
-      <button type="button" data-testid="hot-scan-button" disabled={scanning}
-        aria-busy={scanning} aria-expanded={open} aria-controls="hot-coins-panel"
-        onClick={() => { setOpen(true); void scan(); }}
-        className={`rounded-md border px-2.5 py-1 text-xs font-bold tracking-wide transition-colors
-          ${scanning ? "cursor-wait border-line text-muted" : "border-warning text-warning hover:bg-warning-soft"}`}>
-        {scanning ? "탐색 중…" : "코인탐색"}
+    <div ref={root} className="relative mb-2 flex shrink-0 items-start gap-1" data-testid="hot-finder">
+      <button type="button" data-testid="hot-scan-button" disabled={blocker !== null}
+        aria-busy={hot.scanning} aria-expanded={open} aria-controls="hot-coins-panel"
+        title={blocker ?? "Binance 선물 전체에서 HOT 1위를 찾아 HOT 탭에 둡니다."}
+        onClick={() => { setOpen(true); void hot.scan(); }}
+        className={`rounded-md border px-2.5 py-1 text-xs font-bold tracking-wide transition-colors ${
+          hot.scanning ? "cursor-wait border-line text-muted"
+            : blocker ? "cursor-not-allowed border-line text-muted opacity-60"
+              : "border-warning text-warning hover:bg-warning-soft"}`}>
+        {hot.scanning ? "탐색 중…" : "코인탐색"}
       </button>
-      {held && !open && (
-        <button type="button" data-testid="hot-show-button" onClick={() => setOpen(true)}
-          aria-label="마지막 탐색 결과 보기" title={`마지막 탐색 ${hotTime(held.scannedAtMs)} KST`}
-          className="rounded-md border border-line px-1.5 text-xs text-muted hover:text-foreground">
-          ▾
-        </button>
-      )}
-      {open && (
-        <HotCoinsPanel held={held} scanning={scanning} error={error}
-          onClose={() => setOpen(false)} />
-      )}
+      <button type="button" data-testid="hot-show-button" onClick={() => setOpen(value => !value)}
+        aria-label="HOT 탐색 결과 보기" aria-expanded={open}
+        className="rounded-md border border-line px-1.5 text-xs text-muted hover:text-foreground">
+        ▾
+      </button>
+      {open && <HotCoinsPanel hot={hot} blocker={blocker} onClose={() => setOpen(false)} />}
     </div>
   );
 }
 
-export function HotCoinsPanel({ held, scanning, error, onClose }: {
-  held: HotSnapshot | null;
-  scanning: boolean;
-  error: string | null;
+export function HotCoinsPanel({ hot, blocker, onClose }: {
+  hot: Pick<HotSlotController, "slot" | "scanning" | "error" | "note" | "lock" | "paper">;
+  blocker: string | null;
   onClose: () => void;
 }) {
+  const slot = hot.slot;
+  const status = hot.error
+    ? { tone: "tone-danger", text: `${hot.error}${slot ? " · 현재 HOT을 유지합니다" : ""}` }
+    : hot.scanning
+      ? { tone: "tone-info", text: slot ? "탐색 중 · 아래는 현재 HOT 기준입니다" : "Binance 선물 전체를 탐색하는 중입니다" }
+      : blocker && hot.lock?.state === "BLOCKED"
+        ? { tone: "tone-warning", text: `${hot.lock.message} 포지션·미체결이 정리되면 다시 탐색할 수 있습니다.` }
+        : { tone: "tone-neutral", text: "탐색 1위가 HOT 탭에 들어갑니다. BTC 포지션과는 무관합니다." };
   return (
-    <section id="hot-coins-panel" role="dialog" aria-label="HOT 코인 탐색 결과"
-      data-testid="hot-coins-panel"
+    <section id="hot-coins-panel" role="dialog" aria-label="HOT 코인 탐색 결과" data-testid="hot-coins-panel"
       className="absolute right-0 top-full z-40 mt-1 w-[min(26rem,calc(100vw-2rem))] rounded-lg
         border border-line bg-surface p-3 shadow-panel">
       <header className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <h2 className="text-xs font-bold tracking-wider text-foreground">HOT COINS</h2>
           <p className="text-[11px] text-muted" data-testid="hot-scanned-at">
-            {held ? `${hotTime(held.scannedAtMs)} KST 탐색` : "아직 탐색 결과가 없습니다"}
+            {slot ? `${hotTime(slot.scanned_at_ms)} KST 탐색 · HOT ${hotLabel(slot.symbol)} (${hotTime(slot.selected_at_ms)} 선정)`
+              : "아직 HOT이 없습니다"}
           </p>
         </div>
         <button type="button" onClick={onClose} aria-label="닫기" data-testid="hot-close"
           className="rounded-md border border-line px-2 text-xs text-muted hover:text-foreground">✕</button>
       </header>
       <p aria-live="polite" data-testid="hot-status"
-        className={`mt-2 rounded-md border px-2 py-1 text-[11px] ${
-          error ? "tone-danger" : scanning ? "tone-info" : "tone-neutral"}`}>
-        {error
-          ? `${error}${held ? " · 이전 결과를 유지합니다" : ""}`
-          : scanning
-            ? held ? "탐색 중 · 아래는 이전 결과입니다" : "Binance 선물 전체를 탐색하는 중입니다"
-            : "조회 전용 · 거래 심볼과 주문은 바뀌지 않습니다"}
-      </p>
-      {held && (
-        <ol className={`mt-2 space-y-1.5 ${scanning ? "opacity-60" : ""}`} data-testid="hot-list">
-          {held.top.map(coin => <HotCoinRow key={coin.symbol} coin={coin} />)}
+        className={`mt-2 rounded-md border px-2 py-1 text-[11px] ${status.tone}`}>{status.text}</p>
+      {(hot.note || (hot.paper && !hot.paper.available)) && (
+        <p className="mt-1 rounded-md border px-2 py-1 text-[11px] tone-warning" data-testid="hot-paper-note">
+          {hot.note ?? hot.paper?.reason} · 차트·호가는 정상이며 PAPER 주문만 막힙니다.
+        </p>
+      )}
+      {slot && (
+        <ol className={`mt-2 space-y-1.5 ${hot.scanning ? "opacity-60" : ""}`} data-testid="hot-list">
+          {slot.top.map(coin => <HotCoinRow key={coin.symbol} coin={coin} current={coin.symbol === slot.symbol} />)}
         </ol>
       )}
       <p className="mt-2 text-[10px] leading-snug text-muted">
@@ -161,16 +223,16 @@ export function HotCoinsPanel({ held, scanning, error, onClose }: {
   );
 }
 
-function HotCoinRow({ coin }: { coin: HotCoin }) {
+function HotCoinRow({ coin, current }: { coin: HotCoin; current: boolean }) {
   const tone = coin.direction === "UP" ? "tone-text-success"
     : coin.direction === "DOWN" ? "tone-text-danger" : "text-muted";
   return (
-    <li className="rounded-md border border-line px-2 py-1.5" data-testid={`hot-row-${coin.rank}`}
-      data-symbol={coin.symbol}>
+    <li className={`rounded-md border px-2 py-1.5 ${current ? "border-warning" : "border-line"}`}
+      data-testid={`hot-row-${coin.rank}`} data-symbol={coin.symbol}>
       <div className="flex items-baseline justify-between gap-2">
         <span className="min-w-0 truncate text-sm font-bold text-foreground">
           <span className="mr-1 text-muted tabular-nums">{coin.rank}.</span>
-          {hotLabel(coin.symbol)}
+          {current && <span aria-label="HOT">🔥</span>}{hotLabel(coin.symbol)}
           <span className="ml-1 text-[10px] font-normal text-muted">{hotPrice(coin.last_price)}</span>
         </span>
         {/* The range is a size with no sign, so it stays neutral; only the change is coloured. */}

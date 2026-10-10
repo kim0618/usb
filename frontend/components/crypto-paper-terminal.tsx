@@ -494,12 +494,21 @@ export function OrderTicket({ state, sizing, onAction, busy, error, wide = false
 
       <label className="mb-1 block text-xs text-muted" htmlFor="crypto-leverage">레버리지</label>
       <div className="mb-2 grid grid-cols-6 gap-1 sm:mb-3" id="crypto-leverage">
-        {LEVERAGE_PRESETS.map(value => (
-          <button key={value} type="button" disabled={busy || !flat}
-            aria-pressed={state.leverage === value}
-            className={`btn-compact h-9 px-0 sm:h-10 ${state.leverage === value ? "btn-compact-active" : ""}`}
-            onClick={() => onAction(() => cryptoApi.leverage(symbol, value))}>{value}x</button>
-        ))}
+        {LEVERAGE_PRESETS.map(value => {
+          // The instrument's own ceiling, from its measured margin table. A HOT symbol's can be
+          // 20x or 5x; offering 50x there would only be refused by the engine.
+          const ceiling = num(state.instrument?.max_leverage);
+          const aboveCeiling = ceiling != null && Number(value) > ceiling;
+          return (
+            <button key={value} type="button" disabled={busy || !flat || aboveCeiling}
+              aria-pressed={state.leverage === value}
+              title={aboveCeiling ? `${symbol} 최대 ${ceiling}x` : undefined}
+              data-testid={`paper-leverage-${value}`}
+              className={`btn-compact h-9 px-0 sm:h-10 ${state.leverage === value ? "btn-compact-active" : ""} ${
+                aboveCeiling ? "line-through opacity-40" : ""}`}
+              onClick={() => onAction(() => cryptoApi.leverage(symbol, value))}>{value}x</button>
+          );
+        })}
       </div>
       {!flat && <p className="mb-2 text-[11px] text-muted">보유 중 레버리지 변경 불가</p>}
 

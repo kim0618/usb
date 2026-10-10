@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ErrorState, LoadingState } from "@/components/ui";
 import {
   LedgerTable, OrderTicket, PerformancePanel, RunFooter, SourceBanner, TradeHistory,
@@ -16,7 +16,7 @@ import {
   LivePerformanceSummary, LivePositionCard, LivePositionPanel, LiveTradeBar, useBinanceLive,
 } from "@/components/crypto-live-terminal";
 import { C1AutoControl } from "@/components/crypto-c1-auto-control";
-import { HotCoinFinder } from "@/components/crypto-hot-coins";
+import { HotCoinFinder, useHotSlot } from "@/components/crypto-hot-coins";
 import {
   OpenPositionsStrip, SymbolTabs, useOpenPositions, useSelectedSymbol, useSymbolVolatility,
 } from "@/components/crypto-symbol-tabs";
@@ -67,17 +67,43 @@ export function CryptoTerminal({ marketContext }: {
   /** PAPER unless the operator switches, and the switch is only offered when the backend says a
    *  Binance key is configured. The two accounts never render at the same time. */
   const [source, setSource] = useState<AccountSource>("PAPER");
-  /** What the server permits, learned from `/status` and remembered across the PAPER/LIVE
-   *  switch so the tabs do not flicker back to the client's own list. `null` until the first
-   *  status answers, which is what `useSelectedSymbol` treats as "no opinion yet". */
-  const [permitted, setPermitted] = useState<readonly string[] | null>(null);
+  /** Dynamic HOT V1: BTC is fixed, the HOT slot holds whatever 코인탐색 last put there.
+   *
+   *  The slot is the server's, on both accounts, and survives a reload, a route change and a
+   *  restart. It is not the selection: BTC can be on screen while the slot holds LUMIA, and
+   *  pressing the HOT tab is what selects it. */
+  const hot = useHotSlot();
+  /** Every symbol's open position, polled while LIVE is on screen. */
+  const positions = useOpenPositions(source === "BINANCE_LIVE");
+  /** Symbols other than BTC and the HOT symbol that still hold a position: an ETH position from
+   *  before the fixed tabs went, or a former HOT symbol a crash left open. They get a tab for as
+   *  long as the position lasts, so nothing open is ever unreachable from this screen. */
+  const liveHeld = (source === "BINANCE_LIVE" ? positions.summary?.positions ?? [] : [])
+    .filter(row => row.available && !row.is_flat).map(row => row.symbol).join(",");
+  const heldKey = [...hot.held, ...(liveHeld ? liveHeld.split(",") : [])]
+    .filter((item, index, all) => item !== DEFAULT_SYMBOL && item !== hot.symbol && all.indexOf(item) === index)
+    .join(",");
+  /** The fixed tabs: BTC, then any held symbol. The HOT tab is rendered after them. */
+  const fixedTabs = useMemo(() => [DEFAULT_SYMBOL, ...(heldKey ? heldKey.split(",") : [])], [heldKey]);
+  /** What may be selected. `null` until the HOT slot has answered, which `useSelectedSymbol`
+   *  treats as "no opinion yet" so a reload on the HOT tab stays on it. */
+  const selectable = useMemo(() => (hot.loaded
+    ? [...fixedTabs, ...(hot.symbol ? [hot.symbol] : [])] : null), [hot.loaded, hot.symbol, fixedTabs]);
   /** The one piece of state both trees read.
    *
    *  Held here rather than inside either tree, which is what makes the selection survive the
    *  PAPER/LIVE switch for free: switching `source` re-renders this component's children and
    *  leaves this state alone. Reload survival is `localStorage`, inside the hook.
    */
-  const { symbol, select: selectSymbol } = useSelectedSymbol(permitted);
+  const { symbol, select: selectSymbol } = useSelectedSymbol(selectable);
+  /** On the HOT tab when the slot moves on: follow it to the new HOT symbol. Anywhere else the
+   *  selection stays where the operator put it. */
+  const previousHot = useRef<string | null>(hot.symbol);
+  useEffect(() => {
+    const before = previousHot.current;
+    previousHot.current = hot.symbol;
+    if (before && hot.symbol && before !== hot.symbol && symbol === before) selectSymbol(hot.symbol);
+  }, [hot.symbol, symbol, selectSymbol]);
   const terminal = useCryptoTerminal(symbol);
   const [timeframe, setTimeframe] = useState<ChartTimeframe>("1m");
   /** C1 is a BTCUSDT research result and stays on BTCUSDT.
@@ -91,8 +117,6 @@ export function CryptoTerminal({ marketContext }: {
   const wide = useIsWide();
   const live = useLivePnl(terminal.state?.account?.position_side != null, symbol);
   const binance = useBinanceLive(source === "BINANCE_LIVE", symbol);
-  /** Every symbol's open position, polled while LIVE is on screen. */
-  const positions = useOpenPositions(source === "BINANCE_LIVE");
   /** Every symbol's last-hour range, on both accounts.
    *
    *  Not gated on `source`: the range is Bybit's market data and says nothing about an account,
@@ -100,17 +124,18 @@ export function CryptoTerminal({ marketContext }: {
    *  not restart the poll or blank the badges, for the same reason the selection survives it -
    *  this state lives above both trees.
    */
-  const volatility = useSymbolVolatility(permitted);
+  const volatility = useSymbolVolatility(useMemo(
+    () => [...fixedTabs, ...(hot.symbol ? [hot.symbol] : [])], [fixedTabs, hot.symbol]));
+  /** A position opening or closing on screen is the moment the HOT lock can change, so the
+   *  slot is re-read then instead of at its next poll. The lock is still the server's answer. */
+  const positionSignature = source === "BINANCE_LIVE"
+    ? `${symbol}:${binance.account?.position?.side ?? "FLAT"}:${binance.account?.position?.qty ?? "0"}`
+    : `${symbol}:${terminal.state?.account?.position_side ?? "FLAT"}:${terminal.state?.account?.position_qty ?? "0"}`;
+  const refreshHot = hot.refresh;
+  useEffect(() => { void refreshHot(); }, [positionSignature, refreshHot]);
   /** Raised by the bar and by a CLOSE pressed after the window lapsed. One dialog for both, so
    *  the sentence the operator has to agree to is written once. */
   const [activating, setActivating] = useState(false);
-
-  // The server's list, once it has one. Written from an effect rather than read inline so the
-  // tabs keep the list across a switch back to PAPER, where no status poll runs.
-  useEffect(() => {
-    const served = binance.symbols;
-    if (served && served.length > 0) setPermitted(served);
-  }, [binance.symbols]);
 
   const sourceSwitch = (
     <AccountSourceSwitch value={source} onChange={setSource} available={binance.available} />
@@ -118,17 +143,18 @@ export function CryptoTerminal({ marketContext }: {
   /** The tab strip, rendered identically above both trees so the selection reads the same
    *  whichever account is on screen. Disabled while a write is in flight. */
   const symbolTabs = (
-    // [코인탐색] sits at the end of the tab row and is read-only. It takes no `symbol` and no
-    // `onChange`, so nothing it shows can select a tab, re-point the chart or reach an order.
-    // `items-stretch` makes the finder as tall as the tab row, so its panel opens below the
-    // tabs' range line instead of over it.
+    // [코인탐색] sits at the end of the tab row. It changes the HOT slot (on the server, behind
+    // the HOT lock), never the selection: nothing in its panel can select a tab or reach an
+    // order. `items-stretch` makes the finder as tall as the tab row, so its panel opens below
+    // the tabs' range line instead of over it.
     <div className="flex items-stretch gap-2">
       <div className="min-w-0 flex-1">
-        <SymbolTabs value={symbol} onChange={selectSymbol} permitted={permitted}
+        <SymbolTabs value={symbol} onChange={selectSymbol} permitted={fixedTabs}
           busy={source === "BINANCE_LIVE" ? binance.busy : terminal.busy}
-          volatility={volatility.rows} />
+          volatility={volatility.rows} hotSlot={{ symbol: hot.symbol }} />
       </div>
-      <HotCoinFinder />
+      <HotCoinFinder hot={hot}
+        busy={source === "BINANCE_LIVE" ? binance.busy : terminal.busy} />
     </div>
   );
 

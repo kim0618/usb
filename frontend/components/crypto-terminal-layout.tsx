@@ -10,6 +10,7 @@ import {
   num, positionOverlays, price, qty, resetCapitalLabel, resetScopeNote,
   clockKst, costKrw, costUsdt, percent, previewFreshness, rejectLabel, signedKrw, signedUsdt,
   tickFreshness, toneClass, usdt,
+  chartPriceFormat,
 } from "@/lib/crypto-paper";
 import { DEFAULT_SYMBOL, baseAsset as baseAssetOf } from "@/lib/crypto-symbols";
 import type { Candle, Candle15sStatus, ChartBar, ChartOverlay, ChartPoint, CryptoAccount,
@@ -491,6 +492,8 @@ export function ChartSection({ state, bars, timeframe, onTimeframe, overlays: gi
   // and was found by tracing the requests the page actually made in the isolated preview, not
   // by looking at the screen.
   const symbol = state.symbol ?? DEFAULT_SYMBOL;
+  const tickSize = state.instrument?.tick_size;
+  const chartFormat = useMemo(() => chartPriceFormat(tickSize), [tickSize]);
   const fast = use15sCandles(timeframe === "15s", symbol);
   const historyFrame: HistoryTimeframe = timeframe === "15s" ? "1m" : timeframe;
   const history = useChartHistory(timeframe !== "15s", historyFrame, symbol);
@@ -559,6 +562,7 @@ export function ChartSection({ state, bars, timeframe, onTimeframe, overlays: gi
         <C1SignalStrip state={c1} selected={selected} selectedKind={picked.kind} />
       )}
       <CandleChart candles={candles} overlays={overlays} markers={chartMarkers}
+        priceFormat={chartFormat}
         // The symbol is part of the series identity. With the timeframe alone, switching
         // instruments on the same timeframe kept the same series and the chart *amended* it
         // with the new prices instead of replacing them - two instruments in one line.

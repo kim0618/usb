@@ -49,17 +49,28 @@ const STORAGE_KEY = "usb.crypto.symbol";
  *  string is attacker-adjacent only in theory, but it is also simply stale after the supported
  *  set changes, and a tab for a symbol the server will refuse is a dead screen.
  */
-export function readStoredSymbol(permitted: readonly string[] = CRYPTO_SYMBOLS): CryptoSymbol {
-  const allowed = (symbol: string) => permitted.includes(symbol) && isCryptoSymbol(symbol);
+/** A USDT perpetual's name: letters (Binance names some in Chinese) and digits, then USDT. */
+export const SYMBOL_SHAPE = /^[\p{L}\p{N}]{1,36}USDT$/u;
+
+/** The remembered selection, if it is still selectable.
+ *
+ *  `permitted` is the list the screen may select from. `null` means that list is not known yet
+ *  (the HOT slot has not answered): the remembered symbol is then accepted on its shape alone,
+ *  provisionally, so a reload on the HOT tab comes back to the HOT tab instead of flashing BTC.
+ *  `useSelectedSymbol` moves the selection to BTC as soon as the real list says otherwise.
+ */
+export function readStoredSymbol(permitted: readonly string[] | null = CRYPTO_SYMBOLS): string {
+  const allowed = (symbol: string) => permitted === null ? SYMBOL_SHAPE.test(symbol)
+    : permitted.includes(symbol);
   try {
     if (typeof window === "undefined") return DEFAULT_SYMBOL;
     const stored = window.localStorage.getItem(STORAGE_KEY);
-    if (stored && allowed(stored)) return stored as CryptoSymbol;
+    if (stored && allowed(stored)) return stored;
   } catch {
     // Private window, blocked site data, or a browser that throws on access. Fall through.
   }
-  return allowed(DEFAULT_SYMBOL) ? DEFAULT_SYMBOL
-    : ((permitted.find(isCryptoSymbol) as CryptoSymbol | undefined) ?? DEFAULT_SYMBOL);
+  if (permitted === null || allowed(DEFAULT_SYMBOL)) return DEFAULT_SYMBOL;
+  return permitted[0] ?? DEFAULT_SYMBOL;
 }
 
 /** Remember the selection. Never throws; a failure to persist is not a failure to switch. */

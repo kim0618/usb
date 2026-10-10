@@ -88,8 +88,12 @@ export function widenPriceRange<T extends { priceRange: { minValue: number; maxV
  *  unusable for exactly the person this screen is for.
  */
 export function CandleChart({ candles, overlays, markers = [], className = "h-[300px]",
-  seriesKey = "default", seconds = false, onPriceRange, onNeedMoreHistory, onMarkerClick }: {
+  seriesKey = "default", seconds = false, onPriceRange, onNeedMoreHistory, onMarkerClick,
+  priceFormat = { precision: 1, minMove: 0.1 } }: {
   candles: ChartPoint[];
+  /** The instrument's price grid. BTC's tick is 0.10; a HOT symbol's can be 0.000001, and the
+   *  default one decimal would draw every candle and label at 0.0. */
+  priceFormat?: { precision: number; minMove: number };
   overlays: ChartOverlay[];
   /** Strategy signals to draw on the candles. Already folded onto this timeframe's buckets and
    *  deduplicated by signal id by the caller; this component only draws them. They are markers
@@ -200,7 +204,7 @@ export function CandleChart({ candles, overlays, markers = [], className = "h-[3
         upColor: "#16a34a", downColor: "#dc2626",
         borderUpColor: "#16a34a", borderDownColor: "#dc2626",
         wickUpColor: "#16a34a", wickDownColor: "#dc2626",
-        priceFormat: { type: "price", precision: 1, minMove: 0.1 },
+        priceFormat: { type: "price", precision: priceFormat.precision, minMove: priceFormat.minMove },
         autoscaleInfoProvider: (original: () => AutoscaleInfo | null) => widenPriceRange(original(),
           (secondsRef.current ? PROFILES.seconds : PROFILES.minute).minPriceSpan),
       });
@@ -244,6 +248,12 @@ export function CandleChart({ candles, overlays, markers = [], className = "h-[3
       drawn.current = null;
     };
   }, [report]);
+
+  // The chart is built once; the price grid follows the instrument on screen.
+  useEffect(() => {
+    priceSeries.current?.applyOptions({
+      priceFormat: { type: "price", precision: priceFormat.precision, minMove: priceFormat.minMove } });
+  }, [priceFormat.precision, priceFormat.minMove]);
 
   useEffect(() => {
     const price = priceSeries.current;
