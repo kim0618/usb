@@ -184,6 +184,46 @@ describe("the quick size row on the ticket", () => {
 });
 
 
+describe("a HOT symbol while its LIVE order switch is off", () => {
+  const hotOff = (over: Partial<LiveAccount> = {}) => account({
+    symbol: "GTCUSDT",
+    gates: { armed: true, env_flag: true, client_armed: true,
+             env_flag_name: "BINANCE_LIVE_TRADING_ENABLED", symbol_orders_enabled: false,
+             symbol_orders_flag_name: "BINANCE_LIVE_HOT_ORDERS" },
+    ...over,
+  });
+
+  it("is not tradable even when armed, and says the switch is the reason", () => {
+    const gate = liveTradeGate(hotOff(), null);
+    expect(gate.tradable).toBe(false);
+    expect(gate.reasons.map(r => r.code)).toContain("HOT_LIVE_ORDERS_DISABLED");
+    expect(gate.reasons.find(r => r.code === "HOT_LIVE_ORDERS_DISABLED")?.message)
+      .toContain("BINANCE_LIVE_HOT_ORDERS");
+  });
+
+  it("closes LONG, SHORT and CLOSE and offers no activation for it", () => {
+    const held = hotOff({ position: { ...account().position!, symbol: "GTCUSDT", is_flat: false,
+                                      side: "LONG", qty: "100" } });
+    const onOrder = vi.fn();
+    render(<LiveOrderTicket account={held} gate={liveTradeGate(held, null)} onOrder={onOrder}
+      sizing={sizing()} />);
+    expect(screen.getByTestId("live-long")).toBeDisabled();
+    expect(screen.getByTestId("live-short")).toBeDisabled();
+    expect(screen.getByTestId("live-close")).toBeDisabled();
+    expect(screen.getByTestId("live-hot-orders-off")).toBeInTheDocument();
+    expect(screen.queryByTestId("live-order-activate")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("live-close"));
+    expect(onOrder).not.toHaveBeenCalled();
+  });
+
+  it("leaves BTC exactly as before: armed means tradable", () => {
+    expect(liveTradeGate(account(), null).tradable).toBe(true);
+    const explicit = account({ gates: { ...account().gates, symbol_orders_enabled: true } });
+    expect(liveTradeGate(explicit, null).tradable).toBe(true);
+  });
+});
+
+
 describe("the sizing client", () => {
   it("reads the ladder and touches no write endpoint", async () => {
     const paths: string[] = [];

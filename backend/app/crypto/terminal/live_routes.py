@@ -503,6 +503,16 @@ def hot_live_orders_enabled() -> bool:
     return os.environ.get(HOT_LIVE_ORDERS_ENV, "off").strip().lower() in {"on", "1", "true", "yes"}
 
 
+def _symbol_gates(adapter: Any, symbol: str) -> dict[str, Any]:
+    """The router's gates plus whether this symbol may be ordered at all, so the screen closes
+    the HOT symbol's order controls while the switch is off instead of offering a click the
+    server would refuse."""
+    gates = dict(adapter.router.gate_view())
+    gates["symbol_orders_enabled"] = not is_dynamic(symbol) or hot_live_orders_enabled()
+    gates["symbol_orders_flag_name"] = HOT_LIVE_ORDERS_ENV
+    return gates
+
+
 def _hot_live_refusal(symbol: str) -> JSONResponse | None:
     if is_dynamic(symbol) and not hot_live_orders_enabled():
         return error(409, "HOT_LIVE_ORDERS_DISABLED",
@@ -616,7 +626,7 @@ async def binance_status(symbol: str | None = None) -> Any:
     snapshot = adapter.snapshot()
     body.update({"available": True, "ready": snapshot.ready,
                  "blockers": [item.view() for item in snapshot.blockers],
-                 "gates": adapter.router.gate_view(),
+                 "gates": _symbol_gates(adapter, requested),
                  "arm": live_runtime.arm.view() if live_runtime.arm is not None else None,
                  "stream": adapter.stream.view() if adapter.stream is not None else None,
                  "mirror": adapter.mirror.view() if adapter.mirror is not None else None,
@@ -648,7 +658,7 @@ async def binance_account(force: bool = False, symbol: str | None = None) -> Any
         view["position_krw"] = _krw(snapshot.position.view(), ("unrealized_pnl", "notional"), rate)
     view["krw_per_usdt"] = rate
     view["krw_note"] = "표시용 환산입니다. LIVE 회계 정본은 USDT이며 환율은 페이퍼 런에 고정된 값입니다."
-    view["gates"] = adapter.router.gate_view()
+    view["gates"] = _symbol_gates(adapter, adapter.config.symbol)
     view["stream"] = adapter.stream.view() if adapter.stream is not None else None
     # The unit a quantity on this screen is denominated in, from Binance's own `baseAsset`
     # rather than from the symbol string, so the panel never has to parse "BTCUSDT" itself.

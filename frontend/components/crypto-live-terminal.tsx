@@ -721,11 +721,12 @@ export function LiveLeveragePanel({ account, options, onSelect, busy, error, com
       <div className="mt-3 flex flex-wrap gap-1.5" data-testid="live-leverage-options">
         {(options?.options ?? []).map(value => {
           const restriction = leverageRestriction(options, value);
-          const locked = Boolean(restriction);
+          const locked = Boolean(restriction) || account.gates.symbol_orders_enabled === false;
           return (
             <button key={value} type="button" data-testid={`live-leverage-${value}`}
               aria-pressed={value === current} disabled={busy || hasPosition || locked}
-              title={restriction ? restriction.message : undefined}
+              title={restriction ? restriction.message
+                : account.gates.symbol_orders_enabled === false ? "HOT 심볼 LIVE 레버리지 변경은 꺼져 있습니다." : undefined}
               onClick={() => onSelect(value)}
               className={`rounded-md border px-2.5 py-1.5 text-xs font-bold tabular-nums transition-colors
                 ${value === current ? "border-danger bg-danger-soft text-danger"
@@ -911,6 +912,9 @@ export function LiveOrderTicket({ account, onOrder, busy, error, preview, onPrev
   }, [minimum]);
   const [pending, setPending] = useState<{ side: string; intent: "OPEN" | "CLOSE" } | null>(null);
   const tradable = (gate ?? liveTradeGate(account, null)).tradable;
+  // The HOT switch is a server setting, not something arming fixes, so the ticket says so and
+  // offers no activation for it.
+  const symbolOff = account.gates.symbol_orders_enabled === false;
   const position = account.position;
   const hasPosition = Boolean(position && !position.is_flat);
   /** The router's own rule, read off Binance's reported position: a held side may be added to
@@ -1008,13 +1012,18 @@ export function LiveOrderTicket({ account, onOrder, busy, error, preview, onPrev
       )}
       {/* CLOSE keeps working off Binance's reported position, and the backend still re-reads the
           real size and sends it reduceOnly. Nothing about that changes here. */}
-      <button type="button" data-testid="live-close" disabled={busy || !hasPosition}
+      <button type="button" data-testid="live-close" disabled={busy || !hasPosition || symbolOff}
         onClick={() => (tradable ? setPending({ side: position?.side || "LONG", intent: "CLOSE" })
                                  : onActivate?.())}
         className="mt-2 w-full rounded-md border border-line px-3 py-2 text-sm font-bold text-foreground disabled:opacity-40">
         CLOSE {hasPosition ? `· ${qtyFmt(position?.qty)} ${unit}` : ""}
       </button>
-      {!tradable && (
+      {symbolOff && (
+        <p className="mt-2 text-[11px] text-muted" data-testid="live-hot-orders-off">
+          HOT 심볼 LIVE 주문은 꺼져 있습니다. 조회만 가능합니다.
+        </p>
+      )}
+      {!tradable && !symbolOff && (
         <p className="mt-2 text-[11px] text-muted" data-testid="live-order-locked">
           거래불가 상태입니다.{" "}
           {onActivate && (

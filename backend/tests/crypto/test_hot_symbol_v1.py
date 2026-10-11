@@ -653,6 +653,24 @@ def test_no_key_means_no_live_exposure_rather_than_unknown(live, monkeypatch) ->
     assert exposure.position_amt == 0 and exposure.open_orders == 0
 
 
+def test_the_screen_is_told_the_hot_symbol_cannot_be_ordered_while_the_switch_is_off(
+        live, monkeypatch) -> None:
+    lr = live(FakeLiveClient())
+    admit_dynamic(HOT_A)
+
+    class Router:
+        def gate_view(self):
+            return {"armed": True, "env_flag": True}
+
+    adapter = type("A", (), {"router": Router()})()
+    monkeypatch.delenv(lr.HOT_LIVE_ORDERS_ENV, raising=False)
+    assert lr._symbol_gates(adapter, HOT_A)["symbol_orders_enabled"] is False
+    assert lr._symbol_gates(adapter, "BTCUSDT")["symbol_orders_enabled"] is True
+    assert lr._symbol_gates(adapter, HOT_A)["armed"] is True       # the router's gates kept
+    monkeypatch.setenv(lr.HOT_LIVE_ORDERS_ENV, "on")
+    assert lr._symbol_gates(adapter, HOT_A)["symbol_orders_enabled"] is True
+
+
 def test_hot_live_orders_and_leverage_stay_off_behind_their_switch(live, monkeypatch) -> None:
     lr = live(FakeLiveClient())
     admit_dynamic(HOT_A)
