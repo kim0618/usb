@@ -214,8 +214,11 @@ None are pushed (no HTTPS credential on this host).
 2. **Release.** `deploy/manual_trade_research/stage_release.sh <commit>`, scp, and verify the
    MANIFEST on the host. The layout is `/root/usb_runtime/manual_trade_research/{src,config(600),store,logs}`
    with `store` at mode 700.
-3. **Install.** Install the unit and the timer. The env file has no secret. The trigger URL is on by
-   default; leave it empty to rely on the UI's own refreshes only.
+3. **Install.** Install the unit and the timer. The env file has no secret. The trigger URL is
+   **empty (OFF)** in the shipped env file (predeploy finalization, 2026-10-12): a non-empty value
+   makes the terminal send signed Binance reads every 5 minutes on the recorder's behalf. S1 is
+   refreshed only by the UI's own requests. Before install, confirm on the host that the installed
+   env reads `MTR_TRIGGER_URL=` and that the first run prints `"trigger": null`.
 4. **Manual first run** of the oneshot. It does the backfill in 500-snapshot chunks over a few runs.
    Check:
    - events 47 and episodes 20, as locally;

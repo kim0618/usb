@@ -485,3 +485,33 @@ def test_open_chunk_is_extended_by_its_tail_only(tmp_path):
     Market(tmp_path, v, now_ms=now + 5 * MIN).klines("1m", T0, now + 5 * MIN)
     tail = v.calls[first:]
     assert len(tail) == 1 and tail[0][1]["startTime"] == now and tail[0][1]["limit"] <= 7
+
+
+# --------------------------------------------------------------------------- predeploy: trigger OFF
+
+DEPLOY_ENV = PKG.parents[3] / "deploy" / "manual_trade_research" / "manual_trade_research.env"
+
+
+def test_shipped_env_leaves_the_s1_trigger_off():
+    """The terminal GET behind the trigger sends signed Binance reads; production ships it OFF."""
+    values = dict(line.split("=", 1) for line in DEPLOY_ENV.read_text().splitlines()
+                  if line and not line.startswith("#"))
+    assert values["MTR_TRIGGER_URL"] == ""
+    # control: the same parse does read a value that is set
+    assert values["MTR_S1"].endswith("manual_performance.json")
+
+
+def test_empty_trigger_url_means_no_trigger(monkeypatch, tmp_path):
+    """`--trigger-url=${MTR_TRIGGER_URL}` with an empty value must hand run_once no trigger."""
+    seen = {}
+
+    def fake_run_once(**kw):
+        seen.update(kw)
+        return {}
+    monkeypatch.setattr(R, "run_once", fake_run_once)
+    base = ["--store", str(tmp_path / "s"), "--s1", str(tmp_path / "a"), "--s2", str(tmp_path / "b")]
+    R.main(base + ["--trigger-url="])
+    assert seen["trigger"] is None
+    # control: a non-empty value does build one (never called here)
+    R.main(base + ["--trigger-url=http://127.0.0.1:9/x"])
+    assert callable(seen["trigger"])
