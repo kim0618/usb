@@ -1,0 +1,8 @@
+backup: 405350 src-backend.tgz 2768 usb-crypto-paper.service 
+staged sha OK
+runtime sha OK (20 files)
+MainPID=1537967 NRestarts=0 
+health after 41s: {"status":"ok","engine":"d4.1","configured":true,"error":null}
+MainPID=1663746 NRestarts=0 ActiveState=active 
+Oct 11 13:05:31 trader-j uvicorn[1663746]: {"event": "PAPER_SEGMENT_COMPRESSION", "env": "CRYPTO_PAPER_COMPRESS_SEGMENTS", "raw": "true", "effective": true, "value": "RECOGNISED"}
+Mem:             961         579         140           2         400         381

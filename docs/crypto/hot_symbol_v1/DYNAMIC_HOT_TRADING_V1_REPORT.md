@@ -1,5 +1,7 @@
 # Dynamic HOT Trading V1
 
+> **FINAL STATUS (added 2026-10-11, after the fact).** This report is kept as written at the time. Its verdict and any "not deployed", "not pushed" or "main not merged" statements are superseded. Current state: Production HOT V1 PASS. Production code, `origin/main` and `origin/feat/dynamic-hot-v1` are all `fa67437`. HOT LIVE orders are OFF, and the first real HOT LIVE order has not been placed (the user will place it manually). Entry point: [HOT_V1_FINAL_INDEX.md](HOT_V1_FINAL_INDEX.md).
+
 2026-10-10 KST. 격리 clone `~/usb-hot-coin-finder-r0`, 브랜치 `feat/dynamic-hot-v1`(V0 `322d7db` 위). push 없음, 운영 무접촉, LIVE 주문 0.
 
 **판정: B. PAPER_READY.** LIVE 조회 전용 검증을 하지 못했기 때문이다. 로컬에 Binance 키가 없고, 서버에서 검증하려면 승인이 필요하다(U 참조).

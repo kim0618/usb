@@ -1,0 +1,177 @@
+{
+ "phase": "open",
+ "live_btc_before": [
+  {
+   "signed_qty": "0.108",
+   "entry_price": "83913.1",
+   "update_time_ms": 1791339778021
+  }
+ ],
+ "A_before": {
+  "hot": null,
+  "lock": "NO_ACTIVE_HOT_SYMBOL"
+ },
+ "A_btc_paper": {
+  "position_side": "SHORT",
+  "position_qty": "0.064",
+  "avg_entry": "83612.90",
+  "realized_pnl": "3113.508839999999999999999976",
+  "cumulative_fees": "1154.302590562000000000000000",
+  "cumulative_funding_paid": "-149.6370850497828",
+  "wallet_balance": "10310.57253159606542490678596",
+  "available_balance": "9775.44997159606542490678596",
+  "used_margin": "535.12256"
+ },
+ "A_scan": {
+  "status": 200,
+  "code": null
+ },
+ "hot": "STRKUSDT",
+ "A_hot_metrics": {
+  "one_hour_range_pct": 15.303363190806152,
+  "one_hour_change_pct": -11.635964171032622,
+  "last_price": 0.10453,
+  "estimated_round_trip_slippage_bps_1000": 2.866561559409703,
+  "spread_bps": 2.866561559409703
+ },
+ "A_top": [
+  "STRKUSDT",
+  "USUSDT",
+  "QUSDT",
+  "ZKUSDT",
+  "CHIPUSDT"
+ ],
+ "A_paper": {
+  "available": true,
+  "reason": null
+ },
+ "B_quote": {
+  "best_bid": "0.1047200",
+  "best_ask": "0.1047500",
+  "mark_price": "0.10464027"
+ },
+ "B_feed": {
+  "source": "BINANCE_PUBLIC",
+  "symbol": "STRKUSDT",
+  "connected": true
+ },
+ "B_instrument": {
+  "symbol": "STRKUSDT",
+  "qty_step": "0.1",
+  "min_order_qty": "0.1",
+  "max_mkt_order_qty": "4000000",
+  "min_notional_value": "5",
+  "tick_size": "0.0000100",
+  "max_leverage": "50.00",
+  "source": "binance GET /fapi/v1/exchangeInfo /root/usb_runtime/crypto_paper/run/reference/STRKUSDT/reference/binance_exchange_info_1791691744.json sha256 c8a4744819a8514889cc5d8307fe42c2e9b9ad889cff084d32c744c264da768f; margin /root/usb_runtime/crypto_paper/run/reference/STRKUSDT/reference/risk_limit_1791691744.json"
+ },
+ "B_chart": {
+  "status": 200,
+  "bars": 5
+ },
+ "qty": "114.6",
+ "B_preview": {
+  "status": 200,
+  "sides": {
+   "LONG": {
+    "feasible": true,
+    "notional": "12.00435000",
+    "required_margin": "1.20043500",
+    "entry_fee": "0.0066023925000",
+    "breakeven_mark_price": "0.1047855584086247436089849417",
+    "reject_code": null
+   },
+   "SHORT": {
+    "feasible": true,
+    "notional": "12.00091200",
+    "required_margin": "1.20009120",
+    "entry_fee": "0.0066005016000",
+    "breakeven_mark_price": "0.1044951413207735745340062965",
+    "reject_code": null
+   }
+  }
+ },
+ "C_long": {
+  "status": 200,
+  "err": null
+ },
+ "C_long_pos": {
+  "position_side": "LONG",
+  "position_qty": "114.6",
+  "avg_entry": "0.1048300",
+  "realized_pnl": "0",
+  "cumulative_fees": "0.0066074349000",
+  "cumulative_funding_paid": "0",
+  "wallet_balance": "10310.56592416116542490678596",
+  "available_balance": "9774.24201236116542490678596",
+  "used_margin": "1.20135180"
+ },
+ "D_lock_long": "HOT_POSITION_OPEN",
+ "D_scan_while_long": 409,
+ "C_long_close": {
+  "status": 200,
+  "err": null
+ },
+ "C_after_long_close": {
+  "position_side": null,
+  "position_qty": "0.0",
+  "avg_entry": null,
+  "realized_pnl": "-0.00916800",
+  "cumulative_fees": "0.0132098274000",
+  "cumulative_funding_paid": "0",
+  "wallet_balance": "10310.55015376866542490678596",
+  "available_balance": "9775.42759376866542490678596",
+  "used_margin": "0"
+ },
+ "C_short": {
+  "status": 200,
+  "err": null
+ },
+ "C_short_pos": {
+  "position_side": "SHORT",
+  "position_qty": "114.6",
+  "avg_entry": "0.1047500",
+  "realized_pnl": "-0.00916800",
+  "cumulative_fees": "0.0198122199000",
+  "cumulative_funding_paid": "0",
+  "wallet_balance": "10310.54355137616542490678596",
+  "available_balance": "9774.22055637616542490678596",
+  "used_margin": "1.20043500"
+ },
+ "D_lock_short": "HOT_POSITION_OPEN",
+ "btc_paper_after": {
+  "position_side": "SHORT",
+  "position_qty": "0.064",
+  "avg_entry": "83612.90",
+  "realized_pnl": "3113.508839999999999999999976",
+  "cumulative_fees": "1154.302590562000000000000000",
+  "cumulative_funding_paid": "-149.6370850497828",
+  "wallet_balance": "10310.54355137616542490678596",
+  "available_balance": "9774.22055637616542490678596",
+  "used_margin": "535.12256"
+ },
+ "live_btc_after": [
+  {
+   "signed_qty": "0.108",
+   "entry_price": "83913.1",
+   "update_time_ms": 1791339778021
+  }
+ ],
+ "non_get_sent": [
+  [
+   "POST",
+   "/api/crypto/hot/scan",
+   200
+  ],
+  [
+   "POST",
+   "/api/crypto/hot/scan",
+   409
+  ],
+  [
+   "POST",
+   "/api/crypto/order",
+   200
+  ]
+ ]
+}

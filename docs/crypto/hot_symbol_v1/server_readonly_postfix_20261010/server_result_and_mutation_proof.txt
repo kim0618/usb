@@ -1,0 +1,112 @@
+### RES 2026-10-10T14:10:15.202Z
+guard BLOCKED: READ-ONLY GUARD: refused POST /fapi/v1/order
+symbols ['BTCUSDT', 'CFXUSDT', 'BATUSDT', 'GTCUSDT'] hot1 CFXUSDT scan top ['CFXUSDT', 'JCTUSDT', 'CAPUSDT', 'STRKUSDT', 'USUSDT']
+weight {'used': 157, 'pauses': 3, 'max_used': 707} tail_error None
+btc before/after {'positionAmt': '0.108', 'entryPrice': '83913.1', 'updateTime': 1791339778021} {'positionAmt': '0.108', 'entryPrice': '83913.1', 'updateTime': 1791339778021} same True
+lock hot1 {'state': 'ALLOWED', 'code': 'HOT_SYMBOL_FLAT', 'symbol': 'CFXUSDT', 'message': '현재 HOT 심볼에 포지션·미체결·전송 중 주문이 없습니다.'}
+requests 287 signed 166 non_get 0 blocked [] errors [{'m': 'GET', 'p': '/fapi/v1/leverageBracket', 'signed': True, 'status': 400}] dry writes []
+
+==== BTCUSDT 
+ meta {"ready": true, "current_leverage": "20", "brackets": {"max_leverage": "150", "max_notional": "1800000000", "count": 12}, "first_bands": [{"notional_floor": "0", "notional_cap": "300000", "max_leverage": "150"}, {"notional_floor": "300000", "notional_cap": "800000", "max_leverage": "100"}, {"notional_floor": "800000", "notional_cap": "3000000", "max_leverage": "75"}], "brackets_error": null, "commission": {"symbol": "BTCUSDT", "maker": "0.000200", "taker": "0.000500", "source": "binance GET /fapi/v1/commissionRate"}, "position": {"side": "LONG", "qty": "0.108", "entry_price": "83913.1", "is_flat": false}, "open_orders": 0, "real_available_balance": "0E-8"}
+ filters {'price_tick': '0.10', 'price_precision': 2, 'quantity_precision': 3, 'qty_step': '0.001', 'min_qty': '0.001', 'max_qty': '1000', 'market_qty_step': '0.001', 'market_min_qty': '0.001', 'market_max_qty': '120', 'min_notional': '50'}
+  SM {'balance': '100', 'side': 'LONG', 'configured': '20', 'effective': '20', 'capped': False, 'bracket': 1, 'max_qty': '0.022', 'notional': '1820.30640', 'margin': '91.01532', 'fee': '0.91015320000', 'slippage': '0.00000', 'on_step': True, 'min_notional_ok': True, 'legacy_notional': '1820.30640', 'path': 'adapter.get_sizing'}
+  SM {'balance': '100', 'side': 'SHORT', 'configured': '20', 'effective': '20', 'capped': False, 'bracket': 1, 'max_qty': '0.022', 'notional': '1820.30420', 'margin': '91.01521', 'fee': '0.91015210000', 'slippage': '0.00000', 'on_step': True, 'min_notional_ok': True, 'legacy_notional': '1820.30420', 'path': 'adapter.get_sizing'}
+  SM {'balance': '500', 'side': 'LONG', 'configured': '20', 'effective': '20', 'capped': False, 'bracket': 1, 'max_qty': '0.118', 'notional': '9763.46160', 'margin': '488.17308', 'fee': '4.88173080000', 'slippage': '0.00000', 'on_step': True, 'min_notional_ok': True, 'legacy_notional': '9763.46160', 'path': 'sizing.presets(same snapshot)'}
+  SM {'balance': '500', 'side': 'SHORT', 'configured': '20', 'effective': '20', 'capped': False, 'bracket': 1, 'max_qty': '0.118', 'notional': '9763.44980', 'margin': '488.17249', 'fee': '4.88172490000', 'slippage': '0.00000', 'on_step': True, 'min_notional_ok': True, 'legacy_notional': '9763.44980', 'path': 'sizing.presets(same snapshot)'}
+  SM {'balance': '1000', 'side': 'LONG', 'configured': '20', 'effective': '20', 'capped': False, 'bracket': 1, 'max_qty': '0.238', 'notional': '19692.40560', 'margin': '984.62028', 'fee': '9.84620280000', 'slippage': '0.00000', 'on_step': True, 'min_notional_ok': True, 'legacy_notional': '19692.40560', 'path': 'sizing.presets(same snapshot)'}
+  SM {'balance': '1000', 'side': 'SHORT', 'configured': '20', 'effective': '20', 'capped': False, 'bracket': 1, 'max_qty': '0.238', 'notional': '19692.38180', 'margin': '984.61909', 'fee': '9.84619090000', 'slippage': '0.00000', 'on_step': True, 'min_notional_ok': True, 'legacy_notional': '19692.38180', 'path': 'sizing.presets(same snapshot)'}
+  DRY LONG {"max_qty": "0.022", "preflight": {"feasible": true, "reject_code": null, "leverage": "20", "configured_leverage": "20", "notional": "1820.30640", "required_margin": "91.01532", "entry_fee": "0.91015320000"}, "preview": {"leverage": "20", "configured_leverage": "20", "notional": "1820.30640", "required_margin": "91.01532", "entry_fee": "0.91015320000", "breakeven_mark_price": "82823.98259129564782391195598"}, "payloa
+  DRY SHORT {"max_qty": "0", "refused": "REVERSE_NOT_ALLOWED"}
+  DRY CLOSE {"fixture_position": "REAL", "payload": {"symbol": "BTCUSDT", "side": "SELL", "type": "MARKET", "quantity": "0.108", "newClientOrderId": "usbm-close-1791641245385", "newOrderRespType": "RESULT", "recvWindow": 5000, "reduceOnly": "true"}}
+
+==== CFXUSDT 
+ meta {"ready": true, "current_leverage": "20", "brackets": {"max_leverage": "75", "max_notional": "12000000", "count": 11}, "first_bands": [{"notional_floor": "0", "notional_cap": "5000", "max_leverage": "75"}, {"notional_floor": "5000", "notional_cap": "10000", "max_leverage": "50"}, {"notional_floor": "10000", "notional_cap": "50000", "max_leverage": "25"}], "brackets_error": null, "commission": {"symbol": "CFXUSDT", "maker": "0.000200", "taker": "0.000500", "source": "binance GET /fapi/v1/commissionRate"}, "position": {"side": null, "qty": "0", "entry_price": null, "is_flat": true}, "open_orders": 0, "real_available_balance": "0E-8"}
+ filters {'price_tick': '0.0000100', 'price_precision': 7, 'quantity_precision': 0, 'qty_step': '1', 'min_qty': '1', 'max_qty': '20000000', 'market_qty_step': '1', 'market_min_qty': '1', 'market_max_qty': '2000000', 'min_notional': '5'}
+  SM {'balance': '100', 'side': 'LONG', 'configured': '20', 'effective': '20', 'capped': False, 'bracket': 1, 'max_qty': '35236', 'notional': '1980.123490000000000000000000', 'margin': '99.006174500000000000000000', 'fee': '0.9900617450000000000000000000', 'slippage': '1.269729999999999999999999960', 'on_step': True, 'min_notional_ok': True, 'legacy_notional': '1980.123490000000000000000000', 'path': 'adapter.get_sizing'}
+  SM {'balance': '100', 'side': 'SHORT', 'configured': '20', 'effective': '20', 'capped': False, 'bracket': 1, 'max_qty': '35274', 'notional': '1980.092270000000000000000000', 'margin': '99.004613500000000000000000', 'fee': '0.9900461350000000000000000000', 'slippage': '0.5428299999999999999999998940', 'on_step': True, 'min_notional_ok': True, 'legacy_notional': '1980.139360000000000000000000', 'path': 'adapter.get_sizing'}
+  SM {'balance': '500', 'side': 'LONG', 'configured': '20', 'effective': '20', 'capped': False, 'bracket': 2, 'max_qty': '176061', 'notional': '9900.890370000000000000000001', 'margin': '495.0445185000000000000000000', 'fee': '4.950445185000000000000000000', 'slippage': '13.30461000000000000000000060', 'on_step': True, 'min_notional_ok': True, 'legacy_notional': '9900.890370000000000000000001', 'path': 'sizing.presets(same snapshot)'}
+  SM {'balance': '500', 'side': 'SHORT', 'configured': '20', 'effective': '20', 'capped': False, 'bracket': 2, 'max_qty': '176474', 'notional': '9900.910749999999999999999999', 'margin': '495.0455375000000000000000000', 'fee': '4.950455375000000000000000000', 'slippage': '8.104350000000000000000000565', 'on_step': True, 'min_notional_ok': True, 'legacy_notional': '9900.910749999999999999999999', 'path': 'sizing.presets(same snapshot)'}
+  SM {'balance': '1000', 'side': 'LONG', 'configured': '20', 'effective': '20', 'capped': False, 'bracket': 3, 'max_qty': '351927', 'notional': '19801.87445000000000000000000', 'margin': '990.09372250000000000000000', 'fee': '9.900937225000000000000000000', 'slippage': '37.65413000000000000000000127', 'on_step': True, 'min_notional_ok': True, 'legacy_notional': '19801.87445000000000000000000', 'path': 'sizing.presets(same snapshot)'}
+  SM {'balance': '1000', 'side': 'SHORT', 'configured': '20', 'effective': '20', 'capped': False, 'bracket': 3, 'max_qty': '353155', 'notional': '19801.89626000000000000000000', 'margin': '990.09481300000000000000000', 'fee': '9.900948130000000000000000000', 'slippage': '27.75698999999999999999999858', 'on_step': True, 'min_notional_ok': True, 'legacy_notional': '19801.89626000000000000000000', 'path': 'sizing.presets(same snapshot)'}
+  DRY LONG {"max_qty": "35262", "preflight": {"feasible": false, "reject_code": "INSUFFICIENT_MARGIN", "leverage": null, "configured_leverage": null, "notional": null, "required_margin": null, "entry_fee": null}, "preview": {"leverage": "20", "configured_leverage": "20", "notional": "1982.989900000000000000000000", "required_margin": "99.149495000000000000000000", "entry_fee": "0.9914949500000000000000000000", "breakeven_mark_p
+  DRY SHORT {"max_qty": "35205", "preflight": {"feasible": false, "reject_code": "INSUFFICIENT_MARGIN", "leverage": null, "configured_leverage": null, "notional": null, "required_margin": null, "entry_fee": null}, "preview": {"leverage": "20", "configured_leverage": "20", "notional": "1982.115950000000000000000000", "required_margin": "99.105797500000000000000000", "entry_fee": "0.9910579750000000000000000000", "breakeven_mark_p
+  DRY CLOSE {"fixture_position": "-1000", "payload": {"symbol": "CFXUSDT", "side": "BUY", "type": "MARKET", "quantity": "1000", "newClientOrderId": "usbm-close-1791641284951", "newOrderRespType": "RESULT", "recvWindow": 5000, "reduceOnly": "true"}}
+
+==== BATUSDT 
+ meta {"ready": true, "current_leverage": "20", "brackets": {"max_leverage": "50", "max_notional": "12500000", "count": 9}, "first_bands": [{"notional_floor": "0", "notional_cap": "5000", "max_leverage": "50"}, {"notional_floor": "5000", "notional_cap": "10000", "max_leverage": "25"}, {"notional_floor": "10000", "notional_cap": "25000", "max_leverage": "20"}], "brackets_error": null, "commission": {"symbol": "BATUSDT", "maker": "0.000200", "taker": "0.000500", "source": "binance GET /fapi/v1/commissionRate"}, "position": {"side": null, "qty": "0", "entry_price": null, "is_flat": true}, "open_orders": 0, "real_available_balance": "0E-8"}
+ filters {'price_tick': '0.000010', 'price_precision': 6, 'quantity_precision': 1, 'qty_step': '0.1', 'min_qty': '0.1', 'max_qty': '9000000', 'market_qty_step': '0.1', 'market_min_qty': '0.1', 'market_max_qty': '2000000', 'min_notional': '5'}
+  SM {'balance': '100', 'side': 'LONG', 'configured': '20', 'effective': '20', 'capped': False, 'bracket': 1, 'max_qty': '15218.6', 'notional': '1980.183738000000000000000000', 'margin': '99.009186900000000000000000', 'fee': '0.9900918690000000000000000000', 'slippage': '0.7004359999999999999999999826', 'on_step': True, 'min_notional_ok': True, 'legacy_notional': '1980.181710000000000000000000', 'path': 'adapter.get_sizing'}
+  SM {'balance': '100', 'side': 'SHORT', 'configured': '20', 'effective': '20', 'capped': False, 'bracket': 1, 'max_qty': '15229.8', 'notional': '1980.1785960', 'margin': '99.0089298', 'fee': '0.9900892980000', 'slippage': '0E-7', 'on_step': True, 'min_notional_ok': True, 'legacy_notional': '1980.181669999999999999999999', 'path': 'adapter.get_sizing'}
+  SM {'balance': '500', 'side': 'LONG', 'configured': '20', 'effective': '20', 'capped': False, 'bracket': 2, 'max_qty': '76052.0', 'notional': '9900.966231999999999999999998', 'margin': '495.0483115999999999999999999', 'fee': '4.950483115999999999999999999', 'slippage': '8.122071999999999999999997858', 'on_step': True, 'min_notional_ok': True, 'legacy_notional': '9900.966231999999999999999998', 'path': 'sizing.presets(same snapshot)'}
+  SM {'balance': '500', 'side': 'SHORT', 'configured': '20', 'effective': '20', 'capped': False, 'bracket': 2, 'max_qty': '76176.8', 'notional': '9900.964355999999999999999997', 'margin': '495.0482177999999999999999998', 'fee': '4.950482177999999999999999998', 'slippage': '5.066716000000000000000002573', 'on_step': True, 'min_notional_ok': True, 'legacy_notional': '9900.964355999999999999999997', 'path': 'sizing.presets(same snapshot)'}
+  SM {'balance': '1000', 'side': 'LONG', 'configured': '20', 'effective': '20', 'capped': False, 'bracket': 3, 'max_qty': '92073.7', 'notional': '11987.70274800000000000000000', 'margin': '599.38513740000000000000000', 'fee': '5.993851374000000000000000000', 'slippage': '10.75585199999999999999999990', 'on_step': True, 'min_notional_ok': True, 'legacy_notional': '11987.70274800000000000000000', 'path': 'sizing.presets(same snapshot)'}
+  SM {'balance': '1000', 'side': 'SHORT', 'configured': '20', 'effective': '20', 'capped': False, 'bracket': 3, 'max_qty': '105937.7', 'notional': '13766.07966000000000000000000', 'margin': '688.30398300000000000000000', 'fee': '6.883039830000000000000000000', 'slippage': '10.05884800000000000000000113', 'on_step': True, 'min_notional_ok': True, 'legacy_notional': '13766.07966000000000000000000', 'path': 'sizing.presets(same snapshot)'}
+  DRY LONG {"max_qty": "15217.1", "preflight": {"feasible": true, "reject_code": null, "leverage": "20", "configured_leverage": "20", "notional": "1978.649164000000000000000000", "required_margin": "98.932458200000000000000000", "entry_fee": "0.9893245820000000000000000000"}, "preview": {"leverage": "20", "configured_leverage": "20", "notional": "1976.321233000000000000000000", "required_margin": "98.816061650000000000000000", 
+  DRY SHORT {"max_qty": "15255.6", "preflight": {"feasible": false, "reject_code": "INSUFFICIENT_MARGIN", "leverage": null, "configured_leverage": null, "notional": null, "required_margin": null, "entry_fee": null}, "preview": {"leverage": "20", "configured_leverage": "20", "notional": "1984.315507000000000000000000", "required_margin": "99.215775350000000000000000", "entry_fee": "0.9921577535000000000000000000", "breakeven_mark
+  DRY CLOSE {"fixture_position": "-1000", "payload": {"symbol": "BATUSDT", "side": "BUY", "type": "MARKET", "quantity": "1000", "newClientOrderId": "usbm-close-1791641343369", "newOrderRespType": "RESULT", "recvWindow": 5000, "reduceOnly": "true"}}
+
+==== GTCUSDT 
+ meta {"ready": true, "current_leverage": "20", "brackets": {"max_leverage": "10", "max_notional": "5000000", "count": 6}, "first_bands": [{"notional_floor": "0", "notional_cap": "10000", "max_leverage": "10"}, {"notional_floor": "10000", "notional_cap": "60000", "max_leverage": "5"}, {"notional_floor": "60000", "notional_cap": "70000", "max_leverage": "4"}], "brackets_error": null, "commission": {"symbol": "GTCUSDT", "maker": "0.000200", "taker": "0.000500", "source": "binance GET /fapi/v1/commissionRate"}, "position": {"side": null, "qty": "0", "entry_price": null, "is_flat": true}, "open_orders": 0, "real_available_balance": "0E-8"}
+ filters {'price_tick': '0.000010', 'price_precision': 6, 'quantity_precision': 1, 'qty_step': '0.1', 'min_qty': '0.1', 'max_qty': '6000000', 'market_qty_step': '0.1', 'market_min_qty': '0.1', 'market_max_qty': '600000', 'min_notional': '5'}
+  SM {'balance': '100', 'side': 'LONG', 'configured': '20', 'effective': '10', 'capped': True, 'bracket': 1, 'max_qty': '4998.3', 'notional': '994.9918929999999999999999999', 'margin': '99.49918929999999999999999999', 'fee': '0.4974959465000000000000000000', 'slippage': '0.3301929999999999999999998673', 'on_step': True, 'min_notional_ok': True, 'legacy_notional': '1980.173187000000000000000000', 'path': 'adapter.get_sizing'}
+  SM {'balance': '100', 'side': 'SHORT', 'configured': '20', 'effective': '10', 'capped': True, 'bracket': 1, 'max_qty': '5002.8', 'notional': '994.9926469999999999999999999', 'margin': '99.49926469999999999999999999', 'fee': '0.4974963235000000000000000000', 'slippage': '0.4144690000000000000000001311', 'on_step': True, 'min_notional_ok': True, 'legacy_notional': '1980.169381000000000000000000', 'path': 'adapter.get_sizing'}
+  SM {'balance': '500', 'side': 'LONG', 'configured': '20', 'effective': '10', 'capped': True, 'bracket': 1, 'max_qty': '21500.2', 'notional': '4280.785447999999999999999999', 'margin': '428.0785447999999999999999999', 'fee': '2.140392724000000000000000000', 'slippage': '3.105655999999999999999998976', 'on_step': True, 'min_notional_ok': True, 'legacy_notional': '4280.785447999999999999999999', 'path': 'sizing.presets(same snapshot)'}
+  SM {'balance': '500', 'side': 'SHORT', 'configured': '20', 'effective': '10', 'capped': True, 'bracket': 1, 'max_qty': '12272.0', 'notional': '2438.971036000000000000000000', 'margin': '243.897103600000000000000000', 'fee': '1.219485518000000000000000000', 'slippage': '1.929764000000000000000000346', 'on_step': True, 'min_notional_ok': True, 'legacy_notional': '2438.971036000000000000000000', 'path': 'sizing.presets(same snapshot)'}
+  SM {'balance': '1000', 'side': 'LONG', 'configured': '20', 'effective': '10', 'capped': True, 'bracket': 1, 'max_qty': '21500.2', 'notional': '4280.785447999999999999999999', 'margin': '428.0785447999999999999999999', 'fee': '2.140392724000000000000000000', 'slippage': '3.105655999999999999999998976', 'on_step': True, 'min_notional_ok': True, 'legacy_notional': '4280.785447999999999999999999', 'path': 'sizing.presets(same snapshot)'}
+  SM {'balance': '1000', 'side': 'SHORT', 'configured': '20', 'effective': '10', 'capped': True, 'bracket': 1, 'max_qty': '12272.0', 'notional': '2438.971036000000000000000000', 'margin': '243.897103600000000000000000', 'fee': '1.219485518000000000000000000', 'slippage': '1.929764000000000000000000346', 'on_step': True, 'min_notional_ok': True, 'legacy_notional': '2438.971036000000000000000000', 'path': 'sizing.presets(same snapshot)'}
+  DRY LONG {"max_qty": "5001.1", "preflight": {"feasible": false, "reject_code": "INSUFFICIENT_MARGIN", "leverage": null, "configured_leverage": null, "notional": null, "required_margin": null, "entry_fee": null}, "preview": {"leverage": "10", "configured_leverage": "20", "notional": "996.8234430000000000000000000", "required_margin": "99.6823443000000000000000000", "entry_fee": "0.4984117215000000000000000000", "breakeven_mark
+  DRY SHORT {"max_qty": "5004.8", "preflight": {"feasible": true, "reject_code": null, "leverage": "10", "configured_leverage": "20", "notional": "992.2132569999999999999999998", "required_margin": "99.22132569999999999999999998", "entry_fee": "0.4961066284999999999999999999"}, "preview": {"leverage": "10", "configured_leverage": "20", "notional": "991.9895800000000000000000000", "required_margin": "99.1989580000000000000000000"
+  DRY CLOSE {"fixture_position": "100", "payload": {"symbol": "GTCUSDT", "side": "SELL", "type": "MARKET", "quantity": "100", "newClientOrderId": "usbm-close-1791641402939", "newOrderRespType": "RESULT", "recvWindow": 5000, "reduceOnly": "true"}}
+### TOOL 2026-10-10T14:10:55.123Z
+S=/tmp/claude-1000/-home-tjd618/8bbdfdf2-dc8c-4f0d-8bce-c1ea176e386c/scratchpad/srvro; W=$(cat $S/workdir2.txt); timeout 60 ssh -o BatchMode=yes traderj "bash -s" <<EOF
+set -u
+[ "\$(hostname)" = "trader-j" ] || exit 1
+case "$W" in /tmp/hotv1-ro2-2026*) rm -rf "$W" ;; *) echo "refusing $W"; exit 1 ;; esac
+ls -d /tmp/hotv1-ro* 2>/dev/null || echo "temp dirs: none"
+ps -eo pid,args | grep -v grep | grep -c "validate" | sed 's/^/stray processes: /'
+systemctl list-units --type=scope --no-legend 2>/dev/null | grep -c run- | sed 's/^/transient scopes: /'
+EOF
+timeout 120 ssh -o BatchMode=yes traderj 'bash -s' < $S/baseline.sh > $S/b2_after.json 2>/dev/null; python3 - <<EOF
+import json
+a=json.load(open('$S/b2_before.json')); b=json.load(open('$S/b2_after.json'))
+def flat(d, p=""):
+    out={}
+    for k,v in d.items():
+        key=f"{p}{k}"
+        out.update(flat(v, key+".")) if isinstance(v, dict) else out.__setitem__(key, v)
+    return out
+fa, fb = flat(a), flat(b)
+for k in sorted(set(fa)|set(fb)):
+    if fa.get(k)!=fb.get(k): print("CHANGED", k, fa.get(k), "->", fb.get(k))
+print("unchanged:", {k: fa.get(k)==fb.get(k) for k in ['positions','arm.armed','exit_guard.state','c1_auto.enabled','btc_fills_count','status.rest.trade_requests','paper_btc.position_qty','files.data/runtime/crypto/live/leverage_capability.json.sha256','files.data/runtime/crypto/live/exit_guard.json.sha256']})
+print("services:", {k:(v['MainPID'],v['NRestarts']) for k,v in b['services'].items()})
+EOF
+### RES 2026-10-10T14:10:59.809Z
+temp dirs: none
+stray processes: 0
+transient scopes: 0
+CHANGED files.data/runtime/crypto/live/487ea08e/binance_live_events.jsonl.bytes 8725508 -> 8728269
+CHANGED files.data/runtime/crypto/live/487ea08e/binance_live_events.jsonl.lines 15521 -> 15526
+CHANGED files.data/runtime/crypto/live/487ea08e/binance_live_events.jsonl.sha256 1ddbf22515ea352f -> d8a957c6dac6cef4
+CHANGED mirror.events 15521 -> 15526
+CHANGED status.rest.last_request_ms 1791641138962 -> 1791641459716
+CHANGED status.rest.requests 15665 -> 15708
+CHANGED status.rest.signed_requests 9187 -> 9218
+CHANGED status.rest.used_weight_1m 217 -> 374
+unchanged: {'positions': True, 'arm.armed': True, 'exit_guard.state': True, 'c1_auto.enabled': True, 'btc_fills_count': True, 'status.rest.trade_requests': True, 'paper_btc.position_qty': True, 'files.data/runtime/crypto/live/leverage_capability.json.sha256': True, 'files.data/runtime/crypto/live/exit_guard.json.sha256': True}
+services: {'usb-backend': ('1556760', '0'), 'usb-crypto-paper': ('1537967', '0'), 'usb-frontend': ('1551071', '0')}
+### TOOL 2026-10-10T14:11:05.410Z
+timeout 60 ssh -o BatchMode=yes traderj 'bash -s' <<'EOF'
+[ "$(hostname)" = "trader-j" ] || exit 1
+tail -n 5 /root/usb_runtime/crypto_paper/data/runtime/crypto/live/487ea08e/binance_live_events.jsonl | /root/usb/.venv/bin/python -c "
+import sys, json, time
+for line in sys.stdin:
+    e = json.loads(line); print(time.strftime('%H:%M:%S', time.gmtime(e.get('ts_ms',0)/1000)), {k: e.get(k) for k in ('event_type','reason','symbol') if k in e})"
+EOF
+### RES 2026-10-10T14:11:06.300Z
+14:06:18 {'event_type': 'LIVE_RECONCILE', 'reason': 'TTL'}
+14:07:10 {'event_type': 'LIVE_RECONCILE', 'reason': 'TTL'}
+14:10:58 {'event_type': 'LIVE_RECONCILE', 'reason': 'TTL'}
+14:10:58 {'event_type': 'LIVE_RECONCILE', 'reason': 'TTL'}
+14:10:59 {'event_type': 'LIVE_RECONCILE', 'reason': 'TTL'}
+### TOOL 2026-10-10T14:11:27.914Z

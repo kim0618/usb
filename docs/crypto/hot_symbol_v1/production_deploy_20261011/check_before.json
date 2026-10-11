@@ -1,0 +1,50 @@
+{
+ "phase": "check",
+ "live_btc_before": [
+  {
+   "signed_qty": "0.108",
+   "entry_price": "83913.1",
+   "update_time_ms": 1791339778021
+  }
+ ],
+ "btc": {
+  "position_side": "SHORT",
+  "position_qty": "0.064",
+  "avg_entry": "83612.90",
+  "realized_pnl": "3113.508839999999999999999976",
+  "cumulative_fees": "1154.302590562000000000000000",
+  "cumulative_funding_paid": "-149.6370850497828",
+  "wallet_balance": "10310.54355137616542490678596",
+  "available_balance": "9774.22055637616542490678596",
+  "used_margin": "535.12256"
+ },
+ "hot_acct": {
+  "position_side": "SHORT",
+  "position_qty": "114.6",
+  "avg_entry": "0.1047500",
+  "realized_pnl": "-0.00916800",
+  "cumulative_fees": "0.0198122199000",
+  "cumulative_funding_paid": "0",
+  "wallet_balance": "10310.54355137616542490678596",
+  "available_balance": "9774.22055637616542490678596",
+  "used_margin": "1.20043500"
+ },
+ "hot": "STRKUSDT",
+ "lock": "HOT_POSITION_OPEN",
+ "held": [],
+ "hot_recovery_source": "FULL_REPLAY",
+ "btc_recovery_source": "CHECKPOINT",
+ "btc_recovery_ckpt": 67,
+ "c1": {
+  "enabled": true,
+  "enabled_at": 1791372678683
+ },
+ "live_btc_after": [
+  {
+   "signed_qty": "0.108",
+   "entry_price": "83913.1",
+   "update_time_ms": 1791339778021
+  }
+ ],
+ "non_get_sent": []
+}

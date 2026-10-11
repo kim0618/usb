@@ -1,0 +1,167 @@
+{
+ "390": {
+  "tabs": [
+   [
+    "symbol-tab-BTCUSDT",
+    "BTCUSDT",
+    "BTC 0.27% ↓ 하락",
+    true
+   ],
+   [
+    "symbol-tab-hot",
+    "STRKUSDT",
+    "🔥 STRK HOT 15.29% ↓ 하락",
+    true
+   ]
+  ],
+  "scan_button": "코인탐색",
+  "overflow": [
+   390,
+   390
+  ],
+  "selected": [
+   "STRKUSDT"
+  ],
+  "header": "STRKUSDT 무기한 ● 실시간 0.10397 -0.00% vs Index 자산 13,826,552원 10",
+  "mark": "0.10397",
+  "paper_overflow": [
+   390,
+   390
+  ],
+  "selected_after_reload": [
+   "STRKUSDT"
+  ],
+  "live": {
+   "selected": [
+    "STRKUSDT"
+   ],
+   "long_disabled": true,
+   "short_disabled": true,
+   "close_disabled": true,
+   "hot_off_note": "HOT 심볼 LIVE 주문은 꺼져 있습니다. 조회만 가능합니다.",
+   "activate_offered": 0,
+   "leverage_enabled": 0,
+   "leverage_total": 8,
+   "overflow": [
+    390,
+    390
+   ]
+  },
+  "live_btc": {
+   "hot_off_note": 0,
+   "locked_note": 1,
+   "long_disabled": true
+  },
+  "browser_writes": []
+ },
+ "1440": {
+  "tabs": [
+   [
+    "symbol-tab-BTCUSDT",
+    "BTCUSDT",
+    "BTC 1H 0.27% ↓ 하락",
+    true
+   ],
+   [
+    "symbol-tab-hot",
+    "STRKUSDT",
+    "🔥 STRK HOT 1H 15.30% ↓ 하락",
+    true
+   ]
+  ],
+  "scan_button": "코인탐색",
+  "overflow": [
+   1440,
+   1440
+  ],
+  "selected": [
+   "STRKUSDT"
+  ],
+  "header": "STRKUSDT 무기한 ● 실시간 0.10509 -0.00% vs Index 자산 13,826,552원 10",
+  "mark": "0.10509",
+  "paper_overflow": [
+   1440,
+   1440
+  ],
+  "selected_after_reload": [
+   "STRKUSDT"
+  ],
+  "live": {
+   "selected": [
+    "STRKUSDT"
+   ],
+   "long_disabled": true,
+   "short_disabled": true,
+   "close_disabled": true,
+   "hot_off_note": "HOT 심볼 LIVE 주문은 꺼져 있습니다. 조회만 가능합니다.",
+   "activate_offered": 0,
+   "leverage_enabled": 0,
+   "leverage_total": 8,
+   "overflow": [
+    1440,
+    1440
+   ]
+  },
+  "live_btc": {
+   "hot_off_note": 0,
+   "locked_note": 1,
+   "long_disabled": true
+  },
+  "browser_writes": []
+ },
+ "1600": {
+  "tabs": [
+   [
+    "symbol-tab-BTCUSDT",
+    "BTCUSDT",
+    "BTC 1H 0.27% ↓ 하락",
+    true
+   ],
+   [
+    "symbol-tab-hot",
+    "STRKUSDT",
+    "🔥 STRK HOT 1H 15.30% ↓ 하락",
+    true
+   ]
+  ],
+  "scan_button": "코인탐색",
+  "overflow": [
+   1600,
+   1600
+  ],
+  "selected": [
+   "STRKUSDT"
+  ],
+  "header": "STRKUSDT 무기한 ● 실시간 0.10499 -0.01% vs Index 자산 13,826,552원 10",
+  "mark": "0.10499",
+  "paper_overflow": [
+   1600,
+   1600
+  ],
+  "selected_after_reload": [
+   "STRKUSDT"
+  ],
+  "live": {
+   "selected": [
+    "STRKUSDT"
+   ],
+   "long_disabled": true,
+   "short_disabled": true,
+   "close_disabled": true,
+   "hot_off_note": "HOT 심볼 LIVE 주문은 꺼져 있습니다. 조회만 가능합니다.",
+   "activate_offered": 0,
+   "leverage_enabled": 0,
+   "leverage_total": 8,
+   "overflow": [
+    1600,
+    1600
+   ]
+  },
+  "live_btc": {
+   "hot_off_note": 0,
+   "locked_note": 1,
+   "long_disabled": true
+  },
+  "browser_writes": []
+ }
+}

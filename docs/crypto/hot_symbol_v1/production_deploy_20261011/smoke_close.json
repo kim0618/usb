@@ -1,0 +1,51 @@
+{
+ "phase": "close",
+ "live_btc_before": [
+  {
+   "signed_qty": "0.108",
+   "entry_price": "83913.1",
+   "update_time_ms": 1791339778021
+  }
+ ],
+ "E_close": {
+  "status": 200,
+  "err": null
+ },
+ "E_after": {
+  "position_side": null,
+  "position_qty": "0.0",
+  "avg_entry": null,
+  "realized_pnl": "0.08136600",
+  "cumulative_fees": "0.0263648187000",
+  "cumulative_funding_paid": "0",
+  "wallet_balance": "10310.62753277736542490678596",
+  "available_balance": "9775.50497277736542490678596",
+  "used_margin": "0"
+ },
+ "E_lock": "HOT_SYMBOL_FLAT",
+ "btc": {
+  "position_side": "SHORT",
+  "position_qty": "0.064",
+  "avg_entry": "83612.90",
+  "realized_pnl": "3113.508839999999999999999976",
+  "cumulative_fees": "1154.302590562000000000000000",
+  "cumulative_funding_paid": "-149.6370850497828",
+  "wallet_balance": "10310.62753277736542490678596",
+  "available_balance": "9775.50497277736542490678596",
+  "used_margin": "535.12256"
+ },
+ "live_btc_after": [
+  {
+   "signed_qty": "0.108",
+   "entry_price": "83913.1",
+   "update_time_ms": 1791339778021
+  }
+ ],
+ "non_get_sent": [
+  [
+   "POST",
+   "/api/crypto/order",
+   200
+  ]
+ ]
+}

@@ -1,5 +1,7 @@
 # HOT Coin Finder Feasibility R0
 
+> **FINAL STATUS (added 2026-10-11, after the fact).** This report is kept as written at the time. Its verdict and any "not deployed", "not pushed" or "main not merged" statements are superseded. Current state: Production HOT V1 PASS. Production code, `origin/main` and `origin/feat/dynamic-hot-v1` are all `fa67437`. HOT LIVE orders are OFF, and the first real HOT LIVE order has not been placed (the user will place it manually). Entry point: [HOT_V1_FINAL_INDEX.md](../hot_symbol_v1/HOT_V1_FINAL_INDEX.md).
+
 작성 2026-10-10 KST. FEASIBILITY RESEARCH ONLY. 코드 수정, 주문, 배포, push 없음.
 
 ## A. Isolation Proof

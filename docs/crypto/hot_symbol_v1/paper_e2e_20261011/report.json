@@ -1,0 +1,314 @@
+{
+ "start": {
+  "hot": "BATUSDT",
+  "tabs": [
+   [
+    "symbol-tab-BTCUSDT",
+    "BTCUSDT",
+    "BTC 1H --"
+   ],
+   [
+    "symbol-tab-hot",
+    "BATUSDT",
+    "🔥 BAT 1H --"
+   ]
+  ],
+  "selected": "symbol-tab-BTCUSDT",
+  "ticket": [
+   1044,
+   419,
+   360,
+   788
+  ],
+  "overflow": [
+   1440,
+   1440
+  ]
+ },
+ "A_btc": {
+  "side": "LONG",
+  "qty": "0.002",
+  "hot_lock": "HOT_SYMBOL_FLAT"
+ },
+ "A_lock_before_scan": {
+  "server": "HOT_SYMBOL_FLAT",
+  "button_enabled": true
+ },
+ "B0_replacement": {
+  "old": "BATUSDT",
+  "new": "RLCUSDT",
+  "replaced": true,
+  "old_state_status": 400,
+  "old_in_permitted": false,
+  "browser_requests_for_old_after_switch": 0
+ },
+ "B_chart": {
+  "canvas": 7,
+  "header": "RLCUSDT\n무기한\n●\n실시간\n0.98400\n-0.39% vs Index\n자산\n999,877원\n743.96 USDT\n주문가능\n977,585원\n",
+  "feed_source": "BINANCE_PUBLIC",
+  "instrument": {
+   "symbol": "RLCUSDT",
+   "qty_step": "0.1",
+   "min_order_qty": "0.1",
+   "max_mkt_order_qty": "200000",
+   "min_notional_value": "5",
+   "tick_size": "0.0001",
+   "max_leverage": "20.00",
+   "source": "binance GET /fapi/v1/exchangeInfo <scratch>/v1qa/paper/reference/RLCUSDT/reference/binance_exchange_info_1791688513.json sha256 e8e109d474ccb78b47cb6976fd608caab14627693c48fa853c3c89b26109b3ee; margin <scratch>/v1qa/paper/reference/RLCUSDT/reference/risk_limit_1791688513.json"
+  }
+ },
+ "B_positions": {
+  "hot": [
+   "LONG",
+   "20.4"
+  ],
+  "order_qty": "20.4",
+  "btc_unchanged": true
+ },
+ "C_blocked": {
+  "blocked_after_s": 0.0,
+  "button_disabled": true,
+  "title": "현재 HOT 심볼에 포지션이 있어 탐색할 수 없습니다.",
+  "server_lock": "HOT_POSITION_OPEN",
+  "direct_post": [
+   409,
+   "HOT_POSITION_OPEN"
+  ]
+ },
+ "D_closed": {
+  "hot_flat": true,
+  "button_reenabled_after_s": 0.0,
+  "btc_unchanged": true,
+  "server_lock": "HOT_SYMBOL_FLAT"
+ },
+ "E_rescan": {
+  "posts": 1,
+  "previous": "RLCUSDT",
+  "now": "RLCUSDT",
+  "selected": "RLCUSDT",
+  "top": [
+   "RLCUSDT",
+   "STRKUSDT",
+   "QUSDT",
+   "USUSDT",
+   "BRUSDT"
+  ]
+ },
+ "reload": {
+  "hot_tab": "RLCUSDT",
+  "selected": "RLCUSDT"
+ },
+ "requests_1440": {
+  "total": 165,
+  "methods": [
+   "GET",
+   "POST"
+  ],
+  "non_get": [
+   [
+    "POST",
+    "/api/crypto/hot/scan"
+   ],
+   [
+    "POST",
+    "/api/crypto/order"
+   ]
+  ],
+  "binance_live_non_get": 0
+ },
+ "layout_390": {
+  "tabs": [
+   [
+    "symbol-tab-BTCUSDT",
+    "BTCUSDT",
+    16,
+    86,
+    true
+   ],
+   [
+    "symbol-tab-hot",
+    "RLCUSDT",
+    106,
+    97,
+    true
+   ]
+  ],
+  "strip": [
+   259,
+   259
+  ],
+  "button": [
+   283,
+   135,
+   67,
+   26
+  ],
+  "ticket": [
+   16,
+   1016,
+   358,
+   637
+  ],
+  "overflow": [
+   390,
+   390
+  ],
+  "hot_selected_overflow": [
+   390,
+   390
+  ],
+  "pressed_tabs": [
+   "RLCUSDT"
+  ],
+  "mark_text": "0.98352",
+  "hot_ticket": [
+   16,
+   696,
+   358,
+   816
+  ],
+  "panel": [
+   16,
+   183,
+   358,
+   622
+  ],
+  "panel_overflow": [
+   390,
+   390
+  ],
+  "pressed_after_reload": [
+   "RLCUSDT"
+  ]
+ },
+ "layout_1440": {
+  "tabs": [
+   [
+    "symbol-tab-BTCUSDT",
+    "BTCUSDT",
+    276,
+    87,
+    true
+   ],
+   [
+    "symbol-tab-hot",
+    "RLCUSDT",
+    367,
+    97,
+    true
+   ]
+  ],
+  "strip": [
+   1029,
+   1029
+  ],
+  "button": [
+   1313,
+   139,
+   67,
+   26
+  ],
+  "ticket": [
+   1044,
+   419,
+   360,
+   669
+  ],
+  "overflow": [
+   1440,
+   1440
+  ],
+  "hot_selected_overflow": [
+   1440,
+   1440
+  ],
+  "pressed_tabs": [
+   "RLCUSDT"
+  ],
+  "mark_text": "0.98300",
+  "hot_ticket": [
+   1044,
+   365,
+   360,
+   862
+  ],
+  "panel": [
+   988,
+   187,
+   416,
+   520
+  ],
+  "panel_overflow": [
+   1440,
+   1440
+  ],
+  "pressed_after_reload": [
+   "RLCUSDT"
+  ]
+ },
+ "layout_1600": {
+  "tabs": [
+   [
+    "symbol-tab-BTCUSDT",
+    "BTCUSDT",
+    276,
+    87,
+    true
+   ],
+   [
+    "symbol-tab-hot",
+    "RLCUSDT",
+    367,
+    97,
+    true
+   ]
+  ],
+  "strip": [
+   1189,
+   1189
+  ],
+  "button": [
+   1473,
+   139,
+   67,
+   26
+  ],
+  "ticket": [
+   1204,
+   419,
+   360,
+   669
+  ],
+  "overflow": [
+   1600,
+   1600
+  ],
+  "hot_selected_overflow": [
+   1600,
+   1600
+  ],
+  "pressed_tabs": [
+   "RLCUSDT"
+  ],
+  "mark_text": "0.98200",
+  "hot_ticket": [
+   1204,
+   365,
+   360,
+   862
+  ],
+  "panel": [
+   1148,
+   187,
+   416,
+   520
+  ],
+  "panel_overflow": [
+   1600,
+   1600
+  ],
+  "pressed_after_reload": [
+   "RLCUSDT"
+  ]
+ }
+}
