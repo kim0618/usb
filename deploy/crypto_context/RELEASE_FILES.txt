@@ -45,6 +45,8 @@ docs/crypto/context_collector_v1/CONTRACT_CTX_V1_1.md
 docs/crypto/context_collector_v1/CONTRACT_CTX_V1_1.sha256
 docs/crypto/context_collector_v1/RETENTION_CTX_V1_1.md
 docs/crypto/context_collector_v1/RETENTION_CTX_V1_1.sha256
+docs/crypto/context_collector_v1/RETENTION_ACTIVE_SESSION_FIX_V1.md
+docs/crypto/context_collector_v1/RETENTION_ACTIVE_SESSION_FIX_V1.sha256
 docs/crypto/context_collector_v1/PRODUCTION_PREDEPLOY_V1_1.md
 # Host configuration. Installed outside the snapshot (see PRODUCTION_PREDEPLOY_V1_1.md R).
 deploy/crypto_context/context.env

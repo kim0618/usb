@@ -12,8 +12,13 @@ What may be deleted is decided by **exclusion first**:
 * never a file still being written (`.jsonl.open`), a compression temporary (`.gz.tmp`), the
   current-state cache (`state/`, or a `state.disk-*` moved aside), the writer lock, a symbolic
   link, or anything outside those kind directories;
-* never a `session` file of the session that holds (or last held) the writer lock: the session
-  header is what the frozen viewer reads to describe the running collector;
+* never a `session`, `context`, `wall_v2` or `wall_r0` file of the **active session** - the session
+  the writer lock names, i.e. the one that holds (or last held) it - at any age
+  (`RETENTION_ACTIVE_SESSION_FIX_V1.md`). A reader rebuilding that session needs its first
+  segments; a running session older than the retention period must not lose them;
+* nothing at all when the active session cannot be established (no readable session id in the
+  lock, or the state file naming another session): a run that cannot tell which files belong to
+  the running session deletes none;
 * a candidate is deleted only if **both** its modification time (when it was sealed) and the UTC
   date in its name (when it was opened) are older than the cut-off. Two clocks that must agree,
   so one wrong clock keeps a file rather than losing one.
@@ -34,16 +39,19 @@ from pathlib import Path
 from typing import Any
 
 from ..market_structure_v0.contract import FINAL_SUFFIX, LOCK_FILENAME, OPEN_SUFFIX
-from ..market_structure_v0.store import STATE_DIRNAME
+from ..market_structure_v0.store import STATE_DIRNAME, STATE_FILENAME
 from .contract import COMPRESSED_SUFFIX, CONTEXT_KIND, CONTEXT_KINDS, PERSISTED_V0_KINDS
 
 #: Retention contract identity and the one number it fixes.
-RETENTION_VERSION = "ctx-retention.v1"
+RETENTION_VERSION = "ctx-retention.v1.1"
 RETENTION_DAYS = 7
 #: Every kind whose sealed files are subject to retention. Nothing else is ever listed.
 RETAINED_KINDS: tuple[str, ...] = tuple(PERSISTED_V0_KINDS) + tuple(CONTEXT_KINDS)
 #: The kind whose current-session files are kept regardless of age.
 SESSION_KIND = "session"
+#: Every kind a reader needs to rebuild a session from its start. The active session's files of
+#: these kinds are kept regardless of age; `telemetry`/`storage_stats` are not rebuilt from.
+ACTIVE_SESSION_KINDS: tuple[str, ...] = (SESSION_KIND,) + tuple(CONTEXT_KINDS)
 
 ROOT_ENV = "CTX_V1_ROOT"
 
@@ -70,6 +78,30 @@ def current_session8(root: Path) -> str | None:
     return str(session_id)[:8] if session_id else None
 
 
+_SESSION8 = re.compile(r"^[0-9a-f]{8}$")
+
+
+def active_session8(root: Path) -> tuple[str | None, str | None]:
+    """`(session8, None)` for the active session, or `(None, reason)` when it cannot be told.
+
+    The writer lock names it. The compact state file, when it names a session, must agree.
+    """
+    session8 = current_session8(root)
+    if session8 is None:
+        return None, "LOCK_NAMES_NO_SESSION"
+    if not _SESSION8.match(session8):
+        return None, "LOCK_SESSION_NOT_HEX8"
+    try:
+        state = json.loads((root / STATE_DIRNAME / STATE_FILENAME).read_bytes())
+    except (OSError, ValueError):
+        state = None
+    session = state.get("session") if isinstance(state, dict) else None
+    state_id = session.get("session_id") if isinstance(session, dict) else None
+    if state_id and str(state_id)[:8] != session8:
+        return None, "STATE_NAMES_OTHER_SESSION"
+    return session8, None
+
+
 def check_root(root: Path) -> None:
     if not root.is_dir():
         raise RootRefused(f"not a directory: {root}")
@@ -89,10 +121,10 @@ def plan(root: Path, *, days: int = RETENTION_DAYS, now_s: float | None = None
     now_s = time.time() if now_s is None else now_s
     cutoff_s = now_s - days * _DAY_S
     cutoff_date = datetime.fromtimestamp(cutoff_s, timezone.utc).strftime("%Y%m%d")
-    protected_session8 = current_session8(root)
+    protected_session8, identity_failure = active_session8(root)
     delete: list[dict[str, Any]] = []
-    kept: dict[str, int] = {"young": 0, "current_session_header": 0, "not_sealed": 0,
-                            "unrecognised_name": 0, "not_regular_file": 0}
+    kept: dict[str, int] = {"young": 0, "active_session": 0, "identity_unknown": 0,
+                            "not_sealed": 0, "unrecognised_name": 0, "not_regular_file": 0}
     for kind in RETAINED_KINDS:
         directory = root / kind
         if directory.is_symlink() or not directory.is_dir():
@@ -110,12 +142,15 @@ def plan(root: Path, *, days: int = RETENTION_DAYS, now_s: float | None = None
                 kept["unrecognised_name"] += 1
                 continue
             name_date, session8 = match.group(1), match.group(2)
-            if kind == SESSION_KIND and session8 == protected_session8:
-                kept["current_session_header"] += 1
+            if kind in ACTIVE_SESSION_KINDS and session8 == protected_session8:
+                kept["active_session"] += 1
                 continue
             stat = path.stat()
             if not (stat.st_mtime < cutoff_s and name_date < cutoff_date):
                 kept["young"] += 1
+                continue
+            if identity_failure is not None:
+                kept["identity_unknown"] += 1
                 continue
             delete.append({"path": str(path.relative_to(root)), "bytes": stat.st_size,
                            "sealed_utc": datetime.fromtimestamp(stat.st_mtime, timezone.utc)
@@ -123,7 +158,8 @@ def plan(root: Path, *, days: int = RETENTION_DAYS, now_s: float | None = None
     return {"version": RETENTION_VERSION, "root": str(root), "days": days,
             "cutoff_utc": datetime.fromtimestamp(cutoff_s, timezone.utc)
             .strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "protected_session8": protected_session8, "delete": delete,
+            "protected_session8": protected_session8, "identity_failure": identity_failure,
+            "delete": delete,
             "delete_files": len(delete), "delete_bytes": sum(d["bytes"] for d in delete),
             "kept": kept, "never_listed": [STATE_DIRNAME, f"{STATE_DIRNAME}.disk-*",
                                            LOCK_FILENAME, f"*{OPEN_SUFFIX}"]}
@@ -175,5 +211,5 @@ def main(argv: list[str] | None = None) -> int:
     return 1 if report["failed"] else 0
 
 
-__all__ = ["RETENTION_VERSION", "RETENTION_DAYS", "RETAINED_KINDS", "RootRefused", "plan",
-           "prune", "current_session8", "main"]
+__all__ = ["RETENTION_VERSION", "RETENTION_DAYS", "RETAINED_KINDS", "ACTIVE_SESSION_KINDS",
+           "RootRefused", "plan", "prune", "current_session8", "active_session8", "main"]
