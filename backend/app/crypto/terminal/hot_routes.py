@@ -103,11 +103,23 @@ SLOT_PATH_ENV = "CRYPTO_HOT_SLOT_PATH"
 class PaperExposure:
     """The paper engine's exposure on one symbol: its position and its orders in flight.
 
-    Paper orders are market orders filled in the same call, so there is never a resting one."""
+    Paper orders are market orders filled in the same call, so there is never a resting one.
+
+    No session is flat only when the symbol has never traded. A run directory on disk with no
+    session behind it is a run that failed to recover at boot (a refused replay, say), and its
+    position is unknown, not zero: reading it as flat let a scan replace a HOT symbol that still
+    held a paper position."""
 
     def exposure(self, symbol: str) -> SymbolExposure:
         session = runtime.sessions.get(symbol) or runtime.retired.get(symbol)
-        qty = session.engine.account.position.signed_qty if session is not None else Decimal(0)
+        if session is None:
+            if runtime.base_config is None:
+                raise RuntimeError("paper runtime is not configured")
+            if (runtime.root / f"{runtime.base_config.run_id}-{symbol}").exists():
+                raise RuntimeError(f"{symbol} has a paper run on disk that is not loaded")
+            qty = Decimal(0)
+        else:
+            qty = session.engine.account.position.signed_qty
         return SymbolExposure(symbol, Decimal(qty), 0, controller.paper_in_flight.count(symbol))
 
 

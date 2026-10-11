@@ -110,6 +110,7 @@ class Exposures:
     def __init__(self) -> None:
         self.rows: dict[str, tuple[Decimal | None, int | None, int | None]] = {}
         self.broken = False
+        self.broken_for: set[str] = set()
         self.on_read = None
         self.reads: list[str] = []
 
@@ -117,7 +118,7 @@ class Exposures:
         self.reads.append(symbol)
         if self.on_read:
             self.on_read(symbol)
-        if self.broken:
+        if self.broken or symbol in self.broken_for:
             raise TimeoutError("account read failed")
         pos, orders, flight = self.rows.get(symbol, (Decimal(0), 0, 0))
         return SymbolExposure(symbol, pos, orders, flight)
@@ -166,6 +167,8 @@ def test_btc_exposure_never_blocks_a_scan(tmp_path) -> None:
     ((Decimal(0), 1, 0), hot_lock.HOT_OPEN_ORDER),
     ((Decimal(0), 0, 1), hot_lock.HOT_ORDER_IN_FLIGHT),
     ((None, 0, 0), hot_lock.HOT_STATE_UNKNOWN),
+    ((Decimal(0), None, 0), hot_lock.HOT_STATE_UNKNOWN),
+    ((Decimal(0), 0, None), hot_lock.HOT_STATE_UNKNOWN),
 ])
 def test_hot_exposure_blocks_without_scanning(tmp_path, row, code) -> None:
     source = Exposures()
@@ -185,6 +188,15 @@ def test_an_unreadable_source_blocks(tmp_path) -> None:
     source.broken = True
     assert ctl.scan_and_replace(lambda: scan_result(HOT_B)).code == hot_lock.HOT_STATE_UNKNOWN
     assert ctl.lock().state == "BLOCKED"
+
+
+def test_an_unreadable_btc_never_blocks_a_scan(tmp_path) -> None:
+    source = Exposures()
+    source.broken_for.add("BTCUSDT")
+    ctl = controller_at(tmp_path, source)
+    ctl.scan_and_replace(lambda: scan_result(HOT_A))
+    out = ctl.scan_and_replace(lambda: scan_result(HOT_B))
+    assert out.code == hot_slot_module.HOT_REPLACED and "BTCUSDT" not in source.reads
 
 
 def test_a_change_during_the_scan_keeps_the_old_hot_symbol(tmp_path) -> None:
@@ -528,6 +540,47 @@ def test_a_restart_brings_back_the_hot_symbol_and_a_held_former_one(paper, tmp_p
     assert HOT_A in fresh.sessions and HOT_A in symbols_module.dynamic_symbols()
     assert fresh.sessions[HOT_A].engine.account.position.signed_qty == Decimal("60.0")
     assert fresh.held_symbols() == [HOT_A]
+
+
+def test_a_hot_run_that_failed_to_load_blocks_the_scan(paper, monkeypatch) -> None:
+    """A HOT run on disk with no session behind it (its replay was refused at boot) holds an
+    unknown position. Reading the missing session as flat let a scan replace a HOT symbol that
+    still held a paper position, observed in the local terminal after a restart."""
+    client, runtime, use_market, feeds = paper
+    use_market(HOT_A)
+    client.post("/api/crypto/hot/scan")
+    open_hot(client, runtime, HOT_A)
+    assert order(client, HOT_A, "LONG", qty="60.0").status_code == 200
+    monkeypatch.setattr(runtime, "sessions", {"BTCUSDT": runtime.sessions["BTCUSDT"]})
+    monkeypatch.setattr(runtime, "retired", {})
+    assert client.get("/api/crypto/hot").json()["lock"]["code"] == hot_lock.HOT_STATE_UNKNOWN
+    use_market(HOT_B)
+    response = client.post("/api/crypto/hot/scan")
+    assert response.status_code == 409
+    assert client.get("/api/crypto/hot").json()["hot"]["symbol"] == HOT_A
+
+
+def test_a_hot_symbol_that_never_traded_is_flat(paper) -> None:
+    client, runtime, use_market, feeds = paper
+    use_market(HOT_A)
+    client.post("/api/crypto/hot/scan")
+    assert not (runtime.root / f"{runtime.base_config.run_id}-{HOT_A}").exists()
+    assert client.get("/api/crypto/hot").json()["lock"]["code"] == hot_lock.HOT_SYMBOL_FLAT
+
+
+@pytest.mark.xfail(strict=True, reason="pre-existing: each run replays alone at boot, but its "
+                   "ledger recorded the shared wallet, so a HOT run traded while BTC held margin "
+                   "is refused (LEDGER_DIVERGENCE). Needs a joint replay; not fixed in V1.")
+def test_a_hot_run_traded_beside_a_btc_position_recovers(paper, tmp_path) -> None:
+    from app.crypto.terminal.api import dynamic_run_config
+    client, runtime, use_market, feeds = paper
+    assert order(client, "BTCUSDT", "LONG", qty="0.010").status_code == 200
+    use_market(HOT_A)
+    client.post("/api/crypto/hot/scan")
+    open_hot(client, runtime, HOT_A)
+    assert order(client, HOT_A, "LONG", qty="60.0").status_code == 200
+    config, tiers = dynamic_run_config(runtime.base_config, HOT_A, tmp_path)
+    PaperSession(config=config, tiers=tiers, root=tmp_path)
 
 
 # --------------------------------------------------------------------------- Binance (LIVE)
