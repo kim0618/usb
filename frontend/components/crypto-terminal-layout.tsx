@@ -369,7 +369,17 @@ export function useChartHistory(enabled: boolean, timeframe: HistoryTimeframe,
     };
     void seed();
 
-    return () => { stopped = true; controller.abort(); if (timer !== undefined) window.clearTimeout(timer); };
+    return () => {
+      stopped = true; controller.abort(); if (timer !== undefined) window.clearTimeout(timer);
+      // Leaving this series (the 15 s view, another timeframe or symbol) drops its candles.
+      // Kept, they were served again for one render when the same series came back - same key,
+      // so the chart took them as the series - and the next render replaced them with the
+      // empty restart and then the 120-bar live fallback. The chart held the 2,880-bar viewport
+      // onto 120 bars and then shifted it by the 2,760 bars the history prepended, which put
+      // the view past the newest bar: BTC 15s -> 1m showed one or two candles. Coming back now
+      // starts from the fallback exactly like a first visit does.
+      setSeries(previous => (previous.candles.length === 0 ? previous : { key: previous.key, candles: [] }));
+    };
   }, [enabled, timeframe, symbol, seriesKey]);
 
   const loadEarlier = useCallback(async () => {

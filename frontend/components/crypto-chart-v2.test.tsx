@@ -49,6 +49,27 @@ describe("chart V2 history", () => {
     await waitFor(() => expect(result.current.candles.map(item => item.time)).toEqual([3600]));
   });
 
+  it("does not serve the old history when the same series comes back (15 s -> 1m)", async () => {
+    vi.spyOn(cryptoApi, "chartHistory")
+      .mockResolvedValueOnce(response("1m", [bar(60_000), bar(120_000)], false))
+      .mockImplementation(() => new Promise(() => {}));        // the return trip's seed never lands
+    // Every render's candle count, not just the settled one: the defect was a single render.
+    const seen: number[] = [];
+    const { result, rerender } = renderHook(({ enabled }) => {
+      const value = useChartHistory(enabled, "1m");
+      seen.push(value.candles.length);
+      return value;
+    }, { initialProps: { enabled: true } });
+    await waitFor(() => expect(result.current.candles).toHaveLength(2));
+    rerender({ enabled: false });                               // the 15 s view
+    const back = seen.length;
+    rerender({ enabled: true });                                // back to 1m
+    // No render after coming back may carry the candles from before: the chart would draw them
+    // as the series and then carry its viewport across their replacement.
+    expect(seen.slice(back)).toEqual(seen.slice(back).map(() => 0));
+    expect(seen.length).toBeGreaterThan(back);
+  });
+
   it("prepends one locked page without duplicates and records end-of-history", async () => {
     vi.spyOn(cryptoApi, "chartHistory")
       .mockResolvedValueOnce(response("1m", [bar(60_000), bar(120_000)]))
