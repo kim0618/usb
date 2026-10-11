@@ -46,9 +46,11 @@ const PROFILES = {
   // still have bodies. Zooming and panning from there are untouched, and so is where a view
   // that has already been moved sits.
   minute: { barSpacing: 3, minBarSpacing: 0.5, rightOffset: 3, priceTop: 0.08, priceBottom: 0.28, volumeTop: 0.8,
-    minPriceSpan: 0 },
+    minPriceSpanTicks: 0 },
+  // In ticks, not USDT: 100 ticks is the 10 USDT BTC always had (tick 0.10), and on a sub-dollar
+  // HOT symbol a fixed 10 USDT opened the 15 s axis at about -6..+6 around a 0.10 price.
   seconds: { barSpacing: 7, minBarSpacing: 2, rightOffset: 4, priceTop: 0.1, priceBottom: 0.2, volumeTop: 0.84,
-    minPriceSpan: 10 },
+    minPriceSpanTicks: 100 },
 } as const;
 
 /** How many one-minute-or-wider candles the first draw puts in view, by chart width.
@@ -63,7 +65,11 @@ const PROFILES = {
 export const visibleMinuteBars = (chartWidthPx: number) =>
   Math.max(60, Math.floor(chartWidthPx / PROFILES.minute.barSpacing));
 
-/** Autoscale that never zooms tighter than `minSpan` (USDT), centred on the candles. Without it a
+/** The narrowest price range a profile opens on, in the instrument's own price units. */
+export const minPriceSpan = (seconds: boolean, minMove: number) =>
+  (seconds ? PROFILES.seconds : PROFILES.minute).minPriceSpanTicks * minMove;
+
+/** Autoscale that never zooms tighter than `minSpan` (price units), centred on the candles. Without it a
  *  few flat 15 s candles, right after a restart or in a quiet minute, fill the whole pane and a
  *  0.1 USDT tick looks like a crash. */
 export function widenPriceRange<T extends { priceRange: { minValue: number; maxValue: number } | null } | null>(
@@ -130,6 +136,9 @@ export function CandleChart({ candles, overlays, markers = [], className = "h-[3
    *  span). Read by tests and by the layout measurements; nothing in the app depends on them. */
   const secondsRef = useRef(seconds);
   secondsRef.current = seconds;
+  // Read by the autoscale provider, which is created once with the chart.
+  const minMoveRef = useRef(priceFormat.minMove);
+  minMoveRef.current = priceFormat.minMove;
   const historyListener = useRef(onNeedMoreHistory);
   historyListener.current = onNeedMoreHistory;
   const rangeListener = useRef(onPriceRange);
@@ -206,7 +215,7 @@ export function CandleChart({ candles, overlays, markers = [], className = "h-[3
         wickUpColor: "#16a34a", wickDownColor: "#dc2626",
         priceFormat: { type: "price", precision: priceFormat.precision, minMove: priceFormat.minMove },
         autoscaleInfoProvider: (original: () => AutoscaleInfo | null) => widenPriceRange(original(),
-          (secondsRef.current ? PROFILES.seconds : PROFILES.minute).minPriceSpan),
+          minPriceSpan(secondsRef.current, minMoveRef.current)),
       });
 
       // Volume shares the pane but lives on its own scale pinned to the bottom quarter, so a

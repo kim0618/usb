@@ -117,4 +117,19 @@ describe("15 s price scale floor", () => {
     expect(widenPriceRange({ priceRange: { minValue: 1, maxValue: 1.1 } }, 0)).toEqual({ priceRange: { minValue: 1, maxValue: 1.1 } });
     expect(widenPriceRange(null, 10)).toBeNull();
   });
+
+  it("is measured in ticks, so a sub-dollar HOT symbol opens on its own prices (STRK 0.104)", async () => {
+    const chart = await vi.importActual<typeof import("@/components/crypto-candle-chart")>("@/components/crypto-candle-chart");
+    const { chartPriceFormat } = await vi.importActual<typeof import("@/lib/crypto-paper")>("@/lib/crypto-paper");
+    // BTC: tick 0.10 -> exactly the 10 USDT floor it always had.
+    expect(chart.minPriceSpan(true, chartPriceFormat("0.10").minMove)).toBe(10);
+    // STRK: tick 0.00001. A fixed 10 USDT used to open the axis at about -6..+6.
+    const strk = chart.minPriceSpan(true, chartPriceFormat("0.0000100").minMove);
+    expect(strk).toBeCloseTo(0.001, 10);
+    const widened = chart.widenPriceRange({ priceRange: { minValue: 0.10412, maxValue: 0.10467 } }, strk)!;
+    expect(widened.priceRange!.minValue).toBeGreaterThan(0.1);
+    expect(widened.priceRange!.maxValue).toBeLessThan(0.11);
+    // Minute views never had a floor and still do not.
+    expect(chart.minPriceSpan(false, 0.1)).toBe(0);
+  });
 });

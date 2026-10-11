@@ -485,6 +485,39 @@ def test_the_hot_symbols_own_minimum_notional_applies(paper) -> None:
     assert runtime.sessions[HOT_A].engine.account.position.is_flat
 
 
+def test_a_sub_dollar_hot_symbol_gets_a_safe_max_and_quick_sizes(paper) -> None:
+    """0.1 is the minimum quantity but 0.1 x 0.12 USDT is far below the 5 USDT minimum notional.
+    The search used to start at the minimum quantity, fail it, and report MAX 0 with every quick
+    size disabled (seen on production STRKUSDT, 9,775 USDT available)."""
+    client, runtime, use_market, feeds = paper
+    use_market(HOT_A)
+    client.post("/api/crypto/hot/scan")
+    open_hot(client, runtime, HOT_A)
+    body = client.get(f"/api/crypto/sizing?symbol={HOT_A}").json()
+    for side in ("LONG", "SHORT"):
+        row = body["sides"][side]
+        assert row["max_feasible"] is True, row["reject_code"]
+        assert Decimal(row["max_qty"]) * Decimal("0.12") >= 5
+        presets = {p["label"]: p for p in row["presets"]}
+        assert all(presets[label]["feasible"] for label in ("25%", "HALF", "75%", "MAX"))
+        assert Decimal(presets["25%"]["notional"]) >= 5
+
+
+def test_the_entry_floor_is_the_notional_minimum_rounded_up_to_the_step(paper) -> None:
+    from app.crypto.paper.sizing import smallest_entry_qty
+    client, runtime, use_market, feeds = paper
+    use_market(HOT_A)
+    client.post("/api/crypto/hot/scan")
+    open_hot(client, runtime, HOT_A)
+    engine = runtime.sessions[HOT_A].engine
+    client.get(f"/api/crypto/state?symbol={HOT_A}")
+    runtime.sessions[HOT_A].observe(feeds[HOT_A].quote(), force=True)
+    assert smallest_entry_qty(engine, "LONG") == Decimal("41.7")    # ceil(5 / 0.12001, 0.1)
+    assert smallest_entry_qty(engine, "SHORT") == Decimal("41.7")   # ceil(5 / 0.12000, 0.1)
+    btc = runtime.sessions["BTCUSDT"].engine
+    assert smallest_entry_qty(btc, "LONG") == btc.config.instrument.min_order_qty
+
+
 def test_hot_leverage_is_capped_by_its_own_margin_table(paper, tmp_path) -> None:
     client, runtime, use_market, feeds = paper
     hot_market.write_reference(tmp_path, "LOWLEVUSDT", exchange_row=exchange_row("LOWLEVUSDT"),

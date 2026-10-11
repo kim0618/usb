@@ -29,6 +29,8 @@ from .ledger import Ledger
 
 PROBE_REASON = "SIZING_PROBE"
 DEFAULT_FRACTIONS = (Decimal("0.25"), Decimal("0.50"), Decimal("0.75"), Decimal("1.00"))
+#: Steps tried above the notional floor before concluding that nothing fits (see `max_entry`).
+MIN_NOTIONAL_RETRY_STEPS = 3
 
 
 @dataclass(frozen=True)
@@ -113,6 +115,33 @@ def floor_to_step(qty: Decimal, step: Decimal) -> Decimal:
     if step <= 0:
         raise ValueError("qty step must be positive")
     return (qty / step).to_integral_value(rounding="ROUND_DOWN") * step
+
+
+def ceil_to_step(qty: Decimal, step: Decimal) -> Decimal:
+    if step <= 0:
+        raise ValueError("qty step must be positive")
+    return (qty / step).to_integral_value(rounding="ROUND_CEILING") * step
+
+
+def smallest_entry_qty(engine: PaperEngine, side: str) -> Decimal:
+    """The smallest grid size that clears both lower bounds: the minimum quantity and the
+    minimum notional at the quote the entry would take.
+
+    The notional minimum refuses sizes for being too small, so feasibility is not monotonic at
+    the bottom of the range. On BTCUSDT the minimum quantity is already worth more than the
+    minimum notional and the two floors coincide; on a sub-dollar HOT symbol (0.1 STRK is about
+    0.01 USDT against a 5 USDT minimum) a search starting at the minimum quantity concluded that
+    nothing fits. Same rule as `live.sizing.smallest_qty`.
+    """
+    spec = engine.config.instrument
+    floor_qty = spec.min_order_qty
+    quote = engine.quote
+    reference = None
+    if quote is not None:
+        reference = quote.best_ask if side == SIDE_LONG else quote.best_bid
+    if reference is not None and reference > 0 and spec.min_notional_value > 0:
+        floor_qty = max(floor_qty, ceil_to_step(spec.min_notional_value / reference, spec.qty_step))
+    return ceil_to_step(floor_qty, spec.qty_step)
 
 
 def _snapshot(quote: Any) -> dict[str, Any]:
@@ -214,13 +243,21 @@ def max_entry(engine: PaperEngine, side: str) -> SizeQuote:
     """
     spec = engine.config.instrument
     step = spec.qty_step
-    smallest = probe(engine, side, spec.min_order_qty, label="MAX", fraction=Decimal(1))
+    floor_qty = smallest_entry_qty(engine, side)
+    smallest = probe(engine, side, floor_qty, label="MAX", fraction=Decimal(1))
+    # The floor is priced at the best quote; a fill that walks the book can land a step short of
+    # the notional minimum. A few steps up settle it without searching below the floor.
+    for _ in range(MIN_NOTIONAL_RETRY_STEPS):
+        if smallest.feasible or smallest.reject_code != "NOTIONAL_BELOW_MINIMUM":
+            break
+        floor_qty += step
+        smallest = probe(engine, side, floor_qty, label="MAX", fraction=Decimal(1))
     if not smallest.feasible:
         # Nothing is affordable. Carry the engine's own reason rather than inventing one.
         return SizeQuote(label="MAX", fraction=Decimal(1), qty=Decimal(0), feasible=False,
                          reject_code=smallest.reject_code, reject_message=smallest.reject_message)
 
-    low = spec.min_order_qty
+    low = floor_qty
     high = floor_to_step(spec.max_mkt_order_qty, step)
     best = smallest
     while low < high:
