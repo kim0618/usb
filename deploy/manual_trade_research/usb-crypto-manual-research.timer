@@ -1,0 +1,12 @@
+[Unit]
+Description=US-B CRYPTO manual trade snapshot recorder, once a minute
+
+[Timer]
+# Twenty seconds past each minute: clear of the BTC context structure worker (:05). A run still
+# going when the next is due is not started twice (oneshot unit, plus the store's own flock).
+OnCalendar=*-*-* *:*:20
+AccuracySec=1s
+Persistent=false
+
+[Install]
+WantedBy=timers.target

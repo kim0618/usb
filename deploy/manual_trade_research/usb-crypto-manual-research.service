@@ -1,0 +1,29 @@
+[Unit]
+Description=US-B CRYPTO manual trade snapshot recorder (oneshot, read-only follower of the LIVE fill cache)
+Documentation=file:/root/usb_runtime/manual_trade_research/src/docs/crypto/manual_trade_snapshot_v1/CONTRACT_MANUAL_TRADE_SNAPSHOT_V1.md
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/root/usb_runtime/manual_trade_research
+EnvironmentFile=/root/usb_runtime/manual_trade_research/config/manual_trade_research.env
+Environment=PYTHONPATH=/root/usb_runtime/manual_trade_research/src/backend
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/root/usb/.venv/bin/python -m app.crypto.manual_snapshot_v1.recorder \
+  --store ${MTR_STORE}/store --s1 ${MTR_S1} --s2 ${MTR_S2} --journal ${MTR_JOURNAL} \
+  --trigger-url=${MTR_TRIGGER_URL} --request-budget ${MTR_REQUEST_BUDGET} \
+  --request-spacing-s ${MTR_REQUEST_SPACING_S} --max-snapshots 500
+StandardOutput=append:/root/usb_runtime/manual_trade_research/logs/recorder.log
+StandardError=append:/root/usb_runtime/manual_trade_research/logs/recorder.log
+# The whole file system is read only except the store. The fill cache, the mirror and the journal
+# are read in place and never locked or rewritten.
+ProtectSystem=strict
+ReadWritePaths=/root/usb_runtime/manual_trade_research/store
+# Measured locally: 38 MB on a steady-state run, 28 MB per 500-snapshot backfill chunk.
+MemoryHigh=64M
+MemoryMax=96M
+CPUQuota=25%
+Nice=10
+TimeoutStartSec=120

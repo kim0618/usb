@@ -1,0 +1,18 @@
+# Exact production release of the Manual Trade Snapshot Store V1 recorder. One path per line,
+# relative to the repository root. stage_release.sh exports only these, from one commit, with sha256.
+# Import closure of `python -m app.crypto.manual_snapshot_v1.recorder`: standard library only.
+backend/app/__init__.py
+backend/app/crypto/__init__.py
+backend/app/crypto/manual_snapshot_v1/__init__.py
+backend/app/crypto/manual_snapshot_v1/collector.py
+backend/app/crypto/manual_snapshot_v1/episodes.py
+backend/app/crypto/manual_snapshot_v1/features.py
+backend/app/crypto/manual_snapshot_v1/market.py
+backend/app/crypto/manual_snapshot_v1/recorder.py
+backend/app/crypto/manual_snapshot_v1/sources.py
+backend/app/crypto/manual_snapshot_v1/store.py
+deploy/manual_trade_research/RELEASE_FILES.txt
+deploy/manual_trade_research/manual_trade_research.env
+deploy/manual_trade_research/usb-crypto-manual-research.service
+deploy/manual_trade_research/usb-crypto-manual-research.timer
+docs/crypto/manual_trade_snapshot_v1/CONTRACT_MANUAL_TRADE_SNAPSHOT_V1.md
