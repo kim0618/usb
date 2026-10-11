@@ -1,0 +1,27 @@
+[Unit]
+Description=US-B CRYPTO BTC context strip STRUCTURE worker (oneshot: R1 level book forward one closed minute, read only on the venue)
+Documentation=file:/root/usb_runtime/btc_context_ui/src/docs/crypto/btc_context_ui_v1/MEMORY_LIGHT_V1_REPORT.md
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/root/usb_runtime/btc_context_ui
+EnvironmentFile=/root/usb_runtime/btc_context_ui/config/btc_context_ui.env
+Environment=PYTHONPATH=/root/usb_runtime/btc_context_ui/src/backend
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/root/usb/.venv/bin/python -m app.crypto.btc_context_ui_v1.structure_worker \
+  --state-dir ${BTC_CONTEXT_STATE_DIR}
+StandardOutput=append:/root/usb_runtime/btc_context_ui/logs/structure.log
+StandardError=append:/root/usb_runtime/btc_context_ui/logs/structure.log
+# Writes only its state directory (checkpoint + snapshot + lock). It must exist before the first
+# start (mkdir -m 700), or the namespace setup refuses the unit.
+ProtectSystem=strict
+ReadWritePaths=/root/usb_runtime/btc_context_ui/state
+# Measured locally: 53 MB peak on a full 30-day rebuild, 42-45 MB on a one-minute step.
+MemoryHigh=80M
+MemoryMax=112M
+CPUQuota=50%
+Nice=10
+TimeoutStartSec=120

@@ -1,0 +1,35 @@
+rebuild {"elapsed_ms": 3416, "last_open_ms": 1791707280000, "result": "REBUILT", "series_rows": 43709, "stepped": 43709} {"max_rss_kb":52988,"elapsed_s":3.56,"user_s":1.01,"sys_s":0.13} ckpt_bytes=3692799 snap_bytes=343
+api_cold VmHWM:=51348 VmRSS:=51348
+api_after_first_request VmHWM:=54084 VmRSS:=54084
+min=1 api VmHWM:=54088 VmRSS:=54088  worker {"elapsed_ms": 5, "last_open_ms": 1791707280000, "result": "UP_TO_DATE"} {"max_rss_kb":42284,"elapsed_s":0.15,"user_s":0.49,"sys_s":0.03}
+min=2 api VmHWM:=54108 VmRSS:=54108  worker {"elapsed_ms": 147, "last_open_ms": 1791707340000, "result": "STEPPED", "series_rows": 43710, "stepped": 1} {"max_rss_kb":51580,"elapsed_s":0.31,"user_s":0.55,"sys_s":0.06}
+min=3 api VmHWM:=54128 VmRSS:=54128  worker {"elapsed_ms": 154, "last_open_ms": 1791707400000, "result": "STEPPED", "series_rows": 43711, "stepped": 1} {"max_rss_kb":51580,"elapsed_s":0.31,"user_s":0.57,"sys_s":0.06}
+min=4 api VmHWM:=54132 VmRSS:=54132  worker {"elapsed_ms": 143, "last_open_ms": 1791707460000, "result": "STEPPED", "series_rows": 43712, "stepped": 1} {"max_rss_kb":51556,"elapsed_s":0.34,"user_s":0.29,"sys_s":0.04}
+min=5 api VmHWM:=54132 VmRSS:=54132  worker {"elapsed_ms": 158, "last_open_ms": 1791707520000, "result": "STEPPED", "series_rows": 43713, "stepped": 1} {"max_rss_kb":51712,"elapsed_s":0.35,"user_s":0.56,"sys_s":0.08}
+min=6 api VmHWM:=54132 VmRSS:=54132  worker {"elapsed_ms": 161, "last_open_ms": 1791707580000, "result": "STEPPED", "series_rows": 43714, "stepped": 1} {"max_rss_kb":51528,"elapsed_s":0.33,"user_s":0.57,"sys_s":0.06}
+min=7 api VmHWM:=54132 VmRSS:=54132  worker {"elapsed_ms": 164, "last_open_ms": 1791707640000, "result": "STEPPED", "series_rows": 43715, "stepped": 1} {"max_rss_kb":51784,"elapsed_s":0.31,"user_s":0.56,"sys_s":0.06}
+min=8 api VmHWM:=54132 VmRSS:=54132  worker {"elapsed_ms": 174, "last_open_ms": 1791707700000, "result": "STEPPED", "series_rows": 43716, "stepped": 1} {"max_rss_kb":51720,"elapsed_s":0.35,"user_s":0.57,"sys_s":0.05}
+min=9 api VmHWM:=54136 VmRSS:=54136  worker {"elapsed_ms": 153, "last_open_ms": 1791707760000, "result": "STEPPED", "series_rows": 43717, "stepped": 1} {"max_rss_kb":51680,"elapsed_s":0.34,"user_s":0.57,"sys_s":0.06}
+min=10 api VmHWM:=54136 VmRSS:=54136  worker {"elapsed_ms": 169, "last_open_ms": 1791707820000, "result": "STEPPED", "series_rows": 43718, "stepped": 1} {"max_rss_kb":51480,"elapsed_s":0.31,"user_s":0.51,"sys_s":0.06}
+min=11 api VmHWM:=54140 VmRSS:=54140  worker {"elapsed_ms": 140, "last_open_ms": 1791707880000, "result": "STEPPED", "series_rows": 43719, "stepped": 1} {"max_rss_kb":51504,"elapsed_s":0.28,"user_s":0.52,"sys_s":0.06}
+min=12 api VmHWM:=54140 VmRSS:=54140  worker {"elapsed_ms": 146, "last_open_ms": 1791707940000, "result": "STEPPED", "series_rows": 43720, "stepped": 1} {"max_rss_kb":51568,"elapsed_s":0.31,"user_s":0.51,"sys_s":0.03}
+min=13 api VmHWM:=54144 VmRSS:=54144  worker {"elapsed_ms": 140, "last_open_ms": 1791708000000, "result": "STEPPED", "series_rows": 43721, "stepped": 1} {"max_rss_kb":51664,"elapsed_s":0.29,"user_s":0.54,"sys_s":0.05}
+min=14 api VmHWM:=54144 VmRSS:=54144  worker {"elapsed_ms": 140, "last_open_ms": 1791708060000, "result": "STEPPED", "series_rows": 43722, "stepped": 1} {"max_rss_kb":51660,"elapsed_s":0.31,"user_s":0.58,"sys_s":0.05}
+min=15 api VmHWM:=54148 VmRSS:=54148  worker {"elapsed_ms": 173, "last_open_ms": 1791708120000, "result": "STEPPED", "series_rows": 43723, "stepped": 1} {"max_rss_kb":51688,"elapsed_s":0.33,"user_s":0.56,"sys_s":0.05}
+min=16 api VmHWM:=54152 VmRSS:=54152  worker {"elapsed_ms": 151, "last_open_ms": 1791708180000, "result": "STEPPED", "series_rows": 43724, "stepped": 1} {"max_rss_kb":51600,"elapsed_s":0.30,"user_s":0.54,"sys_s":0.05}
+min=17 api VmHWM:=54152 VmRSS:=54152  worker {"elapsed_ms": 151, "last_open_ms": 1791708240000, "result": "STEPPED", "series_rows": 43725, "stepped": 1} {"max_rss_kb":51756,"elapsed_s":0.30,"user_s":0.57,"sys_s":0.03}
+min=18 api VmHWM:=54156 VmRSS:=54156  worker {"elapsed_ms": 145, "last_open_ms": 1791708300000, "result": "STEPPED", "series_rows": 43726, "stepped": 1} {"max_rss_kb":51636,"elapsed_s":0.29,"user_s":0.53,"sys_s":0.05}
+min=19 api VmHWM:=54156 VmRSS:=54156  worker {"elapsed_ms": 151, "last_open_ms": 1791708360000, "result": "STEPPED", "series_rows": 43727, "stepped": 1} {"max_rss_kb":51664,"elapsed_s":0.31,"user_s":0.55,"sys_s":0.07}
+min=20 api VmHWM:=54164 VmRSS:=54164  worker {"elapsed_ms": 168, "last_open_ms": 1791708420000, "result": "STEPPED", "series_rows": 43728, "stepped": 1} {"max_rss_kb":51588,"elapsed_s":0.36,"user_s":0.60,"sys_s":0.02}
+min=21 api VmHWM:=54164 VmRSS:=54164  worker {"elapsed_ms": 151, "last_open_ms": 1791708480000, "result": "STEPPED", "series_rows": 43729, "stepped": 1} {"max_rss_kb":51588,"elapsed_s":0.32,"user_s":0.57,"sys_s":0.08}
+min=22 api VmHWM:=54164 VmRSS:=54164  worker {"elapsed_ms": 130, "last_open_ms": 1791708540000, "result": "STEPPED", "series_rows": 43730, "stepped": 1} {"max_rss_kb":51668,"elapsed_s":0.27,"user_s":0.49,"sys_s":0.07}
+min=23 api VmHWM:=54168 VmRSS:=54168  worker {"elapsed_ms": 152, "last_open_ms": 1791708600000, "result": "STEPPED", "series_rows": 43731, "stepped": 1} {"max_rss_kb":51508,"elapsed_s":0.31,"user_s":0.55,"sys_s":0.05}
+min=24 api VmHWM:=54168 VmRSS:=54168  worker {"elapsed_ms": 144, "last_open_ms": 1791708660000, "result": "STEPPED", "series_rows": 43732, "stepped": 1} {"max_rss_kb":51568,"elapsed_s":0.33,"user_s":0.57,"sys_s":0.04}
+min=25 api VmHWM:=54168 VmRSS:=54168  worker {"elapsed_ms": 165, "last_open_ms": 1791708720000, "result": "STEPPED", "series_rows": 43733, "stepped": 1} {"max_rss_kb":51740,"elapsed_s":0.34,"user_s":0.60,"sys_s":0.04}
+min=26 api VmHWM:=54172 VmRSS:=54172  worker {"elapsed_ms": 180, "last_open_ms": 1791708780000, "result": "STEPPED", "series_rows": 43734, "stepped": 1} {"max_rss_kb":51672,"elapsed_s":0.36,"user_s":0.55,"sys_s":0.06}
+min=27 api VmHWM:=54172 VmRSS:=54172  worker {"elapsed_ms": 161, "last_open_ms": 1791708840000, "result": "STEPPED", "series_rows": 43735, "stepped": 1} {"max_rss_kb":51668,"elapsed_s":0.32,"user_s":0.58,"sys_s":0.02}
+min=28 api VmHWM:=54172 VmRSS:=54172  worker {"elapsed_ms": 153, "last_open_ms": 1791708900000, "result": "STEPPED", "series_rows": 43736, "stepped": 1} {"max_rss_kb":51728,"elapsed_s":0.34,"user_s":0.56,"sys_s":0.06}
+min=29 api VmHWM:=54176 VmRSS:=54176  worker {"elapsed_ms": 149, "last_open_ms": 1791708960000, "result": "STEPPED", "series_rows": 43737, "stepped": 1} {"max_rss_kb":51628,"elapsed_s":0.30,"user_s":0.56,"sys_s":0.03}
+min=30 api VmHWM:=54176 VmRSS:=54176  worker {"elapsed_ms": 211, "last_open_ms": 1791709020000, "result": "STEPPED", "series_rows": 43738, "stepped": 1} {"max_rss_kb":51712,"elapsed_s":0.35,"user_s":0.54,"sys_s":0.06}
+min=31 api VmHWM:=54176 VmRSS:=54176  worker {"elapsed_ms": 171, "last_open_ms": 1791709080000, "result": "STEPPED", "series_rows": 43739, "stepped": 1} {"max_rss_kb":51576,"elapsed_s":0.35,"user_s":0.57,"sys_s":0.05}
+api_end VmHWM:=54176 VmRSS:=54176

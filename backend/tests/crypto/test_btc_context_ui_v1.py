@@ -240,8 +240,8 @@ def test_snapshot_without_collector_root_is_all_dashes(monkeypatch):
 def test_refresh_failure_keeps_worker_alive_and_never_raises():
     sources = A.Sources(opener=_Failing())
     sources.refresh(int(time.time() * 1000))
-    assert sources.structure_error and sources.run is None
-    assert sources.structure_layer(int(time.time() * 1000))["state"] == "UNKNOWN"
+    assert not hasattr(sources, "series")          # STRUCTURE is the worker's file, not this process
+    assert A.structure_layer(None, int(time.time() * 1000))["state"] == "UNKNOWN"
 
 
 def test_kick_never_blocks_and_never_runs_twice():
@@ -291,8 +291,13 @@ def test_package_imports_nothing_that_trades():
                     assert not any(p in FORBIDDEN_IMPORTS for p in parts), (path.name, alias.name)
 
 
+#: The modules the API process runs. The structure worker (`structure_state`, `structure_worker`)
+#: is a separate oneshot that writes its own state directory; its writes are tested on their own.
+API_MODULES = ("__init__.py", "__main__.py", "api.py", "view.py")
+
+
 def test_package_writes_nothing():
-    for path in PACKAGE.glob("*.py"):
+    for path in (PACKAGE / name for name in API_MODULES):
         tree = ast.parse(path.read_text())
         for node in ast.walk(tree):
             if isinstance(node, ast.Call):

@@ -1,11 +1,15 @@
 # Exact production release of the BTC context strip API (btc_context_ui_v1). One path per line,
 # relative to the repository root. stage_release.sh exports only these, from one commit, with sha256.
-# Source: the import closure of `python -m app.crypto.btc_context_ui_v1` (no tests, docs or data).
+# Source: the import closures of `python -m app.crypto.btc_context_ui_v1` (API) and
+# `python -m app.crypto.btc_context_ui_v1.structure_worker` (oneshot structure worker), merged.
+# No tests, docs or data.
 backend/app/__init__.py
 backend/app/crypto/__init__.py
 backend/app/crypto/btc_context_ui_v1/__init__.py
 backend/app/crypto/btc_context_ui_v1/__main__.py
 backend/app/crypto/btc_context_ui_v1/api.py
+backend/app/crypto/btc_context_ui_v1/structure_state.py
+backend/app/crypto/btc_context_ui_v1/structure_worker.py
 backend/app/crypto/btc_context_ui_v1/view.py
 backend/app/crypto/context_collector_v1/__init__.py
 backend/app/crypto/context_collector_v1/api.py
@@ -49,4 +53,7 @@ backend/app/crypto/research/price_structure_r1/levels.py
 deploy/btc_context_ui/RELEASE_FILES.txt
 deploy/btc_context_ui/btc_context_ui.env
 deploy/btc_context_ui/usb-btc-context-ui.service
+deploy/btc_context_ui/usb-btc-context-structure.service
+deploy/btc_context_ui/usb-btc-context-structure.timer
 docs/crypto/btc_context_ui_v1/BTC_CONTEXT_UI_V1_REPORT.md
+docs/crypto/btc_context_ui_v1/MEMORY_LIGHT_V1_REPORT.md

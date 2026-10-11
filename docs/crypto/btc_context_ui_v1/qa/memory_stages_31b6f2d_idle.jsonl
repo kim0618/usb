@@ -1,0 +1,10 @@
+{"stage": "0_python", "rss_mb": 10.4, "pss_mb": 8.3}
+{"stage": "A_fastapi_uvicorn", "rss_mb": 42.4, "pss_mb": 38.9}
+{"stage": "B_ui_view_and_collector_api", "rss_mb": 45.8, "pss_mb": 42.3}
+{"stage": "C_mc_venue_derivatives", "rss_mb": 46.3, "pss_mb": 42.8}
+{"stage": "D_price_structure_imports", "rss_mb": 59.2, "pss_mb": 54.5}
+{"stage": "D2_api_module", "rss_mb": 59.2, "pss_mb": 54.5}
+{"stage": "E_30d_series_loaded", "rss_mb": 96.9, "pss_mb": 91.7, "rows": 43700, "fetch_s": 3.0}
+{"stage": "F_after_run_and_derivatives", "rss_mb": 103.6, "pss_mb": 98.3, "run_s": 0.5, "state": "LIVE", "res": 0.1238}
+{"stage": "G_after_idle", "rss_mb": 103.6, "pss_mb": 92.6, "idle_s": 600, "viewer": false, "peak_rss_mb": 103.6, "rows": 43700}
+{"stage": "HWM", "rss_mb": 103.6, "pss_mb": 92.6, "vmhwm_mb": 103.6}

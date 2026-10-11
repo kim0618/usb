@@ -10,9 +10,12 @@ How each request is answered, and why it never waits on a venue:
 
 * LIQUIDITY and FLOW are read from the collector's current-state file on every request - one small
   local file, through `context_collector_v1.api.judged`, which floors an old file to STALE.
-* STRUCTURE and DERIVATIVES are served from the last completed refresh. A request that finds them
-  due starts one refresh in a worker thread and returns at once; a refresh already running is not
-  started twice. Nobody watching means no venue traffic at all.
+* STRUCTURE is read from the snapshot file the structure worker (`structure_worker`, a separate
+  oneshot run once a minute) writes atomically. This process never holds the 30-day series or the
+  R1 engine and does not import numpy: a missing, unreadable, foreign or old file is a dash.
+* DERIVATIVES are served from the last completed read. A request that finds them due starts one
+  read in a worker thread and returns at once; a read already running is not started twice.
+  Nobody watching means no venue traffic from this process at all.
 
 Nothing here writes a file, holds a lock on the collector's root or opens a socket to anything but
 Binance's public market-data endpoints.
@@ -20,6 +23,7 @@ Binance's public market-data endpoints.
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import threading
 import time
@@ -30,56 +34,34 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from ..context_collector_v1 import api as CTX
+from ..market_context_v1 import contract as MC
 from ..market_context_v1 import derivatives as DRV
-from ..market_context_v1 import structure as STR
-from ..market_context_v1 import venue as VN
 from . import view as V
 
 DEFAULT_PORT = 8014
 ROOT_ENV = CTX.ROOT_ENV
+#: Path of the structure worker's snapshot file. Unset means STRUCTURE reads `--`.
+STRUCTURE_SNAPSHOT_ENV = "BTC_CONTEXT_STRUCTURE_SNAPSHOT"
+#: The snapshot is a few hundred bytes; anything far larger is not one.
+STRUCTURE_SNAPSHOT_MAX_BYTES = 64 * 1024
 #: Floor between two derivatives reads. The open interest figures move on the venue's 5 m buckets
 #: and funding on its 8 h schedule; 15 s keeps the premium current without polling the venue at
 #: the screen's own pace.
 DERIVATIVES_MIN_INTERVAL_MS = 15_000
-#: The structure series publishes only its newest minutes: the live reading is the last closed
-#: minute whatever this is, and a short window keeps the process small. The anchor, the series and
-#: the R1 book are untouched by it.
-PUBLISH_WINDOW_MS = 10 * 60_000
-
-
 class Sources:
-    """The structure series and the last derivatives read, refreshed off the request path."""
+    """The last derivatives read, refreshed off the request path."""
 
-    def __init__(self, *, anchor_days: int = 30, opener: Any = None) -> None:
+    def __init__(self, *, opener: Any = None) -> None:
         self.opener = opener
-        self.anchor_ms = STR.default_anchor_ms(int(time.time() * 1000), anchor_days)
-        self.series = STR.Series(V.SYMBOL, anchor_ms=self.anchor_ms)
-        self.run: STR.StructureRun | None = None
-        self.structure_error: str | None = None
         self.derivatives: DRV.DerivativesRead | None = None
         self._busy = threading.Lock()
-
-    # -- due checks ---------------------------------------------------------------------------
-    def structure_due(self, now_ms: int) -> bool:
-        return self.run is None or self.series.last_open_ms != STR.last_closed_open_ms(now_ms)
 
     def derivatives_due(self, now_ms: int) -> bool:
         return (self.derivatives is None
                 or now_ms - self.derivatives.read_at_ms >= DERIVATIVES_MIN_INTERVAL_MS)
 
-    # -- refresh ------------------------------------------------------------------------------
     def refresh(self, now_ms: int) -> None:
-        """One refresh of whatever is due. Never raises: a failed read keeps the last good one."""
-        if self.structure_due(now_ms):
-            try:
-                added = self.series.extend(now_ms, opener=self.opener)
-                if self.series.rows and (added or self.run is None):
-                    self.run = self.series.run(publish_window_ms=PUBLISH_WINDOW_MS, now_ms=now_ms)
-                self.structure_error = None
-            except VN.VenueError as caught:
-                self.structure_error = str(caught)
-            except Exception as caught:                # the worker must outlive any bad series
-                self.structure_error = f"SERIES_UNUSABLE:{type(caught).__name__}"
+        """One derivatives read if due. Never raises: a failed read keeps the last good one."""
         if self.derivatives_due(now_ms):
             try:
                 self.derivatives = DRV.read(V.SYMBOL, now_ms, opener=self.opener)
@@ -87,8 +69,8 @@ class Sources:
                 pass
 
     def kick(self, now_ms: int) -> bool:
-        """Start one background refresh if something is due and none is running."""
-        if not (self.structure_due(now_ms) or self.derivatives_due(now_ms)):
+        """Start one background read if due and none is running."""
+        if not self.derivatives_due(now_ms):
             return False
         if not self._busy.acquire(blocking=False):
             return False
@@ -102,13 +84,52 @@ class Sources:
         threading.Thread(target=work, name="btc-context-refresh", daemon=True).start()
         return True
 
-    # -- layers -------------------------------------------------------------------------------
-    def structure_layer(self, now_ms: int) -> dict[str, Any]:
-        reasons = [self.structure_error] if self.structure_error else None
-        return STR.structure_view(self.run, symbol=V.SYMBOL, now_ms=now_ms, reasons=reasons)
-
     def derivatives_layer(self, now_ms: int) -> dict[str, Any]:
         return DRV.derivatives_view(self.derivatives, symbol=V.SYMBOL, now_ms=now_ms)
+
+
+def structure_snapshot_path() -> Path | None:
+    raw = os.environ.get(STRUCTURE_SNAPSHOT_ENV, "").strip()
+    return Path(raw) if raw else None
+
+
+def read_structure_snapshot(path: Path | None) -> dict[str, Any] | None:
+    """The worker's last snapshot, or `None` if it is missing, oversized, not JSON or not a BTC
+    snapshot. The worker replaces the file by rename, so a read sees a whole file or none."""
+    if path is None:
+        return None
+    try:
+        with open(path, "rb") as handle:
+            raw = handle.read(STRUCTURE_SNAPSHOT_MAX_BYTES + 1)
+        if len(raw) > STRUCTURE_SNAPSHOT_MAX_BYTES:
+            return None
+        snap = json.loads(raw)
+    except (OSError, ValueError):
+        return None
+    if not isinstance(snap, dict) or snap.get("symbol") != V.SYMBOL:
+        return None
+    close_ms = snap.get("bar_close_ms")
+    if not isinstance(close_ms, int) or isinstance(close_ms, bool):
+        return None
+    return snap
+
+
+def structure_layer(snap: dict[str, Any] | None, now_ms: int) -> dict[str, Any]:
+    """The snapshot as the STRUCTURE layer `view.structure_section` reads: LIVE while the last
+    closed minute is within Market Context V1's own grace (`STRUCTURE_GRACE_MS`), STALE after -
+    the same rule `market_context_v1.structure.structure_view` applies to the in-process run."""
+    if snap is None:
+        return {"state": "UNKNOWN", "levels": None}
+    age_ms = max(0, now_ms - int(snap["bar_close_ms"]))
+    state = "LIVE" if age_ms <= MC.MINUTE_MS + MC.STRUCTURE_GRACE_MS else "STALE"
+
+    def level(side: str) -> dict[str, Any]:
+        item = snap.get(side) if isinstance(snap.get(side), dict) else {}
+        price = item.get("price")
+        return {"distance_pct": item.get("distance_pct"), "available": price is not None}
+
+    return {"state": state, "levels": {"resistance": level("resistance"),
+                                       "support": level("support")}}
 
 
 def collector_view(now_ms: int) -> dict[str, Any] | None:
@@ -152,8 +173,9 @@ async def snapshot() -> Any:
     now_ms = int(time.time() * 1000)
     sources = state.get()
     sources.kick(now_ms)
+    snap = read_structure_snapshot(structure_snapshot_path())
     return V.display(collector_view=collector_view(now_ms),
-                     structure_layer=sources.structure_layer(now_ms),
+                     structure_layer=structure_layer(snap, now_ms),
                      derivatives_layer=sources.derivatives_layer(now_ms),
                      now_ms=now_ms)
 
@@ -161,15 +183,19 @@ async def snapshot() -> Any:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m app.crypto.btc_context_ui_v1")
     parser.add_argument("--root", default=os.environ.get(ROOT_ENV))
+    parser.add_argument("--structure-snapshot", default=os.environ.get(STRUCTURE_SNAPSHOT_ENV))
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=DEFAULT_PORT)
     args = parser.parse_args(argv)
     if args.root:
         os.environ[ROOT_ENV] = str(Path(args.root).expanduser().resolve())
+    if args.structure_snapshot:
+        os.environ[STRUCTURE_SNAPSHOT_ENV] = str(Path(args.structure_snapshot).expanduser().resolve())
     import uvicorn
     uvicorn.run(app, host=args.host, port=args.port, log_level="warning", access_log=False)
     return 0
 
 
-__all__ = ["app", "state", "Sources", "collector_view", "main", "DEFAULT_PORT",
-           "DERIVATIVES_MIN_INTERVAL_MS", "PUBLISH_WINDOW_MS"]
+__all__ = ["app", "state", "Sources", "collector_view", "read_structure_snapshot",
+           "structure_layer", "structure_snapshot_path", "main", "DEFAULT_PORT",
+           "DERIVATIVES_MIN_INTERVAL_MS", "STRUCTURE_SNAPSHOT_ENV"]

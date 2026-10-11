@@ -16,17 +16,21 @@ Environment=PYTHONPATH=/root/usb_runtime/btc_context_ui/src/backend
 Environment=PYTHONUNBUFFERED=1
 Environment=PYTHONDONTWRITEBYTECODE=1
 ExecStart=/root/usb/.venv/bin/python -m app.crypto.btc_context_ui_v1 \
-  --root ${CTX_V1_ROOT} --host 127.0.0.1 --port ${BTC_CONTEXT_UI_PORT}
+  --root ${CTX_V1_ROOT} --structure-snapshot ${BTC_CONTEXT_STRUCTURE_SNAPSHOT} \
+  --host 127.0.0.1 --port ${BTC_CONTEXT_UI_PORT}
 StandardOutput=append:/root/usb_runtime/btc_context_ui/logs/api.log
 StandardError=append:/root/usb_runtime/btc_context_ui/logs/api.log
-# The collector's root is read through this process, never written.
+# This process writes nothing: the whole file system is read only to it. It reads the collector's
+# current-state file and the structure worker's snapshot.
+ProtectSystem=strict
 ReadOnlyPaths=/root/usb_runtime/crypto_context
 Restart=on-failure
 RestartSec=5
 KillSignal=SIGTERM
 TimeoutStopSec=15
-# Measured locally: 112 MB RSS with the 30-day structure series loaded.
-MemoryMax=200M
+# Measured locally (memory-light V1): 51 MB cold, 54 MB serving, no 30-day series in this process.
+MemoryHigh=72M
+MemoryMax=96M
 CPUQuota=15%
 Nice=10
 

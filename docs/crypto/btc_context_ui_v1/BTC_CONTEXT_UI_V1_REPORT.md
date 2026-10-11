@@ -134,6 +134,12 @@ Q123 recorder, `crypto-terminal.tsx`, the MC V1 panel and its preview route.
 
 ## K. Production readiness
 
+> **Superseded for STRUCTURE by `MEMORY_LIGHT_V1_REPORT.md` (2026-10-11).** The API no longer
+> holds the 30-day series: a oneshot worker (`usb-btc-context-structure.timer`) steps R1 forward a
+> minute at a time and writes a snapshot the API reads. API 54 MB instead of ~106-112 MB; payload
+> unchanged. The items below still apply, plus the worker unit, its state dir and the deploy order
+> in that report's section I.
+
 Ready for a read-only deploy, with these preconditions:
 
 1. **Commit set must include five Market Context V1 modules that were never committed**:

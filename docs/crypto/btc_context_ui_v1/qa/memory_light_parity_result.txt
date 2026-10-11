@@ -1,0 +1,8 @@
+bars 76320 days 53.0
+bars_from_arrays == build_bars: OK
+full reference rows 33120 in 4.2 s
+incremental minutes compared 7902 mismatches 0 multi-steps 520 checkpoint restarts 17
+audit violations full/incr 0 0 vanished 0 0
+31b6f2d Series.run latest == reference at 26 sampled minutes; mismatches 0
+coverage: events {'SWEEP': 125, 'LEVEL_WEAKENED': 53, 'SWING_LOW': 63, 'SWING_HIGH': 61, 'LEVEL_EXPIRED': 95, 'TOUCH': 576, 'BREAKOUT': 141} level transitions {'WEAKENED': 53, 'EXPIRED': 95, 'CONFIRMED': 66} utc days 24 distinct nearest ids 63 nearest-id changes 1665 max 1h move % 3.7
+PARITY PASS

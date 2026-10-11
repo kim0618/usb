@@ -1,0 +1,12 @@
+[Unit]
+Description=US-B CRYPTO BTC context strip STRUCTURE worker, once a minute after the minute closes
+
+[Timer]
+# Five seconds past each minute: the bar that just closed is final on the venue by then. A run
+# still going when the next is due is not started twice (oneshot unit, plus the worker's lock).
+OnCalendar=*-*-* *:*:05
+AccuracySec=1s
+Persistent=false
+
+[Install]
+WantedBy=timers.target
