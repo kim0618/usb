@@ -568,10 +568,10 @@ def test_a_hot_symbol_that_never_traded_is_flat(paper) -> None:
     assert client.get("/api/crypto/hot").json()["lock"]["code"] == hot_lock.HOT_SYMBOL_FLAT
 
 
-@pytest.mark.xfail(strict=True, reason="pre-existing: each run replays alone at boot, but its "
-                   "ledger recorded the shared wallet, so a HOT run traded while BTC held margin "
-                   "is refused (LEDGER_DIVERGENCE). Needs a joint replay; not fixed in V1.")
 def test_a_hot_run_traded_beside_a_btc_position_recovers(paper, tmp_path) -> None:
+    """Alone it is refused (its ledger carries BTC's margin); with the wallet it recovers."""
+    from app.crypto.paper.persistence import RecoveryRefused, recover
+    from app.crypto.paper.wallet_recovery import WalletMember, recover_wallet
     from app.crypto.terminal.api import dynamic_run_config
     client, runtime, use_market, feeds = paper
     assert order(client, "BTCUSDT", "LONG", qty="0.010").status_code == 200
@@ -580,7 +580,14 @@ def test_a_hot_run_traded_beside_a_btc_position_recovers(paper, tmp_path) -> Non
     open_hot(client, runtime, HOT_A)
     assert order(client, HOT_A, "LONG", qty="60.0").status_code == 200
     config, tiers = dynamic_run_config(runtime.base_config, HOT_A, tmp_path)
-    PaperSession(config=config, tiers=tiers, root=tmp_path)
+    with pytest.raises(RecoveryRefused):
+        recover(tmp_path / config.run_id, config, tiers)
+    btc = runtime.sessions["BTCUSDT"]
+    wallet = recover_wallet(
+        WalletMember("BTCUSDT", btc.run_dir, btc.config, btc.tiers),
+        [WalletMember(HOT_A, tmp_path / config.run_id, config, tiers)])
+    assert wallet.engines[HOT_A][0].account.position.signed_qty == Decimal("60.0")
+    assert wallet.cash.available_balance == runtime.cash.available_balance
 
 
 # --------------------------------------------------------------------------- Binance (LIVE)

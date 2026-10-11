@@ -28,6 +28,8 @@ from ..paper.config import PaperRunConfig, build_config
 from ..paper.engine import OrderRejected
 from ..paper.analytics import reconcile, summarize
 from ..paper.account import SharedCash
+from ..paper.persistence import RecoveryRefused
+from ..paper.wallet_recovery import WalletMember, recover_wallet, wallet_event_times
 from ..paper.instrument import InstrumentSpec, RiskTierTable
 from ..paper.state import TransitionRejected
 from ..paper.c1_auto import (C1AutoController, MANUAL_CLOSE_DURING_AUTO, MANUAL_SOURCE)
@@ -296,6 +298,9 @@ class Runtime:
         self.named_symbols: dict[str, Any] = {}
         self.root: Path = DEFAULT_ROOT
         self.compress_segments: bool = False
+        #: Engines recovered together with the shared wallet at boot, handed to the sessions
+        #: built for them and removed as each one is used.
+        self._preloaded: dict[str, Any] = {}
         self._pump: asyncio.Task | None = None
 
     # ------------------------------------------------------------------ construction
@@ -313,8 +318,10 @@ class Runtime:
             self.named_symbols = {}
         symbol = config.instrument.symbol
         self.compress_segments = compress_segments_setting()[0]
+        wallet = self._recover_wallet(config, tiers)
         self.session = PaperSession(config=config, tiers=tiers, root=root,
-                                    compress_segments=self.compress_segments)
+                                    compress_segments=self.compress_segments,
+                                    recovered=self._preloaded.pop(symbol, None))
         self.sessions[symbol] = self.session
         self.feeds[symbol] = self.feed
         self.feed.symbol = symbol
@@ -324,10 +331,53 @@ class Runtime:
         # After recovery, so the capital base the purse inherits is the replayed one rather
         # than the configured one. A run that has been reset three times holds the figure those
         # resets left, and that is the balance the other symbols must draw from.
-        self.cash = SharedCash(owner=symbol)
+        self.cash = wallet.cash if wallet is not None else SharedCash(owner=symbol)
         self.cash.join(symbol, self.session.engine.account)
         # Last, because it builds other symbols' sessions and those look the default one up.
         self._join_symbols_with_history()
+
+    def _wallet_members(self, base: PaperRunConfig) -> tuple[list[WalletMember], list[str]]:
+        """Runs on disk besides the default one, and the ones that cannot be configured."""
+        members: list[WalletMember] = []
+        unconfigured: list[str] = []
+        for symbol in [*SUPPORTED_SYMBOLS, *self._dynamic_run_symbols()]:
+            if symbol == base.instrument.symbol:
+                continue
+            run_dir = self.root / f"{base.run_id}-{symbol}"
+            if not run_dir.is_dir():
+                continue
+            try:
+                if symbol in SUPPORTED_SYMBOLS:
+                    config, tiers = symbol_run_config(base, symbol, self.named_symbols.get(symbol),
+                                                      paper_root=self.root)
+                else:
+                    config, tiers = dynamic_run_config(base, symbol, self.root)
+            except (SymbolReferenceMissing, ValueError, OSError):
+                unconfigured.append(symbol)
+                continue
+            members.append(WalletMember(symbol, self.root / config.run_id, config, tiers))
+        return members, unconfigured
+
+    def _recover_wallet(self, config: PaperRunConfig, tiers: RiskTierTable) -> Any:
+        """Recover every run that shared the wallet together, before any session is built.
+
+        None when only the default run ever touched the wallet: every run then recovers alone,
+        exactly as before. A run that touched the wallet but cannot be configured refuses the
+        whole recovery, because the others' ledgers were written with its money in them.
+        """
+        self._preloaded = {}
+        members, unconfigured = self._wallet_members(config)
+        for symbol in unconfigured:
+            if wallet_event_times(self.root / f"{config.run_id}-{symbol}"):
+                raise RecoveryRefused(
+                    "WALLET_MEMBER_UNCONFIGURED",
+                    f"{symbol} shared the wallet but its reference is missing; the other runs "
+                    "cannot be recovered without it")
+        owner = WalletMember(config.instrument.symbol, self.root / config.run_id, config, tiers)
+        wallet = recover_wallet(owner, members)
+        if wallet is not None:
+            self._preloaded = dict(wallet.engines)
+        return wallet
 
     def _join_symbols_with_history(self) -> None:
         """Attach every symbol that has already traded, before serving the first request.
@@ -390,7 +440,8 @@ class Runtime:
             try:
                 config, tiers = dynamic_run_config(self.base_config, symbol, self.root)
                 session = PaperSession(config=config, tiers=tiers, root=self.root,
-                                       compress_segments=self.compress_segments)
+                                       compress_segments=self.compress_segments,
+                                       recovered=self._preloaded.pop(symbol, None))
             except (SymbolReferenceMissing, ValueError, OSError):
                 continue
             if self.cash is not None:
@@ -425,6 +476,11 @@ class Runtime:
             traded = any(event.get("event_type") in ("FILL", "FUNDING", "LIQUIDATION", "ACCOUNT_RESET")
                          for event in session.engine.ledger.events)
             if traded:
+                # A checkpoint at retirement: the run takes no more records, so this is its
+                # final state, and a restart can start the shared-wallet replay after it
+                # instead of before this run's first trade.
+                if session.segments is not None:
+                    session.segments.rotate(session.engine, tape_records=len(session.tape))
                 self.retired[symbol] = session
             elif self.cash is not None and self.cash._members.get(symbol) is account:
                 del self.cash._members[symbol]
@@ -576,7 +632,8 @@ class Runtime:
         # tape the same way, and an environment that changed under a long-running server would
         # otherwise leave BTC compressing while ETH did not.
         session = PaperSession(config=config, tiers=tiers, root=self.root,
-                               compress_segments=self.compress_segments)
+                               compress_segments=self.compress_segments,
+                               recovered=self._preloaded.pop(instrument, None))
         if self.cash is not None:
             # Joins the existing wallet. Its own capital base is ignored by the purse, so this
             # adds an instrument rather than more money: a BTCUSDT position immediately shrinks

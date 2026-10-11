@@ -36,13 +36,20 @@ class PaperSession:
     compress_segments: bool = False
     segments: SegmentedTape | None = None
     _last_recorded_ms: int | None = None
+    #: An engine already recovered together with the other wallet members
+    #: (`wallet_recovery.recover_wallet`). None means this run recovers alone, as always.
+    recovered: tuple[PaperEngine, RecoveryResult] | None = None
 
     def __post_init__(self) -> None:
         run_dir = self.root / self.config.run_id
         run_dir.mkdir(parents=True, exist_ok=True)
         # Recovery first: it may truncate a torn line, so the tape must not be opened for
         # appending until the files on disk have been made consistent.
-        self.engine, self.recovery = recover(run_dir, self.config, self.tiers)
+        if self.recovered is not None:
+            self.engine, self.recovery = self.recovered
+            self.recovered = None
+        else:
+            self.engine, self.recovery = recover(run_dir, self.config, self.tiers)
         # `retain=False`: a live session appends at 1 Hz for as long as the service runs, and
         # keeping a copy of every record in memory as well as on disk is what the tape file is
         # for. Only the count is needed here, to continue the sequence and to report progress.

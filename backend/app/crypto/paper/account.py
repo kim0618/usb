@@ -65,9 +65,17 @@ class SharedCash:
     def members(self) -> dict[str, "Account"]:
         return dict(self._members)
 
+    def _ordered(self) -> list[tuple[str, "Account"]]:
+        """Owner first, then by symbol. Every sum over the members runs in this order, so the
+        28-digit Decimal rounding of a wallet figure does not depend on which symbol happened
+        to join first in this process - a restart joins them in another order, and the replay
+        has to rebuild the same bytes. With one member, or members holding nothing, the
+        figures are what insertion order gave."""
+        return sorted(self._members.items(), key=lambda item: (item[0] != self.owner, item[0]))
+
     @property
     def realized_delta(self) -> Decimal:
-        return sum((a.realized_pnl - a.realized_at_anchor for a in self._members.values()),
+        return sum((a.realized_pnl - a.realized_at_anchor for _, a in self._ordered()),
                    Decimal(0))
 
     def apply_capital_reset(self, target_usdt: Decimal, ts_ms: int) -> None:
@@ -84,7 +92,7 @@ class SharedCash:
 
     @property
     def charges_delta(self) -> Decimal:
-        return sum((a.cash_charges - a.charges_at_anchor for a in self._members.values()),
+        return sum((a.cash_charges - a.charges_at_anchor for _, a in self._ordered()),
                    Decimal(0))
 
     @property
@@ -95,7 +103,7 @@ class SharedCash:
     @property
     def used_margin(self) -> Decimal:
         """Margin every member has posted. This is the whole point of the object."""
-        return sum((a.position.initial_margin for a in self._members.values()), Decimal(0))
+        return sum((a.position.initial_margin for _, a in self._ordered()), Decimal(0))
 
     @property
     def available_balance(self) -> Decimal:
@@ -104,7 +112,7 @@ class SharedCash:
     def unrealized_pnl(self, marks: dict[str, Decimal]) -> Decimal:
         """Needs a mark per symbol: one price cannot value three instruments."""
         return sum((account.position.unrealized_pnl(marks[symbol])
-                    for symbol, account in self._members.items() if symbol in marks),
+                    for symbol, account in self._ordered() if symbol in marks),
                    Decimal(0))
 
     def equity(self, marks: dict[str, Decimal]) -> Decimal:
