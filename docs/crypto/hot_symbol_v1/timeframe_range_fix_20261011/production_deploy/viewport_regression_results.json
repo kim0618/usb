@@ -1,0 +1,1 @@
+{"zoom": {"initial": "240", "zoomed": "136", "panned_bars": "136", "after_tail_refresh": "136", "new_entry_after_15s": "240", "after_reload": {"frame": ["timeframe-1m"], "bars": "240"}}, "reconnect": {"zoomed": "136", "during_outage": "136", "after_recovery": "136", "aborted_requests": 8}, "history_1m_bars": 2880}

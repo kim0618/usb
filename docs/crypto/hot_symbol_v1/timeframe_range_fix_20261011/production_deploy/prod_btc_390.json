@@ -1,0 +1,402 @@
+{
+ "events": [
+  {
+   "t": 3767,
+   "kind": "req",
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=64&symbol=BTCUSDT"
+  },
+  {
+   "t": 3861,
+   "kind": "req",
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=2880&symbol=BTCUSDT"
+  },
+  {
+   "t": 3895,
+   "kind": "req",
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=64&symbol=BTCUSDT"
+  },
+  {
+   "t": 3895,
+   "kind": "req",
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=64&symbol=STRKUSDT"
+  },
+  {
+   "t": 4396,
+   "kind": "resp",
+   "status": 200,
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=64&symbol=STRKUSDT"
+  },
+  {
+   "t": 4914,
+   "kind": "resp",
+   "status": 200,
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=2880&symbol=BTCUSDT"
+  },
+  {
+   "t": 4917,
+   "kind": "resp",
+   "status": 200,
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=64&symbol=BTCUSDT"
+  },
+  {
+   "t": 5465,
+   "kind": "click",
+   "frame": "1m"
+  },
+  {
+   "t": 13719,
+   "kind": "click",
+   "frame": "15s"
+  },
+  {
+   "t": 14937,
+   "kind": "req",
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=64&symbol=BTCUSDT"
+  },
+  {
+   "t": 14937,
+   "kind": "req",
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=64&symbol=STRKUSDT"
+  },
+  {
+   "t": 14958,
+   "kind": "resp",
+   "status": 200,
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=64&symbol=BTCUSDT"
+  },
+  {
+   "t": 14962,
+   "kind": "resp",
+   "status": 200,
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=64&symbol=STRKUSDT"
+  },
+  {
+   "t": 21952,
+   "kind": "click",
+   "frame": "1m"
+  },
+  {
+   "t": 21994,
+   "kind": "req",
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=2880&symbol=BTCUSDT"
+  },
+  {
+   "t": 22653,
+   "kind": "resp",
+   "status": 200,
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=2880&symbol=BTCUSDT"
+  },
+  {
+   "t": 24966,
+   "kind": "req",
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=64&symbol=BTCUSDT"
+  },
+  {
+   "t": 24967,
+   "kind": "req",
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=64&symbol=STRKUSDT"
+  },
+  {
+   "t": 25000,
+   "kind": "resp",
+   "status": 200,
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=64&symbol=BTCUSDT"
+  },
+  {
+   "t": 25003,
+   "kind": "resp",
+   "status": 200,
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=64&symbol=STRKUSDT"
+  }
+ ],
+ "snaps": [
+  {
+   "t": 6003,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "264.40"
+  },
+  {
+   "t": 6519,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "264.40"
+  },
+  {
+   "t": 7035,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "264.40"
+  },
+  {
+   "t": 7551,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "264.40"
+  },
+  {
+   "t": 8064,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "264.40"
+  },
+  {
+   "t": 8578,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "264.40"
+  },
+  {
+   "t": 9093,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "264.40"
+  },
+  {
+   "t": 9606,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "264.40"
+  },
+  {
+   "t": 10117,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "264.40"
+  },
+  {
+   "t": 10633,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "264.40"
+  },
+  {
+   "t": 11148,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "264.40"
+  },
+  {
+   "t": 11663,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "264.40"
+  },
+  {
+   "t": 12172,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "264.40"
+  },
+  {
+   "t": 12686,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "264.40"
+  },
+  {
+   "t": 13198,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "264.40"
+  },
+  {
+   "t": 13710,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "264.40"
+  },
+  {
+   "t": 14254,
+   "frame": "15s",
+   "visible_bars": "39",
+   "price_span": "42.40"
+  },
+  {
+   "t": 14766,
+   "frame": "15s",
+   "visible_bars": "39",
+   "price_span": "42.40"
+  },
+  {
+   "t": 15276,
+   "frame": "15s",
+   "visible_bars": "39",
+   "price_span": "42.40"
+  },
+  {
+   "t": 15789,
+   "frame": "15s",
+   "visible_bars": "39",
+   "price_span": "42.40"
+  },
+  {
+   "t": 16304,
+   "frame": "15s",
+   "visible_bars": "39",
+   "price_span": "42.40"
+  },
+  {
+   "t": 16823,
+   "frame": "15s",
+   "visible_bars": "39",
+   "price_span": "42.40"
+  },
+  {
+   "t": 17335,
+   "frame": "15s",
+   "visible_bars": "39",
+   "price_span": "42.40"
+  },
+  {
+   "t": 17848,
+   "frame": "15s",
+   "visible_bars": "39",
+   "price_span": "36.20"
+  },
+  {
+   "t": 18358,
+   "frame": "15s",
+   "visible_bars": "39",
+   "price_span": "36.20"
+  },
+  {
+   "t": 18872,
+   "frame": "15s",
+   "visible_bars": "39",
+   "price_span": "36.20"
+  },
+  {
+   "t": 19384,
+   "frame": "15s",
+   "visible_bars": "39",
+   "price_span": "36.20"
+  },
+  {
+   "t": 19896,
+   "frame": "15s",
+   "visible_bars": "39",
+   "price_span": "36.20"
+  },
+  {
+   "t": 20406,
+   "frame": "15s",
+   "visible_bars": "39",
+   "price_span": "36.20"
+  },
+  {
+   "t": 20918,
+   "frame": "15s",
+   "visible_bars": "39",
+   "price_span": "36.20"
+  },
+  {
+   "t": 21429,
+   "frame": "15s",
+   "visible_bars": "39",
+   "price_span": "36.20"
+  },
+  {
+   "t": 21943,
+   "frame": "15s",
+   "visible_bars": "39",
+   "price_span": "36.20"
+  },
+  {
+   "t": 22503,
+   "frame": "1m",
+   "visible_bars": "112",
+   "price_span": "264.40"
+  },
+  {
+   "t": 23016,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "264.40"
+  },
+  {
+   "t": 23529,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "264.40"
+  },
+  {
+   "t": 24045,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "264.40"
+  },
+  {
+   "t": 24557,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "264.40"
+  },
+  {
+   "t": 25069,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "264.40"
+  },
+  {
+   "t": 25580,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "264.40"
+  },
+  {
+   "t": 26093,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "264.40"
+  },
+  {
+   "t": 26606,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "264.40"
+  },
+  {
+   "t": 27120,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "264.40"
+  },
+  {
+   "t": 27633,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "264.40"
+  },
+  {
+   "t": 28149,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "264.40"
+  },
+  {
+   "t": 28662,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "264.40"
+  },
+  {
+   "t": 29173,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "264.40"
+  },
+  {
+   "t": 29685,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "264.40"
+  },
+  {
+   "t": 30197,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "264.40"
+  }
+ ]
+}

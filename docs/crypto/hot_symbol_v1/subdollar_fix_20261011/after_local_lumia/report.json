@@ -1,0 +1,66 @@
+{
+ "1440": {
+  "BTCUSDT": {
+   "mark": "82,940.3",
+   "15s": {
+    "price_span": "22.10",
+    "visible_bars": "20",
+    "profile": "15s"
+   },
+   "1m": {
+    "price_span": "0.10",
+    "visible_bars": "2",
+    "profile": "minute"
+   },
+   "1h": {
+    "price_span": "293.50",
+    "visible_bars": "240",
+    "profile": "minute"
+   },
+   "presets_enabled": {
+    "25%": true,
+    "HALF": true,
+    "75%": true,
+    "MAX": true
+   },
+   "safe_max_text": [],
+   "overflow": [
+    1440,
+    1440
+   ]
+  },
+  "LUMIAUSDT": {
+   "mark": "0.14439",
+   "15s": {
+    "price_span": "0.00",
+    "visible_bars": "6",
+    "profile": "15s"
+   },
+   "1m": {
+    "price_span": "0.06",
+    "visible_bars": "240",
+    "profile": "minute"
+   },
+   "1h": {
+    "price_span": "0.08",
+    "visible_bars": "240",
+    "profile": "minute"
+   },
+   "presets_enabled": {
+    "25%": true,
+    "HALF": true,
+    "75%": true,
+    "MAX": true
+   },
+   "safe_max_text": [
+    "LONG 미리보기 불가 · 최소 주문 금액 미달 · 현재 안전 최대 9,788.800 LUMIA",
+    "SHORT 미리보기 불가 · 최소 주문 금액 미달 · 현재 안전 최대 9,788.800 LUMIA"
+   ],
+   "overflow": [
+    1440,
+    1440
+   ]
+  },
+  "browser_writes": []
+ }
+}

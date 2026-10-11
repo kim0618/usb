@@ -1,0 +1,419 @@
+{
+ "events": [
+  {
+   "t": 794,
+   "kind": "req",
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=64&symbol=BTCUSDT"
+  },
+  {
+   "t": 881,
+   "kind": "req",
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=2880&symbol=BTCUSDT"
+  },
+  {
+   "t": 1174,
+   "kind": "resp",
+   "status": 200,
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=64&symbol=BTCUSDT"
+  },
+  {
+   "t": 1178,
+   "kind": "req",
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=64&symbol=BTCUSDT"
+  },
+  {
+   "t": 1179,
+   "kind": "req",
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=64&symbol=STRKUSDT"
+  },
+  {
+   "t": 1260,
+   "kind": "resp",
+   "status": 200,
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=2880&symbol=BTCUSDT"
+  },
+  {
+   "t": 1261,
+   "kind": "resp",
+   "status": 200,
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=64&symbol=BTCUSDT"
+  },
+  {
+   "t": 1329,
+   "kind": "resp",
+   "status": 200,
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=64&symbol=STRKUSDT"
+  },
+  {
+   "t": 1406,
+   "kind": "req",
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=2880&symbol=STRKUSDT"
+  },
+  {
+   "t": 2100,
+   "kind": "resp",
+   "status": 200,
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=2880&symbol=STRKUSDT"
+  },
+  {
+   "t": 2834,
+   "kind": "click",
+   "frame": "1m"
+  },
+  {
+   "t": 14229,
+   "kind": "click",
+   "frame": "15s"
+  },
+  {
+   "t": 14458,
+   "kind": "req",
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=64&symbol=BTCUSDT"
+  },
+  {
+   "t": 14458,
+   "kind": "req",
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=64&symbol=STRKUSDT"
+  },
+  {
+   "t": 14538,
+   "kind": "resp",
+   "status": 200,
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=64&symbol=STRKUSDT"
+  },
+  {
+   "t": 14540,
+   "kind": "resp",
+   "status": 200,
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=64&symbol=BTCUSDT"
+  },
+  {
+   "t": 22487,
+   "kind": "click",
+   "frame": "1m"
+  },
+  {
+   "t": 22531,
+   "kind": "req",
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=2880&symbol=STRKUSDT"
+  },
+  {
+   "t": 22921,
+   "kind": "resp",
+   "status": 200,
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=2880&symbol=STRKUSDT"
+  },
+  {
+   "t": 24546,
+   "kind": "req",
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=64&symbol=BTCUSDT"
+  },
+  {
+   "t": 24547,
+   "kind": "req",
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=64&symbol=STRKUSDT"
+  },
+  {
+   "t": 24700,
+   "kind": "resp",
+   "status": 200,
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=64&symbol=STRKUSDT"
+  },
+  {
+   "t": 24729,
+   "kind": "resp",
+   "status": 200,
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=64&symbol=BTCUSDT"
+  }
+ ],
+ "snaps": [
+  {
+   "t": 3367,
+   "frame": "1m",
+   "visible_bars": "294",
+   "price_span": "0.02"
+  },
+  {
+   "t": 3882,
+   "frame": "1m",
+   "visible_bars": "294",
+   "price_span": "0.02"
+  },
+  {
+   "t": 4397,
+   "frame": "1m",
+   "visible_bars": "294",
+   "price_span": "0.02"
+  },
+  {
+   "t": 4912,
+   "frame": "1m",
+   "visible_bars": "294",
+   "price_span": "0.02"
+  },
+  {
+   "t": 8549,
+   "frame": "1m",
+   "visible_bars": "294",
+   "price_span": "0.02"
+  },
+  {
+   "t": 9072,
+   "frame": "1m",
+   "visible_bars": "294",
+   "price_span": "0.02"
+  },
+  {
+   "t": 9585,
+   "frame": "1m",
+   "visible_bars": "294",
+   "price_span": "0.02"
+  },
+  {
+   "t": 10104,
+   "frame": "1m",
+   "visible_bars": "294",
+   "price_span": "0.02"
+  },
+  {
+   "t": 10619,
+   "frame": "1m",
+   "visible_bars": "294",
+   "price_span": "0.02"
+  },
+  {
+   "t": 11137,
+   "frame": "1m",
+   "visible_bars": "294",
+   "price_span": "0.02"
+  },
+  {
+   "t": 11650,
+   "frame": "1m",
+   "visible_bars": "294",
+   "price_span": "0.02"
+  },
+  {
+   "t": 12164,
+   "frame": "1m",
+   "visible_bars": "294",
+   "price_span": "0.02"
+  },
+  {
+   "t": 12678,
+   "frame": "1m",
+   "visible_bars": "294",
+   "price_span": "0.02"
+  },
+  {
+   "t": 13190,
+   "frame": "1m",
+   "visible_bars": "294",
+   "price_span": "0.02"
+  },
+  {
+   "t": 13703,
+   "frame": "1m",
+   "visible_bars": "294",
+   "price_span": "0.02"
+  },
+  {
+   "t": 14217,
+   "frame": "1m",
+   "visible_bars": "294",
+   "price_span": "0.02"
+  },
+  {
+   "t": 14778,
+   "frame": "15s",
+   "visible_bars": "60",
+   "price_span": "0.00"
+  },
+  {
+   "t": 15291,
+   "frame": "15s",
+   "visible_bars": "60",
+   "price_span": "0.00"
+  },
+  {
+   "t": 15804,
+   "frame": "15s",
+   "visible_bars": "60",
+   "price_span": "0.00"
+  },
+  {
+   "t": 16320,
+   "frame": "15s",
+   "visible_bars": "60",
+   "price_span": "0.00"
+  },
+  {
+   "t": 16833,
+   "frame": "15s",
+   "visible_bars": "60",
+   "price_span": "0.00"
+  },
+  {
+   "t": 17347,
+   "frame": "15s",
+   "visible_bars": "60",
+   "price_span": "0.00"
+  },
+  {
+   "t": 17859,
+   "frame": "15s",
+   "visible_bars": "60",
+   "price_span": "0.00"
+  },
+  {
+   "t": 18373,
+   "frame": "15s",
+   "visible_bars": "60",
+   "price_span": "0.00"
+  },
+  {
+   "t": 18886,
+   "frame": "15s",
+   "visible_bars": "60",
+   "price_span": "0.00"
+  },
+  {
+   "t": 19398,
+   "frame": "15s",
+   "visible_bars": "60",
+   "price_span": "0.00"
+  },
+  {
+   "t": 19913,
+   "frame": "15s",
+   "visible_bars": "60",
+   "price_span": "0.00"
+  },
+  {
+   "t": 20426,
+   "frame": "15s",
+   "visible_bars": "60",
+   "price_span": "0.00"
+  },
+  {
+   "t": 20942,
+   "frame": "15s",
+   "visible_bars": "60",
+   "price_span": "0.00"
+  },
+  {
+   "t": 21457,
+   "frame": "15s",
+   "visible_bars": "60",
+   "price_span": "0.00"
+  },
+  {
+   "t": 21969,
+   "frame": "15s",
+   "visible_bars": "60",
+   "price_span": "0.00"
+  },
+  {
+   "t": 22479,
+   "frame": "15s",
+   "visible_bars": "60",
+   "price_span": "0.00"
+  },
+  {
+   "t": 23042,
+   "frame": "1m",
+   "visible_bars": "294",
+   "price_span": "0.02"
+  },
+  {
+   "t": 23553,
+   "frame": "1m",
+   "visible_bars": "294",
+   "price_span": "0.02"
+  },
+  {
+   "t": 24071,
+   "frame": "1m",
+   "visible_bars": "294",
+   "price_span": "0.02"
+  },
+  {
+   "t": 24579,
+   "frame": "1m",
+   "visible_bars": "294",
+   "price_span": "0.02"
+  },
+  {
+   "t": 25092,
+   "frame": "1m",
+   "visible_bars": "294",
+   "price_span": "0.02"
+  },
+  {
+   "t": 25608,
+   "frame": "1m",
+   "visible_bars": "294",
+   "price_span": "0.02"
+  },
+  {
+   "t": 26124,
+   "frame": "1m",
+   "visible_bars": "294",
+   "price_span": "0.02"
+  },
+  {
+   "t": 26634,
+   "frame": "1m",
+   "visible_bars": "294",
+   "price_span": "0.02"
+  },
+  {
+   "t": 27147,
+   "frame": "1m",
+   "visible_bars": "294",
+   "price_span": "0.02"
+  },
+  {
+   "t": 27659,
+   "frame": "1m",
+   "visible_bars": "294",
+   "price_span": "0.02"
+  },
+  {
+   "t": 28170,
+   "frame": "1m",
+   "visible_bars": "294",
+   "price_span": "0.02"
+  },
+  {
+   "t": 28683,
+   "frame": "1m",
+   "visible_bars": "294",
+   "price_span": "0.02"
+  },
+  {
+   "t": 29194,
+   "frame": "1m",
+   "visible_bars": "294",
+   "price_span": "0.02"
+  },
+  {
+   "t": 29709,
+   "frame": "1m",
+   "visible_bars": "294",
+   "price_span": "0.02"
+  },
+  {
+   "t": 30220,
+   "frame": "1m",
+   "visible_bars": "294",
+   "price_span": "0.02"
+  },
+  {
+   "t": 30735,
+   "frame": "1m",
+   "visible_bars": "294",
+   "price_span": "0.02"
+  }
+ ]
+}

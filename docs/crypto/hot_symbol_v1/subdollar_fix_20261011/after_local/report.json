@@ -1,0 +1,194 @@
+{
+ "390": {
+  "BTCUSDT": {
+   "mark": "82,921.2",
+   "15s": {
+    "price_span": "11.90",
+    "visible_bars": "6",
+    "profile": "15s"
+   },
+   "1m": {
+    "price_span": "3.10",
+    "visible_bars": "2",
+    "profile": "minute"
+   },
+   "1h": {
+    "price_span": "293.50",
+    "visible_bars": "113",
+    "profile": "minute"
+   },
+   "presets_enabled": {
+    "25%": true,
+    "HALF": true,
+    "75%": true,
+    "MAX": true
+   },
+   "safe_max_text": [],
+   "overflow": [
+    390,
+    390
+   ]
+  },
+  "STRKUSDT": {
+   "mark": "0.10435",
+   "15s": {
+    "price_span": "0.00",
+    "visible_bars": "6",
+    "profile": "15s"
+   },
+   "1m": {
+    "price_span": "0.02",
+    "visible_bars": "113",
+    "profile": "minute"
+   },
+   "1h": {
+    "price_span": "0.08",
+    "visible_bars": "113",
+    "profile": "minute"
+   },
+   "presets_enabled": {
+    "25%": true,
+    "HALF": true,
+    "75%": true,
+    "MAX": true
+   },
+   "safe_max_text": [
+    "LONG 미리보기 불가 · 최소 주문 금액 미달 · 현재 안전 최대 27,723.000 STRK",
+    "SHORT 미리보기 불가 · 최소 주문 금액 미달 · 현재 안전 최대 27,723.000 STRK"
+   ],
+   "overflow": [
+    390,
+    390
+   ]
+  },
+  "browser_writes": []
+ },
+ "1440": {
+  "BTCUSDT": {
+   "mark": "82,937.2",
+   "15s": {
+    "price_span": "19.10",
+    "visible_bars": "8",
+    "profile": "15s"
+   },
+   "1m": {
+    "price_span": "19.10",
+    "visible_bars": "2",
+    "profile": "minute"
+   },
+   "1h": {
+    "price_span": "293.50",
+    "visible_bars": "240",
+    "profile": "minute"
+   },
+   "presets_enabled": {
+    "25%": true,
+    "HALF": true,
+    "75%": true,
+    "MAX": true
+   },
+   "safe_max_text": [],
+   "overflow": [
+    1440,
+    1440
+   ]
+  },
+  "STRKUSDT": {
+   "mark": "0.10437",
+   "15s": {
+    "price_span": "0.00",
+    "visible_bars": "9",
+    "profile": "15s"
+   },
+   "1m": {
+    "price_span": "0.02",
+    "visible_bars": "240",
+    "profile": "minute"
+   },
+   "1h": {
+    "price_span": "0.08",
+    "visible_bars": "240",
+    "profile": "minute"
+   },
+   "presets_enabled": {
+    "25%": true,
+    "HALF": true,
+    "75%": true,
+    "MAX": true
+   },
+   "safe_max_text": [
+    "LONG 미리보기 불가 · 최소 주문 금액 미달 · 현재 안전 최대 27,570.700 STRK",
+    "SHORT 미리보기 불가 · 최소 주문 금액 미달 · 현재 안전 최대 27,570.700 STRK"
+   ],
+   "overflow": [
+    1440,
+    1440
+   ]
+  },
+  "browser_writes": []
+ },
+ "1600": {
+  "BTCUSDT": {
+   "mark": "82,940.1",
+   "15s": {
+    "price_span": "22.10",
+    "visible_bars": "11",
+    "profile": "15s"
+   },
+   "1m": {
+    "price_span": "19.20",
+    "visible_bars": "2",
+    "profile": "minute"
+   },
+   "1h": {
+    "price_span": "293.50",
+    "visible_bars": "294",
+    "profile": "minute"
+   },
+   "presets_enabled": {
+    "25%": true,
+    "HALF": true,
+    "75%": true,
+    "MAX": true
+   },
+   "safe_max_text": [],
+   "overflow": [
+    1600,
+    1600
+   ]
+  },
+  "STRKUSDT": {
+   "mark": "0.10512",
+   "15s": {
+    "price_span": "0.00",
+    "visible_bars": "11",
+    "profile": "15s"
+   },
+   "1m": {
+    "price_span": "0.02",
+    "visible_bars": "294",
+    "profile": "minute"
+   },
+   "1h": {
+    "price_span": "0.08",
+    "visible_bars": "294",
+    "profile": "minute"
+   },
+   "presets_enabled": {
+    "25%": true,
+    "HALF": true,
+    "75%": true,
+    "MAX": true
+   },
+   "safe_max_text": [
+    "LONG 미리보기 불가 · 최소 주문 금액 미달 · 현재 안전 최대 28,880.500 STRK",
+    "SHORT 미리보기 불가 · 최소 주문 금액 미달 · 현재 안전 최대 28,880.500 STRK"
+   ],
+   "overflow": [
+    1600,
+    1600
+   ]
+  },
+  "browser_writes": []
+ }
+}

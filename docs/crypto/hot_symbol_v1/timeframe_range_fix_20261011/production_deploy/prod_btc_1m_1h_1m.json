@@ -1,0 +1,419 @@
+{
+ "events": [
+  {
+   "t": 706,
+   "kind": "req",
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=64&symbol=BTCUSDT"
+  },
+  {
+   "t": 847,
+   "kind": "req",
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=2880&symbol=BTCUSDT"
+  },
+  {
+   "t": 1081,
+   "kind": "resp",
+   "status": 200,
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=64&symbol=BTCUSDT"
+  },
+  {
+   "t": 1084,
+   "kind": "req",
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=64&symbol=BTCUSDT"
+  },
+  {
+   "t": 1085,
+   "kind": "req",
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=64&symbol=STRKUSDT"
+  },
+  {
+   "t": 1190,
+   "kind": "resp",
+   "status": 200,
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=64&symbol=BTCUSDT"
+  },
+  {
+   "t": 1191,
+   "kind": "resp",
+   "status": 200,
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=2880&symbol=BTCUSDT"
+  },
+  {
+   "t": 1226,
+   "kind": "resp",
+   "status": 200,
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=64&symbol=STRKUSDT"
+  },
+  {
+   "t": 2411,
+   "kind": "click",
+   "frame": "1m"
+  },
+  {
+   "t": 10680,
+   "kind": "click",
+   "frame": "1h"
+  },
+  {
+   "t": 10723,
+   "kind": "req",
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1h&limit=2160&symbol=BTCUSDT"
+  },
+  {
+   "t": 11261,
+   "kind": "req",
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=64&symbol=BTCUSDT"
+  },
+  {
+   "t": 11261,
+   "kind": "req",
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=64&symbol=STRKUSDT"
+  },
+  {
+   "t": 11296,
+   "kind": "resp",
+   "status": 200,
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=64&symbol=STRKUSDT"
+  },
+  {
+   "t": 11346,
+   "kind": "resp",
+   "status": 200,
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1h&limit=2160&symbol=BTCUSDT"
+  },
+  {
+   "t": 11347,
+   "kind": "resp",
+   "status": 200,
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=64&symbol=BTCUSDT"
+  },
+  {
+   "t": 18966,
+   "kind": "click",
+   "frame": "1m"
+  },
+  {
+   "t": 19013,
+   "kind": "req",
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=2880&symbol=BTCUSDT"
+  },
+  {
+   "t": 19574,
+   "kind": "resp",
+   "status": 200,
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=2880&symbol=BTCUSDT"
+  },
+  {
+   "t": 21355,
+   "kind": "req",
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=64&symbol=BTCUSDT"
+  },
+  {
+   "t": 21356,
+   "kind": "req",
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=64&symbol=STRKUSDT"
+  },
+  {
+   "t": 21378,
+   "kind": "resp",
+   "status": 200,
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=64&symbol=BTCUSDT"
+  },
+  {
+   "t": 21378,
+   "kind": "resp",
+   "status": 200,
+   "url": "http://127.0.0.1:3299/crypto-api/api/crypto/chart-history?timeframe=1m&limit=64&symbol=STRKUSDT"
+  }
+ ],
+ "snaps": [
+  {
+   "t": 2958,
+   "frame": "1m",
+   "visible_bars": "240",
+   "price_span": "349.80"
+  },
+  {
+   "t": 3473,
+   "frame": "1m",
+   "visible_bars": "240",
+   "price_span": "349.80"
+  },
+  {
+   "t": 3987,
+   "frame": "1m",
+   "visible_bars": "240",
+   "price_span": "349.80"
+  },
+  {
+   "t": 4500,
+   "frame": "1m",
+   "visible_bars": "240",
+   "price_span": "349.80"
+  },
+  {
+   "t": 5014,
+   "frame": "1m",
+   "visible_bars": "240",
+   "price_span": "349.80"
+  },
+  {
+   "t": 5529,
+   "frame": "1m",
+   "visible_bars": "240",
+   "price_span": "349.80"
+  },
+  {
+   "t": 6044,
+   "frame": "1m",
+   "visible_bars": "240",
+   "price_span": "349.80"
+  },
+  {
+   "t": 6559,
+   "frame": "1m",
+   "visible_bars": "240",
+   "price_span": "349.80"
+  },
+  {
+   "t": 7073,
+   "frame": "1m",
+   "visible_bars": "240",
+   "price_span": "349.80"
+  },
+  {
+   "t": 7587,
+   "frame": "1m",
+   "visible_bars": "240",
+   "price_span": "349.80"
+  },
+  {
+   "t": 8101,
+   "frame": "1m",
+   "visible_bars": "240",
+   "price_span": "349.80"
+  },
+  {
+   "t": 8617,
+   "frame": "1m",
+   "visible_bars": "240",
+   "price_span": "349.80"
+  },
+  {
+   "t": 9130,
+   "frame": "1m",
+   "visible_bars": "240",
+   "price_span": "349.80"
+  },
+  {
+   "t": 9647,
+   "frame": "1m",
+   "visible_bars": "240",
+   "price_span": "349.80"
+  },
+  {
+   "t": 10158,
+   "frame": "1m",
+   "visible_bars": "240",
+   "price_span": "349.80"
+  },
+  {
+   "t": 10670,
+   "frame": "1m",
+   "visible_bars": "240",
+   "price_span": "349.80"
+  },
+  {
+   "t": 11235,
+   "frame": "1h",
+   "visible_bars": "240",
+   "price_span": "349.80"
+  },
+  {
+   "t": 11747,
+   "frame": "1h",
+   "visible_bars": "240",
+   "price_span": "6892.10"
+  },
+  {
+   "t": 12271,
+   "frame": "1h",
+   "visible_bars": "240",
+   "price_span": "6892.10"
+  },
+  {
+   "t": 12785,
+   "frame": "1h",
+   "visible_bars": "240",
+   "price_span": "6892.10"
+  },
+  {
+   "t": 13304,
+   "frame": "1h",
+   "visible_bars": "240",
+   "price_span": "6892.10"
+  },
+  {
+   "t": 13817,
+   "frame": "1h",
+   "visible_bars": "240",
+   "price_span": "6892.10"
+  },
+  {
+   "t": 14327,
+   "frame": "1h",
+   "visible_bars": "240",
+   "price_span": "6892.10"
+  },
+  {
+   "t": 14839,
+   "frame": "1h",
+   "visible_bars": "240",
+   "price_span": "6892.10"
+  },
+  {
+   "t": 15358,
+   "frame": "1h",
+   "visible_bars": "240",
+   "price_span": "6892.10"
+  },
+  {
+   "t": 15872,
+   "frame": "1h",
+   "visible_bars": "240",
+   "price_span": "6892.10"
+  },
+  {
+   "t": 16379,
+   "frame": "1h",
+   "visible_bars": "240",
+   "price_span": "6892.10"
+  },
+  {
+   "t": 16895,
+   "frame": "1h",
+   "visible_bars": "240",
+   "price_span": "6892.10"
+  },
+  {
+   "t": 17408,
+   "frame": "1h",
+   "visible_bars": "240",
+   "price_span": "6892.10"
+  },
+  {
+   "t": 17921,
+   "frame": "1h",
+   "visible_bars": "240",
+   "price_span": "6892.10"
+  },
+  {
+   "t": 18443,
+   "frame": "1h",
+   "visible_bars": "240",
+   "price_span": "6892.10"
+  },
+  {
+   "t": 18957,
+   "frame": "1h",
+   "visible_bars": "240",
+   "price_span": "6892.10"
+  },
+  {
+   "t": 19522,
+   "frame": "1m",
+   "visible_bars": "120",
+   "price_span": "264.40"
+  },
+  {
+   "t": 20036,
+   "frame": "1m",
+   "visible_bars": "240",
+   "price_span": "349.80"
+  },
+  {
+   "t": 20546,
+   "frame": "1m",
+   "visible_bars": "240",
+   "price_span": "349.80"
+  },
+  {
+   "t": 21058,
+   "frame": "1m",
+   "visible_bars": "240",
+   "price_span": "349.80"
+  },
+  {
+   "t": 21572,
+   "frame": "1m",
+   "visible_bars": "240",
+   "price_span": "349.80"
+  },
+  {
+   "t": 22082,
+   "frame": "1m",
+   "visible_bars": "240",
+   "price_span": "349.80"
+  },
+  {
+   "t": 22593,
+   "frame": "1m",
+   "visible_bars": "240",
+   "price_span": "349.80"
+  },
+  {
+   "t": 23115,
+   "frame": "1m",
+   "visible_bars": "240",
+   "price_span": "349.80"
+  },
+  {
+   "t": 26736,
+   "frame": "1m",
+   "visible_bars": "240",
+   "price_span": "349.80"
+  },
+  {
+   "t": 27248,
+   "frame": "1m",
+   "visible_bars": "240",
+   "price_span": "349.80"
+  },
+  {
+   "t": 27760,
+   "frame": "1m",
+   "visible_bars": "240",
+   "price_span": "349.80"
+  },
+  {
+   "t": 28272,
+   "frame": "1m",
+   "visible_bars": "240",
+   "price_span": "349.80"
+  },
+  {
+   "t": 28784,
+   "frame": "1m",
+   "visible_bars": "240",
+   "price_span": "349.80"
+  },
+  {
+   "t": 29295,
+   "frame": "1m",
+   "visible_bars": "240",
+   "price_span": "349.80"
+  },
+  {
+   "t": 29810,
+   "frame": "1m",
+   "visible_bars": "240",
+   "price_span": "349.80"
+  },
+  {
+   "t": 30320,
+   "frame": "1m",
+   "visible_bars": "240",
+   "price_span": "349.80"
+  }
+ ]
+}

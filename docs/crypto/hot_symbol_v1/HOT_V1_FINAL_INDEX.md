@@ -2,14 +2,16 @@
 
 The entry point for all HOT work. The reports linked below are historical records. Each has a FINAL STATUS note at the top, and this page states the current truth.
 
-## 1. Final status (2026-10-11)
+## 1. Final status (2026-10-11, updated after the production fixes)
 
 | Item | State |
 |---|---|
 | HOT Coin Finder R0 | **C. FEASIBLE_FOR_IMPLEMENTATION** (scoped to a read-only scanner at the time; trading was later done as V1) |
 | HOT Coin Finder V0 | READY_FOR_PRODUCTION_READ_ONLY, later superseded by V1 |
 | Dynamic HOT Trading V1 | **READY_FOR_PRODUCTION_MANUAL_TRADING** |
-| Production | **PRODUCTION_HOT_V1_PASS** (deployed 2026-10-11 13:05 KST) |
+| Production | **PRODUCTION_HOT_V1_PASS** (13:05 KST), then **HOT_SUBDOLLAR_FIX_PRODUCTION_PASS** (13:46) and **TIMEFRAME_RANGE_FIX_PRODUCTION_PASS** (14:08) |
+| Sub-dollar HOT | PAPER Safe MAX and quick sizes work on sub-$1 symbols; the 15 s axis is scaled in ticks (STRK 0.10xx, not -6..+6) |
+| Timeframe switch | 15 s -> 1m lands on the intended initial range (no longer one or two candles); user zoom is kept |
 | Safe MAX | **bracket-aware PASS**: effective leverage = min(configured, band allowed); GTC 20x → 10x |
 | Multi-symbol PAPER recovery | **PASS**: shared-wallet joint replay, verified on production restart |
 | BTC fixed main | YES |
@@ -26,12 +28,12 @@ HOT lock (scan permission):
 
 ## 2. Authoritative commit
 
-**`fa67437`** is the same everywhere:
-- production deployed code (crypto runtime source and frontend BUILD_ID `SBSvXJ3c0ExwLDe6Y08Jq`)
-- `origin/main`
-- `origin/feat/dynamic-hot-v1`
+**`37c1c49`** is the current tip on `origin/main` and in production:
+- production backend: crypto runtime = the `c5fb88b` source (`37c1c49` changed frontend files only)
+- production frontend: BUILD_ID `oYxgOEmwT_rWeGhyRnEP1`, built from `37c1c49`
+- `origin/main` = `37c1c49`. There is one branch, `main`; the earlier `feat/dynamic-hot-v1` was merged and deleted.
 
-Docs and evidence commits after it change no feature code.
+Docs and evidence commits after it change no feature code. Earlier states: `fa67437` (first deploy, BUILD_ID `SBSvXJ3c…`) and `c5fb88b` (sub-dollar fix, BUILD_ID `Br5dMBIG…`).
 
 ## 3. Chronology
 
@@ -48,6 +50,9 @@ Docs and evidence commits after it change no feature code.
 | 10-11 12:59 | LIVE UI closes HOT order controls while the switch is off | `fa67437` |
 | 10-11 13:05 | Production deploy | PRODUCTION_HOT_V1_PASS |
 | 10-11 | feature branch push, then `main` fast-forward (user push) | main = feat = `fa67437` |
+| 10-11 13:46 | sub-dollar fix deploy (backend `paper/sizing.py` + frontend) | `c5fb88b`; HOT_SUBDOLLAR_FIX_PRODUCTION_PASS |
+| 10-11 14:08 | timeframe range fix deploy (frontend only) | `37c1c49`; TIMEFRAME_RANGE_FIX_PRODUCTION_PASS |
+| 10-11 | branches consolidated onto `main` (user push) | origin/main = `37c1c49`; no other HOT branch |
 
 ## 4. Commits (on top of `5d7863b`)
 
@@ -63,6 +68,9 @@ Docs and evidence commits after it change no feature code.
 | `dae6dfd` | fix(crypto): fail closed on unavailable hot position state |
 | `4a5213b` | fix(crypto): replay paper ledgers in global chronological order |
 | `fa67437` | fix(crypto): close HOT LIVE order controls while the switch is off |
+| `92d17d6` | docs(crypto): archive dynamic hot trading v1 production evidence |
+| `c5fb88b` | fix(crypto): size and chart sub-dollar HOT symbols on their own scale |
+| `37c1c49` | fix(crypto): restore initial range after timeframe history load |
 
 ## 5. Reports
 
@@ -75,6 +83,7 @@ Docs and evidence commits after it change no feature code.
 | [SAFE_MAX_FIX_DRYRUN_REPORT.md](SAFE_MAX_FIX_DRYRUN_REPORT.md) | Safe MAX fix, read-only #2, dry-run payloads, PAPER E2E, restart audit |
 | [MULTISYMBOL_RECOVERY_V1_REPORT.md](MULTISYMBOL_RECOVERY_V1_REPORT.md) | lock fail-closed and shared-wallet joint replay |
 | [PRODUCTION_DEPLOY_HOT_V1_20261011.md](PRODUCTION_DEPLOY_HOT_V1_20261011.md) | production deploy and QA |
+| [PRODUCTION_FIXES_20261011.md](PRODUCTION_FIXES_20261011.md) | sub-dollar Safe MAX / 15 s axis fix and timeframe range fix, both deployed |
 | [EVIDENCE_MANIFEST.md](EVIDENCE_MANIFEST.md) | every evidence file with its sha256 |
 
 ## 6. Safe MAX fix
@@ -115,6 +124,8 @@ Docs and evidence commits after it change no feature code.
 - **Merge ordering:** two symbols' fills within about 1s across exchange quote clocks cannot be ordered. Recovery refuses, fail closed.
 - **Arm button on the HOT tab:** the LIVE HOT tab's top bar still offers the global arm button. Arming opens BTC only.
 - **🔥 emoji:** headless browsers render it as a box. It needs one check in a real browser.
+- **Resolved since the first deploy:** sub-dollar Safe MAX 0 and the -6..+6 15 s axis (`c5fb88b`); BTC 15 s -> 1m showing one or two candles (`37c1c49`). See [PRODUCTION_FIXES_20261011.md](PRODUCTION_FIXES_20261011.md).
+- **Sub-dollar overlay comparison:** the layout compares visible price ranges at two decimals, which is coarse for a 0.10 symbol. Not observed as a defect; noted only.
 - **CASE B:** production BTC full replay (schema v2→v3) is not fixed. The new path needs a usable checkpoint.
 - **Unexplained 400:** one signed `leverageBracket` call returned 400 during read-only #2. It did not recur.
 
@@ -130,7 +141,8 @@ Docs and evidence commits after it change no feature code.
 
 ## 12. Rollback
 
-Not used.
-- Backend: `/root/usb_runtime/crypto_paper/releases/before-hot-v1-20261011-130451/src-backend.tgz`.
-- Frontend: `/root/usb/frontend/.next-build.pre-hot-20261011-130451` (BUILD_ID `sX7LPUBG-wazp9sit6KZi`).
+Not used. Newest first:
+- Frontend before the timeframe fix: `/root/usb/frontend/.next-build.pre-tfrange-20261011-140835` (BUILD_ID `Br5dMBIGZx8OUb7jEZsph`).
+- Before the sub-dollar fix: backend `releases/before-subdollar-20261011-134500/sizing.py`; frontend `.next-build.pre-subdollar-20261011-134500` (BUILD_ID `SBSvXJ3c0ExwLDe6Y08Jq`).
+- Before HOT V1: backend `/root/usb_runtime/crypto_paper/releases/before-hot-v1-20261011-130451/src-backend.tgz`; frontend `/root/usb/frontend/.next-build.pre-hot-20261011-130451` (BUILD_ID `sX7LPUBG-wazp9sit6KZi`).
 - **Caveat:** production PAPER now has a STRKUSDT run that shared the wallet. The old backend recovers runs alone and would refuse it. A backend rollback must also move `run/paper-server-001-STRKUSDT` aside. PAPER only; LIVE is unaffected.

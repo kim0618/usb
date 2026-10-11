@@ -1,6 +1,6 @@
 # Dynamic HOT V1 · Safe MAX Fix + LIVE Read-Only / Dry-Run Validation
 
-> **FINAL STATUS (added 2026-10-11, after the fact).** This report is kept as written at the time. Its verdict and any "not deployed", "not pushed" or "main not merged" statements are superseded. Current state: Production HOT V1 PASS. Production code, `origin/main` and `origin/feat/dynamic-hot-v1` are all `fa67437`. HOT LIVE orders are OFF, and the first real HOT LIVE order has not been placed (the user will place it manually). Entry point: [HOT_V1_FINAL_INDEX.md](HOT_V1_FINAL_INDEX.md).
+> **FINAL STATUS (added 2026-10-11, after the fact).** This report is kept as written at the time. Its verdict and any "not deployed", "not pushed" or "main not merged" statements are superseded. Current state (updated after the production fixes): production and `origin/main` are at `37c1c49`, and `main` is the only branch. HOT LIVE orders are OFF, and the first real HOT LIVE order has not been placed (the user will place it manually). Entry point: [HOT_V1_FINAL_INDEX.md](HOT_V1_FINAL_INDEX.md).
 
 Date: 2026-10-10 (fix, server re-validation) / 2026-10-11 (PAPER E2E, restart audit, lock fix)
 Branch: `feat/dynamic-hot-v1` (isolated clone, push disabled)

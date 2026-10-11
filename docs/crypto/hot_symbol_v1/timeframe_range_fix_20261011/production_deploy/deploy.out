@@ -1,0 +1,6 @@
+new BUILD_ID oYxgOEmwT_rWeGhyRnEP1
+frontend before: 1669735 0 
+frontend 200 after 36s (code 200); BUILD_ID oYxgOEmwT_rWeGhyRnEP1; rollback Br5dMBIGZx8OUb7jEZsph
+frontend after: 1672252 0 active 
+/ 307  /dashboard 200  /crypto-paper 200  
+8100 refs: 0

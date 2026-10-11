@@ -1,0 +1,810 @@
+{
+ "events": [
+  {
+   "t": 742,
+   "kind": "req",
+   "url": "/api/crypto/chart-history?timeframe=1m&limit=64&symbol=BTCUSDT"
+  },
+  {
+   "t": 766,
+   "kind": "req",
+   "url": "/api/crypto/chart-history?timeframe=1m&limit=64&symbol=BTCUSDT"
+  },
+  {
+   "t": 767,
+   "kind": "req",
+   "url": "/api/crypto/chart-history?timeframe=1m&limit=64&symbol=LUMIAUSDT"
+  },
+  {
+   "t": 831,
+   "kind": "req",
+   "url": "/api/crypto/chart-history?timeframe=1m&limit=2880&symbol=BTCUSDT"
+  },
+  {
+   "t": 831,
+   "kind": "console",
+   "text": "[TRACE source] {\"at\":241,\"timeframe\":\"1m\",\"source\":\"fallback\",\"n\":120,\"historyN\":0,\"fallbackN\":120,\"loading\":false}"
+  },
+  {
+   "t": 836,
+   "kind": "console",
+   "text": "[TRACE source] {\"at\":248,\"timeframe\":\"1m\",\"source\":\"fallback\",\"n\":120,\"historyN\":0,\"fallbackN\":120,\"loading\":true}"
+  },
+  {
+   "t": 856,
+   "kind": "console",
+   "text": "[TRACE chart] {\"at\":263,\"key\":\"BTCUSDT|1m\",\"prevKey\":null,\"prevN\":0,\"n\":120,\"first\":1791687480,\"last\":1791694620,\"visibleBefore\":null,\"branch\":\"replace\",\"held\":null,\"initialViewport\":{\"from\":7,\"to\":122},\"visibleAfter\":{\"from\":66.33333333333334,\"to\":122}}"
+  },
+  {
+   "t": 910,
+   "kind": "resp",
+   "status": 200,
+   "url": "/api/crypto/chart-history?timeframe=1m&limit=64&symbol=LUMIAUSDT"
+  },
+  {
+   "t": 910,
+   "kind": "resp",
+   "status": 200,
+   "url": "/api/crypto/chart-history?timeframe=1m&limit=64&symbol=BTCUSDT"
+  },
+  {
+   "t": 4598,
+   "kind": "resp",
+   "status": 200,
+   "url": "/api/crypto/chart-history?timeframe=1m&limit=2880&symbol=BTCUSDT"
+  },
+  {
+   "t": 4631,
+   "kind": "console",
+   "text": "[TRACE chart] {\"at\":702,\"key\":\"BTCUSDT|1m\",\"prevKey\":\"BTCUSDT|1m\",\"prevN\":120,\"n\":2880,\"first\":1791521880,\"last\":1791694620,\"visibleBefore\":{\"from\":7.000000000000014,\"to\":122},\"branch\":\"replace\",\"held\":{\"from\":2767,\"to\":2882},\"visibleAfter\":{\"from\":2767,\"to\":2882}}"
+  },
+  {
+   "t": 4631,
+   "kind": "console",
+   "text": "[TRACE source] {\"at\":718,\"timeframe\":\"1m\",\"source\":\"history\",\"n\":2880,\"historyN\":2880,\"fallbackN\":120,\"loading\":false}"
+  },
+  {
+   "t": 5848,
+   "kind": "click",
+   "frame": "15s"
+  },
+  {
+   "t": 5906,
+   "kind": "console",
+   "text": "[TRACE source] {\"at\":1985,\"timeframe\":\"15s\",\"source\":\"fast\",\"n\":0,\"historyN\":2880,\"fallbackN\":0,\"loading\":false}"
+  },
+  {
+   "t": 5920,
+   "kind": "console",
+   "text": "[TRACE chart] {\"at\":2004,\"key\":\"BTCUSDT|15s\",\"prevKey\":\"BTCUSDT|1m\",\"prevN\":2880,\"n\":19,\"first\":1791694365,\"last\":1791694635,\"visibleBefore\":{\"from\":2767,\"to\":2882},\"branch\":\"replace\",\"held\":null,\"initialViewport\":{\"from\":-21,\"to\":22},\"visibleAfter\":{\"from\":-93.99999999999999,\"to\":21}}"
+  },
+  {
+   "t": 5920,
+   "kind": "console",
+   "text": "[TRACE source] {\"at\":2007,\"timeframe\":\"15s\",\"source\":\"fast\",\"n\":19,\"historyN\":0,\"fallbackN\":0,\"loading\":false}"
+  },
+  {
+   "t": 6429,
+   "kind": "console",
+   "text": "[TRACE source] {\"at\":2516,\"timeframe\":\"15s\",\"source\":\"fast\",\"n\":20,\"historyN\":0,\"fallbackN\":0,\"loading\":false}"
+  },
+  {
+   "t": 14122,
+   "kind": "click",
+   "frame": "1m"
+  },
+  {
+   "t": 14178,
+   "kind": "console",
+   "text": "[TRACE chart] {\"at\":10261,\"key\":\"BTCUSDT|1m\",\"prevKey\":\"BTCUSDT|15s\",\"prevN\":20,\"n\":120,\"first\":1791687480,\"last\":1791694620,\"visibleBefore\":{\"from\":-20,\"to\":23},\"branch\":\"replace\",\"held\":null,\"initialViewport\":{\"from\":7,\"to\":122},\"visibleAfter\":{\"from\":80,\"to\":123}}"
+  },
+  {
+   "t": 14180,
+   "kind": "req",
+   "url": "/api/crypto/chart-history?timeframe=1m&limit=2880&symbol=BTCUSDT"
+  },
+  {
+   "t": 14181,
+   "kind": "console",
+   "text": "[TRACE source] {\"at\":10266,\"timeframe\":\"1m\",\"source\":\"fallback\",\"n\":120,\"historyN\":0,\"fallbackN\":120,\"loading\":false}"
+  },
+  {
+   "t": 14188,
+   "kind": "console",
+   "text": "[TRACE source] {\"at\":10274,\"timeframe\":\"1m\",\"source\":\"fallback\",\"n\":120,\"historyN\":0,\"fallbackN\":120,\"loading\":true}"
+  },
+  {
+   "t": 14197,
+   "kind": "resp",
+   "status": 200,
+   "url": "/api/crypto/chart-history?timeframe=1m&limit=2880&symbol=BTCUSDT"
+  },
+  {
+   "t": 14213,
+   "kind": "console",
+   "text": "[TRACE chart] {\"at\":10293,\"key\":\"BTCUSDT|1m\",\"prevKey\":\"BTCUSDT|1m\",\"prevN\":120,\"n\":2880,\"first\":1791521880,\"last\":1791694620,\"visibleBefore\":{\"from\":7.000000000000014,\"to\":122},\"branch\":\"replace\",\"held\":{\"from\":2767,\"to\":2882},\"visibleAfter\":{\"from\":2767,\"to\":2882}}"
+  },
+  {
+   "t": 14213,
+   "kind": "console",
+   "text": "[TRACE source] {\"at\":10300,\"timeframe\":\"1m\",\"source\":\"history\",\"n\":2880,\"historyN\":2880,\"fallbackN\":120,\"loading\":false}"
+  },
+  {
+   "t": 14262,
+   "kind": "req",
+   "url": "/api/crypto/chart-history?timeframe=1m&limit=64&symbol=BTCUSDT"
+  },
+  {
+   "t": 14263,
+   "kind": "req",
+   "url": "/api/crypto/chart-history?timeframe=1m&limit=64&symbol=LUMIAUSDT"
+  },
+  {
+   "t": 14272,
+   "kind": "resp",
+   "status": 200,
+   "url": "/api/crypto/chart-history?timeframe=1m&limit=64&symbol=LUMIAUSDT"
+  },
+  {
+   "t": 14272,
+   "kind": "resp",
+   "status": 200,
+   "url": "/api/crypto/chart-history?timeframe=1m&limit=64&symbol=BTCUSDT"
+  },
+  {
+   "t": 22409,
+   "kind": "click",
+   "frame": "10m"
+  },
+  {
+   "t": 22440,
+   "kind": "req",
+   "url": "/api/crypto/chart-history?timeframe=10m&limit=2016&symbol=BTCUSDT"
+  },
+  {
+   "t": 22440,
+   "kind": "console",
+   "text": "[TRACE source] {\"at\":18526,\"timeframe\":\"10m\",\"source\":\"fallback\",\"n\":0,\"historyN\":0,\"fallbackN\":0,\"loading\":false}"
+  },
+  {
+   "t": 22448,
+   "kind": "console",
+   "text": "[TRACE source] {\"at\":18535,\"timeframe\":\"10m\",\"source\":\"fallback\",\"n\":0,\"historyN\":0,\"fallbackN\":0,\"loading\":true}"
+  },
+  {
+   "t": 23149,
+   "kind": "resp",
+   "status": 200,
+   "url": "/api/crypto/chart-history?timeframe=10m&limit=2016&symbol=BTCUSDT"
+  },
+  {
+   "t": 23168,
+   "kind": "console",
+   "text": "[TRACE chart] {\"at\":19245,\"key\":\"BTCUSDT|10m\",\"prevKey\":\"BTCUSDT|1m\",\"prevN\":2880,\"n\":2016,\"first\":1790485200,\"last\":1791694200,\"visibleBefore\":{\"from\":2767,\"to\":2882},\"branch\":\"replace\",\"held\":null,\"initialViewport\":{\"from\":1903,\"to\":2018},\"visibleAfter\":{\"from\":1903,\"to\":2018}}"
+  },
+  {
+   "t": 23168,
+   "kind": "console",
+   "text": "[TRACE source] {\"at\":19255,\"timeframe\":\"10m\",\"source\":\"history\",\"n\":2016,\"historyN\":2016,\"fallbackN\":0,\"loading\":false}"
+  },
+  {
+   "t": 24279,
+   "kind": "req",
+   "url": "/api/crypto/chart-history?timeframe=1m&limit=64&symbol=BTCUSDT"
+  },
+  {
+   "t": 24279,
+   "kind": "req",
+   "url": "/api/crypto/chart-history?timeframe=1m&limit=64&symbol=LUMIAUSDT"
+  },
+  {
+   "t": 24405,
+   "kind": "resp",
+   "status": 200,
+   "url": "/api/crypto/chart-history?timeframe=1m&limit=64&symbol=LUMIAUSDT"
+  },
+  {
+   "t": 24435,
+   "kind": "resp",
+   "status": 200,
+   "url": "/api/crypto/chart-history?timeframe=1m&limit=64&symbol=BTCUSDT"
+  },
+  {
+   "t": 30637,
+   "kind": "click",
+   "frame": "15s"
+  },
+  {
+   "t": 30679,
+   "kind": "console",
+   "text": "[TRACE chart] {\"at\":26760,\"key\":\"BTCUSDT|15s\",\"prevKey\":\"BTCUSDT|10m\",\"prevN\":2016,\"n\":20,\"first\":1791694365,\"last\":1791694650,\"visibleBefore\":{\"from\":1903,\"to\":2018},\"branch\":\"replace\",\"held\":null,\"initialViewport\":{\"from\":-20,\"to\":23},\"visibleAfter\":{\"from\":-92.99999999999999,\"to\":22}}"
+  },
+  {
+   "t": 30680,
+   "kind": "console",
+   "text": "[TRACE source] {\"at\":26766,\"timeframe\":\"15s\",\"source\":\"fast\",\"n\":20,\"historyN\":0,\"fallbackN\":0,\"loading\":false}"
+  },
+  {
+   "t": 30691,
+   "kind": "console",
+   "text": "[TRACE source] {\"at\":26776,\"timeframe\":\"15s\",\"source\":\"fast\",\"n\":0,\"historyN\":0,\"fallbackN\":0,\"loading\":false}"
+  },
+  {
+   "t": 30691,
+   "kind": "console",
+   "text": "[TRACE source] {\"at\":26778,\"timeframe\":\"15s\",\"source\":\"fast\",\"n\":21,\"historyN\":0,\"fallbackN\":0,\"loading\":false}"
+  },
+  {
+   "t": 32741,
+   "kind": "console",
+   "text": "[TRACE source] {\"at\":28826,\"timeframe\":\"15s\",\"source\":\"fast\",\"n\":22,\"historyN\":0,\"fallbackN\":0,\"loading\":false}"
+  },
+  {
+   "t": 34441,
+   "kind": "req",
+   "url": "/api/crypto/chart-history?timeframe=1m&limit=64&symbol=BTCUSDT"
+  },
+  {
+   "t": 34441,
+   "kind": "req",
+   "url": "/api/crypto/chart-history?timeframe=1m&limit=64&symbol=LUMIAUSDT"
+  },
+  {
+   "t": 34453,
+   "kind": "resp",
+   "status": 200,
+   "url": "/api/crypto/chart-history?timeframe=1m&limit=64&symbol=BTCUSDT"
+  },
+  {
+   "t": 34455,
+   "kind": "resp",
+   "status": 200,
+   "url": "/api/crypto/chart-history?timeframe=1m&limit=64&symbol=LUMIAUSDT"
+  },
+  {
+   "t": 42104,
+   "kind": "click",
+   "frame": "1m"
+  },
+  {
+   "t": 42144,
+   "kind": "console",
+   "text": "[TRACE chart] {\"at\":35008,\"key\":\"BTCUSDT|1m\",\"prevKey\":\"BTCUSDT|15s\",\"prevN\":22,\"n\":120,\"first\":1791687540,\"last\":1791694680,\"visibleBefore\":{\"from\":-18,\"to\":25},\"branch\":\"replace\",\"held\":null,\"initialViewport\":{\"from\":7,\"to\":122},\"visibleAfter\":{\"from\":80,\"to\":123}}"
+  },
+  {
+   "t": 42148,
+   "kind": "req",
+   "url": "/api/crypto/chart-history?timeframe=1m&limit=2880&symbol=BTCUSDT"
+  },
+  {
+   "t": 42148,
+   "kind": "console",
+   "text": "[TRACE source] {\"at\":35013,\"timeframe\":\"1m\",\"source\":\"fallback\",\"n\":120,\"historyN\":0,\"fallbackN\":120,\"loading\":false}"
+  },
+  {
+   "t": 42159,
+   "kind": "console",
+   "text": "[TRACE source] {\"at\":35025,\"timeframe\":\"1m\",\"source\":\"fallback\",\"n\":120,\"historyN\":0,\"fallbackN\":120,\"loading\":true}"
+  },
+  {
+   "t": 42807,
+   "kind": "resp",
+   "status": 200,
+   "url": "/api/crypto/chart-history?timeframe=1m&limit=2880&symbol=BTCUSDT"
+  },
+  {
+   "t": 42830,
+   "kind": "console",
+   "text": "[TRACE chart] {\"at\":35686,\"key\":\"BTCUSDT|1m\",\"prevKey\":\"BTCUSDT|1m\",\"prevN\":120,\"n\":2880,\"first\":1791521940,\"last\":1791694680,\"visibleBefore\":{\"from\":7.000000000000014,\"to\":122},\"branch\":\"replace\",\"held\":{\"from\":2767,\"to\":2882},\"visibleAfter\":{\"from\":2767,\"to\":2882}}"
+  },
+  {
+   "t": 42830,
+   "kind": "console",
+   "text": "[TRACE source] {\"at\":35697,\"timeframe\":\"1m\",\"source\":\"history\",\"n\":2880,\"historyN\":2880,\"fallbackN\":120,\"loading\":false}"
+  },
+  {
+   "t": 47682,
+   "kind": "req",
+   "url": "/api/crypto/chart-history?timeframe=1m&limit=64&symbol=BTCUSDT"
+  },
+  {
+   "t": 47682,
+   "kind": "req",
+   "url": "/api/crypto/chart-history?timeframe=1m&limit=64&symbol=LUMIAUSDT"
+  },
+  {
+   "t": 47791,
+   "kind": "resp",
+   "status": 200,
+   "url": "/api/crypto/chart-history?timeframe=1m&limit=64&symbol=LUMIAUSDT"
+  },
+  {
+   "t": 47819,
+   "kind": "resp",
+   "status": 200,
+   "url": "/api/crypto/chart-history?timeframe=1m&limit=64&symbol=BTCUSDT"
+  }
+ ],
+ "snaps": [
+  {
+   "t": 6423,
+   "frame": "15s",
+   "visible_bars": "19",
+   "price_span": "14.00"
+  },
+  {
+   "t": 6946,
+   "frame": "15s",
+   "visible_bars": "19",
+   "price_span": "14.00"
+  },
+  {
+   "t": 7455,
+   "frame": "15s",
+   "visible_bars": "19",
+   "price_span": "14.00"
+  },
+  {
+   "t": 7968,
+   "frame": "15s",
+   "visible_bars": "19",
+   "price_span": "14.00"
+  },
+  {
+   "t": 8482,
+   "frame": "15s",
+   "visible_bars": "19",
+   "price_span": "14.00"
+  },
+  {
+   "t": 8993,
+   "frame": "15s",
+   "visible_bars": "19",
+   "price_span": "14.00"
+  },
+  {
+   "t": 9508,
+   "frame": "15s",
+   "visible_bars": "19",
+   "price_span": "14.00"
+  },
+  {
+   "t": 10019,
+   "frame": "15s",
+   "visible_bars": "19",
+   "price_span": "14.00"
+  },
+  {
+   "t": 10534,
+   "frame": "15s",
+   "visible_bars": "19",
+   "price_span": "14.00"
+  },
+  {
+   "t": 11047,
+   "frame": "15s",
+   "visible_bars": "19",
+   "price_span": "14.00"
+  },
+  {
+   "t": 11560,
+   "frame": "15s",
+   "visible_bars": "19",
+   "price_span": "14.00"
+  },
+  {
+   "t": 12070,
+   "frame": "15s",
+   "visible_bars": "19",
+   "price_span": "14.00"
+  },
+  {
+   "t": 12578,
+   "frame": "15s",
+   "visible_bars": "19",
+   "price_span": "14.00"
+  },
+  {
+   "t": 13089,
+   "frame": "15s",
+   "visible_bars": "19",
+   "price_span": "14.00"
+  },
+  {
+   "t": 13601,
+   "frame": "15s",
+   "visible_bars": "19",
+   "price_span": "14.00"
+  },
+  {
+   "t": 14113,
+   "frame": "15s",
+   "visible_bars": "19",
+   "price_span": "14.00"
+  },
+  {
+   "t": 14693,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "255.00"
+  },
+  {
+   "t": 15208,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "255.00"
+  },
+  {
+   "t": 15723,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "255.00"
+  },
+  {
+   "t": 16234,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "255.00"
+  },
+  {
+   "t": 16744,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "255.00"
+  },
+  {
+   "t": 17258,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "255.00"
+  },
+  {
+   "t": 17772,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "255.00"
+  },
+  {
+   "t": 18289,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "255.00"
+  },
+  {
+   "t": 18805,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "255.00"
+  },
+  {
+   "t": 19318,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "255.00"
+  },
+  {
+   "t": 19834,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "255.00"
+  },
+  {
+   "t": 20349,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "255.00"
+  },
+  {
+   "t": 20862,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "255.00"
+  },
+  {
+   "t": 21375,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "255.00"
+  },
+  {
+   "t": 21887,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "255.00"
+  },
+  {
+   "t": 22398,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "255.00"
+  },
+  {
+   "t": 22952,
+   "frame": "10m",
+   "visible_bars": "113",
+   "price_span": "255.00"
+  },
+  {
+   "t": 23464,
+   "frame": "10m",
+   "visible_bars": "113",
+   "price_span": "408.40"
+  },
+  {
+   "t": 23977,
+   "frame": "10m",
+   "visible_bars": "113",
+   "price_span": "408.40"
+  },
+  {
+   "t": 24487,
+   "frame": "10m",
+   "visible_bars": "113",
+   "price_span": "408.40"
+  },
+  {
+   "t": 24997,
+   "frame": "10m",
+   "visible_bars": "113",
+   "price_span": "408.40"
+  },
+  {
+   "t": 25506,
+   "frame": "10m",
+   "visible_bars": "113",
+   "price_span": "408.40"
+  },
+  {
+   "t": 26020,
+   "frame": "10m",
+   "visible_bars": "113",
+   "price_span": "408.40"
+  },
+  {
+   "t": 26532,
+   "frame": "10m",
+   "visible_bars": "113",
+   "price_span": "408.40"
+  },
+  {
+   "t": 27042,
+   "frame": "10m",
+   "visible_bars": "113",
+   "price_span": "408.40"
+  },
+  {
+   "t": 27555,
+   "frame": "10m",
+   "visible_bars": "113",
+   "price_span": "408.40"
+  },
+  {
+   "t": 28066,
+   "frame": "10m",
+   "visible_bars": "113",
+   "price_span": "408.40"
+  },
+  {
+   "t": 28578,
+   "frame": "10m",
+   "visible_bars": "113",
+   "price_span": "408.40"
+  },
+  {
+   "t": 29089,
+   "frame": "10m",
+   "visible_bars": "113",
+   "price_span": "408.40"
+  },
+  {
+   "t": 29607,
+   "frame": "10m",
+   "visible_bars": "113",
+   "price_span": "408.40"
+  },
+  {
+   "t": 30117,
+   "frame": "10m",
+   "visible_bars": "113",
+   "price_span": "408.40"
+  },
+  {
+   "t": 30627,
+   "frame": "10m",
+   "visible_bars": "113",
+   "price_span": "408.40"
+  },
+  {
+   "t": 31196,
+   "frame": "15s",
+   "visible_bars": "20",
+   "price_span": "14.00"
+  },
+  {
+   "t": 31712,
+   "frame": "15s",
+   "visible_bars": "20",
+   "price_span": "14.00"
+  },
+  {
+   "t": 32227,
+   "frame": "15s",
+   "visible_bars": "20",
+   "price_span": "14.00"
+  },
+  {
+   "t": 32737,
+   "frame": "15s",
+   "visible_bars": "21",
+   "price_span": "14.00"
+  },
+  {
+   "t": 33251,
+   "frame": "15s",
+   "visible_bars": "21",
+   "price_span": "14.00"
+  },
+  {
+   "t": 33764,
+   "frame": "15s",
+   "visible_bars": "21",
+   "price_span": "14.00"
+  },
+  {
+   "t": 34275,
+   "frame": "15s",
+   "visible_bars": "21",
+   "price_span": "14.00"
+  },
+  {
+   "t": 34785,
+   "frame": "15s",
+   "visible_bars": "21",
+   "price_span": "14.00"
+  },
+  {
+   "t": 35296,
+   "frame": "15s",
+   "visible_bars": "21",
+   "price_span": "14.00"
+  },
+  {
+   "t": 35807,
+   "frame": "15s",
+   "visible_bars": "21",
+   "price_span": "14.00"
+  },
+  {
+   "t": 36317,
+   "frame": "15s",
+   "visible_bars": "21",
+   "price_span": "14.00"
+  },
+  {
+   "t": 40049,
+   "frame": "15s",
+   "visible_bars": "21",
+   "price_span": "14.00"
+  },
+  {
+   "t": 40560,
+   "frame": "15s",
+   "visible_bars": "21",
+   "price_span": "14.00"
+  },
+  {
+   "t": 41073,
+   "frame": "15s",
+   "visible_bars": "21",
+   "price_span": "14.00"
+  },
+  {
+   "t": 41580,
+   "frame": "15s",
+   "visible_bars": "21",
+   "price_span": "14.00"
+  },
+  {
+   "t": 42092,
+   "frame": "15s",
+   "visible_bars": "21",
+   "price_span": "14.00"
+  },
+  {
+   "t": 42662,
+   "frame": "1m",
+   "visible_bars": "112",
+   "price_span": "245.30"
+  },
+  {
+   "t": 43173,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "245.30"
+  },
+  {
+   "t": 43686,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "245.30"
+  },
+  {
+   "t": 44200,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "245.30"
+  },
+  {
+   "t": 44712,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "245.30"
+  },
+  {
+   "t": 45225,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "245.30"
+  },
+  {
+   "t": 45735,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "245.30"
+  },
+  {
+   "t": 46246,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "245.30"
+  },
+  {
+   "t": 46759,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "245.30"
+  },
+  {
+   "t": 47274,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "245.30"
+  },
+  {
+   "t": 47787,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "245.30"
+  },
+  {
+   "t": 48298,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "245.30"
+  },
+  {
+   "t": 48810,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "245.30"
+  },
+  {
+   "t": 49322,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "245.30"
+  },
+  {
+   "t": 49829,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "245.30"
+  },
+  {
+   "t": 50339,
+   "frame": "1m",
+   "visible_bars": "113",
+   "price_span": "245.30"
+  }
+ ]
+}
