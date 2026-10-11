@@ -1,0 +1,34 @@
+[Unit]
+Description=US-B CRYPTO BTC context strip API (GET /health /snapshot on 127.0.0.1, read only)
+Documentation=file:/root/usb_runtime/btc_context_ui/src/docs/crypto/btc_context_ui_v1/BTC_CONTEXT_UI_V1_REPORT.md
+After=network-online.target
+# Deliberately not Requires=/BindsTo= the collector: with the collector stopped this API answers
+# dashes for LIQUIDITY and FLOW, which is the truth, and the terminal is unaffected either way.
+StartLimitIntervalSec=600
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/usb_runtime/btc_context_ui
+EnvironmentFile=/root/usb_runtime/btc_context_ui/config/btc_context_ui.env
+Environment=PYTHONPATH=/root/usb_runtime/btc_context_ui/src/backend
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/root/usb/.venv/bin/python -m app.crypto.btc_context_ui_v1 \
+  --root ${CTX_V1_ROOT} --host 127.0.0.1 --port ${BTC_CONTEXT_UI_PORT}
+StandardOutput=append:/root/usb_runtime/btc_context_ui/logs/api.log
+StandardError=append:/root/usb_runtime/btc_context_ui/logs/api.log
+# The collector's root is read through this process, never written.
+ReadOnlyPaths=/root/usb_runtime/crypto_context
+Restart=on-failure
+RestartSec=5
+KillSignal=SIGTERM
+TimeoutStopSec=15
+# Measured locally: 112 MB RSS with the 30-day structure series loaded.
+MemoryMax=200M
+CPUQuota=15%
+Nice=10
+
+[Install]
+WantedBy=multi-user.target

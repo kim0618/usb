@@ -1,0 +1,88 @@
+{
+ "now_ms": 1791703973205,
+ "layer": {
+  "state": "LIVE",
+  "reasons": [],
+  "symbol": "BTCUSDT",
+  "read_at_ms": 1791703965896,
+  "open_interest": {
+   "base": "92834.569",
+   "venue_time_ms": 1791703968298,
+   "age_ms": 4907,
+   "unit": "BASE_ASSET",
+   "available": true,
+   "unavailable_reason": null
+  },
+  "open_interest_change": {
+   "available": true,
+   "unavailable_reason": null,
+   "windows": {
+    "5m": {
+     "available": true,
+     "unavailable_reason": null,
+     "base": "34.55100000",
+     "base_pct": "0.0372",
+     "value_usdt": "3314343.13980000",
+     "from_bucket_ms": 1791703500000,
+     "to_bucket_ms": 1791703800000
+    },
+    "15m": {
+     "available": true,
+     "unavailable_reason": null,
+     "base": "110.86100000",
+     "base_pct": "0.1196",
+     "value_usdt": "2254669.71488900",
+     "from_bucket_ms": 1791702900000,
+     "to_bucket_ms": 1791703800000
+    },
+    "1h": {
+     "available": true,
+     "unavailable_reason": null,
+     "base": "-0.24900000",
+     "base_pct": "-0.0003",
+     "value_usdt": "787041.83970000",
+     "from_bucket_ms": 1791700200000,
+     "to_bucket_ms": 1791703800000
+    },
+    "4h": {
+     "available": true,
+     "unavailable_reason": null,
+     "base": "341.51800000",
+     "base_pct": "0.3692",
+     "value_usdt": "42215984.57821900",
+     "from_bucket_ms": 1791689400000,
+     "to_bucket_ms": 1791703800000
+    }
+   },
+   "period": "5m",
+   "buckets": 60,
+   "newest_bucket_ms": 1791703800000,
+   "newest_sum_open_interest": "92840.79200000",
+   "newest_sum_open_interest_value": "7708849482.13600000",
+   "source": "CLOSED_VENUE_BUCKETS_NOT_LOCAL_POLLS"
+  },
+  "funding": {
+   "last_rate": "-0.00001366",
+   "last_rate_pct": "-0.00136600",
+   "interest_rate": "0.00010000",
+   "next_funding_time_ms": 1791705600000,
+   "venue_time_ms": 1791703973000,
+   "age_ms": 205,
+   "available": true,
+   "unavailable_reason": null
+  },
+  "basis": {
+   "mark_price": "83041.70000000",
+   "index_price": "83074.99673913",
+   "estimated_settle_price": "83121.34048309",
+   "basis_usdt": "-33.29673913",
+   "premium_pct": "-0.040080",
+   "formula": "basis = mark - index; premium_pct = (mark - index) / index * 100",
+   "venue_time_ms": 1791703973000,
+   "age_ms": 205,
+   "available": true,
+   "unavailable_reason": null
+  },
+  "note": "\ud30c\uc0dd \uc815\ubcf4\ub294 \uacf5\uac1c \uc5d4\ub4dc\ud3ec\uc778\ud2b8\uc5d0\uc11c \uc77d\uc740 \uc6d0\uac12\uc785\ub2c8\ub2e4. basis = mark - index, premium_pct = (mark - index) / index \ub450 \uac1c\ub9cc \uc0b0\uc220 \ud658\uc0b0\uc774\uace0, \uadf8 \ubc16\uc758 \ud30c\uc0dd \uc2e0\ud638\ub294 \ub9cc\ub4e4\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4(OI \ub300\ube44 \uac00\uaca9, funding regime, \ud63c\uc7a1\ub3c4 \ub4f1 \uc5c6\uc74c)."
+ }
+}

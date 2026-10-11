@@ -108,8 +108,13 @@ def test_the_vendored_code_reproduces_every_golden_output():
 
 # --------------------------------------------------------------------------- direct
 
-@pytest.mark.skipif(importlib.util.find_spec("app.crypto.market_context_v1") is None,
-                    reason="the source package is not committed on this branch")
+# Keyed on the two source modules, not the package: the BTC context strip commits only the
+# package's contract/venue/structure/derivatives modules, so the package can be importable
+# while flow.py and liquidity.py are not.
+@pytest.mark.skipif(importlib.util.find_spec("app.crypto.market_context_v1") is None
+                    or importlib.util.find_spec("app.crypto.market_context_v1.flow") is None
+                    or importlib.util.find_spec("app.crypto.market_context_v1.liquidity") is None,
+                    reason="the source modules are not committed on this branch")
 def test_the_vendored_code_matches_the_source_package_directly():
     from app.crypto.market_context_v1 import flow as SF
     from app.crypto.market_context_v1 import liquidity as SL

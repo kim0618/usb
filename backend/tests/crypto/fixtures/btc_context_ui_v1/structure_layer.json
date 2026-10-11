@@ -1,0 +1,110 @@
+{
+ "now_ms": 1791703973205,
+ "layer": {
+  "state": "LIVE",
+  "reasons": [],
+  "symbol": "BTCUSDT",
+  "series": {
+   "anchor_ms": 1789084800000,
+   "series_first_ms": 1789084800000,
+   "series_last_open_ms": 1791703860000,
+   "series_rows": 43652,
+   "publish_from_ms": 1791703320000,
+   "publish_to_ms": 1791703920000,
+   "published_minutes": 11,
+   "computed_at_ms": 1791703965896,
+   "recompute_ms": 307,
+   "fetch_ms": 0,
+   "anchor_rule": "FIXED_AT_PROCESS_START_EXTENDED_FORWARD_ONLY",
+   "theta_1h": 3.0,
+   "theta_5m": 6.0,
+   "repaint_violations": 0,
+   "vanished_levels": 0,
+   "venue": "binance_usdm"
+  },
+  "row": {
+   "bar_open_ms": 1791703860000,
+   "bar_close_ms": 1791703920000,
+   "bar_age_ms": 53205,
+   "close": 83041.6,
+   "trend_structure": "NEUTRAL",
+   "last_high_label": "LH",
+   "last_low_label": "HL",
+   "active_level_count": 9,
+   "published_prices": [
+    82706.2,
+    82721.4,
+    82859.6,
+    82871.3,
+    82912.9,
+    83113.9,
+    83137.2,
+    83499.9
+   ],
+   "atr_5m": 35.3,
+   "atr_1h": 169.58,
+   "vwap_z": 0.7099,
+   "vwap_position": "ABOVE"
+  },
+  "levels": {
+   "resistance": {
+    "side": "RESISTANCE",
+    "price": 83113.9,
+    "distance_pct": 0.0871,
+    "lifecycle": "CONFIRMED",
+    "origin_kind": "SWING_HIGH",
+    "strength": 3,
+    "touches": 2,
+    "confirm_tf": "5m",
+    "sources": "5m",
+    "level_id": 126,
+    "available": true,
+    "unavailable_reason": null
+   },
+   "support": {
+    "side": "SUPPORT",
+    "price": 82912.9,
+    "distance_pct": -0.155,
+    "lifecycle": "CONFIRMED",
+    "origin_kind": "SWING_HIGH",
+    "strength": 9,
+    "touches": 8,
+    "confirm_tf": "5m",
+    "sources": "5m",
+    "level_id": 122,
+    "available": true,
+    "unavailable_reason": null
+   }
+  },
+  "events": {
+   "breakout_state": "UP",
+   "breakout_level_id": 122,
+   "breakout_at_ms": 1791696000000,
+   "breakout_age_min": 132,
+   "breakout_confirm_tf": "5m",
+   "retest_state": "RETESTED",
+   "retest_direction": "UP",
+   "retest_level_id": 122,
+   "failed_break_state": "NONE",
+   "sweep_direction": "DOWN",
+   "sweep_at_ms": 1791465000000,
+   "sweep_age_min": 3982,
+   "sweep_level_id": 112
+  },
+  "range": {
+   "state": "NO_RANGE",
+   "high": null,
+   "low": null,
+   "position": null
+  },
+  "prev_session": {
+   "high": 83137.2,
+   "low": 82500.0,
+   "high_distance_pct": 0.1151,
+   "low_distance_pct": -0.6522,
+   "in_level_book": false,
+   "note": "\uc804\uc77c \uace0\uc800\ub294 \ub808\ubca8 \ubd81 \ubc16\uc758 \ubcc4\ub3c4 context\uc785\ub2c8\ub2e4. R2\uc5d0\uc11c \uc774 \uc18c\uc2a4\ub97c \ubd81\uc5d0 \uba38\uc9c0\ud558\uba74 27\uac74 \uc911 1\uac74 \uc99d\uac00\uc600\uace0 \uadf8 1\uac74\ub3c4 \uc0c8 \uc120\uc774 \uc544\ub2c8\ub77c PROVISIONAL \uc2b9\uaca9\uc774\uc5c8\uc2b5\ub2c8\ub2e4. 27\uac74 \ud45c\ubcf8\uc758 \ud574\uc0c1\ub3c4 \ud55c\uacc4\ub77c production rule\ub85c \uc62c\ub9ac\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4."
+  },
+  "note": "\ub808\ubca8 \ubd81\uc740 R1 \ud050\ub808\uc774\uc158 \uadf8\ub300\ub85c\uc774\uace0 \uc2dc\ub9ac\uc988 \uc2dc\uc791\uc810\uc740 \ud504\ub85c\uc138\uc2a4 \uc2dc\uc791 \uc2dc \ud55c \ubc88 \uace0\uc815\ud569\ub2c8\ub2e4. \ub864\ub9c1 \uc708\ub3c4\uc6b0\uba74 \uacfc\uac70\uac00 \ub4a4\uc5d0\uc11c \ub5a8\uc5b4\uc838 \ub098\uac00\uba70 \ub808\ubca8 \uc218\uba85\uc774 \ubc14\ub00c\uc5b4 repaint\uc640 \uac19\uc544\uc9d1\ub2c8\ub2e4. \ud655\uc815\ub41c \ub9c8\uc9c0\ub9c9 1\ubd84\ubd09\ub9cc \ud45c\uc2dc\ud558\ubbc0\ub85c \uc2e4\uc2dc\uac04\ubcf4\ub2e4 \ucd5c\ub300 1\ubd84 \ub4a4\uc785\ub2c8\ub2e4."
+ }
+}

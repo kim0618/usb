@@ -11,10 +11,10 @@ import { marketContextSlot } from "@/components/crypto-terminal-context-slot";
  *  boxes with the right dimensions, and boxes cannot answer whether the panel fits beside the
  *  actual chart, the actual ticket and the actual symbol tabs.
  *
- *  The context slot is Manual Market Context V1, read-only and P2: it loads in its own chunk
- *  after the terminal has mounted, and `marketContextSlot` returns nothing at all unless a
- *  backend was configured at build time - so a build without one renders exactly what this
- *  route rendered before the slot existed.
+ *  The context slot is BTC Manual Trading Market Context UI V1: four read-only lines under the
+ *  BTC chart, in their own chunk. `marketContextSlot` returns nothing at all unless a backend
+ *  was configured at build time - so a build without one renders exactly what this route
+ *  rendered before the slot existed.
  */
 export default function CryptoPaperPage() {
   return <CryptoTerminal marketContext={marketContextSlot()} />;
