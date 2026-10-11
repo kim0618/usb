@@ -1,0 +1,28 @@
+[
+ {
+  "w": 1440,
+  "pre_btc_requests": 2,
+  "hot_window_s": 15.0,
+  "hot_btc_ctx_requests": 0,
+  "during": [],
+  "hot_panel": 0,
+  "hot_canvas": 7,
+  "hot_ticket": 2,
+  "hot_header": "MAGICUSDT \ubb34\uae30\ud55c \u25cf \uc2e4\uc2dc\uac04 0.12414 -0.07% vs Index \uc790\uc0b0 13,809,989\uc6d0 10,298.28 USDT \uc8fc\ubb38\uac00\ub2a5 1",
+  "after_return_requests": 3,
+  "non_get": []
+ },
+ {
+  "w": 390,
+  "pre_btc_requests": 2,
+  "hot_window_s": 15.0,
+  "hot_btc_ctx_requests": 0,
+  "during": [],
+  "hot_panel": 0,
+  "hot_canvas": 7,
+  "hot_ticket": 2,
+  "hot_header": "MAGICUSDT \ubb34\uae30\ud55c \u25cf \uc2e4\uc2dc\uac04 0.12405 -0.23% vs Index \uc790\uc0b0 13,809,499\uc6d0 10,297.91 USDT \uc8fc\ubb38\uac00\ub2a5 1",
+  "after_return_requests": 3,
+  "non_get": []
+ }
+]

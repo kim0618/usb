@@ -1,0 +1,475 @@
+{
+ "runs": [
+  {
+   "width": 1600,
+   "strip": {
+    "x": 276,
+    "y": 1082,
+    "w": 916,
+    "h": 65.75,
+    "text": "\u25cf\nSTRUCTURE\nR 0.15% / S 0.09%\n\u25cf\nLIQUIDITY\nASK STRONG / BID STRONG\n\u25cf\nFLOW\nBUY 90 / SELL 10\n\u25cf\nDERIVATIVES\nOI \u2191 7.73B\nFUND -0.0012% \u00b7 BASIS -0.063%",
+    "live": [
+     "btc-context-structure:1",
+     "btc-context-liquidity:1",
+     "btc-context-flow:1",
+     "btc-context-derivatives:1"
+    ]
+   },
+   "ticket_with": {
+    "x": 1204,
+    "y": 419,
+    "w": 360,
+    "h": 669
+   },
+   "ticket_without": {
+    "x": 1204,
+    "y": 419,
+    "w": 360,
+    "h": 669
+   },
+   "ticket_shift_px": {
+    "x": 0,
+    "y": 0,
+    "w": 0,
+    "h": 0
+   },
+   "overflow": {
+    "doc": 0,
+    "body": 0,
+    "strip": 0,
+    "truncated": []
+   },
+   "hot_strip_count": 0,
+   "hot_snapshot_polls_7s": 0,
+   "hot_overflow": {
+    "doc": 0,
+    "body": 0,
+    "strip": null,
+    "truncated": null
+   },
+   "back_on_btc": "\u25cf\nSTRUCTURE\nR 0.13% / S 0.12%\n\u25cf\nLIQUIDITY\nASK STRONG / BID STRONG\n\u25cf\nFLOW\nBUY 93 / SELL 7\n\u25cf\nDERIVATIVES\nOI \u2191 7.73B\nFUND -0.0012% \u00b7 BASIS -0.051%",
+   "banned_strip": {
+    "Q1": 0,
+    "Q2": 0,
+    "Q3": 0,
+    "LONG candidate": 0,
+    "SHORT candidate": 0,
+    "research": 0,
+    "sample": 0,
+    "p-value": 0,
+    "confidence": 0
+   },
+   "banned_body": {
+    "Q1": 0,
+    "Q2": 0,
+    "Q3": 0,
+    "LONG candidate": 0,
+    "SHORT candidate": 0,
+    "research": 0,
+    "sample": 0,
+    "p-value": 0,
+    "confidence": 0
+   },
+   "long_enabled": [
+    false
+   ],
+   "hot_btc_ctx_requests_7s": 2
+  },
+  {
+   "width": 1440,
+   "strip": {
+    "x": 276,
+    "y": 1063,
+    "w": 756,
+    "h": 65.75,
+    "text": "\u25cf\nSTRUCTURE\nR 0.13% / S 0.12%\n\u25cf\nLIQUIDITY\nASK STRONG / BID STRONG\n\u25cf\nFLOW\nBUY 93 / SELL 7\n\u25cf\nDERIVATIVES\nOI \u2191 7.73B\nFUND -0.0012% \u00b7 BASIS -0.051%",
+    "live": [
+     "btc-context-structure:1",
+     "btc-context-liquidity:1",
+     "btc-context-flow:1",
+     "btc-context-derivatives:1"
+    ]
+   },
+   "ticket_with": {
+    "x": 1044,
+    "y": 419,
+    "w": 360,
+    "h": 669
+   },
+   "ticket_without": {
+    "x": 1044,
+    "y": 419,
+    "w": 360,
+    "h": 669
+   },
+   "ticket_shift_px": {
+    "x": 0,
+    "y": 0,
+    "w": 0,
+    "h": 0
+   },
+   "overflow": {
+    "doc": 0,
+    "body": 0,
+    "strip": 0,
+    "truncated": []
+   },
+   "hot_strip_count": 0,
+   "hot_snapshot_polls_7s": 0,
+   "hot_overflow": {
+    "doc": 0,
+    "body": 0,
+    "strip": null,
+    "truncated": null
+   },
+   "back_on_btc": "\u25cf\nSTRUCTURE\nR 0.13% / S 0.12%\n\u25cf\nLIQUIDITY\nASK STRONG / BID STRONG\n\u25cf\nFLOW\nBUY 91 / SELL 9\n\u25cf\nDERIVATIVES\nOI \u2191 7.73B\nFUND -0.0012% \u00b7 BASIS -0.051%",
+   "banned_strip": {
+    "Q1": 0,
+    "Q2": 0,
+    "Q3": 0,
+    "LONG candidate": 0,
+    "SHORT candidate": 0,
+    "research": 0,
+    "sample": 0,
+    "p-value": 0,
+    "confidence": 0
+   },
+   "banned_body": {
+    "Q1": 0,
+    "Q2": 0,
+    "Q3": 0,
+    "LONG candidate": 0,
+    "SHORT candidate": 0,
+    "research": 0,
+    "sample": 0,
+    "p-value": 0,
+    "confidence": 0
+   },
+   "long_enabled": [
+    false
+   ],
+   "hot_btc_ctx_requests_7s": 2
+  },
+  {
+   "width": 390,
+   "strip": {
+    "x": 16,
+    "y": 1692,
+    "w": 358,
+    "h": 110.25,
+    "text": "\u25cf\nSTRUCTURE\nR 0.13% / S 0.12%\n\u25cf\nLIQUIDITY\nASK STRONG / BID STRONG\n\u25cf\nFLOW\nBUY 91 / SELL 9\n\u25cf\nDERIVATIVES\nOI \u2191 7.73B\nFUND -0.0013% \u00b7 BASIS -0.052%",
+    "live": [
+     "btc-context-structure:1",
+     "btc-context-liquidity:1",
+     "btc-context-flow:1",
+     "btc-context-derivatives:1"
+    ]
+   },
+   "ticket_with": {
+    "x": 16,
+    "y": 1043,
+    "w": 358,
+    "h": 637
+   },
+   "ticket_without": {
+    "x": 16,
+    "y": 1043,
+    "w": 358,
+    "h": 637
+   },
+   "ticket_shift_px": {
+    "x": 0,
+    "y": 0,
+    "w": 0,
+    "h": 0
+   },
+   "overflow": {
+    "doc": 0,
+    "body": 0,
+    "strip": 0,
+    "truncated": []
+   },
+   "hot_strip_count": 0,
+   "hot_snapshot_polls_7s": 0,
+   "hot_overflow": {
+    "doc": 0,
+    "body": 0,
+    "strip": null,
+    "truncated": null
+   },
+   "back_on_btc": "\u25cf\nSTRUCTURE\nR 0.13% / S 0.12%\n\u25cf\nLIQUIDITY\nASK STRONG / BID STRONG\n\u25cf\nFLOW\nBUY 91 / SELL 9\n\u25cf\nDERIVATIVES\nOI \u2191 7.73B\nFUND -0.0013% \u00b7 BASIS -0.052%",
+   "banned_strip": {
+    "Q1": 0,
+    "Q2": 0,
+    "Q3": 0,
+    "LONG candidate": 0,
+    "SHORT candidate": 0,
+    "research": 0,
+    "sample": 0,
+    "p-value": 0,
+    "confidence": 0
+   },
+   "banned_body": {
+    "Q1": 0,
+    "Q2": 0,
+    "Q3": 0,
+    "LONG candidate": 0,
+    "SHORT candidate": 0,
+    "research": 0,
+    "sample": 0,
+    "p-value": 0,
+    "confidence": 0
+   },
+   "long_enabled": [
+    false
+   ],
+   "hot_btc_ctx_requests_7s": 2
+  }
+ ],
+ "scenarios": {
+  "api_down-1440": {
+   "strip": {
+    "x": 276,
+    "y": 1063,
+    "w": 756,
+    "h": 65.75,
+    "text": "\u25cf\nSTRUCTURE\nR -- / S --\n\u25cf\nLIQUIDITY\nASK -- / BID --\n\u25cf\nFLOW\nBUY -- / SELL --\n\u25cf\nDERIVATIVES\nOI --\nFUND -- \u00b7 BASIS --",
+    "live": [
+     "btc-context-structure:0",
+     "btc-context-liquidity:0",
+     "btc-context-flow:0",
+     "btc-context-derivatives:0"
+    ]
+   },
+   "long_enabled": [
+    false
+   ],
+   "alerts": [],
+   "overflow": {
+    "doc": 0,
+    "body": 0,
+    "strip": 0,
+    "truncated": []
+   },
+   "ticket": {
+    "x": 1044,
+    "y": 419,
+    "w": 360,
+    "h": 669
+   }
+  },
+  "api_down-390": {
+   "strip": {
+    "x": 16,
+    "y": 1692,
+    "w": 358,
+    "h": 110.25,
+    "text": "\u25cf\nSTRUCTURE\nR -- / S --\n\u25cf\nLIQUIDITY\nASK -- / BID --\n\u25cf\nFLOW\nBUY -- / SELL --\n\u25cf\nDERIVATIVES\nOI --\nFUND -- \u00b7 BASIS --",
+    "live": [
+     "btc-context-structure:0",
+     "btc-context-liquidity:0",
+     "btc-context-flow:0",
+     "btc-context-derivatives:0"
+    ]
+   },
+   "long_enabled": [
+    false
+   ],
+   "alerts": [],
+   "overflow": {
+    "doc": 0,
+    "body": 0,
+    "strip": 0,
+    "truncated": []
+   },
+   "ticket": {
+    "x": 16,
+    "y": 1043,
+    "w": 358,
+    "h": 637
+   }
+  },
+  "api_stale-1440": {
+   "strip": {
+    "x": 276,
+    "y": 1063,
+    "w": 756,
+    "h": 65.75,
+    "text": "\u25cf\nSTRUCTURE\nR -- / S --\n\u25cf\nLIQUIDITY\nASK -- / BID --\n\u25cf\nFLOW\nBUY -- / SELL --\n\u25cf\nDERIVATIVES\nOI --\nFUND -- \u00b7 BASIS --",
+    "live": [
+     "btc-context-structure:0",
+     "btc-context-liquidity:0",
+     "btc-context-flow:0",
+     "btc-context-derivatives:0"
+    ]
+   },
+   "long_enabled": [
+    false
+   ],
+   "alerts": [],
+   "overflow": {
+    "doc": 0,
+    "body": 0,
+    "strip": 0,
+    "truncated": []
+   },
+   "ticket": {
+    "x": 1044,
+    "y": 419,
+    "w": 360,
+    "h": 669
+   }
+  },
+  "api_stale-390": {
+   "strip": {
+    "x": 16,
+    "y": 1692,
+    "w": 358,
+    "h": 110.25,
+    "text": "\u25cf\nSTRUCTURE\nR -- / S --\n\u25cf\nLIQUIDITY\nASK -- / BID --\n\u25cf\nFLOW\nBUY -- / SELL --\n\u25cf\nDERIVATIVES\nOI --\nFUND -- \u00b7 BASIS --",
+    "live": [
+     "btc-context-structure:0",
+     "btc-context-liquidity:0",
+     "btc-context-flow:0",
+     "btc-context-derivatives:0"
+    ]
+   },
+   "long_enabled": [
+    false
+   ],
+   "alerts": [],
+   "overflow": {
+    "doc": 0,
+    "body": 0,
+    "strip": 0,
+    "truncated": []
+   },
+   "ticket": {
+    "x": 16,
+    "y": 1043,
+    "w": 358,
+    "h": 637
+   }
+  },
+  "api_500-1440": {
+   "strip": {
+    "x": 276,
+    "y": 1063,
+    "w": 756,
+    "h": 65.75,
+    "text": "\u25cf\nSTRUCTURE\nR -- / S --\n\u25cf\nLIQUIDITY\nASK -- / BID --\n\u25cf\nFLOW\nBUY -- / SELL --\n\u25cf\nDERIVATIVES\nOI --\nFUND -- \u00b7 BASIS --",
+    "live": [
+     "btc-context-structure:0",
+     "btc-context-liquidity:0",
+     "btc-context-flow:0",
+     "btc-context-derivatives:0"
+    ]
+   },
+   "long_enabled": [
+    false
+   ],
+   "alerts": [],
+   "overflow": {
+    "doc": 0,
+    "body": 0,
+    "strip": 0,
+    "truncated": []
+   },
+   "ticket": {
+    "x": 1044,
+    "y": 419,
+    "w": 360,
+    "h": 669
+   }
+  },
+  "api_500-390": {
+   "strip": {
+    "x": 16,
+    "y": 1692,
+    "w": 358,
+    "h": 110.25,
+    "text": "\u25cf\nSTRUCTURE\nR -- / S --\n\u25cf\nLIQUIDITY\nASK -- / BID --\n\u25cf\nFLOW\nBUY -- / SELL --\n\u25cf\nDERIVATIVES\nOI --\nFUND -- \u00b7 BASIS --",
+    "live": [
+     "btc-context-structure:0",
+     "btc-context-liquidity:0",
+     "btc-context-flow:0",
+     "btc-context-derivatives:0"
+    ]
+   },
+   "long_enabled": [
+    false
+   ],
+   "alerts": [],
+   "overflow": {
+    "doc": 0,
+    "body": 0,
+    "strip": 0,
+    "truncated": []
+   },
+   "ticket": {
+    "x": 16,
+    "y": 1043,
+    "w": 358,
+    "h": 637
+   }
+  }
+ },
+ "external_blocked": [
+  {
+   "tag": "main-1600",
+   "method": "GET",
+   "url": "https://usb.jptcalc.kr/api/v1/dashboard"
+  },
+  {
+   "tag": "main-1440",
+   "method": "GET",
+   "url": "https://usb.jptcalc.kr/api/v1/dashboard"
+  },
+  {
+   "tag": "main-390",
+   "method": "GET",
+   "url": "https://usb.jptcalc.kr/api/v1/dashboard"
+  },
+  {
+   "tag": "api_down-1440",
+   "method": "GET",
+   "url": "https://usb.jptcalc.kr/api/v1/dashboard"
+  },
+  {
+   "tag": "api_down-390",
+   "method": "GET",
+   "url": "https://usb.jptcalc.kr/api/v1/dashboard"
+  },
+  {
+   "tag": "api_stale-1440",
+   "method": "GET",
+   "url": "https://usb.jptcalc.kr/api/v1/dashboard"
+  },
+  {
+   "tag": "api_stale-390",
+   "method": "GET",
+   "url": "https://usb.jptcalc.kr/api/v1/dashboard"
+  },
+  {
+   "tag": "api_500-1440",
+   "method": "GET",
+   "url": "https://usb.jptcalc.kr/api/v1/dashboard"
+  },
+  {
+   "tag": "api_500-390",
+   "method": "GET",
+   "url": "https://usb.jptcalc.kr/api/v1/dashboard"
+  }
+ ],
+ "requests": {
+  "total": 1147,
+  "by_method": {
+   "GET": 1147
+  },
+  "non_get": [],
+  "snapshot_methods": [
+   "GET"
+  ],
+  "snapshot_count": 21
+ }
+}
