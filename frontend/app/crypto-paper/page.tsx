@@ -1,7 +1,7 @@
 "use client";
 
 import { CryptoTerminal } from "@/components/crypto-terminal";
-import { marketContextSlot } from "@/components/crypto-terminal-context-slot";
+import { contextBase, marketContextSlot } from "@/components/crypto-terminal-context-slot";
 
 /** The deployed manual futures terminal.
  *
@@ -11,11 +11,12 @@ import { marketContextSlot } from "@/components/crypto-terminal-context-slot";
  *  boxes with the right dimensions, and boxes cannot answer whether the panel fits beside the
  *  actual chart, the actual ticket and the actual symbol tabs.
  *
- *  The context slot is BTC Manual Trading Market Context UI V1: four read-only lines under the
- *  BTC chart, in their own chunk. `marketContextSlot` returns nothing at all unless a backend
- *  was configured at build time - so a build without one renders exactly what this route
- *  rendered before the slot existed.
+ *  The context is BTC Manual Trading Market Context UI V2: resistance, support and the nearest
+ *  walls drawn as lines on the BTC chart, and one compact read-only line under it (its own
+ *  chunk). `marketContextSlot` and `contextBase` return nothing at all unless a backend was
+ *  configured at build time - so a build without one renders exactly what this route rendered
+ *  before the context existed.
  */
 export default function CryptoPaperPage() {
-  return <CryptoTerminal marketContext={marketContextSlot()} />;
+  return <CryptoTerminal marketContext={marketContextSlot()} contextBase={contextBase()} />;
 }

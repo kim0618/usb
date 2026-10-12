@@ -3,10 +3,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { CryptoTerminal } from "@/components/crypto-terminal";
 import { BtcContextStrip, BtcContextStripView } from "@/components/btc-context-strip";
-import { marketContextSlot, renderBtcContext } from "@/components/crypto-terminal-context-slot";
-import { contextLines, type BtcContextPayload } from "@/lib/btc-context";
+import { contextBase, marketContextSlot, renderBtcContext } from "@/components/crypto-terminal-context-slot";
+import { contextLabelsShown, contextTags, TAG_HEIGHT_PX } from "@/components/crypto-candle-chart";
+import {
+  contextChartLines, contextLine, flowReading, resetBtcContextStores, type BtcContextPayload,
+} from "@/lib/btc-context";
+import { offscreenOverlays } from "@/lib/crypto-paper";
 
-/** BTC Manual Trading Market Context UI V1 inside the real terminal.
+/** BTC Manual Trading Market Context UI V2 inside the real terminal.
  *
  *  Payloads are the backend's own output, not written by hand: `btc-context-snapshot.json` is
  *  `app.crypto.btc_context_ui_v1.view.display` run over the production Context Collector's
@@ -22,12 +26,24 @@ const STALE = snapshots.stale as unknown as BtcContextPayload;
 const PHONE_WIDTH = 390;
 const WIDE = [1600, 1440];
 
-vi.mock("@/components/crypto-candle-chart", () => ({
-  CandleChart: ({ candles }: { candles: unknown[] }) =>
-    React.createElement("div", { "data-testid": "candle-chart-stub", "data-count": candles.length }),
-}));
+// The chart stub publishes the price lines it was handed, which is the whole contract between the
+// terminal and the chart for this feature: what is drawn is decided before the canvas.
+vi.mock("@/components/crypto-candle-chart", async importOriginal => {
+  const actual = await importOriginal<typeof import("@/components/crypto-candle-chart")>();
+  return {
+    ...actual,
+    CandleChart: ({ candles, overlays }: { candles: unknown[]; overlays: { id: string; price: number; label: string; tag?: string }[] }) =>
+      React.createElement("div", {
+        "data-testid": "candle-chart-stub", "data-count": candles.length,
+        "data-overlays": overlays.map(o => `${o.id}@${o.price}=${o.tag ?? o.label}`).join("|"),
+      }),
+  };
+});
 
-afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers(); });
+afterEach(() => {
+  cleanup(); resetBtcContextStores();
+  vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers();
+});
 beforeEach(() => {
   try { window.localStorage.clear(); } catch { /* private window */ }
 });
@@ -92,78 +108,190 @@ function fakeBackends({ strip = "live" as "live" | "stale" | "down" } = {}) {
   return tally;
 }
 
-const slot = (symbol: string) => <BtcContextStrip key={symbol} symbol={symbol} />;
+const BASE = "/btc-context-api";
+const slot = (symbol: string) => <BtcContextStrip key={symbol} symbol={symbol} base={BASE} />;
 
 const terminalReady = () => waitFor(
   () => expect(screen.getByTestId("market-header")).toBeInTheDocument(), { timeout: 4_000 });
 
 const stripLoaded = () => waitFor(() => expect(
-  screen.getByTestId("btc-context-structure").textContent).toContain("R 0.09%"));
+  screen.getByTestId("btc-context-flow").textContent).toContain("매도우세 72%"));
 
-// --------------------------------------------------------------------------- the strip itself
+const chartOverlays = () => screen.getAllByTestId("candle-chart-stub")
+  .map(node => node.getAttribute("data-overlays") ?? "").join("|");
 
-describe("BTC context strip", () => {
-  it("renders the four sections from the backend's live payload", () => {
+const linesDrawn = () => waitFor(() => expect(chartOverlays()).toContain("ctx-resistance"));
+
+// --------------------------------------------------------------------------- chart lines
+
+describe("BTC context lines on the chart", () => {
+  it("draws resistance, support and both walls at the backend's prices", () => {
+    // The axis label carries the price (no title); the chart's tag carries the name.
+    expect(contextChartLines(LIVE)).toEqual([
+      { id: "ctx-resistance", price: 83113.9, kind: "RESISTANCE", short: "저항", label: "", tag: "저항 83,113.9 +0.09%" },
+      { id: "ctx-support", price: 82912.9, kind: "SUPPORT", short: "지지", label: "", tag: "지지 82,912.9 -0.16%" },
+      { id: "ctx-ask-wall", price: 83050.4, kind: "ASK_WALL", short: "매도벽", label: "", tag: "매도벽 83,050.4" },
+      { id: "ctx-bid-wall", price: 82996.5, kind: "BID_WALL", short: "매수벽", label: "", tag: "매수벽 82,996.5" },
+    ]);
+  });
+
+  it("draws nothing for a stale reading, no reading, or another symbol", () => {
+    expect(contextChartLines(STALE)).toEqual([]);
+    expect(contextChartLines(null)).toEqual([]);
+    expect(contextChartLines({ ...LIVE, symbol: "ETHUSDT" })).toEqual([]);
+  });
+
+  it("leaves out exactly the side the backend did not publish", () => {
+    const noWall = { ...LIVE, liquidity: { ...LIVE.liquidity, ask_wall_price: null } };
+    expect(contextChartLines(noWall).map(l => l.id)).toEqual(["ctx-resistance", "ctx-support", "ctx-bid-wall"]);
+    const noLevel = { ...LIVE, structure: { ...LIVE.structure, support_price: null, support_pct: null } };
+    expect(contextChartLines(noLevel).map(l => l.id)).toEqual(["ctx-resistance", "ctx-ask-wall", "ctx-bid-wall"]);
+  });
+
+  it("is at most one line per kind", () => {
+    const kinds = contextChartLines(LIVE).map(l => l.kind);
+    expect(new Set(kinds).size).toBe(kinds.length);
+    expect(kinds.length).toBeLessThanOrEqual(4);
+  });
+
+  it("never adds a context line to the note above the chart, which would move the ticket", () => {
+    const lines = contextChartLines(LIVE);
+    expect(offscreenOverlays(lines, { from: 83020, to: 83040 })).toEqual([]);
+    // The account's own lines are listed as before.
+    const entry = { id: "entry", price: 90000, label: "진입", kind: "ENTRY" as const };
+    expect(offscreenOverlays([...lines, entry], { from: 83020, to: 83040 }).map(l => l.id)).toEqual(["entry"]);
+  });
+
+  it("tags each line on the pane at its height, and an off-pane level on the edge it is past", () => {
+    const tag = (id: string, kind: "RESISTANCE" | "SUPPORT" | "ASK_WALL" | "BID_WALL", y: number | null, text: string) =>
+      ({ id, kind, y, tag: text });
+    const tags = contextTags([
+      tag("r", "RESISTANCE", -40, "저항 83,113.9 +0.09%"),
+      tag("ask", "ASK_WALL", 100, "매도벽 83,050.4"),
+      tag("bid", "BID_WALL", 900, "매수벽 82,996.5"),      // a wall off the pane: no tag
+      tag("s", "SUPPORT", 450, "지지 82,912.9 -0.16%"),
+    ], 300);
+    expect(tags.map(t => [t.id, t.text, t.top, t.off])).toEqual([
+      ["r", "저항 83,113.9 +0.09% ↑", 0, "UP"],
+      ["ask", "매도벽 83,050.4", 100 - TAG_HEIGHT_PX - 1, null],
+      ["s", "지지 82,912.9 -0.16% ↓", 300 - TAG_HEIGHT_PX, "DOWN"],
+    ]);
+    expect(contextTags([], 300)).toEqual([]);
+    expect(contextTags([tag("r", "RESISTANCE", 10, "저항")], 0)).toEqual([]);
+  });
+
+  it("pushes tags apart without reordering them, and keeps the stack on the pane", () => {
+    const lines = [
+      { id: "a", kind: "RESISTANCE" as const, y: 100, tag: "a" },
+      { id: "b", kind: "ASK_WALL" as const, y: 102, tag: "b" },
+      { id: "c", kind: "BID_WALL" as const, y: 104, tag: "c" },
+    ];
+    const tops = contextTags(lines, 300).map(t => [t.id, t.top]);
+    const first = 100 - TAG_HEIGHT_PX - 1;
+    expect(tops).toEqual([["a", first], ["b", first + TAG_HEIGHT_PX], ["c", first + TAG_HEIGHT_PX * 2]]);
+    const low = contextTags(lines.map(l => ({ ...l, y: l.y + 190 })), 300);
+    expect(low.map(t => t.id)).toEqual(["a", "b", "c"]);
+    expect(Math.max(...low.map(t => t.top)) + TAG_HEIGHT_PX).toBeLessThanOrEqual(300);
+    for (let i = 1; i < low.length; i++) expect(low[i].top - low[i - 1].top).toBeGreaterThanOrEqual(TAG_HEIGHT_PX);
+  });
+
+  it("drops a context label that would overprint the price or a higher label, keeps the rest", () => {
+    const shown = contextLabelsShown(100, [
+      { id: "entry", kind: "ENTRY", y: 140 },
+      { id: "r", kind: "RESISTANCE", y: 108 },      // 8 px under the price: label dropped
+      { id: "s", kind: "SUPPORT", y: 200 },
+      { id: "ask", kind: "ASK_WALL", y: 150 },      // 10 px under the entry label: dropped
+      { id: "bid", kind: "BID_WALL", y: 210 },      // 10 px under support, which outranks it
+      { id: "off", kind: "RESISTANCE", y: null },   // off the pane: nothing to place
+    ]);
+    expect([...shown].sort()).toEqual(["s"]);
+    expect(contextLabelsShown(null, [{ id: "r", kind: "RESISTANCE", y: 10 },
+      { id: "s", kind: "SUPPORT", y: 300 }]).size).toBe(2);
+  });
+});
+
+// --------------------------------------------------------------------------- the line under the chart
+
+describe("BTC context line", () => {
+  it("states the larger side of the flow and its share", () => {
+    expect(flowReading(LIVE)).toEqual({ text: "매도우세 72%", buyPct: 28, side: "SELL" });
+    const flow = (buy: number) => ({ ...LIVE, flow: { ...LIVE.flow, buy_pct: buy, sell_pct: 100 - buy } });
+    expect(flowReading(flow(64)).text).toBe("매수우세 64%");
+    expect(flowReading(flow(51)).text).toBe("매수우세 51%");
+    // Only an exact even split has no larger side; no band around 50 is invented here.
+    expect(flowReading(flow(50)).text).toBe("중립 50%");
+    expect(flowReading(STALE).text).toBe("--");
+    expect(flowReading(null).text).toBe("--");
+  });
+
+  it("shows OI direction and funding, and keeps the other figures for the detail", () => {
     render(<BtcContextStripView payload={LIVE} />);
-    expect(screen.getByTestId("btc-context-structure")).toHaveTextContent("STRUCTURE");
-    expect(screen.getByTestId("btc-context-structure")).toHaveTextContent("R 0.09% / S 0.16%");
-    expect(screen.getByTestId("btc-context-liquidity")).toHaveTextContent("ASK STRONG / BID STRONG");
-    expect(screen.getByTestId("btc-context-flow")).toHaveTextContent("BUY 28 / SELL 72");
-    expect(screen.getByTestId("btc-context-derivatives")).toHaveTextContent("OI ↓ 7.71B");
-    expect(screen.getByTestId("btc-context-derivatives"))
-      .toHaveTextContent("FUND -0.0014% · BASIS -0.040%");
-    for (const id of ["structure", "liquidity", "flow", "derivatives"]) {
-      expect(screen.getByTestId(`btc-context-${id}`).getAttribute("data-live")).toBe("1");
+    expect(screen.getByTestId("btc-context-flow")).toHaveTextContent("체결흐름매도우세 72%");
+    expect(screen.getByTestId("btc-context-oi")).toHaveTextContent(/^OI ↓$/);
+    expect(screen.getByTestId("btc-context-funding")).toHaveTextContent("펀딩 -0.0014%");
+    const detail = screen.getByTestId("btc-context-detail");
+    expect(detail).toHaveTextContent("OI 7.71B");
+    expect(detail).toHaveTextContent("1시간 0.00%");
+    expect(detail).toHaveTextContent("베이시스 -0.040%");
+    // The detail is closed until asked for.
+    expect(screen.getByTestId("btc-context-strip").querySelector("details")?.open).toBe(false);
+    const summary = screen.getByTestId("btc-context-strip").querySelector("summary") as HTMLElement;
+    expect(summary.textContent).not.toContain("7.71B");
+    expect(summary.textContent).not.toContain("베이시스");
+  });
+
+  it("sizes the flow bar by the buy share", () => {
+    render(<BtcContextStripView payload={LIVE} />);
+    const fill = screen.getByTestId("btc-context-flow-bar").firstElementChild as HTMLElement;
+    expect(fill.style.width).toBe("28%");
+  });
+
+  it("is dashes and grey with a stale reading or none", () => {
+    for (const payload of [STALE, null]) {
+      cleanup();
+      render(<BtcContextStripView payload={payload} />);
+      expect(screen.getByTestId("btc-context-flow")).toHaveTextContent("체결흐름--");
+      expect(screen.getByTestId("btc-context-oi")).toHaveTextContent("OI --");
+      expect(screen.getByTestId("btc-context-funding")).toHaveTextContent("펀딩 --");
+      for (const id of ["flow", "oi", "funding"]) {
+        expect(screen.getByTestId(`btc-context-${id}`).getAttribute("data-live")).toBe("0");
+      }
+      expect(screen.getByTestId("btc-context-flow-bar").firstElementChild).toBeNull();
     }
+    expect(contextLine(null).detail).toEqual({ oiValue: "OI --", oiChange: "1시간 --", basis: "베이시스 --" });
   });
 
-  it("shows only dashes and grey dots for a stale reading", () => {
-    render(<BtcContextStripView payload={STALE} />);
-    const strip = screen.getByTestId("btc-context-strip");
-    expect(strip).toHaveTextContent("R -- / S --");
-    expect(strip).toHaveTextContent("ASK -- / BID --");
-    expect(strip).toHaveTextContent("BUY -- / SELL --");
-    expect(strip).toHaveTextContent("OI --");
-    expect(strip).toHaveTextContent("FUND -- · BASIS --");
-    for (const id of ["structure", "liquidity", "flow", "derivatives"]) {
-      expect(screen.getByTestId(`btc-context-${id}`).getAttribute("data-live")).toBe("0");
-    }
-  });
-
-  it("is all dashes with no payload at all", () => {
-    expect(contextLines(null)).toMatchObject({
-      structure: "R -- / S --", liquidity: "ASK -- / BID --", flow: "BUY -- / SELL --",
-      oi: "OI --", rates: "FUND -- · BASIS --",
-    });
-  });
-
-  it("never prints an internal state word or research label", () => {
+  it("never prints an internal state word, an English section name or a research label", () => {
     for (const payload of [LIVE, STALE, null]) {
       cleanup();
       render(<BtcContextStripView payload={payload} />);
       const text = screen.getByTestId("btc-context-strip").textContent ?? "";
+      const lines = contextChartLines(payload).map(l => l.tag).join(" ");
       for (const word of ["STALE", "UNKNOWN", "PARTIAL", "UNAVAILABLE", "Q1", "Q2", "Q3",
-                          "SHORT", "LONG", "CANDIDATE", "RESEARCH", "UNVALIDATED", "sample",
-                          "confidence", "p-value", "contract", "version", "hash", "AUTO"]) {
+                          "SHORT", "LONG", "CANDIDATE", "RESEARCH", "research", "UNVALIDATED",
+                          "sample", "confidence", "p-value", "contract", "version", "hash", "AUTO",
+                          "STRUCTURE", "LIQUIDITY", "DERIVATIVES", "STRONG", "NORMAL", "BUY", "SELL"]) {
         expect(text, word).not.toContain(word);
+        expect(lines, word).not.toContain(word);
       }
     }
   });
 
   it("polls with GET and shows the answer", async () => {
     const tally = fakeBackends();
-    render(<BtcContextStrip symbol="BTCUSDT" />);
+    render(<BtcContextStrip symbol="BTCUSDT" base={BASE} />);
     await stripLoaded();
     expect(tally.stripPolls).toBeGreaterThan(0);
     expect(tally.all.every(r => r.method === "GET")).toBe(true);
+    expect(tally.all.every(r => r.url === `${BASE}/snapshot`)).toBe(true);
   });
 
   it("shows dashes and no error text when the API is unavailable", async () => {
     const tally = fakeBackends({ strip: "down" });
-    render(<BtcContextStrip symbol="BTCUSDT" />);
+    render(<BtcContextStrip symbol="BTCUSDT" base={BASE} />);
     await waitFor(() => expect(tally.stripPolls).toBeGreaterThan(0));
     const strip = screen.getByTestId("btc-context-strip");
-    expect(strip).toHaveTextContent("ASK -- / BID --");
+    expect(strip).toHaveTextContent("체결흐름--");
     expect(strip.textContent).not.toMatch(/error|오류|실패|Failed/i);
     expect(screen.queryByRole("alert")).toBeNull();
   });
@@ -175,18 +303,17 @@ describe("BTC context strip", () => {
       if (!up) throw new TypeError("Failed to fetch");
       return { ok: true, status: 200, json: async () => LIVE };
     }));
-    render(<BtcContextStrip symbol="BTCUSDT" />);
+    render(<BtcContextStrip symbol="BTCUSDT" base={BASE} />);
     await stripLoaded();
     up = false;
     await vi.advanceTimersByTimeAsync(20_000);
-    await waitFor(() => expect(screen.getByTestId("btc-context-structure"))
-      .toHaveTextContent("R -- / S --"));
+    await waitFor(() => expect(screen.getByTestId("btc-context-flow")).toHaveTextContent("체결흐름--"));
   });
 
   it("renders nothing and asks nothing for any symbol but BTC", async () => {
     const tally = fakeBackends();
     for (const symbol of ["ETHUSDT", "SOLUSDT", "DOGEUSDT"]) {
-      const { container } = render(<BtcContextStrip symbol={symbol} />);
+      const { container } = render(<BtcContextStrip symbol={symbol} base={BASE} />);
       expect(container.innerHTML).toBe("");
       expect(renderBtcContext(symbol)).toBeNull();
       cleanup();
@@ -198,22 +325,45 @@ describe("BTC context strip", () => {
   it("is not mounted at all by a build without a configured backend", () => {
     expect(process.env.NEXT_PUBLIC_BTC_CONTEXT_BASE ?? "").toBe("");
     expect(marketContextSlot()).toBeUndefined();
+    expect(contextBase()).toBeUndefined();
   });
 });
 
 // --------------------------------------------------------------------------- inside the terminal
 
-describe("BTC context strip inside the terminal", () => {
-  it.each(WIDE)("sits under the chart, left column, at %ipx", async width => {
+describe("BTC context inside the terminal", () => {
+  it.each(WIDE)("draws the lines on the BTC chart and the line under it at %ipx", async width => {
     stubViewport(width);
     fakeBackends();
-    render(<CryptoTerminal marketContext={slot} />);
+    render(<CryptoTerminal marketContext={slot} contextBase={BASE} />);
     await terminalReady();
     await stripLoaded();
+    await linesDrawn();
+    const drawn = chartOverlays();
+    expect(drawn).toContain("ctx-resistance@83113.9=저항 83,113.9 +0.09%");
+    expect(drawn).toContain("ctx-support@82912.9=지지 82,912.9 -0.16%");
+    expect(drawn).toContain("ctx-ask-wall@83050.4=매도벽 83,050.4");
+    expect(drawn).toContain("ctx-bid-wall@82996.5=매수벽 82,996.5");
+    // The account's own lines are still there, first.
+    expect(drawn.split("|")[0]).toMatch(/^mark@/);
     const strip = screen.getByTestId("btc-context-strip");
     const chart = screen.getAllByTestId("candle-chart-stub")[0];
     expect(chart.compareDocumentPosition(strip) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(screen.getAllByTestId("btc-context-strip")).toHaveLength(1);
+  });
+
+  it("runs one poll loop for the chart lines and the line under the chart together", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    stubViewport(WIDE[0]);
+    const tally = fakeBackends();
+    render(<CryptoTerminal marketContext={slot} contextBase={BASE} />);
+    await terminalReady();
+    await stripLoaded();
+    const before = tally.stripPolls;
+    await vi.advanceTimersByTimeAsync(20_000);
+    // Four poll intervals: one loop asks four times (give or take the edge), two would ask eight.
+    expect(tally.stripPolls - before).toBeGreaterThanOrEqual(3);
+    expect(tally.stripPolls - before).toBeLessThanOrEqual(5);
   });
 
   it.each(WIDE)("leaves the order ticket's container unchanged at %ipx", async width => {
@@ -224,31 +374,33 @@ describe("BTC context strip inside the terminal", () => {
     const before = bare.container.querySelector("[data-testid='order-ticket']")?.parentElement?.className;
     cleanup();
     fakeBackends();
-    const withIt = render(<CryptoTerminal marketContext={slot} />);
+    const withIt = render(<CryptoTerminal marketContext={slot} contextBase={BASE} />);
     await terminalReady();
     await stripLoaded();
     const after = withIt.container.querySelector("[data-testid='order-ticket']")?.parentElement?.className;
     expect(after).toBe(before);
   });
 
-  it("puts the strip after the order ticket at 390px", async () => {
+  it("puts the line after the order ticket at 390px and still draws on the chart", async () => {
     stubViewport(PHONE_WIDTH);
     fakeBackends();
-    render(<CryptoTerminal marketContext={slot} />);
+    render(<CryptoTerminal marketContext={slot} contextBase={BASE} />);
     await terminalReady();
     await stripLoaded();
+    await linesDrawn();
     const strip = screen.getByTestId("btc-context-strip");
     const ticket = screen.getAllByTestId("order-ticket")[0];
     expect(ticket.compareDocumentPosition(strip) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(screen.getAllByTestId("btc-context-strip")).toHaveLength(1);
   });
 
-  it("is hidden on the HOT tab and comes back on BTC", async () => {
+  it("draws nothing and asks nothing on the HOT tab, and comes back on BTC", async () => {
     stubViewport(WIDE[0]);
     const tally = fakeBackends();
-    render(<CryptoTerminal marketContext={slot} />);
+    render(<CryptoTerminal marketContext={slot} contextBase={BASE} />);
     await terminalReady();
     await stripLoaded();
+    await linesDrawn();
     await waitFor(() => expect(
       screen.getByTestId("symbol-tab-hot").getAttribute("data-symbol")).toBe("ETHUSDT"));
     await waitFor(() => expect(screen.getByTestId("symbol-tab-hot")).toBeEnabled());
@@ -256,33 +408,46 @@ describe("BTC context strip inside the terminal", () => {
     await waitFor(() => expect(
       screen.getByTestId("symbol-tab-hot").getAttribute("aria-selected")).toBe("true"));
     expect(screen.queryByTestId("btc-context-strip")).toBeNull();
+    await waitFor(() => expect(chartOverlays()).not.toContain("ctx-"));
     const pollsOnHot = tally.stripPolls;
     await new Promise(resolve => setTimeout(resolve, 50));
     expect(tally.stripPolls).toBe(pollsOnHot);
     fireEvent.click(screen.getByTestId("symbol-tab-BTCUSDT"));
     await stripLoaded();
+    await linesDrawn();
   });
 
-  it("issues no non-GET while the terminal and the strip are on screen", async () => {
+  it("draws no context line on the BTC chart without a configured backend", async () => {
     stubViewport(WIDE[0]);
     const tally = fakeBackends();
-    render(<CryptoTerminal marketContext={slot} />);
+    render(<CryptoTerminal />);
+    await terminalReady();
+    await new Promise(resolve => setTimeout(resolve, 50));
+    expect(chartOverlays()).not.toContain("ctx-");
+    expect(tally.stripPolls).toBe(0);
+  });
+
+  it("issues no non-GET while the terminal and the context are on screen", async () => {
+    stubViewport(WIDE[0]);
+    const tally = fakeBackends();
+    render(<CryptoTerminal marketContext={slot} contextBase={BASE} />);
     await terminalReady();
     await stripLoaded();
+    await linesDrawn();
     await new Promise(resolve => setTimeout(resolve, 50));
     expect(tally.all.filter(r => r.method !== "GET" && r.method !== "HEAD")).toEqual([]);
     expect(tally.all.filter(r => r.url.endsWith("/snapshot")).every(r => r.method === "GET"))
       .toBe(true);
   });
 
-  it("sends the same order request with and without the strip", async () => {
-    // The order callback is the terminal's; the strip must not change what LONG sends.
-    const pressLong = async (withStrip: boolean) => {
+  it("sends the same order request with and without the context", async () => {
+    // The order callback is the terminal's; the context must not change what LONG sends.
+    const pressLong = async (withContext: boolean) => {
       stubViewport(WIDE[0]);
       const tally = fakeBackends();
-      render(<CryptoTerminal marketContext={withStrip ? slot : undefined} />);
+      render(withContext ? <CryptoTerminal marketContext={slot} contextBase={BASE} /> : <CryptoTerminal />);
       await terminalReady();
-      if (withStrip) await stripLoaded();
+      if (withContext) { await stripLoaded(); await linesDrawn(); }
       const longButton = screen.getAllByTestId("long-button")[0];
       expect(longButton).toBeEnabled();
       fireEvent.click(longButton);
@@ -290,6 +455,7 @@ describe("BTC context strip inside the terminal", () => {
       const writes = tally.all.filter(r => r.method !== "GET" && r.method !== "HEAD")
         .map(r => ({ url: r.url, method: r.method, body: r.body }));
       cleanup();
+      resetBtcContextStores();
       return writes;
     };
     const bare = await pressLong(false);
@@ -299,14 +465,14 @@ describe("BTC context strip inside the terminal", () => {
     expect(withIt.some(r => r.url.endsWith("/snapshot"))).toBe(false);
   });
 
-  it("keeps the order ticket controls when the strip's API is down", async () => {
+  it("keeps the order ticket controls when the context API is down", async () => {
     stubViewport(WIDE[0]);
     fakeBackends({ strip: "down" });
-    render(<CryptoTerminal marketContext={slot} />);
+    render(<CryptoTerminal marketContext={slot} contextBase={BASE} />);
     await terminalReady();
     const ticket = screen.getAllByTestId("order-ticket")[0];
     expect(within(ticket).getAllByTestId("long-button")[0]).toBeEnabled();
-    await waitFor(() => expect(screen.getByTestId("btc-context-strip"))
-      .toHaveTextContent("BUY -- / SELL --"));
+    await waitFor(() => expect(screen.getByTestId("btc-context-flow")).toHaveTextContent("체결흐름--"));
+    expect(chartOverlays()).not.toContain("ctx-");
   });
 });

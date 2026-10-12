@@ -310,7 +310,8 @@ def test_fresh_snapshot_is_shown(api_client):
     now = int(time.time() * 1000)
     S.write_snapshot(path, _snap(now - now % 60_000))
     assert client.get("/snapshot").json()["structure"] == {
-        "live": True, "resistance_pct": "0.12", "support_pct": "0.12"}
+        "live": True, "resistance_pct": "0.12", "support_pct": "0.12",
+        "resistance_price": "85100.0", "support_price": "84900.0"}
 
 
 @pytest.mark.parametrize("case", ["missing", "stale", "corrupt", "partial", "foreign", "huge",
@@ -331,9 +332,10 @@ def test_bad_snapshot_is_dashes(api_client, case):
     elif case == "no_close":
         S.write_snapshot(path, _snap(now, bar_close_ms="soon"))
     body = client.get("/snapshot").json()
-    assert body["structure"] == {"live": False, "resistance_pct": None, "support_pct": None}
+    assert body["structure"] == {"live": False, "resistance_pct": None, "support_pct": None,
+                                 "resistance_price": None, "support_price": None}
     assert set(body) == {"symbol", "server_time_ms", "structure", "liquidity", "flow",
-                         "derivatives"}
+                         "derivatives", "walls", "entry"}
 
 
 def test_snapshot_layer_reads_the_same_as_the_in_process_view(arrays):

@@ -611,7 +611,11 @@ export function offscreenOverlays(overlays: ChartOverlay[], range: { from: numbe
   const low = Math.min(range.from, range.to);
   const high = Math.max(range.from, range.to);
   return overlays
-    .filter(overlay => overlay.kind !== "MARK" && (overlay.price > high || overlay.price < low))
+    // Context lines are never listed here: this note sits above the chart, and a longer note
+    // wraps on a phone and moves the order ticket down. The chart marks an off-screen
+    // resistance or support on its own edge instead (`contextEdges`).
+    .filter(overlay => overlay.kind !== "MARK" && !CONTEXT_KINDS.has(overlay.kind)
+      && (overlay.price > high || overlay.price < low))
     .map(overlay => ({ ...overlay, direction: overlay.price > high ? "UP" as const : "DOWN" as const }));
 }
 
@@ -687,7 +691,19 @@ export function volumeSeries(candles: Candle[], up: string, down: string) {
   }));
 }
 
-export type ChartOverlay = { id: string; price: number; label: string; kind: "ENTRY" | "MARK" | "LIQUIDATION" };
+export type ChartOverlay = {
+  id: string; price: number; label: string;
+  kind: "ENTRY" | "MARK" | "LIQUIDATION" | "RESISTANCE" | "SUPPORT" | "ASK_WALL" | "BID_WALL";
+  /** A context line's name ("저항"). */
+  short?: string;
+  /** A context line's tag on the chart: name, price and, for a level, its distance
+   *  ("저항 83,113.9 +0.09%"). The price-axis label carries the price alone. */
+  tag?: string;
+};
+
+/** Read-only market context drawn by the BTC context layer, as opposed to the account's own lines. */
+export const CONTEXT_KINDS: ReadonlySet<ChartOverlay["kind"]> =
+  new Set(["RESISTANCE", "SUPPORT", "ASK_WALL", "BID_WALL"]);
 
 /** Price lines the chart draws over the candles.
  *

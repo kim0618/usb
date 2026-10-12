@@ -58,8 +58,11 @@ def test_live_reading_reduces_to_display_figures(tmp_path, latest, structure, de
     out = V.display(collector_view=view, structure_layer=structure,
                     derivatives_layer=derivatives, now_ms=latest["written_ms"] + 1_000)
     # R1 book: resistance +0.0871 %, support -0.155 % from the last closed minute.
-    assert out["structure"] == {"live": True, "resistance_pct": "0.09", "support_pct": "0.16"}
-    assert out["liquidity"] == {"live": True, "ask": "STRONG", "bid": "STRONG"}
+    assert out["structure"] == {"live": True, "resistance_pct": "0.09", "support_pct": "0.16",
+                                "resistance_price": "83113.9", "support_price": "82912.9"}
+    # The collector's own nearest wall per side, as it published it.
+    assert out["liquidity"] == {"live": True, "ask": "STRONG", "bid": "STRONG",
+                                "ask_wall_price": "83050.4", "bid_wall_price": "82996.5"}
     # 563,945.6221 bought vs 1,446,520.2292 sold in the collector's 60 s window.
     assert out["flow"] == {"live": True, "window": "60s", "buy_pct": 28, "sell_pct": 72}
     d = out["derivatives"]
@@ -69,6 +72,19 @@ def test_live_reading_reduces_to_display_figures(tmp_path, latest, structure, de
     assert d["oi_value_usdt"].isdigit()
     assert d["funding_pct"] == "-0.0014"
     assert d["basis_pct"] == "-0.040"
+
+
+def test_wall_price_is_the_collectors_nearest_wall_and_needs_ok(latest):
+    layer = copy.deepcopy(latest["liquidity"])
+    layer["sides"]["ASK"]["nearest_wall"] = {"price": "83184"}
+    layer["sides"]["BID"]["nearest_wall"] = None
+    out = V.liquidity_section(layer)
+    assert out["ask_wall_price"] == "83184.0" and out["bid_wall_price"] is None
+    # A wall the collector still lists but no longer judges OK (floored STALE) is not placed.
+    layer["sides"]["ASK"]["wall_state"] = "STALE"
+    assert V.liquidity_section(layer)["ask_wall_price"] is None
+    out = V.liquidity_section(copy.deepcopy(latest["liquidity"]) | {"state": "STALE"})
+    assert out["ask_wall_price"] is None and out["bid_wall_price"] is None
 
 
 def test_flow_share_is_buy_over_sum_and_adds_to_100(latest):
@@ -83,7 +99,9 @@ def test_wall_words_are_the_collector_states_only(latest):
     layer = copy.deepcopy(latest["liquidity"])
     layer["sides"]["ASK"]["wall_state"] = "NONE"
     layer["sides"]["BID"]["wall_state"] = "PARTIAL"
-    assert V.liquidity_section(layer) == {"live": True, "ask": "NORMAL", "bid": None}
+    # Only an OK side places a wall: NONE has no wall, and any other state has no value at all.
+    assert V.liquidity_section(layer) == {"live": True, "ask": "NORMAL", "bid": None,
+                                          "ask_wall_price": None, "bid_wall_price": None}
 
 
 def test_old_collector_file_is_dashes_not_numbers(tmp_path, latest):
@@ -93,7 +111,8 @@ def test_old_collector_file_is_dashes_not_numbers(tmp_path, latest):
     assert view["read"]["floored"] is True
     out = V.display(collector_view=view, structure_layer=None, derivatives_layer=None,
                     now_ms=latest["written_ms"] + 60 * 60_000)
-    assert out["liquidity"] == {"live": False, "ask": None, "bid": None}
+    assert out["liquidity"] == {"live": False, "ask": None, "bid": None,
+                                 "ask_wall_price": None, "bid_wall_price": None}
     assert out["flow"]["buy_pct"] is None and out["flow"]["sell_pct"] is None
     assert out["flow"]["live"] is False
 
@@ -118,7 +137,8 @@ def test_stale_and_unknown_structure_and_derivatives_publish_nothing(structure, 
         s = dict(structure, state=state)
         d = dict(derivatives, state=state)
         assert V.structure_section(s) == {"live": False, "resistance_pct": None,
-                                          "support_pct": None}
+                                          "support_pct": None, "resistance_price": None,
+                                          "support_price": None}
         assert all(value is None for key, value in V.derivatives_section(d).items()
                    if key not in ("live", "oi_window"))
 
@@ -132,7 +152,9 @@ def test_no_level_on_one_side_is_a_dash(structure):
     layer = copy.deepcopy(structure)
     layer["levels"]["resistance"].update(price=None, distance_pct=None, available=False)
     assert V.structure_section(layer)["resistance_pct"] is None
+    assert V.structure_section(layer)["resistance_price"] is None
     assert V.structure_section(layer)["support_pct"] == "0.16"
+    assert V.structure_section(layer)["support_price"] == "82912.9"
 
 
 def test_zero_flow_is_dashes_not_fifty_fifty(latest):
@@ -175,9 +197,12 @@ def test_payload_keys_are_exactly_the_display_fields(tmp_path, latest, structure
     out = V.display(collector_view=view, structure_layer=structure,
                     derivatives_layer=derivatives, now_ms=0)
     assert set(out) == {"symbol", "server_time_ms", "structure", "liquidity", "flow",
-                        "derivatives"}
-    assert set(out["structure"]) == {"live", "resistance_pct", "support_pct"}
-    assert set(out["liquidity"]) == {"live", "ask", "bid"}
+                        "derivatives", "walls", "entry"}
+    assert set(out["walls"]) == {"live", "mid", "ask", "bid", "recent_ends"}
+    assert out["entry"] == {"available": False}
+    assert set(out["structure"]) == {"live", "resistance_pct", "support_pct", "resistance_price",
+                                     "support_price"}
+    assert set(out["liquidity"]) == {"live", "ask", "bid", "ask_wall_price", "bid_wall_price"}
     assert set(out["flow"]) == {"live", "window", "buy_pct", "sell_pct"}
     assert set(out["derivatives"]) == {"live", "oi_direction", "oi_change_pct", "oi_window",
                                        "oi_value_usdt", "funding_pct", "basis_pct"}
@@ -224,7 +249,8 @@ def test_snapshot_with_live_collector_and_venue_down(client):
     assert response.status_code == 200
     body = response.json()
     assert body["liquidity"]["live"] is True and body["flow"]["buy_pct"] == 28
-    assert body["structure"] == {"live": False, "resistance_pct": None, "support_pct": None}
+    assert body["structure"] == {"live": False, "resistance_pct": None, "support_pct": None,
+                                 "resistance_price": None, "support_price": None}
     assert body["derivatives"]["live"] is False
 
 
@@ -232,7 +258,8 @@ def test_snapshot_without_collector_root_is_all_dashes(monkeypatch):
     monkeypatch.delenv(CTX.ROOT_ENV, raising=False)
     monkeypatch.setattr(A.state, "sources", A.Sources(opener=_Failing()))
     body = TestClient(A.app).get("/snapshot").json()
-    assert body["liquidity"] == {"live": False, "ask": None, "bid": None}
+    assert body["liquidity"] == {"live": False, "ask": None, "bid": None,
+                                 "ask_wall_price": None, "bid_wall_price": None}
     assert body["flow"]["buy_pct"] is None
     assert TestClient(A.app).get("/health").json()["collector_root_set"] is False
 
@@ -293,7 +320,7 @@ def test_package_imports_nothing_that_trades():
 
 #: The modules the API process runs. The structure worker (`structure_state`, `structure_worker`)
 #: is a separate oneshot that writes its own state directory; its writes are tested on their own.
-API_MODULES = ("__init__.py", "__main__.py", "api.py", "view.py")
+API_MODULES = ("__init__.py", "__main__.py", "api.py", "view.py", "entry_context.py")
 
 
 def test_package_writes_nothing():

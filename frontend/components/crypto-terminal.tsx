@@ -23,6 +23,8 @@ import {
 import { DEFAULT_SYMBOL } from "@/lib/crypto-symbols";
 import type { ChartTimeframe } from "@/lib/crypto-paper";
 import { positionOpenedMs } from "@/lib/crypto-paper";
+import { contextChartLines, useBtcContext, useWallSelection } from "@/lib/btc-context";
+import type { ContextView } from "@/lib/btc-context";
 import { ARM_NOTE, LIVE_CHART_SOURCE_NOTE, LIVE_LOCK_NOTE, liveOverlays, liveTradeGate }
   from "@/lib/crypto-live";
 import type { AccountSource } from "@/lib/crypto-live";
@@ -54,7 +56,7 @@ function useIsWide() {
   return wide;
 }
 
-export function CryptoTerminal({ marketContext }: {
+export function CryptoTerminal({ marketContext, contextBase }: {
   /** Rendered under the chart on a wide screen and under the order ticket on a phone.
    *
    *  A function of the on-screen symbol rather than a ready-made node, because the one failure
@@ -62,7 +64,10 @@ export function CryptoTerminal({ marketContext }: {
    *  another instrument's label. Taking the symbol from here means a caller cannot supply a BTC
    *  panel to an ETH tab, and `key` on the result means switching tabs remounts rather than
    *  carrying the previous symbol's reading across. */
-  marketContext?: (symbol: string) => ReactNode;
+  marketContext?: (symbol: string, view?: ContextView) => ReactNode;
+  /** The BTC context API, for the lines drawn on the BTC chart (resistance, support, nearest
+   *  walls). Omitted - as in every build without one configured - draws none and asks nothing. */
+  contextBase?: string;
 } = {}) {
   /** PAPER unless the operator switches, and the switch is only offered when the backend says a
    *  Binance key is configured. The two accounts never render at the same time. */
@@ -114,9 +119,23 @@ export function CryptoTerminal({ marketContext }: {
    */
   const c1Enabled = symbol === DEFAULT_SYMBOL;
   const signals = useC1Signals(c1Enabled);
+  /** BTC context lines on the chart. BTC only, by the same rule as C1: on any other tab the hook
+   *  is disabled, which is no request at all rather than a hidden line. It shares one poll loop
+   *  with the line under the chart. */
+  const contextOn = Boolean(contextBase) && symbol === DEFAULT_SYMBOL;
+  const context = useBtcContext(contextBase ?? "", contextOn);
+  const wallSelection = useWallSelection();
+  const contextLines = useMemo(() => (contextOn
+    ? contextChartLines(context, { timeframe, selection: wallSelection }) : []),
+  [contextOn, context, timeframe, wallSelection]);
   const wide = useIsWide();
   const live = useLivePnl(terminal.state?.account?.position_side != null, symbol);
   const binance = useBinanceLive(source === "BINANCE_LIVE", symbol);
+  /** The position and price the context under the chart is measured from: the account on screen,
+   *  read from the same objects its own chart lines are drawn from. Read only. */
+  const contextView = useMemo<ContextView>(() => (source === "BINANCE_LIVE"
+    ? liveContextView(binance.account) : paperContextView(terminal.state)),
+  [source, binance.account, terminal.state]);
   /** Every symbol's last-hour range, on both accounts.
    *
    *  Not gated on `source`: the range is Bybit's market data and says nothing about an account,
@@ -215,7 +234,7 @@ export function CryptoTerminal({ marketContext }: {
                     onTimeframe={setTimeframe} overlays={liveOverlays(account)}
                     note={LIVE_CHART_SOURCE_NOTE}
                     c1={c1Enabled ? signals.state : null}
-                    c1Markers={c1Enabled ? signals.markers : []} />
+                    c1Markers={c1Enabled ? signals.markers : []} contextLines={contextLines} />
                 )}
                 {/* Manual Market Context, read-only, directly under the chart.
 
@@ -223,7 +242,7 @@ export function CryptoTerminal({ marketContext }: {
                     nothing added here moves it. The slot is a function of the symbol rather than a
                     node, so a caller cannot hand this screen a panel built for a different
                     instrument than the tab it is rendered under - the symbol comes from here. */}
-                {wide && marketContext ? marketContext(symbol) : null}
+                {wide && marketContext ? marketContext(symbol, contextView) : null}
                 {/* Wide only: the phone already has the card above the chart, and showing
                     both would print the same position twice. Same split the paper screen uses
                     between MobilePositionCard and PositionStrip. */}
@@ -271,7 +290,7 @@ export function CryptoTerminal({ marketContext }: {
                 with four layers collapsed. Below it, the ticket is where it always was and the context
                 costs the phone nothing until it is scrolled to. */}
             {!wide && marketContext
-              ? <div className="mt-3">{marketContext(symbol)}</div> : null}
+              ? <div className="mt-3">{marketContext(symbol, contextView)}</div> : null}
 
             {/* Everything that documents the screen rather than driving a decision, behind the
                 same disclosures the paper screen uses. */}
@@ -339,14 +358,14 @@ export function CryptoTerminal({ marketContext }: {
           <ChartSection state={state} bars={terminal.bars} timeframe={timeframe}
             onTimeframe={setTimeframe}
             c1={c1Enabled ? signals.state : null}
-            c1Markers={c1Enabled ? signals.markers : []} />
+            c1Markers={c1Enabled ? signals.markers : []} contextLines={contextLines} />
           {/* Manual Market Context, read-only, directly under the chart.
 
               In the left column on purpose: the right column is the order ticket's 360px and
               nothing added here moves it. The slot is a function of the symbol rather than a
               node, so a caller cannot hand this screen a panel built for a different
               instrument than the tab it is rendered under - the symbol comes from here. */}
-          {wide && marketContext ? marketContext(symbol) : null}
+          {wide && marketContext ? marketContext(symbol, contextView) : null}
           {/* On a phone the order panel sits here, directly under the chart. The wide layout
               moves it to the right column, which is why it is rendered twice rather than
               repositioned with CSS order: two different trees, each simple. */}
@@ -374,7 +393,7 @@ export function CryptoTerminal({ marketContext }: {
           between the chart and the ticket at 390px, the ticket starts 1,736px down the page even
           with four layers collapsed. Below it, the ticket is where it always was and the context
           costs the phone nothing until it is scrolled to. */}
-      {!wide && marketContext ? <div className="mt-3">{marketContext(symbol)}</div> : null}
+      {!wide && marketContext ? <div className="mt-3">{marketContext(symbol, contextView)}</div> : null}
 
       <div className="mt-4 sm:mt-6">
         <Disclosure title="이 세션의 성과" testId="disclosure-performance">
@@ -394,4 +413,29 @@ export function CryptoTerminal({ marketContext }: {
       </div>
     </div>
   );
+}
+
+
+function finite(value: string | null | undefined): number | null {
+  if (value == null) return null;
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+function liveContextView(account: ReturnType<typeof useBinanceLive>["account"]): ContextView {
+  const position = account?.position;
+  const mark = finite(position?.mark_price) ?? finite(account?.mark?.mark_price);
+  const entry = finite(position?.entry_price);
+  if (!position || position.is_flat || entry == null || (position.side !== "LONG" && position.side !== "SHORT")) {
+    return { position: null, mark };
+  }
+  return { position: { sign: position.side === "LONG" ? 1 : -1, entry, qty: position.qty }, mark };
+}
+
+function paperContextView(state: ReturnType<typeof useCryptoTerminal>["state"]): ContextView {
+  const mark = finite(state?.quote?.mark_price);
+  const account = state?.account;
+  const entry = finite(account?.avg_entry);
+  if (!account || account.position_side == null || entry == null) return { position: null, mark };
+  return { position: { sign: account.position_side === "LONG" ? 1 : -1, entry, qty: account.position_qty }, mark };
 }

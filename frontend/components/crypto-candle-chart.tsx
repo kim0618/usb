@@ -8,6 +8,7 @@ import type {
   AutoscaleInfo, IChartApi, IPriceLine, ISeriesApi, ISeriesMarkersPluginApi, SeriesMarker, Time,
 } from "lightweight-charts";
 import type { ChartOverlay, ChartPoint } from "@/lib/crypto-paper";
+import { CONTEXT_KINDS } from "@/lib/crypto-paper";
 import { isTailUpdate, isWhitespace, visible15sBars } from "@/lib/crypto-paper";
 import type { C1ChartMarker, MarkKind } from "@/lib/crypto-c1";
 
@@ -82,6 +83,100 @@ export function widenPriceRange<T extends { priceRange: { minValue: number; maxV
   return { ...info, priceRange: { minValue: mid - minSpan / 2, maxValue: mid + minSpan / 2 } };
 }
 
+/** How each kind of line is drawn. The account's own lines (mark, entry, liquidation) are as they
+ *  were. The BTC context lines are thinner in meaning and drawn quieter: resistance and support
+ *  as solid hairlines in the sell/buy colours, the nearest walls dotted and fainter, so a wall
+ *  never reads as heavier than a level. */
+export const OVERLAY_STYLE: Record<ChartOverlay["kind"], { color: string; lineStyle: 0 | 1 | 2 }> = {
+  MARK: { color: "rgba(148,163,184,0.85)", lineStyle: 2 },
+  ENTRY: { color: "#38bdf8", lineStyle: 0 },
+  LIQUIDATION: { color: "#f59e0b", lineStyle: 0 },
+  RESISTANCE: { color: "rgba(244,63,94,0.9)", lineStyle: 0 },
+  SUPPORT: { color: "rgba(16,185,129,0.9)", lineStyle: 0 },
+  ASK_WALL: { color: "rgba(244,63,94,0.55)", lineStyle: 1 },
+  BID_WALL: { color: "rgba(16,185,129,0.55)", lineStyle: 1 },
+};
+
+/** Vertical room one price-axis label needs, in CSS px. Two labels closer than this overprint. */
+export const LABEL_GAP_PX = 16;
+
+/** Which context labels to show, given where every label would sit (y in px, null = off the pane).
+ *
+ *  The last price comes first, then the account's own lines, then resistance/support, then walls.
+ *  A context line whose label would land within `LABEL_GAP_PX` of one already placed keeps its
+ *  line but loses its label: the price and the position are never the ones that give way. Lines
+ *  that are not context lines are always shown and only take part as obstacles. */
+export function contextLabelsShown(lastPriceY: number | null,
+  lines: { id: string; kind: ChartOverlay["kind"]; y: number | null }[]): Set<string> {
+  const rank = (kind: ChartOverlay["kind"]) =>
+    kind === "RESISTANCE" || kind === "SUPPORT" ? 2 : kind === "ASK_WALL" || kind === "BID_WALL" ? 3 : 1;
+  const placed: number[] = lastPriceY == null ? [] : [lastPriceY];
+  const shown = new Set<string>();
+  const ordered = [...lines].sort((a, b) => rank(a.kind) - rank(b.kind));
+  for (const line of ordered) {
+    if (line.y == null) continue;
+    if (!CONTEXT_KINDS.has(line.kind)) {
+      placed.push(line.y);
+      continue;
+    }
+    if (placed.every(y => Math.abs(y - (line.y as number)) >= LABEL_GAP_PX)) {
+      placed.push(line.y);
+      shown.add(line.id);
+    }
+  }
+  return shown;
+}
+
+/** Height of one context tag on the chart, in CSS px; tags closer than this are pushed apart. */
+export const TAG_HEIGHT_PX = 15;
+
+export type ContextTag = { id: string; kind: ChartOverlay["kind"]; text: string; top: number; off: "UP" | "DOWN" | null };
+
+/** Where each context line's name tag goes on the chart's left edge.
+ *
+ *  A line on the pane gets its tag just above the line. Resistance or support off the pane gets
+ *  its tag on the top or bottom edge with an arrow, because the price scale is never widened to
+ *  bring a level into view; a wall off the pane gets nothing (it is not near the price). Tags are
+ *  then pushed apart top to bottom so none overprints another; the order never changes, so a tag
+ *  stays on the same side of its neighbours as its line. */
+export function contextTags(lines: { id: string; kind: ChartOverlay["kind"]; y: number | null; tag: string }[],
+  paneHeight: number): ContextTag[] {
+  if (paneHeight <= 0) return [];
+  const placed: ContextTag[] = [];
+  for (const line of lines) {
+    if (!CONTEXT_KINDS.has(line.kind) || line.y == null) continue;
+    const level = line.kind === "RESISTANCE" || line.kind === "SUPPORT";
+    if (line.y < 0 || line.y > paneHeight) {
+      if (!level) continue;
+      const up = line.y < 0;
+      placed.push({ id: line.id, kind: line.kind, text: `${line.tag} ${up ? "↑" : "↓"}`,
+                    top: up ? 0 : paneHeight - TAG_HEIGHT_PX, off: up ? "UP" : "DOWN" });
+    } else {
+      // Just above its line, so the tag names the line without covering it.
+      placed.push({ id: line.id, kind: line.kind, text: line.tag, top: line.y - TAG_HEIGHT_PX - 1, off: null });
+    }
+  }
+  placed.sort((x, y) => x.top - y.top);
+  for (let i = 0; i < placed.length; i++) {
+    const floor = i === 0 ? 0 : placed[i - 1].top + TAG_HEIGHT_PX;
+    placed[i].top = Math.max(placed[i].top, floor);
+  }
+  // A stack pushed past the bottom is shifted back up as a block, still in order.
+  const overflow = placed.length ? placed[placed.length - 1].top + TAG_HEIGHT_PX - paneHeight : 0;
+  if (overflow > 0) {
+    for (let i = placed.length - 1; i >= 0; i--) {
+      const ceiling = i === placed.length - 1 ? paneHeight - TAG_HEIGHT_PX : placed[i + 1].top - TAG_HEIGHT_PX;
+      placed[i].top = Math.max(0, Math.min(placed[i].top, ceiling));
+    }
+  }
+  return placed;
+}
+
+const TAG_COLOR: Partial<Record<ChartOverlay["kind"], string>> = {
+  RESISTANCE: "rgb(251,113,133)", SUPPORT: "rgb(52,211,153)",
+  ASK_WALL: "rgba(251,113,133,0.85)", BID_WALL: "rgba(52,211,153,0.85)",
+};
+
 /** Candlestick chart, isolated in its own client component.
  *
  *  lightweight-charts drives an imperative canvas and touches `window` on construction, so it is
@@ -127,6 +222,11 @@ export function CandleChart({ candles, overlays, markers = [], className = "h-[3
   const priceSeries = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const volumeSeries = useRef<ISeriesApi<"Histogram"> | null>(null);
   const lines = useRef<Map<string, IPriceLine>>(new Map());
+  // What each line was asked to be, and whether its label is currently suppressed, so the
+  // label pass can toggle labels without rebuilding the line.
+  const lineSpecs = useRef<Map<string, { kind: ChartOverlay["kind"]; price: number; title: string; tag?: string }>>(new Map());
+  const tagLayer = useRef<HTMLDivElement | null>(null);
+  const labelHidden = useRef<Set<string>>(new Set());
   const markerPlugin = useRef<ISeriesMarkersPluginApi<Time> | null>(null);
   const fitted = useRef(false);
   const drawn = useRef<{ key: string; times: number[] } | null>(null);
@@ -151,6 +251,57 @@ export function CandleChart({ candles, overlays, markers = [], className = "h-[3
   // The chart is created in an async effect, so markers that arrived before it existed have to be
   // applied at creation; without this a first paint with signals already fetched draws none.
   const markerSpecs = useRef<SeriesMarker<Time>[]>([]);
+  /** Hide the label of a context line that would overprint the price or a higher line's label. */
+  const declutter = useCallback(() => {
+    const series = priceSeries.current;
+    if (!series) return;
+    const data = series.data();
+    const lastBar = data.length > 0 ? data[data.length - 1] as { close?: number } : null;
+    const lastY = lastBar?.close != null ? series.priceToCoordinate(lastBar.close) : null;
+    // `priceToCoordinate` answers for any price, on the pane or not, so "on the pane" is read
+    // from the coordinate against the pane's height. (The scale's visible range is not it: that
+    // range leaves out the scale margins, where a line is still drawn.)
+    const paneHeight = chart.current?.paneSize(0).height ?? 0;
+    const at = [...lineSpecs.current.entries()].map(([id, spec]) =>
+      ({ id, kind: spec.kind, tag: spec.tag ?? "", y: series.priceToCoordinate(spec.price) as number | null }));
+    const entries = at.map(entry => ({ ...entry,
+      y: entry.y != null && entry.y >= 0 && entry.y <= paneHeight ? entry.y : null }));
+    const shown = contextLabelsShown(lastY, entries);
+    const marks: string[] = [];
+    for (const { id, kind, y } of entries) {
+      if (!CONTEXT_KINDS.has(kind)) continue;
+      const hide = !shown.has(id);
+      marks.push(`${id}:${y == null ? "off" : hide ? "line" : "label"}`);
+      if (hide === labelHidden.current.has(id)) continue;
+      const spec = lineSpecs.current.get(id);
+      lines.current.get(id)?.applyOptions(hide
+        ? { axisLabelVisible: false, title: "" }
+        : { axisLabelVisible: true, title: spec?.title ?? "" });
+      if (hide) labelHidden.current.add(id);
+      else labelHidden.current.delete(id);
+    }
+    if (box.current) box.current.dataset.contextLines = marks.sort().join("|");
+    // Name tags, drawn as plain text nodes (no markup from data) in a click-through layer.
+    const layer = tagLayer.current;
+    if (layer) {
+      const tags = contextTags(at, paneHeight);
+      const key = tags.map(t => `${t.id}:${Math.round(t.top)}:${t.text}`).join("|");
+      if (layer.dataset.key !== key) {
+        layer.dataset.key = key;
+        layer.replaceChildren(...tags.map(tag => {
+          const node = document.createElement("span");
+          node.textContent = tag.text;
+          node.dataset.tag = tag.id;
+          node.dataset.off = tag.off ?? "";
+          node.className = "absolute left-1 whitespace-nowrap rounded bg-surface px-1 text-[10px] font-medium leading-[15px] tabular-nums opacity-90";
+          node.style.top = `${Math.round(tag.top)}px`;
+          node.style.color = TAG_COLOR[tag.kind] ?? "";
+          return node;
+        }));
+      }
+    }
+  }, []);
+
   const report = useCallback(() => {
     const api = chart.current;
     const node = box.current;
@@ -163,11 +314,15 @@ export function CandleChart({ candles, overlays, markers = [], className = "h-[3
       ? String(Math.max(0, Math.min(count - 1, Math.floor(range.to)) - Math.max(0, Math.ceil(range.from)) + 1))
       : "";
     node.dataset.barSpacing = String(api.timeScale().options().barSpacing);
+    // Where the view sits: its right edge against the newest bar's index (live edge when >=).
+    node.dataset.rangeTo = range ? range.to.toFixed(1) : "";
+    node.dataset.lastIndex = String(count - 1);
     node.dataset.priceSpan = prices ? (prices.to - prices.from).toFixed(2) : "";
     if (range && range.from <= 20) historyListener.current?.();
     node.dataset.profile = secondsRef.current ? "15s" : "minute";
     rangeListener.current?.(prices ? { from: prices.from, to: prices.to } : null);
-  }, []);
+    declutter();
+  }, [declutter]);
 
   useEffect(() => {
     let disposed = false;
@@ -176,6 +331,8 @@ export function CandleChart({ candles, overlays, markers = [], className = "h-[3
     // Captured for the cleanup: the ref object itself outlives the effect, and reading
     // `.current` during teardown is what the lint rule is warning about.
     const priceLines = lines.current;
+    const specs = lineSpecs.current;
+    const hidden = labelHidden.current;
 
     (async () => {
       // The library is imported at the top of this module rather than awaited here, which is
@@ -248,6 +405,8 @@ export function CandleChart({ candles, overlays, markers = [], className = "h-[3
     return () => {
       disposed = true;
       priceLines.clear();
+      specs.clear();
+      hidden.clear();
       markerPlugin.current = null;
       chart.current?.remove();
       chart.current = null;
@@ -318,26 +477,31 @@ export function CandleChart({ candles, overlays, markers = [], className = "h-[3
   useEffect(() => {
     const price = priceSeries.current;
     if (!price) return;
-    const colors: Record<ChartOverlay["kind"], string> = {
-      MARK: "rgba(148,163,184,0.85)", ENTRY: "#38bdf8", LIQUIDATION: "#f59e0b",
-    };
     const wanted = new Set(overlays.map(overlay => overlay.id));
     for (const [id, line] of lines.current) {
       if (!wanted.has(id)) {
         price.removePriceLine(line);
         lines.current.delete(id);
+        lineSpecs.current.delete(id);
+        labelHidden.current.delete(id);
       }
     }
     for (const overlay of overlays) {
       const existing = lines.current.get(overlay.id);
+      const style = OVERLAY_STYLE[overlay.kind];
+      // A label the last pass suppressed stays suppressed until the next pass decides again.
+      const hidden = labelHidden.current.has(overlay.id);
       const options = {
-        price: overlay.price, color: colors[overlay.kind], lineWidth: 1 as const,
-        lineStyle: overlay.kind === "MARK" ? 2 : 0, axisLabelVisible: true, title: overlay.label,
+        price: overlay.price, color: style.color, lineWidth: 1 as const,
+        lineStyle: style.lineStyle, axisLabelVisible: !hidden, title: hidden ? "" : overlay.label,
       };
+      lineSpecs.current.set(overlay.id, { kind: overlay.kind, price: overlay.price, title: overlay.label,
+                                          tag: overlay.tag });
       if (existing) existing.applyOptions(options);
       else lines.current.set(overlay.id, price.createPriceLine(options));
     }
-  }, [overlays]);
+    declutter();
+  }, [overlays, declutter]);
 
   // Signals, redrawn whenever the set or the timeframe changes. `setMarkers` replaces the whole
   // set, which is what keeps a timeframe switch from leaving the previous timeframe's arrows
@@ -363,6 +527,11 @@ export function CandleChart({ candles, overlays, markers = [], className = "h-[3
       data-markers={markers.length} data-marker-text={markers.map(m => m.text).join("|")}
       data-marker-kinds={markers.map(m => `${m.kind}:${m.shape}:${m.position}`).join("|")}>
       <div ref={holder} className="absolute inset-0" />
+      {/* Context line names (BTC only), on the chart's left edge: inside the chart box, so they
+          never move anything around it, and click-through, so they never take a pan or a zoom. */}
+      {/* z-[3]: the library's canvases are z-index 1 and 2 inside the holder, and an unstacked layer
+          would sit under them. */}
+      <div ref={tagLayer} data-testid="context-tags" className="pointer-events-none absolute inset-0 z-[3] overflow-hidden" />
       {candles.length === 0 && (
         <p className="absolute inset-0 flex items-center justify-center text-sm text-muted">
           차트 데이터를 받는 중입니다.

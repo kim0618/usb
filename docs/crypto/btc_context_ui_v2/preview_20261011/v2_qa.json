@@ -1,0 +1,591 @@
+{
+ "widths": {
+  "1600": {
+   "ctx_chart": {
+    "lines": "ctx-ask-wall:label|ctx-bid-wall:line|ctx-resistance:line|ctx-support:line",
+    "bars": "294",
+    "span": "308.40",
+    "spacing": "2.7474747474747474",
+    "profile": "minute",
+    "y": 514,
+    "h": 520,
+    "tags": [
+     "\ub9e4\ub3c4\ubcbd 83,168.8@92px",
+     "\uc800\ud56d 83,137.2 +0.01%@124px",
+     "\uc9c0\uc9c0 83,113.9 -0.02%@148px",
+     "\ub9e4\uc218\ubcbd 83,112.0@163px"
+    ]
+   },
+   "bare_chart": {
+    "lines": "",
+    "bars": "294",
+    "span": "308.40",
+    "spacing": "2.7474747474747474",
+    "profile": "minute",
+    "y": 514,
+    "h": 520,
+    "tags": []
+   },
+   "span_samples": [
+    [
+     "308.40",
+     "308.40",
+     "294",
+     "294"
+    ],
+    [
+     "308.40",
+     "308.40",
+     "294",
+     "294"
+    ],
+    [
+     "308.40",
+     "308.40",
+     "294",
+     "294"
+    ],
+    [
+     "308.40",
+     "308.40",
+     "294",
+     "294"
+    ],
+    [
+     "308.40",
+     "308.40",
+     "294",
+     "294"
+    ]
+   ],
+   "ticket_ctx": {
+    "x": 1204,
+    "y": 419,
+    "w": 360,
+    "h": 669
+   },
+   "ticket_bare": {
+    "x": 1204,
+    "y": 419,
+    "w": 360,
+    "h": 669
+   },
+   "ticket_shift": {
+    "x": 0,
+    "y": 0,
+    "w": 0,
+    "h": 0
+   },
+   "overflow": {
+    "doc": 0,
+    "body": 0,
+    "strip": 0
+   },
+   "strip": "\uccb4\uacb0\ud750\ub984\n\ub9e4\uc218\uc6b0\uc138 81%\nOI \u2191\n\ud380\ub529 +0.0003%\n\u25be",
+   "offscreen_note": "\uc9c4\uc785 83,612.9 \u2191 \ud654\uba74 \ubc16 \u00b7 \uccad\uc0b0 91,671.7 \u2191 \ud654\uba74 \ubc16",
+   "banned": {}
+  },
+  "1440": {
+   "ctx_chart": {
+    "lines": "ctx-ask-wall:label|ctx-bid-wall:line|ctx-resistance:line|ctx-support:line",
+    "bars": "240",
+    "span": "308.40",
+    "spacing": "2.6995884773662553",
+    "profile": "minute",
+    "y": 514,
+    "h": 520,
+    "tags": [
+     "\ub9e4\ub3c4\ubcbd 83,162.3@98px",
+     "\uc800\ud56d 83,137.2 +0.01%@124px",
+     "\uc9c0\uc9c0 83,113.9 -0.02%@148px",
+     "\ub9e4\uc218\ubcbd 83,112.0@163px"
+    ]
+   },
+   "bare_chart": {
+    "lines": "",
+    "bars": "240",
+    "span": "308.40",
+    "spacing": "2.6995884773662553",
+    "profile": "minute",
+    "y": 514,
+    "h": 520,
+    "tags": []
+   },
+   "span_samples": [
+    [
+     "308.40",
+     "308.40",
+     "240",
+     "240"
+    ],
+    [
+     "308.40",
+     "308.40",
+     "240",
+     "240"
+    ],
+    [
+     "308.40",
+     "308.40",
+     "240",
+     "240"
+    ],
+    [
+     "308.40",
+     "308.40",
+     "240",
+     "240"
+    ],
+    [
+     "308.40",
+     "308.40",
+     "240",
+     "240"
+    ]
+   ],
+   "ticket_ctx": {
+    "x": 1044,
+    "y": 419,
+    "w": 360,
+    "h": 669
+   },
+   "ticket_bare": {
+    "x": 1044,
+    "y": 419,
+    "w": 360,
+    "h": 669
+   },
+   "ticket_shift": {
+    "x": 0,
+    "y": 0,
+    "w": 0,
+    "h": 0
+   },
+   "overflow": {
+    "doc": 0,
+    "body": 0,
+    "strip": 0
+   },
+   "strip": "\uccb4\uacb0\ud750\ub984\n\ub9e4\uc218\uc6b0\uc138 89%\nOI \u2191\n\ud380\ub529 +0.0003%\n\u25be",
+   "offscreen_note": "\uc9c4\uc785 83,612.9 \u2191 \ud654\uba74 \ubc16 \u00b7 \uccad\uc0b0 91,671.7 \u2191 \ud654\uba74 \ubc16",
+   "banned": {}
+  },
+  "390": {
+   "ctx_chart": {
+    "lines": "ctx-ask-wall:label|ctx-bid-wall:line|ctx-resistance:line|ctx-support:line",
+    "bars": "113",
+    "span": "277.80",
+    "spacing": "2.3620689655172415",
+    "profile": "minute",
+    "y": 821.5,
+    "h": 200,
+    "tags": [
+     "\ub9e4\ub3c4\ubcbd 83,189.0@16px",
+     "\uc800\ud56d 83,137.2 +0.01%@37px",
+     "\uc9c0\uc9c0 83,113.9 -0.02%@52px",
+     "\ub9e4\uc218\ubcbd 83,112.0@67px"
+    ]
+   },
+   "bare_chart": {
+    "lines": "",
+    "bars": "113",
+    "span": "277.80",
+    "spacing": "2.3620689655172415",
+    "profile": "minute",
+    "y": 821.5,
+    "h": 200,
+    "tags": []
+   },
+   "span_samples": [
+    [
+     "171.00",
+     "277.80",
+     "113",
+     "113"
+    ],
+    [
+     "171.00",
+     "277.80",
+     "113",
+     "113"
+    ],
+    [
+     "277.80",
+     "277.80",
+     "113",
+     "113"
+    ],
+    [
+     "277.80",
+     "277.80",
+     "113",
+     "113"
+    ],
+    [
+     "277.80",
+     "277.80",
+     "113",
+     "113"
+    ]
+   ],
+   "ticket_ctx": {
+    "x": 16,
+    "y": 1042.5,
+    "w": 358,
+    "h": 637
+   },
+   "ticket_bare": {
+    "x": 16,
+    "y": 1042.5,
+    "w": 358,
+    "h": 637
+   },
+   "ticket_shift": {
+    "x": 0,
+    "y": 0.0,
+    "w": 0,
+    "h": 0
+   },
+   "overflow": {
+    "doc": 0,
+    "body": 0,
+    "strip": 0
+   },
+   "strip": "\uccb4\uacb0\ud750\ub984\n\ub9e4\uc218\uc6b0\uc138 61%\nOI \u2191\n\ud380\ub529 +0.0004%\n\u25be",
+   "offscreen_note": "\uc9c4\uc785 83,612.9 \u2191 \ud654\uba74 \ubc16 \u00b7 \uccad\uc0b0 91,671.7 \u2191 \ud654\uba74 \ubc16",
+   "banned": {},
+   "strip_open": "\uccb4\uacb0\ud750\ub984\n\ub9e4\uc218\uc6b0\uc138 61%\nOI \u2191\n\ud380\ub529 +0.0004%\n\u25be\nOI 7.76B\n1\uc2dc\uac04 +0.04%\n\ubca0\uc774\uc2dc\uc2a4 -0.046%",
+   "overflow_open": {
+    "doc": 0,
+    "body": 0,
+    "strip": 0
+   }
+  }
+ },
+ "timeframes": {
+  "15s": {
+   "ctx": {
+    "lines": "ctx-ask-wall:off|ctx-bid-wall:line|ctx-resistance:label|ctx-support:label",
+    "bars": "55",
+    "span": "76.60",
+    "spacing": "10.25",
+    "profile": "15s",
+    "y": 533,
+    "h": 520,
+    "tags": [
+     "\uc800\ud56d 83,137.2 +0.01%@52px",
+     "\uc9c0\uc9c0 83,113.9 -0.02%@157px",
+     "\ub9e4\uc218\ubcbd 83,112.0@172px"
+    ]
+   },
+   "bare": {
+    "lines": "",
+    "bars": "55",
+    "span": "76.60",
+    "spacing": "10.25",
+    "profile": "15s",
+    "y": 533,
+    "h": 520,
+    "tags": []
+   },
+   "offscreen_note": "\uc9c4\uc785 83,612.9 \u2191 \ud654\uba74 \ubc16 \u00b7 \uccad\uc0b0 91,671.7 \u2191 \ud654\uba74 \ubc16",
+   "same_span": true,
+   "same_bars": true
+  },
+  "1m": {
+   "ctx": {
+    "lines": "ctx-ask-wall:label|ctx-bid-wall:line|ctx-resistance:line|ctx-support:line",
+    "bars": "240",
+    "span": "308.40",
+    "spacing": "2.6995884773662553",
+    "profile": "minute",
+    "y": 514,
+    "h": 520,
+    "tags": [
+     "\ub9e4\ub3c4\ubcbd 83,168.0@92px",
+     "\uc800\ud56d 83,137.2 +0.01%@124px",
+     "\uc9c0\uc9c0 83,113.9 -0.02%@148px",
+     "\ub9e4\uc218\ubcbd 83,112.0@163px"
+    ]
+   },
+   "bare": {
+    "lines": "",
+    "bars": "240",
+    "span": "308.40",
+    "spacing": "2.6995884773662553",
+    "profile": "minute",
+    "y": 514,
+    "h": 520,
+    "tags": []
+   },
+   "offscreen_note": "\uc9c4\uc785 83,612.9 \u2191 \ud654\uba74 \ubc16 \u00b7 \uccad\uc0b0 91,671.7 \u2191 \ud654\uba74 \ubc16",
+   "same_span": true,
+   "same_bars": true
+  },
+  "10m": {
+   "ctx": {
+    "lines": "ctx-ask-wall:line|ctx-bid-wall:line|ctx-resistance:line|ctx-support:line",
+    "bars": "240",
+    "span": "845.70",
+    "spacing": "2.6995884773662553",
+    "profile": "minute",
+    "y": 514,
+    "h": 520,
+    "tags": [
+     "\ub9e4\ub3c4\ubcbd 83,168.0@49px",
+     "\uc800\ud56d 83,137.2 +0.01%@64px",
+     "\uc9c0\uc9c0 83,113.9 -0.02%@79px",
+     "\ub9e4\uc218\ubcbd 83,112.0@94px"
+    ]
+   },
+   "bare": {
+    "lines": "",
+    "bars": "240",
+    "span": "845.70",
+    "spacing": "2.6995884773662553",
+    "profile": "minute",
+    "y": 514,
+    "h": 520,
+    "tags": []
+   },
+   "offscreen_note": "\uc9c4\uc785 83,612.9 \u2191 \ud654\uba74 \ubc16 \u00b7 \uccad\uc0b0 91,671.7 \u2191 \ud654\uba74 \ubc16",
+   "same_span": true,
+   "same_bars": true
+  },
+  "1h": {
+   "ctx": {
+    "lines": "ctx-ask-wall:line|ctx-bid-wall:line|ctx-resistance:line|ctx-support:line",
+    "bars": "240",
+    "span": "6892.10",
+    "spacing": "2.6995884773662553",
+    "profile": "minute",
+    "y": 514,
+    "h": 520,
+    "tags": [
+     "\ub9e4\ub3c4\ubcbd 83,168.0@209px",
+     "\uc800\ud56d 83,137.2 +0.01%@224px",
+     "\uc9c0\uc9c0 83,113.9 -0.02%@239px",
+     "\ub9e4\uc218\ubcbd 83,112.0@254px"
+    ]
+   },
+   "bare": {
+    "lines": "",
+    "bars": "240",
+    "span": "6892.10",
+    "spacing": "2.6995884773662553",
+    "profile": "minute",
+    "y": 514,
+    "h": 520,
+    "tags": []
+   },
+   "offscreen_note": "\uccad\uc0b0 91,671.7 \u2191 \ud654\uba74 \ubc16",
+   "same_span": true,
+   "same_bars": true
+  },
+  "4h": {
+   "ctx": {
+    "lines": "ctx-ask-wall:line|ctx-bid-wall:line|ctx-resistance:line|ctx-support:line",
+    "bars": "240",
+    "span": "12464.00",
+    "spacing": "2.6995884773662553",
+    "profile": "minute",
+    "y": 514,
+    "h": 520,
+    "tags": [
+     "\ub9e4\ub3c4\ubcbd 83,168.0@130px",
+     "\uc800\ud56d 83,137.2 +0.01%@145px",
+     "\uc9c0\uc9c0 83,113.9 -0.02%@160px",
+     "\ub9e4\uc218\ubcbd 83,112.0@175px"
+    ]
+   },
+   "bare": {
+    "lines": "",
+    "bars": "240",
+    "span": "12464.00",
+    "spacing": "2.6995884773662553",
+    "profile": "minute",
+    "y": 514,
+    "h": 520,
+    "tags": []
+   },
+   "offscreen_note": "\uccad\uc0b0 91,671.7 \u2191 \ud654\uba74 \ubc16",
+   "same_span": true,
+   "same_bars": true
+  },
+  "1d": {
+   "ctx": {
+    "lines": "ctx-ask-wall:line|ctx-bid-wall:line|ctx-resistance:line|ctx-support:line",
+    "bars": "240",
+    "span": "29627.80",
+    "spacing": "2.6995884773662553",
+    "profile": "minute",
+    "y": 514,
+    "h": 520,
+    "tags": [
+     "\ub9e4\ub3c4\ubcbd 83,168.0@68px",
+     "\uc800\ud56d 83,137.2 +0.01%@83px",
+     "\uc9c0\uc9c0 83,113.9 -0.02%@98px",
+     "\ub9e4\uc218\ubcbd 83,112.0@113px"
+    ]
+   },
+   "bare": {
+    "lines": "",
+    "bars": "240",
+    "span": "29627.80",
+    "spacing": "2.6995884773662553",
+    "profile": "minute",
+    "y": 514,
+    "h": 520,
+    "tags": []
+   },
+   "offscreen_note": "\uccad\uc0b0 91,671.7 \u2191 \ud654\uba74 \ubc16",
+   "same_span": true,
+   "same_bars": true
+  }
+ },
+ "interaction": {
+  "before": {
+   "lines": "ctx-ask-wall:label|ctx-bid-wall:line|ctx-resistance:line|ctx-support:line",
+   "bars": "240",
+   "span": "308.40",
+   "spacing": "2.6995884773662553",
+   "profile": "minute",
+   "y": 514,
+   "h": 520,
+   "tags": [
+    "\ub9e4\ub3c4\ubcbd 83,189.0@71px",
+    "\uc800\ud56d 83,137.2 +0.01%@124px",
+    "\uc9c0\uc9c0 83,113.9 -0.02%@148px",
+    "\ub9e4\uc218\ubcbd 83,112.0@163px"
+   ]
+  },
+  "zoom_in": {
+   "lines": "ctx-ask-wall:label|ctx-bid-wall:line|ctx-resistance:line|ctx-support:line",
+   "bars": "220",
+   "span": "308.40",
+   "spacing": "2.969547325102881",
+   "profile": "minute",
+   "y": 514,
+   "h": 520,
+   "tags": [
+    "\ub9e4\ub3c4\ubcbd 83,189.0@71px",
+    "\uc800\ud56d 83,137.2 +0.01%@124px",
+    "\uc9c0\uc9c0 83,113.9 -0.02%@148px",
+    "\ub9e4\uc218\ubcbd 83,112.0@163px"
+   ]
+  },
+  "zoom_out": {
+   "lines": "ctx-ask-wall:label|ctx-bid-wall:line|ctx-resistance:line|ctx-support:line",
+   "bars": "241",
+   "span": "308.40",
+   "spacing": "2.672592592592593",
+   "profile": "minute",
+   "y": 514,
+   "h": 520,
+   "tags": [
+    "\ub9e4\ub3c4\ubcbd 83,189.0@71px",
+    "\uc800\ud56d 83,137.2 +0.01%@124px",
+    "\uc9c0\uc9c0 83,113.9 -0.02%@148px",
+    "\ub9e4\uc218\ubcbd 83,112.0@163px"
+   ]
+  },
+  "pan": {
+   "lines": "ctx-ask-wall:label|ctx-bid-wall:line|ctx-resistance:line|ctx-support:line",
+   "bars": "245",
+   "span": "278.00",
+   "spacing": "2.672592592592593",
+   "profile": "minute",
+   "y": 514,
+   "h": 520,
+   "tags": [
+    "\ub9e4\ub3c4\ubcbd 83,189.0@42px",
+    "\uc800\ud56d 83,137.2 +0.01%@102px",
+    "\uc9c0\uc9c0 83,113.9 -0.02%@129px",
+    "\ub9e4\uc218\ubcbd 83,112.0@144px"
+   ]
+  },
+  "after_history": {
+   "lines": "ctx-ask-wall:off|ctx-bid-wall:off|ctx-resistance:off|ctx-support:off",
+   "bars": "244",
+   "span": "167.80",
+   "spacing": "2.672592592592593",
+   "profile": "minute",
+   "y": 514,
+   "h": 520,
+   "tags": [
+    "\uc800\ud56d 83,137.2 +0.01% \u2191@0px",
+    "\uc9c0\uc9c0 83,113.9 -0.02% \u2191@15px"
+   ]
+  },
+  "history_requests": 3
+ },
+ "reconnect": {
+  "down": {
+   "lines": "",
+   "bars": "244",
+   "span": "167.80",
+   "spacing": "2.672592592592593",
+   "profile": "minute",
+   "y": 514,
+   "h": 520,
+   "tags": []
+  },
+  "strip_down": "\uccb4\uacb0\ud750\ub984\n--\nOI --\n\ud380\ub529 --\n\u25be",
+  "back": {
+   "lines": "ctx-ask-wall:off|ctx-bid-wall:off|ctx-resistance:off|ctx-support:off",
+   "bars": "244",
+   "span": "167.80",
+   "spacing": "2.672592592592593",
+   "profile": "minute",
+   "y": 514,
+   "h": 520,
+   "tags": [
+    "\uc800\ud56d 83,137.2 +0.01% \u2191@0px",
+    "\uc9c0\uc9c0 83,113.9 -0.02% \u2191@15px"
+   ]
+  }
+ },
+ "hot": {
+  "chart": {
+   "lines": "",
+   "bars": "240",
+   "span": "0.02",
+   "spacing": "2.6995884773662553",
+   "profile": "minute",
+   "y": 422,
+   "h": 520,
+   "tags": []
+  },
+  "strip": null,
+  "ctx_requests": 0,
+  "header": "MAGICUSDT\n\ubb34\uae30\ud55c\n\u25cf\n\uc2e4\uc2dc\uac04\n0.12571\n-0.13% vs Index\n\uc790\uc0b0\n13,770,350\uc6d0\n1",
+  "ticket": {
+   "x": 1044,
+   "y": 365,
+   "w": 360,
+   "h": 847.5
+  },
+  "back": {
+   "lines": "ctx-ask-wall:label|ctx-bid-wall:label|ctx-resistance:line|ctx-support:line",
+   "bars": "120",
+   "span": "306.60",
+   "spacing": "2.6995884773662553",
+   "profile": "minute",
+   "y": 533,
+   "h": 520,
+   "tags": [
+    "\ub9e4\ub3c4\ubcbd 83,189.0@71px",
+    "\uc800\ud56d 83,137.2 +0.01%@124px",
+    "\uc9c0\uc9c0 83,113.9 -0.02%@148px",
+    "\ub9e4\uc218\ubcbd 83,112.0@163px"
+   ]
+  }
+ },
+ "requests": {
+  "total": 3402,
+  "non_get": [],
+  "ctx_methods": [
+   "GET"
+  ]
+ }
+}

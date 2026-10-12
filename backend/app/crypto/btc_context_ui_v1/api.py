@@ -13,6 +13,9 @@ How each request is answered, and why it never waits on a venue:
 * STRUCTURE is read from the snapshot file the structure worker (`structure_worker`, a separate
   oneshot run once a minute) writes atomically. This process never holds the 30-day series or the
   R1 engine and does not import numpy: a missing, unreadable, foreign or old file is a dash.
+* ENTRY is the Manual Trade Snapshot Recorder's entry snapshot of the open BTC episode, read only
+  from its store (`BTC_CONTEXT_MANUAL_STORE`; unset means none) and re-read only when a store file
+  changed.
 * DERIVATIVES are served from the last completed read. A request that finds them due starts one
   read in a worker thread and returns at once; a read already running is not started twice.
   Nobody watching means no venue traffic from this process at all.
@@ -36,6 +39,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from ..context_collector_v1 import api as CTX
 from ..market_context_v1 import contract as MC
 from ..market_context_v1 import derivatives as DRV
+from . import entry_context as EC
 from . import view as V
 
 DEFAULT_PORT = 8014
@@ -126,7 +130,8 @@ def structure_layer(snap: dict[str, Any] | None, now_ms: int) -> dict[str, Any]:
     def level(side: str) -> dict[str, Any]:
         item = snap.get(side) if isinstance(snap.get(side), dict) else {}
         price = item.get("price")
-        return {"distance_pct": item.get("distance_pct"), "available": price is not None}
+        return {"price": price, "distance_pct": item.get("distance_pct"),
+                "available": price is not None}
 
     return {"state": state, "levels": {"resistance": level("resistance"),
                                        "support": level("support")}}
@@ -145,6 +150,7 @@ def collector_view(now_ms: int) -> dict[str, Any] | None:
 
 class _State:
     sources: Sources | None = None
+    entry: EC.EntryReader = EC.EntryReader()
 
     def get(self) -> Sources:
         if self.sources is None:
@@ -177,13 +183,22 @@ async def snapshot() -> Any:
     return V.display(collector_view=collector_view(now_ms),
                      structure_layer=structure_layer(snap, now_ms),
                      derivatives_layer=sources.derivatives_layer(now_ms),
-                     now_ms=now_ms)
+                     now_ms=now_ms, entry=entry_reading())
+
+
+def entry_reading() -> dict[str, Any]:
+    """The recorder's entry context, read only. A reader fault is "not available", never an error."""
+    try:
+        return state.entry.read(EC.store_root())
+    except Exception:                                  # must not blank the rest of the payload
+        return {"available": False, "reason": EC.NO_STORE}
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m app.crypto.btc_context_ui_v1")
     parser.add_argument("--root", default=os.environ.get(ROOT_ENV))
     parser.add_argument("--structure-snapshot", default=os.environ.get(STRUCTURE_SNAPSHOT_ENV))
+    parser.add_argument("--manual-store", default=os.environ.get(EC.STORE_ENV))
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=DEFAULT_PORT)
     args = parser.parse_args(argv)
@@ -191,6 +206,8 @@ def main(argv: list[str] | None = None) -> int:
         os.environ[ROOT_ENV] = str(Path(args.root).expanduser().resolve())
     if args.structure_snapshot:
         os.environ[STRUCTURE_SNAPSHOT_ENV] = str(Path(args.structure_snapshot).expanduser().resolve())
+    if args.manual_store:
+        os.environ[EC.STORE_ENV] = str(Path(args.manual_store).expanduser().resolve())
     import uvicorn
     uvicorn.run(app, host=args.host, port=args.port, log_level="warning", access_log=False)
     return 0

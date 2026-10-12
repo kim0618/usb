@@ -474,7 +474,7 @@ export function C1SignalStrip({ state, selected, selectedKind = "C1" }: {
 }
 
 export function ChartSection({ state, bars, timeframe, onTimeframe, overlays: given, note,
-  c1, c1Markers = [] }: {
+  c1, c1Markers = [], contextLines = [] }: {
   state: CryptoState;
   bars: ChartBar[];
   timeframe: ChartTimeframe;
@@ -493,6 +493,9 @@ export function ChartSection({ state, bars, timeframe, onTimeframe, overlays: gi
   /** One line above the chart, for a caller whose candles and position come from different
    *  places and who has to say so. */
   note?: string;
+  /** Read-only BTC market context drawn as price lines: nearest resistance and support, nearest
+   *  ask and bid wall. Dropped on any chart that is not BTC's, whatever the caller passes. */
+  contextLines?: ChartOverlay[];
 }) {
   // The instrument being charted, taken from the snapshot this section is rendering.
   //
@@ -510,7 +513,8 @@ export function ChartSection({ state, bars, timeframe, onTimeframe, overlays: gi
   const fallback = timeframe === "1m" ? aggregateCandles(bars, 1) : [];
   const candles: ChartPoint[] = timeframe === "15s" ? fast.candles
     : (history.candles.length > 0 ? history.candles : fallback);
-  const overlays = given ?? positionOverlays(state);
+  const own = given ?? positionOverlays(state);
+  const overlays = symbol === DEFAULT_SYMBOL && contextLines.length > 0 ? [...own, ...contextLines] : own;
   const real = candles.filter(point => !isWhitespace(point)).length;
   const secondsNote = timeframe === "15s" ? candles15sNote(fast.status, real, fast.coverageFrom) : null;
   // The chart scales to the candles in view; an entry or liquidation line far from them is off
@@ -563,7 +567,7 @@ export function ChartSection({ state, bars, timeframe, onTimeframe, overlays: gi
       )}
       {offscreen.length > 0 && (
         <p className="mb-1 text-[10px] text-muted" data-testid="offscreen-overlays">
-          {offscreen.map(line => `${line.label} ${price(String(line.price))} ${line.direction === "UP" ? "↑" : "↓"} 화면 밖`).join(" · ")}
+          {offscreen.map(line => `${line.short ?? line.label} ${price(String(line.price))} ${line.direction === "UP" ? "↑" : "↓"} 화면 밖`).join(" · ")}
         </p>
       )}
       {/* Shorter on a phone so the order panel arrives sooner; taller where there is room. On a

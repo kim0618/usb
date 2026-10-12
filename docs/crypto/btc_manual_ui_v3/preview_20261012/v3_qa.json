@@ -1,0 +1,518 @@
+{
+ "widths": {
+  "1600": {
+   "span_samples": [
+    [
+     "613.80",
+     "613.80",
+     "294",
+     "294"
+    ],
+    [
+     "613.80",
+     "613.80",
+     "294",
+     "294"
+    ],
+    [
+     "613.80",
+     "613.80",
+     "294",
+     "294"
+    ],
+    [
+     "625.80",
+     "625.80",
+     "294",
+     "294"
+    ]
+   ],
+   "ticket_shift": {
+    "x": 0,
+    "y": 0,
+    "w": 0,
+    "h": 0
+   },
+   "overflow": {
+    "doc": 0,
+    "overlap": 0,
+    "strip": 0
+   },
+   "overflow_bare": {
+    "doc": 0,
+    "overlap": 0,
+    "strip": 0
+   },
+   "banned": {},
+   "chart_y_shift": 0,
+   "chart_h_shift": 0
+  },
+  "1440": {
+   "span_samples": [
+    [
+     "613.80",
+     "613.80",
+     "240",
+     "240"
+    ],
+    [
+     "613.80",
+     "613.80",
+     "240",
+     "240"
+    ],
+    [
+     "613.80",
+     "613.80",
+     "240",
+     "240"
+    ],
+    [
+     "625.80",
+     "625.80",
+     "240",
+     "240"
+    ]
+   ],
+   "ticket_shift": {
+    "x": 0,
+    "y": 0,
+    "w": 0,
+    "h": 0
+   },
+   "overflow": {
+    "doc": 0,
+    "overlap": 0,
+    "strip": 0
+   },
+   "overflow_bare": {
+    "doc": 0,
+    "overlap": 0,
+    "strip": 0
+   },
+   "banned": {},
+   "chart_y_shift": 0,
+   "chart_h_shift": 0
+  },
+  "390": {
+   "span_samples": [
+    [
+     "255.50",
+     "255.50",
+     "113",
+     "113"
+    ],
+    [
+     "255.50",
+     "255.50",
+     "113",
+     "113"
+    ],
+    [
+     "255.50",
+     "255.50",
+     "113",
+     "113"
+    ],
+    [
+     "260.70",
+     "260.70",
+     "113",
+     "113"
+    ]
+   ],
+   "ticket_shift": {
+    "x": 0,
+    "y": 0.0,
+    "w": 0,
+    "h": 0
+   },
+   "overflow": {
+    "doc": 0,
+    "overlap": 0,
+    "strip": 0
+   },
+   "overflow_bare": {
+    "doc": 0,
+    "overlap": 0,
+    "strip": 0
+   },
+   "banned": {},
+   "chart_y_shift": 0.0,
+   "chart_h_shift": 0,
+   "overflow_open": {
+    "doc": 0,
+    "overlap": 0,
+    "strip": 0
+   }
+  }
+ },
+ "modes": {
+  "no-position": {
+   "strip": {
+    "mode": "MARKET",
+    "text": "현재가 기준\n현재 83,816.9\n가까운 순\n큰 순\n\n위 · 다음 매도벽 (현재 대비)\n\n매도벽1\n83,849.6\n+0.04%\n간격 0.04%\n매도벽2\n83,890.8\n+0.09%\n간격 0.05%\n매도벽3\n83,900.0\n+0.10%\n간격 0.01%\n\n아래 · 다음 매수벽 (현재 대비)\n\n매수벽1\n83,745.0\n-0.09%\n간격 0.09%\n매수벽2\n83,735.0\n-0.10%\n간격 0.01%\n매수벽3\n83,717.2\n-0.12%\n간격 0.02%\n체결흐름\n매수우세 75%\nOI ↑\n펀딩 +0.0004%\n▾"
+   },
+   "chart": {
+    "lines": "ctx-ask-wall-1:line|ctx-ask-wall-2:label|ctx-ask-wall-3:line|ctx-bid-wall-1:label|ctx-bid-wall-2:line|ctx-bid-wall-3:line|ctx-support:label",
+    "bars": "240",
+    "span": "613.80",
+    "y": 495,
+    "h": 520,
+    "tags": [
+     "매도3@0px",
+     "매도2@15px",
+     "매도1@30px",
+     "매수1@71px",
+     "매수2@86px",
+     "매수3@101px",
+     "지지 83,499.9 -0.37%@196px"
+    ]
+   },
+   "banned": {},
+   "overflow": {
+    "doc": 0,
+    "overlap": 0,
+    "strip": 0
+   }
+  },
+  "short-paper-real": {
+   "strip": {
+    "mode": "POSITION",
+    "text": "진입가 기준\n진입 83,612.9\n현재 83,824.6\n진입 대비 -0.25%\n가까운 순\n큰 순\n\n위 · 다음 매도벽 (진입 대비 거리)\n\n매도벽1\n83,894.1\n-0.34%\n간격 0.08%\n매도벽2\n83,900.0\n-0.34%\n간격 0.01%\n매도벽3\n83,911.8\n-0.36%\n간격 0.01%\n\n아래 · 다음 매수벽 (진입 대비 거리)\n\n매수벽1\n83,750.4\n-0.16%\n간격 0.09%\n매수벽2\n83,745.0\n-0.16%\n간격 0.01%\n매수벽3\n83,720.8\n-0.13%\n간격 0.03%\n체결흐름\n진입 --\n→\n현재 매수우세 74%\nOI -- → 7.74B\n펀딩 -- → +0.0004%\n▾"
+   },
+   "chart": {
+    "lines": "ctx-ask-wall-1:label|ctx-ask-wall-2:line|ctx-ask-wall-3:line|ctx-bid-wall-1:label|ctx-bid-wall-2:line|ctx-bid-wall-3:line|ctx-support:label",
+    "bars": "240",
+    "span": "613.80",
+    "y": 514,
+    "h": 520,
+    "tags": [
+     "매도3@0px",
+     "매도2@15px",
+     "매도1@30px",
+     "매수1@68px",
+     "매수2@83px",
+     "매수3@98px",
+     "지지 83,499.9 -0.37%@196px"
+    ]
+   },
+   "banned": {},
+   "overflow": {
+    "doc": 0,
+    "overlap": 0,
+    "strip": 0
+   }
+  },
+  "short-sim": {
+   "strip": {
+    "mode": "POSITION",
+    "text": "진입가 기준\n진입 83,645.4\n현재 83,824.6\n진입 대비 -0.21%\n가까운 순\n큰 순\n\n위 · 다음 매도벽 (진입 대비 거리)\n\n매도벽1\n83,894.1\n-0.30%\n간격 0.08%\n매도벽2\n83,900.0\n-0.30%\n간격 0.01%\n\n아래 · 다음 매수벽 (진입 대비 거리)\n\n매수벽1\n83,750.4\n-0.13%\n간격 0.09%\n매수벽2\n83,745.0\n-0.12%\n간격 0.01%\n매수벽3\n83,717.2\n-0.09%\n간격 0.03%\n체결흐름\n진입 매도우세 77%\n→\n현재 매수우세 72%\nOI 7.73B → 7.74B\n펀딩 +0.0013% → +0.0004%\n▾"
+   },
+   "chart": {
+    "lines": "ctx-ask-wall-1:label|ctx-ask-wall-2:line|ctx-bid-wall-1:label|ctx-bid-wall-2:line|ctx-bid-wall-3:label|ctx-support:label",
+    "bars": "240",
+    "span": "613.80",
+    "y": 495,
+    "h": 520,
+    "tags": [
+     "매도2@0px",
+     "매도1@15px",
+     "매수1@68px",
+     "매수2@83px",
+     "매수3@98px",
+     "지지 83,499.9 -0.37%@196px"
+    ]
+   },
+   "banned": {},
+   "overflow": {
+    "doc": 0,
+    "overlap": 0,
+    "strip": 0
+   },
+   "expanded": {
+    "mode": "POSITION",
+    "text": "진입가 기준\n진입 83,645.4\n현재 83,824.6\n진입 대비 -0.21%\n가까운 순\n큰 순\n\n위 · 다음 매도벽 (진입 대비 거리)\n\n매도벽1\n83,894.1\n-0.30%\n간격 0.08%\n매도벽2\n83,900.0\n-0.30%\n간격 0.01%\n\n아래 · 다음 매수벽 (진입 대비 거리)\n\n매수벽1\n83,783.2\n-0.16%\n간격 0.05%\n매수벽2\n83,762.1\n-0.14%\n간격 0.03%\n매수벽3\n83,750.4\n-0.13%\n간격 0.01%\n체결흐름\n진입 매도우세 77%\n→\n현재 매수우세 72%\nOI 7.73B → 7.74B\n펀딩 +0.0013% → +0.0004%\n▾\nOI 7.74B\n1시간 +0.06%\n베이시스 -0.060% → -0.042%\n\n진입 당시(10/12 08:20) 매도벽 83,723.5 · 매수벽 83,593.0\n\n매도벽1 83,894.1 · 현재 대비 +0.08% · 44s 유지 · 700K · 크기 2위\n매도벽2 83,900.0 · 현재 대비 +0.09% · 9m 유지 · 865K · 크기 1위\n매수벽1 83,783.2 · 현재 대비 -0.05% · 12s 유지 · 784K · 크기 3위\n매수벽2 83,762.1 · 현재 대비 -0.07% · 1m 유지 · 3.0M · 크기 1위\n매수벽3 83,750.4 · 현재 대비 -0.09% · 31s 유지 · 700K · 크기 4위\n\n최근 사라진 벽: 매도 83,916.1 529K 가격 미도달 · 매수 83,762.1 3.0M 가격 미도달 · 매도 83,911.8 606K 가격 미도달\n\n벽은 수집기가 지금 보고 있는 50만 USDT 이상 호가(측면당 최대 6개 중 3개). 유지 시간과 크기는 수집기 수치 그대로."
+   },
+   "overflow_open": {
+    "doc": 0,
+    "overlap": 0,
+    "strip": 0
+   },
+   "size_selection": {
+    "strip": {
+     "mode": "POSITION",
+     "text": "진입가 기준\n진입 83,645.4\n현재 83,824.6\n진입 대비 -0.21%\n가까운 순\n큰 순\n\n위 · 다음 매도벽 (진입 대비 거리)\n\n매도벽1\n83,894.1\n-0.30%\n간격 0.08%\n매도벽2\n83,900.0\n-0.30%\n간격 0.01%\n\n아래 · 다음 매수벽 (진입 대비 거리)\n\n매수벽1\n83,783.2\n-0.16%\n간격 0.05%\n매수벽2\n83,762.1\n-0.14%\n간격 0.03%\n매수벽3\n83,685.3\n-0.05%\n간격 0.09%\n체결흐름\n진입 매도우세 77%\n→\n현재 매수우세 72%\nOI 7.73B → 7.74B\n펀딩 +0.0013% → +0.0004%\n▾"
+    },
+    "chart": {
+     "lines": "ctx-ask-wall-1:label|ctx-ask-wall-2:line|ctx-bid-wall-1:line|ctx-bid-wall-2:line|ctx-bid-wall-3:label|ctx-support:label",
+     "bars": "240",
+     "span": "625.80",
+     "y": 495,
+     "h": 520,
+     "tags": [
+      "매도2@0px",
+      "매도1@15px",
+      "매수1@57px",
+      "매수2@72px",
+      "매수3@106px",
+      "지지 83,499.9 -0.37%@199px"
+     ]
+    }
+   }
+  },
+  "long-sim": {
+   "strip": {
+    "mode": "POSITION",
+    "text": "진입가 기준\n진입 83,645.4\n현재 83,816.9\n진입 대비 +0.21%\n가까운 순\n큰 순\n\n위 · 다음 매도벽 (진입 대비 거리)\n\n매도벽1\n83,894.1\n+0.30%\n간격 0.09%\n매도벽2\n83,901.9\n+0.31%\n간격 0.01%\n\n아래 · 다음 매수벽 (진입 대비 거리)\n\n매수벽1\n83,732.4\n+0.10%\n간격 0.10%\n매수벽2\n83,717.2\n+0.09%\n간격 0.02%\n매수벽3\n83,697.3\n+0.06%\n간격 0.02%\n체결흐름\n진입 매도우세 77%\n→\n현재 매수우세 69%\nOI 7.73B → 7.74B\n펀딩 +0.0013% → +0.0004%\n▾"
+   },
+   "chart": {
+    "lines": "ctx-ask-wall-1:label|ctx-ask-wall-2:line|ctx-bid-wall-1:label|ctx-bid-wall-2:line|ctx-bid-wall-3:label|ctx-support:label",
+    "bars": "240",
+    "span": "613.80",
+    "y": 495,
+    "h": 520,
+    "tags": [
+     "매도2@0px",
+     "매도1@15px",
+     "매수1@77px",
+     "매수2@92px",
+     "매수3@107px",
+     "지지 83,499.9 -0.39%@196px"
+    ]
+   },
+   "banned": {},
+   "overflow": {
+    "doc": 0,
+    "overlap": 0,
+    "strip": 0
+   }
+  }
+ },
+ "timeframes": {
+  "15s": {
+   "lines": "ctx-ask-wall-1:off|ctx-ask-wall-2:off|ctx-ask-wall-3:off|ctx-bid-wall-1:line|ctx-bid-wall-2:label|ctx-bid-wall-3:label|ctx-support:off",
+   "tags": [
+    "매수1@237px",
+    "매수2@305px",
+    "매수3@340px",
+    "지지 83,499.9 -0.39% ↓@477px"
+   ],
+   "same_span": true,
+   "same_bars": true,
+   "span": [
+    "148.50",
+    "148.50"
+   ]
+  },
+  "1m": {
+   "lines": "ctx-ask-wall-1:line|ctx-ask-wall-2:label|ctx-ask-wall-3:line|ctx-bid-wall-1:label|ctx-bid-wall-2:line|ctx-bid-wall-3:label|ctx-support:label",
+   "tags": [
+    "매도3@0px",
+    "매도2@15px",
+    "매도1@30px",
+    "매수1@77px",
+    "매수2@92px",
+    "매수3@107px",
+    "지지 83,499.9 -0.38%@196px"
+   ],
+   "same_span": true,
+   "same_bars": true,
+   "span": [
+    "613.80",
+    "613.80"
+   ]
+  },
+  "10m": {
+   "lines": "ctx-ask-wall-1:line|ctx-ask-wall-2:line|ctx-bid-wall-1:line|ctx-bid-wall-2:line|ctx-support:label",
+   "tags": [
+    "매도2@86px",
+    "매도1@101px",
+    "매수1@116px",
+    "매수2@131px",
+    "지지 83,499.9 -0.38%@170px"
+   ],
+   "same_span": true,
+   "same_bars": true,
+   "span": [
+    "1475.60",
+    "1475.60"
+   ]
+  },
+  "1h": {
+   "lines": "ctx-ask-wall-1:line|ctx-bid-wall-1:line|ctx-support:line",
+   "tags": [
+    "매도1@178px",
+    "매수1@193px",
+    "지지 83,499.9 -0.38%@208px"
+   ],
+   "same_span": true,
+   "same_bars": true,
+   "span": [
+    "6892.10",
+    "6892.10"
+   ]
+  },
+  "4h": {
+   "lines": "ctx-support:line",
+   "tags": [
+    "지지 83,499.9 -0.38%@121px"
+   ],
+   "same_span": true,
+   "same_bars": true,
+   "span": [
+    "12464.00",
+    "12464.00"
+   ]
+  },
+  "1d": {
+   "lines": "ctx-support:line",
+   "tags": [
+    "지지 83,499.9 -0.38%@65px"
+   ],
+   "same_span": true,
+   "same_bars": true,
+   "span": [
+    "29627.80",
+    "29627.80"
+   ]
+  }
+ },
+ "interaction": {
+  "before": {
+   "lines": "ctx-ask-wall-1:line|ctx-ask-wall-2:label|ctx-ask-wall-3:line|ctx-bid-wall-1:label|ctx-bid-wall-2:line|ctx-bid-wall-3:line|ctx-support:label",
+   "bars": "240",
+   "span": "613.80",
+   "y": 495,
+   "h": 520,
+   "tags": [
+    "매도3@0px",
+    "매도2@15px",
+    "매도1@30px",
+    "매수1@63px",
+    "매수2@78px",
+    "매수3@93px",
+    "지지 83,499.9 -0.38%@196px"
+   ]
+  },
+  "zoom_in": {
+   "lines": "ctx-ask-wall-1:off|ctx-ask-wall-2:off|ctx-ask-wall-3:off|ctx-bid-wall-1:label|ctx-bid-wall-2:line|ctx-bid-wall-3:label|ctx-support:label",
+   "bars": "220",
+   "span": "613.80",
+   "y": 495,
+   "h": 520,
+   "tags": [
+    "매수1@23px",
+    "매수2@38px",
+    "매수3@53px",
+    "지지 83,499.9 -0.38%@176px"
+   ]
+  },
+  "zoom_out": {
+   "lines": "ctx-ask-wall-1:line|ctx-ask-wall-2:label|ctx-ask-wall-3:line|ctx-bid-wall-1:label|ctx-bid-wall-2:line|ctx-bid-wall-3:line|ctx-support:label",
+   "bars": "241",
+   "span": "535.70",
+   "y": 495,
+   "h": 520,
+   "tags": [
+    "매도3@0px",
+    "매도2@15px",
+    "매도1@30px",
+    "매수1@63px",
+    "매수2@78px",
+    "매수3@93px",
+    "지지 83,499.9 -0.38%@196px"
+   ]
+  },
+  "pan": {
+   "lines": "ctx-ask-wall-1:label|ctx-ask-wall-2:line|ctx-ask-wall-3:line|ctx-bid-wall-1:label|ctx-bid-wall-2:label|ctx-bid-wall-3:line|ctx-support:label",
+   "bars": "244",
+   "span": "595.70",
+   "y": 495,
+   "h": 520,
+   "tags": [
+    "매도3@0px",
+    "매도2@15px",
+    "매도1@30px",
+    "매수1@72px",
+    "매수2@90px",
+    "매수3@105px",
+    "지지 83,499.9 -0.38%@199px"
+   ]
+  }
+ },
+ "reconnect": {
+  "down": {
+   "chart": {
+    "lines": "",
+    "bars": "244",
+    "span": "625.80",
+    "y": 495,
+    "h": 520,
+    "tags": []
+   },
+   "strip": {
+    "mode": "POSITION",
+    "text": "진입가 기준\n진입 83,645.4\n현재 83,825.1\n진입 대비 -0.21%\n가까운 순\n큰 순\n\n위 · 다음 매도벽 (진입 대비 거리)\n\n--\n\n아래 · 다음 매수벽 (진입 대비 거리)\n\n--\n체결흐름\n진입 --\n→\n현재 --\nOI -- → --\n펀딩 -- → --\n▾"
+   }
+  },
+  "back": {
+   "strip": {
+    "mode": "POSITION",
+    "text": "진입가 기준\n진입 83,645.4\n현재 83,848.4\n진입 대비 -0.24%\n가까운 순\n큰 순\n\n위 · 다음 매도벽 (진입 대비 거리)\n\n매도벽1\n83,900.0\n-0.30%\n간격 0.06%\n매도벽2\n83,916.1\n-0.32%\n간격 0.02%\n매도벽3\n83,922.2\n-0.33%\n간격 0.01%\n\n아래 · 다음 매수벽 (진입 대비 거리)\n\n매수벽1\n83,776.0\n-0.16%\n간격 0.09%\n매수벽2\n83,773.3\n-0.15%\n간격 0.00%\n매수벽3\n83,732.2\n-0.10%\n간격 0.05%\n체결흐름\n진입 매도우세 77%\n→\n현재 매수우세 72%\nOI 7.73B → 7.74B\n펀딩 +0.0013% → +0.0004%\n▾"
+   },
+   "chart": {
+    "lines": "ctx-ask-wall-1:label|ctx-ask-wall-2:line|ctx-ask-wall-3:line|ctx-bid-wall-1:line|ctx-bid-wall-2:line|ctx-bid-wall-3:label|ctx-support:label",
+    "bars": "244",
+    "span": "625.80",
+    "y": 495,
+    "h": 520,
+    "tags": [
+     "매도3@0px",
+     "매도2@15px",
+     "매도1@30px",
+     "매수1@60px",
+     "매수2@75px",
+     "매수3@90px",
+     "지지 83,499.9 -0.42%@199px"
+    ]
+   }
+  }
+ },
+ "hot": {
+  "chart": {
+   "lines": "",
+   "bars": "108",
+   "span": "0.02",
+   "y": 422,
+   "h": 520,
+   "tags": []
+  },
+  "strip": null,
+  "ctx_requests": 0,
+  "back": {
+   "mode": "POSITION",
+   "text": "진입가 기준\n진입 83,645.4\n현재 83,862.6\n진입 대비 -0.26%\n가까운 순\n큰 순\n\n위 · 다음 매도벽 (진입 대비 거리)\n\n매도벽1\n83,900.0\n-0.30%\n간격 0.04%\n매도벽2\n83,919.5\n-0.33%\n간격 0.02%\n매도벽3\n83,941.3\n-0.35%\n간격 0.03%\n\n아래 · 다음 매수벽 (진입 대비 거리)\n\n매수벽1\n83,785.5\n-0.17%\n간격 0.09%\n매수벽2\n83,776.0\n-0.16%\n간격 0.01%\n매수벽3\n83,763.1\n-0.14%\n간격 0.02%\n체결흐름\n진입 매도우세 77%\n→\n현재 매수우세 78%\nOI 7.73B → 7.74B\n펀딩 +0.0013% → +0.0004%\n▾"
+  }
+ },
+ "requests": {
+  "total": 3749,
+  "non_get": [],
+  "ctx_methods": [
+   "GET"
+  ]
+ },
+ "hot_paper": {
+  "chart": {
+   "lines": "",
+   "bars": "240",
+   "span": "0.02",
+   "y": 422,
+   "h": 520,
+   "tags": []
+  },
+  "strip": null,
+  "ctx_requests": 0,
+  "header": "MAGICUSDT\n무기한\n●\n실시간\n0.13865\n-0.12% vs Index\n자산\n13,771,788원\n1"
+ }
+}

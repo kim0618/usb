@@ -2,13 +2,16 @@
 
 import dynamic from "next/dynamic";
 import type { ReactNode } from "react";
+import type { ContextView } from "@/lib/btc-context";
 
-/** The deployed terminal's context slot: BTC Manual Trading Market Context UI V1.
+/** The deployed terminal's context slot: BTC Manual Trading Market Context UI V2.
  *
- *  Four short read-only lines under the BTC chart (STRUCTURE, LIQUIDITY, FLOW, DERIVATIVES), fed by
- *  the GET-only `btc_context_ui_v1` API. This replaces Manual Market Context V1 in this slot: that
- *  panel puts research states on the screen, which the order screen must not show. It still exists
- *  for its own preview route and is not imported from here.
+ *  One compact read-only line under the BTC chart (trade flow, open interest direction, funding),
+ *  fed by the GET-only `btc_context_ui_v1` API. Resistance, support and walls are not here: they are
+ *  price lines on the chart itself, drawn by the terminal from `contextBase()`.
+ *  This replaces Manual Market Context V1 in this slot: that panel puts research states on the
+ *  screen, which the order screen must not show. It still exists for its own preview route and is
+ *  not imported from here.
  *
  *  Three properties this module holds:
  *
@@ -32,14 +35,22 @@ const BtcContextStrip = dynamic(
   { ssr: false },
 );
 
+/** The context API base for the lines on the BTC chart, or `undefined` when none is configured. */
+export function contextBase(): string | undefined {
+  if (!CONFIGURED) return undefined;
+  return (process.env.NEXT_PUBLIC_BTC_CONTEXT_BASE ?? "").trim().replace(/\/$/, "");
+}
+
 /** The slot `CryptoTerminal` takes, or `undefined` when no backend is configured. */
-export function marketContextSlot(): ((symbol: string) => ReactNode) | undefined {
+export function marketContextSlot(): ((symbol: string, view?: ContextView) => ReactNode) | undefined {
   if (!CONFIGURED) return undefined;
   return renderBtcContext;
 }
 
-/** `null` for every symbol but BTC, before the chunk is even requested. */
-export function renderBtcContext(symbol: string): ReactNode {
+/** `null` for every symbol but BTC, before the chunk is even requested. `view` is the account's
+ *  position and mark, which switch the panel between measuring from the price and from the entry. */
+export function renderBtcContext(symbol: string, view?: ContextView): ReactNode {
   if (symbol !== "BTCUSDT") return null;
-  return <BtcContextStrip key={symbol} symbol={symbol} />;
+  return <BtcContextStrip key={symbol} symbol={symbol} position={view?.position ?? null}
+    mark={view?.mark ?? null} />;
 }

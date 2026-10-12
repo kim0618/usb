@@ -1,0 +1,609 @@
+{
+ "live": {
+  "symbol": "BTCUSDT",
+  "server_time_ms": 1791763125098,
+  "structure": {
+   "live": true,
+   "resistance_pct": "0.09",
+   "support_pct": "0.16",
+   "resistance_price": "83113.9",
+   "support_price": "82912.9"
+  },
+  "liquidity": {
+   "live": true,
+   "ask": "STRONG",
+   "bid": "STRONG",
+   "ask_wall_price": "83759.0",
+   "bid_wall_price": "83654.7"
+  },
+  "flow": {
+   "live": true,
+   "window": "60s",
+   "buy_pct": 80,
+   "sell_pct": 20
+  },
+  "derivatives": {
+   "live": true,
+   "oi_direction": "DOWN",
+   "oi_change_pct": "0.00",
+   "oi_window": "1h",
+   "oi_value_usdt": "7708849482",
+   "funding_pct": "-0.0014",
+   "basis_pct": "-0.040"
+  },
+  "walls": {
+   "live": true,
+   "mid": "83719.2",
+   "ask": [
+    {
+     "rank": 1,
+     "price": "83759.0",
+     "notional_usdt": "836082",
+     "multiple": "47.1",
+     "age_ms": 617000,
+     "own_age_ms": 413001,
+     "continuity": "CARRIED",
+     "first_seen_ms": 1791762711097,
+     "size_rank": 1
+    },
+    {
+     "rank": 2,
+     "price": "83763.0",
+     "notional_usdt": "586844",
+     "multiple": "175.2",
+     "age_ms": 1546000,
+     "own_age_ms": 413001,
+     "continuity": "CARRIED",
+     "first_seen_ms": 1791762711097,
+     "size_rank": 6
+    },
+    {
+     "rank": 3,
+     "price": "83774.5",
+     "notional_usdt": "700103",
+     "multiple": "9.3",
+     "age_ms": 98000,
+     "own_age_ms": 98000,
+     "continuity": "NEW",
+     "first_seen_ms": 1791763026098,
+     "size_rank": 4
+    },
+    {
+     "rank": 4,
+     "price": "83780.3",
+     "notional_usdt": "637568",
+     "multiple": "56.6",
+     "age_ms": 43000,
+     "own_age_ms": 43000,
+     "continuity": "NEW",
+     "first_seen_ms": 1791763081098,
+     "size_rank": 5
+    },
+    {
+     "rank": 5,
+     "price": "83800.0",
+     "notional_usdt": "727971",
+     "multiple": "22.6",
+     "age_ms": 528000,
+     "own_age_ms": 413001,
+     "continuity": "CARRIED",
+     "first_seen_ms": 1791762711097,
+     "size_rank": 3
+    },
+    {
+     "rank": 6,
+     "price": "83807.7",
+     "notional_usdt": "812516",
+     "multiple": "20.1",
+     "age_ms": 62000,
+     "own_age_ms": 62000,
+     "continuity": "NEW",
+     "first_seen_ms": 1791763062098,
+     "size_rank": 2
+    }
+   ],
+   "bid": [
+    {
+     "rank": 1,
+     "price": "83654.7",
+     "notional_usdt": "626825",
+     "multiple": "18.1",
+     "age_ms": 60000,
+     "own_age_ms": 60000,
+     "continuity": "NEW",
+     "first_seen_ms": 1791763064098,
+     "size_rank": 1
+    },
+    {
+     "rank": 2,
+     "price": "83624.1",
+     "notional_usdt": "526999",
+     "multiple": "13.0",
+     "age_ms": 414001,
+     "own_age_ms": 413001,
+     "continuity": "CARRIED",
+     "first_seen_ms": 1791762711097,
+     "size_rank": 2
+    }
+   ],
+   "recent_ends": [
+    {
+     "side": "ASK",
+     "price": "83780.2",
+     "price_reached": false,
+     "notional_usdt": "638740",
+     "observed_at_ms": 1791763081098
+    },
+    {
+     "side": "ASK",
+     "price": "83794.4",
+     "price_reached": false,
+     "notional_usdt": "552038",
+     "observed_at_ms": 1791763076097
+    },
+    {
+     "side": "ASK",
+     "price": "83742.0",
+     "price_reached": false,
+     "notional_usdt": "514008",
+     "observed_at_ms": 1791763070097
+    },
+    {
+     "side": "BID",
+     "price": "83609.5",
+     "price_reached": false,
+     "notional_usdt": "607339",
+     "observed_at_ms": 1791763053098
+    },
+    {
+     "side": "ASK",
+     "price": "83794.4",
+     "price_reached": false,
+     "notional_usdt": "592091",
+     "observed_at_ms": 1791763041098
+    },
+    {
+     "side": "BID",
+     "price": "83603.8",
+     "price_reached": false,
+     "notional_usdt": "590577",
+     "observed_at_ms": 1791763041098
+    }
+   ]
+  },
+  "entry": {
+   "available": false
+  }
+ },
+ "short": {
+  "symbol": "BTCUSDT",
+  "server_time_ms": 1791763125098,
+  "structure": {
+   "live": true,
+   "resistance_pct": "0.09",
+   "support_pct": "0.16",
+   "resistance_price": "83113.9",
+   "support_price": "82912.9"
+  },
+  "liquidity": {
+   "live": true,
+   "ask": "STRONG",
+   "bid": "STRONG",
+   "ask_wall_price": "83759.0",
+   "bid_wall_price": "83654.7"
+  },
+  "flow": {
+   "live": true,
+   "window": "60s",
+   "buy_pct": 80,
+   "sell_pct": 20
+  },
+  "derivatives": {
+   "live": true,
+   "oi_direction": "DOWN",
+   "oi_change_pct": "0.00",
+   "oi_window": "1h",
+   "oi_value_usdt": "7708849482",
+   "funding_pct": "-0.0014",
+   "basis_pct": "-0.040"
+  },
+  "walls": {
+   "live": true,
+   "mid": "83719.2",
+   "ask": [
+    {
+     "rank": 1,
+     "price": "83759.0",
+     "notional_usdt": "836082",
+     "multiple": "47.1",
+     "age_ms": 617000,
+     "own_age_ms": 413001,
+     "continuity": "CARRIED",
+     "first_seen_ms": 1791762711097,
+     "size_rank": 1
+    },
+    {
+     "rank": 2,
+     "price": "83763.0",
+     "notional_usdt": "586844",
+     "multiple": "175.2",
+     "age_ms": 1546000,
+     "own_age_ms": 413001,
+     "continuity": "CARRIED",
+     "first_seen_ms": 1791762711097,
+     "size_rank": 6
+    },
+    {
+     "rank": 3,
+     "price": "83774.5",
+     "notional_usdt": "700103",
+     "multiple": "9.3",
+     "age_ms": 98000,
+     "own_age_ms": 98000,
+     "continuity": "NEW",
+     "first_seen_ms": 1791763026098,
+     "size_rank": 4
+    },
+    {
+     "rank": 4,
+     "price": "83780.3",
+     "notional_usdt": "637568",
+     "multiple": "56.6",
+     "age_ms": 43000,
+     "own_age_ms": 43000,
+     "continuity": "NEW",
+     "first_seen_ms": 1791763081098,
+     "size_rank": 5
+    },
+    {
+     "rank": 5,
+     "price": "83800.0",
+     "notional_usdt": "727971",
+     "multiple": "22.6",
+     "age_ms": 528000,
+     "own_age_ms": 413001,
+     "continuity": "CARRIED",
+     "first_seen_ms": 1791762711097,
+     "size_rank": 3
+    },
+    {
+     "rank": 6,
+     "price": "83807.7",
+     "notional_usdt": "812516",
+     "multiple": "20.1",
+     "age_ms": 62000,
+     "own_age_ms": 62000,
+     "continuity": "NEW",
+     "first_seen_ms": 1791763062098,
+     "size_rank": 2
+    }
+   ],
+   "bid": [
+    {
+     "rank": 1,
+     "price": "83654.7",
+     "notional_usdt": "626825",
+     "multiple": "18.1",
+     "age_ms": 60000,
+     "own_age_ms": 60000,
+     "continuity": "NEW",
+     "first_seen_ms": 1791763064098,
+     "size_rank": 1
+    },
+    {
+     "rank": 2,
+     "price": "83624.1",
+     "notional_usdt": "526999",
+     "multiple": "13.0",
+     "age_ms": 414001,
+     "own_age_ms": 413001,
+     "continuity": "CARRIED",
+     "first_seen_ms": 1791762711097,
+     "size_rank": 2
+    }
+   ],
+   "recent_ends": [
+    {
+     "side": "ASK",
+     "price": "83780.2",
+     "price_reached": false,
+     "notional_usdt": "638740",
+     "observed_at_ms": 1791763081098
+    },
+    {
+     "side": "ASK",
+     "price": "83794.4",
+     "price_reached": false,
+     "notional_usdt": "552038",
+     "observed_at_ms": 1791763076097
+    },
+    {
+     "side": "ASK",
+     "price": "83742.0",
+     "price_reached": false,
+     "notional_usdt": "514008",
+     "observed_at_ms": 1791763070097
+    },
+    {
+     "side": "BID",
+     "price": "83609.5",
+     "price_reached": false,
+     "notional_usdt": "607339",
+     "observed_at_ms": 1791763053098
+    },
+    {
+     "side": "ASK",
+     "price": "83794.4",
+     "price_reached": false,
+     "notional_usdt": "592091",
+     "observed_at_ms": 1791763041098
+    },
+    {
+     "side": "BID",
+     "price": "83603.8",
+     "price_reached": false,
+     "notional_usdt": "590577",
+     "observed_at_ms": 1791763041098
+    }
+   ]
+  },
+  "entry": {
+   "available": true,
+   "episode_id": "ep-900",
+   "direction_sign": -1,
+   "entry_ms": 1791760000000,
+   "entry_price": "83612.9",
+   "market_recorded": true,
+   "collector_recorded": true,
+   "flow": {
+    "window": "60s",
+    "buy_pct": 39,
+    "sell_pct": 61
+   },
+   "oi_value_usdt": "7412345679",
+   "oi_change_pct": "0.42",
+   "funding_pct": "0.0010",
+   "basis_pct": "0.012",
+   "ask_wall_price": "83650.0",
+   "bid_wall_price": null,
+   "mid": "83612.9"
+  }
+ },
+ "long": {
+  "symbol": "BTCUSDT",
+  "server_time_ms": 1791763125098,
+  "structure": {
+   "live": true,
+   "resistance_pct": "0.09",
+   "support_pct": "0.16",
+   "resistance_price": "83113.9",
+   "support_price": "82912.9"
+  },
+  "liquidity": {
+   "live": true,
+   "ask": "STRONG",
+   "bid": "STRONG",
+   "ask_wall_price": "83759.0",
+   "bid_wall_price": "83654.7"
+  },
+  "flow": {
+   "live": true,
+   "window": "60s",
+   "buy_pct": 80,
+   "sell_pct": 20
+  },
+  "derivatives": {
+   "live": true,
+   "oi_direction": "DOWN",
+   "oi_change_pct": "0.00",
+   "oi_window": "1h",
+   "oi_value_usdt": "7708849482",
+   "funding_pct": "-0.0014",
+   "basis_pct": "-0.040"
+  },
+  "walls": {
+   "live": true,
+   "mid": "83719.2",
+   "ask": [
+    {
+     "rank": 1,
+     "price": "83759.0",
+     "notional_usdt": "836082",
+     "multiple": "47.1",
+     "age_ms": 617000,
+     "own_age_ms": 413001,
+     "continuity": "CARRIED",
+     "first_seen_ms": 1791762711097,
+     "size_rank": 1
+    },
+    {
+     "rank": 2,
+     "price": "83763.0",
+     "notional_usdt": "586844",
+     "multiple": "175.2",
+     "age_ms": 1546000,
+     "own_age_ms": 413001,
+     "continuity": "CARRIED",
+     "first_seen_ms": 1791762711097,
+     "size_rank": 6
+    },
+    {
+     "rank": 3,
+     "price": "83774.5",
+     "notional_usdt": "700103",
+     "multiple": "9.3",
+     "age_ms": 98000,
+     "own_age_ms": 98000,
+     "continuity": "NEW",
+     "first_seen_ms": 1791763026098,
+     "size_rank": 4
+    },
+    {
+     "rank": 4,
+     "price": "83780.3",
+     "notional_usdt": "637568",
+     "multiple": "56.6",
+     "age_ms": 43000,
+     "own_age_ms": 43000,
+     "continuity": "NEW",
+     "first_seen_ms": 1791763081098,
+     "size_rank": 5
+    },
+    {
+     "rank": 5,
+     "price": "83800.0",
+     "notional_usdt": "727971",
+     "multiple": "22.6",
+     "age_ms": 528000,
+     "own_age_ms": 413001,
+     "continuity": "CARRIED",
+     "first_seen_ms": 1791762711097,
+     "size_rank": 3
+    },
+    {
+     "rank": 6,
+     "price": "83807.7",
+     "notional_usdt": "812516",
+     "multiple": "20.1",
+     "age_ms": 62000,
+     "own_age_ms": 62000,
+     "continuity": "NEW",
+     "first_seen_ms": 1791763062098,
+     "size_rank": 2
+    }
+   ],
+   "bid": [
+    {
+     "rank": 1,
+     "price": "83654.7",
+     "notional_usdt": "626825",
+     "multiple": "18.1",
+     "age_ms": 60000,
+     "own_age_ms": 60000,
+     "continuity": "NEW",
+     "first_seen_ms": 1791763064098,
+     "size_rank": 1
+    },
+    {
+     "rank": 2,
+     "price": "83624.1",
+     "notional_usdt": "526999",
+     "multiple": "13.0",
+     "age_ms": 414001,
+     "own_age_ms": 413001,
+     "continuity": "CARRIED",
+     "first_seen_ms": 1791762711097,
+     "size_rank": 2
+    }
+   ],
+   "recent_ends": [
+    {
+     "side": "ASK",
+     "price": "83780.2",
+     "price_reached": false,
+     "notional_usdt": "638740",
+     "observed_at_ms": 1791763081098
+    },
+    {
+     "side": "ASK",
+     "price": "83794.4",
+     "price_reached": false,
+     "notional_usdt": "552038",
+     "observed_at_ms": 1791763076097
+    },
+    {
+     "side": "ASK",
+     "price": "83742.0",
+     "price_reached": false,
+     "notional_usdt": "514008",
+     "observed_at_ms": 1791763070097
+    },
+    {
+     "side": "BID",
+     "price": "83609.5",
+     "price_reached": false,
+     "notional_usdt": "607339",
+     "observed_at_ms": 1791763053098
+    },
+    {
+     "side": "ASK",
+     "price": "83794.4",
+     "price_reached": false,
+     "notional_usdt": "592091",
+     "observed_at_ms": 1791763041098
+    },
+    {
+     "side": "BID",
+     "price": "83603.8",
+     "price_reached": false,
+     "notional_usdt": "590577",
+     "observed_at_ms": 1791763041098
+    }
+   ]
+  },
+  "entry": {
+   "available": true,
+   "episode_id": "ep-900",
+   "direction_sign": 1,
+   "entry_ms": 1791760000000,
+   "entry_price": "83612.9",
+   "market_recorded": true,
+   "collector_recorded": true,
+   "flow": {
+    "window": "60s",
+    "buy_pct": 39,
+    "sell_pct": 61
+   },
+   "oi_value_usdt": "7412345679",
+   "oi_change_pct": "0.42",
+   "funding_pct": "0.0010",
+   "basis_pct": "0.012",
+   "ask_wall_price": "83650.0",
+   "bid_wall_price": null,
+   "mid": "83612.9"
+  }
+ },
+ "stale": {
+  "symbol": "BTCUSDT",
+  "server_time_ms": 1791766724098,
+  "structure": {
+   "live": false,
+   "resistance_pct": null,
+   "support_pct": null,
+   "resistance_price": null,
+   "support_price": null
+  },
+  "liquidity": {
+   "live": false,
+   "ask": null,
+   "bid": null,
+   "ask_wall_price": null,
+   "bid_wall_price": null
+  },
+  "flow": {
+   "live": false,
+   "window": "60s",
+   "buy_pct": null,
+   "sell_pct": null
+  },
+  "derivatives": {
+   "live": false,
+   "oi_direction": null,
+   "oi_change_pct": null,
+   "oi_window": "1h",
+   "oi_value_usdt": null,
+   "funding_pct": null,
+   "basis_pct": null
+  },
+  "walls": {
+   "live": false,
+   "mid": null,
+   "ask": [],
+   "bid": [],
+   "recent_ends": []
+  },
+  "entry": {
+   "available": false
+  }
+ }
+}
