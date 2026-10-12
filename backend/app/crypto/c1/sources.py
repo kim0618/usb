@@ -176,17 +176,32 @@ class MarketData:
         self.bybit.close()
         self.spot.close()
 
+    # One method per series, each a straight call into the same reader `fetch` uses, so the
+    # incremental window (`incremental.C1Window`) reads a slice through exactly the code a full
+    # refresh reads the whole window through.
+    def perp_bars(self, start_ms: int, end_ms: int) -> list[Bar]:
+        return bybit_bars(self.bybit, start_ms, end_ms)
+
+    def spot_closes(self, start_ms: int, end_ms: int) -> list[tuple[int, float]]:
+        return self.spot.closes(start_ms, end_ms)
+
+    def open_interest(self, start_ms: int, end_ms: int) -> list[tuple[int, float]]:
+        return bybit_open_interest(self.bybit, start_ms, end_ms)
+
+    def funding_rates(self, start_ms: int, end_ms: int) -> list[tuple[int, float]]:
+        return bybit_funding(self.bybit, start_ms, end_ms)
+
     def fetch(self, start_ms: int, end_ms: int) -> dict[str, Any]:
         start_ms -= start_ms % MINUTE_MS
         end_ms -= end_ms % MINUTE_MS
         return {
             "start_ms": start_ms, "end_ms": end_ms,
-            "bars": bybit_bars(self.bybit, start_ms, end_ms),
+            "bars": self.perp_bars(start_ms, end_ms),
             # The spot window reaches back one 5m interval so the first boundary of the grid has
             # its own five minutes available rather than inheriting a carried value.
-            "spot": self.spot.closes(start_ms - FIVE_MIN_MS, end_ms),
+            "spot": self.spot_closes(start_ms - FIVE_MIN_MS, end_ms),
             # Open interest reaches back the lag the change looks over plus its knowledge delay.
-            "open_interest": bybit_open_interest(self.bybit, start_ms - 2 * 3_600_000, end_ms),
+            "open_interest": self.open_interest(start_ms - 2 * 3_600_000, end_ms),
             # Funding needs the held window; one extra day covers a shadow opened just before.
-            "funding": bybit_funding(self.bybit, start_ms - 86_400_000, end_ms + 86_400_000),
+            "funding": self.funding_rates(start_ms - 86_400_000, end_ms + 86_400_000),
         }

@@ -17,6 +17,8 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import json
+import os
 import time
 from pathlib import Path
 from typing import Any
@@ -31,6 +33,7 @@ from .contract import (
 )
 from .engine import C1Engine, warmup_bars
 from .grid import Grid, build_grid
+from .incremental import C1Window
 from .models import Attribution, C1xEvent, ShadowTrade, Signal, clean_json
 from .shadow import open_shadow, settle, summarize
 from .sources import MarketData
@@ -44,6 +47,13 @@ TICK_SECONDS = 20.0
 # A signal still holding needs its bars kept; 4 h is the official horizon and 8 h the longest
 # observation, so a day of margin covers every open record.
 HOLD_MARGIN_MS = 2 * DAY_MS
+# `off` restores the full 33-day download on every tick. The incremental window produces the same
+# grid (see incremental.py); the switch exists so that claim can be taken back without a release.
+INCREMENTAL_ENV = "CRYPTO_C1_INCREMENTAL"
+
+
+def incremental_enabled() -> bool:
+    return os.environ.get(INCREMENTAL_ENV, "on").strip().lower() not in {"off", "0", "false"}
 
 
 class C1Runtime:
@@ -71,6 +81,7 @@ class C1Runtime:
         self.last_tick_ms: int | None = None
         self.last_decided_at_ms: int | None = None
         self.bars_seen = 0
+        self.window: C1Window | None = C1Window() if incremental_enabled() else None
         self._pump: asyncio.Task | None = None
 
     # ------------------------------------------------------------------ setup
@@ -114,12 +125,28 @@ class C1Runtime:
 
     def refresh_grid(self) -> None:
         start, end = self._window()
-        data = self._market().fetch(start, end)
-        self.grid = build_grid(data["bars"], data["spot"], data["open_interest"],
-                               start_ms=data["start_ms"], end_ms=data["end_ms"] - MINUTE_MS)
-        self.funding = list(data["funding"])
+        if self.window is not None:
+            mode_before = self.window.last_mode
+            self.grid = self.window.refresh(self._market(), start, end)
+            self.funding = self.window.funding
+            if self.window.last_mode.startswith("FULL") and self.window.last_mode != mode_before:
+                print(json.dumps({"event": "C1_WINDOW_FULL_REFRESH", **self.window.stats()}),
+                      flush=True)
+        else:
+            data = self._market().fetch(start, end)
+            self.grid = build_grid(data["bars"], data["spot"], data["open_interest"],
+                                   start_ms=data["start_ms"], end_ms=data["end_ms"] - MINUTE_MS)
+            self.funding = list(data["funding"])
         self.bars_seen = len(self.grid)
         self.engine.cutoffs.clear()
+
+    def audit_window(self) -> None:
+        """One slice of the incremental window checked against the venue (incremental.py)."""
+        if self.window is None:
+            return
+        result = self.window.audit_chunk(self._market())
+        if result and result["mismatched"]:
+            print(json.dumps({"event": "C1_WINDOW_AUDIT_MISMATCH", **result}), flush=True)
 
     # ------------------------------------------------------------------ work
     def catch_up(self) -> None:
@@ -223,6 +250,10 @@ class C1Runtime:
             self.error = None
         except Exception as exc:                      # one bad fetch must not kill the loop
             self.error = f"{type(exc).__name__}: {exc}"
+        else:
+            # After the decision work, and outside it: an audit failure is not a tick failure.
+            with contextlib.suppress(Exception):
+                self.audit_window()
         self.last_tick_ms = self.now_ms()
 
     async def _loop(self) -> None:

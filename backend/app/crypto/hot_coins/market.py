@@ -377,6 +377,10 @@ class BinanceChartHistory:
         key = (symbol, timeframe, normalized, limit)
         now = self._clock()
         with self._lock:
+            # An expired page is never served again (it is refetched and replaced), so holding it
+            # until 48 newer keys push it out only keeps a few thousand candle dicts alive.
+            for stale in [held for held, (at, _) in self._cache.items() if now - at >= CACHE_TTL_S]:
+                del self._cache[stale]
             cached = self._cache.get(key)
             if cached is not None and now - cached[0] < CACHE_TTL_S:
                 self._cache.move_to_end(key)
