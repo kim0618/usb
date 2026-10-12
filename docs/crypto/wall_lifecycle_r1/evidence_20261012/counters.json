@@ -1,0 +1,9 @@
+{
+ "bins": 71836,
+ "context_without_sample": 1,
+ "gaps": 32,
+ "levels": 326431,
+ "levels_open_at_end": 50,
+ "levels_opened": 326431,
+ "samples": 136822
+}

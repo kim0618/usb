@@ -1,0 +1,8 @@
+{"wall_verdict": "B. WALL_INTERACTION_R1_PASS", "advisor_verdict": "B. NO_VALID_ENTRY_FAMILY", "levels": 326431, "events": 8192, "elapsed_s": 39.6}
+RESULTS_BYTE_EQUAL
+LEVELS_BYTE_EQUAL
+EVENTS_BYTE_EQUAL
+ebc7cb39b8a3dc307fff36c53bed1b2cb2259d28cd28e78ec5d2694499f9a78f  /tmp/claude-1000/-home-tjd618/4fd8a997-a438-4f62-becb-27ec5a2f6eb7/scratchpad/data/out_full/results.json
+04175506174a66d2ce3eb3a3b5bedbc955021ee59301974453ad6e6d34a838f2  /tmp/claude-1000/-home-tjd618/4fd8a997-a438-4f62-becb-27ec5a2f6eb7/scratchpad/data/out_full/levels.jsonl
+6ad04e1ff97a8a45edd16bc0b4b6e3567d89bcf9df11d7109180c75fda31ea9f  /tmp/claude-1000/-home-tjd618/4fd8a997-a438-4f62-becb-27ec5a2f6eb7/scratchpad/data/out_full/advisor_events.jsonl
+DONE
