@@ -91,8 +91,9 @@ export const OVERLAY_STYLE: Record<ChartOverlay["kind"], { color: string; lineSt
   MARK: { color: "rgba(148,163,184,0.85)", lineStyle: 2 },
   ENTRY: { color: "#38bdf8", lineStyle: 0 },
   LIQUIDATION: { color: "#f59e0b", lineStyle: 0 },
-  RESISTANCE: { color: "rgba(244,63,94,0.9)", lineStyle: 0 },
-  SUPPORT: { color: "rgba(16,185,129,0.9)", lineStyle: 0 },
+  // V3: a reference annotation, fainter and dotted, so a level never reads as a wall.
+  RESISTANCE: { color: "rgba(244,63,94,0.45)", lineStyle: 2 },
+  SUPPORT: { color: "rgba(16,185,129,0.45)", lineStyle: 2 },
   ASK_WALL: { color: "rgba(244,63,94,0.55)", lineStyle: 1 },
   BID_WALL: { color: "rgba(16,185,129,0.55)", lineStyle: 1 },
 };

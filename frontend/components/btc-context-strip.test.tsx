@@ -128,8 +128,9 @@ describe("BTC context lines on the chart", () => {
   it("draws resistance, support and both walls at the backend's prices", () => {
     // The axis label carries the price (no title); the chart's tag carries the name.
     expect(contextChartLines(LIVE)).toEqual([
-      { id: "ctx-resistance", price: 83113.9, kind: "RESISTANCE", short: "저항", label: "", tag: "저항 83,113.9 +0.09%" },
-      { id: "ctx-support", price: 82912.9, kind: "SUPPORT", short: "지지", label: "", tag: "지지 82,912.9 -0.16%" },
+      // V3: a level's tag is its name only (a reference annotation); the price is on the axis.
+      { id: "ctx-resistance", price: 83113.9, kind: "RESISTANCE", short: "저항", label: "", tag: "저항" },
+      { id: "ctx-support", price: 82912.9, kind: "SUPPORT", short: "지지", label: "", tag: "지지" },
       { id: "ctx-ask-wall", price: 83050.4, kind: "ASK_WALL", short: "매도벽", label: "", tag: "매도벽 83,050.4" },
       { id: "ctx-bid-wall", price: 82996.5, kind: "BID_WALL", short: "매수벽", label: "", tag: "매수벽 82,996.5" },
     ]);
@@ -340,8 +341,8 @@ describe("BTC context inside the terminal", () => {
     await stripLoaded();
     await linesDrawn();
     const drawn = chartOverlays();
-    expect(drawn).toContain("ctx-resistance@83113.9=저항 83,113.9 +0.09%");
-    expect(drawn).toContain("ctx-support@82912.9=지지 82,912.9 -0.16%");
+    expect(drawn).toContain("ctx-resistance@83113.9=저항");
+    expect(drawn).toContain("ctx-support@82912.9=지지");
     expect(drawn).toContain("ctx-ask-wall@83050.4=매도벽 83,050.4");
     expect(drawn).toContain("ctx-bid-wall@82996.5=매수벽 82,996.5");
     // The account's own lines are still there, first.

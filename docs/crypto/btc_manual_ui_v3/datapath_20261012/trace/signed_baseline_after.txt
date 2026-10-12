@@ -1,0 +1,16 @@
+T=1791772170697
+lines=16196
+reconcile=15104
+intent=110
+sent=54
+unreachable_today=352
+reconcile_last30min=0
+s1_mtime=2026-10-12 09:21:24.405612296 +0900 size=28219
+nginx_total=3000
+nginx_nonget_last2000=25
+usb-crypto-paper MainPID=1669431 NRestarts=0
+usb-crypto-context MainPID=1582777 NRestarts=0
+usb-btc-context-ui MainPID=1701557 NRestarts=0
+usb-frontend MainPID=1700688 NRestarts=0
+usb-crypto-q123-forward MainPID=1684303 NRestarts=0
+pos=SHORT 0.064 83612.90

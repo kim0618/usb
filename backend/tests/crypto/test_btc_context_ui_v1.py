@@ -198,7 +198,7 @@ def test_payload_keys_are_exactly_the_display_fields(tmp_path, latest, structure
                     derivatives_layer=derivatives, now_ms=0)
     assert set(out) == {"symbol", "server_time_ms", "structure", "liquidity", "flow",
                         "derivatives", "walls", "entry"}
-    assert set(out["walls"]) == {"live", "mid", "ask", "bid", "recent_ends"}
+    assert set(out["walls"]) == {"live", "mid", "ask", "bid", "empty", "recent_ends"}
     assert out["entry"] == {"available": False}
     assert set(out["structure"]) == {"live", "resistance_pct", "support_pct", "resistance_price",
                                      "support_price"}

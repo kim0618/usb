@@ -23,7 +23,7 @@ import {
 import { DEFAULT_SYMBOL } from "@/lib/crypto-symbols";
 import type { ChartTimeframe } from "@/lib/crypto-paper";
 import { positionOpenedMs } from "@/lib/crypto-paper";
-import { contextChartLines, useBtcContext, useWallSelection } from "@/lib/btc-context";
+import { contextChartLines, useBtcContext, useStructureDisplay, useWallSelection } from "@/lib/btc-context";
 import type { ContextView } from "@/lib/btc-context";
 import { ARM_NOTE, LIVE_CHART_SOURCE_NOTE, LIVE_LOCK_NOTE, liveOverlays, liveTradeGate }
   from "@/lib/crypto-live";
@@ -125,9 +125,10 @@ export function CryptoTerminal({ marketContext, contextBase }: {
   const contextOn = Boolean(contextBase) && symbol === DEFAULT_SYMBOL;
   const context = useBtcContext(contextBase ?? "", contextOn);
   const wallSelection = useWallSelection();
+  const structureDisplay = useStructureDisplay();
   const contextLines = useMemo(() => (contextOn
-    ? contextChartLines(context, { timeframe, selection: wallSelection }) : []),
-  [contextOn, context, timeframe, wallSelection]);
+    ? contextChartLines(context, { timeframe, selection: wallSelection, structure: structureDisplay }) : []),
+  [contextOn, context, timeframe, wallSelection, structureDisplay]);
   const wide = useIsWide();
   const live = useLivePnl(terminal.state?.account?.position_side != null, symbol);
   const binance = useBinanceLive(source === "BINANCE_LIVE", symbol);

@@ -63,9 +63,17 @@ export type BtcWallEnd = {
   /** Whether the price path reached the wall before it went; null when the collector cannot say. */
   price_reached: boolean | null;
 };
-export type BtcWalls = { live: boolean; mid: string | null; ask: BtcWall[]; bid: BtcWall[]; recent_ends: BtcWallEnd[] };
+export type BtcWalls = {
+  live: boolean; mid: string | null; ask: BtcWall[]; bid: BtcWall[]; recent_ends: BtcWallEnd[];
+  /** True for a side the collector read and found no qualifying wall on. Absent or false for a
+   *  side it could not read, so the screen says "none" only when that is what the collector said. */
+  empty?: { ask: boolean; bid: boolean };
+};
+/** Where an entry row came from: the recorder's own output, or a hand-built preview store that the
+ *  API serves only when started for a preview. */
+export type EntrySource = "RECORDER" | "FIXTURE";
 export type BtcEntry = { available: false } | {
-  available: true; episode_id: string | null; direction_sign: 1 | -1 | null;
+  available: true; source?: EntrySource; episode_id: string | null; direction_sign: 1 | -1 | null;
   entry_ms: number | null; entry_price: string | null;
   market_recorded: boolean; collector_recorded: boolean;
   flow: { window: string; buy_pct: number | null; sell_pct: number | null };
@@ -171,6 +179,7 @@ export function useBtcContext(base: string = BTC_CONTEXT_BASE, enabled = true): 
 export function resetBtcContextStores() {
   frozenEntries.clear();
   setWallSelection("NEAR");
+  setStructureDisplay("ANNOTATION");
   for (const store of stores.values()) {
     store.stop?.();
     store.stop = null;
@@ -215,6 +224,23 @@ export function useWallSelection(): WallSelection {
     () => wallSelection, () => "NEAR" as WallSelection);
 }
 
+/** How the V2 resistance and support lines are drawn, a preview choice for the user: HIDDEN (not
+ *  drawn at all) or ANNOTATION (a faint dotted reference line with its name only). Manual Context
+ *  R0 found no edge in them, so neither option gives them the weight of a wall. */
+export type StructureDisplay = "HIDDEN" | "ANNOTATION";
+let structureDisplay: StructureDisplay = "ANNOTATION";
+const structureListeners = new Set<() => void>();
+export function setStructureDisplay(next: StructureDisplay) {
+  if (next === structureDisplay) return;
+  structureDisplay = next;
+  for (const listener of structureListeners) listener();
+}
+export function useStructureDisplay(): StructureDisplay {
+  return useSyncExternalStore(
+    listener => { structureListeners.add(listener); return () => { structureListeners.delete(listener); }; },
+    () => structureDisplay, () => "ANNOTATION" as StructureDisplay);
+}
+
 export function pickWalls(walls: BtcWall[], selection: WallSelection, n = WALLS_PER_SIDE): BtcWall[] {
   const chosen = selection === "NEAR" ? walls.slice(0, n)
     : [...walls].sort((a, b) => a.size_rank - b.size_rank).slice(0, n);
@@ -241,9 +267,11 @@ export type ContextView = { position: ContextPosition | null; mark: number | nul
 export function pctFrom(from: number, to: number): number {
   return (to - from) / from * 100;
 }
-/** Distance from the entry in the position's favour: + is the side the position gains on. */
+/** Signed distance from the entry to a price, in the price's own direction: + is above the entry,
+ *  - is below, for a LONG and a SHORT alike. The sign is never turned towards the position's gain:
+ *  "진입 대비 +0.34%" means the level is 0.34% above the entry, nothing more. */
 export function entryDistancePct(position: ContextPosition, price: number): number {
-  return position.sign * pctFrom(position.entry, price);
+  return pctFrom(position.entry, price);
 }
 
 export function pctText(value: number | null, places = 2): string {
@@ -259,7 +287,7 @@ export type PathRow = {
   primaryPct: number;
   /** From the current price. With no position this equals `primaryPct`. */
   currentPct: number;
-  /** From the entry in the position's favour; null without a position. */
+  /** From the entry, in the price's direction (`entryDistancePct`); null without a position. */
   entryPct: number | null;
   /** Room between this row and the one before it on its path (the price, for the first). */
   gapPct: number;
@@ -273,6 +301,10 @@ export type Paths = {
   up: PathRow[];
   /** Below the price: the bid walls, nearest first. */
   down: PathRow[];
+  /** How many walls the collector published on each side (the rows above are a choice of three). */
+  upCount: number; downCount: number;
+  /** True only when the collector read the side and found no qualifying wall. */
+  upEmpty: boolean; downEmpty: boolean;
 };
 
 function pathRows(side: "ASK" | "BID", walls: BtcWall[], current: number,
@@ -311,12 +343,15 @@ export function wallPaths(payload: BtcContextPayload | null, opts: {
   const walls = payload?.walls;
   const mid = positive(walls?.mid);
   const current = mid ?? (opts.mark != null && opts.mark > 0 ? opts.mark : null);
-  if (!walls || current == null) return { mode, current: current ?? null, up: [], down: [] };
+  const counts = { upCount: walls?.ask.length ?? 0, downCount: walls?.bid.length ?? 0,
+    upEmpty: walls?.empty?.ask === true, downEmpty: walls?.empty?.bid === true };
+  if (!walls || current == null) return { mode, current: current ?? null, up: [], down: [], ...counts };
   const selection = opts.selection ?? "NEAR";
   return {
     mode, current,
     up: pathRows("ASK", pickWalls(walls.ask, selection), current, position),
     down: pathRows("BID", pickWalls(walls.bid, selection), current, position),
+    ...counts,
   };
 }
 
@@ -366,6 +401,8 @@ export type Comparison = {
   walls: { ask: string; bid: string };
   /** When the entry was recorded; null without a recorder answer. */
   entryMs: number | null;
+  /** Where the entry figures came from; null when there is no entry record at all. */
+  source: EntrySource | null;
 };
 
 /** Entry against current for the same figures, side by side. No arrow word, no reading of the
@@ -384,6 +421,7 @@ export function entryComparison(payload: BtcContextPayload | null,
       bid: positive(entry?.bid_wall_price) != null ? priceText(Number(entry?.bid_wall_price)) : MISSING,
     },
     entryMs: entry?.entry_ms ?? null,
+    source: entry ? (entry.source === "FIXTURE" ? "FIXTURE" : "RECORDER") : null,
   };
 }
 
@@ -397,20 +435,22 @@ export function entryComparison(payload: BtcContextPayload | null,
  *  `label` is the line's own title and is empty: the axis label carries the price and the chart's
  *  tag (`tag`) carries the name, so the name never competes with the price for the axis. */
 export function contextChartLines(payload: BtcContextPayload | null, opts: {
-  timeframe?: string; selection?: WallSelection;
+  timeframe?: string; selection?: WallSelection; structure?: StructureDisplay;
 } = {}): ChartOverlay[] {
   if (!payload || payload.symbol !== BTC_CONTEXT_SYMBOL) return [];
   const lines: ChartOverlay[] = [];
   const s = payload.structure, l = payload.liquidity;
-  const resistance = positive(s.resistance_price);
-  if (resistance != null) {
-    lines.push({ id: "ctx-resistance", price: resistance, kind: "RESISTANCE", short: "저항", label: "",
-      tag: `저항 ${priceText(resistance)}${s.resistance_pct != null ? ` +${s.resistance_pct}%` : ""}` });
-  }
-  const support = positive(s.support_price);
-  if (support != null) {
-    lines.push({ id: "ctx-support", price: support, kind: "SUPPORT", short: "지지", label: "",
-      tag: `지지 ${priceText(support)}${s.support_pct != null ? ` -${s.support_pct}%` : ""}` });
+  // V3: resistance and support are a reference annotation at most (name only on the tag, the
+  // price on the axis), or not drawn. Never the full "저항 83,499.9 -0.37%" tag of V2.
+  if ((opts.structure ?? "ANNOTATION") === "ANNOTATION") {
+    const resistance = positive(s.resistance_price);
+    if (resistance != null) {
+      lines.push({ id: "ctx-resistance", price: resistance, kind: "RESISTANCE", short: "저항", label: "", tag: "저항" });
+    }
+    const support = positive(s.support_price);
+    if (support != null) {
+      lines.push({ id: "ctx-support", price: support, kind: "SUPPORT", short: "지지", label: "", tag: "지지" });
+    }
   }
   if (payload.walls) {
     const n = wallLinesFor(opts.timeframe);

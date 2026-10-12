@@ -24,6 +24,11 @@ The rules, all of which are restatements rather than new judgements:
 * ENTRY (V3) is the Manual Trade Snapshot Recorder's EVENT snapshot of the open episode's first
   fill (`entry_context`), restated in the units the current sections use: funding as a percent,
   basis as a percent, the 60 s flow as shares. A layer the recorder marked other than OK is `None`.
+  `source` says whether the row is the recorder's own (RECORDER) or a hand-built preview store
+  (FIXTURE); the API serves a FIXTURE only when started for a preview. Nothing here ever stands in
+  for a missing entry: no entry snapshot means `{"available": False}` and the screen shows dashes.
+* WALLS carry `empty` per side: true only when the collector read that side and found no
+  qualifying wall (its own NONE), so the screen can say "none" rather than "--" in that one case.
 
 There is no threshold in this module. The only arithmetic is a share of a sum, an absolute value,
 a sign and rounding for display.
@@ -50,12 +55,18 @@ OI_WINDOW = "1h"
 WALL_WORDS = {"OK": "STRONG", "NONE": "NORMAL"}
 #: The one wall state under which a side has a wall to place on the chart.
 WALL_OK = "OK"
+#: The collector's own word for a side it read fully and found no qualifying wall on.
+WALL_NONE = "NONE"
 #: Prices are BTCUSDT's: tick 0.10.
 PRICE_PLACES = 1
 #: The collector's classified wall ends the screen is handed, newest first.
 RECENT_ENDS_LIMIT = 6
 
 UP, DOWN, FLAT = "UP", "DOWN", "FLAT"
+
+#: Entry provenance words published to the screen.
+SOURCE_RECORDER = "RECORDER"
+SOURCE_FIXTURE = "FIXTURE"
 
 
 def _dec(value: Any) -> Decimal | None:
@@ -191,13 +202,16 @@ def walls_section(liquidity_layer: dict[str, Any] | None,
     layer = _dict(liquidity_layer)
     state = layer.get("state")
     out: dict[str, Any] = {"live": state == LIVE, "mid": None, "ask": [], "bid": [],
-                           "recent_ends": []}
+                           "empty": {"ask": False, "bid": False}, "recent_ends": []}
     if state not in SHOWN:
         return out
     out["mid"] = _price(_dict(layer.get("book")).get("mid"))
     sides = _dict(layer.get("sides"))
     for key, side in (("ask", "ASK"), ("bid", "BID")):
         held = _dict(sides.get(side))
+        # The collector's own "no qualifying wall on this side" (its NONE), distinct from a side
+        # it cannot read: the screen says there is none only on the former.
+        out["empty"][key] = held.get("wall_state") == WALL_NONE
         if held.get("wall_state") != WALL_OK:
             continue
         rows = [row for row in (_wall_row(_dict(w), i + 1)
@@ -257,6 +271,9 @@ def entry_section(entry: dict[str, Any] | None) -> dict[str, Any]:
 
     return {
         "available": True,
+        # Where the row came from: the recorder's own output, or a store built by hand for a
+        # preview. The API refuses the latter unless started for a preview (`entry_context`).
+        "source": entry.get("source") or SOURCE_RECORDER,
         "episode_id": event.get("episode_id"),
         # +1 long, -1 short: the sign the screen checks against the account's own position.
         "direction_sign": {"LONG": 1, "SHORT": -1}.get(str(event.get("direction"))),
@@ -293,4 +310,5 @@ def display(*, collector_view: dict[str, Any] | None, structure_layer: dict[str,
 
 
 __all__ = ["display", "structure_section", "liquidity_section", "flow_section",
-           "derivatives_section", "walls_section", "entry_section", "SYMBOL", "FLOW_WINDOW", "OI_WINDOW", "WALL_WORDS"]
+           "derivatives_section", "walls_section", "entry_section", "SYMBOL", "FLOW_WINDOW",
+           "OI_WINDOW", "WALL_WORDS", "WALL_NONE", "SOURCE_RECORDER", "SOURCE_FIXTURE"]

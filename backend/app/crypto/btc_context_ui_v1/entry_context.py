@@ -31,11 +31,33 @@ NOT_CONFIGURED = "NOT_CONFIGURED"
 NO_STORE = "STORE_UNREADABLE"
 NO_OPEN_EPISODE = "NO_OPEN_EPISODE"
 NO_ENTRY_SNAPSHOT = "ENTRY_SNAPSHOT_NOT_WRITTEN"
+FIXTURE_REFUSED = "FIXTURE_STORE_REFUSED"
+
+#: Set to "1" only by a preview run (`--allow-fixture-entry`). A production unit never sets it,
+#: so a hand-built store can never put an entry context on the operator's screen.
+ALLOW_FIXTURE_ENV = "BTC_CONTEXT_ALLOW_FIXTURE_ENTRY"
+SOURCE_RECORDER = "RECORDER"
+SOURCE_FIXTURE = "FIXTURE"
 
 
 def store_root() -> Path | None:
     raw = os.environ.get(STORE_ENV, "").strip()
     return Path(raw) if raw else None
+
+
+def fixture_allowed() -> bool:
+    return os.environ.get(ALLOW_FIXTURE_ENV, "").strip() == "1"
+
+
+def snapshot_source(snapshot: dict[str, Any]) -> str:
+    """RECORDER for a row the recorder wrote (`recorder._snapshot`: it stamps `recorded_at_ms`
+    and its `contract`, and never a preview note); FIXTURE for anything else."""
+    recorded = snapshot.get("recorded_at_ms")
+    if (isinstance(recorded, int) and not isinstance(recorded, bool)
+            and isinstance(snapshot.get("contract"), str)
+            and not any(str(key).startswith("preview") for key in snapshot)):
+        return SOURCE_RECORDER
+    return SOURCE_FIXTURE
 
 
 def _rows(path: Path, needle: str | None = None) -> list[dict[str, Any]]:
@@ -54,8 +76,10 @@ def _rows(path: Path, needle: str | None = None) -> list[dict[str, Any]]:
     return out
 
 
-def open_entry(root: Path) -> dict[str, Any]:
-    """`{"available": True, "event": ..., "snapshot": ...}` or `{"available": False, "reason": ...}`."""
+def open_entry(root: Path, *, allow_fixture: bool = False) -> dict[str, Any]:
+    """`{"available": True, "source": ..., "event": ..., "snapshot": ...}` or
+    `{"available": False, "reason": ...}`. A row the recorder did not write is refused unless
+    `allow_fixture` (a preview run); there is no other fallback."""
     try:
         events = _rows(root / "events.jsonl")
         closed_path = root / "episodes.jsonl"
@@ -85,7 +109,10 @@ def open_entry(root: Path) -> dict[str, Any]:
         found = []
     if not found:
         return {"available": False, "reason": NO_ENTRY_SNAPSHOT, "event": first}
-    return {"available": True, "event": first, "snapshot": found[0]}
+    source = snapshot_source(found[0])
+    if source != SOURCE_RECORDER and not allow_fixture:
+        return {"available": False, "reason": FIXTURE_REFUSED, "event": first}
+    return {"available": True, "source": source, "event": first, "snapshot": found[0]}
 
 
 @dataclass
@@ -96,10 +123,10 @@ class EntryReader:
     _value: dict[str, Any] = field(default_factory=lambda: {"available": False,
                                                             "reason": NOT_CONFIGURED})
 
-    def read(self, root: Path | None) -> dict[str, Any]:
+    def read(self, root: Path | None, *, allow_fixture: bool = False) -> dict[str, Any]:
         if root is None:
             return {"available": False, "reason": NOT_CONFIGURED}
-        key: list[Any] = [str(root)]
+        key: list[Any] = [str(root), allow_fixture]
         for name in ("events.jsonl", "episodes.jsonl", "snapshots.jsonl"):
             try:
                 st = (root / name).stat()
@@ -107,10 +134,11 @@ class EntryReader:
             except OSError:
                 key.append(None)
         if tuple(key) != self._key:
-            self._value = open_entry(root)
+            self._value = open_entry(root, allow_fixture=allow_fixture)
             self._key = tuple(key)
         return self._value
 
 
-__all__ = ["STORE_ENV", "EntryReader", "open_entry", "store_root", "NOT_CONFIGURED", "NO_STORE",
-           "NO_OPEN_EPISODE", "NO_ENTRY_SNAPSHOT"]
+__all__ = ["STORE_ENV", "ALLOW_FIXTURE_ENV", "EntryReader", "open_entry", "store_root",
+           "fixture_allowed", "snapshot_source", "NOT_CONFIGURED", "NO_STORE", "NO_OPEN_EPISODE",
+           "NO_ENTRY_SNAPSHOT", "FIXTURE_REFUSED", "SOURCE_RECORDER", "SOURCE_FIXTURE"]

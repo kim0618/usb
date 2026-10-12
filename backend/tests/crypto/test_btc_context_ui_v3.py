@@ -27,6 +27,12 @@ def latest() -> dict:
     return json.loads((FIXTURES / "collector_latest_20261012.json").read_text())
 
 
+@pytest.fixture()
+def latest_1110() -> dict:
+    """The production file as read on 2026-10-12 11:10:34 KST (four ASK, five BID published)."""
+    return json.loads((FIXTURES / "collector_latest_20261012_1110.json").read_text())
+
+
 def _judged(tmp_path: Path, latest: dict, age_ms: int = 1_000) -> dict:
     state = tmp_path / "ctx" / "state"
     state.mkdir(parents=True)
@@ -71,6 +77,86 @@ def test_no_walls_unless_the_side_reads_ok_or_the_layer_is_current(tmp_path, lat
     assert out["ask"] == [] and out["bid"] == [] and out["mid"] is None and not out["live"]
 
 
+@pytest.mark.parametrize("name", ["collector_latest_20261012.json",
+                                  "collector_latest_20261012_1110.json"])
+def test_collector_raw_to_api_wall_parity(tmp_path, name, monkeypatch):
+    """A. the collector's file -> C. GET /snapshot: the same walls, prices, sizes and order, and
+    the same 60 s flow shares. Nothing is lost or added between the raw file and the JSON."""
+    raw = json.loads((FIXTURES / name).read_text())
+    fresh = dict(raw, written_ms=int(time.time() * 1000))
+    state = tmp_path / "ctx" / "state"
+    state.mkdir(parents=True)
+    (state / "context_latest.json").write_text(json.dumps(fresh))
+    monkeypatch.setenv(CTX.ROOT_ENV, str(tmp_path / "ctx"))
+    monkeypatch.delenv(EC.STORE_ENV, raising=False)
+    monkeypatch.setattr(A.state, "entry", EC.EntryReader())
+
+    class Down:
+        def __call__(self, request, timeout=None):
+            raise OSError("venue down")
+    monkeypatch.setattr(A.state, "sources", A.Sources(opener=Down()))
+    body = TestClient(A.app).get("/snapshot").json()
+    for key, side in (("ask", "ASK"), ("bid", "BID")):
+        published = raw["liquidity"]["sides"][side]["walls"]
+        assert len(body["walls"][key]) == len(published)
+        assert [w["price"] for w in body["walls"][key]] == [V._price(w["price"]) for w in published]
+        assert [w["notional_usdt"] for w in body["walls"][key]] == [
+            V._fixed(V._dec(w["notional_usdt"]), 0) for w in published]
+        assert body["walls"]["empty"][key] is False
+    assert body["walls"]["mid"] == V._price(raw["liquidity"]["book"]["mid"])
+    window = raw["flow"]["windows"]["60s"]
+    buy, sell = float(window["buy_usdt"]), float(window["sell_usdt"])
+    assert body["flow"]["buy_pct"] == round(buy / (buy + sell) * 100)
+    assert body["flow"]["sell_pct"] == 100 - body["flow"]["buy_pct"]
+    assert body["flow"]["live"] is True
+
+
+def test_published_count_is_the_collectors_display_set(latest, latest_1110):
+    """What the screen can ever list: the collector's display set (at most DISPLAY_WALL_LIMIT),
+    not the fuller lm-wall.v2 selection it counts in `walls_selected`."""
+    from app.crypto.context_collector_v1.contract import DISPLAY_WALL_LIMIT
+    for raw in (latest, latest_1110):
+        for side in ("ASK", "BID"):
+            held = raw["liquidity"]["sides"][side]
+            assert len(held["walls"]) == min(held["walls_shown"], DISPLAY_WALL_LIMIT)
+            assert held["walls_selected"] >= held["walls_shown"]
+
+
+def test_empty_is_the_collectors_none_only(tmp_path, latest):
+    """`empty` is true only when the collector read the side and found no qualifying wall. A side
+    it could not read (not OK, not NONE) and a stale file both give [] with `empty` false."""
+    view = _judged(tmp_path, latest)
+    view["liquidity"]["sides"]["BID"]["wall_state"] = "NONE"
+    view["liquidity"]["sides"]["BID"]["walls"] = []
+    out = V.walls_section(view["liquidity"], view["flow"])
+    assert out["bid"] == [] and out["empty"] == {"ask": False, "bid": True}
+    assert len(out["ask"]) > 0
+    view["liquidity"]["sides"]["BID"]["wall_state"] = "PARTIAL"
+    out = V.walls_section(view["liquidity"], view["flow"])
+    assert out["bid"] == [] and out["empty"]["bid"] is False
+    stale = _judged(tmp_path / "old", latest, age_ms=3_600_000)
+    out = V.walls_section(stale["liquidity"], stale["flow"])
+    assert out["ask"] == [] and out["bid"] == [] and out["empty"] == {"ask": False, "bid": False}
+
+
+@pytest.mark.parametrize("ask_n,bid_n", [(0, 0), (1, 0), (0, 1), (2, 2), (3, 1), (6, 6)])
+def test_any_published_count_passes_through_unchanged(tmp_path, latest, ask_n, bid_n):
+    view = _judged(tmp_path, latest)
+    for side, n in (("ASK", ask_n), ("BID", bid_n)):
+        held = view["liquidity"]["sides"][side]
+        walls = (held["walls"] * 3)[:n]
+        for i, wall in enumerate(walls):
+            wall = dict(wall)
+            wall["price"] = str(float(wall["price"]) + (i * 0.1 if side == "ASK" else -i * 0.1))
+            walls[i] = wall
+        held["walls"] = walls
+        held["wall_state"] = "OK" if n else "NONE"
+    out = V.walls_section(view["liquidity"], view["flow"])
+    assert len(out["ask"]) == ask_n and len(out["bid"]) == bid_n
+    assert out["empty"] == {"ask": ask_n == 0, "bid": bid_n == 0}
+    assert [w["rank"] for w in out["ask"]] == list(range(1, ask_n + 1))
+
+
 def test_recent_ends_are_the_collectors_classified_ends(tmp_path, latest):
     view = _judged(tmp_path, latest)
     out = V.walls_section(view["liquidity"], view["flow"])
@@ -95,7 +181,10 @@ def _event(eid: str, etype: str, direction: str, first: int, qty_after: str, vwa
 
 
 def _snapshot(eid: str, *, collector_status: str = "OK") -> dict:
+    # `recorded_at_ms` and `contract` are what `recorder._snapshot` stamps on every row it writes;
+    # a row without them is a hand-built store and the API refuses it (`test_fixture_store_...`).
     return {"snapshot_id": f"ev:{eid}", "kind": "EVENT", "as_of_ms": T_OPEN + 40,
+            "recorded_at_ms": T_OPEN + 60_000, "contract": "manual-snapshot.v1",
             "market": {"last_1m_close": 83600.0, "mark": 83610.0, "index": 83600.0,
                        "basis_bp": 1.1961, "funding_rate_last": 0.00001,
                        "oi_last_value_usdt": 7412345678.9, "oi_change_1h_pct": 0.42},
@@ -159,7 +248,7 @@ def test_entry_reader_is_cached_until_a_store_file_changes(tmp_path, monkeypatch
     root = _store(tmp_path / "s", [ev], [_snapshot("900")])
     calls = []
     real = EC.open_entry
-    monkeypatch.setattr(EC, "open_entry", lambda r: calls.append(r) or real(r))
+    monkeypatch.setattr(EC, "open_entry", lambda r, **kw: calls.append(r) or real(r, **kw))
     reader = EC.EntryReader()
     first = reader.read(root)
     assert reader.read(root) is first and len(calls) == 1
@@ -185,6 +274,42 @@ def test_torn_last_line_is_skipped(tmp_path):
     with open(root / "events.jsonl", "a") as handle:
         handle.write('{"event_id": "901", "episode')
     assert EC.open_entry(root)["available"] is True
+
+
+def test_fixture_store_is_refused_unless_the_run_allows_it(tmp_path):
+    """A row the recorder did not write (no `recorded_at_ms`/`contract`, or a preview note) is
+    never served by default: the screen shows dashes, not a stand-in. A preview run that passes
+    `--allow-fixture-entry` gets it, labelled FIXTURE."""
+    ev = _event("900", "OPEN_SHORT", "SHORT", T_OPEN, "-0.010", "83612.9", "ep-900")
+    hand_built = _snapshot("900")
+    del hand_built["recorded_at_ms"]
+    root = _store(tmp_path / "a", [ev], [hand_built])
+    assert EC.open_entry(root) == {"available": False, "reason": EC.FIXTURE_REFUSED, "event": ev}
+    assert V.entry_section(EC.open_entry(root)) == {"available": False}
+    allowed = EC.open_entry(root, allow_fixture=True)
+    assert allowed["available"] and allowed["source"] == V.SOURCE_FIXTURE
+    assert V.entry_section(allowed)["source"] == V.SOURCE_FIXTURE
+    noted = dict(_snapshot("900"), preview_note="built for a preview")
+    root = _store(tmp_path / "b", [ev], [noted])
+    assert EC.open_entry(root)["reason"] == EC.FIXTURE_REFUSED
+    real = _store(tmp_path / "c", [ev], [_snapshot("900")])
+    out = EC.open_entry(real)
+    assert out["available"] and out["source"] == V.SOURCE_RECORDER
+    assert V.entry_section(out)["source"] == V.SOURCE_RECORDER
+
+
+def test_entry_reader_honours_the_fixture_flag_per_read(tmp_path, monkeypatch):
+    ev = _event("900", "OPEN_SHORT", "SHORT", T_OPEN, "-0.010", "83612.9", "ep-900")
+    hand_built = dict(_snapshot("900"), preview_note="preview")
+    root = _store(tmp_path / "s", [ev], [hand_built])
+    reader = EC.EntryReader()
+    assert reader.read(root)["reason"] == EC.FIXTURE_REFUSED
+    assert reader.read(root, allow_fixture=True)["available"] is True
+    assert reader.read(root)["reason"] == EC.FIXTURE_REFUSED
+    monkeypatch.delenv(EC.ALLOW_FIXTURE_ENV, raising=False)
+    assert EC.fixture_allowed() is False
+    monkeypatch.setenv(EC.ALLOW_FIXTURE_ENV, "1")
+    assert EC.fixture_allowed() is True
 
 
 # --------------------------------------------------------------------------- API

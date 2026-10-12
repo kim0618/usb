@@ -3,19 +3,27 @@
 import {
   ageText, BTC_CONTEXT_BASE, type BtcContextPayload, compactUsd, contextLine, type ContextPosition,
   entryComparison, entryDistancePct, entryFor, MISSING, type PathRow, pctText, priceText,
-  setWallSelection, useBtcContext, useWallSelection, wallPaths, type WallSelection,
+  setStructureDisplay, setWallSelection, type StructureDisplay, useBtcContext, useStructureDisplay,
+  useWallSelection, wallPaths, type WallSelection,
 } from "@/lib/btc-context";
 
 /** The panel under the BTC chart (V3): where the next walls are, measured from where it matters.
  *
  *  Without a position it measures from the current price (CURRENT-MARKET). With one it measures
  *  from the entry (POSITION): every wall's leading figure is its distance from the entry in the
- *  position's favour, so the numbers hold still while the price moves; the distance from the
- *  current price is the tooltip and the detail. Above the price is the up path (ask walls), below
- *  is the down path (bid walls), nearest first, with the room between consecutive walls.
+ *  price's own direction (+ above the entry, - below, LONG and SHORT alike), so the numbers hold
+ *  still while the price moves; the distance from the current price is the tooltip and the
+ *  detail. Above the price is the up path (ask walls), below is the down path (bid walls),
+ *  nearest first, with the room between consecutive walls and how many walls the collector
+ *  published on that side.
+ *
+ *  A side with no row says why in the collector's own terms: "none" only when the collector read
+ *  the side and found no qualifying wall; "--" when there is no current reading at all.
  *
  *  Nothing here is advice. There is no hold, exit, target or stop word, no colour that grades a
- *  wall, and no reading of a change: entry and current are two numbers side by side. */
+ *  wall, no sign turned towards the position's gain, and no reading of a change: entry and
+ *  current are two rows of figures side by side. An entry row exists only when the recorder wrote
+ *  one; nothing stands in for it. */
 
 function FlowBar({ buyPct }: { buyPct: number | null }) {
   // Buy share from the left in the buy colour, the rest in the sell colour. No reading is a
@@ -49,15 +57,46 @@ function SelectionSwitch({ value }: { value: WallSelection }) {
   );
 }
 
-function PathColumn({ title, rows, mode, testId }: {
-  title: string; rows: PathRow[]; mode: "MARKET" | "POSITION"; testId: string;
+const STRUCTURE_OPTIONS: { value: StructureDisplay; text: string }[] = [
+  { value: "ANNOTATION", text: "참고선" }, { value: "HIDDEN", text: "숨김" },
+];
+
+/** The V2 resistance/support lines: a faint reference annotation or hidden. A preview choice. */
+function StructureSwitch({ value }: { value: StructureDisplay }) {
+  return (
+    <span className="inline-flex items-center gap-1" data-testid="btc-context-structure">
+      <span>저항·지지</span>
+      <span className="inline-flex overflow-hidden rounded border border-line" role="group" aria-label="저항·지지 참고선">
+        {STRUCTURE_OPTIONS.map(option => (
+          <button key={option.value} type="button" aria-pressed={value === option.value}
+            onClick={() => setStructureDisplay(option.value)}
+            className={`px-1.5 py-0 ${value === option.value ? "bg-line text-foreground" : "text-muted"}`}>
+            {option.text}
+          </button>
+        ))}
+      </span>
+    </span>
+  );
+}
+
+function PathColumn({ side, rows, count, empty, mode, testId }: {
+  side: "ASK" | "BID"; rows: PathRow[]; count: number; empty: boolean;
+  mode: "MARKET" | "POSITION"; testId: string;
 }) {
-  const name = rows[0]?.side === "BID" || testId.endsWith("down") ? "매수벽" : "매도벽";
+  const name = side === "ASK" ? "매도벽" : "매수벽";
+  const where = side === "ASK" ? "위" : "아래";
+  const basis = mode === "POSITION" ? "진입 대비" : "현재 대비";
   return (
     <div data-testid={testId} className="min-w-0">
-      <p className="text-[10px] font-medium text-muted">{title}</p>
+      <p className="text-[10px] font-medium text-muted">
+        {where} · {name} <span data-testid={`${testId}-count`}>{count}</span>개 ({basis})
+      </p>
       <ol className="mt-0.5 space-y-0.5">
-        {rows.length === 0 && <li className="text-[11px] text-muted" data-testid={`${testId}-empty`}>{MISSING}</li>}
+        {rows.length === 0 && (
+          <li className="text-[11px] text-muted" data-testid={`${testId}-empty`}>
+            {empty ? `현재 적격 ${name} 없음` : MISSING}
+          </li>
+        )}
         {rows.map(row => (
           <li key={row.id} data-testid={`${testId}-row`} data-price={row.price}
             title={mode === "POSITION" ? `현재 대비 ${pctText(row.currentPct)}` : undefined}
@@ -94,10 +133,15 @@ function stamp(ms: number | null): string {
   return `${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+function wallList(rows: PathRow[]): string {
+  return rows.length === 0 ? MISSING : rows.map(row => priceText(row.price)).join(" / ");
+}
+
 /** Pure render, so tests and the polling wrapper share one markup. */
-export function BtcContextStripView({ payload, position = null, mark = null, selection = "NEAR" }: {
+export function BtcContextStripView({ payload, position = null, mark = null, selection = "NEAR",
+  structure = "ANNOTATION" }: {
   payload: BtcContextPayload | null; position?: ContextPosition | null; mark?: number | null;
-  selection?: WallSelection;
+  selection?: WallSelection; structure?: StructureDisplay;
 }) {
   const line = contextLine(payload);
   const paths = wallPaths(payload, { mark, position, selection });
@@ -108,6 +152,9 @@ export function BtcContextStripView({ payload, position = null, mark = null, sel
     : line.flow.side === "BUY" ? "text-success" : line.flow.side === "SELL" ? "text-danger" : "text-foreground";
   const derivColor = line.live.derivatives ? "text-foreground" : "text-muted";
   const ends = payload?.walls?.recent_ends ?? [];
+  const entryLabel = entry
+    ? `진입 ${stamp(compare.entryMs)} · ${compare.source === "FIXTURE" ? "검증용 기록" : "기록"}`
+    : "진입 · 기록 없음";
   return (
     <section data-testid="btc-context-strip" data-mode={paths.mode}
       aria-label="BTC 호가벽·체결흐름·미결제약정·펀딩"
@@ -127,7 +174,8 @@ export function BtcContextStripView({ payload, position = null, mark = null, sel
           <span className="font-semibold text-foreground">{paths.current != null ? priceText(paths.current) : MISSING}</span>
         </span>
         {positionMode && position && paths.current != null && (
-          <span data-testid="btc-context-current-vs-entry" className="text-foreground">
+          <span data-testid="btc-context-current-vs-entry" className="text-foreground"
+            title="현재가가 진입가보다 위면 +, 아래면 -">
             <span className="text-muted">진입 대비 </span>{pctText(entryDistancePct(position, paths.current))}
           </span>
         )}
@@ -137,10 +185,10 @@ export function BtcContextStripView({ payload, position = null, mark = null, sel
       {/* Side by side where there is room; stacked (up path first) on a phone, where two columns
           leave a price and its percentage too little width and they overprint. */}
       <div className="mt-1 grid gap-x-3 gap-y-1 sm:grid-cols-2">
-        <PathColumn title={positionMode ? "위 · 다음 매도벽 (진입 대비 거리)" : "위 · 다음 매도벽 (현재 대비)"}
-          rows={paths.up} mode={paths.mode} testId="btc-context-path-up" />
-        <PathColumn title={positionMode ? "아래 · 다음 매수벽 (진입 대비 거리)" : "아래 · 다음 매수벽 (현재 대비)"}
-          rows={paths.down} mode={paths.mode} testId="btc-context-path-down" />
+        <PathColumn side="ASK" rows={paths.up} count={paths.upCount} empty={paths.upEmpty}
+          mode={paths.mode} testId="btc-context-path-up" />
+        <PathColumn side="BID" rows={paths.down} count={paths.downCount} empty={paths.downEmpty}
+          mode={paths.mode} testId="btc-context-path-down" />
       </div>
 
       <details className="group mt-1 border-t border-line pt-1">
@@ -182,18 +230,37 @@ export function BtcContextStripView({ payload, position = null, mark = null, sel
           <span aria-hidden="true" className="ml-auto text-[10px] text-muted transition-transform group-open:rotate-180">▾</span>
         </summary>
         <div data-testid="btc-context-detail" className="mt-1 space-y-1 text-[11px] tabular-nums text-muted">
-          <div className="flex flex-wrap gap-x-4 gap-y-0.5">
-            <span>{line.detail.oiValue}</span>
-            <span>{line.detail.oiChange}</span>
-            {positionMode
-              ? <span>베이시스 {compare.basis.entry} → {compare.basis.current}</span>
-              : <span>{line.detail.basis}</span>}
-          </div>
-          {positionMode && (
-            <p data-testid="btc-context-entry-detail">
-              진입 당시({stamp(compare.entryMs)}) 매도벽 {compare.walls.ask} · 매수벽 {compare.walls.bid}
-              {!entry && " · 진입 기록 없음"}
-            </p>
+          {positionMode ? (
+            /* ENTRY against CURRENT, the same figures in the same order. The entry row is the
+               recorder's record of the fill or "기록 없음"; it is never filled from the current
+               reading. */
+            <div data-testid="btc-context-compare" className="space-y-0.5">
+              <p data-testid="btc-context-entry-detail" className="flex flex-wrap gap-x-2">
+                <span className="rounded bg-line px-1 text-[10px] text-foreground">{entryLabel}</span>
+                <span>체결흐름 {compare.flow.entry}</span>
+                <span>OI {compare.oi.entry}</span>
+                <span>펀딩 {compare.funding.entry}</span>
+                <span>베이시스 {compare.basis.entry}</span>
+                <span>매도벽 {compare.walls.ask}</span>
+                <span>매수벽 {compare.walls.bid}</span>
+              </p>
+              <p data-testid="btc-context-current-detail" className="flex flex-wrap gap-x-2">
+                <span className="rounded bg-line px-1 text-[10px] text-foreground">현재</span>
+                <span>체결흐름 {compare.flow.current}</span>
+                <span>{line.detail.oiValue}</span>
+                <span>펀딩 {compare.funding.current}</span>
+                <span>베이시스 {compare.basis.current}</span>
+                <span>매도벽 {wallList(paths.up)}</span>
+                <span>매수벽 {wallList(paths.down)}</span>
+              </p>
+              <p className="flex flex-wrap gap-x-4"><span>{line.detail.oiChange}</span></p>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-x-4 gap-y-0.5">
+              <span>{line.detail.oiValue}</span>
+              <span>{line.detail.oiChange}</span>
+              <span>{line.detail.basis}</span>
+            </div>
           )}
           <ul data-testid="btc-context-wall-detail" className="space-y-0.5">
             <WallDetail rows={paths.up} mode={paths.mode} />
@@ -205,7 +272,10 @@ export function BtcContextStripView({ payload, position = null, mark = null, sel
                 `${end.side === "ASK" ? "매도" : "매수"} ${priceText(Number(end.price))} ${compactUsd(end.notional_usdt)}${end.price_reached === false ? " 가격 미도달" : end.price_reached ? " 가격 도달" : ""}`).join(" · ")}
             </p>
           )}
-          <p className="text-[10px]">벽은 수집기가 지금 보고 있는 50만 USDT 이상 호가(측면당 최대 6개 중 3개). 유지 시간과 크기는 수집기 수치 그대로.</p>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-0.5 text-[10px]">
+            <StructureSwitch value={structure} />
+            <span>벽은 수집기가 지금 공개한 호가벽 중 측면당 3개. 유지 시간과 크기는 수집기 수치 그대로.</span>
+          </div>
         </div>
       </details>
     </section>
@@ -225,5 +295,7 @@ function BtcContextStripPolling({ base = BTC_CONTEXT_BASE, position, mark }: {
 }) {
   const payload = useBtcContext(base);
   const selection = useWallSelection();
-  return <BtcContextStripView payload={payload} position={position} mark={mark} selection={selection} />;
+  const structure = useStructureDisplay();
+  return <BtcContextStripView payload={payload} position={position} mark={mark} selection={selection}
+    structure={structure} />;
 }

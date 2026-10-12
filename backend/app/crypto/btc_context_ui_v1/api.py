@@ -15,7 +15,9 @@ How each request is answered, and why it never waits on a venue:
   R1 engine and does not import numpy: a missing, unreadable, foreign or old file is a dash.
 * ENTRY is the Manual Trade Snapshot Recorder's entry snapshot of the open BTC episode, read only
   from its store (`BTC_CONTEXT_MANUAL_STORE`; unset means none) and re-read only when a store file
-  changed.
+  changed. A store row the recorder did not write is refused unless the process was started with
+  `--allow-fixture-entry` (a preview). There is no other source and no fallback: no recorder row,
+  no entry context.
 * DERIVATIVES are served from the last completed read. A request that finds them due starts one
   read in a worker thread and returns at once; a read already running is not started twice.
   Nobody watching means no venue traffic from this process at all.
@@ -189,7 +191,7 @@ async def snapshot() -> Any:
 def entry_reading() -> dict[str, Any]:
     """The recorder's entry context, read only. A reader fault is "not available", never an error."""
     try:
-        return state.entry.read(EC.store_root())
+        return state.entry.read(EC.store_root(), allow_fixture=EC.fixture_allowed())
     except Exception:                                  # must not blank the rest of the payload
         return {"available": False, "reason": EC.NO_STORE}
 
@@ -199,6 +201,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--root", default=os.environ.get(ROOT_ENV))
     parser.add_argument("--structure-snapshot", default=os.environ.get(STRUCTURE_SNAPSHOT_ENV))
     parser.add_argument("--manual-store", default=os.environ.get(EC.STORE_ENV))
+    parser.add_argument("--allow-fixture-entry", action="store_true",
+                        help="PREVIEW ONLY: serve a hand-built entry store. Never in production.")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=DEFAULT_PORT)
     args = parser.parse_args(argv)
@@ -208,6 +212,8 @@ def main(argv: list[str] | None = None) -> int:
         os.environ[STRUCTURE_SNAPSHOT_ENV] = str(Path(args.structure_snapshot).expanduser().resolve())
     if args.manual_store:
         os.environ[EC.STORE_ENV] = str(Path(args.manual_store).expanduser().resolve())
+    if args.allow_fixture_entry:
+        os.environ[EC.ALLOW_FIXTURE_ENV] = "1"
     import uvicorn
     uvicorn.run(app, host=args.host, port=args.port, log_level="warning", access_log=False)
     return 0

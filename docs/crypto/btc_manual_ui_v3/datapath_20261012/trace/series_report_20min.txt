@@ -1,0 +1,240 @@
+snapshots: 20  span: 1791770780333 .. 1791772023561  (20.7 min)
+ssh_T  | written_ms  | age_at_read | sess     | col  | liq  | ASK st sel shown pub | BID st sel shown pub | flow60 buy/sell % | mid
+1791770780333 | 1791770780100 |   233 ms | 31cc8177 | LIVE | LIVE | OK    13   6   6 | OK    10   3   3 | LIVE/LIVE 57/43 | 83687.95
+1791770843944 | 1791770843097 |   847 ms | 31cc8177 | LIVE | LIVE | OK    13   6   6 | OK     6   4   4 | LIVE/LIVE 58/42 | 83673.35
+1791770907884 | 1791770907097 |   787 ms | 31cc8177 | LIVE | LIVE | OK    16   8   6 | OK     9   5   5 | LIVE/LIVE 64/36 | 83666.65
+1791770976310 | 1791770976098 |   212 ms | 31cc8177 | LIVE | LIVE | OK    12   6   6 | OK    11   4   4 | LIVE/LIVE 56/44 | 83634.25
+1791771041485 | 1791771041097 |   388 ms | 31cc8177 | LIVE | LIVE | OK    13   3   3 | OK    13   6   6 | LIVE/LIVE 76/24 | 83664.95
+1791771108119 | 1791771107097 |  1022 ms | 31cc8177 | LIVE | LIVE | OK    12   5   5 | OK    14   5   5 | LIVE/LIVE 53/47 | 83649.95
+1791771175645 | 1791771175099 |   546 ms | 31cc8177 | LIVE | LIVE | OK    11   4   4 | OK    12   5   5 | LIVE/LIVE 69/31 | 83666.45
+1791771240395 | 1791771240098 |   297 ms | 31cc8177 | LIVE | LIVE | OK    13   5   5 | OK    10   2   2 | LIVE/LIVE 96/4 | 83743.65
+1791771309927 | 1791771309593 |   334 ms | 31cc8177 | LIVE | LIVE | OK    12   5   5 | OK    10   4   4 | LIVE/LIVE 62/38 | 83750.35
+1791771374901 | 1791771374100 |   801 ms | 31cc8177 | LIVE | LIVE | OK    10   3   3 | OK     9   5   5 | LIVE/LIVE 73/27 | 83793.05
+1791771439459 | 1791771439098 |   361 ms | 31cc8177 | LIVE | LIVE | OK    12   6   6 | OK     5   1   1 | LIVE/LIVE 73/27 | 83825.15
+1791771504396 | 1791771504100 |   296 ms | 31cc8177 | LIVE | LIVE | OK    16   7   6 | OK    11   3   3 | LIVE/LIVE 73/27 | 83855.95
+1791771569410 | 1791771569098 |   312 ms | 31cc8177 | LIVE | LIVE | OK    10   7   6 | OK     9   6   6 | LIVE/LIVE 67/33 | 83920.65
+1791771634702 | 1791771634099 |   603 ms | 31cc8177 | LIVE | LIVE | OK    12   4   4 | OK    12   7   6 | LIVE/LIVE 55/45 | 83922.65
+1791771699814 | 1791771699097 |   717 ms | 31cc8177 | LIVE | LIVE | OK    15   6   6 | NONE   3   0   0 | LIVE/LIVE 40/60 | 83886.25
+1791771764380 | 1791771764098 |   282 ms | 31cc8177 | LIVE | LIVE | OK    15   8   6 | OK    14   6   6 | LIVE/LIVE 62/38 | 83878.25
+1791771829078 | 1791771828097 |   981 ms | 31cc8177 | LIVE | LIVE | OK     9   5   5 | OK     8   4   4 | LIVE/LIVE 31/69 | 83806.95
+1791771893801 | 1791771893098 |   703 ms | 31cc8177 | LIVE | LIVE | OK    12   4   4 | OK     8   3   3 | LIVE/LIVE 45/55 | 83788.05
+1791771958641 | 1791771958098 |   543 ms | 31cc8177 | LIVE | LIVE | OK    10   5   5 | OK    14   4   4 | LIVE/LIVE 58/42 | 83792.45
+1791772023561 | 1791772023098 |   463 ms | 31cc8177 | LIVE | LIVE | OK    14  10   6 | OK     9   1   1 | LIVE/LIVE 43/57 | 83777.05
+
+--- per-snapshot published walls (price, notional, rank, persistence_ms, own_persistence_ms, continuity, first_seen_ms, coverage) ---
+T=1791770780333 written=1791770780100 sample=134339 session=31cc8177-b7cc-407d-aceb-ffb27b8ac94a
+   ASK #1 price=83755.4 notional=      700195 multiple=   23.4 persist=66002 own=52003 cont=CARRIED first_seen=1791770728097 cov=PARTIAL bin=[83755,83760] values_as_of=CHECKPOINT_CURRENT
+   ASK #2 price=83778.6 notional=      521187 multiple=   32.6 persist=84002 own=52003 cont=CARRIED first_seen=1791770728097 cov=PARTIAL bin=[83775,83780] values_as_of=CHECKPOINT_CURRENT
+   ASK #3 price=83793.2 notional=     1451047 multiple=   52.0 persist=52003 own=52003 cont=NEW first_seen=1791770728097 cov=PARTIAL bin=[83790,83795] values_as_of=CHECKPOINT_CURRENT
+   ASK #4 price=83797 notional=      531105 multiple=  101.9 persist=52003 own=52003 cont=NEW first_seen=1791770728097 cov=PARTIAL bin=[83795,83800] values_as_of=CHECKPOINT_CURRENT
+   ASK #5 price=83803.1 notional=     1303222 multiple=   26.6 persist=52003 own=52003 cont=NEW first_seen=1791770728097 cov=PARTIAL bin=[83800,83805] values_as_of=CHECKPOINT_CURRENT
+   ASK #6 price=83812.5 notional=     1006504 multiple=   64.9 persist=52003 own=52003 cont=NEW first_seen=1791770728097 cov=PARTIAL bin=[83810,83815] values_as_of=CHECKPOINT_CURRENT
+   BID #1 price=83613.2 notional=      700177 multiple=   26.9 persist=10002 own=10002 cont=CARRIED first_seen=1791770770098 cov=PARTIAL bin=[83610,83615] values_as_of=CHECKPOINT_CURRENT
+   BID #2 price=83598.4 notional=      527673 multiple=   10.0 persist=53002 own=52003 cont=CARRIED first_seen=1791770728097 cov=PARTIAL bin=[83595,83600] values_as_of=CHECKPOINT_CURRENT
+   BID #3 price=83566 notional=      822540 multiple=   28.4 persist=55003 own=52003 cont=CARRIED first_seen=1791770728097 cov=PARTIAL bin=[83565,83570] values_as_of=CHECKPOINT_CURRENT
+T=1791770976310 written=1791770976098 sample=134535 session=31cc8177-b7cc-407d-aceb-ffb27b8ac94a
+   ASK #1 price=83707.2 notional=      623702 multiple=   26.6 persist=35000 own=35000 cont=NEW first_seen=1791770941098 cov=PARTIAL bin=[83705,83710] values_as_of=CHECKPOINT_CURRENT
+   ASK #2 price=83730.2 notional=      700738 multiple=   16.5 persist=64000 own=55000 cont=CARRIED first_seen=1791770921098 cov=PARTIAL bin=[83730,83735] values_as_of=CHECKPOINT_CURRENT
+   ASK #3 price=83747.2 notional=      527607 multiple=   18.9 persist=49000 own=49000 cont=NEW first_seen=1791770927098 cov=PARTIAL bin=[83745,83750] values_as_of=CHECKPOINT_CURRENT
+   ASK #4 price=83761.3 notional=      812568 multiple=   22.1 persist=49000 own=49000 cont=CARRIED first_seen=1791770927098 cov=PARTIAL bin=[83760,83765] values_as_of=CHECKPOINT_CURRENT
+   ASK #5 price=83774.6 notional=      921521 multiple=   27.5 persist=10000 own=10000 cont=NEW first_seen=1791770966098 cov=PARTIAL bin=[83770,83775] values_as_of=CHECKPOINT_CURRENT
+   ASK #6 price=83776.1 notional=      555268 multiple=   32.4 persist=41000 own=41000 cont=NEW first_seen=1791770935098 cov=PARTIAL bin=[83775,83780] values_as_of=CHECKPOINT_CURRENT
+   BID #1 price=83587.4 notional=      700379 multiple=    7.7 persist=64000 own=55000 cont=CARRIED first_seen=1791770921098 cov=PARTIAL bin=[83585,83590] values_as_of=CHECKPOINT_CURRENT
+   BID #2 price=83564.6 notional=      518184 multiple=   20.5 persist=141000 own=55000 cont=CARRIED first_seen=1791770921098 cov=PARTIAL bin=[83560,83565] values_as_of=CHECKPOINT_CURRENT
+   BID #3 price=83542.4 notional=      584964 multiple=  246.5 persist=10000 own=10000 cont=NEW first_seen=1791770966098 cov=PARTIAL bin=[83540,83545] values_as_of=CHECKPOINT_CURRENT
+   BID #4 price=83535.7 notional=      812635 multiple=   19.5 persist=55000 own=55000 cont=NEW first_seen=1791770921098 cov=PARTIAL bin=[83535,83540] values_as_of=CHECKPOINT_CURRENT
+T=1791771175645 written=1791771175099 sample=134734 session=31cc8177-b7cc-407d-aceb-ffb27b8ac94a
+   ASK #1 price=83730.2 notional=      700319 multiple=   42.1 persist=263001 own=254001 cont=CARRIED first_seen=1791770921098 cov=PARTIAL bin=[83730,83735] values_as_of=CHECKPOINT_CURRENT
+   ASK #2 price=83747.2 notional=      527691 multiple=   13.6 persist=162001 own=162001 cont=NEW first_seen=1791771013098 cov=PARTIAL bin=[83745,83750] values_as_of=CHECKPOINT_CURRENT
+   ASK #3 price=83753.5 notional=      596660 multiple=   73.0 persist=27002 own=27002 cont=CARRIED first_seen=1791771148097 cov=PARTIAL bin=[83750,83755] values_as_of=CHECKPOINT_CURRENT
+   ASK #4 price=83761.3 notional=      812568 multiple=   20.3 persist=137000 own=137000 cont=CARRIED first_seen=1791771038099 cov=PARTIAL bin=[83760,83765] values_as_of=CHECKPOINT_CURRENT
+   BID #1 price=83637 notional=      743198 multiple=   30.8 persist=173002 own=173002 cont=NEW first_seen=1791771002097 cov=PARTIAL bin=[83635,83640] values_as_of=CHECKPOINT_CURRENT
+   BID #2 price=83587.4 notional=      700379 multiple=   18.0 persist=263001 own=254001 cont=CARRIED first_seen=1791770921098 cov=PARTIAL bin=[83585,83590] values_as_of=CHECKPOINT_CURRENT
+   BID #3 price=83564.6 notional=      518184 multiple=   10.0 persist=340001 own=254001 cont=CARRIED first_seen=1791770921098 cov=PARTIAL bin=[83560,83565] values_as_of=CHECKPOINT_CURRENT
+   BID #4 price=83535.7 notional=      812552 multiple=   34.5 persist=254001 own=254001 cont=NEW first_seen=1791770921098 cov=PARTIAL bin=[83535,83540] values_as_of=CHECKPOINT_CURRENT
+   BID #5 price=83532.9 notional=      553656 multiple=   15.8 persist=33001 own=33001 cont=NEW first_seen=1791771142098 cov=PARTIAL bin=[83530,83535] values_as_of=CHECKPOINT_CURRENT
+T=1791771374901 written=1791771374100 sample=134933 session=31cc8177-b7cc-407d-aceb-ffb27b8ac94a
+   ASK #1 price=83900 notional=     1346343 multiple=   16.2 persist=27002 own=27002 cont=NEW first_seen=1791771347098 cov=PARTIAL bin=[83900,83905] values_as_of=CHECKPOINT_CURRENT
+   ASK #2 price=83914.3 notional=      813969 multiple=   18.8 persist=27002 own=27002 cont=NEW first_seen=1791771347098 cov=PARTIAL bin=[83910,83915] values_as_of=CHECKPOINT_CURRENT
+   ASK #3 price=83928.8 notional=      943695 multiple=   20.4 persist=27002 own=27002 cont=NEW first_seen=1791771347098 cov=PARTIAL bin=[83925,83930] values_as_of=CHECKPOINT_CURRENT
+   BID #1 price=83765 notional=     1136942 multiple=   39.6 persist=55002 own=27002 cont=CARRIED first_seen=1791771347098 cov=PARTIAL bin=[83765,83770] values_as_of=CHECKPOINT_CURRENT
+   BID #2 price=83719.3 notional=      709019 multiple=   24.2 persist=28002 own=27002 cont=CARRIED first_seen=1791771347098 cov=PARTIAL bin=[83715,83720] values_as_of=CHECKPOINT_CURRENT
+   BID #3 price=83686.8 notional=      528147 multiple=   17.4 persist=31000 own=27002 cont=CARRIED first_seen=1791771347098 cov=PARTIAL bin=[83685,83690] values_as_of=CHECKPOINT_CURRENT
+   BID #4 price=83682.4 notional=      635986 multiple=   16.1 persist=32002 own=27002 cont=CARRIED first_seen=1791771347098 cov=PARTIAL bin=[83680,83685] values_as_of=CHECKPOINT_CURRENT
+   BID #5 price=83678.2 notional=     1576665 multiple=  117.7 persist=27002 own=27002 cont=NEW first_seen=1791771347098 cov=PARTIAL bin=[83675,83680] values_as_of=CHECKPOINT_CURRENT
+T=1791771569410 written=1791771569098 sample=135128 session=31cc8177-b7cc-407d-aceb-ffb27b8ac94a
+   ASK #1 price=83983.5 notional=      749553 multiple=   11.6 persist=38001 own=37001 cont=CARRIED first_seen=1791771532097 cov=PARTIAL bin=[83980,83985] values_as_of=CHECKPOINT_CURRENT
+   ASK #2 price=83991.8 notional=     1194027 multiple=   10.4 persist=39001 own=37001 cont=CARRIED first_seen=1791771532097 cov=PARTIAL bin=[83990,83995] values_as_of=CHECKPOINT_CURRENT
+   ASK #3 price=83996.1 notional=      989642 multiple=   13.2 persist=16001 own=16001 cont=NEW first_seen=1791771553097 cov=PARTIAL bin=[83995,84000] values_as_of=CHECKPOINT_CURRENT
+   ASK #4 price=84000 notional=     2449272 multiple=    5.3 persist=62000 own=37001 cont=CARRIED first_seen=1791771532097 cov=PARTIAL bin=[84000,84005] values_as_of=CHECKPOINT_CURRENT
+   ASK #5 price=84033 notional=     1109236 multiple=   30.5 persist=51001 own=37001 cont=CARRIED first_seen=1791771532097 cov=PARTIAL bin=[84030,84035] values_as_of=CHECKPOINT_CURRENT
+   ASK #6 price=84041.7 notional=      530387 multiple=    6.2 persist=35000 own=35000 cont=NEW first_seen=1791771534098 cov=PARTIAL bin=[84040,84045] values_as_of=CHECKPOINT_CURRENT
+   BID #1 price=83889.8 notional=      622714 multiple=   13.7 persist=38001 own=37001 cont=CARRIED first_seen=1791771532097 cov=PARTIAL bin=[83885,83890] values_as_of=CHECKPOINT_CURRENT
+   BID #2 price=83872.8 notional=      700170 multiple=   22.3 persist=18001 own=18001 cont=NEW first_seen=1791771551097 cov=PARTIAL bin=[83870,83875] values_as_of=CHECKPOINT_CURRENT
+   BID #3 price=83842.4 notional=      654809 multiple=   11.9 persist=54000 own=37001 cont=CARRIED first_seen=1791771532097 cov=PARTIAL bin=[83840,83845] values_as_of=CHECKPOINT_CURRENT
+   BID #4 price=83825.6 notional=      654929 multiple=   13.6 persist=37001 own=37001 cont=NEW first_seen=1791771532097 cov=PARTIAL bin=[83825,83830] values_as_of=CHECKPOINT_CURRENT
+   BID #5 price=83808.8 notional=      588757 multiple=   28.6 persist=37001 own=37001 cont=NEW first_seen=1791771532097 cov=PARTIAL bin=[83805,83810] values_as_of=CHECKPOINT_CURRENT
+   BID #6 price=83792.8 notional=     1375040 multiple=   28.4 persist=37001 own=37001 cont=NEW first_seen=1791771532097 cov=PARTIAL bin=[83790,83795] values_as_of=CHECKPOINT_CURRENT
+T=1791771764380 written=1791771764098 sample=135323 session=31cc8177-b7cc-407d-aceb-ffb27b8ac94a
+   ASK #1 price=83916.8 notional=      811559 multiple=   17.7 persist=23000 own=23000 cont=NEW first_seen=1791771741098 cov=PARTIAL bin=[83915,83920] values_as_of=CHECKPOINT_CURRENT
+   ASK #2 price=83933.6 notional=      506539 multiple=    7.2 persist=138000 own=60001 cont=CARRIED first_seen=1791771704097 cov=PARTIAL bin=[83930,83935] values_as_of=CHECKPOINT_CURRENT
+   ASK #3 price=83960.1 notional=      587973 multiple=   50.3 persist=46001 own=46001 cont=NEW first_seen=1791771718097 cov=PARTIAL bin=[83960,83965] values_as_of=CHECKPOINT_CURRENT
+   ASK #4 price=83969.8 notional=      700056 multiple=  398.9 persist=67001 own=60001 cont=CARRIED first_seen=1791771704097 cov=PARTIAL bin=[83965,83970] values_as_of=CHECKPOINT_CURRENT
+   ASK #5 price=83975.7 notional=      520817 multiple=   19.6 persist=67001 own=60001 cont=CARRIED first_seen=1791771704097 cov=PARTIAL bin=[83975,83980] values_as_of=CHECKPOINT_CURRENT
+   ASK #6 price=83992.5 notional=      638343 multiple=    8.8 persist=67001 own=60001 cont=CARRIED first_seen=1791771704097 cov=PARTIAL bin=[83990,83995] values_as_of=CHECKPOINT_CURRENT
+   BID #1 price=83823.8 notional=      702108 multiple=    8.2 persist=67001 own=60001 cont=CARRIED first_seen=1791771704097 cov=PARTIAL bin=[83820,83825] values_as_of=CHECKPOINT_CURRENT
+   BID #2 price=83797.6 notional=      532031 multiple=   16.2 persist=126001 own=60001 cont=CARRIED first_seen=1791771704097 cov=PARTIAL bin=[83795,83800] values_as_of=CHECKPOINT_CURRENT
+   BID #3 price=83781.8 notional=      820894 multiple=   29.0 persist=60001 own=60001 cont=NEW first_seen=1791771704097 cov=PARTIAL bin=[83780,83785] values_as_of=CHECKPOINT_CURRENT
+   BID #4 price=83766.6 notional=      630762 multiple=  336.2 persist=39001 own=39001 cont=NEW first_seen=1791771725097 cov=PARTIAL bin=[83765,83770] values_as_of=CHECKPOINT_CURRENT
+   BID #5 price=83758.8 notional=      553394 multiple=    9.4 persist=60001 own=60001 cont=NEW first_seen=1791771704097 cov=PARTIAL bin=[83755,83760] values_as_of=CHECKPOINT_CURRENT
+   BID #6 price=83753.2 notional=     1534024 multiple=  480.7 persist=60001 own=60001 cont=NEW first_seen=1791771704097 cov=PARTIAL bin=[83750,83755] values_as_of=CHECKPOINT_CURRENT
+T=1791771958641 written=1791771958098 sample=135517 session=31cc8177-b7cc-407d-aceb-ffb27b8ac94a
+   ASK #1 price=83842.4 notional=      960247 multiple=   24.2 persist=57000 own=45000 cont=CARRIED first_seen=1791771913098 cov=PARTIAL bin=[83840,83845] values_as_of=CHECKPOINT_CURRENT
+   ASK #2 price=83851.9 notional=      528519 multiple=   13.5 persist=23001 own=23001 cont=NEW first_seen=1791771935097 cov=PARTIAL bin=[83850,83855] values_as_of=CHECKPOINT_CURRENT
+   ASK #3 price=83866 notional=      700281 multiple=   26.9 persist=14000 own=14000 cont=NEW first_seen=1791771944098 cov=PARTIAL bin=[83865,83870] values_as_of=CHECKPOINT_CURRENT
+   ASK #4 price=83875.5 notional=      769642 multiple=   13.4 persist=18999 own=18999 cont=NEW first_seen=1791771939099 cov=PARTIAL bin=[83875,83880] values_as_of=CHECKPOINT_CURRENT
+   ASK #5 price=83882.5 notional=      842348 multiple=   35.5 persist=63000 own=45000 cont=CARRIED first_seen=1791771913098 cov=PARTIAL bin=[83880,83885] values_as_of=CHECKPOINT_CURRENT
+   BID #1 price=83716.4 notional=      684968 multiple=   14.0 persist=21000 own=21000 cont=NEW first_seen=1791771937098 cov=PARTIAL bin=[83715,83720] values_as_of=CHECKPOINT_CURRENT
+   BID #2 price=83664.5 notional=      939301 multiple=    8.9 persist=42000 own=42000 cont=NEW first_seen=1791771916098 cov=PARTIAL bin=[83660,83665] values_as_of=CHECKPOINT_CURRENT
+   BID #3 price=83653 notional=      635679 multiple=    7.8 persist=45000 own=45000 cont=NEW first_seen=1791771913098 cov=PARTIAL bin=[83650,83655] values_as_of=CHECKPOINT_CURRENT
+   BID #4 price=83637 notional=     1534655 multiple=  163.4 persist=20001 own=20001 cont=NEW first_seen=1791771938097 cov=PARTIAL bin=[83635,83640] values_as_of=CHECKPOINT_CURRENT
+
+--- walls by price across the series: in how many snapshots each published wall appeared ---
+ASK 83730.2: 4/20 snapshots, notional 700319..700738, max persistence 263001 ms
+ASK 83747.2: 4/20 snapshots, notional 527607..527691, max persistence 162001 ms
+ASK 83755.4: 3/20 snapshots, notional 700195..700195, max persistence 192999 ms
+ASK 83793.2: 3/20 snapshots, notional 1132633..1451047, max persistence 179000 ms
+ASK 83797: 3/20 snapshots, notional 527921..531105, max persistence 179000 ms
+ASK 83803.1: 3/20 snapshots, notional 1303222..1303222, max persistence 179000 ms
+ASK 83761.3: 3/20 snapshots, notional 812568..812568, max persistence 137000 ms
+ASK 83900: 3/20 snapshots, notional 1346343..1389384, max persistence 157002 ms
+ASK 84033: 3/20 snapshots, notional 1109236..1109236, max persistence 181000 ms
+ASK 83812.5: 2/20 snapshots, notional 1006504..1006504, max persistence 115000 ms
+ASK 83806.5: 2/20 snapshots, notional 555302..555302, max persistence 100999 ms
+ASK 83799.9: 2/20 snapshots, notional 4190079..4190246, max persistence 105496 ms
+ASK 83842.4: 2/20 snapshots, notional 960247..1430184, max persistence 57000 ms
+ASK 83847.2: 2/20 snapshots, notional 812647..813318, max persistence 104496 ms
+ASK 83899: 2/20 snapshots, notional 8054472..8054472, max persistence 122002 ms
+ASK 84000: 2/20 snapshots, notional 2178876..2449272, max persistence 191999 ms
+ASK 84041.7: 2/20 snapshots, notional 530387..530387, max persistence 100001 ms
+ASK 83999.9: 2/20 snapshots, notional 4218055..4218223, max persistence 132999 ms
+ASK 83933.6: 2/20 snapshots, notional 506539..550856, max persistence 138000 ms
+ASK 83865.7: 2/20 snapshots, notional 700111..700111, max persistence 84999 ms
+ASK 83851.9: 2/20 snapshots, notional 528519..528519, max persistence 88001 ms
+ASK 83866: 2/20 snapshots, notional 700197..700281, max persistence 20000 ms
+ASK 83875.5: 2/20 snapshots, notional 769642..769642, max persistence 83999 ms
+ASK 83778.6: 1/20 snapshots, notional 521187..521187, max persistence 84002 ms
+ASK 83772: 1/20 snapshots, notional 615724..615724, max persistence 40998 ms
+ASK 83707.2: 1/20 snapshots, notional 623702..623702, max persistence 35000 ms
+ASK 83774.6: 1/20 snapshots, notional 921521..921521, max persistence 10000 ms
+ASK 83776.1: 1/20 snapshots, notional 555268..555268, max persistence 41000 ms
+ASK 83777.6: 1/20 snapshots, notional 930434..930434, max persistence 37000 ms
+ASK 83699.1: 1/20 snapshots, notional 531489..531489, max persistence 34999 ms
+ASK 83780.2: 1/20 snapshots, notional 556971..556971, max persistence 21999 ms
+ASK 83753.5: 1/20 snapshots, notional 596660..596660, max persistence 27002 ms
+ASK 83813.8: 1/20 snapshots, notional 522244..522244, max persistence 36001 ms
+ASK 83819.4: 1/20 snapshots, notional 712633..712633, max persistence 17000 ms
+ASK 83807.8: 1/20 snapshots, notional 752762..752762, max persistence 76495 ms
+ASK 83830.6: 1/20 snapshots, notional 1121570..1121570, max persistence 43495 ms
+ASK 83835.8: 1/20 snapshots, notional 599007..599007, max persistence 76495 ms
+ASK 83914.3: 1/20 snapshots, notional 813969..813969, max persistence 27002 ms
+ASK 83928.8: 1/20 snapshots, notional 943695..943695, max persistence 27002 ms
+ASK 83865.2: 1/20 snapshots, notional 695326..695326, max persistence 17999 ms
+ASK 83885.6: 1/20 snapshots, notional 529234..529234, max persistence 63999 ms
+ASK 83912.8: 1/20 snapshots, notional 819325..819325, max persistence 92000 ms
+ASK 83926: 1/20 snapshots, notional 843205..843205, max persistence 92000 ms
+ASK 83917.8: 1/20 snapshots, notional 790925..790925, max persistence 71003 ms
+ASK 83931.4: 1/20 snapshots, notional 609006..609006, max persistence 25002 ms
+ASK 83949.2: 1/20 snapshots, notional 868203..868203, max persistence 39003 ms
+ASK 83962.9: 1/20 snapshots, notional 1304364..1304364, max persistence 39003 ms
+ASK 83983.5: 1/20 snapshots, notional 749553..749553, max persistence 38001 ms
+ASK 83991.8: 1/20 snapshots, notional 1194027..1194027, max persistence 39001 ms
+ASK 83996.1: 1/20 snapshots, notional 989642..989642, max persistence 16001 ms
+ASK 84050.9: 1/20 snapshots, notional 639459..639459, max persistence 107000 ms
+ASK 84042.7: 1/20 snapshots, notional 812861..812861, max persistence 13000 ms
+ASK 84047.1: 1/20 snapshots, notional 556140..556140, max persistence 13000 ms
+ASK 83916.8: 1/20 snapshots, notional 811559..811559, max persistence 23000 ms
+ASK 83960.1: 1/20 snapshots, notional 587973..587973, max persistence 46001 ms
+ASK 83969.8: 1/20 snapshots, notional 700056..700056, max persistence 67001 ms
+ASK 83975.7: 1/20 snapshots, notional 520817..520817, max persistence 67001 ms
+ASK 83992.5: 1/20 snapshots, notional 638343..638343, max persistence 67001 ms
+ASK 83907.4: 1/20 snapshots, notional 622257..622257, max persistence 30999 ms
+ASK 83931.7: 1/20 snapshots, notional 748839..748839, max persistence 16999 ms
+ASK 83944.4: 1/20 snapshots, notional 812918..812918, max persistence 41999 ms
+ASK 83965.2: 1/20 snapshots, notional 1302720..1302720, max persistence 41999 ms
+ASK 83860.7: 1/20 snapshots, notional 622163..622163, max persistence 51000 ms
+ASK 83902: 1/20 snapshots, notional 528667..528667, max persistence 40000 ms
+ASK 83913: 1/20 snapshots, notional 816138..816138, max persistence 31000 ms
+ASK 83882.5: 1/20 snapshots, notional 842348..842348, max persistence 63000 ms
+ASK 83859.9: 1/20 snapshots, notional 2591187..2591187, max persistence 17000 ms
+ASK 83892.3: 1/20 snapshots, notional 637581..637581, max persistence 61000 ms
+ASK 83904.9: 1/20 snapshots, notional 922954..922954, max persistence 17000 ms
+BID 83587.4: 5/20 snapshots, notional 700295..700379, max persistence 263001 ms
+BID 83535.7: 4/20 snapshots, notional 812552..812635, max persistence 254001 ms
+BID 83598.4: 3/20 snapshots, notional 527673..528175, max persistence 179999 ms
+BID 83566: 3/20 snapshots, notional 822540..822540, max persistence 182000 ms
+BID 83564.6: 3/20 snapshots, notional 518101..518184, max persistence 340001 ms
+BID 83581.3: 2/20 snapshots, notional 518538..527899, max persistence 179999 ms
+BID 83637: 2/20 snapshots, notional 743198..1534655, max persistence 173002 ms
+BID 83647.6: 2/20 snapshots, notional 767550..968305, max persistence 38495 ms
+BID 83686.8: 2/20 snapshots, notional 527227..528147, max persistence 95998 ms
+BID 83842.4: 2/20 snapshots, notional 654809..663193, max persistence 119001 ms
+BID 83825.6: 2/20 snapshots, notional 642942..654929, max persistence 102002 ms
+BID 83808.8: 2/20 snapshots, notional 588757..588757, max persistence 102002 ms
+BID 83613.2: 1/20 snapshots, notional 700177..700177, max persistence 10002 ms
+BID 83612.7: 1/20 snapshots, notional 700674..700674, max persistence 53999 ms
+BID 83571.6: 1/20 snapshots, notional 615839..615839, max persistence 15999 ms
+BID 83542.4: 1/20 snapshots, notional 584964..584964, max persistence 10000 ms
+BID 83560.6: 1/20 snapshots, notional 649517..649517, max persistence 51999 ms
+BID 83548.7: 1/20 snapshots, notional 526524..526524, max persistence 113999 ms
+BID 83540.6: 1/20 snapshots, notional 590465..590465, max persistence 37000 ms
+BID 83534.4: 1/20 snapshots, notional 553666..553666, max persistence 10999 ms
+BID 83549: 1/20 snapshots, notional 592613..592613, max persistence 48000 ms
+BID 83521.5: 1/20 snapshots, notional 553581..553581, max persistence 52998 ms
+BID 83532.9: 1/20 snapshots, notional 553656..553656, max persistence 33001 ms
+BID 83595.1: 1/20 snapshots, notional 553734..553734, max persistence 23000 ms
+BID 83665.9: 1/20 snapshots, notional 702292..702292, max persistence 28494 ms
+BID 83637.1: 1/20 snapshots, notional 526997..526997, max persistence 76495 ms
+BID 83601.3: 1/20 snapshots, notional 1596283..1596283, max persistence 76495 ms
+BID 83765: 1/20 snapshots, notional 1136942..1136942, max persistence 55002 ms
+BID 83719.3: 1/20 snapshots, notional 709019..709019, max persistence 28002 ms
+BID 83682.4: 1/20 snapshots, notional 635986..635986, max persistence 32002 ms
+BID 83678.2: 1/20 snapshots, notional 1576665..1576665, max persistence 27002 ms
+BID 83731.1: 1/20 snapshots, notional 527590..527590, max persistence 49002 ms
+BID 83724.3: 1/20 snapshots, notional 815056..815056, max persistence 38002 ms
+BID 83718.4: 1/20 snapshots, notional 648734..648734, max persistence 30003 ms
+BID 83889.8: 1/20 snapshots, notional 622714..622714, max persistence 38001 ms
+BID 83872.8: 1/20 snapshots, notional 700170..700170, max persistence 18001 ms
+BID 83792.8: 1/20 snapshots, notional 1375040..1375040, max persistence 37001 ms
+BID 83881.8: 1/20 snapshots, notional 864570..864570, max persistence 33001 ms
+BID 83814.9: 1/20 snapshots, notional 565667..565667, max persistence 25000 ms
+BID 83797: 1/20 snapshots, notional 702973..702973, max persistence 20001 ms
+BID 83823.8: 1/20 snapshots, notional 702108..702108, max persistence 67001 ms
+BID 83797.6: 1/20 snapshots, notional 532031..532031, max persistence 126001 ms
+BID 83781.8: 1/20 snapshots, notional 820894..820894, max persistence 60001 ms
+BID 83766.6: 1/20 snapshots, notional 630762..630762, max persistence 39001 ms
+BID 83758.8: 1/20 snapshots, notional 553394..553394, max persistence 60001 ms
+BID 83753.2: 1/20 snapshots, notional 1534024..1534024, max persistence 60001 ms
+BID 83742.7: 1/20 snapshots, notional 712818..712818, max persistence 35999 ms
+BID 83724.8: 1/20 snapshots, notional 519345..519345, max persistence 16999 ms
+BID 83708: 1/20 snapshots, notional 647816..647816, max persistence 41999 ms
+BID 83703.1: 1/20 snapshots, notional 544154..544154, max persistence 21000 ms
+BID 83743.4: 1/20 snapshots, notional 556056..556056, max persistence 108001 ms
+BID 83735.1: 1/20 snapshots, notional 565212..565212, max persistence 52000 ms
+BID 83719.1: 1/20 snapshots, notional 662134..662134, max persistence 10001 ms
+BID 83716.4: 1/20 snapshots, notional 684968..684968, max persistence 21000 ms
+BID 83664.5: 1/20 snapshots, notional 939301..939301, max persistence 42000 ms
+BID 83653: 1/20 snapshots, notional 635679..635679, max persistence 45000 ms
+BID 83717.7: 1/20 snapshots, notional 701303..701303, max persistence 32000 ms
+
+--- vanished (collector classification) at last snapshot ---
+totals {'CANCEL_LIKE': 52930, 'CONSUMED_CANDIDATE': 50, 'UNKNOWN': 947, 'observed_disappearances': 53927} classified {'OUT_OF_COVERAGE': 465, 'RANK_EVICTED': 35914, 'TRUE_ENDED': 16601, 'UNKNOWN': 947}
+   ASK 83806.7 CANCEL_LIKE TRUE_ENDED None touched False 725515
+   ASK 83884.1 CANCEL_LIKE TRUE_ENDED None touched False 591047
+   ASK 83866 CANCEL_LIKE TRUE_ENDED None touched False 700281
+   ASK 83887.7 CANCEL_LIKE TRUE_ENDED None touched False 704573
+   BID 83696.5 CANCEL_LIKE TRUE_ENDED None touched False 598346
+   BID 83722.9 CANCEL_LIKE TRUE_ENDED None touched False 2644220
+
+--- fields present per wall --- ['bin_candidate_notional_is_lower_bound', 'bin_candidate_notional_usdt', 'bin_high', 'bin_low', 'bin_members', 'carried_members', 'carried_persistence_ms', 'continuity_status', 'coverage', 'distance_bps', 'distance_pct', 'first_seen_ms', 'generation', 'multiple', 'not_carried_reason', 'notional_usdt', 'own_persistence_ms', 'persistence_ms', 'persistence_source', 'price', 'qty_btc', 'values_as_of']
+NOT published per wall: opened_ts (only first_seen_ms), size at open, status/consumed/cancel-like per wall (only in flow.vanished for ended walls), session_id (top-level only)

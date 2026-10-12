@@ -1,0 +1,46 @@
+fixed snapshot: context_latest written_ms 1791771034098 sample 134593 session 31cc8177-b7cc-407d-aceb-ffb27b8ac94a
+collector_state.json written_ms 1791771034098 walls.order CURRENT_NOTIONAL_DESC values_as_of COLLECTOR_CURRENT_SAMPLE items 282 truncated False
+mid 83656.45
+
+V0 candidate levels (collector_state walls.items = btc-ms.v0.1 candidates, BEFORE lm-wall.v2 and the 500k display filter), by current notional:
+ASK: total 136  >=1M 1  >=500k 10  >=250k 30  >=100k 85
+   lm-wall.v2 selected (>=250k, >=5x, persistence, band, binned) per context_latest: walls_selected=15  display (>=500k) walls_shown=4  published (<=6)=4
+   top 12 raw candidates by notional: price notional multiple persistence_ms continuity dist%
+       83759.1      2287042    34.5       0 NEW      +0.123
+       83777.6       930434    31.1   30000 NEW      +0.145
+       83761.3       812568    19.8    8000 NEW      +0.125
+       83656.5       749228    46.7    2000 NEW      +0.000
+       83735.4       737290     9.0   30000 NEW      +0.094
+       83696.7       723642    56.2       0 NEW      +0.048
+       83730.2       700738    16.1  113000 CARRIED  +0.088
+       83773.3       657704     8.6    3001 NEW      +0.140
+       83776.1       555268    32.4   99000 NEW      +0.143
+       83747.2       527691    11.2   20999 NEW      +0.108
+       83726.2       463676    14.4   15999 NEW      +0.083
+       83772.5       451282     4.6    3001 NEW      +0.139
+   published walls (context_latest, nearest first):
+       83730.2       700738    16.1  122000 CARRIED  +0.088
+       83735.4       737290     9.0   30001 NEW      +0.094
+       83747.2       527691    11.2   21000 NEW      +0.108
+       83777.6       930434    31.1   30001 NEW      +0.145
+BID: total 146  >=1M 1  >=500k 7  >=250k 31  >=100k 91
+   lm-wall.v2 selected (>=250k, >=5x, persistence, band, binned) per context_latest: walls_selected=11  display (>=500k) walls_shown=5  published (<=6)=5
+   top 12 raw candidates by notional: price notional multiple persistence_ms continuity dist%
+       83574.5      2254840   310.5    2000 NEW      -0.098
+       83535.7       812552    34.5  113000 NEW      -0.144
+       83587.4       701800    19.7  113000 CARRIED  -0.083
+       83540.6       590465   189.5   30000 NEW      -0.138
+       83534.4       563690    31.3    4000 NEW      -0.146
+       83548.7       526524     5.8  107000 NEW      -0.129
+       83564.6       518184    11.4  113000 CARRIED  -0.110
+       83570.2       487966    21.0  113000 CARRIED  -0.103
+       83656.4       469229   217.4    9998 NEW      -0.000
+       83560.6       450225    31.6   45000 NEW      -0.115
+       83528.3       447795    20.8  113000 NEW      -0.153
+       83589.5       395963    14.4    5000 NEW      -0.080
+   published walls (context_latest, nearest first):
+       83587.4       701800    19.7  122000 CARRIED  -0.083
+       83564.6       518184    11.4  199000 CARRIED  -0.110
+       83548.7       526524     5.8  107000 NEW      -0.129
+       83540.6       590465   189.5   30001 NEW      -0.139
+       83535.7       812552    34.5  113000 NEW      -0.144
