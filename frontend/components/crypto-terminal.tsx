@@ -17,6 +17,7 @@ import {
 } from "@/components/crypto-live-terminal";
 import { C1AutoControl } from "@/components/crypto-c1-auto-control";
 import { HotCoinFinder, useHotSlot } from "@/components/crypto-hot-coins";
+import { EntryAnalysisPreview } from "@/components/entry-analysis-preview";
 import {
   OpenPositionsStrip, SymbolTabs, useOpenPositions, useSelectedSymbol, useSymbolVolatility,
 } from "@/components/crypto-symbol-tabs";
@@ -175,6 +176,9 @@ export function CryptoTerminal({ marketContext, contextBase }: {
       </div>
       <HotCoinFinder hot={hot}
         busy={source === "BINANCE_LIVE" ? binance.busy : terminal.busy} />
+      {/* [진입분석]: a local preview only (NEXT_PUBLIC_ENTRY_ANALYSIS_PREVIEW). One GET of the
+          research verdict per click, nothing else: no order, no callback, no recorder. */}
+      <EntryAnalysisPreview base={contextBase} symbol={symbol} />
     </div>
   );
 

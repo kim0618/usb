@@ -1,4 +1,5 @@
-"""GET-only API for the BTC context strip: `GET /health` and `GET /snapshot`. Nothing else.
+"""GET-only API for the BTC context strip: `GET /health`, `GET /snapshot` and the preview-only
+`GET /entry-analysis` (a read of stored research results; 관망 unless a family passed its gate).
 
     CTX_V1_ROOT=/path python -m app.crypto.btc_context_ui_v1 --port 8014
 
@@ -43,6 +44,7 @@ from ..market_context_v1 import contract as MC
 from ..market_context_v1 import derivatives as DRV
 from . import entry_context as EC
 from . import view as V
+from ..research.wall_lifecycle_r1 import preview as EA
 
 DEFAULT_PORT = 8014
 ROOT_ENV = CTX.ROOT_ENV
@@ -186,6 +188,21 @@ async def snapshot() -> Any:
                      structure_layer=structure_layer(snap, now_ms),
                      derivatives_layer=sources.derivatives_layer(now_ms),
                      now_ms=now_ms, entry=entry_reading())
+
+
+@app.get("/entry-analysis")
+async def entry_analysis() -> Any:
+    """PREVIEW: the entry advisor's verdict for this second (CONTRACT_ENTRY_ADVISOR_R0 section
+    10). Read only; with no gate-passing family it is NO_TRADE (관망), which is the case today."""
+    now_ms = int(time.time() * 1000)
+    sources = state.get()
+    snap = read_structure_snapshot(structure_snapshot_path())
+    view = collector_view(now_ms) or {}
+    body = V.display(collector_view=view, structure_layer=structure_layer(snap, now_ms),
+                     derivatives_layer=sources.derivatives_layer(now_ms), now_ms=now_ms,
+                     entry=entry_reading())
+    session8 = str(view.get("session_id") or "")[:8]
+    return EA.analysis(body, EA.load_results(EA.results_path()), session8=session8, sample_ms=now_ms)
 
 
 def entry_reading() -> dict[str, Any]:

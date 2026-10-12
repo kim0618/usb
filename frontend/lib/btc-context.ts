@@ -179,7 +179,7 @@ export function useBtcContext(base: string = BTC_CONTEXT_BASE, enabled = true): 
 export function resetBtcContextStores() {
   frozenEntries.clear();
   setWallSelection("NEAR");
-  setStructureDisplay("ANNOTATION");
+  setStructureDisplay("HIDDEN");
   for (const store of stores.values()) {
     store.stop?.();
     store.stop = null;
@@ -224,11 +224,11 @@ export function useWallSelection(): WallSelection {
     () => wallSelection, () => "NEAR" as WallSelection);
 }
 
-/** How the V2 resistance and support lines are drawn, a preview choice for the user: HIDDEN (not
- *  drawn at all) or ANNOTATION (a faint dotted reference line with its name only). Manual Context
- *  R0 found no edge in them, so neither option gives them the weight of a wall. */
+/** How the V2 resistance and support lines are drawn: HIDDEN (the default: Manual Context R0
+ *  found no edge in them) or ANNOTATION (a faint dotted reference line with its name only, an
+ *  option kept on the panel). Neither gives them the weight of a wall. */
 export type StructureDisplay = "HIDDEN" | "ANNOTATION";
-let structureDisplay: StructureDisplay = "ANNOTATION";
+let structureDisplay: StructureDisplay = "HIDDEN";
 const structureListeners = new Set<() => void>();
 export function setStructureDisplay(next: StructureDisplay) {
   if (next === structureDisplay) return;
@@ -238,7 +238,7 @@ export function setStructureDisplay(next: StructureDisplay) {
 export function useStructureDisplay(): StructureDisplay {
   return useSyncExternalStore(
     listener => { structureListeners.add(listener); return () => { structureListeners.delete(listener); }; },
-    () => structureDisplay, () => "ANNOTATION" as StructureDisplay);
+    () => structureDisplay, () => "HIDDEN" as StructureDisplay);
 }
 
 export function pickWalls(walls: BtcWall[], selection: WallSelection, n = WALLS_PER_SIDE): BtcWall[] {
@@ -442,7 +442,7 @@ export function contextChartLines(payload: BtcContextPayload | null, opts: {
   const s = payload.structure, l = payload.liquidity;
   // V3: resistance and support are a reference annotation at most (name only on the tag, the
   // price on the axis), or not drawn. Never the full "저항 83,499.9 -0.37%" tag of V2.
-  if ((opts.structure ?? "ANNOTATION") === "ANNOTATION") {
+  if ((opts.structure ?? "HIDDEN") === "ANNOTATION") {
     const resistance = positive(s.resistance_price);
     if (resistance != null) {
       lines.push({ id: "ctx-resistance", price: resistance, kind: "RESISTANCE", short: "저항", label: "", tag: "저항" });

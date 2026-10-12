@@ -120,15 +120,16 @@ const stripLoaded = () => waitFor(() => expect(
 const chartOverlays = () => screen.getAllByTestId("candle-chart-stub")
   .map(node => node.getAttribute("data-overlays") ?? "").join("|");
 
-const linesDrawn = () => waitFor(() => expect(chartOverlays()).toContain("ctx-resistance"));
+const linesDrawn = () => waitFor(() => expect(chartOverlays()).toContain("ctx-ask-wall"));
 
 // --------------------------------------------------------------------------- chart lines
 
 describe("BTC context lines on the chart", () => {
   it("draws resistance, support and both walls at the backend's prices", () => {
     // The axis label carries the price (no title); the chart's tag carries the name.
-    expect(contextChartLines(LIVE)).toEqual([
-      // V3: a level's tag is its name only (a reference annotation); the price is on the axis.
+    // V3: resistance and support are hidden by default; as an annotation the tag is the name only.
+    expect(contextChartLines(LIVE).map(l => l.id)).toEqual(["ctx-ask-wall", "ctx-bid-wall"]);
+    expect(contextChartLines(LIVE, { structure: "ANNOTATION" })).toEqual([
       { id: "ctx-resistance", price: 83113.9, kind: "RESISTANCE", short: "저항", label: "", tag: "저항" },
       { id: "ctx-support", price: 82912.9, kind: "SUPPORT", short: "지지", label: "", tag: "지지" },
       { id: "ctx-ask-wall", price: 83050.4, kind: "ASK_WALL", short: "매도벽", label: "", tag: "매도벽 83,050.4" },
@@ -144,9 +145,9 @@ describe("BTC context lines on the chart", () => {
 
   it("leaves out exactly the side the backend did not publish", () => {
     const noWall = { ...LIVE, liquidity: { ...LIVE.liquidity, ask_wall_price: null } };
-    expect(contextChartLines(noWall).map(l => l.id)).toEqual(["ctx-resistance", "ctx-support", "ctx-bid-wall"]);
+    expect(contextChartLines(noWall, { structure: "ANNOTATION" }).map(l => l.id)).toEqual(["ctx-resistance", "ctx-support", "ctx-bid-wall"]);
     const noLevel = { ...LIVE, structure: { ...LIVE.structure, support_price: null, support_pct: null } };
-    expect(contextChartLines(noLevel).map(l => l.id)).toEqual(["ctx-resistance", "ctx-ask-wall", "ctx-bid-wall"]);
+    expect(contextChartLines(noLevel, { structure: "ANNOTATION" }).map(l => l.id)).toEqual(["ctx-resistance", "ctx-ask-wall", "ctx-bid-wall"]);
   });
 
   it("is at most one line per kind", () => {
@@ -341,8 +342,9 @@ describe("BTC context inside the terminal", () => {
     await stripLoaded();
     await linesDrawn();
     const drawn = chartOverlays();
-    expect(drawn).toContain("ctx-resistance@83113.9=저항");
-    expect(drawn).toContain("ctx-support@82912.9=지지");
+    // resistance and support are hidden by default (V3): only the walls are drawn
+    expect(drawn).not.toContain("ctx-resistance");
+    expect(drawn).not.toContain("ctx-support");
     expect(drawn).toContain("ctx-ask-wall@83050.4=매도벽 83,050.4");
     expect(drawn).toContain("ctx-bid-wall@82996.5=매수벽 82,996.5");
     // The account's own lines are still there, first.

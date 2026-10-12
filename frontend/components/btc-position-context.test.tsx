@@ -360,24 +360,31 @@ describe("walls change", () => {
 });
 
 describe("resistance and support (V2 lines) in V3", () => {
-  it("are a name-only reference annotation by default and absent when hidden", () => {
-    const shown = contextChartLines(LIVE, { timeframe: "1m" });
+  it("are hidden by default and a name-only reference annotation when asked", () => {
+    const hidden = contextChartLines(LIVE, { timeframe: "1m" });
+    expect(hidden.filter(l => l.kind === "RESISTANCE" || l.kind === "SUPPORT")).toHaveLength(0);
+    const shown = contextChartLines(LIVE, { timeframe: "1m", structure: "ANNOTATION" });
     const levels = shown.filter(l => l.kind === "RESISTANCE" || l.kind === "SUPPORT");
     expect(levels.length).toBeGreaterThan(0);
     for (const level of levels) expect(level.tag).toMatch(/^(저항|지지)$/);
-    const hidden = contextChartLines(LIVE, { timeframe: "1m", structure: "HIDDEN" });
-    expect(hidden.filter(l => l.kind === "RESISTANCE" || l.kind === "SUPPORT")).toHaveLength(0);
     expect(hidden.filter(l => l.kind === "ASK_WALL" || l.kind === "BID_WALL"))
       .toEqual(shown.filter(l => l.kind === "ASK_WALL" || l.kind === "BID_WALL"));
   });
 
-  it("has a switch on the panel that drives the chart's lines", () => {
-    render(<BtcContextStripView payload={LIVE} mark={MID} structure="ANNOTATION" />);
+  it("has a switch on the panel, 숨김 pressed by default, that drives the chart's lines", () => {
+    render(<BtcContextStripView payload={LIVE} mark={MID} />);
     const group = screen.getByTestId("btc-context-structure");
-    expect(within(group).getByRole("button", { name: "참고선" })).toHaveAttribute("aria-pressed", "true");
-    fireEvent.click(within(group).getByRole("button", { name: "숨김" }));
-    expect(contextChartLines(LIVE, { timeframe: "1m", structure: "HIDDEN" })
-      .some(l => l.kind === "RESISTANCE" || l.kind === "SUPPORT")).toBe(false);
+    expect(within(group).getByRole("button", { name: "숨김" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(within(group).getByRole("button", { name: "참고선" }));
+    expect(contextChartLines(LIVE, { timeframe: "1m", structure: "ANNOTATION" })
+      .some(l => l.kind === "RESISTANCE" || l.kind === "SUPPORT")).toBe(true);
+  });
+
+  it("lists size, persistence, NEW/CARRIED and the gap for each wall in the detail", () => {
+    render(<BtcContextStripView payload={LIVE} mark={MID} />);
+    const rows = within(screen.getByTestId("btc-context-wall-detail")).getAllByTestId("wall-detail-row");
+    expect(rows[0].textContent).toMatch(/유지 · .*K · 크기 \d위 · (이어짐|새로 관측) · 간격 \d+\.\d+%/);
+    expect(rows.map(r => r.textContent).join(" ")).not.toMatch(/강화|약화/);
   });
 });
 

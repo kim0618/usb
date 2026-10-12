@@ -350,3 +350,48 @@ def test_entry_payload_carries_no_internal_vocabulary(tmp_path):
         text = " ".join(_words(V.entry_section(entry))).upper()
         for word in BANNED:
             assert word not in text, word
+
+
+# --------------------------------------------------------------------------- entry analysis (preview)
+
+def test_entry_analysis_is_no_trade_without_a_passing_family(tmp_path, latest, monkeypatch):
+    """`/entry-analysis` (local preview): 관망 with no results file and with results whose cells
+    did not pass the gate; figures only, no internal family or question name."""
+    from app.crypto.research.wall_lifecycle_r1 import preview as EA
+    fresh = dict(latest, written_ms=int(time.time() * 1000))
+    state = tmp_path / "ctx" / "state"
+    state.mkdir(parents=True)
+    (state / "context_latest.json").write_text(json.dumps(fresh))
+    monkeypatch.setenv(CTX.ROOT_ENV, str(tmp_path / "ctx"))
+    monkeypatch.delenv(EC.STORE_ENV, raising=False)
+    monkeypatch.delenv(EA.RESULTS_ENV, raising=False)
+    monkeypatch.setattr(A.state, "entry", EC.EntryReader())
+
+    class Down:
+        def __call__(self, request, timeout=None):
+            raise OSError("venue down")
+    monkeypatch.setattr(A.state, "sources", A.Sources(opener=Down()))
+    client = TestClient(A.app)
+    body = client.get("/entry-analysis").json()
+    assert body["verdict"] == "NO_TRADE" and body["verdict_word"] == "관망"
+    assert body["reason"] == EA.NO_RESULTS and body["statement"] == "현재 검증된 진입 조건 없음"
+    assert body["entry_zone"] is None and body["targets"] == [] and body["expected_r"] is None
+    assert len(body["basis"]["ask"]) == min(3, len(latest["liquidity"]["sides"]["ASK"]["walls"]))
+    assert body["basis"]["ask"][0]["price"] == V._price(latest["liquidity"]["sides"]["ASK"]["walls"][0]["price"])
+    assert body["basis"]["flow"]["buy_pct"] is not None
+    assert len(body["analysis_request_id"]) == 16
+    text = json.dumps(body).upper()
+    for word in ("F1", "F2", "F3", "Q1", "Q5", "REJECTION", "BREAKOUT", "CANDIDATE"):
+        assert word not in text, word
+    results = {"version": "wall-lifecycle.r1", "wall_verdict": "B. WALL_INTERACTION_R1_PASS",
+               "advisor": {"verdict": "B. NO_VALID_ENTRY_FAMILY",
+                           "cells": {"F1:T1": {"gate": {"passes_review": False}}}}}
+    (tmp_path / "results.json").write_text(json.dumps(results))
+    monkeypatch.setenv(EA.RESULTS_ENV, str(tmp_path / "results.json"))
+    body = client.get("/entry-analysis").json()
+    assert body["verdict"] == "NO_TRADE" and body["reason"] == EA.NO_PASSING_FAMILY
+    assert body["passing_cells"] == []
+    # the same second twice gives the same request id (deterministic join key)
+    assert EA.request_id("31cc8177", 1) == EA.request_id("31cc8177", 1) != EA.request_id("31cc8177", 2)
+    # still exactly the routes the strip API promises plus the preview one
+    assert sorted(r.path for r in A.app.routes if getattr(r, "methods", None)) == ["/entry-analysis", "/health", "/snapshot"]

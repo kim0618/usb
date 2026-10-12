@@ -230,11 +230,13 @@ def client(tmp_path, latest, monkeypatch):
 
 
 def test_every_route_is_get_only():
-    methods = {m for route in A.app.routes if getattr(route, "path", "") in ("/health", "/snapshot")
+    methods = {m for route in A.app.routes
+               if getattr(route, "path", "") in ("/health", "/snapshot", "/entry-analysis")
                for m in route.methods}
     assert methods == {"GET", "HEAD"} or methods == {"GET"}
     paths = {getattr(route, "path", "") for route in A.app.routes}
-    assert paths == {"/health", "/snapshot"}
+    # /entry-analysis is the read-only preview of stored research results (관망 today)
+    assert paths == {"/health", "/snapshot", "/entry-analysis"}
     assert not any(p.startswith(("/order", "/account", "/leverage", "/auto")) for p in paths)
 
 

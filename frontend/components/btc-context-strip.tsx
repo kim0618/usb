@@ -120,6 +120,8 @@ function WallDetail({ rows, mode }: { rows: PathRow[]; mode: "MARKET" | "POSITIO
           {row.side === "ASK" ? "매도벽" : "매수벽"}{row.order} {priceText(row.price)}
           {mode === "POSITION" && <> · 현재 대비 {pctText(row.currentPct)}</>}
           {" · "}{ageText(row.ageMs)} 유지 · {compactUsd(row.notional)} · 크기 {row.sizeRank}위
+          {row.continuity === "CARRIED" ? " · 이어짐" : row.continuity === "NEW" ? " · 새로 관측" : ""}
+          {" · 간격 "}{pctText(row.gapPct).replace(/^[+-]/, "")}
         </li>
       ))}
     </>
@@ -139,7 +141,7 @@ function wallList(rows: PathRow[]): string {
 
 /** Pure render, so tests and the polling wrapper share one markup. */
 export function BtcContextStripView({ payload, position = null, mark = null, selection = "NEAR",
-  structure = "ANNOTATION" }: {
+  structure = "HIDDEN" }: {
   payload: BtcContextPayload | null; position?: ContextPosition | null; mark?: number | null;
   selection?: WallSelection; structure?: StructureDisplay;
 }) {
