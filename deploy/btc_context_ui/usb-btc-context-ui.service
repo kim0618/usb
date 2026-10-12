@@ -17,11 +17,12 @@ Environment=PYTHONUNBUFFERED=1
 Environment=PYTHONDONTWRITEBYTECODE=1
 ExecStart=/root/usb/.venv/bin/python -m app.crypto.btc_context_ui_v1 \
   --root ${CTX_V1_ROOT} --structure-snapshot ${BTC_CONTEXT_STRUCTURE_SNAPSHOT} \
+  --flow-horizons ${BTC_CONTEXT_FLOW_HORIZONS} \
   --host 127.0.0.1 --port ${BTC_CONTEXT_UI_PORT}
 StandardOutput=append:/root/usb_runtime/btc_context_ui/logs/api.log
 StandardError=append:/root/usb_runtime/btc_context_ui/logs/api.log
 # This process writes nothing: the whole file system is read only to it. It reads the collector's
-# current-state file and the structure worker's snapshot.
+# current-state file, the structure worker's snapshot and the flow worker's snapshot.
 ProtectSystem=strict
 ReadOnlyPaths=/root/usb_runtime/crypto_context
 Restart=on-failure

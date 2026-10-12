@@ -1,0 +1,12 @@
+[Unit]
+Description=US-B CRYPTO BTC context FLOW HORIZON worker, once a minute after the minute closes
+
+[Timer]
+# Ten seconds past each minute: after the structure worker (:05), before the manual recorder (:20).
+# A run still going when the next is due is not started twice (oneshot unit, plus the worker's lock).
+OnCalendar=*-*-* *:*:10
+AccuracySec=1s
+Persistent=false
+
+[Install]
+WantedBy=timers.target

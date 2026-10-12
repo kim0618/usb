@@ -1,0 +1,27 @@
+[Unit]
+Description=US-B CRYPTO BTC context FLOW HORIZON worker (oneshot: trailing 10m/1h/4h/1d taker buy/sell from public 1m klines)
+Documentation=file:/root/usb_runtime/btc_context_ui/src/docs/crypto/btc_flow_horizon_v1/FLOW_HORIZON_REVIEW.md
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/root/usb_runtime/btc_context_ui
+EnvironmentFile=/root/usb_runtime/btc_context_ui/config/btc_context_ui.env
+Environment=PYTHONPATH=/root/usb_runtime/btc_context_ui/src/backend
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/root/usb/.venv/bin/python -m app.crypto.btc_context_ui_v1.flow_horizon \
+  --state-dir ${BTC_CONTEXT_FLOW_STATE_DIR}
+StandardOutput=append:/root/usb_runtime/btc_context_ui/logs/flow.log
+StandardError=append:/root/usb_runtime/btc_context_ui/logs/flow.log
+# Writes only its own directory (1440-minute series, the 1 kB snapshot, its lock). It must exist
+# before the first start (mkdir -m 700). Public klines only: no key, no account, no journal.
+ProtectSystem=strict
+ReadWritePaths=/root/usb_runtime/btc_context_ui/flow
+# Measured locally: ~150 ms per run; the series file is 68 kB.
+MemoryHigh=48M
+MemoryMax=64M
+CPUQuota=25%
+Nice=10
+TimeoutStartSec=60

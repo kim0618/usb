@@ -36,7 +36,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from ..context_collector_v1 import api as CTX
@@ -45,7 +45,6 @@ from ..market_context_v1 import derivatives as DRV
 from . import entry_context as EC
 from . import flow_horizon as FH
 from . import view as V
-from ..research.wall_lifecycle_r1 import preview as EA
 
 DEFAULT_PORT = 8014
 ROOT_ENV = CTX.ROOT_ENV
@@ -53,6 +52,9 @@ ROOT_ENV = CTX.ROOT_ENV
 STRUCTURE_SNAPSHOT_ENV = "BTC_CONTEXT_STRUCTURE_SNAPSHOT"
 #: The snapshot is a few hundred bytes; anything far larger is not one.
 STRUCTURE_SNAPSHOT_MAX_BYTES = 64 * 1024
+#: PREVIEW ONLY. The entry advisor route answers only when this names a results file; unset (as in
+#: production) it is 404 and the research package is never imported.
+ENTRY_ANALYSIS_RESULTS_ENV = "BTC_CONTEXT_ENTRY_ANALYSIS_RESULTS"
 #: Path of the flow horizon worker's snapshot file. Unset means every horizon reads `--`.
 FLOW_HORIZONS_ENV = "BTC_CONTEXT_FLOW_HORIZONS"
 #: Floor between two derivatives reads. The open interest figures move on the venue's 5 m buckets
@@ -206,6 +208,9 @@ async def snapshot() -> Any:
 async def entry_analysis() -> Any:
     """PREVIEW: the entry advisor's verdict for this second (CONTRACT_ENTRY_ADVISOR_R0 section
     10). Read only; with no gate-passing family it is NO_TRADE (관망), which is the case today."""
+    if not os.environ.get(ENTRY_ANALYSIS_RESULTS_ENV, "").strip():
+        raise HTTPException(status_code=404)
+    from ..research.wall_lifecycle_r1 import preview as EA
     now_ms = int(time.time() * 1000)
     sources = state.get()
     snap = read_structure_snapshot(structure_snapshot_path())

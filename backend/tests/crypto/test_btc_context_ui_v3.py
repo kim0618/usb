@@ -372,6 +372,9 @@ def test_entry_analysis_is_no_trade_without_a_passing_family(tmp_path, latest, m
             raise OSError("venue down")
     monkeypatch.setattr(A.state, "sources", A.Sources(opener=Down()))
     client = TestClient(A.app)
+    # production: the env is unset, so the route is 404 and nothing of the advisor is served
+    assert client.get("/entry-analysis").status_code == 404
+    monkeypatch.setenv(EA.RESULTS_ENV, str(tmp_path / "absent.json"))
     body = client.get("/entry-analysis").json()
     assert body["verdict"] == "NO_TRADE" and body["verdict_word"] == "관망"
     assert body["reason"] == EA.NO_RESULTS and body["statement"] == "현재 검증된 진입 조건 없음"
@@ -393,5 +396,18 @@ def test_entry_analysis_is_no_trade_without_a_passing_family(tmp_path, latest, m
     assert body["passing_cells"] == []
     # the same second twice gives the same request id (deterministic join key)
     assert EA.request_id("31cc8177", 1) == EA.request_id("31cc8177", 1) != EA.request_id("31cc8177", 2)
+    monkeypatch.delenv(EA.RESULTS_ENV)
+    assert client.get("/entry-analysis").status_code == 404
     # still exactly the routes the strip API promises plus the preview one
     assert sorted(r.path for r in A.app.routes if getattr(r, "methods", None)) == ["/entry-analysis", "/health", "/snapshot"]
+
+
+def test_api_import_does_not_load_the_entry_advisor():
+    """The production release ships without the research package: importing the API must not need it."""
+    import subprocess
+    import sys
+    code = ("import sys, app.crypto.btc_context_ui_v1.api as A; "
+            "print(any(m.startswith('app.crypto.research.wall_lifecycle_r1') for m in sys.modules))")
+    out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True,
+                         cwd=str(__import__("pathlib").Path(__file__).resolve().parents[2]))
+    assert out.stdout.strip() == "False"
