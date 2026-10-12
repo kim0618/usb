@@ -60,7 +60,7 @@ describe("[진입분석] preview", () => {
     }
     // the basis lists the walls with size, persistence, NEW/CARRIED and gap, the flow and OI
     expect(screen.getAllByTestId("entry-analysis-wall")).toHaveLength(3);
-    expect(screen.getAllByTestId("entry-analysis-wall")[0]).toHaveTextContent("매도벽1 83,730.2 · 701K · 2m 유지 · 이어짐 · 간격 0.09%");
+    expect(screen.getAllByTestId("entry-analysis-wall")[0]).toHaveTextContent("상단벽1 83,730.2 · 701K · 2m 유지 · 이어짐 · 간격 0.09%");
     expect(screen.getByTestId("entry-analysis-basis")).toHaveTextContent("체결흐름 매수우세 75%");
     expect(screen.getByTestId("entry-analysis-basis")).toHaveTextContent("OI 7.77B (1h +0.51%)");
   });

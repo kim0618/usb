@@ -115,7 +115,7 @@ const terminalReady = () => waitFor(
   () => expect(screen.getByTestId("market-header")).toBeInTheDocument(), { timeout: 4_000 });
 
 const stripLoaded = () => waitFor(() => expect(
-  screen.getByTestId("btc-context-flow").textContent).toContain("매도우세 72%"));
+  screen.getByTestId("btc-context-flow60").textContent).toContain("매도우세 72%"));
 
 const chartOverlays = () => screen.getAllByTestId("candle-chart-stub")
   .map(node => node.getAttribute("data-overlays") ?? "").join("|");
@@ -132,8 +132,8 @@ describe("BTC context lines on the chart", () => {
     expect(contextChartLines(LIVE, { structure: "ANNOTATION" })).toEqual([
       { id: "ctx-resistance", price: 83113.9, kind: "RESISTANCE", short: "저항", label: "", tag: "저항" },
       { id: "ctx-support", price: 82912.9, kind: "SUPPORT", short: "지지", label: "", tag: "지지" },
-      { id: "ctx-ask-wall", price: 83050.4, kind: "ASK_WALL", short: "매도벽", label: "", tag: "매도벽 83,050.4" },
-      { id: "ctx-bid-wall", price: 82996.5, kind: "BID_WALL", short: "매수벽", label: "", tag: "매수벽 82,996.5" },
+      { id: "ctx-ask-wall", price: 83050.4, kind: "ASK_WALL", short: "상단벽1", label: "", tag: "상1", order: 1 },
+      { id: "ctx-bid-wall", price: 82996.5, kind: "BID_WALL", short: "하단벽1", label: "", tag: "하1", order: 1 },
     ]);
   });
 
@@ -228,37 +228,36 @@ describe("BTC context line", () => {
 
   it("shows OI direction and funding, and keeps the other figures for the detail", () => {
     render(<BtcContextStripView payload={LIVE} />);
-    expect(screen.getByTestId("btc-context-flow")).toHaveTextContent("체결흐름매도우세 72%");
     expect(screen.getByTestId("btc-context-oi")).toHaveTextContent(/^OI ↓$/);
     expect(screen.getByTestId("btc-context-funding")).toHaveTextContent("펀딩 -0.0014%");
     const detail = screen.getByTestId("btc-context-detail");
+    expect(detail).toHaveTextContent("60초 체결 매도우세 72%");
     expect(detail).toHaveTextContent("OI 7.71B");
     expect(detail).toHaveTextContent("1시간 0.00%");
     expect(detail).toHaveTextContent("베이시스 -0.040%");
-    // The detail is closed until asked for.
+    // The detail is closed until asked for, and its toggle is the only thing shown of it.
     expect(screen.getByTestId("btc-context-strip").querySelector("details")?.open).toBe(false);
-    const summary = screen.getByTestId("btc-context-strip").querySelector("summary") as HTMLElement;
-    expect(summary.textContent).not.toContain("7.71B");
-    expect(summary.textContent).not.toContain("베이시스");
-  });
-
-  it("sizes the flow bar by the buy share", () => {
-    render(<BtcContextStripView payload={LIVE} />);
-    const fill = screen.getByTestId("btc-context-flow-bar").firstElementChild as HTMLElement;
-    expect(fill.style.width).toBe("28%");
+    const summary = screen.getByTestId("btc-context-details-toggle");
+    expect(summary.textContent).toBe("상세▾");
+    for (const word of ["7.71B", "베이시스", "83,", "유지"]) {
+      expect(screen.getByTestId("btc-context-strip").querySelector("details")?.open).toBe(false);
+      expect(summary.textContent).not.toContain(word);
+    }
   });
 
   it("is dashes and grey with a stale reading or none", () => {
     for (const payload of [STALE, null]) {
       cleanup();
       render(<BtcContextStripView payload={payload} />);
-      expect(screen.getByTestId("btc-context-flow")).toHaveTextContent("체결흐름--");
+      expect(screen.getByTestId("btc-context-pressure-text")).toHaveTextContent(/^--$/);
+      expect(screen.getByTestId("btc-context-pressure").getAttribute("data-live")).toBe("0");
       expect(screen.getByTestId("btc-context-oi")).toHaveTextContent("OI --");
       expect(screen.getByTestId("btc-context-funding")).toHaveTextContent("펀딩 --");
-      for (const id of ["flow", "oi", "funding"]) {
+      for (const id of ["oi", "funding"]) {
         expect(screen.getByTestId(`btc-context-${id}`).getAttribute("data-live")).toBe("0");
       }
-      expect(screen.getByTestId("btc-context-flow-bar").firstElementChild).toBeNull();
+      expect(screen.getByTestId("btc-context-path-up-value")).toHaveTextContent(/^--$/);
+      expect(screen.getByTestId("btc-context-path-down-value")).toHaveTextContent(/^--$/);
     }
     expect(contextLine(null).detail).toEqual({ oiValue: "OI --", oiChange: "1시간 --", basis: "베이시스 --" });
   });
@@ -293,7 +292,7 @@ describe("BTC context line", () => {
     render(<BtcContextStrip symbol="BTCUSDT" base={BASE} />);
     await waitFor(() => expect(tally.stripPolls).toBeGreaterThan(0));
     const strip = screen.getByTestId("btc-context-strip");
-    expect(strip).toHaveTextContent("체결흐름--");
+    expect(screen.getByTestId("btc-context-pressure-text")).toHaveTextContent(/^--$/);
     expect(strip.textContent).not.toMatch(/error|오류|실패|Failed/i);
     expect(screen.queryByRole("alert")).toBeNull();
   });
@@ -309,7 +308,7 @@ describe("BTC context line", () => {
     await stripLoaded();
     up = false;
     await vi.advanceTimersByTimeAsync(20_000);
-    await waitFor(() => expect(screen.getByTestId("btc-context-flow")).toHaveTextContent("체결흐름--"));
+    await waitFor(() => expect(screen.getByTestId("btc-context-pressure-text")).toHaveTextContent(/^--$/));
   });
 
   it("renders nothing and asks nothing for any symbol but BTC", async () => {
@@ -345,8 +344,8 @@ describe("BTC context inside the terminal", () => {
     // resistance and support are hidden by default (V3): only the walls are drawn
     expect(drawn).not.toContain("ctx-resistance");
     expect(drawn).not.toContain("ctx-support");
-    expect(drawn).toContain("ctx-ask-wall@83050.4=매도벽 83,050.4");
-    expect(drawn).toContain("ctx-bid-wall@82996.5=매수벽 82,996.5");
+    expect(drawn).toContain("ctx-ask-wall@83050.4=상1");
+    expect(drawn).toContain("ctx-bid-wall@82996.5=하1");
     // The account's own lines are still there, first.
     expect(drawn.split("|")[0]).toMatch(/^mark@/);
     const strip = screen.getByTestId("btc-context-strip");
@@ -475,7 +474,7 @@ describe("BTC context inside the terminal", () => {
     await terminalReady();
     const ticket = screen.getAllByTestId("order-ticket")[0];
     expect(within(ticket).getAllByTestId("long-button")[0]).toBeEnabled();
-    await waitFor(() => expect(screen.getByTestId("btc-context-flow")).toHaveTextContent("체결흐름--"));
+    await waitFor(() => expect(screen.getByTestId("btc-context-pressure-text")).toHaveTextContent(/^--$/));
     expect(chartOverlays()).not.toContain("ctx-");
   });
 });

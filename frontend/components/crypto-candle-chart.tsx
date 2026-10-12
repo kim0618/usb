@@ -92,11 +92,27 @@ export const OVERLAY_STYLE: Record<ChartOverlay["kind"], { color: string; lineSt
   ENTRY: { color: "#38bdf8", lineStyle: 0 },
   LIQUIDATION: { color: "#f59e0b", lineStyle: 0 },
   // V3: a reference annotation, fainter and dotted, so a level never reads as a wall.
-  RESISTANCE: { color: "rgba(244,63,94,0.45)", lineStyle: 2 },
-  SUPPORT: { color: "rgba(16,185,129,0.45)", lineStyle: 2 },
-  ASK_WALL: { color: "rgba(244,63,94,0.55)", lineStyle: 1 },
-  BID_WALL: { color: "rgba(16,185,129,0.55)", lineStyle: 1 },
+  // Wall-clock references only: a faint grey dotted line, never in a role colour.
+  RESISTANCE: { color: "rgba(148,163,184,0.4)", lineStyle: 1 },
+  SUPPORT: { color: "rgba(148,163,184,0.4)", lineStyle: 1 },
+  // Walls: the role sets the hue (upper = red, lower = teal) and `wallShade` the step. These are
+  // the defaults for a line with no order.
+  ASK_WALL: { color: "rgba(244,63,94,0.35)", lineStyle: 0 },
+  BID_WALL: { color: "rgba(20,184,166,0.35)", lineStyle: 0 },
 };
+
+/** A wall line's colours by how near it is on its side: 1 darkest, 2 middle, 3 lightest. The step
+ *  is distance from the price, never size, so it holds when the walls are chosen by size. */
+const WALL_RGB = { ASK_WALL: "244,63,94", BID_WALL: "20,184,166" } as const;
+const WALL_LINE_ALPHA = { 1: 0.95, 2: 0.6, 3: 0.35 } as const;
+const WALL_TAG_ALPHA = { 1: 1, 2: 0.8, 3: 0.6 } as const;
+export function wallShade(kind: ChartOverlay["kind"], order: 1 | 2 | 3 | undefined):
+  { line: string; tag: string } | null {
+  if (kind !== "ASK_WALL" && kind !== "BID_WALL") return null;
+  const step = order ?? 3;
+  return { line: `rgba(${WALL_RGB[kind]},${WALL_LINE_ALPHA[step]})`,
+           tag: `rgba(${WALL_RGB[kind]},${WALL_TAG_ALPHA[step]})` };
+}
 
 /** Vertical room one price-axis label needs, in CSS px. Two labels closer than this overprint. */
 export const LABEL_GAP_PX = 16;
@@ -131,7 +147,8 @@ export function contextLabelsShown(lastPriceY: number | null,
 /** Height of one context tag on the chart, in CSS px; tags closer than this are pushed apart. */
 export const TAG_HEIGHT_PX = 15;
 
-export type ContextTag = { id: string; kind: ChartOverlay["kind"]; text: string; top: number; off: "UP" | "DOWN" | null };
+export type ContextTag = { id: string; kind: ChartOverlay["kind"]; text: string; top: number;
+  off: "UP" | "DOWN" | null; order?: 1 | 2 | 3 };
 
 /** Where each context line's name tag goes on the chart's left edge.
  *
@@ -140,7 +157,8 @@ export type ContextTag = { id: string; kind: ChartOverlay["kind"]; text: string;
  *  bring a level into view; a wall off the pane gets nothing (it is not near the price). Tags are
  *  then pushed apart top to bottom so none overprints another; the order never changes, so a tag
  *  stays on the same side of its neighbours as its line. */
-export function contextTags(lines: { id: string; kind: ChartOverlay["kind"]; y: number | null; tag: string }[],
+export function contextTags(lines: { id: string; kind: ChartOverlay["kind"]; y: number | null; tag: string;
+  order?: 1 | 2 | 3 }[],
   paneHeight: number): ContextTag[] {
   if (paneHeight <= 0) return [];
   const placed: ContextTag[] = [];
@@ -154,7 +172,8 @@ export function contextTags(lines: { id: string; kind: ChartOverlay["kind"]; y: 
                     top: up ? 0 : paneHeight - TAG_HEIGHT_PX, off: up ? "UP" : "DOWN" });
     } else {
       // Just above its line, so the tag names the line without covering it.
-      placed.push({ id: line.id, kind: line.kind, text: line.tag, top: line.y - TAG_HEIGHT_PX - 1, off: null });
+      placed.push({ id: line.id, kind: line.kind, text: line.tag, top: line.y - TAG_HEIGHT_PX - 1, off: null,
+                    order: line.order });
     }
   }
   placed.sort((x, y) => x.top - y.top);
@@ -174,8 +193,7 @@ export function contextTags(lines: { id: string; kind: ChartOverlay["kind"]; y: 
 }
 
 const TAG_COLOR: Partial<Record<ChartOverlay["kind"], string>> = {
-  RESISTANCE: "rgb(251,113,133)", SUPPORT: "rgb(52,211,153)",
-  ASK_WALL: "rgba(251,113,133,0.85)", BID_WALL: "rgba(52,211,153,0.85)",
+  RESISTANCE: "rgba(148,163,184,0.8)", SUPPORT: "rgba(148,163,184,0.8)",
 };
 
 /** Candlestick chart, isolated in its own client component.
@@ -225,7 +243,7 @@ export function CandleChart({ candles, overlays, markers = [], className = "h-[3
   const lines = useRef<Map<string, IPriceLine>>(new Map());
   // What each line was asked to be, and whether its label is currently suppressed, so the
   // label pass can toggle labels without rebuilding the line.
-  const lineSpecs = useRef<Map<string, { kind: ChartOverlay["kind"]; price: number; title: string; tag?: string }>>(new Map());
+  const lineSpecs = useRef<Map<string, { kind: ChartOverlay["kind"]; price: number; title: string; tag?: string; order?: 1 | 2 | 3 }>>(new Map());
   const tagLayer = useRef<HTMLDivElement | null>(null);
   const labelHidden = useRef<Set<string>>(new Set());
   const markerPlugin = useRef<ISeriesMarkersPluginApi<Time> | null>(null);
@@ -264,7 +282,8 @@ export function CandleChart({ candles, overlays, markers = [], className = "h-[3
     // range leaves out the scale margins, where a line is still drawn.)
     const paneHeight = chart.current?.paneSize(0).height ?? 0;
     const at = [...lineSpecs.current.entries()].map(([id, spec]) =>
-      ({ id, kind: spec.kind, tag: spec.tag ?? "", y: series.priceToCoordinate(spec.price) as number | null }));
+      ({ id, kind: spec.kind, tag: spec.tag ?? "", order: spec.order,
+         y: series.priceToCoordinate(spec.price) as number | null }));
     const entries = at.map(entry => ({ ...entry,
       y: entry.y != null && entry.y >= 0 && entry.y <= paneHeight ? entry.y : null }));
     const shown = contextLabelsShown(lastY, entries);
@@ -286,7 +305,7 @@ export function CandleChart({ candles, overlays, markers = [], className = "h-[3
     const layer = tagLayer.current;
     if (layer) {
       const tags = contextTags(at, paneHeight);
-      const key = tags.map(t => `${t.id}:${Math.round(t.top)}:${t.text}`).join("|");
+      const key = tags.map(t => `${t.id}:${Math.round(t.top)}:${t.text}:${t.order ?? ""}`).join("|");
       if (layer.dataset.key !== key) {
         layer.dataset.key = key;
         layer.replaceChildren(...tags.map(tag => {
@@ -294,9 +313,10 @@ export function CandleChart({ candles, overlays, markers = [], className = "h-[3
           node.textContent = tag.text;
           node.dataset.tag = tag.id;
           node.dataset.off = tag.off ?? "";
+          node.dataset.order = tag.order ? String(tag.order) : "";
           node.className = "absolute left-1 whitespace-nowrap rounded bg-surface px-1 text-[10px] font-medium leading-[15px] tabular-nums opacity-90";
           node.style.top = `${Math.round(tag.top)}px`;
-          node.style.color = TAG_COLOR[tag.kind] ?? "";
+          node.style.color = wallShade(tag.kind, tag.order)?.tag ?? TAG_COLOR[tag.kind] ?? "";
           return node;
         }));
       }
@@ -493,11 +513,12 @@ export function CandleChart({ candles, overlays, markers = [], className = "h-[3
       // A label the last pass suppressed stays suppressed until the next pass decides again.
       const hidden = labelHidden.current.has(overlay.id);
       const options = {
-        price: overlay.price, color: style.color, lineWidth: 1 as const,
+        price: overlay.price, color: wallShade(overlay.kind, overlay.order)?.line ?? style.color,
+        lineWidth: 1 as const,
         lineStyle: style.lineStyle, axisLabelVisible: !hidden, title: hidden ? "" : overlay.label,
       };
       lineSpecs.current.set(overlay.id, { kind: overlay.kind, price: overlay.price, title: overlay.label,
-                                          tag: overlay.tag });
+                                          tag: overlay.tag, order: overlay.order });
       if (existing) existing.applyOptions(options);
       else lines.current.set(overlay.id, price.createPriceLine(options));
     }

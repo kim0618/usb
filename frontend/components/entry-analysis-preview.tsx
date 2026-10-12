@@ -104,8 +104,8 @@ export function EntryAnalysisPanel({ analysis, error, loading }: {
             {" · OI "}{oi?.value_usdt ? compactUsd(oi.value_usdt) : MISSING}
             {oi?.change_pct != null ? ` (${oi.window} ${Number(oi.change_pct) > 0 ? "+" : ""}${oi.change_pct}%)` : ""}</p>
           <ul className="space-y-0.5">
-            <WallRows rows={analysis?.basis.ask ?? []} name="매도벽" />
-            <WallRows rows={analysis?.basis.bid ?? []} name="매수벽" />
+            <WallRows rows={analysis?.basis.ask ?? []} name="상단벽" />
+            <WallRows rows={analysis?.basis.bid ?? []} name="하단벽" />
           </ul>
           <p className="text-[10px]">벽 유지시간·크기·체결흐름·OI는 수집기 수치 그대로. 이 화면은 주문을 보내지 않습니다.</p>
         </div>

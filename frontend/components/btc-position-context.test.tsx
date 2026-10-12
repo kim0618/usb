@@ -59,7 +59,9 @@ function withThirdBid(payload: BtcContextPayload): BtcContextPayload {
   return copy;
 }
 
-const rowsOf = (testId: string) => screen.queryAllByTestId(`${testId}-row`);
+/** The wall rows of one side, from the detail list ("btc-context-path-up" = upper walls). */
+const rowsOf = (testId: string) => screen.queryAllByTestId("wall-detail-row")
+  .filter(r => r.getAttribute("data-side") === (testId.endsWith("up") ? "ASK" : "BID"));
 const prices = (testId: string) => rowsOf(testId).map(r => Number(r.getAttribute("data-price")));
 
 // --------------------------------------------------------------------------- pure functions
@@ -121,37 +123,35 @@ describe("wall paths", () => {
     expect(entryDistancePct(LONG, 84_000)).toBe(entryDistancePct(SHORT, 84_000));
   });
 
-  it("puts the count of published walls per side in the title, and names an empty side", () => {
+  it("puts the count of published walls per side in the summary, and names an empty side", () => {
     render(<BtcContextStripView payload={LIVE} mark={MID} />);
-    expect(screen.getByTestId("btc-context-path-up-count")).toHaveTextContent(String(LIVE.walls!.ask.length));
-    expect(screen.getByTestId("btc-context-path-down-count")).toHaveTextContent(String(LIVE.walls!.bid.length));
+    expect(screen.getByTestId("btc-context-path-up-value")).toHaveTextContent(`${LIVE.walls!.ask.length}개`);
+    expect(screen.getByTestId("btc-context-path-down-value")).toHaveTextContent(`${LIVE.walls!.bid.length}개`);
     cleanup();
     const askOnly = structuredClone(LIVE);
     askOnly.walls!.bid = [];
     askOnly.walls!.empty = { ask: false, bid: true };
     render(<BtcContextStripView payload={askOnly} mark={MID} />);
-    expect(screen.getAllByTestId("btc-context-path-up-row")).toHaveLength(3);
-    expect(screen.getByTestId("btc-context-path-down-count")).toHaveTextContent("0");
-    expect(screen.getByTestId("btc-context-path-down-empty")).toHaveTextContent("현재 적격 매수벽 없음");
-    expect(screen.getByTestId("btc-context-path-down-empty").textContent).not.toMatch(/USDT|50만|500/);
+    expect(rowsOf("btc-context-path-up")).toHaveLength(3);
+    expect(screen.getByTestId("btc-context-path-down-value")).toHaveTextContent(/^하단벽 없음$/);
+    expect(screen.getByTestId("btc-context-path-down-value").textContent).not.toMatch(/USDT|50만|500/);
     cleanup();
     const bidOnly = structuredClone(LIVE);
     bidOnly.walls!.ask = [];
     bidOnly.walls!.empty = { ask: true, bid: false };
     render(<BtcContextStripView payload={bidOnly} mark={MID} />);
-    expect(screen.getByTestId("btc-context-path-up-empty")).toHaveTextContent("현재 적격 매도벽 없음");
-    expect(screen.getAllByTestId("btc-context-path-down-row")).toHaveLength(LIVE.walls!.bid.length);
+    expect(screen.getByTestId("btc-context-path-up-value")).toHaveTextContent(/^상단벽 없음$/);
+    expect(rowsOf("btc-context-path-down")).toHaveLength(LIVE.walls!.bid.length);
     cleanup();
     // a side the collector could not read (not its NONE) and a stale reading stay "--"
     const unread = structuredClone(LIVE);
     unread.walls!.ask = [];
     unread.walls!.empty = { ask: false, bid: false };
     render(<BtcContextStripView payload={unread} mark={MID} />);
-    expect(screen.getByTestId("btc-context-path-up-empty")).toHaveTextContent("--");
+    expect(screen.getByTestId("btc-context-path-up-value")).toHaveTextContent(/^--$/);
     cleanup();
     render(<BtcContextStripView payload={STALE} mark={MID} />);
-    expect(screen.getByTestId("btc-context-path-up-empty")).toHaveTextContent("--");
-    expect(screen.getByTestId("btc-context-path-up-count")).toHaveTextContent("0");
+    expect(screen.getByTestId("btc-context-path-up-value")).toHaveTextContent(/^--$/);
   });
 
   it("lists one or two walls as they are, three at most, nearest first", () => {
@@ -169,7 +169,7 @@ describe("wall paths", () => {
     const up = prices("btc-context-path-up");
     expect(up).toHaveLength(3);
     expect(up).toEqual([...up].sort((a, b) => a - b));
-    expect(screen.getByTestId("btc-context-path-up-count")).toHaveTextContent("6");
+    expect(screen.getByTestId("btc-context-path-up-value")).toHaveTextContent("6개");
   });
 
   it("orders the largest three by size, then lists them in path order; differs from nearest", () => {
@@ -203,16 +203,20 @@ describe("wall paths", () => {
 });
 
 describe("entry against current", () => {
-  it("states entry and current flow, OI and funding side by side", () => {
+  it("states entry and current flow, OI and funding side by side in the detail", () => {
     render(<BtcContextStripView payload={SHORT_P} position={SHORT} mark={MID} />);
     expect(screen.getByTestId("btc-context-mode")).toHaveTextContent("진입가 기준");
-    expect(screen.getByTestId("btc-context-flow-entry")).toHaveTextContent("진입 매도우세 61%");
+    const entryRow = screen.getByTestId("btc-context-entry-detail");
+    const currentRow = screen.getByTestId("btc-context-current-detail");
+    expect(entryRow).toHaveTextContent("체결흐름 매도우세 61%");
     const current = SHORT_P.flow.sell_pct! > SHORT_P.flow.buy_pct! ? `매도우세 ${SHORT_P.flow.sell_pct}%`
       : `매수우세 ${SHORT_P.flow.buy_pct}%`;
-    expect(screen.getByTestId("btc-context-flow-current")).toHaveTextContent(current);
-    expect(screen.getByTestId("btc-context-oi")).toHaveTextContent("OI 7.41B → ");
-    expect(screen.getByTestId("btc-context-funding")).toHaveTextContent("펀딩 +0.0010% → ");
+    expect(currentRow).toHaveTextContent(`체결흐름 ${current}`);
+    expect(entryRow).toHaveTextContent("OI 7.41B");
+    expect(entryRow).toHaveTextContent("펀딩 +0.0010%");
     expect(screen.getByTestId("btc-context-entry")).toHaveTextContent("진입 83,612.9");
+    // the compact line holds only the current OI direction and funding
+    expect(screen.getByTestId("btc-context-oi")).toHaveTextContent(/^OI [↑↓→]$/);
   });
 
   it("freezes the entry context for an episode whatever a later answer says", () => {
@@ -229,16 +233,19 @@ describe("entry against current", () => {
     next.flow = { ...next.flow, live: true, buy_pct: 20, sell_pct: 80 };
     next.derivatives = { ...next.derivatives, oi_value_usdt: "7750000000", funding_pct: "0.0004" };
     rerender(<BtcContextStripView payload={next} position={SHORT} mark={MID} />);
-    expect(screen.getByTestId("btc-context-flow-current")).toHaveTextContent("매도우세 80%");
-    expect(screen.getByTestId("btc-context-oi")).toHaveTextContent("OI 7.41B → 7.75B");
-    expect(screen.getByTestId("btc-context-funding")).toHaveTextContent("+0.0010% → +0.0004%");
-    expect(screen.getByTestId("btc-context-flow-entry")).toHaveTextContent("매도우세 61%");
+    const currentRow = screen.getByTestId("btc-context-current-detail");
+    expect(currentRow).toHaveTextContent("체결흐름 매도우세 80%");
+    expect(currentRow).toHaveTextContent("OI 7.75B");
+    expect(currentRow).toHaveTextContent("펀딩 +0.0004%");
+    const entryRow = screen.getByTestId("btc-context-entry-detail");
+    expect(entryRow).toHaveTextContent("체결흐름 매도우세 61%");
+    expect(entryRow).toHaveTextContent("OI 7.41B");
   });
 
   it("does not compare with an entry recorded for the other side", () => {
     expect(entryFor(SHORT_P, LONG)).toBeNull();
     render(<BtcContextStripView payload={SHORT_P} position={LONG} mark={MID} />);
-    expect(screen.getByTestId("btc-context-flow-entry")).toHaveTextContent("진입 --");
+    expect(screen.getByTestId("btc-context-entry-detail")).toHaveTextContent("체결흐름 --");
     expect(screen.getByTestId("btc-context-entry-detail")).toHaveTextContent("진입 · 기록 없음");
   });
 
@@ -250,24 +257,22 @@ describe("entry against current", () => {
     expect(entryRow).not.toHaveTextContent("검증용");
     expect(entryRow).toHaveTextContent("체결흐름 매도우세 61%");
     expect(entryRow).toHaveTextContent("OI 7.41B");
-    expect(entryRow).toHaveTextContent("매도벽 83,650.0");
-    expect(entryRow).toHaveTextContent("매수벽 --");
+    expect(entryRow).toHaveTextContent("상단벽 83,650.0");
+    expect(entryRow).toHaveTextContent("하단벽 --");
     expect(currentRow).toHaveTextContent("현재");
-    expect(currentRow).toHaveTextContent(`매도벽 ${SHORT_P.walls!.ask.slice(0, 3).map(w => Number(w.price).toLocaleString("en-US", { minimumFractionDigits: 1 })).join(" / ")}`);
+    expect(currentRow).toHaveTextContent(`상단벽 ${SHORT_P.walls!.ask.slice(0, 3).map(w => Number(w.price).toLocaleString("en-US", { minimumFractionDigits: 1 })).join(" / ")}`);
   });
 
   it("never turns the first current reading into an entry: no record means every entry figure is --", () => {
     const noRecord = structuredClone(SHORT_P);
     noRecord.entry = { available: false };
     render(<BtcContextStripView payload={noRecord} position={SHORT} mark={MID} />);
-    expect(screen.getByTestId("btc-context-flow-entry")).toHaveTextContent("진입 --");
-    expect(screen.getByTestId("btc-context-flow-current")).not.toHaveTextContent("--");
+    expect(screen.getByTestId("btc-context-current-detail")).not.toHaveTextContent("체결흐름 --");
     const entryRow = screen.getByTestId("btc-context-entry-detail");
     expect(entryRow).toHaveTextContent("진입 · 기록 없음");
-    for (const figure of ["체결흐름 --", "OI --", "펀딩 --", "베이시스 --", "매도벽 --", "매수벽 --"]) {
+    for (const figure of ["체결흐름 --", "OI --", "펀딩 --", "베이시스 --", "상단벽 --", "하단벽 --"]) {
       expect(entryRow).toHaveTextContent(figure);
     }
-    expect(screen.getByTestId("btc-context-oi")).toHaveTextContent(/^OI -- → /);
     // a later answer with a record is still not adopted for this episode's first reading
     expect(entryFor(noRecord, SHORT)).toBeNull();
   });
@@ -293,8 +298,9 @@ describe("entry against current", () => {
   it("shows only the current flow without a position", () => {
     render(<BtcContextStripView payload={LIVE} mark={MID} />);
     expect(screen.getByTestId("btc-context-mode")).toHaveTextContent("현재가 기준");
-    expect(screen.queryByTestId("btc-context-flow-entry")).toBeNull();
+    expect(screen.queryByTestId("btc-context-entry-detail")).toBeNull();
     expect(screen.queryByTestId("btc-context-entry")).toBeNull();
+    expect(screen.getByTestId("btc-context-flow60")).toBeInTheDocument();
   });
 });
 
@@ -314,16 +320,16 @@ describe("walls change", () => {
     const none = structuredClone(LIVE);
     none.walls!.bid = [];
     rerender(<BtcContextStripView payload={none} mark={MID} />);
-    expect(screen.getByTestId("btc-context-path-down-empty")).toHaveTextContent("--");
+    expect(screen.getByTestId("btc-context-path-down-value")).toHaveTextContent(/^--$/);
     none.walls!.empty = { ask: false, bid: true };
     rerender(<BtcContextStripView payload={structuredClone(none)} mark={MID} />);
-    expect(screen.getByTestId("btc-context-path-down-empty")).toHaveTextContent("현재 적격 매수벽 없음");
+    expect(screen.getByTestId("btc-context-path-down-value")).toHaveTextContent(/^하단벽 없음$/);
   });
 
   it("shows age, size and the collector's recent ends in the detail", () => {
     render(<BtcContextStripView payload={LIVE} mark={MID} />);
     const detail = screen.getByTestId("btc-context-wall-detail");
-    expect(within(detail).getAllByTestId("wall-detail-row")[0].textContent).toMatch(/매도벽1 .* 유지 · .* · 크기 \d위/);
+    expect(within(detail).getAllByTestId("wall-detail-row")[0].textContent).toMatch(/상단벽1 .* 유지 · .* · 크기 \d위/);
     if (LIVE.walls!.recent_ends.length > 0) {
       expect(screen.getByTestId("btc-context-recent-ends")).toHaveTextContent("최근 사라진 벽:");
     }
@@ -343,11 +349,11 @@ describe("walls change", () => {
 
   it("is dashes for a stale reading or none", () => {
     render(<BtcContextStripView payload={STALE} />);
-    expect(screen.getByTestId("btc-context-path-up-empty")).toBeInTheDocument();
+    expect(screen.getByTestId("btc-context-path-up-value")).toHaveTextContent(/^--$/);
     expect(screen.getByTestId("btc-context-current")).toHaveTextContent("현재 --");
     cleanup();
     render(<BtcContextStripView payload={null} position={SHORT} />);
-    expect(screen.getByTestId("btc-context-flow-entry")).toHaveTextContent("진입 --");
+    expect(screen.getByTestId("btc-context-entry-detail")).toHaveTextContent("체결흐름 --");
   });
 
   it("shows no threshold figure anywhere on the panel", () => {
@@ -383,7 +389,7 @@ describe("resistance and support (V2 lines) in V3", () => {
   it("lists size, persistence, NEW/CARRIED and the gap for each wall in the detail", () => {
     render(<BtcContextStripView payload={LIVE} mark={MID} />);
     const rows = within(screen.getByTestId("btc-context-wall-detail")).getAllByTestId("wall-detail-row");
-    expect(rows[0].textContent).toMatch(/유지 · .*K · 크기 \d위 · (이어짐|새로 관측) · 간격 \d+\.\d+%/);
+    expect(rows[0].textContent).toMatch(/간격 \d+\.\d+% · [\d.]+[KMB] · .* 유지 · (이어짐|새로 관측)/);
     expect(rows.map(r => r.textContent).join(" ")).not.toMatch(/강화|약화/);
   });
 });
@@ -398,7 +404,7 @@ describe("chart lines by timeframe", () => {
 
   it("names the walls in path order and follows the panel's selection", () => {
     const near = contextChartLines(LIVE, { timeframe: "1m" }).filter(l => l.kind === "ASK_WALL");
-    expect(near.map(l => l.tag)).toEqual(["매도1", "매도2", "매도3"]);
+    expect(near.map(l => l.tag)).toEqual(["상1", "상2", "상3"]);
     expect(near.map(l => l.price)).toEqual(LIVE.walls!.ask.slice(0, 3).map(w => Number(w.price)));
     const size = contextChartLines(LIVE, { timeframe: "1m", selection: "SIZE" })
       .filter(l => l.kind === "ASK_WALL").map(l => l.price);
@@ -502,7 +508,7 @@ describe("V3 inside the terminal", () => {
     await terminalReady();
     await waitFor(() => expect(screen.getByTestId("btc-context-strip").getAttribute("data-mode")).toBe("POSITION"));
     expect(screen.getByTestId("btc-context-entry")).toHaveTextContent("진입 83,612.9");
-    await waitFor(() => expect(screen.getByTestId("btc-context-flow-entry")).toHaveTextContent("매도우세 61%"));
+    await waitFor(() => expect(screen.getByTestId("btc-context-entry-detail")).toHaveTextContent("체결흐름 매도우세 61%"));
   });
 
   it("measures from the price when the account is flat", async () => {
@@ -560,7 +566,7 @@ describe("V3 inside the terminal", () => {
     fakeBackends({ strip: () => (up ? LIVE : "down"), held: false });
     render(<CryptoTerminal marketContext={slot} contextBase={BASE} />);
     await terminalReady();
-    await waitFor(() => expect(screen.getByTestId("btc-context-path-up-empty")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByTestId("btc-context-path-up-value")).toHaveTextContent(/^--$/));
     expect(chartOverlays()).not.toContain("ctx-");
     expect(within(screen.getAllByTestId("order-ticket")[0]).getAllByTestId("long-button")[0]).toBeEnabled();
     up = true;

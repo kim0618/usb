@@ -96,14 +96,14 @@ export async function fetchBtcContext(base: string = BTC_CONTEXT_BASE,
 // --------------------------------------------------------------------------- one poll loop
 
 type Reading = { payload: BtcContextPayload; at: number } | null;
-type Snapshot = { last: Reading; tick: number };
+type Snapshot = { last: Reading; tick: number; bins: FlowBins };
 type Store = { snapshot: Snapshot; listeners: Set<() => void>; stop: (() => void) | null };
 
 /** One loop per API base, however many parts of the screen read it (the chart lines and the line
  *  under the chart). It runs while at least one of them is mounted and enabled, and stops when the
  *  last one leaves - which is what makes the HOT tab cost zero requests. */
 const stores = new Map<string, Store>();
-const EMPTY: Snapshot = { last: null, tick: 0 };
+const EMPTY: Snapshot = { last: null, tick: 0, bins: {} };
 
 function storeFor(base: string): Store {
   let store = stores.get(base);
@@ -117,8 +117,8 @@ function storeFor(base: string): Store {
 function startLoop(base: string, store: Store) {
   let stopped = false;
   let inFlight: AbortController | null = null;
-  const publish = (last: Reading) => {
-    store.snapshot = { last, tick: Date.now() };
+  const publish = (last: Reading, bins: FlowBins = store.snapshot.bins) => {
+    store.snapshot = { last, tick: Date.now(), bins };
     for (const listener of store.listeners) listener();
   };
   const poll = async () => {
@@ -130,7 +130,7 @@ function startLoop(base: string, store: Store) {
     const timer = setTimeout(() => controller.abort(), BTC_CONTEXT_TIMEOUT_MS);
     try {
       const payload = await fetchBtcContext(base, controller.signal);
-      if (!stopped) publish({ payload, at: Date.now() });
+      if (!stopped) publish({ payload, at: Date.now() }, recordFlowMinute(store.snapshot.bins, payload));
     } catch {
       // Nothing drawn, not an error banner: this must never cover the order screen.
     } finally {
@@ -160,19 +160,29 @@ function subscribe(base: string, listener: () => void): () => void {
 
 const noop = () => () => {};
 
-/** The current reading, or `null` when disabled, never answered, or older than the hold window.
- *  `enabled` false asks nothing at all. Only GETs, one in flight at a time per base. */
-export function useBtcContext(base: string = BTC_CONTEXT_BASE, enabled = true): BtcContextPayload | null {
+function useStoreSnapshot(base: string, enabled: boolean): Snapshot {
   const on = enabled && base.length > 0;
   // Stable per (base, on): a new function here would unsubscribe and resubscribe on every render,
   // which restarts the loop and fires a request each time.
   const subscribeHere = useCallback(
     (listener: () => void) => (on ? subscribe(base, listener) : noop()), [base, on]);
   const read = useCallback(() => (on ? storeFor(base).snapshot : EMPTY), [base, on]);
-  const snapshot = useSyncExternalStore(subscribeHere, read, () => EMPTY);
+  return useSyncExternalStore(subscribeHere, read, () => EMPTY);
+}
+
+/** The current reading, or `null` when disabled, never answered, or older than the hold window.
+ *  `enabled` false asks nothing at all. Only GETs, one in flight at a time per base. */
+export function useBtcContext(base: string = BTC_CONTEXT_BASE, enabled = true): BtcContextPayload | null {
+  const snapshot = useStoreSnapshot(base, enabled);
   const last = snapshot.last;
-  if (!on || !last || snapshot.tick - last.at > BTC_CONTEXT_HOLD_MS) return null;
+  if (!last || snapshot.tick - last.at > BTC_CONTEXT_HOLD_MS) return null;
   return last.payload;
+}
+
+/** The per-minute flow readings this screen has kept since the BTC tab was opened. Reads the same
+ *  loop as `useBtcContext` and asks for nothing of its own. */
+export function useBtcFlowBins(base: string = BTC_CONTEXT_BASE, enabled = true): FlowBins {
+  return useStoreSnapshot(base, enabled).bins;
 }
 
 /** Test hook: forget every loop's last reading, the frozen entries and the wall selection. */
@@ -293,6 +303,7 @@ export type PathRow = {
   gapPct: number;
   ageMs: number | null; notional: string | null; multiple: string | null; sizeRank: number;
   continuity: string | null;
+  firstSeenMs: number | null;
 };
 export type Paths = {
   mode: "MARKET" | "POSITION";
@@ -321,7 +332,7 @@ function pathRows(side: "ASK" | "BID", walls: BtcWall[], current: number,
       primaryPct: entryPct ?? currentPct, currentPct, entryPct,
       gapPct: Math.abs(pctFrom(previous, price)),
       ageMs: wall.age_ms, notional: wall.notional_usdt, multiple: wall.multiple,
-      sizeRank: wall.size_rank, continuity: wall.continuity,
+      sizeRank: wall.size_rank, continuity: wall.continuity, firstSeenMs: wall.first_seen_ms,
     });
     previous = price;
   });
@@ -425,6 +436,11 @@ export function entryComparison(payload: BtcContextPayload | null,
   };
 }
 
+/** 1 nearest, 2 next, 3 (and further) farthest: the shade step of a wall line. Distance, not size. */
+export function distanceOrder(rank: number): 1 | 2 | 3 {
+  return rank <= 1 ? 1 : rank === 2 ? 2 : 3;
+}
+
 /** The context lines for the BTC chart.
  *
  *  V3, when the backend publishes walls: nearest resistance and support, and up to three walls per
@@ -455,29 +471,132 @@ export function contextChartLines(payload: BtcContextPayload | null, opts: {
   if (payload.walls) {
     const n = wallLinesFor(opts.timeframe);
     const selection = opts.selection ?? "NEAR";
-    // Several walls a side: the tag is the name and order only ("매도1"), so a stack of six covers
-    // little of the chart's left edge. The price is on the axis label and in the panel below.
-    for (const [side, kind, name, tag] of [["ask", "ASK_WALL", "매도벽", "매도"], ["bid", "BID_WALL", "매수벽", "매수"]] as const) {
+    // Several walls a side: the tag is the role and the order only ("상1", "하1"), so a stack of
+    // six covers little of the chart's left edge. The price is on the axis label and in the
+    // detail below. `order` is how near the wall really is (the collector's rank on its side), so
+    // a line's shade follows the distance whichever selection picked it.
+    for (const [side, kind, name, tag] of [["ask", "ASK_WALL", "상단벽", "상"], ["bid", "BID_WALL", "하단벽", "하"]] as const) {
       pickWalls(payload.walls[side], selection).slice(0, n).forEach((wall, i) => {
         const price = positive(wall.price);
         if (price == null) return;
         lines.push({ id: `ctx-${side}-wall-${i + 1}`, price, kind, short: `${name}${i + 1}`, label: "",
-          tag: `${tag}${i + 1}` });
+          tag: `${tag}${i + 1}`, order: distanceOrder(wall.rank) });
       });
     }
     return lines;
   }
   const ask = positive(l.ask_wall_price);
   if (ask != null) {
-    lines.push({ id: "ctx-ask-wall", price: ask, kind: "ASK_WALL", short: "매도벽", label: "",
-      tag: `매도벽 ${priceText(ask)}` });
+    lines.push({ id: "ctx-ask-wall", price: ask, kind: "ASK_WALL", short: "상단벽1", label: "",
+      tag: "상1", order: 1 });
   }
   const bid = positive(l.bid_wall_price);
   if (bid != null) {
-    lines.push({ id: "ctx-bid-wall", price: bid, kind: "BID_WALL", short: "매수벽", label: "",
-      tag: `매수벽 ${priceText(bid)}` });
+    lines.push({ id: "ctx-bid-wall", price: bid, kind: "BID_WALL", short: "하단벽1", label: "",
+      tag: "하1", order: 1 });
   }
   return lines;
+}
+
+// --------------------------------------------------------------------------- 5 minutes of flow
+
+/** One kept reading per wall-clock minute: the collector's 60 s buy/sell shares as last seen in
+ *  that minute, keyed by minute index (server ms / 60 000). */
+export type FlowBins = Record<number, { buy: number; sell: number }>;
+export const PRESSURE_MINUTES = 5;
+const MINUTE_MS = 60_000;
+
+/** Keep this answer's 60 s flow as its minute's reading (the latest answer of a minute wins, which
+ *  is the one whose 60 s window is closest to that minute). Returns the same object when nothing
+ *  changes. A stale or missing flow is never kept, and nothing is back-filled. */
+export function recordFlowMinute(bins: FlowBins, payload: BtcContextPayload | null): FlowBins {
+  const flow = payload?.flow;
+  if (!payload || !flow || !flow.live || flow.buy_pct == null || flow.sell_pct == null) return bins;
+  if (!Number.isFinite(payload.server_time_ms)) return bins;
+  const minute = Math.floor(payload.server_time_ms / MINUTE_MS);
+  const held = bins[minute];
+  if (held && held.buy === flow.buy_pct && held.sell === flow.sell_pct) return bins;
+  const next: FlowBins = {};
+  for (const [key, value] of Object.entries(bins)) {
+    if (Number(key) >= minute - PRESSURE_MINUTES - 1) next[Number(key)] = value;
+  }
+  next[minute] = { buy: flow.buy_pct, sell: flow.sell_pct };
+  return next;
+}
+
+export type PressureMinute = "BUY" | "SELL" | "EVEN" | null;
+export type Pressure = {
+  /** Oldest first, the five completed minutes before the current one; null = no reading. */
+  minutes: PressureMinute[];
+  buy: number; sell: number; even: number; known: number;
+  /** "매수 4 : 1 매도", "매수 2 · 중립 1 · 매도 2", "수집 중", or "--". */
+  text: string;
+  /** "3/5분" while fewer than five minutes are known; empty when complete. */
+  coverage: string;
+};
+
+/** The last five completed minutes of the 60 s flow, one vote each: buy larger = buy, sell larger
+ *  = sell, exactly equal = neutral. No threshold. The minute in progress is not counted, and a
+ *  minute the screen did not see stays unknown rather than being filled from its neighbours.
+ *  `payload` null, or one whose flow is not live (stale), is all dashes. */
+export function flowPressure(bins: FlowBins, payload: BtcContextPayload | null): Pressure {
+  const none: Pressure = { minutes: Array(PRESSURE_MINUTES).fill(null), buy: 0, sell: 0, even: 0,
+    known: 0, text: MISSING, coverage: "" };
+  if (!payload || !payload.flow?.live || !Number.isFinite(payload.server_time_ms)) return none;
+  const now = Math.floor(payload.server_time_ms / MINUTE_MS);
+  const minutes: PressureMinute[] = [];
+  let buy = 0, sell = 0, even = 0;
+  for (let m = now - PRESSURE_MINUTES; m < now; m++) {
+    const bin = bins[m];
+    if (!bin) { minutes.push(null); continue; }
+    if (bin.buy > bin.sell) { minutes.push("BUY"); buy++; }
+    else if (bin.sell > bin.buy) { minutes.push("SELL"); sell++; }
+    else { minutes.push("EVEN"); even++; }
+  }
+  const known = buy + sell + even;
+  const coverage = known < PRESSURE_MINUTES ? `${known}/${PRESSURE_MINUTES}분` : "";
+  const text = known === 0 ? "수집 중"
+    : even > 0 ? `매수 ${buy} · 중립 ${even} · 매도 ${sell}` : `매수 ${buy} : ${sell} 매도`;
+  return { minutes, buy, sell, even, known, text, coverage };
+}
+
+// --------------------------------------------------------------------------- compact summary
+
+export type WallSideSummary = {
+  /** "상단벽" / "하단벽". */
+  name: string;
+  /** "가까운 순" / "큰 순": how the detail picks its three. */
+  order: string;
+  /** Walls the collector published on this side. */
+  count: number;
+  /** Nearest wall's distance, from the entry with a position and from the price without. */
+  nearestPct: number | null;
+  /** What the cell says: "3개 · 현재 대비 +0.09%", "상단벽 없음", or "--". */
+  text: string;
+};
+export type WallSummary = { basis: "현재 대비" | "진입 대비"; up: WallSideSummary; down: WallSideSummary };
+
+/** One line per side for the compact panel. The nearest wall is the collector's rank 1 whatever
+ *  the selection is, so the figure does not change when the detail is sorted by size. "없음" only
+ *  when the collector read the side and found no wall; "--" when it could not say. */
+export function wallSummary(payload: BtcContextPayload | null, opts: {
+  mark?: number | null; position?: ContextPosition | null; selection?: WallSelection;
+} = {}): WallSummary {
+  const paths = wallPaths(payload, { mark: opts.mark, position: opts.position, selection: "NEAR" });
+  const basis = paths.mode === "POSITION" ? "진입 대비" : "현재 대비";
+  const order = (opts.selection ?? "NEAR") === "SIZE" ? "큰 순" : "가까운 순";
+  const side = (name: string, rows: PathRow[], count: number, empty: boolean): WallSideSummary => {
+    const nearestPct = rows[0]?.primaryPct ?? null;
+    const text = count > 0
+      ? `${count}개 · ${basis} ${pctText(nearestPct)}`
+      : empty ? `${name} 없음` : MISSING;
+    return { name, order, count, nearestPct, text };
+  };
+  return {
+    basis,
+    up: side("상단벽", paths.up, paths.upCount, paths.upEmpty),
+    down: side("하단벽", paths.down, paths.downCount, paths.downEmpty),
+  };
 }
 
 // --------------------------------------------------------------------------- the line under it

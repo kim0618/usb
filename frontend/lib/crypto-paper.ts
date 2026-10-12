@@ -699,6 +699,8 @@ export type ChartOverlay = {
   /** A context line's tag on the chart: name, price and, for a level, its distance
    *  ("저항 83,113.9 +0.09%"). The price-axis label carries the price alone. */
   tag?: string;
+  /** A wall line's distance step: 1 nearest the price on its side, 3 farthest. Drives the shade. */
+  order?: 1 | 2 | 3;
 };
 
 /** Read-only market context drawn by the BTC context layer, as opposed to the account's own lines. */
