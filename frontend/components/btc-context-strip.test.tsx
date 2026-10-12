@@ -249,8 +249,9 @@ describe("BTC context line", () => {
     for (const payload of [STALE, null]) {
       cleanup();
       render(<BtcContextStripView payload={payload} />);
-      expect(screen.getByTestId("btc-context-pressure-text")).toHaveTextContent(/^--$/);
-      expect(screen.getByTestId("btc-context-pressure").getAttribute("data-live")).toBe("0");
+      for (const key of ["10m", "1h", "4h", "1d"]) {
+        expect(screen.getByTestId(`flow-horizon-${key}-text`)).toHaveTextContent(/^--$/);
+      }
       expect(screen.getByTestId("btc-context-oi")).toHaveTextContent("OI --");
       expect(screen.getByTestId("btc-context-funding")).toHaveTextContent("펀딩 --");
       for (const id of ["oi", "funding"]) {
@@ -292,7 +293,7 @@ describe("BTC context line", () => {
     render(<BtcContextStrip symbol="BTCUSDT" base={BASE} />);
     await waitFor(() => expect(tally.stripPolls).toBeGreaterThan(0));
     const strip = screen.getByTestId("btc-context-strip");
-    expect(screen.getByTestId("btc-context-pressure-text")).toHaveTextContent(/^--$/);
+    expect(screen.getByTestId("flow-horizon-10m-text")).toHaveTextContent(/^--$/);
     expect(strip.textContent).not.toMatch(/error|오류|실패|Failed/i);
     expect(screen.queryByRole("alert")).toBeNull();
   });
@@ -308,7 +309,7 @@ describe("BTC context line", () => {
     await stripLoaded();
     up = false;
     await vi.advanceTimersByTimeAsync(20_000);
-    await waitFor(() => expect(screen.getByTestId("btc-context-pressure-text")).toHaveTextContent(/^--$/));
+    await waitFor(() => expect(screen.getByTestId("flow-horizon-10m-text")).toHaveTextContent(/^--$/));
   });
 
   it("renders nothing and asks nothing for any symbol but BTC", async () => {
@@ -474,7 +475,7 @@ describe("BTC context inside the terminal", () => {
     await terminalReady();
     const ticket = screen.getAllByTestId("order-ticket")[0];
     expect(within(ticket).getAllByTestId("long-button")[0]).toBeEnabled();
-    await waitFor(() => expect(screen.getByTestId("btc-context-pressure-text")).toHaveTextContent(/^--$/));
+    await waitFor(() => expect(screen.getByTestId("flow-horizon-10m-text")).toHaveTextContent(/^--$/));
     expect(chartOverlays()).not.toContain("ctx-");
   });
 });

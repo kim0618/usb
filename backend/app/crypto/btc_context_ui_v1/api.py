@@ -43,6 +43,7 @@ from ..context_collector_v1 import api as CTX
 from ..market_context_v1 import contract as MC
 from ..market_context_v1 import derivatives as DRV
 from . import entry_context as EC
+from . import flow_horizon as FH
 from . import view as V
 from ..research.wall_lifecycle_r1 import preview as EA
 
@@ -52,6 +53,8 @@ ROOT_ENV = CTX.ROOT_ENV
 STRUCTURE_SNAPSHOT_ENV = "BTC_CONTEXT_STRUCTURE_SNAPSHOT"
 #: The snapshot is a few hundred bytes; anything far larger is not one.
 STRUCTURE_SNAPSHOT_MAX_BYTES = 64 * 1024
+#: Path of the flow horizon worker's snapshot file. Unset means every horizon reads `--`.
+FLOW_HORIZONS_ENV = "BTC_CONTEXT_FLOW_HORIZONS"
 #: Floor between two derivatives reads. The open interest figures move on the venue's 5 m buckets
 #: and funding on its 8 h schedule; 15 s keeps the premium current without polling the venue at
 #: the screen's own pace.
@@ -98,6 +101,11 @@ class Sources:
 
 def structure_snapshot_path() -> Path | None:
     raw = os.environ.get(STRUCTURE_SNAPSHOT_ENV, "").strip()
+    return Path(raw) if raw else None
+
+
+def flow_horizons_path() -> Path | None:
+    raw = os.environ.get(FLOW_HORIZONS_ENV, "").strip()
     return Path(raw) if raw else None
 
 
@@ -184,10 +192,14 @@ async def snapshot() -> Any:
     sources = state.get()
     sources.kick(now_ms)
     snap = read_structure_snapshot(structure_snapshot_path())
-    return V.display(collector_view=collector_view(now_ms),
+    body = V.display(collector_view=collector_view(now_ms),
                      structure_layer=structure_layer(snap, now_ms),
                      derivatives_layer=sources.derivatives_layer(now_ms),
                      now_ms=now_ms, entry=entry_reading())
+    # Trailing 10 m / 1 h / 4 h / 1 d aggressive flow, read from the worker's small snapshot file.
+    body["flow_horizons"] = FH.horizons_section(
+        FH.read_snapshot(flow_horizons_path()), now_ms)
+    return body
 
 
 @app.get("/entry-analysis")
@@ -217,6 +229,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m app.crypto.btc_context_ui_v1")
     parser.add_argument("--root", default=os.environ.get(ROOT_ENV))
     parser.add_argument("--structure-snapshot", default=os.environ.get(STRUCTURE_SNAPSHOT_ENV))
+    parser.add_argument("--flow-horizons", default=os.environ.get(FLOW_HORIZONS_ENV))
     parser.add_argument("--manual-store", default=os.environ.get(EC.STORE_ENV))
     parser.add_argument("--allow-fixture-entry", action="store_true",
                         help="PREVIEW ONLY: serve a hand-built entry store. Never in production.")
@@ -227,6 +240,8 @@ def main(argv: list[str] | None = None) -> int:
         os.environ[ROOT_ENV] = str(Path(args.root).expanduser().resolve())
     if args.structure_snapshot:
         os.environ[STRUCTURE_SNAPSHOT_ENV] = str(Path(args.structure_snapshot).expanduser().resolve())
+    if args.flow_horizons:
+        os.environ[FLOW_HORIZONS_ENV] = str(Path(args.flow_horizons).expanduser().resolve())
     if args.manual_store:
         os.environ[EC.STORE_ENV] = str(Path(args.manual_store).expanduser().resolve())
     if args.allow_fixture_entry:
@@ -238,4 +253,5 @@ def main(argv: list[str] | None = None) -> int:
 
 __all__ = ["app", "state", "Sources", "collector_view", "read_structure_snapshot",
            "structure_layer", "structure_snapshot_path", "main", "DEFAULT_PORT",
-           "DERIVATIVES_MIN_INTERVAL_MS", "STRUCTURE_SNAPSHOT_ENV"]
+           "DERIVATIVES_MIN_INTERVAL_MS", "STRUCTURE_SNAPSHOT_ENV", "FLOW_HORIZONS_ENV",
+           "flow_horizons_path"]

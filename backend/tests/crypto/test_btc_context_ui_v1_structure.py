@@ -335,7 +335,7 @@ def test_bad_snapshot_is_dashes(api_client, case):
     assert body["structure"] == {"live": False, "resistance_pct": None, "support_pct": None,
                                  "resistance_price": None, "support_price": None}
     assert set(body) == {"symbol", "server_time_ms", "structure", "liquidity", "flow",
-                         "derivatives", "walls", "entry"}
+                         "derivatives", "walls", "entry", "flow_horizons"}
 
 
 def test_snapshot_layer_reads_the_same_as_the_in_process_view(arrays):

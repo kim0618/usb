@@ -47,6 +47,23 @@ export type BtcContextPayload = {
   walls?: BtcWalls;
   /** V3. The recorder's entry snapshot of the open episode. Absent from a V2 backend. */
   entry?: BtcEntry;
+  /** Trailing 10 m / 1 h / 4 h / 1 d aggressive flow, summed by the backend from the venue's
+   *  per-minute taker volumes. Absent from an older backend (every horizon then reads `--`). */
+  flow_horizons?: BtcFlowHorizons;
+};
+
+export type FlowHorizonKey = "10m" | "1h" | "4h" | "1d";
+export type BtcFlowHorizon = {
+  minutes: number;
+  buy_pct: number | null; sell_pct: number | null;
+  buy_notional?: string | null; sell_notional?: string | null;
+  /** From the exact notionals: an integer 50/50 can still lean. */
+  lean: "BUY" | "SELL" | "EVEN" | null;
+  quality?: "COMPLETE" | "PARTIAL" | "UNKNOWN";
+  coverage_seconds?: number | null; expected_seconds?: number; coverage_ratio?: number | null;
+};
+export type BtcFlowHorizons = {
+  live: boolean; end_ms: number | null; horizons: Partial<Record<FlowHorizonKey, BtcFlowHorizon>>;
 };
 
 export type BtcWall = {
@@ -96,14 +113,14 @@ export async function fetchBtcContext(base: string = BTC_CONTEXT_BASE,
 // --------------------------------------------------------------------------- one poll loop
 
 type Reading = { payload: BtcContextPayload; at: number } | null;
-type Snapshot = { last: Reading; tick: number; bins: FlowBins };
+type Snapshot = { last: Reading; tick: number };
 type Store = { snapshot: Snapshot; listeners: Set<() => void>; stop: (() => void) | null };
 
 /** One loop per API base, however many parts of the screen read it (the chart lines and the line
  *  under the chart). It runs while at least one of them is mounted and enabled, and stops when the
  *  last one leaves - which is what makes the HOT tab cost zero requests. */
 const stores = new Map<string, Store>();
-const EMPTY: Snapshot = { last: null, tick: 0, bins: {} };
+const EMPTY: Snapshot = { last: null, tick: 0 };
 
 function storeFor(base: string): Store {
   let store = stores.get(base);
@@ -117,8 +134,8 @@ function storeFor(base: string): Store {
 function startLoop(base: string, store: Store) {
   let stopped = false;
   let inFlight: AbortController | null = null;
-  const publish = (last: Reading, bins: FlowBins = store.snapshot.bins) => {
-    store.snapshot = { last, tick: Date.now(), bins };
+  const publish = (last: Reading) => {
+    store.snapshot = { last, tick: Date.now() };
     for (const listener of store.listeners) listener();
   };
   const poll = async () => {
@@ -130,7 +147,7 @@ function startLoop(base: string, store: Store) {
     const timer = setTimeout(() => controller.abort(), BTC_CONTEXT_TIMEOUT_MS);
     try {
       const payload = await fetchBtcContext(base, controller.signal);
-      if (!stopped) publish({ payload, at: Date.now() }, recordFlowMinute(store.snapshot.bins, payload));
+      if (!stopped) publish({ payload, at: Date.now() });
     } catch {
       // Nothing drawn, not an error banner: this must never cover the order screen.
     } finally {
@@ -177,12 +194,6 @@ export function useBtcContext(base: string = BTC_CONTEXT_BASE, enabled = true): 
   const last = snapshot.last;
   if (!last || snapshot.tick - last.at > BTC_CONTEXT_HOLD_MS) return null;
   return last.payload;
-}
-
-/** The per-minute flow readings this screen has kept since the BTC tab was opened. Reads the same
- *  loop as `useBtcContext` and asks for nothing of its own. */
-export function useBtcFlowBins(base: string = BTC_CONTEXT_BASE, enabled = true): FlowBins {
-  return useStoreSnapshot(base, enabled).bins;
 }
 
 /** Test hook: forget every loop's last reading, the frozen entries and the wall selection. */
@@ -498,66 +509,38 @@ export function contextChartLines(payload: BtcContextPayload | null, opts: {
   return lines;
 }
 
-// --------------------------------------------------------------------------- 5 minutes of flow
+// --------------------------------------------------------------------------- flow horizons
 
-/** One kept reading per wall-clock minute: the collector's 60 s buy/sell shares as last seen in
- *  that minute, keyed by minute index (server ms / 60 000). */
-export type FlowBins = Record<number, { buy: number; sell: number }>;
-export const PRESSURE_MINUTES = 5;
-const MINUTE_MS = 60_000;
+export const FLOW_HORIZON_ROWS: { key: FlowHorizonKey; label: string }[] = [
+  { key: "10m", label: "10분" }, { key: "1h", label: "1시간" },
+  { key: "4h", label: "4시간" }, { key: "1d", label: "1일" },
+];
 
-/** Keep this answer's 60 s flow as its minute's reading (the latest answer of a minute wins, which
- *  is the one whose 60 s window is closest to that minute). Returns the same object when nothing
- *  changes. A stale or missing flow is never kept, and nothing is back-filled. */
-export function recordFlowMinute(bins: FlowBins, payload: BtcContextPayload | null): FlowBins {
-  const flow = payload?.flow;
-  if (!payload || !flow || !flow.live || flow.buy_pct == null || flow.sell_pct == null) return bins;
-  if (!Number.isFinite(payload.server_time_ms)) return bins;
-  const minute = Math.floor(payload.server_time_ms / MINUTE_MS);
-  const held = bins[minute];
-  if (held && held.buy === flow.buy_pct && held.sell === flow.sell_pct) return bins;
-  const next: FlowBins = {};
-  for (const [key, value] of Object.entries(bins)) {
-    if (Number(key) >= minute - PRESSURE_MINUTES - 1) next[Number(key)] = value;
-  }
-  next[minute] = { buy: flow.buy_pct, sell: flow.sell_pct };
-  return next;
-}
-
-export type PressureMinute = "BUY" | "SELL" | "EVEN" | null;
-export type Pressure = {
-  /** Oldest first, the five completed minutes before the current one; null = no reading. */
-  minutes: PressureMinute[];
-  buy: number; sell: number; even: number; known: number;
-  /** "매수 4 : 1 매도", "매수 2 · 중립 1 · 매도 2", "수집 중", or "--". */
+export type FlowHorizonRow = {
+  key: FlowHorizonKey; label: string;
+  /** Shares of the whole-minute sum, or null when there is no figure (`--`). */
+  buyPct: number | null; sellPct: number | null;
+  lean: "BUY" | "SELL" | "EVEN" | null;
+  /** The larger side's share only: "매수 70%", "매도 58%", "중립", or "--". */
   text: string;
-  /** "3/5분" while fewer than five minutes are known; empty when complete. */
-  coverage: string;
+  /** Coverage in whole percent, for the detail; null without a reading. */
+  coverage: number | null;
 };
 
-/** The last five completed minutes of the 60 s flow, one vote each: buy larger = buy, sell larger
- *  = sell, exactly equal = neutral. No threshold. The minute in progress is not counted, and a
- *  minute the screen did not see stays unknown rather than being filled from its neighbours.
- *  `payload` null, or one whose flow is not live (stale), is all dashes. */
-export function flowPressure(bins: FlowBins, payload: BtcContextPayload | null): Pressure {
-  const none: Pressure = { minutes: Array(PRESSURE_MINUTES).fill(null), buy: 0, sell: 0, even: 0,
-    known: 0, text: MISSING, coverage: "" };
-  if (!payload || !payload.flow?.live || !Number.isFinite(payload.server_time_ms)) return none;
-  const now = Math.floor(payload.server_time_ms / MINUTE_MS);
-  const minutes: PressureMinute[] = [];
-  let buy = 0, sell = 0, even = 0;
-  for (let m = now - PRESSURE_MINUTES; m < now; m++) {
-    const bin = bins[m];
-    if (!bin) { minutes.push(null); continue; }
-    if (bin.buy > bin.sell) { minutes.push("BUY"); buy++; }
-    else if (bin.sell > bin.buy) { minutes.push("SELL"); sell++; }
-    else { minutes.push("EVEN"); even++; }
-  }
-  const known = buy + sell + even;
-  const coverage = known < PRESSURE_MINUTES ? `${known}/${PRESSURE_MINUTES}분` : "";
-  const text = known === 0 ? "수집 중"
-    : even > 0 ? `매수 ${buy} · 중립 ${even} · 매도 ${sell}` : `매수 ${buy} : ${sell} 매도`;
-  return { minutes, buy, sell, even, known, text, coverage };
+/** The four trailing horizons as the screen draws them. Nothing is carried in the browser: the
+ *  figures are whatever the backend's latest answer holds, so a reload shows them at once. A
+ *  horizon the backend withheld (incomplete minutes, no total) and every horizon of a stale or
+ *  older answer are `--`. The words come from the backend's `lean`; there is no cut-off here. */
+export function flowHorizonRows(payload: BtcContextPayload | null): FlowHorizonRow[] {
+  const block = payload?.flow_horizons;
+  return FLOW_HORIZON_ROWS.map(({ key, label }) => {
+    const h = block && block.live ? block.horizons?.[key] : undefined;
+    const coverage = h && typeof h.coverage_ratio === "number" ? Math.round(h.coverage_ratio * 100) : null;
+    const ok = h != null && h.lean != null && h.buy_pct != null && h.sell_pct != null;
+    if (!ok || !h) return { key, label, buyPct: null, sellPct: null, lean: null, text: MISSING, coverage };
+    const text = h.lean === "BUY" ? `매수 ${h.buy_pct}%` : h.lean === "SELL" ? `매도 ${h.sell_pct}%` : "중립";
+    return { key, label, buyPct: h.buy_pct, sellPct: h.sell_pct, lean: h.lean, text, coverage };
+  });
 }
 
 // --------------------------------------------------------------------------- compact summary

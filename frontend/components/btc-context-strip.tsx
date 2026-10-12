@@ -2,10 +2,10 @@
 
 import {
   ageText, BTC_CONTEXT_BASE, type BtcContextPayload, compactUsd, contextLine, type ContextPosition,
-  entryComparison, entryDistancePct, entryFor, flowPressure, type FlowBins, MISSING, type PathRow,
-  pctText, type PressureMinute, priceText, setStructureDisplay, setWallSelection, type StructureDisplay,
-  useBtcContext, useBtcFlowBins, useStructureDisplay, useWallSelection, wallPaths, wallSummary,
-  type WallSelection, type WallSideSummary,
+  entryComparison, entryDistancePct, entryFor, flowHorizonRows, type FlowHorizonRow, MISSING,
+  type PathRow, pctText, priceText, setStructureDisplay, setWallSelection, type StructureDisplay,
+  useBtcContext, useStructureDisplay, useWallSelection, wallPaths, wallSummary, type WallSelection,
+  type WallSideSummary,
 } from "@/lib/btc-context";
 
 /** The panel under the BTC chart (V3): where the next walls are, measured from where it matters.
@@ -78,19 +78,38 @@ function SideCell({ side, testId }: { side: WallSideSummary; testId: string }) {
   );
 }
 
-const DOT: Record<"BUY" | "SELL" | "EVEN", string> = { BUY: "●", SELL: "○", EVEN: "◐" };
-const DOT_WORD: Record<"BUY" | "SELL" | "EVEN", string> = { BUY: "매수", SELL: "매도", EVEN: "중립" };
+/** Sell and buy colours: the same hues as the chart's upper (red) and lower (teal) walls. */
+const SELL_COLOR = "rgba(244,63,94,0.85)";
+const BUY_COLOR = "rgba(20,184,166,0.85)";
+const EVEN_COLOR = "rgba(148,163,184,0.6)";
 
-/** The five completed minutes as plain marks, oldest first. One neutral colour: a filled mark is a
- *  minute with more buying, an open one more selling. Nothing here is a signal. */
-function PressureDots({ minutes }: { minutes: PressureMinute[] }) {
+/** One horizon as a two-sided bar. The centre line is 50:50; each half is 0..100 % of its own
+ *  side, sell growing left in red and buy growing right in teal, so the shape (which half is
+ *  longer) is the direction before any number is read. No reading is two empty halves. */
+function HorizonBar({ row }: { row: FlowHorizonRow }) {
+  const has = row.lean != null && row.buyPct != null && row.sellPct != null;
+  const even = row.lean === "EVEN";
+  const word = row.lean === "BUY" ? "매수 우세" : row.lean === "SELL" ? "매도 우세" : row.lean === "EVEN" ? "중립" : "자료 없음";
   return (
-    <span className="inline-flex gap-1 text-[11px] leading-none text-foreground" data-testid="btc-context-pressure-dots"
-      role="img" aria-label={`최근 5분 ${minutes.map(m => (m ? DOT_WORD[m] : "없음")).join(" ")}`}>
-      {minutes.map((m, i) => (
-        <span key={i} className={m ? "" : "text-muted"}>{m ? DOT[m] : "·"}</span>
-      ))}
-    </span>
+    <li data-testid={`flow-horizon-${row.key}`} data-lean={row.lean ?? ""} data-buy={row.buyPct ?? ""}
+      data-sell={row.sellPct ?? ""}
+      aria-label={`${row.label} 체결 흐름 ${has ? `${word} ${row.lean === "SELL" ? row.sellPct : row.buyPct}%` : word}`}
+      className="grid grid-cols-[3.25rem_minmax(0,1fr)_4.5rem] items-center gap-x-2 text-[11px] tabular-nums">
+      <span className="text-muted">{row.label}</span>
+      <span aria-hidden="true" className="relative flex h-2.5 items-center">
+        <span className="flex h-full w-1/2 justify-end overflow-hidden rounded-l-sm bg-line/40">
+          {has && <span data-testid="flow-bar-sell" className="h-full"
+            style={{ width: `${row.sellPct}%`, background: even ? EVEN_COLOR : SELL_COLOR }} />}
+        </span>
+        <span className="h-4 w-px bg-muted/70" />
+        <span className="flex h-full w-1/2 justify-start overflow-hidden rounded-r-sm bg-line/40">
+          {has && <span data-testid="flow-bar-buy" className="h-full"
+            style={{ width: `${row.buyPct}%`, background: even ? EVEN_COLOR : BUY_COLOR }} />}
+        </span>
+      </span>
+      <span data-testid={`flow-horizon-${row.key}-text`}
+        className={`text-right text-[11px] ${has ? "text-foreground" : "text-muted"}`}>{row.text}</span>
+    </li>
   );
 }
 
@@ -138,18 +157,20 @@ function WallDetail({ rows, mode }: { rows: PathRow[]; mode: "MARKET" | "POSITIO
 
 /** Pure render, so tests and the polling wrapper share one markup.
  *
- *  Compact by default: where the upper and lower walls are (a count and the nearest one's
- *  distance), the last five minutes of trade flow, OI and funding. Each wall's price, gap, size,
- *  persistence and the rest sit behind "상세". */
+ *  The default area is the trailing aggressive flow only: four two-sided bars (10분, 1시간, 4시간,
+ *  1일), independent of the chart's timeframe. Everything else (wall prices, gaps, size,
+ *  persistence, OI, funding, basis, the 60 s flow, entry against current, the sort switch when it
+ *  lives here) is behind "상세". `sortPlacement` HEADER keeps the 가까운 순 / 큰 순 switch beside
+ *  the title (as it was); DETAIL moves it into the detail. */
 export function BtcContextStripView({ payload, position = null, mark = null, selection = "NEAR",
-  structure = "HIDDEN", flowBins = {} }: {
+  structure = "HIDDEN", sortPlacement = "HEADER" }: {
   payload: BtcContextPayload | null; position?: ContextPosition | null; mark?: number | null;
-  selection?: WallSelection; structure?: StructureDisplay; flowBins?: FlowBins;
+  selection?: WallSelection; structure?: StructureDisplay; sortPlacement?: "HEADER" | "DETAIL";
 }) {
   const line = contextLine(payload);
   const paths = wallPaths(payload, { mark, position, selection });
   const summary = wallSummary(payload, { mark, position, selection });
-  const pressure = flowPressure(flowBins, payload);
+  const rows = flowHorizonRows(payload);
   const entry = entryFor(payload, position);
   const compare = entryComparison(payload, entry);
   const positionMode = paths.mode === "POSITION" && position != null;
@@ -158,67 +179,65 @@ export function BtcContextStripView({ payload, position = null, mark = null, sel
   const entryLabel = entry
     ? `진입 ${stamp(compare.entryMs)} · ${compare.source === "FIXTURE" ? "검증용 기록" : "기록"}`
     : "진입 · 기록 없음";
+  const coverage = rows.map(r => `${r.label} ${r.coverage == null ? MISSING : `${r.coverage}%`}`).join(" · ");
   return (
-    <section data-testid="btc-context-strip" data-mode={paths.mode}
-      aria-label="BTC 상단벽·하단벽·최근 방향 압력·미결제약정·펀딩"
+    <section data-testid="btc-context-strip" data-mode={paths.mode} data-sort-placement={sortPlacement}
+      aria-label="BTC 체결 흐름: 10분 1시간 4시간 1일"
       className="rounded-lg border border-line bg-surface px-3 py-1.5">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] tabular-nums">
-        <span className="rounded bg-line px-1 text-[10px] text-foreground" data-testid="btc-context-mode">
-          {positionMode ? "진입가 기준" : "현재가 기준"}
-        </span>
-        {positionMode && position && (
-          <span data-testid="btc-context-entry">
-            <span className="text-muted">진입 </span>
-            <span className="font-semibold text-foreground">{priceText(position.entry)}</span>
-          </span>
-        )}
-        <span data-testid="btc-context-current" title="벽과 같은 Binance 호가창의 중간가">
-          <span className="text-muted">현재 </span>
-          <span className="font-semibold text-foreground">{paths.current != null ? priceText(paths.current) : MISSING}</span>
-        </span>
-        {positionMode && position && paths.current != null && (
-          <span data-testid="btc-context-current-vs-entry" className="text-foreground"
-            title="현재가가 진입가보다 위면 +, 아래면 -">
-            <span className="text-muted">진입 대비 </span>{pctText(entryDistancePct(position, paths.current))}
-          </span>
-        )}
-        <SelectionSwitch value={selection} />
+      <div className="flex items-center gap-2 text-[11px]">
+        <span className="font-semibold text-foreground" data-testid="flow-horizon-title">체결 흐름</span>
+        <span className="text-[10px] text-muted">매도</span>
+        <span aria-hidden="true" className="text-[10px] text-muted">|</span>
+        <span className="text-[10px] text-muted">매수</span>
+        {sortPlacement === "HEADER" && <SelectionSwitch value={selection} />}
       </div>
+      <ul data-testid="flow-horizons" className="mt-1 space-y-1">
+        {rows.map(row => <HorizonBar key={row.key} row={row} />)}
+      </ul>
 
-      {/* Two cells side by side where there is room, stacked on a phone. */}
-      <div className="mt-1 grid grid-cols-1 gap-x-3 gap-y-1 sm:grid-cols-2" data-testid="btc-context-walls">
-        <SideCell side={summary.up} testId="btc-context-path-up" />
-        <SideCell side={summary.down} testId="btc-context-path-down" />
-      </div>
-
-      <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-0.5 border-t border-line pt-1 text-[12px] tabular-nums">
-        <span className="flex items-center gap-1.5" data-testid="btc-context-pressure"
-          data-known={pressure.known} data-live={payload?.flow.live ? "1" : "0"}>
-          <span className="text-[10px] font-medium text-muted">최근 5분</span>
-          {pressure.known > 0 && <PressureDots minutes={pressure.minutes} />}
-          <span className={`font-semibold ${payload?.flow.live ? "text-foreground" : "text-muted"}`}
-            data-testid="btc-context-pressure-text">{pressure.text}</span>
-          {pressure.coverage && pressure.known > 0 && (
-            <span className="text-[10px] text-muted" data-testid="btc-context-pressure-coverage">{pressure.coverage}</span>
-          )}
-        </span>
-        <span className={`font-semibold ${derivColor}`} data-testid="btc-context-oi"
-          data-live={line.live.derivatives ? "1" : "0"}>{line.oi}</span>
-        <span className={`font-semibold ${derivColor}`} data-testid="btc-context-funding"
-          data-live={line.live.derivatives ? "1" : "0"}>{line.funding}</span>
-      </div>
-
-      <details className="group mt-1 border-t border-line pt-1" data-testid="btc-context-details">
+      <details className="group mt-1.5 border-t border-line pt-1" data-testid="btc-context-details">
         <summary className="flex cursor-pointer list-none items-center gap-1 text-[11px] text-muted [&::-webkit-details-marker]:hidden"
           data-testid="btc-context-details-toggle">
           <span>상세</span>
           <span aria-hidden="true" className="text-[10px] transition-transform group-open:rotate-180">▾</span>
         </summary>
-        <div data-testid="btc-context-detail" className="mt-1 space-y-1 text-[11px] tabular-nums text-muted">
+        <div data-testid="btc-context-detail" className="mt-1 space-y-1.5 text-[11px] tabular-nums text-muted">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
+            <span className="rounded bg-line px-1 text-[10px] text-foreground" data-testid="btc-context-mode">
+              {positionMode ? "진입가 기준" : "현재가 기준"}
+            </span>
+            {positionMode && position && (
+              <span data-testid="btc-context-entry">
+                <span className="text-muted">진입 </span>
+                <span className="font-semibold text-foreground">{priceText(position.entry)}</span>
+              </span>
+            )}
+            <span data-testid="btc-context-current" title="벽과 같은 Binance 호가창의 중간가">
+              <span className="text-muted">현재 </span>
+              <span className="font-semibold text-foreground">{paths.current != null ? priceText(paths.current) : MISSING}</span>
+            </span>
+            {positionMode && position && paths.current != null && (
+              <span data-testid="btc-context-current-vs-entry" className="text-foreground"
+                title="현재가가 진입가보다 위면 +, 아래면 -">
+                <span className="text-muted">진입 대비 </span>{pctText(entryDistancePct(position, paths.current))}
+              </span>
+            )}
+            {sortPlacement === "DETAIL" && <SelectionSwitch value={selection} />}
+          </div>
+          <div className="grid grid-cols-1 gap-x-3 gap-y-1 sm:grid-cols-2" data-testid="btc-context-walls">
+            <SideCell side={summary.up} testId="btc-context-path-up" />
+            <SideCell side={summary.down} testId="btc-context-path-down" />
+          </div>
           <ul data-testid="btc-context-wall-detail" className="space-y-0.5">
             <WallDetail rows={paths.up} mode={paths.mode} />
             <WallDetail rows={paths.down} mode={paths.mode} />
           </ul>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-0.5 text-[12px] font-semibold">
+            <span className={derivColor} data-testid="btc-context-oi"
+              data-live={line.live.derivatives ? "1" : "0"}>{line.oi}</span>
+            <span className={derivColor} data-testid="btc-context-funding"
+              data-live={line.live.derivatives ? "1" : "0"}>{line.funding}</span>
+          </div>
           {positionMode ? (
             /* ENTRY against CURRENT, the same figures in the same order. The entry row is the
                recorder's record of the fill or "기록 없음"; it is never filled from the current
@@ -260,6 +279,9 @@ export function BtcContextStripView({ payload, position = null, mark = null, sel
                 `${end.side === "ASK" ? "상단벽" : "하단벽"} ${priceText(Number(end.price))} ${compactUsd(end.notional_usdt)}${end.price_reached === false ? " 가격 미도달" : end.price_reached ? " 가격 도달" : ""}`).join(" · ")}
             </p>
           )}
+          <p data-testid="flow-horizon-coverage" className="text-[10px]">
+            체결 흐름은 직전 N분의 거래소 1분 집계 합(현재 시각 기준 trailing). 집계 범위 {coverage}
+          </p>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-0.5 text-[10px]">
             <StructureSwitch value={structure} />
             <span>벽은 수집기가 지금 공개한 호가벽 중 측면당 3개. 색은 가까운 순서이고 크기가 아닙니다.</span>
@@ -268,6 +290,16 @@ export function BtcContextStripView({ payload, position = null, mark = null, sel
       </details>
     </section>
   );
+}
+
+/** Preview switch for the review: `?sort=detail` moves the 가까운 순 / 큰 순 switch into the
+ *  detail. Nothing else reads the URL; the default is the switch beside the title. */
+function sortPlacementFromLocation(): "HEADER" | "DETAIL" {
+  try {
+    return new URLSearchParams(window.location.search).get("sort") === "detail" ? "DETAIL" : "HEADER";
+  } catch {
+    return "HEADER";
+  }
 }
 
 /** BTC only. Anything else renders nothing, so a HOT or held-symbol tab never shows BTC figures. */
@@ -284,7 +316,6 @@ function BtcContextStripPolling({ base = BTC_CONTEXT_BASE, position, mark }: {
   const payload = useBtcContext(base);
   const selection = useWallSelection();
   const structure = useStructureDisplay();
-  const flowBins = useBtcFlowBins(base);
   return <BtcContextStripView payload={payload} position={position} mark={mark} selection={selection}
-    structure={structure} flowBins={flowBins} />;
+    structure={structure} sortPlacement={sortPlacementFromLocation()} />;
 }

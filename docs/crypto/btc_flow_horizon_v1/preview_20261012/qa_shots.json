@@ -1,0 +1,1021 @@
+{
+ "shots": {
+  "1-1440-flow-horizons-real": {
+   "strip": {
+    "mode": "MARKET",
+    "placement": "HEADER",
+    "rows": [
+     {
+      "k": "10m",
+      "text": "매수 61%",
+      "lean": "BUY",
+      "buyW": "61%",
+      "sellW": "39%"
+     },
+     {
+      "k": "1h",
+      "text": "매수 58%",
+      "lean": "BUY",
+      "buyW": "58%",
+      "sellW": "42%"
+     },
+     {
+      "k": "4h",
+      "text": "매수 52%",
+      "lean": "BUY",
+      "buyW": "52%",
+      "sellW": "48%"
+     },
+     {
+      "k": "1d",
+      "text": "매수 53%",
+      "lean": "BUY",
+      "buyW": "53%",
+      "sellW": "47%"
+     }
+    ],
+    "open": false,
+    "h": 145,
+    "outside": "체결 흐름매도|매수가까운 순큰 순10분매수 61%1시간매수 58%4시간매수 52%1일매수 53%상세▾",
+    "selInDetail": false,
+    "selInHeader": true
+   },
+   "chart": {
+    "box": [
+     722,
+     520
+    ],
+    "bars": "240",
+    "span": "573.10",
+    "tags": [
+     "상3",
+     "상2",
+     "상1",
+     "하1",
+     "하2",
+     "하3"
+    ],
+    "tagOverlap": 0
+   },
+   "geom": {
+    "ticket": [
+     1044,
+     419,
+     360,
+     815
+    ],
+    "overflow": 0
+   },
+   "note": "REAL: cached terminal + real API + public klines worker"
+  },
+  "7-1440-details-expanded-A": {
+   "strip": {
+    "mode": "MARKET",
+    "placement": "HEADER",
+    "rows": [
+     {
+      "k": "10m",
+      "text": "매수 61%",
+      "lean": "BUY",
+      "buyW": "61%",
+      "sellW": "39%"
+     },
+     {
+      "k": "1h",
+      "text": "매수 58%",
+      "lean": "BUY",
+      "buyW": "58%",
+      "sellW": "42%"
+     },
+     {
+      "k": "4h",
+      "text": "매수 52%",
+      "lean": "BUY",
+      "buyW": "52%",
+      "sellW": "48%"
+     },
+     {
+      "k": "1d",
+      "text": "매수 53%",
+      "lean": "BUY",
+      "buyW": "53%",
+      "sellW": "47%"
+     }
+    ],
+    "open": true,
+    "h": 432,
+    "outside": "체결 흐름매도|매수가까운 순큰 순10분매수 61%1시간매수 58%4시간매수 52%1일매수 53%상세▾",
+    "selInDetail": false,
+    "selInHeader": true
+   },
+   "chart": {
+    "box": [
+     722,
+     520
+    ],
+    "bars": "240",
+    "span": "573.10",
+    "tags": [
+     "상3",
+     "상2",
+     "상1",
+     "하1",
+     "하2",
+     "하3"
+    ],
+    "tagOverlap": 0
+   },
+   "geom": {
+    "ticket": [
+     1044,
+     419,
+     360,
+     815
+    ],
+    "overflow": 0
+   },
+   "note": "REAL; sort switch beside the title"
+  },
+  "7b-1440-sort-in-detail-closed-B": {
+   "strip": {
+    "mode": "MARKET",
+    "placement": "DETAIL",
+    "rows": [
+     {
+      "k": "10m",
+      "text": "매수 61%",
+      "lean": "BUY",
+      "buyW": "61%",
+      "sellW": "39%"
+     },
+     {
+      "k": "1h",
+      "text": "매수 58%",
+      "lean": "BUY",
+      "buyW": "58%",
+      "sellW": "42%"
+     },
+     {
+      "k": "4h",
+      "text": "매수 52%",
+      "lean": "BUY",
+      "buyW": "52%",
+      "sellW": "48%"
+     },
+     {
+      "k": "1d",
+      "text": "매수 53%",
+      "lean": "BUY",
+      "buyW": "53%",
+      "sellW": "47%"
+     }
+    ],
+    "open": false,
+    "h": 140,
+    "outside": "체결 흐름매도|매수10분매수 61%1시간매수 58%4시간매수 52%1일매수 53%상세▾",
+    "selInDetail": true,
+    "selInHeader": false
+   },
+   "chart": {
+    "box": [
+     722,
+     520
+    ],
+    "bars": "240",
+    "span": "573.10",
+    "tags": [
+     "상3",
+     "상2",
+     "상1",
+     "하1",
+     "하2",
+     "하3"
+    ],
+    "tagOverlap": 0
+   },
+   "geom": {
+    "ticket": [
+     1044,
+     419,
+     360,
+     815
+    ],
+    "overflow": 0
+   },
+   "note": "REAL; sort switch inside the detail"
+  },
+  "7c-1440-sort-in-detail-open-B": {
+   "strip": {
+    "mode": "MARKET",
+    "placement": "DETAIL",
+    "rows": [
+     {
+      "k": "10m",
+      "text": "매수 61%",
+      "lean": "BUY",
+      "buyW": "61%",
+      "sellW": "39%"
+     },
+     {
+      "k": "1h",
+      "text": "매수 58%",
+      "lean": "BUY",
+      "buyW": "58%",
+      "sellW": "42%"
+     },
+     {
+      "k": "4h",
+      "text": "매수 52%",
+      "lean": "BUY",
+      "buyW": "52%",
+      "sellW": "48%"
+     },
+     {
+      "k": "1d",
+      "text": "매수 53%",
+      "lean": "BUY",
+      "buyW": "53%",
+      "sellW": "47%"
+     }
+    ],
+    "open": true,
+    "h": 432,
+    "outside": "체결 흐름매도|매수10분매수 61%1시간매수 58%4시간매수 52%1일매수 53%상세▾",
+    "selInDetail": true,
+    "selInHeader": false
+   },
+   "chart": {
+    "box": [
+     722,
+     520
+    ],
+    "bars": "240",
+    "span": "573.10",
+    "tags": [
+     "상3",
+     "상2",
+     "상1",
+     "하1",
+     "하2",
+     "하3"
+    ],
+    "tagOverlap": 0
+   },
+   "geom": {
+    "ticket": [
+     1044,
+     419,
+     360,
+     815
+    ],
+    "overflow": 0
+   },
+   "note": "REAL"
+  },
+  "2-1440-mixed-direction-synthetic": {
+   "strip": {
+    "mode": "MARKET",
+    "placement": "HEADER",
+    "rows": [
+     {
+      "k": "10m",
+      "text": "매수 70%",
+      "lean": "BUY",
+      "buyW": "70%",
+      "sellW": "30%"
+     },
+     {
+      "k": "1h",
+      "text": "매수 61%",
+      "lean": "BUY",
+      "buyW": "61%",
+      "sellW": "39%"
+     },
+     {
+      "k": "4h",
+      "text": "매도 58%",
+      "lean": "SELL",
+      "buyW": "42%",
+      "sellW": "58%"
+     },
+     {
+      "k": "1d",
+      "text": "매수 52%",
+      "lean": "BUY",
+      "buyW": "52%",
+      "sellW": "48%"
+     }
+    ],
+    "open": false,
+    "h": 145,
+    "outside": "체결 흐름매도|매수가까운 순큰 순10분매수 70%1시간매수 61%4시간매도 58%1일매수 52%상세▾",
+    "selInDetail": false,
+    "selInHeader": true
+   },
+   "chart": {
+    "box": [
+     722,
+     520
+    ],
+    "bars": "240",
+    "span": "573.10",
+    "tags": [
+     "상3",
+     "상2",
+     "상1",
+     "하1",
+     "하2",
+     "하3"
+    ],
+    "tagOverlap": 0
+   },
+   "geom": {
+    "ticket": [
+     1044,
+     419,
+     360,
+     815
+    ],
+    "overflow": 0
+   },
+   "note": "SYNTHETIC horizons: 10m 70 buy, 1h 61 buy, 4h 58 sell, 1d 52 buy"
+  },
+  "3-1440-all-buy-lean-synthetic": {
+   "strip": {
+    "mode": "MARKET",
+    "placement": "HEADER",
+    "rows": [
+     {
+      "k": "10m",
+      "text": "매수 68%",
+      "lean": "BUY",
+      "buyW": "68%",
+      "sellW": "32%"
+     },
+     {
+      "k": "1h",
+      "text": "매수 61%",
+      "lean": "BUY",
+      "buyW": "61%",
+      "sellW": "39%"
+     },
+     {
+      "k": "4h",
+      "text": "매수 56%",
+      "lean": "BUY",
+      "buyW": "56%",
+      "sellW": "44%"
+     },
+     {
+      "k": "1d",
+      "text": "매수 53%",
+      "lean": "BUY",
+      "buyW": "53%",
+      "sellW": "47%"
+     }
+    ],
+    "open": false,
+    "h": 145,
+    "outside": "체결 흐름매도|매수가까운 순큰 순10분매수 68%1시간매수 61%4시간매수 56%1일매수 53%상세▾",
+    "selInDetail": false,
+    "selInHeader": true
+   },
+   "chart": {
+    "box": [
+     722,
+     520
+    ],
+    "bars": "240",
+    "span": "573.10",
+    "tags": [
+     "상3",
+     "상2",
+     "상1",
+     "하1",
+     "하2",
+     "하3"
+    ],
+    "tagOverlap": 0
+   },
+   "geom": {
+    "ticket": [
+     1044,
+     419,
+     360,
+     815
+    ],
+    "overflow": 0
+   },
+   "note": "SYNTHETIC horizons"
+  },
+  "4-1440-all-sell-lean-synthetic": {
+   "strip": {
+    "mode": "MARKET",
+    "placement": "HEADER",
+    "rows": [
+     {
+      "k": "10m",
+      "text": "매도 67%",
+      "lean": "SELL",
+      "buyW": "33%",
+      "sellW": "67%"
+     },
+     {
+      "k": "1h",
+      "text": "매도 61%",
+      "lean": "SELL",
+      "buyW": "39%",
+      "sellW": "61%"
+     },
+     {
+      "k": "4h",
+      "text": "매도 56%",
+      "lean": "SELL",
+      "buyW": "44%",
+      "sellW": "56%"
+     },
+     {
+      "k": "1d",
+      "text": "매도 53%",
+      "lean": "SELL",
+      "buyW": "47%",
+      "sellW": "53%"
+     }
+    ],
+    "open": false,
+    "h": 145,
+    "outside": "체결 흐름매도|매수가까운 순큰 순10분매도 67%1시간매도 61%4시간매도 56%1일매도 53%상세▾",
+    "selInDetail": false,
+    "selInHeader": true
+   },
+   "chart": {
+    "box": [
+     722,
+     520
+    ],
+    "bars": "240",
+    "span": "573.10",
+    "tags": [
+     "상3",
+     "상2",
+     "상1",
+     "하1",
+     "하2",
+     "하3"
+    ],
+    "tagOverlap": 0
+   },
+   "geom": {
+    "ticket": [
+     1044,
+     419,
+     360,
+     815
+    ],
+    "overflow": 0
+   },
+   "note": "SYNTHETIC horizons"
+  },
+  "8-1440-one-horizon-missing-synthetic": {
+   "strip": {
+    "mode": "MARKET",
+    "placement": "HEADER",
+    "rows": [
+     {
+      "k": "10m",
+      "text": "매수 64%",
+      "lean": "BUY",
+      "buyW": "64%",
+      "sellW": "36%"
+     },
+     {
+      "k": "1h",
+      "text": "매수 57%",
+      "lean": "BUY",
+      "buyW": "57%",
+      "sellW": "43%"
+     },
+     {
+      "k": "4h",
+      "text": "--",
+      "lean": "",
+      "buyW": null,
+      "sellW": null
+     },
+     {
+      "k": "1d",
+      "text": "매수 51%",
+      "lean": "BUY",
+      "buyW": "51%",
+      "sellW": "49%"
+     }
+    ],
+    "open": false,
+    "h": 145,
+    "outside": "체결 흐름매도|매수가까운 순큰 순10분매수 64%1시간매수 57%4시간--1일매수 51%상세▾",
+    "selInDetail": false,
+    "selInHeader": true
+   },
+   "chart": {
+    "box": [
+     722,
+     520
+    ],
+    "bars": "240",
+    "span": "573.10",
+    "tags": [
+     "상3",
+     "상2",
+     "상1",
+     "하1",
+     "하2",
+     "하3"
+    ],
+    "tagOverlap": 0
+   },
+   "geom": {
+    "ticket": [
+     1044,
+     419,
+     360,
+     815
+    ],
+    "overflow": 0
+   },
+   "note": "SYNTHETIC: 4h withheld (coverage 99.7%)"
+  },
+  "5-390-real": {
+   "strip": {
+    "mode": "MARKET",
+    "placement": "HEADER",
+    "rows": [
+     {
+      "k": "10m",
+      "text": "매도 51%",
+      "lean": "SELL",
+      "buyW": "49%",
+      "sellW": "51%"
+     },
+     {
+      "k": "1h",
+      "text": "매수 58%",
+      "lean": "BUY",
+      "buyW": "58%",
+      "sellW": "42%"
+     },
+     {
+      "k": "4h",
+      "text": "매수 52%",
+      "lean": "BUY",
+      "buyW": "52%",
+      "sellW": "48%"
+     },
+     {
+      "k": "1d",
+      "text": "매수 53%",
+      "lean": "BUY",
+      "buyW": "53%",
+      "sellW": "47%"
+     }
+    ],
+    "open": false,
+    "h": 145,
+    "outside": "체결 흐름매도|매수가까운 순큰 순10분매도 51%1시간매수 58%4시간매수 52%1일매수 53%상세▾",
+    "selInDetail": false,
+    "selInHeader": true
+   },
+   "chart": {
+    "box": [
+     340,
+     200
+    ],
+    "bars": "113",
+    "span": "573.10",
+    "tags": [
+     "상3",
+     "상2",
+     "상1",
+     "하1",
+     "하2",
+     "하3"
+    ],
+    "tagOverlap": 0
+   },
+   "geom": {
+    "ticket": [
+     16,
+     772,
+     358,
+     783
+    ],
+    "overflow": 0
+   },
+   "note": "REAL"
+  },
+  "5b-390-details-open": {
+   "strip": {
+    "mode": "MARKET",
+    "placement": "HEADER",
+    "rows": [
+     {
+      "k": "10m",
+      "text": "매도 51%",
+      "lean": "SELL",
+      "buyW": "49%",
+      "sellW": "51%"
+     },
+     {
+      "k": "1h",
+      "text": "매수 58%",
+      "lean": "BUY",
+      "buyW": "58%",
+      "sellW": "42%"
+     },
+     {
+      "k": "4h",
+      "text": "매수 52%",
+      "lean": "BUY",
+      "buyW": "52%",
+      "sellW": "48%"
+     },
+     {
+      "k": "1d",
+      "text": "매수 53%",
+      "lean": "BUY",
+      "buyW": "53%",
+      "sellW": "47%"
+     }
+    ],
+    "open": true,
+    "h": 650,
+    "outside": "체결 흐름매도|매수가까운 순큰 순10분매도 51%1시간매수 58%4시간매수 52%1일매수 53%상세▾",
+    "selInDetail": false,
+    "selInHeader": true
+   },
+   "chart": {
+    "box": [
+     340,
+     200
+    ],
+    "bars": "113",
+    "span": "573.10",
+    "tags": [
+     "상3",
+     "상2",
+     "상1",
+     "하1",
+     "하2",
+     "하3"
+    ],
+    "tagOverlap": 0
+   },
+   "geom": {
+    "ticket": [
+     16,
+     772,
+     358,
+     783
+    ],
+    "overflow": 0
+   },
+   "note": "REAL"
+  },
+  "5c-390-mixed-synthetic": {
+   "strip": {
+    "mode": "MARKET",
+    "placement": "HEADER",
+    "rows": [
+     {
+      "k": "10m",
+      "text": "매수 70%",
+      "lean": "BUY",
+      "buyW": "70%",
+      "sellW": "30%"
+     },
+     {
+      "k": "1h",
+      "text": "매수 61%",
+      "lean": "BUY",
+      "buyW": "61%",
+      "sellW": "39%"
+     },
+     {
+      "k": "4h",
+      "text": "매도 58%",
+      "lean": "SELL",
+      "buyW": "42%",
+      "sellW": "58%"
+     },
+     {
+      "k": "1d",
+      "text": "매수 52%",
+      "lean": "BUY",
+      "buyW": "52%",
+      "sellW": "48%"
+     }
+    ],
+    "open": false,
+    "h": 145,
+    "outside": "체결 흐름매도|매수가까운 순큰 순10분매수 70%1시간매수 61%4시간매도 58%1일매수 52%상세▾",
+    "selInDetail": false,
+    "selInHeader": true
+   },
+   "chart": {
+    "box": [
+     340,
+     200
+    ],
+    "bars": "113",
+    "span": "573.10",
+    "tags": [
+     "상3",
+     "상2",
+     "상1",
+     "하1",
+     "하2",
+     "하3"
+    ],
+    "tagOverlap": 0
+   },
+   "geom": {
+    "ticket": [
+     16,
+     772,
+     358,
+     783
+    ],
+    "overflow": 0
+   },
+   "note": "SYNTHETIC"
+  },
+  "6-1600-full-real": {
+   "strip": {
+    "mode": "MARKET",
+    "placement": "HEADER",
+    "rows": [
+     {
+      "k": "10m",
+      "text": "매도 51%",
+      "lean": "SELL",
+      "buyW": "49%",
+      "sellW": "51%"
+     },
+     {
+      "k": "1h",
+      "text": "매수 58%",
+      "lean": "BUY",
+      "buyW": "58%",
+      "sellW": "42%"
+     },
+     {
+      "k": "4h",
+      "text": "매수 52%",
+      "lean": "BUY",
+      "buyW": "52%",
+      "sellW": "48%"
+     },
+     {
+      "k": "1d",
+      "text": "매수 53%",
+      "lean": "BUY",
+      "buyW": "53%",
+      "sellW": "47%"
+     }
+    ],
+    "open": false,
+    "h": 145,
+    "outside": "체결 흐름매도|매수가까운 순큰 순10분매도 51%1시간매수 58%4시간매수 52%1일매수 53%상세▾",
+    "selInDetail": false,
+    "selInHeader": true
+   },
+   "chart": {
+    "box": [
+     882,
+     520
+    ],
+    "bars": "294",
+    "span": "603.60",
+    "tags": [
+     "상3",
+     "상2",
+     "상1",
+     "하1",
+     "하2",
+     "하3"
+    ],
+    "tagOverlap": 0
+   },
+   "geom": {
+    "ticket": [
+     1204,
+     419,
+     360,
+     815
+    ],
+    "overflow": 0
+   },
+   "note": "REAL"
+  },
+  "9-1440-position-synthetic": {
+   "strip": {
+    "mode": "POSITION",
+    "placement": "HEADER",
+    "rows": [
+     {
+      "k": "10m",
+      "text": "매수 70%",
+      "lean": "BUY",
+      "buyW": "70%",
+      "sellW": "30%"
+     },
+     {
+      "k": "1h",
+      "text": "매수 61%",
+      "lean": "BUY",
+      "buyW": "61%",
+      "sellW": "39%"
+     },
+     {
+      "k": "4h",
+      "text": "매도 58%",
+      "lean": "SELL",
+      "buyW": "42%",
+      "sellW": "58%"
+     },
+     {
+      "k": "1d",
+      "text": "매수 52%",
+      "lean": "BUY",
+      "buyW": "52%",
+      "sellW": "48%"
+     }
+    ],
+    "open": false,
+    "h": 145,
+    "outside": "체결 흐름매도|매수가까운 순큰 순10분매수 70%1시간매수 61%4시간매도 58%1일매수 52%상세▾",
+    "selInDetail": false,
+    "selInHeader": true
+   },
+   "chart": {
+    "box": [
+     722,
+     520
+    ],
+    "bars": "240",
+    "span": "573.10",
+    "tags": [
+     "상3",
+     "상2",
+     "상1",
+     "하1",
+     "하2",
+     "하3"
+    ],
+    "tagOverlap": 0
+   },
+   "geom": {
+    "ticket": [
+     1044,
+     419,
+     360,
+     669
+    ],
+    "overflow": 0
+   },
+   "note": "real paper SHORT + SYNTHETIC horizons"
+  },
+  "10-1440-no-wall-real": {
+   "strip": {
+    "mode": "MARKET",
+    "placement": "HEADER",
+    "rows": [
+     {
+      "k": "10m",
+      "text": "매도 51%",
+      "lean": "SELL",
+      "buyW": "49%",
+      "sellW": "51%"
+     },
+     {
+      "k": "1h",
+      "text": "매수 58%",
+      "lean": "BUY",
+      "buyW": "58%",
+      "sellW": "42%"
+     },
+     {
+      "k": "4h",
+      "text": "매수 52%",
+      "lean": "BUY",
+      "buyW": "52%",
+      "sellW": "48%"
+     },
+     {
+      "k": "1d",
+      "text": "매수 53%",
+      "lean": "BUY",
+      "buyW": "53%",
+      "sellW": "47%"
+     }
+    ],
+    "open": false,
+    "h": 145,
+    "outside": "체결 흐름매도|매수가까운 순큰 순10분매도 51%1시간매수 58%4시간매수 52%1일매수 53%상세▾",
+    "selInDetail": false,
+    "selInHeader": true
+   },
+   "chart": {
+    "box": [
+     722,
+     520
+    ],
+    "bars": "240",
+    "span": "573.10",
+    "tags": [],
+    "tagOverlap": 0
+   },
+   "geom": {
+    "ticket": [
+     1044,
+     419,
+     360,
+     815
+    ],
+    "overflow": 0
+   },
+   "note": "REAL, no-wall collector snapshot"
+  }
+ },
+ "requests": {
+  "total": 644,
+  "non_get": [],
+  "binance": 12
+ },
+ "immediate": {
+  "first_load_ms_until_values": 17,
+  "reload_ms_until_values": 8,
+  "rows_on_15s": [
+   "매수 61%",
+   "매수 58%",
+   "매수 52%",
+   "매수 53%"
+  ],
+  "rows_on_1h": [
+   "매수 61%",
+   "매수 58%",
+   "매수 52%",
+   "매수 53%"
+  ],
+  "rows_on_4h": [
+   "매수 61%",
+   "매수 58%",
+   "매수 52%",
+   "매수 53%"
+  ],
+  "rows_on_1d": [
+   "매수 61%",
+   "매수 58%",
+   "매수 52%",
+   "매수 53%"
+  ],
+  "rows_on_1m": [
+   "매수 61%",
+   "매수 58%",
+   "매수 52%",
+   "매수 53%"
+  ]
+ },
+ "movement_1440": {
+  "ticket_delta_details": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "chart_box": [
+   [
+    722,
+    520
+   ],
+   [
+    722,
+    520
+   ]
+  ],
+  "bars": [
+   "240",
+   "240"
+  ]
+ },
+ "movement_390": {
+  "ticket_delta_details": [
+   0,
+   0,
+   0,
+   0
+  ]
+ },
+ "movement_1600": {
+  "overflow": 0
+ }
+}

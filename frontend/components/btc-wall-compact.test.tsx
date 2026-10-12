@@ -4,8 +4,8 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { BtcContextStrip, BtcContextStripView } from "@/components/btc-context-strip";
 import { OVERLAY_STYLE, wallShade } from "@/components/crypto-candle-chart";
 import {
-  contextChartLines, type BtcContextPayload, type ContextPosition, distanceOrder, flowPressure,
-  type FlowBins, PRESSURE_MINUTES, recordFlowMinute, resetBtcContextStores, wallSummary,
+  contextChartLines, type BtcContextPayload, type BtcFlowHorizon, type ContextPosition, distanceOrder,
+  flowHorizonRows, type FlowHorizonKey, resetBtcContextStores, wallSummary,
 } from "@/lib/btc-context";
 import v3 from "@/components/__fixtures__/btc-context-snapshot-v3.json";
 
@@ -19,20 +19,24 @@ const SHORT: ContextPosition = { sign: -1, entry: 83612.9, qty: "0.010" };
 
 afterEach(() => { cleanup(); resetBtcContextStores(); });
 
-const MIN = 60_000;
-/** The payload as answered inside minute `minute`, flow `buy`/`sell`. */
-function at(minute: number, buy = 50, sell = 50, base: BtcContextPayload = LIVE): BtcContextPayload {
+const H = (buy: number | null, lean: BtcFlowHorizon["lean"], minutes: number, coverage = 1): BtcFlowHorizon => ({
+  minutes, buy_pct: buy, sell_pct: buy == null ? null : 100 - buy, lean, quality: buy == null ? "PARTIAL" : "COMPLETE",
+  coverage_ratio: coverage, coverage_seconds: minutes * 60 * coverage, expected_seconds: minutes * 60,
+});
+/** The payload with the backend's four horizons. `spec` is the buy share per horizon, null = withheld. */
+function withHorizons(base: BtcContextPayload, spec: Record<FlowHorizonKey, number | null>, live = true): BtcContextPayload {
   const copy = structuredClone(base);
-  copy.server_time_ms = minute * MIN + 30_000;
-  copy.flow = { ...copy.flow, live: true, buy_pct: buy, sell_pct: sell };
+  const minutes = { "10m": 10, "1h": 60, "4h": 240, "1d": 1440 } as const;
+  const horizons = {} as Record<FlowHorizonKey, BtcFlowHorizon>;
+  for (const key of Object.keys(minutes) as FlowHorizonKey[]) {
+    const buy = spec[key];
+    horizons[key] = H(buy, buy == null ? null : buy > 50 ? "BUY" : buy < 50 ? "SELL" : "EVEN", minutes[key],
+      buy == null ? 0.97 : 1);
+  }
+  copy.flow_horizons = { live, end_ms: 1_791_781_800_000, horizons };
   return copy;
 }
-function binsOf(rows: [number, number, number][]): FlowBins {
-  const bins: FlowBins = {};
-  for (const [m, buy, sell] of rows) bins[m] = { buy, sell };
-  return bins;
-}
-const NOW = 29_000_000;
+const MIXED = withHorizons(LIVE, { "10m": 70, "1h": 61, "4h": 42, "1d": 52 });
 
 describe("terminology", () => {
   it("prints no 매도벽/매수벽/매도N/매수N anywhere a person reads: chart tags, panel, detail", () => {
@@ -43,8 +47,7 @@ describe("terminology", () => {
           const lines = contextChartLines(payload, { timeframe: "1m", selection, structure });
           expect(lines.map(l => `${l.tag} ${l.short} ${l.label}`).join(" ")).not.toMatch(banned);
           const { container } = render(<BtcContextStripView payload={payload} position={position} mark={MID}
-            selection={selection} structure={structure}
-            flowBins={binsOf([[NOW - 1, 80, 20], [NOW - 2, 20, 80]])} />);
+            selection={selection} structure={structure} />);
           expect(container.textContent).not.toMatch(banned);
           cleanup();
         }
@@ -191,109 +194,133 @@ describe("no wall and stale", () => {
   it("keeps stale and missing as -- and distinct from none", () => {
     for (const payload of [STALE, null]) {
       cleanup();
-      render(<BtcContextStripView payload={payload} flowBins={binsOf([[NOW - 1, 90, 10]])} />);
+      render(<BtcContextStripView payload={payload} />);
       expect(screen.getByTestId("btc-context-path-up-value")).toHaveTextContent(/^--$/);
       expect(screen.getByTestId("btc-context-path-down-value")).toHaveTextContent(/^--$/);
-      expect(screen.getByTestId("btc-context-pressure-text")).toHaveTextContent(/^--$/);
-      expect(screen.queryByTestId("btc-context-pressure-dots")).toBeNull();
+      for (const key of ["10m", "1h", "4h", "1d"]) {
+        expect(screen.getByTestId(`flow-horizon-${key}-text`)).toHaveTextContent(/^--$/);
+      }
     }
   });
 });
 
-describe("five minutes of flow", () => {
-  const live = at(NOW);
-  it("counts one vote per completed minute: more buying = buy, more selling = sell, equal = neutral", () => {
-    const bins = binsOf([[NOW - 5, 60, 40], [NOW - 4, 55, 45], [NOW - 3, 30, 70], [NOW - 2, 51, 49], [NOW - 1, 80, 20]]);
-    const p = flowPressure(bins, live);
-    expect([p.buy, p.sell, p.even, p.known]).toEqual([4, 1, 0, 5]);
-    expect(p.text).toBe("매수 4 : 1 매도");
-    expect(p.minutes).toEqual(["BUY", "BUY", "SELL", "BUY", "BUY"]);
-    expect(p.coverage).toBe("");
+describe("flow horizons", () => {
+  it("draws four rows, 10분 1시간 4시간 1일, each with the larger side's share only", () => {
+    render(<BtcContextStripView payload={MIXED} mark={MID} />);
+    const rows = screen.getAllByTestId(/^flow-horizon-(10m|1h|4h|1d)$/);
+    expect(rows.map(r => r.getAttribute("data-testid"))).toEqual(
+      ["flow-horizon-10m", "flow-horizon-1h", "flow-horizon-4h", "flow-horizon-1d"]);
+    expect(rows.map(r => r.textContent)).toEqual([
+      expect.stringMatching(/^10분.*매수 70%$/), expect.stringMatching(/^1시간.*매수 61%$/),
+      expect.stringMatching(/^4시간.*매도 58%$/), expect.stringMatching(/^1일.*매수 52%$/)]);
+    expect(rows.map(r => r.getAttribute("data-lean"))).toEqual(["BUY", "BUY", "SELL", "BUY"]);
+    expect(screen.getByTestId("flow-horizon-title")).toHaveTextContent("체결 흐름");
   });
 
-  it("states neutral minutes, only on an exact tie, and uses no threshold", () => {
-    const bins = binsOf([[NOW - 5, 50, 50], [NOW - 4, 51, 49], [NOW - 3, 49, 51], [NOW - 2, 60, 40], [NOW - 1, 20, 80]]);
-    const p = flowPressure(bins, live);
-    expect([p.buy, p.even, p.sell]).toEqual([2, 1, 2]);
-    expect(p.text).toBe("매수 2 · 중립 1 · 매도 2");
-    // 51:49 is a buy minute: no 55/60 band
-    expect(p.minutes[1]).toBe("BUY");
+  it("makes the direction a shape: the longer half is the larger side, centre is 50:50", () => {
+    render(<BtcContextStripView payload={MIXED} mark={MID} />);
+    const width = (key: string, side: "sell" | "buy") =>
+      Number((within(screen.getByTestId(`flow-horizon-${key}`)).getByTestId(`flow-bar-${side}`) as HTMLElement)
+        .style.width.replace("%", ""));
+    expect([width("10m", "sell"), width("10m", "buy")]).toEqual([30, 70]);
+    expect([width("4h", "sell"), width("4h", "buy")]).toEqual([58, 42]);
+    expect(width("10m", "buy")).toBeGreaterThan(width("10m", "sell"));
+    expect(width("4h", "sell")).toBeGreaterThan(width("4h", "buy"));
+    const sell = within(screen.getByTestId("flow-horizon-10m")).getByTestId("flow-bar-sell") as HTMLElement;
+    const buy = within(screen.getByTestId("flow-horizon-10m")).getByTestId("flow-bar-buy") as HTMLElement;
+    expect(sell.style.background).toContain("244, 63, 94");  // the upper-wall red
+    expect(buy.style.background).toContain("20, 184, 166");  // the lower-wall teal
   });
 
-  it("does not fill a minute it did not see, and ignores the minute in progress and older ones", () => {
-    const bins = binsOf([[NOW - 7, 10, 90], [NOW - 4, 70, 30], [NOW - 2, 20, 80], [NOW, 99, 1]]);
-    const p = flowPressure(bins, live);
-    expect(p.minutes).toEqual([null, "BUY", null, "SELL", null]);
-    expect(p.text).toBe("매수 1 : 1 매도");
-    expect(p.coverage).toBe("2/5분");
-    expect(flowPressure({}, live).text).toBe("수집 중");
+  it("says 중립 for an exact tie, in grey, and states no strength word", () => {
+    const tie = withHorizons(LIVE, { "10m": 50, "1h": 50, "4h": 50, "1d": 50 });
+    const { container } = render(<BtcContextStripView payload={tie} mark={MID} />);
+    expect(screen.getByTestId("flow-horizon-10m-text")).toHaveTextContent(/^중립$/);
+    const sell = within(screen.getByTestId("flow-horizon-10m")).getByTestId("flow-bar-sell") as HTMLElement;
+    expect(sell.style.background).toContain("148, 163, 184");
+    expect(container.textContent).not.toMatch(/강한|약한|강세|약세|LONG|SHORT|롱|숏/);
   });
 
-  it("keeps the latest reading of each minute and nothing from a stale or missing flow", () => {
-    let bins: FlowBins = {};
-    bins = recordFlowMinute(bins, at(NOW - 1, 30, 70));
-    bins = recordFlowMinute(bins, at(NOW - 1, 80, 20));
-    expect(bins[NOW - 1]).toEqual({ buy: 80, sell: 20 });
-    const before = bins;
-    expect(recordFlowMinute(bins, STALE)).toBe(before);
-    expect(recordFlowMinute(bins, null)).toBe(before);
-    const dead = at(NOW, 60, 40);
-    dead.flow.live = false;
-    expect(recordFlowMinute(bins, dead)).toBe(before);
-    expect(recordFlowMinute(bins, at(NOW - 1, 80, 20))).toBe(before);
-    // old minutes are dropped
-    const rolled = recordFlowMinute(bins, at(NOW + 20, 55, 45));
-    expect(Object.keys(rolled).map(Number)).toEqual([NOW + 20]);
-    expect(PRESSURE_MINUTES).toBe(5);
+  it("is all lean-buy or all lean-sell without changing the layout", () => {
+    for (const [spec, word] of [[{ "10m": 64, "1h": 58, "4h": 55, "1d": 53 }, "매수"],
+      [{ "10m": 36, "1h": 41, "4h": 45, "1d": 47 }, "매도"]] as const) {
+      cleanup();
+      render(<BtcContextStripView payload={withHorizons(LIVE, { ...spec })} mark={MID} />);
+      for (const key of ["10m", "1h", "4h", "1d"]) {
+        expect(screen.getByTestId(`flow-horizon-${key}-text`).textContent).toMatch(new RegExp(`^${word} \\d+%$`));
+      }
+    }
   });
 
-  it("renders the count and the five marks, with no LONG/SHORT word and no signal colour", () => {
-    const bins = binsOf([[NOW - 5, 60, 40], [NOW - 4, 55, 45], [NOW - 3, 30, 70], [NOW - 2, 51, 49], [NOW - 1, 80, 20]]);
-    const { container } = render(<BtcContextStripView payload={live} mark={MID} flowBins={bins} />);
-    expect(screen.getByTestId("btc-context-pressure")).toHaveTextContent("최근 5분");
-    expect(screen.getByTestId("btc-context-pressure-text")).toHaveTextContent("매수 4 : 1 매도");
-    expect(screen.getByTestId("btc-context-pressure-dots").textContent).toBe("●●○●●");
-    expect(screen.getByTestId("btc-context-pressure-dots").getAttribute("aria-label"))
-      .toBe("최근 5분 매수 매수 매도 매수 매수");
-    expect(container.textContent).not.toMatch(/LONG|SHORT|롱|숏/);
-    const dots = screen.getByTestId("btc-context-pressure-dots");
-    expect(dots.outerHTML).not.toMatch(/text-(success|danger)/);
-    cleanup();
-    render(<BtcContextStripView payload={live} mark={MID}
-      flowBins={binsOf([[NOW - 5, 50, 50], [NOW - 4, 60, 40], [NOW - 3, 60, 40], [NOW - 2, 40, 60], [NOW - 1, 40, 60]])} />);
-    expect(screen.getByTestId("btc-context-pressure-text")).toHaveTextContent("매수 2 · 중립 1 · 매도 2");
+  it("reads straight from the answer: one payload fills all four, nothing is accumulated", () => {
+    expect(flowHorizonRows(MIXED).map(r => r.text)).toEqual(["매수 70%", "매수 61%", "매도 58%", "매수 52%"]);
+    const { rerender } = render(<BtcContextStripView payload={MIXED} mark={MID} />);
+    rerender(<BtcContextStripView payload={withHorizons(LIVE, { "10m": 20, "1h": 20, "4h": 20, "1d": 20 })} mark={MID} />);
+    // the new answer replaces the old one outright
+    expect(screen.getByTestId("flow-horizon-1d-text")).toHaveTextContent("매도 80%");
   });
 
-  it("shows how many minutes it has while it is collecting", () => {
-    render(<BtcContextStripView payload={live} mark={MID} flowBins={binsOf([[NOW - 1, 80, 20], [NOW - 2, 20, 80]])} />);
-    expect(screen.getByTestId("btc-context-pressure-text")).toHaveTextContent("매수 1 : 1 매도");
-    expect(screen.getByTestId("btc-context-pressure-coverage")).toHaveTextContent("2/5분");
-  });
-});
-
-describe("the poll loop keeps the minutes", () => {
-  it("records each minute's last answer and counts it once the minute is over", async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    let minute = NOW - 2;
-    let buy = 80;
-    const methods: string[] = [];
-    vi.stubGlobal("fetch", vi.fn(async (_url: unknown, init?: RequestInit) => {
-      methods.push((init?.method ?? "GET").toUpperCase());
-      return { ok: true, status: 200, json: async () => at(minute, buy, 100 - buy) };
-    }));
+  it("loads on the first poll and keeps no minute history in the browser", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, status: 200, json: async () => MIXED })));
     try {
       render(<BtcContextStrip symbol="BTCUSDT" base="/ctx" />);
-      await waitFor(() => expect(screen.getByTestId("btc-context-pressure")).toHaveTextContent("수집 중"));
-      minute = NOW - 1; buy = 20;
-      await vi.advanceTimersByTimeAsync(6_000);
-      await waitFor(() => expect(screen.getByTestId("btc-context-pressure-text")).toHaveTextContent("매수 1 : 0 매도"));
-      minute = NOW; buy = 55;
-      await vi.advanceTimersByTimeAsync(6_000);
-      await waitFor(() => expect(screen.getByTestId("btc-context-pressure-text")).toHaveTextContent("매수 1 : 1 매도"));
-      expect(screen.getByTestId("btc-context-pressure-coverage")).toHaveTextContent("2/5분");
-      expect(methods.every(m => m === "GET")).toBe(true);
+      await waitFor(() => expect(screen.getByTestId("flow-horizon-1d-text")).toHaveTextContent("매수 52%"));
+      expect((fetch as unknown as { mock: { calls: unknown[] } }).mock.calls).toHaveLength(1);
+      for (const key of ["10m", "1h", "4h", "1d"]) {
+        expect(screen.getByTestId(`flow-horizon-${key}-text`).textContent).not.toContain("수집");
+      }
+      expect(screen.queryByText(/최근 5분/)).toBeNull();
+      const lib = await import("@/lib/btc-context");
+      expect("useBtcFlowBins" in lib).toBe(false);
+      expect("recordFlowMinute" in lib).toBe(false);
     } finally {
-      vi.useRealTimers(); vi.unstubAllGlobals();
+      vi.unstubAllGlobals();
     }
+  });
+
+  it("shows -- for one withheld horizon only, and for all four when stale, missing or an older answer", () => {
+    const partial = withHorizons(LIVE, { "10m": 70, "1h": 61, "4h": null, "1d": 52 });
+    render(<BtcContextStripView payload={partial} mark={MID} />);
+    expect(screen.getByTestId("flow-horizon-4h-text")).toHaveTextContent(/^--$/);
+    expect(screen.getByTestId("flow-horizon-10m-text")).toHaveTextContent("매수 70%");
+    expect(screen.getByTestId("flow-horizon-4h").querySelector("[data-testid^=flow-bar]")).toBeNull();
+    for (const payload of [withHorizons(LIVE, { "10m": 70, "1h": 61, "4h": 42, "1d": 52 }, false), null, LIVE]) {
+      cleanup();
+      render(<BtcContextStripView payload={payload} mark={MID} />);
+      for (const key of ["10m", "1h", "4h", "1d"]) {
+        expect(screen.getByTestId(`flow-horizon-${key}-text`)).toHaveTextContent(/^--$/);
+      }
+    }
+  });
+
+  it("keeps the default area to the flow rows: no wall counts, no OI, no funding, no 5-minute line", () => {
+    render(<BtcContextStripView payload={MIXED} mark={MID} />);
+    const strip = screen.getByTestId("btc-context-strip").cloneNode(true) as HTMLElement;
+    strip.querySelector("[data-testid='btc-context-detail']")?.remove();
+    const outside = strip.textContent ?? "";
+    for (const word of ["개 ·", "OI", "펀딩", "최근 5분", "상단벽", "하단벽", "현재 대비", "간격", "베이시스", "저항", "지지"]) {
+      expect(outside, word).not.toContain(word);
+    }
+    expect(outside).toContain("10분");
+    const detail = screen.getByTestId("btc-context-detail");
+    for (const word of ["OI", "펀딩", "상단벽1", "하단벽1", "60초 체결", "가까운 순"]) {
+      expect(detail.textContent, word).toContain(word);
+    }
+    expect(detail.textContent).toContain("집계 범위 10분 100%");
+  });
+
+  it("places the 가까운 순 / 큰 순 switch beside the title (A) or inside the detail (B)", () => {
+    const a = render(<BtcContextStripView payload={MIXED} mark={MID} />);
+    const inDetail = (c: HTMLElement) => c.querySelector("[data-testid='btc-context-detail'] [data-testid='btc-context-selection']");
+    expect(screen.getByTestId("btc-context-selection")).toBeInTheDocument();
+    expect(inDetail(a.container)).toBeNull();
+    cleanup();
+    const b = render(<BtcContextStripView payload={MIXED} mark={MID} sortPlacement="DETAIL" />);
+    expect(inDetail(b.container)).not.toBeNull();
+    expect(screen.getAllByTestId("btc-context-selection")).toHaveLength(1);
+  });
+
+  it("shows the wall rows only in the detail, and the chart lines are unchanged by the horizons", () => {
+    expect(contextChartLines(MIXED, { timeframe: "1m" })).toEqual(contextChartLines(LIVE, { timeframe: "1m" }));
   });
 });

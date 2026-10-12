@@ -532,6 +532,26 @@ describe("V3 inside the terminal", () => {
     }
   });
 
+  it("shows the same flow horizons on every candle timeframe, from the first answer", async () => {
+    stubViewport(1440);
+    const withFlow = structuredClone(LIVE);
+    withFlow.flow_horizons = { live: true, end_ms: 1, horizons: {
+      "10m": { minutes: 10, buy_pct: 70, sell_pct: 30, lean: "BUY" },
+      "1h": { minutes: 60, buy_pct: 61, sell_pct: 39, lean: "BUY" },
+      "4h": { minutes: 240, buy_pct: 42, sell_pct: 58, lean: "SELL" },
+      "1d": { minutes: 1440, buy_pct: 52, sell_pct: 48, lean: "BUY" } } };
+    const tally = fakeBackends({ strip: () => withFlow });
+    render(<CryptoTerminal marketContext={slot} contextBase={BASE} />);
+    await terminalReady();
+    const read = () => ["10m", "1h", "4h", "1d"].map(k => screen.getByTestId(`flow-horizon-${k}-text`).textContent);
+    await waitFor(() => expect(read()).toEqual(["매수 70%", "매수 61%", "매도 58%", "매수 52%"]));
+    expect(tally.stripPolls).toBeLessThanOrEqual(2);
+    for (const tf of ["15s", "1h", "4h", "1d", "1m"]) {
+      fireEvent.click(screen.getAllByRole("button", { name: tf })[0]);
+      expect(read()).toEqual(["매수 70%", "매수 61%", "매도 58%", "매수 52%"]);
+    }
+  });
+
   it("moves the chart lines with the panel's selection", async () => {
     stubViewport(1440);
     fakeBackends({ strip: () => LIVE });
