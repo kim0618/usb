@@ -1,0 +1,796 @@
+{
+ "shots": {
+  "1-1440-production": {
+   "strip": {
+    "rows": [
+     {
+      "k": "10m",
+      "text": "매수 66%",
+      "lean": "BUY",
+      "buy": "66",
+      "sell": "34"
+     },
+     {
+      "k": "1h",
+      "text": "매도 51%",
+      "lean": "SELL",
+      "buy": "49",
+      "sell": "51"
+     },
+     {
+      "k": "4h",
+      "text": "매수 53%",
+      "lean": "BUY",
+      "buy": "53",
+      "sell": "47"
+     },
+     {
+      "k": "1d",
+      "text": "매수 53%",
+      "lean": "BUY",
+      "buy": "53",
+      "sell": "47"
+     }
+    ],
+    "selInHeader": true,
+    "advisor": false,
+    "pressure": false,
+    "open": false,
+    "text": "체결 흐름\n매도\n|\n매수\n가까운 순\n큰 순\n10분\n매수 66%\n1시간\n매도 51%\n4시간\n매수 53%\n1일\n매수 53%\n상세\n▾"
+   },
+   "chart": {
+    "box": [
+     722,
+     520
+    ],
+    "bars": "120",
+    "span": "808.50",
+    "lines": "ctx-ask-wall-1:line|ctx-ask-wall-2:label",
+    "tags": [
+     {
+      "t": "상2",
+      "o": "2",
+      "c": "rgba(244, 63, 94, 0.8)"
+     },
+     {
+      "t": "상1",
+      "o": "1",
+      "c": "rgb(244, 63, 94)"
+     }
+    ],
+    "tagOverlap": 0
+   },
+   "geom": {
+    "ticket": [
+     1044,
+     419,
+     360,
+     669
+    ],
+    "overflow": 0,
+    "bodyOverflow": 0
+   }
+  },
+  "2-1440-production-details": {
+   "strip": {
+    "rows": [
+     {
+      "k": "10m",
+      "text": "매수 66%",
+      "lean": "BUY",
+      "buy": "66",
+      "sell": "34"
+     },
+     {
+      "k": "1h",
+      "text": "매도 51%",
+      "lean": "SELL",
+      "buy": "49",
+      "sell": "51"
+     },
+     {
+      "k": "4h",
+      "text": "매수 53%",
+      "lean": "BUY",
+      "buy": "53",
+      "sell": "47"
+     },
+     {
+      "k": "1d",
+      "text": "매수 53%",
+      "lean": "BUY",
+      "buy": "53",
+      "sell": "47"
+     }
+    ],
+    "selInHeader": true,
+    "advisor": false,
+    "pressure": false,
+    "open": true,
+    "text": "체결 흐름\n매도\n|\n매수\n가까운 순\n큰 순\n10분\n매수 66%\n1시간\n매도 51%\n4시간\n매수 53%\n1일\n매수 53%\n상세\n▾\n진입가 기준\n진입 83,612.9\n현재 83,959.9\n진입 대비 +0.42%\n\n상단벽 · 가까운 순\n\n2개 · 진입 대비 +0.46%\n\n하단벽 · 가까운 순\n\n하단벽 없음\n\n상단벽1 84,000.6 · 현재 대비 +0.05% · 진입 대비 +0.46% · 간격 0.05% · 828K · 3m 유지 · 이어짐 · 배수 7.6 · 최초 14:47:13 · 크기 2위\n상단벽2 84,027.0 · 현재 대비 +0.08% · 진입 대비 +0.50% · 간격 0.03% · 3.5M · 3m 유지 · 이어짐 · 배수 25.3 · 최초 14:47:13 · 크기 1위\nOI ↑\n펀딩 +0.0013%\n\n진입 · 기록 없음\n체결흐름 --\nOI --\n펀딩 --\n베이시스 --\n상단벽 --\n하단벽 --\n\n현재\n체결흐름 매도우세 66%\nOI 7.88B\n펀딩 +0.0013%\n베이시스 -0.047%\n상단벽 84,000.6 / 84,027.0\n하단벽 --\n\n1시간 +0.45%\n\n최근 사라진 벽: 하단벽 83,881.6 593K · 하단벽 83,805.7 632K · 하단벽 83,800.0 1.4M\n\n체결 흐름은 직전 N분의 거래소 1분 집계 합(현재 시각 기준 trailing). 집계 범위 10분 100% · 1시간 100% · 4시간 100% · 1일 100%\n\n저항·지지\n참고선\n숨김\n벽은 수집기가 지금 공개한 호가벽 중 측면당 3개. 색은 가까운 순서이고 크기가 아닙니다."
+   },
+   "chart": {
+    "box": [
+     722,
+     520
+    ],
+    "bars": "240",
+    "span": "837.60",
+    "lines": "ctx-ask-wall-1:line|ctx-ask-wall-2:label",
+    "tags": [
+     {
+      "t": "상2",
+      "o": "2",
+      "c": "rgba(244, 63, 94, 0.8)"
+     },
+     {
+      "t": "상1",
+      "o": "1",
+      "c": "rgb(244, 63, 94)"
+     }
+    ],
+    "tagOverlap": 0
+   },
+   "geom": {
+    "ticket": [
+     1044,
+     419,
+     360,
+     669
+    ],
+    "overflow": 0,
+    "bodyOverflow": 0
+   }
+  },
+  "3-1440-hot-tab": {
+   "strip": null,
+   "chart": {
+    "box": [
+     722,
+     520
+    ],
+    "bars": "240",
+    "span": "0.03",
+    "lines": "",
+    "tags": [],
+    "tagOverlap": 0
+   },
+   "geom": {
+    "ticket": [
+     1044,
+     365,
+     360,
+     848
+    ],
+    "overflow": 0,
+    "bodyOverflow": 0
+   }
+  },
+  "4-390-production": {
+   "strip": {
+    "rows": [
+     {
+      "k": "10m",
+      "text": "매수 66%",
+      "lean": "BUY",
+      "buy": "66",
+      "sell": "34"
+     },
+     {
+      "k": "1h",
+      "text": "매도 51%",
+      "lean": "SELL",
+      "buy": "49",
+      "sell": "51"
+     },
+     {
+      "k": "4h",
+      "text": "매수 53%",
+      "lean": "BUY",
+      "buy": "53",
+      "sell": "47"
+     },
+     {
+      "k": "1d",
+      "text": "매수 53%",
+      "lean": "BUY",
+      "buy": "53",
+      "sell": "47"
+     }
+    ],
+    "selInHeader": true,
+    "advisor": false,
+    "pressure": false,
+    "open": false,
+    "text": "체결 흐름\n매도\n|\n매수\n가까운 순\n큰 순\n10분\n매수 66%\n1시간\n매도 51%\n4시간\n매수 53%\n1일\n매수 53%\n상세\n▾"
+   },
+   "chart": {
+    "box": [
+     340,
+     200
+    ],
+    "bars": "113",
+    "span": "808.50",
+    "lines": "ctx-ask-wall-1:line|ctx-ask-wall-2:line|ctx-ask-wall-3:line|ctx-bid-wall-1:line|ctx-bid-wall-2:label|ctx-bid-wall-3:line",
+    "tags": [
+     {
+      "t": "상3",
+      "o": "3",
+      "c": "rgba(244, 63, 94, 0.6)"
+     },
+     {
+      "t": "상2",
+      "o": "2",
+      "c": "rgba(244, 63, 94, 0.8)"
+     },
+     {
+      "t": "상1",
+      "o": "1",
+      "c": "rgb(244, 63, 94)"
+     },
+     {
+      "t": "하1",
+      "o": "1",
+      "c": "rgb(20, 184, 166)"
+     },
+     {
+      "t": "하2",
+      "o": "2",
+      "c": "rgba(20, 184, 166, 0.8)"
+     },
+     {
+      "t": "하3",
+      "o": "3",
+      "c": "rgba(20, 184, 166, 0.6)"
+     }
+    ],
+    "tagOverlap": 0
+   },
+   "geom": {
+    "ticket": [
+     16,
+     1078,
+     358,
+     637
+    ],
+    "overflow": 0,
+    "bodyOverflow": 0
+   }
+  },
+  "4b-390-production-details": {
+   "strip": {
+    "rows": [
+     {
+      "k": "10m",
+      "text": "매수 66%",
+      "lean": "BUY",
+      "buy": "66",
+      "sell": "34"
+     },
+     {
+      "k": "1h",
+      "text": "매도 51%",
+      "lean": "SELL",
+      "buy": "49",
+      "sell": "51"
+     },
+     {
+      "k": "4h",
+      "text": "매수 53%",
+      "lean": "BUY",
+      "buy": "53",
+      "sell": "47"
+     },
+     {
+      "k": "1d",
+      "text": "매수 53%",
+      "lean": "BUY",
+      "buy": "53",
+      "sell": "47"
+     }
+    ],
+    "selInHeader": true,
+    "advisor": false,
+    "pressure": false,
+    "open": true,
+    "text": "체결 흐름\n매도\n|\n매수\n가까운 순\n큰 순\n10분\n매수 66%\n1시간\n매도 51%\n4시간\n매수 53%\n1일\n매수 53%\n상세\n▾\n진입가 기준\n진입 83,612.9\n현재 83,959.4\n진입 대비 +0.41%\n\n상단벽 · 가까운 순\n\n5개 · 진입 대비 +0.46%\n\n하단벽 · 가까운 순\n\n3개 · 진입 대비 +0.32%\n\n상단벽1 84,000.6 · 현재 대비 +0.05% · 진입 대비 +0.46% · 간격 0.05% · 836K · 3m 유지 · 이어짐 · 배수 19.9 · 최초 14:47:13 · 크기 5위\n상단벽2 84,027.0 · 현재 대비 +0.08% · 진입 대비 +0.50% · 간격 0.03% · 3.5M · 3m 유지 · 이어짐 · 배수 28.2 · 최초 14:47:13 · 크기 1위\n상단벽3 84,036.9 · 현재 대비 +0.09% · 진입 대비 +0.51% · 간격 0.01% · 1.0M · 25s 유지 · 이어짐 · 배수 112.9 · 최초 14:47:13 · 크기 3위\n하단벽1 83,881.5 · 현재 대비 -0.09% · 진입 대비 +0.32% · 간격 0.09% · 702K · 25s 유지 · 이어짐 · 배수 26.6 · 최초 14:47:13 · 크기 2위\n하단벽2 83,830.9 · 현재 대비 -0.15% · 진입 대비 +0.26% · 간격 0.06% · 813K · 25s 유지 · 이어짐 · 배수 7.0 · 최초 14:47:13 · 크기 1위\n하단벽3 83,826.7 · 현재 대비 -0.16% · 진입 대비 +0.26% · 간격 0.01% · 528K · 29s 유지 · 이어짐 · 배수 8.4 · 최초 14:47:13 · 크기 3위\nOI ↑\n펀딩 +0.0013%\n\n진입 · 기록 없음\n체결흐름 --\nOI --\n펀딩 --\n베이시스 --\n상단벽 --\n하단벽 --\n\n현재\n체결흐름 매도우세 53%\nOI 7.88B\n펀딩 +0.0013%\n베이시스 -0.044%\n상단벽 84,000.6 / 84,027.0 / 84,036.9\n하단벽 83,881.5 / 83,830.9 / 83,826.7\n\n1시간 +0.62%\n\n최근 사라진 벽: 상단벽 84,074.6 555K 가격 미도달 · 하단벽 83,881.6 593K · 하단벽 83,805.7 632K\n\n체결 흐름은 직전 N분의 거래소 1분 집계 합(현재 시각 기준 trailing). 집계 범위 10분 100% · 1시간 100% · 4시간 100% · 1일 100%\n\n저항·지지\n참고선\n숨김\n벽은 수집기가 지금 공개한 호가벽 중 측면당 3개. 색은 가까운 순서이고 크기가 아닙니다."
+   },
+   "chart": {
+    "box": [
+     340,
+     200
+    ],
+    "bars": "113",
+    "span": "808.50",
+    "lines": "ctx-ask-wall-1:line|ctx-ask-wall-2:line|ctx-ask-wall-3:line|ctx-bid-wall-1:line|ctx-bid-wall-2:label|ctx-bid-wall-3:line",
+    "tags": [
+     {
+      "t": "상3",
+      "o": "3",
+      "c": "rgba(244, 63, 94, 0.6)"
+     },
+     {
+      "t": "상2",
+      "o": "2",
+      "c": "rgba(244, 63, 94, 0.8)"
+     },
+     {
+      "t": "상1",
+      "o": "1",
+      "c": "rgb(244, 63, 94)"
+     },
+     {
+      "t": "하1",
+      "o": "1",
+      "c": "rgb(20, 184, 166)"
+     },
+     {
+      "t": "하2",
+      "o": "2",
+      "c": "rgba(20, 184, 166, 0.8)"
+     },
+     {
+      "t": "하3",
+      "o": "3",
+      "c": "rgba(20, 184, 166, 0.6)"
+     }
+    ],
+    "tagOverlap": 0
+   },
+   "geom": {
+    "ticket": [
+     16,
+     1078,
+     358,
+     637
+    ],
+    "overflow": 0,
+    "bodyOverflow": 0
+   }
+  },
+  "5-1600-production": {
+   "strip": {
+    "rows": [
+     {
+      "k": "10m",
+      "text": "매수 66%",
+      "lean": "BUY",
+      "buy": "66",
+      "sell": "34"
+     },
+     {
+      "k": "1h",
+      "text": "매도 51%",
+      "lean": "SELL",
+      "buy": "49",
+      "sell": "51"
+     },
+     {
+      "k": "4h",
+      "text": "매수 53%",
+      "lean": "BUY",
+      "buy": "53",
+      "sell": "47"
+     },
+     {
+      "k": "1d",
+      "text": "매수 53%",
+      "lean": "BUY",
+      "buy": "53",
+      "sell": "47"
+     }
+    ],
+    "selInHeader": true,
+    "advisor": false,
+    "pressure": false,
+    "open": false,
+    "text": "체결 흐름\n매도\n|\n매수\n가까운 순\n큰 순\n10분\n매수 66%\n1시간\n매도 51%\n4시간\n매수 53%\n1일\n매수 53%\n상세\n▾"
+   },
+   "chart": {
+    "box": [
+     882,
+     520
+    ],
+    "bars": "294",
+    "span": "837.60",
+    "lines": "ctx-ask-wall-1:line|ctx-ask-wall-2:line|ctx-ask-wall-3:label|ctx-bid-wall-1:label|ctx-bid-wall-2:line|ctx-bid-wall-3:label",
+    "tags": [
+     {
+      "t": "상3",
+      "o": "3",
+      "c": "rgba(244, 63, 94, 0.6)"
+     },
+     {
+      "t": "상2",
+      "o": "2",
+      "c": "rgba(244, 63, 94, 0.8)"
+     },
+     {
+      "t": "상1",
+      "o": "1",
+      "c": "rgb(244, 63, 94)"
+     },
+     {
+      "t": "하1",
+      "o": "1",
+      "c": "rgb(20, 184, 166)"
+     },
+     {
+      "t": "하2",
+      "o": "2",
+      "c": "rgba(20, 184, 166, 0.8)"
+     },
+     {
+      "t": "하3",
+      "o": "3",
+      "c": "rgba(20, 184, 166, 0.6)"
+     }
+    ],
+    "tagOverlap": 0
+   },
+   "geom": {
+    "ticket": [
+     1204,
+     419,
+     360,
+     669
+    ],
+    "overflow": 0,
+    "bodyOverflow": 0
+   }
+  }
+ },
+ "requests": {
+  "total": 398,
+  "non_get": [],
+  "binance": 6,
+  "btcctx": 5
+ },
+ "compare": [
+  {
+   "at": "1440-first",
+   "ui": [
+    "매수 66%",
+    "매도 51%",
+    "매수 53%",
+    "매수 53%"
+   ],
+   "api": [
+    "매수 66%",
+    "매도 51%",
+    "매수 53%",
+    "매수 53%"
+   ],
+   "equal": true,
+   "api_raw": {
+    "10m": {
+     "buy_notional": "55976204.72",
+     "sell_notional": "29070907.50",
+     "buy_pct": 66,
+     "sell_pct": 34,
+     "lean": "BUY",
+     "coverage_ratio": 1.0
+    },
+    "1h": {
+     "buy_notional": "299616737.50",
+     "sell_notional": "313556810.64",
+     "buy_pct": 49,
+     "sell_pct": 51,
+     "lean": "SELL",
+     "coverage_ratio": 1.0
+    },
+    "4h": {
+     "buy_notional": "844509430.75",
+     "sell_notional": "740570071.74",
+     "buy_pct": 53,
+     "sell_pct": 47,
+     "lean": "BUY",
+     "coverage_ratio": 1.0
+    },
+    "1d": {
+     "buy_notional": "3530319273.06",
+     "sell_notional": "3108958227.75",
+     "buy_pct": 53,
+     "sell_pct": 47,
+     "lean": "BUY",
+     "coverage_ratio": 1.0
+    }
+   }
+  },
+  {
+   "at": "1440-after-reload",
+   "ui": [
+    "매수 66%",
+    "매도 51%",
+    "매수 53%",
+    "매수 53%"
+   ],
+   "api": [
+    "매수 66%",
+    "매도 51%",
+    "매수 53%",
+    "매수 53%"
+   ],
+   "equal": true,
+   "api_raw": {
+    "10m": {
+     "buy_notional": "55976204.72",
+     "sell_notional": "29070907.50",
+     "buy_pct": 66,
+     "sell_pct": 34,
+     "lean": "BUY",
+     "coverage_ratio": 1.0
+    },
+    "1h": {
+     "buy_notional": "299616737.50",
+     "sell_notional": "313556810.64",
+     "buy_pct": 49,
+     "sell_pct": 51,
+     "lean": "SELL",
+     "coverage_ratio": 1.0
+    },
+    "4h": {
+     "buy_notional": "844509430.75",
+     "sell_notional": "740570071.74",
+     "buy_pct": 53,
+     "sell_pct": 47,
+     "lean": "BUY",
+     "coverage_ratio": 1.0
+    },
+    "1d": {
+     "buy_notional": "3530319273.06",
+     "sell_notional": "3108958227.75",
+     "buy_pct": 53,
+     "sell_pct": 47,
+     "lean": "BUY",
+     "coverage_ratio": 1.0
+    }
+   }
+  },
+  {
+   "at": "4-390-production",
+   "ui": [
+    "매수 66%",
+    "매도 51%",
+    "매수 53%",
+    "매수 53%"
+   ],
+   "api": [
+    "매수 66%",
+    "매도 51%",
+    "매수 53%",
+    "매수 53%"
+   ],
+   "equal": true,
+   "api_raw": {
+    "10m": {
+     "buy_notional": "55976204.72",
+     "sell_notional": "29070907.50",
+     "buy_pct": 66,
+     "sell_pct": 34,
+     "lean": "BUY",
+     "coverage_ratio": 1.0
+    },
+    "1h": {
+     "buy_notional": "299616737.50",
+     "sell_notional": "313556810.64",
+     "buy_pct": 49,
+     "sell_pct": 51,
+     "lean": "SELL",
+     "coverage_ratio": 1.0
+    },
+    "4h": {
+     "buy_notional": "844509430.75",
+     "sell_notional": "740570071.74",
+     "buy_pct": 53,
+     "sell_pct": 47,
+     "lean": "BUY",
+     "coverage_ratio": 1.0
+    },
+    "1d": {
+     "buy_notional": "3530319273.06",
+     "sell_notional": "3108958227.75",
+     "buy_pct": 53,
+     "sell_pct": 47,
+     "lean": "BUY",
+     "coverage_ratio": 1.0
+    }
+   }
+  },
+  {
+   "at": "5-1600-production",
+   "ui": [
+    "매수 66%",
+    "매도 51%",
+    "매수 53%",
+    "매수 53%"
+   ],
+   "api": [
+    "매수 66%",
+    "매도 51%",
+    "매수 53%",
+    "매수 53%"
+   ],
+   "equal": true,
+   "api_raw": {
+    "10m": {
+     "buy_notional": "55976204.72",
+     "sell_notional": "29070907.50",
+     "buy_pct": 66,
+     "sell_pct": 34,
+     "lean": "BUY",
+     "coverage_ratio": 1.0
+    },
+    "1h": {
+     "buy_notional": "299616737.50",
+     "sell_notional": "313556810.64",
+     "buy_pct": 49,
+     "sell_pct": 51,
+     "lean": "SELL",
+     "coverage_ratio": 1.0
+    },
+    "4h": {
+     "buy_notional": "844509430.75",
+     "sell_notional": "740570071.74",
+     "buy_pct": 53,
+     "sell_pct": 47,
+     "lean": "BUY",
+     "coverage_ratio": 1.0
+    },
+    "1d": {
+     "buy_notional": "3530319273.06",
+     "sell_notional": "3108958227.75",
+     "buy_pct": 53,
+     "sell_pct": 47,
+     "lean": "BUY",
+     "coverage_ratio": 1.0
+    }
+   }
+  }
+ ],
+ "hot": {
+  "strip_present": false,
+  "btcctx_requests_during_15s": 0,
+  "chart_context_lines": "",
+  "back_on_btc_ms": 7
+ },
+ "reload": {
+  "first_ms_from_goto": 2954,
+  "reload_ms_from_reload": 509
+ },
+ "layout_1440": {
+  "ticket_delta_details_open": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "ticket_delta_strip_hidden": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "overflow": [
+   0,
+   0,
+   0
+  ],
+  "chart": [
+   [
+    [
+     722,
+     520
+    ],
+    "120",
+    "808.50"
+   ],
+   [
+    [
+     722,
+     520
+    ],
+    "120",
+    "808.50"
+   ],
+   [
+    [
+     722,
+     520
+    ],
+    "120",
+    "808.50"
+   ]
+  ]
+ },
+ "layout_390": {
+  "ticket_delta_details_open": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "ticket_delta_strip_hidden": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "overflow": [
+   0,
+   0,
+   0
+  ],
+  "chart": [
+   [
+    [
+     340,
+     200
+    ],
+    "113",
+    "808.50"
+   ],
+   [
+    [
+     340,
+     200
+    ],
+    "113",
+    "808.50"
+   ],
+   [
+    [
+     340,
+     200
+    ],
+    "113",
+    "808.50"
+   ]
+  ]
+ },
+ "layout_1600": {
+  "ticket_delta_details_open": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "ticket_delta_strip_hidden": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "overflow": [
+   0,
+   0,
+   0
+  ],
+  "chart": [
+   [
+    [
+     882,
+     520
+    ],
+    "294",
+    "837.60"
+   ],
+   [
+    [
+     882,
+     520
+    ],
+    "294",
+    "837.60"
+   ],
+   [
+    [
+     882,
+     520
+    ],
+    "294",
+    "837.60"
+   ]
+  ]
+ }
+}
