@@ -221,6 +221,25 @@ Kiwoom 연결 시에도 기존 Strategy/Risk 코드 수정 없이 Adapter로 추
 - 무엇이 배포되어 있는지는 산출물과 런타임으로 판정한다. 서버의 git HEAD로 판정하지 않는다.
   재시작은 재빌드가 아니고, 백엔드는 repo가 아닌 런타임 복사본에서 돌 수 있다.
 
+### 운영 호스트 조회와 정리
+
+운영 호스트(trader-j)는 RAM 961MB, 디스크 9.8GB다. 조회 자체가 사고를 만든다.
+
+- 전체 파일시스템 탐색을 하지 않는다. `find /`, `du -sh /*`, 루트 기준 재귀 grep 금지.
+  조사는 known path(`/root/usb_runtime/<서비스>`, `/root/usb`, `/etc/systemd/system`)에서만 하고,
+  `du`는 `--max-depth`를 항상 붙인다.
+- 무거운 조회는 `ionice -c3 nice -n19`로 건다. 시작 전에 PSI(`/proc/pressure/memory`)를 본다.
+  `avg10`이 높으면 조회를 미룬다. 이 호스트는 swap 700MB 안팎이 상시 상태다.
+- 삭제는 5중 증명이 전부 PASS일 때만 한다: open fd, 실행 중 unit 참조, env/config 참조,
+  source/runtime 참조, 다른 전략의 reference 의존. 하나라도 불명확하면 UNKNOWN이고 지우지 않는다.
+- 디렉터리 이름으로 용도를 판정하지 않는다. `strategy_c/raw`는 A의 live 입력(grouped daily, splits)이고,
+  `strategy_e_paper/src`는 코드 사본이 아니라 A/E 운영 트리다. unit의 `--repo`, `WorkingDirectory`,
+  `PYTHONPATH`로 판정한다.
+- 프로세스는 PID로만 종료한다. 종료 전에 명령줄, ppid, 시작시각, cgroup을 재확인한다.
+  이름 패턴(`pkill`, `pgrep | head`)으로 종료하지 않는다.
+- 삭제 전 `DELETE_MANIFEST_BEFORE`, 삭제 후 `DELETE_MANIFEST_AFTER`를 남긴다.
+  최근 정리 기록: `docs/operations/cleanup_20261013/`.
+
 ### 측정과 증명
 
 - 렌더링하거나 실측하지 않고 "정상"이라고 단정하지 않는다.

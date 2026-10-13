@@ -1,0 +1,19 @@
+DELETE_MANIFEST_AFTER (US-B PRODUCTION HYGIENE & CLEANUP V1, 2026-10-13 KST, host trader-j)
+id | deleted path | freed | result
+
+P1 | PID 2279157 (bash sampler loop, ppid 1, session-3466.scope) | ~3 MB RSS | SIGTERM, gone within 12 s; no orphan sleep; fuser empty
+F1 | /tmp/crypto_mem.log | 4,784,290 B | removed after size stayed constant for 11 s (4784290 -> 4784290)
+D1 | /root/usb/frontend/.next-build.before-vol1h | 107,568 KB | deleted
+D2 | /root/usb/frontend/.next-build.pre-perf-20261010-171034 | 110,144 KB | deleted
+D3 | /root/usb/frontend/.next-build.pre-btcctx-20261011-181400 | 4,704 KB | deleted
+D4 | /root/usb/frontend/.next-build.pre-hot-20261011-130451 | 4,784 KB | deleted
+D5 | /root/usb/frontend/.next-build.pre-subdollar-20261011-134500 | 4,704 KB | deleted
+D6 | /root/usb/frontend/.next-build.pre-tfrange-20261011-140835 | 4,704 KB | deleted
+T1 | /root/usb_runtime/frontend-rollback/next-build.20261010-1330.before-vol1h.tgz | 16,088 KB | deleted
+T2 | /root/usb_runtime/frontend-rollback/next-build-757f768.tgz | 972 KB | deleted
+
+measured disk avail on /: 1,970,468 KB -> 2,223,100 KB  (+252,632 KB, about 247 MB; includes P1/F1 4.7 MB measured earlier separately)
+post-check: .next-build and .next-build.pre-flow-20261012-143915 intact; usb-frontend active, NRestarts 0, HTTP 307 from 127.0.0.1:3000
+note: the pre-delete curl to :3000 returned 000 (timeout, host was thrashing); post-delete returned 307.
+not touched: every ledger, journal, store, cursor, checkpoint, strategy raw data, running unit, unit file, timer.
+trade mutation: 0 (no Binance request, no order/leverage/AUTO/arm change; read-only systemctl/ps/proc/du/stat only).

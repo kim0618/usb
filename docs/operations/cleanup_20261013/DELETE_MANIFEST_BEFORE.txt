@@ -1,0 +1,34 @@
+DELETE_MANIFEST_BEFORE (US-B PRODUCTION HYGIENE & CLEANUP V1, 2026-10-13 KST)
+host=trader-j  rule: 5-proof (open fd / unit ref / env-config ref / source ref / other-strategy dep) all 0 before any entry here.
+fields: id | kind | path_or_pid | size | mtime/start | classification | reason | checks | regenerable
+
+[P1] PROCESS  pid=2279157 (bash -c 'while true; do ... >> /tmp/crypto_mem.log; sleep 10; done')
+     start=2026-09-23 14:03:03 ppid=1 cgroup=session-3466.scope (no unit), fds=/dev/null only
+     class=DELETE_TEMP  reason=memory-pressure audit closed as MONITOR_ONLY (2f5c259); orphan ad-hoc sampler
+     checks=fd:0 reader | unit:0 | env/config:0 | source(git grep server+local, deployed crypto_paper src/bin):0 | other-strategy dep:0
+     regenerable=yes (trivial loop). Child: transient 'sleep 10' only.
+
+[F1] FILE  /tmp/crypto_mem.log  size=4783954 (170861 lines, 9/23 14:03 -> 10/13 10:20)  mtime=2026-10-13 10:20
+     class=DELETE_TEMP  reason=output of P1 only; HH:MM:SS+avail+swap, no date column. Per-day summary preserved in
+     CLEANUP_REPORT (docs/operations/cleanup_20261013/). sysstat (sar) keeps the authoritative memory history.
+     checks=same as P1 (open fd 0, no unit/cron/logrotate ref, no source ref)  regenerable=no (but summarised)
+
+[D1..D6] DIR  /root/usb/frontend/<name>   (frontend stale build generations; keep = .next-build [fsRtGYt7...] + .next-build.pre-flow-20261012-143915 [_7ZVp-E2...] rollback)
+     D1 .next-build.before-vol1h                    107568 KB  mtime 2026-10-05 11:55  (incl. cache/ 102984 KB, webpack cache = regenerable)
+     D2 .next-build.pre-perf-20261010-171034        110144 KB  mtime 2026-10-10 13:13  (incl. cache/ 105560 KB)
+     D3 .next-build.pre-btcctx-20261011-181400        4704 KB  mtime 2026-10-11 14:08
+     D4 .next-build.pre-hot-20261011-130451           4784 KB  mtime 2026-10-10 16:41
+     D5 .next-build.pre-subdollar-20261011-134500     4704 KB  mtime 2026-10-11 13:06
+     D6 .next-build.pre-tfrange-20261011-140835       4704 KB  mtime 2026-10-11 13:47
+     class=DELETE_OBSOLETE (2+ deploys older than current rollback; policy current + 1 rollback)
+     checks=fd/maps/cwd:0 | unit,env,nginx,cron,package.json,next.config ref:0 (next.config distDir=env NEXT_DIST_DIR; unit runs npm start -> .next-build) | symlink:0 | other-strategy dep:0 (frontend build output only)
+     regenerable=yes (git commit + next build); historical docs name these as rollback of past deploys, superseded by pre-flow rollback.
+
+[T1..T2] FILE /root/usb_runtime/frontend-rollback/
+     T1 next-build.20261010-1330.before-vol1h.tgz   16088 KB  mtime 2026-10-10 13:26
+     T2 next-build-757f768.tgz                         972 KB  mtime 2026-10-11 18:13
+     class=DELETE_OBSOLETE (rollback archives of builds 2+ generations old; current rollback is the pre-flow dir)
+     checks=fd:0 | unit/env:0 | docs citing file name:0 | other-strategy dep:0   regenerable=yes (git + build)
+     KEPT in same dir: env.production.local.pre-btcctx-20261011-181400 (88 B, env backup)
+
+TOTAL planned: 260,... see AFTER manifest. Frontend, node_modules, current .next-build, .next-build.pre-flow-* untouched.
