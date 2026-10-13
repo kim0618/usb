@@ -1,0 +1,102 @@
+{
+ "train_minutes": 1267200,
+ "bybit_present": 1267200,
+ "close": {
+  "mean_bp": -0.4590063091870908,
+  "median_abs_bp": 2.0408409426886376,
+  "p95_abs_bp": 9.143381390046446,
+  "p99_abs_bp": 14.080889330592859,
+  "p999_abs_bp": 20.8347746578228,
+  "max_abs_bp": 774.7747747747746,
+  "share_abs_gt_5bp": 0.1782125946969697,
+  "share_abs_gt_20bp": 0.00124447601010101
+ },
+ "open": {
+  "mean_bp": -0.45936143518775974,
+  "median_abs_bp": 2.040711731176592,
+  "p95_abs_bp": 9.12144883920818,
+  "p99_abs_bp": 14.004783298820167,
+  "p999_abs_bp": 20.57294844157235,
+  "max_abs_bp": 775.8916397870374,
+  "share_abs_gt_5bp": 0.17780145202020203,
+  "share_abs_gt_20bp": 0.0011631944444444443
+ },
+ "high": {
+  "mean_bp": -1.9108141745364746,
+  "median_abs_bp": 2.2941573635471,
+  "p95_abs_bp": 10.386384479128708,
+  "p99_abs_bp": 15.744158173569726,
+  "p999_abs_bp": 23.519742973367283,
+  "max_abs_bp": 1737.14826671317,
+  "share_abs_gt_5bp": 0.21742660984848486,
+  "share_abs_gt_20bp": 0.0023453282828282828
+ },
+ "low": {
+  "mean_bp": 0.9415125944770234,
+  "median_abs_bp": 2.1574767586596266,
+  "p95_abs_bp": 9.251929193463523,
+  "p99_abs_bp": 14.00124621727308,
+  "p999_abs_bp": 22.38477267189177,
+  "max_abs_bp": 609.7486204782343,
+  "share_abs_gt_5bp": 0.194363952020202,
+  "share_abs_gt_20bp": 0.0016153724747474747
+ },
+ "stop_touch": {
+  "W60m_stop0.50pct": {
+   "windows": 42238,
+   "touched_either": 14598.0,
+   "disagree": 1154.0,
+   "disagree_share_of_touched": 0.07905192492122208,
+   "disagree_share_all": 0.02732136938302003
+  },
+  "W60m_stop1.00pct": {
+   "windows": 42238,
+   "touched_either": 5503.0,
+   "disagree": 556.0,
+   "disagree_share_of_touched": 0.10103579865527894,
+   "disagree_share_all": 0.013163502059756617
+  },
+  "W60m_stop1.84pct": {
+   "windows": 42238,
+   "touched_either": 1537.0,
+   "disagree": 142.0,
+   "disagree_share_of_touched": 0.09238776837996096,
+   "disagree_share_all": 0.0033619016051896398
+  },
+  "W60m_stop3.84pct": {
+   "windows": 42238,
+   "touched_either": 192.0,
+   "disagree": 19.0,
+   "disagree_share_of_touched": 0.09895833333333333,
+   "disagree_share_all": 0.0004498319049197405
+  },
+  "W1440m_stop0.50pct": {
+   "windows": 42192,
+   "touched_either": 36064.0,
+   "disagree": 561.0,
+   "disagree_share_of_touched": 0.015555678793256433,
+   "disagree_share_all": 0.013296359499431172
+  },
+  "W1440m_stop1.00pct": {
+   "windows": 42192,
+   "touched_either": 29947.0,
+   "disagree": 688.0,
+   "disagree_share_of_touched": 0.022973920593047717,
+   "disagree_share_all": 0.016306408797876374
+  },
+  "W1440m_stop1.84pct": {
+   "windows": 42192,
+   "touched_either": 21604.0,
+   "disagree": 673.0,
+   "disagree_share_of_touched": 0.03115163858544714,
+   "disagree_share_all": 0.015950891164201744
+  },
+  "W1440m_stop3.84pct": {
+   "windows": 42192,
+   "touched_either": 9340.0,
+   "disagree": 324.0,
+   "disagree_share_of_touched": 0.03468950749464668,
+   "disagree_share_all": 0.007679180887372013
+  }
+ }
+}
