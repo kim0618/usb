@@ -1,0 +1,127 @@
+{
+ "GB": {
+  "placebo_shift24h_auc": 0.5033110778790647,
+  "placebo_shift24h_balanced_accuracy": 0.4994965708305265,
+  "signed_gross_1h": {
+   "0.5": {
+    "mean_abs_move_bp": 39.556081541842644,
+    "mean_signed_gross_bp": 0.9495160096005122,
+    "median_signed_gross_bp": 3.3208012619057037,
+    "n": 14559
+   },
+   "0.55": {
+    "mean_abs_move_bp": 39.86662102374508,
+    "mean_signed_gross_bp": 2.3040613147482403,
+    "median_signed_gross_bp": 5.41997221949142,
+    "n": 7413
+   },
+   "0.6": {
+    "mean_abs_move_bp": 41.03337167425426,
+    "mean_signed_gross_bp": 4.821893147890272,
+    "median_signed_gross_bp": 7.334878431985992,
+    "n": 2467
+   },
+   "0.65": {
+    "mean_abs_move_bp": 43.495372906480114,
+    "mean_signed_gross_bp": 5.836769039127013,
+    "median_signed_gross_bp": 8.47542695197767,
+    "n": 470
+   }
+  },
+  "signed_gross_4h": {
+   "0.5": {
+    "mean_abs_move_bp": 80.39313085875166,
+    "mean_signed_gross_bp": 5.62104705832044,
+    "median_signed_gross_bp": 5.663808265186088,
+    "n": 14563
+   },
+   "0.55": {
+    "mean_abs_move_bp": 83.42287741429418,
+    "mean_signed_gross_bp": 9.08614327923675,
+    "median_signed_gross_bp": 8.500557953212695,
+    "n": 8160
+   },
+   "0.6": {
+    "mean_abs_move_bp": 89.32828045525237,
+    "mean_signed_gross_bp": 13.953954422286108,
+    "median_signed_gross_bp": 12.237233889706989,
+    "n": 3449
+   },
+   "0.65": {
+    "mean_abs_move_bp": 95.50497982364796,
+    "mean_signed_gross_bp": 14.441217087373479,
+    "median_signed_gross_bp": 13.300809379374057,
+    "n": 1192
+   }
+  }
+ },
+ "RF": {
+  "placebo_shift24h_auc": 0.5028141015953691,
+  "placebo_shift24h_balanced_accuracy": 0.49909309515864386,
+  "signed_gross_1h": {
+   "0.5": {
+    "mean_abs_move_bp": 39.556081541842644,
+    "mean_signed_gross_bp": 1.0354812240291844,
+    "median_signed_gross_bp": 3.9247401346320654,
+    "n": 14559
+   },
+   "0.55": {
+    "mean_abs_move_bp": 40.074656569704075,
+    "mean_signed_gross_bp": 1.8804392781960426,
+    "median_signed_gross_bp": 5.927273550653256,
+    "n": 4414
+   },
+   "0.6": {
+    "mean_abs_move_bp": 34.343140061774335,
+    "mean_signed_gross_bp": 1.3613480548633206,
+    "median_signed_gross_bp": 9.640868484623866,
+    "n": 115
+   },
+   "0.65": {
+    "mean_abs_move_bp": null,
+    "mean_signed_gross_bp": null,
+    "median_signed_gross_bp": null,
+    "n": 0
+   }
+  },
+  "signed_gross_4h": {
+   "0.5": {
+    "mean_abs_move_bp": 80.39313085875166,
+    "mean_signed_gross_bp": 4.1332788739724275,
+    "median_signed_gross_bp": 6.078852772100074,
+    "n": 14563
+   },
+   "0.55": {
+    "mean_abs_move_bp": 91.72295932631238,
+    "mean_signed_gross_bp": 5.524624437068419,
+    "median_signed_gross_bp": 11.84494742302089,
+    "n": 4278
+   },
+   "0.6": {
+    "mean_abs_move_bp": 147.95403791306316,
+    "mean_signed_gross_bp": -0.9864064491308023,
+    "median_signed_gross_bp": -3.191097523971287,
+    "n": 176
+   },
+   "0.65": {
+    "mean_abs_move_bp": null,
+    "mean_signed_gross_bp": null,
+    "median_signed_gross_bp": null,
+    "n": 0
+   }
+  }
+ },
+ "note": "post-hoc diagnostics, outside the frozen contract; verdict unchanged",
+ "price_lr_coef_1h": {
+  "ret_1h": -0.006934249430139112,
+  "ret_24h": -0.05044948978392071,
+  "ret_4h": -0.10867744314244422,
+  "ret_72h": 0.029145304749817788
+ },
+ "price_lr_coef_4h": {
+  "ret_1h": -0.017593215193100243,
+  "ret_24h": -0.08254297366961291,
+  "ret_4h": -0.07514071780369105,
+  "ret_72h": 0.019166383011003027
+ }
+}
