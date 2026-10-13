@@ -1,0 +1,19 @@
+# DRAFT for /etc/systemd/system/usb-e-rvol-once.timer (not installed).
+# 00:35 ET: after usb-e-universe (Mon..Fri 00:20 ET, about a minute) wrote the day's universe, the
+#           same slot serve's first post-midnight cycle used (its append reports are stamped 00:01-00:27 ET).
+#           Done by about 01:30 ET, before usb-e-paper reads the store at 03:45 ET.
+# 10:00 ET: serve's post-guard cycle, for a bootstrap the 03:55 guard cut short. Normally a no-op
+#           (the day's append report exists, nothing is queued) after the listing call.
+# Every day, as serve did: weekend runs pick up late rows (10/11 staged 1, 10/12 staged 8).
+[Unit]
+Description=Run the E-MAX V1 RVOL store append/bootstrap after the universe build and after the guard
+
+[Timer]
+OnCalendar=*-*-* 00:35 America/New_York
+OnCalendar=*-*-* 10:00 America/New_York
+Persistent=true
+AccuracySec=1min
+Unit=usb-e-rvol-once.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,20 @@
+# DRAFT for /etc/systemd/system/usb-e-rvol-once.service (not installed).
+# Replaces the always-on usb-e-rvol.service (serve). Same code tree, store, universe, out dir,
+# rate, workers and target; `once` runs serve's cycles and exits where serve would sleep.
+[Unit]
+Description=USB Strategy E-MAX V1 Kiwoom RVOL append/bootstrap, one run (read-only usa06011, no orders)
+After=network-online.target usb-backend.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/root/usb_runtime/strategy_e_rvol/src/backend
+EnvironmentFile=/root/usb/.env
+Environment=PYTHONPATH=/root/usb_runtime/strategy_e_rvol/src/backend
+Environment=STRATEGY_E_MAX_ENABLED=false
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/root/usb/.venv/bin/python -m app.dev.run_e_rt3_rvol   --store /root/usb_runtime/strategy_e_rvol/kiwoom_premarket.sqlite3   --universe /root/usb_runtime/strategy_e_rvol/universe   --out /root/usb_runtime/strategy_e_rvol/passes   --rate 4.6 --workers 3 --target 20 once
+# The append is about 15,000 pages at 4.5/s (about 55 min); a bootstrap pass stops itself at the
+# 03:55 ET guard, so a run started at 00:35 ET ends well inside this.
+TimeoutStartSec=4h
+MemoryMax=250M
+Nice=15

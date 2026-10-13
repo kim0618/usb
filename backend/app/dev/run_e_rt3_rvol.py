@@ -183,15 +183,42 @@ def append(args) -> int:
     return 0
 
 
+def _appended_sessions(out_dir: Path) -> set[str]:
+    """ET dates that already have an ``append_*`` report, from the stamp serve gives the file."""
+    sessions = set()
+    for path in out_dir.glob("append_*.json"):
+        try:
+            sessions.add(datetime.strptime(path.stem[len("append_"):][:8], "%Y%m%d").date().isoformat())
+        except ValueError:
+            continue
+    return sessions
+
+
 def serve(args) -> int:
     """The long-running worker: append the closed session, then bootstrap until the window closes."""
+    return _serve(args, once=False)
+
+
+def once(args) -> int:
+    """serve for a timer: the same cycles, but exit where serve would sleep.
+
+    The day's append is skipped when its report already exists, which is what serve's in-memory
+    ``appended`` set does across its own cycles.
+    """
+    return _serve(args, once=True)
+
+
+def _serve(args, *, once: bool) -> int:
     out_dir = args.out or Path("data/runtime/strategy_e_max/rvol/passes")
     out_dir.mkdir(parents=True, exist_ok=True)
-    appended: set[str] = set()
-    log(f"serve: window {GUARD_END:%H:%M}-{GUARD_START:%H:%M} ET, target={args.target}, "
+    appended: set[str] = _appended_sessions(out_dir) if once else set()
+    log(f"{'once' if once else 'serve'}: window {GUARD_END:%H:%M}-{GUARD_START:%H:%M} ET, target={args.target}, "
         f"workers={args.workers}, rate={args.rate}/s, store={args.store}")
     while True:
         if in_guard():
+            if once:
+                log("guard window: exiting (E premarket path and A own the API)")
+                return 0
             log("guard window: sleeping (E premarket path and A own the API)")
             while in_guard():
                 time.sleep(60)
@@ -216,6 +243,8 @@ def serve(args) -> int:
             log(f"bootstrap complete: fully_ready={cov['fully_ready']}/{cov['symbols']} "
                 f"exhausted={len(store.exhausted_symbols())}; idling until the next session")
             store.close()
+            if once:
+                return 0
             time.sleep(1800)
             continue
         report = _pass(store, lane, work, before=before, target=args.target, workers=args.workers,
@@ -252,6 +281,7 @@ def main(argv=None) -> int:
     a.add_argument("--limit", type=int, default=0)
     a.set_defaults(func=append)
     sub.add_parser("serve").set_defaults(func=serve)
+    sub.add_parser("once").set_defaults(func=once)
     args = parser.parse_args(argv)
     return args.func(args)
 
