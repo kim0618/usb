@@ -1,0 +1,79 @@
+{
+ "id": "C2-PREMIUM-EXHAUSTION-240M-SHORT",
+ "contract": {
+  "document_sha256": "94d6221356a49f6240f173593fa54f45f8f74710cc26fddc7d2b10a0c6abad78",
+  "machine_sha256": "6e90a8effcaa0c019f03ea8a16df341f3510549e770239a6995d22ce344936b9"
+ },
+ "coverage": {
+  "bars": 2966400,
+  "premium_valid": 2965366,
+  "oi_change_valid": 2966340,
+  "condition_bars": 2579,
+  "events_all": 197
+ },
+ "summary": {
+  "trades": 177,
+  "gross_mean_bp": -1.8060097611918013,
+  "cost_mean_bp": 10.331100650001424,
+  "net_mean_bp": -12.137110411193225,
+  "net_median_bp": -2.97111279515541,
+  "win_rate": 0.4745762711864407,
+  "profit_factor": 0.784989950948178,
+  "clustered_ci95_bp": [
+   -35.383264492791426,
+   14.07464868306393
+  ],
+  "folds": [
+   {
+    "start": "2022-01-01",
+    "trades": 6,
+    "mean_net_bp": 34.94025742594078
+   },
+   {
+    "start": "2022-07-01",
+    "trades": 4,
+    "mean_net_bp": -55.08009347750891
+   },
+   {
+    "start": "2023-01-01",
+    "trades": 9,
+    "mean_net_bp": 41.28076303395418
+   },
+   {
+    "start": "2023-07-01",
+    "trades": 27,
+    "mean_net_bp": -8.595926165512678
+   },
+   {
+    "start": "2024-01-01",
+    "trades": 26,
+    "mean_net_bp": 16.733700906778473
+   },
+   {
+    "start": "2024-07-01",
+    "trades": 38,
+    "mean_net_bp": -49.08353675033813
+   },
+   {
+    "start": "2025-01-01",
+    "trades": 20,
+    "mean_net_bp": -15.09779810908769
+   },
+   {
+    "start": "2025-07-01",
+    "trades": 28,
+    "mean_net_bp": 10.74098046162105
+   },
+   {
+    "start": "2026-01-01",
+    "trades": 19,
+    "mean_net_bp": -44.51157326687275
+   }
+  ],
+  "positive_folds": 4,
+  "top_5pct_removed_mean_bp": -30.120499250580732,
+  "mfe_mean_bp": 109.25746815187316,
+  "mae_mean_bp": -109.93214240421182,
+  "verdict": "CLEARLY_NEGATIVE"
+ }
+}
