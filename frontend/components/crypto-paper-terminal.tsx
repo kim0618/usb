@@ -11,6 +11,7 @@ import {
   canEnter, describeReset, feedStatus, krw, num, percent, price, qty, rateBps, rejectLabel, signedKrw,
   signedUsdt, toneClass, usdt,
 } from "@/lib/crypto-paper";
+import { visiblePoll } from "@/lib/visible-poll";
 
 const LEVERAGE_PRESETS = ["1", "3", "5", "10", "20", "50"];
 const STALE_SECONDS = 5;
@@ -1019,9 +1020,8 @@ export function RunFooter({ state }: { state: CryptoState }) {
 
 /** Visual refresh for the open position's headline PnL. The 1 s account poll stays as it is;
  *  this reads a small route that prices the position on the newest feed tick from a clone, so
- *  nothing is recorded and the ledger keeps its own rhythm. */
+ *  nothing is recorded and the ledger keeps its own rhythm. A hidden tab reads nothing. */
 export const LIVE_POLL_MS = 333;
-export const LIVE_POLL_HIDDEN_MS = 2000;
 
 export function useLivePnl(enabled: boolean, symbol: string = DEFAULT_SYMBOL,
                            intervalMs = LIVE_POLL_MS) {
@@ -1031,40 +1031,49 @@ export function useLivePnl(enabled: boolean, symbol: string = DEFAULT_SYMBOL,
     // this effect re-runs and the previous instrument's PnL does not linger for one tick.
     if (!enabled) { setLive(null); return; }
     setLive(null);
-    let stopped = false;
-    let timer: number | undefined;
-    let controller: AbortController | null = null;
-    // Sequential, never overlapping: the next request starts only after the previous one ended,
-    // so a slow network lowers the rate instead of stacking requests. A hidden tab backs off.
-    const tick = async () => {
-      if (stopped) return;
-      if (typeof document !== "undefined" && document.hidden) {
-        timer = window.setTimeout(tick, LIVE_POLL_HIDDEN_MS);
-        return;
-      }
-      const started = Date.now();
-      controller = new AbortController();
+    const controller = new AbortController();
+    // Sequential, never overlapping (`visiblePoll`): a slow network lowers the rate instead of
+    // stacking requests.
+    const stop = visiblePoll(async () => {
       try {
         const body = await cryptoApi.live(symbol, controller.signal);
         // Discarded when it names another instrument: a poll issued before the tab changed can
         // resolve after it, and this value is the headline PnL.
-        if (!stopped && (body.symbol == null || body.symbol === symbol)) setLive(body);
+        if (!controller.signal.aborted && (body.symbol == null || body.symbol === symbol)) setLive(body);
       } catch { /* the 1 s account poll remains the fallback */ }
-      if (!stopped) timer = window.setTimeout(tick, Math.max(0, intervalMs - (Date.now() - started)));
-    };
-    void tick();
-    return () => { stopped = true; controller?.abort(); if (timer !== undefined) window.clearTimeout(timer); };
+    }, intervalMs);
+    return () => { controller.abort(); stop(); };
   }, [enabled, intervalMs, symbol]);
   return live;
 }
+
+/** How often each part of the PAPER terminal is re-read (CRYPTO UI POLLING OPTIMIZATION V1).
+ *
+ *  They used to share one 1 s tick: six reads a second, every second, the tab visible or not.
+ *  Only the account moves that fast. The ledger, the performance summary and the trade list move
+ *  on fills; the order ticket's presets move with the mark and the balance, which a few seconds
+ *  covers, and the server re-checks every order anyway; the PnL breakdown matters while a
+ *  position is open and is read once otherwise, for the closed-trade panel. A hidden tab reads
+ *  nothing (`visiblePoll`). */
+export const PAPER_POLL_MS = {
+  state: 1_000,
+  sizing: 5_000,
+  breakdown: 5_000,
+  history: 10_000,
+  chart: 15_000,
+} as const;
 
 /** The PAPER terminal for one symbol.
  *
  *  Same two safety properties as the LIVE hook, for the same reason: state is cleared the
  *  moment the symbol changes, and a response naming another instrument is discarded. The PAPER
  *  screen prices orders off these figures, so a stale one is a wrong size, not a wrong label.
+ *
+ *  `paper` false is the LIVE screen: it still draws its candles from the paper feed's state and
+ *  chart, so those two keep polling, and nothing that belongs to the paper account does.
  */
-export function useCryptoTerminal(symbol: string = DEFAULT_SYMBOL, pollMs = 1000) {
+export function useCryptoTerminal(symbol: string = DEFAULT_SYMBOL,
+                                  { paper = true }: { paper?: boolean } = {}) {
   const [state, setState] = useState<CryptoState | null>(null);
   const [bars, setBars] = useState<ChartBar[]>([]);
   const [events, setEvents] = useState<LedgerEvent[]>([]);
@@ -1076,9 +1085,18 @@ export function useCryptoTerminal(symbol: string = DEFAULT_SYMBOL, pollMs = 1000
   const [actionError, setActionError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const current = useRef(symbol);
+  const paperOn = useRef(paper);
+  paperOn.current = paper;
+  /** Whether the last account read had a position, and whether the breakdown owes a read: once
+   *  per symbol, and once whenever a position opens or closes, so the closed trade reaches the
+   *  panel without the 5 s poll running on a flat account. */
+  const positionOpen = useRef(false);
+  const breakdownDue = useRef(true);
 
   useLayoutEffect(() => {
     current.current = symbol;
+    positionOpen.current = false;
+    breakdownDue.current = true;
     setState(null);
     setBars([]);
     setEvents([]);
@@ -1090,45 +1108,61 @@ export function useCryptoTerminal(symbol: string = DEFAULT_SYMBOL, pollMs = 1000
     setActionError(null);
   }, [symbol]);
 
-  /** Both readers take the instrument and the signal they are about as arguments rather than
-   *  reading a ref. The ref told them which symbol was selected *at the moment they ran*, which
-   *  is a different question: a timer that had been running since before the operator changed
-   *  tabs would read the ref, see the new symbol and issue a perfectly well formed request that
+  /** Every reader takes the instrument and the signal it is about as arguments rather than
+   *  reading a ref. The ref told it which symbol was selected *at the moment it ran*, which is a
+   *  different question: a timer that had been running since before the operator changed tabs
+   *  would read the ref, see the new symbol and issue a perfectly well formed request that
    *  nobody had asked for, out of a source belonging to the previous one. Owning the symbol and
    *  the signal makes a reader structurally unable to ask about anything else. */
-  const refresh = useCallback(async (asked: string, signal: AbortSignal) => {
+  const readState = useCallback(async (asked: string, signal: AbortSignal) => {
     const still = () => !signal.aborted && asked === current.current;
     try {
-      const [next, ledger, summary, history, sizes] = await Promise.all([
-        cryptoApi.state(asked, signal), cryptoApi.ledger(asked, 60, signal),
-        cryptoApi.performance(asked, signal), cryptoApi.trades(asked, 50, signal),
-        // Sizing moves with the mark and with the balance, so it is refreshed on the same tick
-        // as the account rather than only when a preset is pressed. A stale MAX is a rejected
-        // order. The engine prices all four presets for both sides in a couple of milliseconds.
-        cryptoApi.sizing(asked, signal),
-      ]);
+      const next = await cryptoApi.state(asked, signal);
       if (!still() || (next.symbol != null && next.symbol !== asked)) return;
       setState(next);
+      setError(null);
+      const open = next.account?.position_side != null;
+      if (open !== positionOpen.current) breakdownDue.current = true;
+      positionOpen.current = open;
+    } catch (exception) {
+      if (still()) setError(exception instanceof CryptoApiError ? exception.message : "상태 조회 실패");
+    }
+  }, []);
+
+  const readHistory = useCallback(async (asked: string, signal: AbortSignal) => {
+    const still = () => !signal.aborted && asked === current.current;
+    try {
+      const [ledger, summary, history] = await Promise.all([
+        cryptoApi.ledger(asked, 60, signal), cryptoApi.performance(asked, signal),
+        cryptoApi.trades(asked, 50, signal),
+      ]);
+      if (!still()) return;
       setEvents(ledger.events);
       setPerformance(summary);
       setTrades(history.trades);
-      setSizing(sizes);
-      setError(null);
     } catch (exception) {
-      if (still()) {
-        setError(exception instanceof CryptoApiError ? exception.message : "상태 조회 실패");
-      }
+      if (still()) setError(exception instanceof CryptoApiError ? exception.message : "상태 조회 실패");
     }
-    if (!still()) return;
-    // Fetched on its own so a server that predates the route (404) or a failed preview never
-    // takes the rest of the terminal down with it. Missing breakdown just hides the panel.
+  }, []);
+
+  const readSizing = useCallback(async (asked: string, signal: AbortSignal) => {
+    try {
+      const sizes = await cryptoApi.sizing(asked, signal);
+      if (!signal.aborted && asked === current.current) setSizing(sizes);
+    } catch { /* the ticket keeps its last presets; the order route re-checks every size */ }
+  }, []);
+
+  /** Fetched on its own so a server that predates the route (404) or a failed preview never
+   *  takes the rest of the terminal down with it. Missing breakdown just hides the panel. */
+  const readBreakdown = useCallback(async (asked: string, signal: AbortSignal) => {
+    const still = () => !signal.aborted && asked === current.current;
     try {
       const next = await cryptoApi.pnlBreakdown(asked, signal);
       if (still()) setBreakdown(next);
     } catch { if (still()) setBreakdown(null); }
   }, []);
 
-  const refreshChart = useCallback(async (asked: string, signal: AbortSignal) => {
+  const readChart = useCallback(async (asked: string, signal: AbortSignal) => {
     try {
       const next = await cryptoApi.chart(asked, undefined, signal);
       // The bars are the one thing on this screen that is pure shape: a wrong-symbol series
@@ -1141,6 +1175,14 @@ export function useCryptoTerminal(symbol: string = DEFAULT_SYMBOL, pollMs = 1000
       }
     } catch { /* the chart is not the authority */ }
   }, []);
+
+  /** Everything at once, for an action's aftermath and the retry button. */
+  const refresh = useCallback(async (asked: string, signal: AbortSignal) => {
+    if (!paperOn.current) return readState(asked, signal);
+    breakdownDue.current = false;
+    await Promise.all([readState(asked, signal), readHistory(asked, signal), readSizing(asked, signal),
+                       readBreakdown(asked, signal)]);
+  }, [readState, readHistory, readSizing, readBreakdown]);
 
   /** The live poll's controller, so an action and the retry button refresh the instrument on
    *  screen through the same signal the poll uses and are aborted with it. */
@@ -1160,25 +1202,38 @@ export function useCryptoTerminal(symbol: string = DEFAULT_SYMBOL, pollMs = 1000
       .finally(() => setBusy(false));
   }, [refreshNow]);
 
-  // Keyed on the symbol, so changing it tears the whole source down: the timers are cleared
-  // before new ones are made and every read in flight is aborted. Previously these intervals
-  // were created once for the life of the screen and survived every symbol change, which is
-  // what let a tick belonging to one instrument fire after the operator had left it.
+  // Keyed on the symbol and the account on screen, so changing either tears the whole source
+  // down: the loops stop before new ones start and every read in flight is aborted, and the new
+  // loops read at once - a switch to PAPER shows current figures, not the last ones from before
+  // LIVE. Previously these timers survived every symbol change, which is what let a tick
+  // belonging to one instrument fire after the operator had left it.
   useEffect(() => {
     const asked = symbol;
     const controller = new AbortController();
+    const { signal } = controller;
     live.current = controller;
-    void refresh(asked, controller.signal);
-    void refreshChart(asked, controller.signal);
-    const stateTimer = window.setInterval(() => void refresh(asked, controller.signal), pollMs);
-    const chartTimer = window.setInterval(() => void refreshChart(asked, controller.signal), 15_000);
+    breakdownDue.current = true;
+    const stops = [
+      visiblePoll(() => readState(asked, signal), PAPER_POLL_MS.state),
+      visiblePoll(() => readChart(asked, signal), PAPER_POLL_MS.chart),
+    ];
+    if (paper) {
+      stops.push(
+        visiblePoll(() => readHistory(asked, signal), PAPER_POLL_MS.history),
+        visiblePoll(() => readSizing(asked, signal), PAPER_POLL_MS.sizing),
+        visiblePoll(() => {
+          if (!positionOpen.current && !breakdownDue.current) return undefined;
+          breakdownDue.current = false;
+          return readBreakdown(asked, signal);
+        }, PAPER_POLL_MS.breakdown),
+      );
+    }
     return () => {
       controller.abort();
       if (live.current === controller) live.current = null;
-      window.clearInterval(stateTimer);
-      window.clearInterval(chartTimer);
+      for (const stop of stops) stop();
     };
-  }, [refresh, refreshChart, pollMs, symbol]);
+  }, [readState, readChart, readHistory, readSizing, readBreakdown, paper, symbol]);
 
   return { state, bars, events, performance, trades, sizing, breakdown, error, actionError, busy,
            act, refresh: refreshNow };

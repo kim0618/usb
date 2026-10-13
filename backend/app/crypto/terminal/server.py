@@ -58,13 +58,12 @@ async def sizing_quote(side: str | None = None, symbol: str | None = None) -> An
     feed, feed_failure = paper_feed(symbol)
     if feed_failure is not None:
         return feed_failure
-    quote = feed.quote()
-    if quote is not None:
-        # Price the presets against the tick the operator is looking at, not the one that
-        # happened to be recorded a second ago.
-        session.observe(quote, force=True)
-
-    engine = session.engine
+    # Price the presets against the tick the operator is looking at, not the one that happened
+    # to be recorded a second ago - on a clone moved onto it, the way `/live` does. This route is
+    # polled, and a forced observation here wrote and fsynced a tape record on every poll; the
+    # real engine and the tape now move only on the 1 Hz observation and on commands, which
+    # still force their own quote before they act.
+    engine = trade_preview.advanced(session.engine, feed.quote())
     payload: dict[str, Any] = {
         "run_id": session.config.run_id,
         "symbol": session.config.instrument.symbol,
@@ -128,9 +127,9 @@ async def pnl_breakdown_view(symbol: str | None = None) -> Any:
 
     Read-only. The open-position close figures come from a clone that was actually sent the full
     CLOSE, so the fee and the fill are the engine's. This route does not force a fresh market
-    observation: the sizing route polled on the same tick already does, and recording the tape a
-    second time per second would double its growth on a disk that is the binding limit. The
-    quote timestamp is returned so the panel can say which book the preview was priced on.
+    observation: the engine moves on the 1 Hz observation, and recording the tape from a polled
+    read would grow it on a disk that is the binding limit. The quote timestamp is returned so
+    the panel can say which book the preview was priced on.
     """
     session, failure = paper_session(symbol)
     if failure is not None:

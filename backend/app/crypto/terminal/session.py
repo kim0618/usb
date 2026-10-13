@@ -21,6 +21,7 @@ from ..paper.persistence import RecoveryResult, recover
 from ..paper.segments import DEFAULT_SEGMENT_RECORDS, SegmentedTape, load_manifests
 
 MARKET_RECORD_INTERVAL_MS = 1_000
+STORAGE_TTL_MS = 10_000
 
 
 @dataclass
@@ -34,6 +35,8 @@ class PaperSession:
     recovery: RecoveryResult | None = None
     segment_records: int = DEFAULT_SEGMENT_RECORDS
     compress_segments: bool = False
+    #: The archive figure in `snapshot()["storage"]` may be this old. See `SegmentedTape.storage`.
+    storage_ttl_ms: int = STORAGE_TTL_MS
     segments: SegmentedTape | None = None
     _last_recorded_ms: int | None = None
     #: An engine already recovered together with the other wallet members
@@ -70,7 +73,8 @@ class PaperSession:
                                       if self.engine.last_market_ts_ms is not None
                                       else summary.last_market_ms)
         self.segments = SegmentedTape(run_dir=run_dir, segment_records=self.segment_records,
-                                      compress=self.compress_segments)
+                                      compress=self.compress_segments,
+                                      storage_ttl_ms=self.storage_ttl_ms)
         (run_dir / "run_config.json").write_text(
             __import__("json").dumps(self.config.snapshot(), indent=2, sort_keys=True) + "\n")
 

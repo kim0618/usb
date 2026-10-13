@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { cryptoApi, qty as qtyFmt, signedKrw, toneClass } from "@/lib/crypto-paper";
 import { liveApi } from "@/lib/crypto-live";
+import { visiblePoll } from "@/lib/visible-poll";
 import type { LivePositionsSummary } from "@/lib/crypto-live";
 import {
   CRYPTO_SYMBOLS, DEFAULT_SYMBOL, readStoredSymbol, storeSymbol, symbolLabel,
@@ -87,7 +88,6 @@ export function useSymbolVolatility(symbols?: readonly string[] | null, enabled 
     const list = roster.split(",");
     const controller = new AbortController();
     let stopped = false;
-    let timer: number | undefined;
 
     const readOne = async (symbol: string): Promise<SymbolVolatility | null> => {
       try {
@@ -118,14 +118,14 @@ export function useSymbolVolatility(symbols?: readonly string[] | null, enabled 
         }
         return next;
       });
-      if (!stopped) timer = window.setTimeout(() => { void read(); }, pollMs);
     };
-    void read();
+    // Stops while the tab is hidden; the badges are re-read at once when it comes back.
+    const stop = visiblePoll(read, pollMs);
 
     return () => {
       stopped = true;
       controller.abort();
-      if (timer !== undefined) window.clearTimeout(timer);
+      stop();
     };
   }, [enabled, roster, pollMs]);
 
@@ -366,17 +366,16 @@ export function useOpenPositions(enabled: boolean, pollMs = POSITIONS_POLL_MS) {
       return;
     }
     let cancelled = false;
-    const read = async () => {
+    // A signed read: stops while the tab is hidden and reads at once when it comes back.
+    const stop = visiblePoll(async () => {
       try {
         const next = await liveApi.positions();
         if (!cancelled) { setSummary(next); setError(null); }
       } catch (exc) {
         if (!cancelled) setError(exc instanceof Error ? exc.message : String(exc));
       }
-    };
-    void read();
-    const timer = setInterval(() => { void read(); }, pollMs);
-    return () => { cancelled = true; clearInterval(timer); };
+    }, pollMs);
+    return () => { cancelled = true; stop(); };
   }, [enabled, pollMs]);
 
   return { summary, error };

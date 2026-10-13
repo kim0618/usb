@@ -533,6 +533,14 @@ class LiveExposure:
     hold anything, which is zero exposure, not an unknown one. A failed read raises, and the HOT
     lock treats a raise as unknown and blocks."""
 
+    #: The source reads the exchange, so a display-only reader may leave it out or reuse a
+    #: recent answer (`recent_exposure`). The HOT scan's own checks always call `exposure`.
+    reads_exchange = True
+
+    def __init__(self) -> None:
+        #: symbol -> (monotonic ms, position size, open orders) of the last signed read.
+        self._seen: dict[str, tuple[float, Decimal, int]] = {}
+
     def exposure(self, symbol: str) -> SymbolExposure:
         if not _shared_ready():
             if live_runtime.config is not None and live_runtime.config.credentials_present:
@@ -549,7 +557,17 @@ class LiveExposure:
             if isinstance(row, dict) and row.get("symbol") == symbol:
                 amount += abs(Decimal(str(row.get("positionAmt") or "0")))
         _reconcile_in_flight(symbol)
+        self._seen[symbol] = (time.monotonic() * 1000, amount, len(orders))
         return SymbolExposure(symbol, amount, len(orders), live_in_flight.count(symbol))
+
+    def recent_exposure(self, symbol: str, max_age_ms: float) -> SymbolExposure:
+        """For a display only: the last signed read when it is younger than `max_age_ms`, else a
+        fresh one. Orders this process has in flight are always counted now, since that costs
+        no request. Never used by the scan, whose before and after checks read the account."""
+        seen = self._seen.get(symbol)
+        if seen is not None and time.monotonic() * 1000 - seen[0] < max_age_ms:
+            return SymbolExposure(symbol, seen[1], seen[2], live_in_flight.count(symbol))
+        return self.exposure(symbol)
 
 
 def _reconcile_in_flight(symbol: str) -> None:
@@ -912,7 +930,11 @@ async def binance_sizing(symbol: str | None = None) -> Any:
     assert entry is not None
     adapter = entry.adapter
     try:
-        return jsonable({"source": "BINANCE_LIVE", **adapter.get_sizing()})
+        # The screen polls this, so it reads the account at the snapshot's own tiers (full at
+        # most every 30 s or on a stream event, mark and position every second) instead of
+        # forcing a full signed read every poll. The figure is for display: the OPEN path
+        # (`preflight_open`) still forces a full read and recomputes the safe MAX before it sends.
+        return jsonable({"source": "BINANCE_LIVE", **adapter.get_sizing(force=False)})
     except BinanceError as exc:
         return error(502, "BINANCE_ERROR", exc.message)
 

@@ -13,6 +13,7 @@ import {
   chartPriceFormat,
 } from "@/lib/crypto-paper";
 import { DEFAULT_SYMBOL, baseAsset as baseAssetOf } from "@/lib/crypto-symbols";
+import { visiblePoll } from "@/lib/visible-poll";
 import { PnlBreakdown, PnlHeadline, PositionCardShell, type BreakdownLine, type Fact } from "@/components/position-card";
 import type { Candle, Candle15sStatus, ChartBar, ChartOverlay, ChartPoint, CryptoAccount,
   HistoryTimeframe,
@@ -63,7 +64,6 @@ export function useC1Signals(enabled = true) {
     if (!enabled) return;
     const controller = new AbortController();
     let alive = true;
-    let timer: ReturnType<typeof setTimeout> | undefined;
     // The signal series only changes when a new event opens, which C1 does on 0.7% of bars. The
     // state poll carries the count, so the series itself is re-fetched when that count moves and
     // not four times a minute - which is what makes it affordable to ask for the whole history
@@ -84,10 +84,10 @@ export function useC1Signals(enabled = true) {
       } catch {
         // A signal layer that is unreachable must not break the terminal it sits beside.
       }
-      if (alive) timer = setTimeout(poll, C1_POLL_MS);
     };
-    void poll();
-    return () => { alive = false; controller.abort(); if (timer) clearTimeout(timer); };
+    // Stops while the tab is hidden and reads at once when it comes back.
+    const stop = visiblePoll(poll, C1_POLL_MS);
+    return () => { alive = false; controller.abort(); stop(); };
   }, [enabled]);
   return { state, markers };
 }
@@ -278,11 +278,21 @@ export function use15sCandles(enabled: boolean, symbol: string = DEFAULT_SYMBOL)
   return { candles: candles15sToChart(rows), status, coverageFrom };
 }
 
-export const CHART_INITIAL_BARS: Record<HistoryTimeframe, number> = {
-  "1m": 2880, "10m": 2016, "1h": 2160, "4h": 2190, "1d": 2000,
-};
+/** The first read of every timeframe is one page. It was 2,000-2,880 bars, which took long enough
+ *  on the paper server to time out at nginx (504) on the very read that opens the screen, and the
+ *  15 s retry then asked for all of it again. The opening view shows about floor(width / 6) bars,
+ *  which one page covers on any screen, and scrolling back pages in more (`loadEarlier`). */
 export const CHART_HISTORY_PAGE = 500;
+export const CHART_INITIAL_BARS: Record<HistoryTimeframe, number> = {
+  "1m": CHART_HISTORY_PAGE, "10m": CHART_HISTORY_PAGE, "1h": CHART_HISTORY_PAGE,
+  "4h": CHART_HISTORY_PAGE, "1d": CHART_HISTORY_PAGE,
+};
 export const CHART_HISTORY_POLL_MS = 15_000;
+/** A failed seed waits 15 s, then twice as long each time, up to 2 minutes. */
+export const CHART_SEED_RETRY_MAX_MS = 120_000;
+export function chartSeedRetryMs(failures: number): number {
+  return Math.min(CHART_SEED_RETRY_MAX_MS, CHART_HISTORY_POLL_MS * 2 ** Math.max(0, failures - 1));
+}
 
 /** Paged chart history. Requests are generation-checked as well as aborted, so a late response
  *  from the previous timeframe - or the previous *symbol* - can never replace the selected
@@ -335,13 +345,22 @@ export function useChartHistory(enabled: boolean, timeframe: HistoryTimeframe,
     setEnd(false);
 
     const current = () => !stopped && generation.current === ownGeneration;
+    let stopTail: (() => void) | undefined;
     const refreshTail = async () => {
       try {
         const body = await cryptoApi.chartHistory(symbol, timeframe, 3, null, controller.signal);
         if (current()) setSeries(previous => ({ key: seriesKey,
           candles: mergeCandles(previous.key === seriesKey ? previous.candles : [], chartBarsToCandles(body.bars)) }));
       } catch { /* history remains usable when a refresh fails */ }
-      if (current()) timer = window.setTimeout(refreshTail, CHART_HISTORY_POLL_MS);
+    };
+    /** After the seed: the tail every 15 s, paused while the tab is hidden. The first tail read
+     *  waits one period, as it always did; coming back from hidden reads at once. */
+    const startTail = () => {
+      if (!current()) return;
+      timer = window.setTimeout(() => {
+        timer = undefined;
+        if (current()) stopTail = visiblePoll(refreshTail, CHART_HISTORY_POLL_MS);
+      }, CHART_HISTORY_POLL_MS);
     };
 
     /** The initial history, retried until it arrives.
@@ -351,9 +370,12 @@ export function useChartHistory(enabled: boolean, timeframe: HistoryTimeframe,
      *  already false and so no message saying anything was missing, and no way back except a
      *  reload. The wider timeframes have no fallback at all and sat on "차트 데이터를 받는 중입니다"
      *  instead. This is the ordinary failure rather than a rare one: nginx answered this route
-     *  with 502 or 504 twenty-one times today. Retried on the tail's own cadence, and `loading`
-     *  stays true while it is still trying, so the strip says so. */
+     *  with 502 or 504 twenty-one times today. Retried with a backoff (`chartSeedRetryMs`: 15 s,
+     *  30 s, 60 s, then every 2 minutes), and `loading` stays true while it is still trying, so
+     *  the strip says so. */
+    let failures = 0;
     const seed = async () => {
+      timer = undefined;
       try {
         const body = await cryptoApi.chartHistory(symbol, timeframe, CHART_INITIAL_BARS[timeframe],
                                                   null, controller.signal);
@@ -363,15 +385,17 @@ export function useChartHistory(enabled: boolean, timeframe: HistoryTimeframe,
         hasMore.current = body.has_more;
         setEnd(!body.has_more);
         setLoading(false);
-        timer = window.setTimeout(refreshTail, CHART_HISTORY_POLL_MS);
+        startTail();
       } catch {
-        if (current()) timer = window.setTimeout(seed, CHART_HISTORY_POLL_MS);
+        failures += 1;
+        if (current()) timer = window.setTimeout(seed, chartSeedRetryMs(failures));
       }
     };
     void seed();
 
     return () => {
       stopped = true; controller.abort(); if (timer !== undefined) window.clearTimeout(timer);
+      stopTail?.();
       // Leaving this series (the 15 s view, another timeframe or symbol) drops its candles.
       // Kept, they were served again for one render when the same series came back - same key,
       // so the chart took them as the series - and the next render replaced them with the

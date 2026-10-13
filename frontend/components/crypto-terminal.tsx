@@ -78,7 +78,8 @@ export function CryptoTerminal({ marketContext, contextBase }: {
    *  The slot is the server's, on both accounts, and survives a reload, a route change and a
    *  restart. It is not the selection: BTC can be on screen while the slot holds LUMIA, and
    *  pressing the HOT tab is what selects it. */
-  const hot = useHotSlot();
+  /** Told which account is on screen, so the PAPER screen's lock poll makes no signed read. */
+  const hot = useHotSlot(undefined, undefined, source);
   /** Every symbol's open position, polled while LIVE is on screen. */
   const positions = useOpenPositions(source === "BINANCE_LIVE");
   /** Symbols other than BTC and the HOT symbol that still hold a position: an ETH position from
@@ -110,7 +111,9 @@ export function CryptoTerminal({ marketContext, contextBase }: {
     previousHot.current = hot.symbol;
     if (before && hot.symbol && before !== hot.symbol && symbol === before) selectSymbol(hot.symbol);
   }, [hot.symbol, symbol, selectSymbol]);
-  const terminal = useCryptoTerminal(symbol);
+  /** The paper account's reads stop on the LIVE screen; its state and candles keep coming,
+   *  because the LIVE chart is still drawn from the paper feed. */
+  const terminal = useCryptoTerminal(symbol, { paper: source === "PAPER" });
   const [timeframe, setTimeframe] = useState<ChartTimeframe>("1m");
   /** C1 is a BTCUSDT research result and stays on BTCUSDT.
    *
@@ -131,7 +134,7 @@ export function CryptoTerminal({ marketContext, contextBase }: {
     ? contextChartLines(context, { timeframe, selection: wallSelection, structure: structureDisplay }) : []),
   [contextOn, context, timeframe, wallSelection, structureDisplay]);
   const wide = useIsWide();
-  const live = useLivePnl(terminal.state?.account?.position_side != null, symbol);
+  const live = useLivePnl(source === "PAPER" && terminal.state?.account?.position_side != null, symbol);
   const binance = useBinanceLive(source === "BINANCE_LIVE", symbol);
   /** The position and price the context under the chart is measured from: the account on screen,
    *  read from the same objects its own chart lines are drawn from. Read only. */

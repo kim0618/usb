@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CryptoApiError } from "@/lib/crypto-paper";
+import { visiblePoll } from "@/lib/visible-poll";
 import {
   HOT_POLL_MS, HOT_SCAN_TIMEOUT_MS, HotRefused, fetchHotState, hotBps, hotLabel, hotPct, hotPrice,
   hotSignedPct, hotTime, hotVolume, postHotScan, readStoredSlot, shouldReplaceSlot, storeSlot,
@@ -20,7 +21,8 @@ export type HotSlotController = ReturnType<typeof useHotSlot>;
  *  happens on the backend, and the button must come back on when the backend says flat, not when
  *  this page last saw a CLOSE succeed. The poll reads no market data and starts no scan.
  */
-export function useHotSlot(pollMs = HOT_POLL_MS, timeoutMs = HOT_SCAN_TIMEOUT_MS) {
+export function useHotSlot(pollMs = HOT_POLL_MS, timeoutMs = HOT_SCAN_TIMEOUT_MS,
+                           source?: "PAPER" | "BINANCE_LIVE") {
   const [slot, setSlot] = useState<HotSlotView | null>(null);
   const [server, setServer] = useState<HotState | null>(null);
   const [scanning, setScanning] = useState(false);
@@ -47,12 +49,12 @@ export function useHotSlot(pollMs = HOT_POLL_MS, timeoutMs = HOT_SCAN_TIMEOUT_MS
    *  backend reports it flat - still the server's answer, just not five seconds late. */
   const refresh = useCallback(async () => {
     try {
-      const body = await fetchHotState();
+      const body = await fetchHotState(undefined, source);
       if (alive.current) applyState(body);
     } catch {
       // The poll will try again.
     }
-  }, [applyState]);
+  }, [applyState, source]);
 
   useEffect(() => {
     alive.current = true;
@@ -62,23 +64,22 @@ export function useHotSlot(pollMs = HOT_POLL_MS, timeoutMs = HOT_SCAN_TIMEOUT_MS
       setSlot(cached);
     }
     const controller = new AbortController();
-    let timer: number | undefined;
-    const read = async () => {
+    // Stops while the tab is hidden and reads at once when it comes back (`visiblePoll`). A
+    // change of account on screen restarts it, which is the immediate read the switch needs.
+    const stop = visiblePoll(async () => {
       try {
-        const body = await fetchHotState(controller.signal);
+        const body = await fetchHotState(controller.signal, source);
         if (alive.current) applyState(body);
       } catch {
         // A failed poll keeps the last answer; the next poll tries again.
       }
-      if (alive.current) timer = window.setTimeout(() => { void read(); }, pollMs);
-    };
-    void read();
+    }, pollMs);
     return () => {
       alive.current = false;
       controller.abort();
-      if (timer !== undefined) window.clearTimeout(timer);
+      stop();
     };
-  }, [applyState, pollMs]);
+  }, [applyState, pollMs, source]);
 
   const scan = useCallback(async () => {
     if (inFlight.current) return;

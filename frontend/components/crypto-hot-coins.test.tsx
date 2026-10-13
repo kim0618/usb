@@ -429,7 +429,7 @@ describe("lock follows the position without waiting for the poll", () => {
     await ready();
     await waitFor(() => expect(hotTab().getAttribute("aria-selected")).toBe("true"));
     await new Promise(resolve => setTimeout(resolve, 300));
-    const reads = () => server.calls.filter(call => call.method === "GET" && /\/api\/crypto\/hot$/.test(call.url)).length;
+    const reads = () => server.calls.filter(call => call.method === "GET" && /\/api\/crypto\/hot(\?|$)/.test(call.url)).length;
     const before = reads();
     server.hot.position = "LONG";                    // the order filled; the state poll sees it
     await waitFor(() => expect(reads()).toBeGreaterThan(before), { timeout: 2_500 });   // poll is 5 s

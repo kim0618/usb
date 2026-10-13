@@ -20,9 +20,11 @@ const response = (timeframe: HistoryTimeframe, bars: ChartBar[], has_more = true
 });
 
 describe("chart V2 history", () => {
-  it("uses bounded initial histories appropriate to every timeframe", () => {
-    expect(CHART_INITIAL_BARS).toEqual({ "1m": 2880, "10m": 2016, "1h": 2160, "4h": 2190, "1d": 2000 });
-    expect(Math.max(...Object.values(CHART_INITIAL_BARS))).toBeLessThan(10_000);
+  it("seeds every timeframe with one page; scrolling back pages in the rest", () => {
+    // Polling optimization V1: the 2,000-2,880 bar seeds timed out at nginx on the read that
+    // opens the screen. One page covers the opening window on any screen.
+    expect(CHART_INITIAL_BARS).toEqual({ "1m": 500, "10m": 500, "1h": 500, "4h": 500, "1d": 500 });
+    expect(Object.values(CHART_INITIAL_BARS).every(bars => bars === CHART_HISTORY_PAGE)).toBe(true);
   });
 
   it("sorts, deduplicates and lets the newest page replace a timestamp", () => {

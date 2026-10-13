@@ -97,8 +97,10 @@ async function call<T>(path: string, init: RequestInit): Promise<T> {
   return body as T;
 }
 
-export const fetchHotState = (signal?: AbortSignal) =>
-  call<HotState>("/api/crypto/hot", { method: "GET", signal });
+/** `source` names the account on screen, so the server reads the LIVE account only for the
+ *  LIVE screen (and then at most every 30 s); the scan itself always reads both. */
+export const fetchHotState = (signal?: AbortSignal, source?: "PAPER" | "BINANCE_LIVE") =>
+  call<HotState>(source ? `/api/crypto/hot?source=${source}` : "/api/crypto/hot", { method: "GET", signal });
 
 export const postHotScan = (signal?: AbortSignal) =>
   call<HotScanAnswer>("/api/crypto/hot/scan", { method: "POST", signal });

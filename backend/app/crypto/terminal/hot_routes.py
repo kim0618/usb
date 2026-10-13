@@ -91,8 +91,8 @@ from decimal import Decimal  # noqa: E402
 from pathlib import Path  # noqa: E402
 
 from ..hot_coins import market as hot_market  # noqa: E402
-from ..hot_coins.lock import SymbolExposure  # noqa: E402
-from ..hot_coins.slot import HOT_SCAN_IN_PROGRESS, controller  # noqa: E402
+from ..hot_coins.lock import LockDecision, SymbolExposure, scan_permission  # noqa: E402
+from ..hot_coins.slot import HOT_SCAN_IN_PROGRESS, CombinedExposure, controller  # noqa: E402
 from ..symbols import (DEFAULT_SYMBOL, admit_dynamic, permitted_symbols,  # noqa: E402
                        retire_dynamic, SUPPORTED_SYMBOLS)
 from .api import runtime  # noqa: E402
@@ -219,10 +219,58 @@ def _hot_body(lock_decision: Any | None = None) -> dict[str, Any]:
     }
 
 
+#: How old the LIVE account's part of the lock may be on the polled LIVE screen.
+VIEW_LIVE_TTL_MS = 30_000
+#: `lock_basis` values: which reading of the account the displayed lock was taken from.
+LOCK_FRESH = "FRESH"
+LOCK_PAPER_ONLY = "PAPER_ONLY"
+LOCK_LIVE_RECENT = "LIVE_RECENT_30S"
+
+
+class _RecentExposure:
+    """A source that reads the exchange, answered from its recent reading for a display."""
+
+    def __init__(self, source: Any) -> None:
+        self.source = source
+
+    def exposure(self, symbol: str) -> SymbolExposure:
+        return self.source.recent_exposure(symbol, VIEW_LIVE_TTL_MS)
+
+
+def _view_lock(source: str | None) -> tuple[LockDecision, str]:
+    """The lock as the polled screen shows it, which is not the lock a scan obeys.
+
+    The PAPER screen leaves the exchange-reading sources out: its 5 s poll made two signed
+    Binance reads per call for a button an operator presses a few times a day. The LIVE screen
+    reuses a signed read for up to 30 s. Either way the scan itself (`POST /hot/scan`) re-reads
+    every source fresh before and after, so a stale or partial display can make the button
+    look available but cannot let a replacement through. No `source` is the original, fresh
+    reading, for any caller that does not say which screen it is.
+    """
+    if source not in ("PAPER", "BINANCE_LIVE"):
+        return controller.lock(), LOCK_FRESH
+    parts: list[Any] = []
+    for item in list(controller.sources):
+        if getattr(item, "reads_exchange", False):
+            if source == "PAPER":
+                continue
+            parts.append(_RecentExposure(item))
+        else:
+            parts.append(item)
+    slot = controller.current()
+    decision = scan_permission(slot.symbol if slot else None, CombinedExposure(parts))
+    return decision, (LOCK_PAPER_ONLY if source == "PAPER" else LOCK_LIVE_RECENT)
+
+
 @app.get("/api/crypto/hot")
-async def hot_state() -> Any:
-    """The current HOT symbol and whether 코인탐색 may replace it right now."""
-    body = await asyncio.to_thread(_hot_body)
+async def hot_state(source: str | None = None) -> Any:
+    """The current HOT symbol and whether 코인탐색 may replace it right now.
+
+    `source` names the account on screen (PAPER or BINANCE_LIVE); see `_view_lock`."""
+    def read() -> dict[str, Any]:
+        decision, basis = _view_lock(source)
+        return {**_hot_body(decision), "lock_basis": basis}
+    body = await asyncio.to_thread(read)
     return jsonable(body)
 
 

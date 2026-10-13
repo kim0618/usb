@@ -26,6 +26,7 @@ import {
   liveLeverageLabel,
 } from "@/lib/crypto-live";
 import { DEFAULT_SYMBOL, baseAsset as baseAssetOf } from "@/lib/crypto-symbols";
+import { visiblePoll } from "@/lib/visible-poll";
 
 /** The unit a quantity on screen is in: Binance's own `baseAsset` when the filters were read,
  *  and the symbol minus "USDT" when they were not.
@@ -1263,11 +1264,11 @@ export function useBinanceLive(enabled: boolean, symbol: string = DEFAULT_SYMBOL
     }
   }, [mine]);
 
+  // Every LIVE read below is a signed Binance request, so none of them runs while the tab is
+  // hidden; coming back reads at once (`visiblePoll`).
   useEffect(() => {
     if (!enabled) return;
-    void refresh();
-    const timer = setInterval(() => { void refresh(); }, pollMs);
-    return () => clearInterval(timer);
+    return visiblePoll(refresh, pollMs);
   }, [enabled, pollMs, refresh, symbol]);
 
   // The bracket table changes with the account's risk tier and with the symbol, not with the
@@ -1277,13 +1278,7 @@ export function useBinanceLive(enabled: boolean, symbol: string = DEFAULT_SYMBOL
 
   useEffect(() => {
     if (!enabled) return;
-    void refreshSizing();
-    void refreshPositionCard();
-    const timer = setInterval(() => {
-      void refreshSizing();
-      void refreshPositionCard();
-    }, SIZING_POLL_MS);
-    return () => clearInterval(timer);
+    return visiblePoll(() => Promise.all([refreshSizing(), refreshPositionCard()]), SIZING_POLL_MS);
   }, [enabled, refreshSizing, refreshPositionCard, symbol]);
 
   const requestPreview = useCallback((size: string) => {

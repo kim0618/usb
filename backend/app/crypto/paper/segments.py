@@ -30,7 +30,8 @@ import gzip
 import hashlib
 import json
 import os
-from dataclasses import dataclass
+import time
+from dataclasses import dataclass, field
 from decimal import Decimal
 from pathlib import Path
 from typing import Any, Iterator
@@ -365,6 +366,14 @@ class SegmentedTape:
     run_dir: Path
     segment_records: int = DEFAULT_SEGMENT_RECORDS
     compress: bool = False
+    #: How long `storage()` may answer from its last reading. 0 reads the disk every call. The
+    #: figure is a sizing panel for the archive, and reading it means globbing and decoding every
+    #: manifest twice and counting the active tape line by line - work the 1 s state poll repeated
+    #: every second for a number that only moves with the tape. A rotation drops the reading.
+    storage_ttl_ms: int = 0
+    clock_ms: Any = field(default=lambda: time.monotonic() * 1000, repr=False, compare=False)
+    _storage: tuple[float, dict[str, Any]] | None = field(default=None, init=False, repr=False,
+                                                          compare=False)
 
     @property
     def active_path(self) -> Path:
@@ -390,6 +399,7 @@ class SegmentedTape:
         """
         if not self.active_path.exists() or self.active_records() == 0:
             return None
+        self._storage = None
         index = self.next_index()
         directory = self.run_dir / SEGMENT_DIR
         directory.mkdir(parents=True, exist_ok=True)
@@ -433,6 +443,7 @@ class SegmentedTape:
         write_atomic(self.run_dir / CHECKPOINT_DIR / f"{index:06d}.checkpoint.json",
                      json.dumps(checkpoint, indent=2, sort_keys=True) + "\n")
         self.active_path.touch()
+        self._storage = None
         return manifest
 
     def replay_from(self, engine: PaperEngine, *, after_segment: int) -> int:
@@ -454,6 +465,16 @@ class SegmentedTape:
         return sum(m.records for m in load_manifests(self.run_dir)) + self.active_records()
 
     def storage(self) -> dict[str, Any]:
+        if self.storage_ttl_ms > 0:
+            now = self.clock_ms()
+            if self._storage is not None and now - self._storage[0] < self.storage_ttl_ms:
+                return dict(self._storage[1])
+            reading = self._read_storage()
+            self._storage = (now, reading)
+            return dict(reading)
+        return self._read_storage()
+
+    def _read_storage(self) -> dict[str, Any]:
         manifests = load_manifests(self.run_dir)
         segment_bytes = sum(m.bytes for m in manifests)
         active_bytes = self.active_path.stat().st_size if self.active_path.exists() else 0
