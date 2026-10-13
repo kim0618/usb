@@ -49,3 +49,29 @@ frontend/.next-build/
 # C1 preview build output; the preview runs on its own port and its own dist directory
 frontend/.next-c1-preview/
 frontend/tsconfig.tsbuildinfo
+
+# Next build output under any distDir (NEXT_DIST_DIR): .next-dashui, .next-wallui, .next-pollqa, ...
+frontend/.next*/
+# Runtime output written relative to backend/ (the root data/runtime/* rule does not reach it)
+backend/data/runtime/
+
+# Research data policy: reports, contracts and small results (about 1.2 MB and under) are
+# committed; raw downloads, caches and large regenerable outputs stay local.
+data/research/**/raw/
+data/research/**/cache/
+data/research/crypto/directional_probability_r0/predictions_fold*.parquet
+data/research/crypto/directional_probability_r0/c1_episode_predictions.parquet
+data/research/crypto/r0_regime/regime_minutes_v1.parquet
+data/research/crypto/btc_p1/predictions_v1.parquet
+data/research/crypto/price_structure_r*/snapshots_hourly_*.jsonl
+data/research/crypto/manual_r1/snapshot/segments/
+data/research/crypto/ptm_r1/r1_train_v1_trades.jsonl
+data/research/crypto/hot_edge_r0/r0_train_v1_readlog.json
+data/research/crypto/c1_exit/c1_lifecycle_snapshots_v1.parquet
+data/research/crypto/c1_exit/e2_counterfactual_v1.parquet
+data/research/crypto/market_context_r0/preview/preview_data.json
+data/research/expert_execution/e1/maker_taker_metrics.parquet
+data/research/expert_execution/e1/order_level_metrics.parquet
+data/research/expert_execution/e2/minute_grid.parquet
+data/research/expert_execution/e2/add_events.parquet
+data/research/expert_execution/e2/reduce_events.parquet
