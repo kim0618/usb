@@ -1,0 +1,69 @@
+{
+ "note": "SUPPLEMENTARY post-result analysis, not in frozen E2 contract, no status effect",
+ "paired_vs_fixed_horizon": {
+  "B1-R480": {
+   "mean": -2.08,
+   "ci": [
+    -7.8,
+    3.55
+   ],
+   "p_boot_pos": 0.235
+  },
+  "B3-R480": {
+   "mean": -3.12,
+   "ci": [
+    -10.76,
+    5.17
+   ],
+   "p_boot_pos": 0.216
+  },
+  "B4-R480": {
+   "mean": -2.01,
+   "ci": [
+    -6.77,
+    2.76
+   ],
+   "p_boot_pos": 0.194
+  },
+  "C3x-R480": {
+   "mean": 0.09,
+   "ci": [
+    -4.55,
+    4.77
+   ],
+   "p_boot_pos": 0.552
+  },
+  "C1x-R120": {
+   "mean": 12.54,
+   "ci": [
+    -4.17,
+    30.2
+   ],
+   "p_boot_pos": 0.927
+  },
+  "C1x-R60": {
+   "mean": 14.25,
+   "ci": [
+    -1.11,
+    30.29
+   ],
+   "p_boot_pos": 0.966
+  },
+  "C2x-R60": {
+   "mean": -4.33,
+   "ci": [
+    -11.3,
+    3.12
+   ],
+   "p_boot_pos": 0.148
+  },
+  "C1x-R480": {
+   "mean": 0.89,
+   "ci": [
+    -38.92,
+    42.56
+   ],
+   "p_boot_pos": 0.481
+  }
+ }
+}

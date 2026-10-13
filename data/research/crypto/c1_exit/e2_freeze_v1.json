@@ -1,0 +1,6 @@
+{
+ "contract": "docs/crypto/c1_exit/C1_EXIT_E2_DYNAMIC_CONTRACT_V1.md",
+ "sha256": "61d194fdafcd05ef47680a6a31755578345b176321d030c22a9bb05a6f51348a",
+ "frozen_at_utc": "2026-10-02T03:15:03.008747+00:00",
+ "computed_before_freeze": "none for E2 candidates; E1 results (E0 and fixed horizons) already known"
+}

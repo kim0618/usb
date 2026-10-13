@@ -1,0 +1,6 @@
+{
+ "contract": "docs/crypto/c1_exit/C1_EXIT_E1_BASELINE_CONTRACT_V1.md",
+ "sha256": "3b2f188fee1e40484242f2a3b325621112bc2de676ef652335ebcd7fcc0d7a35",
+ "frozen_at_utc": "2026-10-02T02:32:11.322364+00:00",
+ "computed_before_freeze": "none (E0 audit read existing D5.2/D6 outputs only; zero new returns)"
+}
