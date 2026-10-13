@@ -11,7 +11,7 @@
  *  most dangerous path in the system untested until the day it is armed.
  */
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { PnlBreakdown, PnlHeadline, PositionCardShell, type BreakdownLine, type Fact } from "@/components/position-card";
+import { PnlBreakdown, PnlHeadline, PositionCardShell, PositionExposure, type BreakdownLine, type Fact } from "@/components/position-card";
 import { MetricCard } from "@/components/ui";
 import { CryptoApiError, costUsdt, holdingDuration, krw, num, price, qty as qtyFmt, signedKrw, signedUsdt,
   toneClass, usdt } from "@/lib/crypto-paper";
@@ -501,21 +501,8 @@ export function LiveExposure({ card, testIdPrefix }: {
 }) {
   if (card.exposure == null) return null;
   const krwValue = card.krw?.exposure;
-  return (
-    <div className="mb-2 flex items-baseline justify-between gap-2 rounded-lg bg-surface-alt px-3 py-2"
-      data-testid={`${testIdPrefix}-exposure-block`}>
-      <p className="text-[11px] text-muted">포지션 규모</p>
-      <p className="min-w-0 text-right">
-        {krwValue != null && (
-          <span className="block whitespace-nowrap text-base font-bold tabular-nums leading-tight text-foreground"
-            data-testid={`${testIdPrefix}-exposure-krw`}>{krw(krwValue)}</span>
-        )}
-        <span className={`block whitespace-nowrap tabular-nums text-foreground-secondary ${
-          krwValue != null ? "text-[11px]" : "text-base font-bold leading-tight"}`}
-          data-testid={`${testIdPrefix}-exposure`}>{usdt(card.exposure)}</span>
-      </p>
-    </div>
-  );
+  return <PositionExposure krw={krwValue != null ? krw(krwValue) : null} usdt={usdt(card.exposure)}
+    testIdPrefix={testIdPrefix} />;
 }
 
 /** The held LIVE position, in the shape the paper card settled on.

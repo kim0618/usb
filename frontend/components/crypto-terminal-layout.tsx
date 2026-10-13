@@ -14,7 +14,7 @@ import {
 } from "@/lib/crypto-paper";
 import { DEFAULT_SYMBOL, baseAsset as baseAssetOf } from "@/lib/crypto-symbols";
 import { visiblePoll } from "@/lib/visible-poll";
-import { PnlBreakdown, PnlHeadline, PositionCardShell, type BreakdownLine, type Fact } from "@/components/position-card";
+import { PnlBreakdown, PnlHeadline, PositionCardShell, PositionExposure, type BreakdownLine, type Fact } from "@/components/position-card";
 import type { Candle, Candle15sStatus, ChartBar, ChartOverlay, ChartPoint, CryptoAccount,
   HistoryTimeframe,
   LivePnl, OpenPositionPnl, PositionPnlPreview } from "@/lib/crypto-paper";
@@ -715,6 +715,7 @@ export function MobilePositionCard({ state, openedMs, nowMs, preview, live, onAc
       leverage={`${num(account.leverage)?.toString() ?? "-"}x`}
       qty={`${qty(account.position_qty)} ${baseAssetOf(state.symbol ?? DEFAULT_SYMBOL)}`}
       held={holdingDuration(openedMs, nowMs)}
+      top={<PaperExposure state={state} testIdPrefix="mobile-position" />}
       headline={<LivePnlHeadline state={state} live={live} preview={preview} />}
       facts={paperFacts(state, live)}
       fold={{ toggleTestId: "mobile-position-detail-toggle", detailTestId: "mobile-position-detail" }}
@@ -727,6 +728,21 @@ export function MobilePositionCard({ state, openedMs, nowMs, preview, live, onAc
           CLOSE · 전량 청산
         </button>} />
   );
+}
+
+/** "포지션 규모" for a paper position, in the block LIVE uses (`LiveExposure`).
+ *
+ *  The figure is the engine's own `mark_notional` (`Position.notional_at(mark)` = abs(qty) x
+ *  mark, the same definition as LIVE's abs(positionRisk.notional)), so it is current size at the
+ *  current mark and follows every partial close or add-on with the next snapshot. Positive for a
+ *  SHORT and never divided by leverage. KRW uses the run's fixed rate `state.fx.krw_per_usdt`,
+ *  the one rate every other paper won figure is converted at. */
+function PaperExposure({ state, testIdPrefix }: { state: CryptoState; testIdPrefix: string }) {
+  const notional = state.account?.mark_notional;
+  if (notional == null) return null;
+  const rate = state.fx?.krw_per_usdt;
+  const won = rate != null ? krw(String(Number(notional) * Number(rate))) : null;
+  return <PositionExposure krw={won} usdt={usdt(notional)} testIdPrefix={testIdPrefix} />;
 }
 
 /** The paper position's facts in the card's one order. 마진 모드 is a LIVE account setting the
@@ -758,6 +774,7 @@ export function PositionStrip({ state, openedMs, nowMs, preview, live }: {
       leverage={`${num(account.leverage)?.toString() ?? "-"}x`}
       qty={`${qty(account.position_qty)} ${baseAssetOf(state.symbol ?? DEFAULT_SYMBOL)}`}
       held={holdingDuration(openedMs, nowMs)}
+      top={<PaperExposure state={state} testIdPrefix="position-strip" />}
       headline={<LivePnlHeadline state={state} live={live} preview={preview} />}
       facts={paperFacts(state, live)}
       breakdown={preview?.position_open ? <PositionPnlBreakdown preview={preview} state={state} /> : undefined} />

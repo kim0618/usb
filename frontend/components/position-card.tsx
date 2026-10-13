@@ -132,6 +132,32 @@ export function PnlBreakdown({ lines, totals, quoteAge, quoteAgeTestId, unavaila
   );
 }
 
+/** "포지션 규모": the position's value at the mark, positive, KRW over USDT.
+ *
+ *  One block for both sources so LIVE and PAPER print it in the same place and the same format.
+ *  The caller formats both strings from its own backend field (LIVE: the server card's
+ *  `exposure` = abs(positionRisk.notional); PAPER: the engine's `mark_notional` =
+ *  abs(qty) x mark). Not divided by leverage: that would be the margin, a different number. */
+export function PositionExposure({ krw, usdt, testIdPrefix }: {
+  krw: string | null; usdt: string; testIdPrefix: string;
+}) {
+  return (
+    <div className="mb-2 flex items-baseline justify-between gap-2 rounded-lg bg-surface-alt px-3 py-2"
+      data-testid={`${testIdPrefix}-exposure-block`}>
+      <p className="text-[11px] text-muted">포지션 규모</p>
+      <p className="min-w-0 text-right">
+        {krw != null && (
+          <span className="block whitespace-nowrap text-base font-bold tabular-nums leading-tight text-foreground"
+            data-testid={`${testIdPrefix}-exposure-krw`}>{krw}</span>
+        )}
+        <span className={`block whitespace-nowrap tabular-nums text-foreground-secondary ${
+          krw != null ? "text-[11px]" : "text-base font-bold leading-tight"}`}
+          data-testid={`${testIdPrefix}-exposure`}>{usdt}</span>
+      </p>
+    </div>
+  );
+}
+
 /** The card itself. `fold` is the phone form: only the first `quickCount` facts and the CLOSE
  *  footer are visible, and the remaining facts plus the breakdown sit under a toggle. On a wide
  *  screen everything is open. The sections and their order are the same either way. */
