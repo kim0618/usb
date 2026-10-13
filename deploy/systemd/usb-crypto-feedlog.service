@@ -1,0 +1,10 @@
+[Unit]
+Description=US-B CRYPTO paper terminal feed-transition log (samples counters, writes only on change)
+After=usb-crypto-paper.service
+
+[Service]
+Type=oneshot
+User=root
+ExecStart=/usr/bin/python3 /root/usb_runtime/crypto_paper/bin/crypto-feedlog.py
+MemoryMax=80M
+Nice=15
