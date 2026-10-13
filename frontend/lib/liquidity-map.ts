@@ -177,8 +177,14 @@ export interface ResnapshotView {
   protected_band_bps?: string;
   coverage_margin_bps?: string | null;
   coverage_trigger_bps?: string;
-  coverage_cooldown_s?: number;
-  coverage_cooldown_remaining_s?: number | null;
+  /** V1.5: the floors are per trigger. The coverage edge waits 10 s between installs, not the
+   *  300 s both triggers shared through v4, which was measured leaving the +-0.1% band outside
+   *  the known interval for 72 consecutive seconds. The old keys are gone rather than left
+   *  reading 300: a stale number on a screen is worse than a missing one. */
+  coverage_min_interval_s?: number;
+  coverage_min_interval_remaining_s?: number | null;
+  safety_refresh_min_interval_s?: number;
+  safety_min_interval_remaining_s?: number | null;
   safety_refresh_s?: number;
   snapshot_age_s?: number | null;
   coverage_refreshes?: number;
@@ -197,6 +203,17 @@ export interface ResnapshotView {
   refresh_retry_in_s?: number | null;
   refresh_deadline_ms?: number;
   failed_refresh_consumes_cooldown?: boolean;
+  /** V1.5 request ownership: a response that arrives after its attempt ended is discarded, so
+   *  the screen can state that a late snapshot cannot install rather than implying it. */
+  late_response_can_install?: boolean;
+  snapshot_requests_issued?: number;
+  snapshot_responses_discarded?: Record<string, number>;
+  snapshot_request?: {
+    snapshot_request_id: string; refresh_attempt_id: string | null; purpose: string | null;
+    request_state: string | null; requested_ms: number; trigger: string | null;
+    closed_reason: string | null; closed_ms: number | null;
+    response_disposition: string | null; response_age_ms: number | null;
+  } | null;
   refresh_in_progress?: {
     trigger: string; state: string; outcome: string | null; failure: string | null;
     snapshot_update_id: number | null; round_trip_ms: number | null;
@@ -656,6 +673,17 @@ export const REASON_LABELS: Record<string, string> = {
   QUEUE_OVERFLOW: "버퍼 초과",
   SNAPSHOT_REJECTED: "스냅샷 거절",
   shutdown: "collector 종료",
+  // V1.5 request ownership: what happened to a REST response, and why it was not installed.
+  APPLIED: "요청한 주체가 사용",
+  DISCARDED_ABORTED: "폐기 (요청이 중단됨)",
+  DISCARDED_EXPIRED: "폐기 (요청이 만료됨)",
+  DISCARDED_WRONG_OWNER: "폐기 (소유자 불일치)",
+  SOFT_REFRESH: "자발 갱신",
+  HARD_RECOVERY: "결함 복구",
+  INITIAL_SYNC: "최초 동기화",
+  SUPERSEDED_BY_NEWER_REQUEST: "더 새 요청으로 대체됨",
+  RESPONSE_PAST_REFRESH_DEADLINE: "응답이 제한시간을 넘김",
+  OWNING_ATTEMPT_IS_NOT_THE_CURRENT_ONE: "요청한 시도가 더 이상 현재 시도가 아님",
 };
 
 /** The five gates a voluntary refresh has to pass before anything may be carried. */

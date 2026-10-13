@@ -148,13 +148,16 @@ function resnapshotView(overrides: Partial<ResnapshotView> = {}): ResnapshotView
     available: true, unavailable_reason: null, stale: false,
     policy: "FAULT_IMMEDIATE_PLUS_COVERAGE_EDGE_PLUS_HOURLY_SAFETY",
     fixed_interval_polling: false, protected_band_bps: "10", coverage_margin_bps: "4.44",
-    coverage_trigger_bps: "1.0", coverage_cooldown_s: 300,
-    coverage_cooldown_remaining_s: null, safety_refresh_s: 3600, snapshot_age_s: 1641.2,
+    coverage_trigger_bps: "1.0", coverage_min_interval_s: 10,
+    coverage_min_interval_remaining_s: null, safety_refresh_min_interval_s: 300,
+    safety_min_interval_remaining_s: null, safety_refresh_s: 3600, snapshot_age_s: 1641.2,
     coverage_refreshes: 0, safety_refreshes: 0, refreshes_rejected: 0, resyncs: 1,
     generation: 1, pending_reason: null,
     install: "STAGED_BUFFER_AND_REPLAY_ATOMIC_SWAP", refreshes_applied: 0,
     refresh_failures_consecutive: 0, refresh_retry_backoff_s: 10, refresh_retry_in_s: null,
     refresh_deadline_ms: 1000, failed_refresh_consumes_cooldown: false,
+    late_response_can_install: false, snapshot_requests_issued: 1,
+    snapshot_responses_discarded: {}, snapshot_request: null,
     refresh_in_progress: null,
     cost_note: "a resnapshot increments the book generation",
     note: "재스냅샷은 고정 주기 폴링이 아닙니다. 재스냅샷은 generation을 올려 모든 wall 관측을 "
@@ -839,11 +842,16 @@ describe("resnapshot panel", () => {
     expect(screen.getByTestId("lm-resnapshot")).not.toHaveTextContent("resnapshot increments");
   });
 
-  it("warns when the margin has nearly run out", () => {
+  it("warns when the margin has nearly run out, without overstating what a refresh costs", () => {
     const tight = snapshot();
     tight.resnapshot = resnapshotView({ coverage_margin_bps: "1.20" });
     render(<ResnapshotPanel snapshot={tight} />);
-    expect(screen.getByTestId("lm-resnapshot-tight")).toHaveTextContent("UNKNOWN으로 끝납니다");
+    const warning = screen.getByTestId("lm-resnapshot-tight");
+    expect(warning).toHaveTextContent("UNKNOWN으로 끝납니다");
+    // Through v4 this sentence said every wall observation ends. A staged refresh that passes
+    // the gates carries them, so the warning now states both outcomes and the 10 s floor.
+    expect(warning).toHaveTextContent("최소간격 10.0s마다 다시 요청될 수 있습니다");
+    expect(warning).toHaveTextContent("통과하면 wall 관측은 이어지고");
   });
 
   it("does not warn while there is room", () => {
@@ -858,12 +866,35 @@ describe("resnapshot panel", () => {
     expect(screen.getByTestId("lm-resnapshot-pending")).toHaveTextContent("coverage_edge");
   });
 
-  it("shows the cooldown remaining after a coverage refresh", () => {
+  it("shows the coverage floor remaining after a refresh, and that it is ten seconds", () => {
     const cooling = snapshot();
     cooling.resnapshot = resnapshotView({ coverage_refreshes: 2,
-      coverage_cooldown_remaining_s: 120 });
+      coverage_min_interval_remaining_s: 4 });
     render(<ResnapshotPanel snapshot={cooling} />);
-    expect(screen.getByTestId("lm-resnapshot")).toHaveTextContent("쿨다운 2m 0s 남음");
+    expect(screen.getByTestId("lm-resnapshot")).toHaveTextContent("최소간격 4.0s 남음");
+  });
+
+  it("states the floor itself when nothing is counting down", () => {
+    render(<ResnapshotPanel snapshot={snapshot()} />);
+    expect(screen.getByTestId("lm-resnapshot")).toHaveTextContent("최소간격 10.0s");
+    expect(screen.getByTestId("lm-resnapshot")).not.toHaveTextContent("쿨다운");
+  });
+
+  it("names every late response it refused, and says the book did not move", () => {
+    const discarded = snapshot();
+    discarded.resnapshot = resnapshotView({
+      snapshot_responses_discarded: { DISCARDED_ABORTED: 2, DISCARDED_EXPIRED: 1 },
+    });
+    render(<ResnapshotPanel snapshot={discarded} />);
+    const row = screen.getByTestId("lm-resnapshot-discarded");
+    expect(row).toHaveTextContent("폐기 (요청이 중단됨) 2");
+    expect(row).toHaveTextContent("폐기 (요청이 만료됨) 1");
+    expect(row).toHaveTextContent("책 변경 0");
+  });
+
+  it("says nothing about discards when there have been none", () => {
+    render(<ResnapshotPanel snapshot={snapshot()} />);
+    expect(screen.queryByTestId("lm-resnapshot-discarded")).toBeNull();
   });
 
   it("says the figures are from the last state file when it stopped moving", () => {
@@ -1147,8 +1178,9 @@ describe("the staged refresh on screen", () => {
     render(<ResnapshotPanel snapshot={snapshot()} />);
     const panel = screen.getByTestId("lm-resnapshot-install");
     expect(panel).toHaveTextContent("update id가 같아졌을 때만 교체");
-    expect(panel).toHaveTextContent("쿨다운도 소모하지 않습니다");
+    expect(panel).toHaveTextContent("최소간격도 소모하지 않습니다");
     expect(panel).toHaveTextContent("10.0s");
+    expect(panel).toHaveTextContent("시도가 끝난 뒤 도착한 응답은 설치되지 않고 폐기됩니다");
   });
 
   it("shows a refresh that is mid-flight, with what it has buffered and replayed", () => {

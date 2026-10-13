@@ -74,34 +74,55 @@ describing any of it as a confirmed strategy or as operationally applicable, and
   base of a second book, the buffer is replayed onto it, and the swap happens only when
   `staging.last_update_id == live.last_update_id`. The swap therefore changes levels and bounds
   and never assigns the chain position, so a rollback is structurally impossible.
-* **Continuity = `lm-continuity.v4`** (`liquidity_map_v1/WALL_CONTINUITY_V1_2.md`, sha256
+* **Continuity = `lm-continuity.v5`** (`liquidity_map_v1/WALL_CONTINUITY_V1_2.md`, sha256
+  `c9d9659c8957501c97e570aaf55d8cf616e3c6733c6a238174c86365031fed44`, superseding v4's
   `0ed46edcc0a58957b99cc14bf5b8bba92a4111eb94026b7353311042e58327b3`). HARD is the default and
-  carries nothing. SOFT requires all five gates. v4's single change is that S4's 300 ms ceiling
-  does not apply to a staged refresh whose chain was preserved, because that window contains no
+  carries nothing. SOFT requires all five gates. v4's change was that S4's 300 ms ceiling does
+  not apply to a staged refresh whose chain was preserved, because that window contains no
   unenumerated event; the exemption requires `chain_preserved` plus S1, S2, S3 and a measured
-  window, and every transition publishes which case it was in.
+  window, and every transition publishes which case it was in. v5 adds two things and changes no
+  gate: every REST snapshot request carries an owner, so a response that arrives after its
+  attempt ended is discarded rather than installed; and the coverage-edge floor between installed
+  refreshes is 10 s rather than the 300 s both voluntary triggers shared.
+* **Request ownership** (V1.5). Each request has an id, a purpose (`SOFT_REFRESH`,
+  `HARD_RECOVERY`, `INITIAL_SYNC`) and a state (`ACTIVE`, `APPLIED`, `ABORTED`, `EXPIRED`), and
+  every response publishes `response_disposition` with the request id, the attempt id and the
+  response's age. A `SOFT_REFRESH` response can reach the live book only through the staged swap:
+  there is no promotion to the recovery path, including when the book faulted mid-read, which
+  costs one extra round trip and removes the only code path that could install a snapshot for a
+  purpose it was not requested for.
 * **Writer collision: root cause found and fixed.** `flock` locks an inode, not a path, so
   deleting the lock file let a second writer in silently. The fix is two-sided: the incumbent
   re-checks the inode and fails closed, and a newcomer refuses on a fresh state file plus a live
   pid. Deleting the whole output root is the case the newcomer cannot detect, and that limit is
   pinned by a test rather than left implicit.
 
+### Closed in V1.5
+
+1. **Late aborted-snapshot install.** Was: a staged refresh abandoned at `REFRESH_DEADLINE_MS`
+   left its REST read in flight, the late response found no refresh in progress, and the recovery
+   path installed it onto a healthy book with no newer-check - about 141,000 update ids backwards
+   and a `GAP_FIRST_DELTA` under forced conditions. **Fixed by request ownership**, and measured
+   live in two forced sessions: 24 late responses (17 at a 1,400 ms injected delay, 7 at
+   2,500 ms), **0 installed, 0 rollbacks, 0 gaps**, avoided rollback 61,800 to 153,754 ids per
+   response. See `liquidity_map_v1/REQUEST_OWNERSHIP_V1_5_REPORT.md`.
+2. **The 300 s cooldown on a successful coverage refresh.** Was measured costing 72 seconds of
+   broken ±0.1% band promise in a 30-minute natural session (negative 4.0%, worst -1.85 bp),
+   entirely inside one cooldown window. **Now a 10 s floor**, with the safety trigger keeping its
+   300 s floor and fault recovery staying immediate. The floor is a data quality guarantee and
+   nothing reads it to decide anything. Measured in a 31-minute natural session on the new policy:
+   5 triggers, 5 installed, 0 refused, margin under the trigger 0.27% and negative 0.00% against
+   V1.4's 10.5% and 4.0%, and ±0.1% COMPLETE on 3,718 of 3,718 band readings. Two of the four
+   intervals between installs (62.9 s and 118.0 s) are shorter than the old 300 s cooldown, so
+   under v4 those two refreshes would have been refused.
+
 ### Current known limitations, unfixed
 
-1. **Late aborted-snapshot install.** When a staged refresh is abandoned at
-   `REFRESH_DEADLINE_MS` (1,000 ms) its REST read is still in flight. The late snapshot arrives,
-   finds no refresh in flight, and is installed by the *recovery* path onto a healthy book with
-   no check that it is newer. Measured under forced conditions: the book went back about 141,000
-   update ids and the next frame was `GAP_FIRST_DELTA`. **Unfixed. Not assigned to a separate
-   session.** Reachable only when the REST read itself exceeds 1,000 ms; observed production
-   reads are 75-175 ms and the worst ever recorded is 485 ms.
-2. **The 300 s cooldown on a successful refresh.** Measured costing 72 seconds of broken ±0.1%
-   band promise in a 30-minute natural session (negative 4.0%, worst -1.85 bp), entirely inside
-   one cooldown window. Held at 300 s by decision. **Unfixed, open for review.**
-3. **Not production ready**, and the Liquidity Map does not claim to be: no live HARD resync has
+1. **Not production ready**, and the Liquidity Map does not claim to be: no live HARD resync has
    been observed outside forced conditions, the hourly safety refresh has never fired of its own
    accord, there has been no 24-hour session, and the app shell is untouched. The 24-hour
-   isolated trial is prepared and not started (`liquidity_map_v1/TRIAL_24H_RUNBOOK_V1_4.md`).
+   isolated trial is prepared and not started (`liquidity_map_v1/TRIAL_24H_RUNBOOK_V1_4.md`,
+   whose content is V1.5).
 
 ## Current Strategic Direction
 

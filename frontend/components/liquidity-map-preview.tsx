@@ -539,9 +539,9 @@ export function ResnapshotPanel({ snapshot }: { snapshot: LiquiditySnapshot | nu
         <Field label="스냅샷 나이" value={seconds(policy.snapshot_age_s)}
           sub={`안전 갱신 ${seconds(policy.safety_refresh_s)}`} />
         <Field label="구간 갱신" value={num(policy.coverage_refreshes, 0)}
-          sub={policy.coverage_cooldown_remaining_s
-            ? `쿨다운 ${seconds(policy.coverage_cooldown_remaining_s)} 남음`
-            : `쿨다운 ${seconds(policy.coverage_cooldown_s)}`} />
+          sub={policy.coverage_min_interval_remaining_s
+            ? `최소간격 ${seconds(policy.coverage_min_interval_remaining_s)} 남음`
+            : `최소간격 ${seconds(policy.coverage_min_interval_s)}`} />
         <Field label="설치 / 거절"
           value={`${num(policy.refreshes_applied, 0)} / ${num(policy.refreshes_rejected, 0)}`}
           sub={`안전 갱신 ${num(policy.safety_refreshes, 0)} · generation ${policy.generation ?? MISSING}`} />
@@ -550,9 +550,22 @@ export function ResnapshotPanel({ snapshot }: { snapshot: LiquiditySnapshot | nu
       {policy.install && <p className="mt-3 text-[11px] leading-4 text-muted"
         data-testid="lm-resnapshot-install">
         자발 갱신은 별도 책에 스냅샷을 깔고 왕복 중 도착한 프레임을 재생한 뒤, 두 책의 update id가
-        같아졌을 때만 교체합니다. 실패해도 기존 책은 그대로이고 쿨다운도 소모하지 않습니다
-        (재시도 {seconds(policy.refresh_retry_backoff_s)}).
+        같아졌을 때만 교체합니다. 실패해도 기존 책은 그대로이고 최소간격도 소모하지 않습니다
+        (재시도 {seconds(policy.refresh_retry_backoff_s)}). 모든 REST 요청에는 소유자가 있어,
+        시도가 끝난 뒤 도착한 응답은 설치되지 않고 폐기됩니다.
       </p>}
+
+      {/* The discard counters. A late response that was refused is the defect V1.5 closed, so
+          the screen has to be able to say "it happened, N times, and the book did not move" -
+          the alternative is a silence that looks exactly like a read that never happened. */}
+      {policy.snapshot_responses_discarded
+        && Object.keys(policy.snapshot_responses_discarded).length > 0
+        && <p className="mt-2 text-xs font-medium text-primary"
+          data-testid="lm-resnapshot-discarded">
+          소유자 없는 응답 폐기: {Object.entries(policy.snapshot_responses_discarded)
+            .map(([code, count]) => `${reasonLabel(code)} ${count}`).join(" · ")}
+          {policy.late_response_can_install === false && <> · 책 변경 0</>}
+        </p>}
 
       {policy.refresh_in_progress && <p className="mt-2 text-xs font-medium text-primary"
         data-testid="lm-resnapshot-staging">
@@ -573,8 +586,10 @@ export function ResnapshotPanel({ snapshot }: { snapshot: LiquiditySnapshot | nu
       </p>}
       {tight && <p className="mt-3 rounded-md border border-warning bg-warning-soft px-2.5 py-1.5 text-xs font-medium text-warning"
         data-testid="lm-resnapshot-tight">
-        관측 구간이 ±0.1% 약속 경계에 접근했습니다. 트리거에 닿으면 재스냅샷이 1회 요청되고 그
-        시점에 모든 wall 관측이 UNKNOWN으로 끝납니다.</p>}
+        관측 구간이 ±0.1% 약속 경계에 접근했습니다. 트리거에 닿으면 재스냅샷이 1회 요청되고,
+        최소간격 {seconds(policy.coverage_min_interval_s)}마다 다시 요청될 수 있습니다. 설치가
+        연속성 게이트를 통과하면 wall 관측은 이어지고, 통과하지 못하면 그 시점에 UNKNOWN으로
+        끝납니다.</p>}
       {policy.pending_reason && <p className="mt-3 text-xs font-medium text-primary"
         data-testid="lm-resnapshot-pending">재스냅샷 요청됨: {policy.pending_reason}</p>}
       {policy.stale && <p className="mt-3 text-xs font-medium text-warning"
