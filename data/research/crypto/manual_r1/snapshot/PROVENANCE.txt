@@ -1,0 +1,13 @@
+c5b04426942a6915e123b5e496607e789d815f2f25817f38fcc98d19fa815af8  ledger.jsonl
+46941564a5ce3e458cde654216796289a5d1583a06ed085749141ca360ccd1df  run_config.json
+bcb7d1abf05620ee129078e318293cd3bb01550c72b1e500c5e905cdc1c3c2ba  input.jsonl
+--- server time ---
+2026-09-28T06:21:53Z
+
+--- segments snapshot (read-only) ---
+000001.input.jsonl  75721 records  2026-09-23 04:57 -> 2026-09-24 04:05  sha256 verified against server manifest
+000002.input.jsonl  20000 records  2026-09-24 04:05 -> 2026-09-24 08:07  sha256 verified against server manifest
+000010.input.jsonl  20000 records  2026-09-26 02:27 -> 2026-09-26 08:54  sha256 verified against server manifest
+input.jsonl (live tail) hash differs from the server listing because the file is appended
+continuously; the copy is a point-in-time prefix. ledger.jsonl and run_config.json matched exactly.
+No write, no order, no reset, no restart was issued on the server.

@@ -1,0 +1,147 @@
+{
+ "record": "MANUAL_R1_MANUAL_SUBSET_RESULTS_V1",
+ "supersedes_interpretation_of": "MANUAL_R1_RESULTS_V1",
+ "supersedes_note": "the arithmetic in results_v1.json is unchanged and still correct; what is withdrawn is reading its aggregate as the operator's trading performance",
+ "aggregate_verdict": "INVALID_MIXED_PROVENANCE",
+ "user_manual_verdict": "INSUFFICIENT_SAMPLE",
+ "provenance_audit_verdict": "PARTIAL",
+ "auto_readiness": "NOT_AUTHORIZED",
+ "ledger_modified": false,
+ "production_touched": false,
+ "classification_rule": "only CONFIRMED and HIGH enter a performance figure; MEDIUM and UNKNOWN are reported and counted nowhere",
+ "classification_summary": {
+  "classified_trades": 17,
+  "by_origin": {
+   "DEV_SMOKE": 6,
+   "SIZING_TEST": 2,
+   "TEST_UNSPECIFIED": 6,
+   "UNKNOWN": 2,
+   "USER_MANUAL": 1
+  },
+  "by_origin_group": {
+   "TEST": 14,
+   "UNKNOWN": 2,
+   "USER": 1
+  },
+  "countable_user": [
+   17
+  ],
+  "countable_test": [
+   6,
+   15,
+   16
+  ],
+  "counted_nowhere": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13,
+   14
+  ],
+  "open_position": {
+   "trade_index": null,
+   "origin": "USER_MANUAL",
+   "origin_group": "USER",
+   "confidence": "CONFIRMED",
+   "evidence_tier": "TIER_1_DIRECT",
+   "evidence_reference": "memory project_usb_crypto_server_deploy line 177 plus operator declaration",
+   "evidence_note": "The V2.7 deployment note of 9/27 records '\uc0ac\uc6a9\uc790 SHORT 0.921@84038.20' while verifying the ledger was unchanged across a restart. The open position is SHORT 0.921 at 84038.20, and the operator names it as their own.",
+   "include_in_manual_performance": true,
+   "include_in_test_performance": false
+  },
+  "rule": "only CONFIRMED and HIGH enter a performance figure; MEDIUM and UNKNOWN are reported and counted nowhere"
+ },
+ "groups": {
+  "USER": {
+   "group": "USER",
+   "trades": 1,
+   "trade_indices": [
+    17
+   ],
+   "gross_pnl": 729.4982,
+   "fees": 398.75115478,
+   "funding": 0.0,
+   "net_pnl": 330.74704522,
+   "wins": 1,
+   "ratios": "WITHHELD_INSUFFICIENT_SAMPLE",
+   "ratios_note": "win rate, profit factor, drawdown and expectancy are not reported below 10 completed trades; with n=1 they would be restatements of the individual trades"
+  },
+  "TEST": {
+   "group": "TEST",
+   "trades": 3,
+   "trade_indices": [
+    6,
+    15,
+    16
+   ],
+   "gross_pnl": 7.6727,
+   "fees": 108.79922355500001,
+   "funding": 0.0,
+   "net_pnl": -101.126523555,
+   "wins": 0,
+   "ratios": "WITHHELD_INSUFFICIENT_SAMPLE",
+   "ratios_note": "win rate, profit factor, drawdown and expectancy are not reported below 10 completed trades; with n=3 they would be restatements of the individual trades"
+  }
+ },
+ "counted_nowhere": {
+  "trades": 13,
+  "trade_indices": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13,
+   14
+  ],
+  "net_pnl": -643.4811224719999,
+  "note": "reported for completeness, included in no performance figure; these are MEDIUM-confidence or UNKNOWN classifications"
+ },
+ "all_completed_trades_for_reference": {
+  "trades": 17,
+  "net_pnl": -413.8606008069999,
+  "note": "ledger fact. Not a performance figure for any person or strategy."
+ },
+ "open_position": {
+  "opened_ts_ms": 1790409133083,
+  "opened_utc": "2026-09-26T07:52:13Z",
+  "side": "SHORT",
+  "signed_qty": -0.921,
+  "entry_price": 84038.2,
+  "leverage": 10.0,
+  "segment": 3,
+  "fees_so_far": 42.56955021,
+  "funding_so_far": -46.6220331,
+  "note": "still open at the snapshot; excluded from realised performance",
+  "provenance": {
+   "trade_index": null,
+   "origin": "USER_MANUAL",
+   "origin_group": "USER",
+   "confidence": "CONFIRMED",
+   "evidence_tier": "TIER_1_DIRECT",
+   "evidence_reference": "memory project_usb_crypto_server_deploy line 177 plus operator declaration",
+   "evidence_note": "The V2.7 deployment note of 9/27 records '\uc0ac\uc6a9\uc790 SHORT 0.921@84038.20' while verifying the ledger was unchanged across a restart. The open position is SHORT 0.921 at 84038.20, and the operator names it as their own.",
+   "include_in_manual_performance": true,
+   "include_in_test_performance": false
+  }
+ },
+ "not_recomputed": {
+  "entry_behaviour_comparisons": "the entry-versus-control comparison in MANUAL_R1_RESULTS_V1 is not rerun per group: the USER group has one entry, and a one-point distribution has nothing to compare",
+  "h1_h2_h3": "CONTAMINATED",
+  "h4": "NOT_EVALUABLE"
+ }
+}

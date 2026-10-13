@@ -1,0 +1,46 @@
+{
+  "fees": {
+    "basis": "OFFICIAL_PUBLIC_VIP0_TIER_ASSUMED",
+    "effective_date": "2026-09-02",
+    "maker_rate": "0.0002",
+    "source": "OFFICIAL bybit.com/en/help-center/article/Trading-Fee-Structure VIP 0 Perpetual, page last updated 2026-09-02 01:17:46, html sha256 b9bb8db5d8c2443d90b4d38d87c769d8a0880fd2b4c692130d294c6756879d70",
+    "taker_rate": "0.00055",
+    "version": "bybit-official-vip0-2026-09-02"
+  },
+  "fx": {
+    "asof_utc": "2026-09-23T04:55:48Z",
+    "krw_per_usdt": "1341.00",
+    "source": "upbit public ticker KRW-USDT (api.upbit.com/v1/ticker), trade_price, captured on trader-j at 2026-09-23T04:55:48Z"
+  },
+  "instrument": {
+    "contract_type": "LinearPerpetual",
+    "funding_interval_minutes": 480,
+    "leverage_step": "0.01",
+    "max_leverage": "150.00",
+    "max_mkt_order_qty": "150.000",
+    "max_order_qty": "1500.000",
+    "min_leverage": "1",
+    "min_notional_value": "5",
+    "min_order_qty": "0.001",
+    "qty_step": "0.001",
+    "settle_coin": "USDT",
+    "source": "D1 CRYPTO_D1_PREFLIGHT_FINDINGS_V1.md section 1",
+    "symbol": "BTCUSDT",
+    "tick_size": "0.10"
+  },
+  "leverage": "10",
+  "liquidation_fill_basis": "MARK_AT_TRIGGER",
+  "max_market_qty_policy": "REJECT",
+  "paper_engine_version": "d4.1",
+  "qty_off_grid_policy": "REJECT",
+  "reverse_policy": "REJECT",
+  "risk_limit_sha256": "cf4b90de8d2f2895a6984795299e1e13eac1f3d0f556b35ce14233118bf35818",
+  "risk_limit_source": "/root/usb_runtime/crypto_paper/reference/risk_limit_1790128376.json",
+  "run_id": "paper-server-001",
+  "slippage": {
+    "bps": "0",
+    "model": "NONE"
+  },
+  "starting_capital_krw": "1000000",
+  "starting_capital_usdt": "745.7121551081282624906785981"
+}
