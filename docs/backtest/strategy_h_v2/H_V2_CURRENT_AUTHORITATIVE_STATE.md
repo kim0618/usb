@@ -22,8 +22,10 @@ Research build (D1-D6)   = COMPLETE, CLOSED unless a structural bug is found
 D7 forward shadow        = LAUNCHED 2026-10-04T08:34:30Z (baseline session 2026-10-02)
 Forward observation      = ACTIVE (prices and outcomes validated, 1D/5D matured)
 Production operations    = HEALTHY (repair 81f06c8 deployed, timer ENABLED, 2026-10-10)
-Paper execution          = READY (H_V2_PAPER_EXECUTION_V1 frozen and implemented locally, 2026-10-13);
-                           NOT deployed, NOT launched -> production H is still SHADOW_ONLY
+Paper execution          = ACTIVE in production (backend, 2026-10-13 16:12 KST; H_PAPER_V1_LAUNCH
+                           2026-10-13T07:09:00Z; $10,000, 0 positions, 0 trades). Frontend build DEFERRED
+Refresh executor         = NOT IMPLEMENTED
+New-candidate intake     = NOT_WIRED
 ```
 
 No further research is planned. A return to research is allowed only for a structural bug. It is
@@ -44,6 +46,7 @@ not allowed because APPROVE has not appeared or because of forward results.
 | D7 operations repair | DEPLOYED | `H_V2_D7_OPERATIONS_REPAIR_V1.md` |
 | D7 production activation | HEALTHY | `H_V2_D7_PRODUCTION_ACTIVATION_V1.md` |
 | Paper execution V1 | READY (local) | `H_V2_PAPER_EXECUTION_CONTRACT_V1.md` |
+| Paper execution production | ACTIVE (backend), frontend DEFERRED | `H_V2_PAPER_EXECUTION_PRODUCTION_V1.md` |
 | Refresh batch R1 | PREREGISTERED, executor NOT READY | `H_V2_REFRESH_BATCH_R1_PREREGISTRATION_V1.md` |
 
 ## D. Frozen contracts in force
@@ -147,9 +150,11 @@ usb-h-forward.service  →  run_h_v2_d7 update
 * **AEYE REFRESH_DUE is a scan artefact (2026-10-13).** Its 2026-09-18 8-K is chunked into the T1
   package that D3 read (cutoff 2026-09-28). The scan compares against the decision session, not the
   evidence cutoff. The research queue marks AEYE `EVIDENCE_ALREADY_IN_THESIS`. FG and VRRM are genuine.
-* **Sizing:** in production the forward contract still says NOT_DEFINED until the paper code is deployed
-  and `paper-launch` runs. After that, `H_V2_PAPER_EXECUTION_V1` applies, but only to an APPROVE
-  recorded after the launch.
+* **Sizing:** `H_V2_PAPER_EXECUTION_V1` is in force in production since the paper launch
+  (2026-10-13T07:09:00Z). It applies only to an APPROVE recorded after that time. The forward shadow
+  contract still says NOT_DEFINED for the shadow itself, which holds no position.
+* **Frontend:** the H paper screens (card money, `/trading-h` positions and fills) are not yet in the
+  production build. The API serves them already.
 * **New-candidate intake (D1/E1/E2/E3) = NOT_WIRED.** It is a manual dev script on a stale universe
   snapshot (CS_2024-10-25) and the mirror, which ends 2026-09-16. H tracks only its eight launch
   issuers.
@@ -162,6 +167,11 @@ usb-h-forward.service  →  run_h_v2_d7 update
   stays out of the A+E combined P&L and the A/E paper gate.
 
 ## L. Production deployment state
+
+2026-10-13 addition, H paper execution (`H_V2_PAPER_EXECUTION_PRODUCTION_V1.md`): 15 files from
+`5093f6c` were copied over db41f04 and `usb-backend` was restarted once. `paper/launch.json` was
+written at 2026-10-13T07:09:00Z. Units unchanged. A/E API and E paper files are byte-identical
+before and after. The D7 runtime is unchanged apart from the new `paper/`.
 
 ```text
 code (D7 launch, UI, API)   = DEPLOYED (server git HEAD db41f04)
@@ -192,7 +202,7 @@ Observation only. No research unless a structural bug is found:
 2. Watch daily forward outcomes, new material filings, WATCH/REJECT transitions and a future APPROVE.
 3. Watch 21D (2026-11-02) and 63D (2027-01-04) maturation.
 4. Operator decisions still open:
-   * deploy paper execution and run `paper-launch`;
+   * build the H frontend files into the next coordinated frontend build;
    * approve building the refresh executor, then batch R1 (FG and VRRM, hard cap $24.00, `claude-opus-5-5`);
    * whether to include AEYE despite EVIDENCE_ALREADY_IN_THESIS;
    * whether to wire new-candidate intake.
