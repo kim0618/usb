@@ -1,0 +1,1653 @@
+{
+  "generated_at_utc": "2026-10-04T14:57:16.694744+00:00",
+  "contract": {
+    "frozen_at_local": "2026-10-04 (Asia/Seoul)",
+    "contract_r1": {
+      "path": "docs/crypto/price_structure_r1/CONTRACT_R1.md",
+      "sha256": "68eca59e2c5b4b851ddc1dcde42a8b9df9f9afa213adddb070408e3f979d6543"
+    },
+    "parent_contract_r0_v2": {
+      "path": "docs/crypto/price_structure_r0/CONTRACT_V2.md",
+      "sha256": "d41fb4f5cd6d28f48a309c3122b9eb5afc1bb45a0f430b009eacb72ea2c0bb22"
+    },
+    "statement": "Frozen before any R1 metric existed. At freeze time only the R0 artifacts on disk had been read; no R1 module existed, no R1 engine had been run, and no R1 level, event, snapshot or metric had been computed. The R0 duplicate density was not re-measured before this freeze either: M3 is instrumented in R1 code and applied to both runs after this point.",
+    "carried_without_recomputation": {
+      "theta_1h": 3.0,
+      "theta_5m": 6.0,
+      "source": "price_structure_r0.calibrate, held out warmup window, imported not re-tuned"
+    }
+  },
+  "provenance": {
+    "raw_file": "kline_1m_1786492800000_1791072000000.jsonl",
+    "raw_sha256": "516e980db0d21716c1cc9cda47572a20d1498eebe1d439bed05e44218ee63cb2",
+    "manifest": {
+      "fetched_at_ms": 1791123046762,
+      "first_timestamp_ms": 1786492800000,
+      "last_timestamp_ms": 1791071940000,
+      "rows": 76320,
+      "sha256": "516e980db0d21716c1cc9cda47572a20d1498eebe1d439bed05e44218ee63cb2",
+      "source": "bybit v5 /market/kline category=linear symbol=BTCUSDT interval=1"
+    }
+  },
+  "d2_crosscheck": {
+    "overlap_rows_compared": 60574,
+    "mismatches": 0,
+    "first_mismatches": []
+  },
+  "calibration": {
+    "1h": {
+      "theta": 3.0,
+      "per_day": 1.0,
+      "met_target": true,
+      "target_per_day": 2.0
+    },
+    "5m": {
+      "theta": 6.0,
+      "per_day": 10.75,
+      "met_target": false,
+      "target_per_day": 8.0
+    }
+  },
+  "window": {
+    "warmup_from": 1786492800000,
+    "replay_from": 1788220800000,
+    "replay_to": 1791072000000,
+    "snapshots": 47521
+  },
+  "verdict": "A_NOT_USABLE",
+  "verdict_reasons": [
+    "M4 coverage=0.2593 below 0.40"
+  ],
+  "verdict_r0_rescored": "A_NOT_USABLE",
+  "verdict_r0_reasons": [
+    "M2 publishable median=21 exceeds 15"
+  ],
+  "prefix_truncation": {
+    "cut_points": 6,
+    "identical": 6,
+    "rows": [
+      {
+        "T": "2026-09-04T00:00Z",
+        "T_ms": 1788480000000,
+        "identical": true,
+        "fields_compared": 27,
+        "differing_fields": [],
+        "publishable_levels": 9,
+        "book_levels": 11,
+        "published": 5,
+        "retests_open": 3
+      },
+      {
+        "T": "2026-09-11T00:00Z",
+        "T_ms": 1789084800000,
+        "identical": true,
+        "fields_compared": 27,
+        "differing_fields": [],
+        "publishable_levels": 9,
+        "book_levels": 10,
+        "published": 5,
+        "retests_open": 0
+      },
+      {
+        "T": "2026-09-16T00:00Z",
+        "T_ms": 1789516800000,
+        "identical": true,
+        "fields_compared": 27,
+        "differing_fields": [],
+        "publishable_levels": 8,
+        "book_levels": 9,
+        "published": 6,
+        "retests_open": 4
+      },
+      {
+        "T": "2026-09-25T00:00Z",
+        "T_ms": 1790294400000,
+        "identical": true,
+        "fields_compared": 27,
+        "differing_fields": [],
+        "publishable_levels": 5,
+        "book_levels": 10,
+        "published": 5,
+        "retests_open": 0
+      },
+      {
+        "T": "2026-09-30T00:00Z",
+        "T_ms": 1790726400000,
+        "identical": true,
+        "fields_compared": 27,
+        "differing_fields": [],
+        "publishable_levels": 10,
+        "book_levels": 10,
+        "published": 10,
+        "retests_open": 1
+      },
+      {
+        "T": "2026-10-03T22:00Z",
+        "T_ms": 1791064800000,
+        "identical": true,
+        "fields_compared": 27,
+        "differing_fields": [],
+        "publishable_levels": 9,
+        "book_levels": 11,
+        "published": 9,
+        "retests_open": 2
+      }
+    ]
+  },
+  "deterministic_two_runs": true,
+  "before_after": {
+    "M2_publishable_median": {
+      "R0": 21,
+      "R1": 9,
+      "delta": -12
+    },
+    "M2_publishable_p95": {
+      "R0": 27,
+      "R1": 13,
+      "delta": -14
+    },
+    "M2_book_median": {
+      "R0": 21,
+      "R1": 10,
+      "delta": -11
+    },
+    "M3_dup_set_share": {
+      "R0": 0.5889,
+      "R1": 0.0404,
+      "delta": -0.5485
+    },
+    "M3_dup_pairs_total": {
+      "R0": 586,
+      "R1": 36,
+      "delta": -550
+    },
+    "M3_cross_tf_pairs": {
+      "R0": 364,
+      "R1": 15,
+      "delta": -349
+    },
+    "M4_coverage": {
+      "R0": 0.4444,
+      "R1": 0.2593,
+      "delta": -0.1851
+    },
+    "M4_hits": {
+      "R0": 12,
+      "R1": 7,
+      "delta": -5
+    },
+    "M4_total": {
+      "R0": 27,
+      "R1": 27,
+      "delta": 0
+    },
+    "M4_coverage_whole_book": {
+      "R0": 0.4444,
+      "R1": 0.2963,
+      "delta": -0.1481
+    },
+    "M5_liveness": {
+      "R0": 1.0,
+      "R1": 1.0,
+      "delta": 0.0
+    },
+    "M5_resolved_share": {
+      "R0": 0.319,
+      "R1": 0.8033,
+      "delta": 0.4843
+    },
+    "M5_max_concurrency": {
+      "R0": 1,
+      "R1": 6,
+      "delta": 5
+    },
+    "M6_breakouts_per_day_median": {
+      "R0": 18,
+      "R1": 6,
+      "delta": -12
+    },
+    "M6_breakouts_per_day_max": {
+      "R0": 47,
+      "R1": 21,
+      "delta": -26
+    },
+    "M6_breakouts_total": {
+      "R0": 580,
+      "R1": 239,
+      "delta": -341
+    },
+    "levels_created": {
+      "R0": 242,
+      "R1": 227,
+      "delta": -15
+    },
+    "retest_machines": {
+      "R0": 811,
+      "R1": 348,
+      "delta": -463
+    },
+    "SUPERSEDED_to_EXPIRED": {
+      "R0_SUPERSEDED": 393,
+      "R1_EXPIRED": 45,
+      "R1_EXPIRED_reasons": {
+        "RELEVEL": 41,
+        "LEVEL_EXPIRED": 3,
+        "UNDECIDED": 1
+      }
+    }
+  },
+  "R1": {
+    "counts": {
+      "swings_1h": 50,
+      "swings_5m": 362,
+      "levels_created": 227,
+      "levels_publishable_at_end": 9,
+      "candidates_merged": 185,
+      "candidates_merged_cross_tf": 37,
+      "candidates_merged_same_tf": 148,
+      "candidates_suppressed_by_1h": 0,
+      "breakouts_total_all_time": 348,
+      "sweeps_total_all_time": 249,
+      "retest_machines": 348,
+      "breakout_events_suppressed_by_cooldown": 19,
+      "range_episodes": 8
+    },
+    "M1_repaint": {
+      "violations": 0,
+      "vanished": 0,
+      "total": 0,
+      "violation_examples": [],
+      "vanished_examples": [],
+      "objects_audited": 1236
+    },
+    "M2_active_levels": {
+      "publishable": {
+        "median": 9,
+        "p95": 13,
+        "max": 14,
+        "min": 2,
+        "mean": 8.49
+      },
+      "book": {
+        "median": 10,
+        "p95": 14,
+        "max": 16,
+        "min": 2,
+        "mean": 9.7
+      },
+      "provisional_median": 1,
+      "note": "publishable = CONFIRMED + WEAKENED; book adds PROVISIONAL"
+    },
+    "M3_duplicate_density": {
+      "hourly_sets_counted": 793,
+      "sets_with_duplicate": 32,
+      "dup_set_share": 0.0404,
+      "dup_pairs_total": 36,
+      "cross_tf_pairs": 15,
+      "tolerance": "0.25 * ATR_5m of the snapshot",
+      "examples": [
+        {
+          "info_ts": 1788271200000,
+          "a": {
+            "price": 78327.6,
+            "tf": "5m",
+            "id": 83
+          },
+          "b": {
+            "price": 78359.9,
+            "tf": "5m",
+            "id": 90
+          },
+          "tol": 50.03
+        },
+        {
+          "info_ts": 1788274800000,
+          "a": {
+            "price": 78327.6,
+            "tf": "5m",
+            "id": 83
+          },
+          "b": {
+            "price": 78359.9,
+            "tf": "5m",
+            "id": 90
+          },
+          "tol": 43.91
+        },
+        {
+          "info_ts": 1788447600000,
+          "a": {
+            "price": 77553.4,
+            "tf": "1h",
+            "id": 69
+          },
+          "b": {
+            "price": 77610.3,
+            "tf": "5m",
+            "id": 94
+          },
+          "tol": 68.38
+        },
+        {
+          "info_ts": 1788451200000,
+          "a": {
+            "price": 77553.4,
+            "tf": "1h",
+            "id": 69
+          },
+          "b": {
+            "price": 77610.3,
+            "tf": "5m",
+            "id": 94
+          },
+          "tol": 68.1
+        },
+        {
+          "info_ts": 1788454800000,
+          "a": {
+            "price": 77553.4,
+            "tf": "1h",
+            "id": 69
+          },
+          "b": {
+            "price": 77610.3,
+            "tf": "5m",
+            "id": 94
+          },
+          "tol": 58.17
+        },
+        {
+          "info_ts": 1788883200000,
+          "a": {
+            "price": 78603.9,
+            "tf": "1h",
+            "id": 109
+          },
+          "b": {
+            "price": 78633.3,
+            "tf": "5m",
+            "id": 119
+          },
+          "tol": 34.62
+        },
+        {
+          "info_ts": 1788886800000,
+          "a": {
+            "price": 78603.9,
+            "tf": "1h",
+            "id": 109
+          },
+          "b": {
+            "price": 78633.3,
+            "tf": "5m",
+            "id": 119
+          },
+          "tol": 33.37
+        },
+        {
+          "info_ts": 1788955200000,
+          "a": {
+            "price": 78603.9,
+            "tf": "1h",
+            "id": 109
+          },
+          "b": {
+            "price": 78633.3,
+            "tf": "5m",
+            "id": 119
+          },
+          "tol": 30.61
+        }
+      ]
+    },
+    "M4_coverage": {
+      "definition": {
+        "major_reversal_move_pct": 2.0,
+        "coverage_tol_pct": 0.25,
+        "checked_at": "close of the 1h bar immediately preceding the pivot bar"
+      },
+      "total_major_reversals": 27,
+      "hits": 7,
+      "coverage": 0.2593,
+      "skipped_pivot_before_window": 1,
+      "diagnostic_coverage_1h_sourced_only": 0.2593,
+      "diagnostic_coverage_whole_book": 0.2963,
+      "diagnostic_mean_move_hit": 3.02,
+      "diagnostic_mean_move_miss": 4.54,
+      "cases": [
+        {
+          "kind": "SWING_LOW",
+          "price": 76199.1,
+          "pivot_at": 1788343200000,
+          "confirmed_at": 1788404400000,
+          "move_pct": 3.887,
+          "hit": false,
+          "hit_1h_only": false,
+          "hit_in_book": false,
+          "nearest_published_delta": 480.9,
+          "nearest_book_delta": 480.9,
+          "published_count": 6,
+          "book_count": 13,
+          "tol_abs": 190.5
+        },
+        {
+          "kind": "SWING_HIGH",
+          "price": 82276.6,
+          "pivot_at": 1788469200000,
+          "confirmed_at": 1788508800000,
+          "move_pct": 7.976,
+          "hit": false,
+          "hit_1h_only": false,
+          "hit_in_book": false,
+          "nearest_published_delta": 2717.4,
+          "nearest_book_delta": 2717.4,
+          "published_count": 5,
+          "book_count": 10,
+          "tol_abs": 205.69
+        },
+        {
+          "kind": "SWING_LOW",
+          "price": 78603.9,
+          "pivot_at": 1788530400000,
+          "confirmed_at": 1788595200000,
+          "move_pct": 4.464,
+          "hit": false,
+          "hit_1h_only": false,
+          "hit_in_book": false,
+          "nearest_published_delta": 676.9,
+          "nearest_book_delta": 676.9,
+          "published_count": 8,
+          "book_count": 9,
+          "tol_abs": 196.51
+        },
+        {
+          "kind": "SWING_HIGH",
+          "price": 80522.7,
+          "pivot_at": 1788735600000,
+          "confirmed_at": 1788768000000,
+          "move_pct": 2.441,
+          "hit": false,
+          "hit_1h_only": false,
+          "hit_in_book": false,
+          "nearest_published_delta": 455.7,
+          "nearest_book_delta": 455.7,
+          "published_count": 6,
+          "book_count": 9,
+          "tol_abs": 201.31
+        },
+        {
+          "kind": "SWING_LOW",
+          "price": 77579.4,
+          "pivot_at": 1788872400000,
+          "confirmed_at": 1788883200000,
+          "move_pct": 3.655,
+          "hit": false,
+          "hit_1h_only": false,
+          "hit_in_book": false,
+          "nearest_published_delta": 1552.8,
+          "nearest_book_delta": 536.8,
+          "published_count": 5,
+          "book_count": 12,
+          "tol_abs": 193.95
+        },
+        {
+          "kind": "SWING_HIGH",
+          "price": 79743.8,
+          "pivot_at": 1788940800000,
+          "confirmed_at": 1788984000000,
+          "move_pct": 2.79,
+          "hit": true,
+          "hit_1h_only": true,
+          "hit_in_book": true,
+          "nearest_published_delta": 184.6,
+          "nearest_book_delta": 184.6,
+          "published_count": 9,
+          "book_count": 12,
+          "tol_abs": 199.36
+        },
+        {
+          "kind": "SWING_LOW",
+          "price": 75903.0,
+          "pivot_at": 1789128000000,
+          "confirmed_at": 1789131600000,
+          "move_pct": 4.816,
+          "hit": false,
+          "hit_1h_only": false,
+          "hit_in_book": false,
+          "nearest_published_delta": 704.0,
+          "nearest_book_delta": 491.1,
+          "published_count": 6,
+          "book_count": 10,
+          "tol_abs": 189.76
+        },
+        {
+          "kind": "SWING_HIGH",
+          "price": 79909.7,
+          "pivot_at": 1789135200000,
+          "confirmed_at": 1789142400000,
+          "move_pct": 5.279,
+          "hit": true,
+          "hit_1h_only": true,
+          "hit_in_book": true,
+          "nearest_published_delta": 165.9,
+          "nearest_book_delta": 165.9,
+          "published_count": 9,
+          "book_count": 10,
+          "tol_abs": 199.77
+        },
+        {
+          "kind": "SWING_LOW",
+          "price": 76425.0,
+          "pivot_at": 1789297200000,
+          "confirmed_at": 1789311600000,
+          "move_pct": 4.361,
+          "hit": false,
+          "hit_1h_only": false,
+          "hit_in_book": false,
+          "nearest_published_delta": 522.0,
+          "nearest_book_delta": 522.0,
+          "published_count": 4,
+          "book_count": 5,
+          "tol_abs": 191.06
+        },
+        {
+          "kind": "SWING_HIGH",
+          "price": 79577.3,
+          "pivot_at": 1789416000000,
+          "confirmed_at": 1789430400000,
+          "move_pct": 4.288,
+          "hit": false,
+          "hit_1h_only": false,
+          "hit_in_book": false,
+          "nearest_published_delta": 1233.0,
+          "nearest_book_delta": 1233.0,
+          "published_count": 5,
+          "book_count": 8,
+          "tol_abs": 198.94
+        },
+        {
+          "kind": "SWING_LOW",
+          "price": 74919.6,
+          "pivot_at": 1789495200000,
+          "confirmed_at": 1789617600000,
+          "move_pct": 5.853,
+          "hit": false,
+          "hit_1h_only": false,
+          "hit_in_book": false,
+          "nearest_published_delta": 983.4,
+          "nearest_book_delta": 639.8,
+          "published_count": 8,
+          "book_count": 9,
+          "tol_abs": 187.3
+        },
+        {
+          "kind": "SWING_HIGH",
+          "price": 81954.6,
+          "pivot_at": 1789830000000,
+          "confirmed_at": 1789873200000,
+          "move_pct": 9.39,
+          "hit": false,
+          "hit_1h_only": false,
+          "hit_in_book": false,
+          "nearest_published_delta": 564.7,
+          "nearest_book_delta": 219.6,
+          "published_count": 2,
+          "book_count": 4,
+          "tol_abs": 204.89
+        },
+        {
+          "kind": "SWING_LOW",
+          "price": 80092.3,
+          "pivot_at": 1789873200000,
+          "confirmed_at": 1789923600000,
+          "move_pct": 2.272,
+          "hit": false,
+          "hit_1h_only": false,
+          "hit_in_book": false,
+          "nearest_published_delta": 515.0,
+          "nearest_book_delta": 515.0,
+          "published_count": 5,
+          "book_count": 6,
+          "tol_abs": 200.23
+        },
+        {
+          "kind": "SWING_HIGH",
+          "price": 87383.6,
+          "pivot_at": 1790020800000,
+          "confirmed_at": 1790053200000,
+          "move_pct": 9.104,
+          "hit": false,
+          "hit_1h_only": false,
+          "hit_in_book": false,
+          "nearest_published_delta": 5303.6,
+          "nearest_book_delta": 5303.6,
+          "published_count": 5,
+          "book_count": 5,
+          "tol_abs": 218.46
+        },
+        {
+          "kind": "SWING_LOW",
+          "price": 85066.3,
+          "pivot_at": 1790053200000,
+          "confirmed_at": 1790136000000,
+          "move_pct": 2.652,
+          "hit": false,
+          "hit_1h_only": false,
+          "hit_in_book": false,
+          "nearest_published_delta": 2317.3,
+          "nearest_book_delta": 2317.3,
+          "published_count": 5,
+          "book_count": 5,
+          "tol_abs": 212.67
+        },
+        {
+          "kind": "SWING_HIGH",
+          "price": 87282.5,
+          "pivot_at": 1790136000000,
+          "confirmed_at": 1790164800000,
+          "move_pct": 2.605,
+          "hit": true,
+          "hit_1h_only": true,
+          "hit_in_book": true,
+          "nearest_published_delta": 101.1,
+          "nearest_book_delta": 101.1,
+          "published_count": 4,
+          "book_count": 5,
+          "tol_abs": 218.21
+        },
+        {
+          "kind": "SWING_LOW",
+          "price": 82800.0,
+          "pivot_at": 1790240400000,
+          "confirmed_at": 1790298000000,
+          "move_pct": 5.136,
+          "hit": false,
+          "hit_1h_only": false,
+          "hit_in_book": false,
+          "nearest_published_delta": 886.1,
+          "nearest_book_delta": 886.1,
+          "published_count": 5,
+          "book_count": 7,
+          "tol_abs": 207.0
+        },
+        {
+          "kind": "SWING_HIGH",
+          "price": 85241.0,
+          "pivot_at": 1790334000000,
+          "confirmed_at": 1790373600000,
+          "move_pct": 2.948,
+          "hit": true,
+          "hit_1h_only": true,
+          "hit_in_book": true,
+          "nearest_published_delta": 174.7,
+          "nearest_book_delta": 174.7,
+          "published_count": 7,
+          "book_count": 8,
+          "tol_abs": 213.1
+        },
+        {
+          "kind": "SWING_LOW",
+          "price": 83106.4,
+          "pivot_at": 1790344800000,
+          "confirmed_at": 1790413200000,
+          "move_pct": 2.504,
+          "hit": false,
+          "hit_1h_only": false,
+          "hit_in_book": false,
+          "nearest_published_delta": 306.4,
+          "nearest_book_delta": 306.4,
+          "published_count": 8,
+          "book_count": 9,
+          "tol_abs": 207.77
+        },
+        {
+          "kind": "SWING_HIGH",
+          "price": 85143.7,
+          "pivot_at": 1790514000000,
+          "confirmed_at": 1790550000000,
+          "move_pct": 2.451,
+          "hit": true,
+          "hit_1h_only": true,
+          "hit_in_book": true,
+          "nearest_published_delta": 77.4,
+          "nearest_book_delta": 77.4,
+          "published_count": 7,
+          "book_count": 10,
+          "tol_abs": 212.86
+        },
+        {
+          "kind": "SWING_LOW",
+          "price": 82468.0,
+          "pivot_at": 1790604000000,
+          "confirmed_at": 1790665200000,
+          "move_pct": 3.143,
+          "hit": false,
+          "hit_1h_only": false,
+          "hit_in_book": true,
+          "nearest_published_delta": 332.0,
+          "nearest_book_delta": 84.8,
+          "published_count": 7,
+          "book_count": 9,
+          "tol_abs": 206.17
+        },
+        {
+          "kind": "SWING_HIGH",
+          "price": 84556.0,
+          "pivot_at": 1790686800000,
+          "confirmed_at": 1790701200000,
+          "move_pct": 2.532,
+          "hit": false,
+          "hit_1h_only": false,
+          "hit_in_book": false,
+          "nearest_published_delta": 287.9,
+          "nearest_book_delta": 287.9,
+          "published_count": 8,
+          "book_count": 11,
+          "tol_abs": 211.39
+        },
+        {
+          "kind": "SWING_LOW",
+          "price": 82813.8,
+          "pivot_at": 1790697600000,
+          "confirmed_at": 1790773200000,
+          "move_pct": 2.06,
+          "hit": true,
+          "hit_1h_only": true,
+          "hit_in_book": true,
+          "nearest_published_delta": 13.8,
+          "nearest_book_delta": 13.8,
+          "published_count": 7,
+          "book_count": 11,
+          "tol_abs": 207.03
+        },
+        {
+          "kind": "SWING_HIGH",
+          "price": 85696.2,
+          "pivot_at": 1790773200000,
+          "confirmed_at": 1790780400000,
+          "move_pct": 3.481,
+          "hit": false,
+          "hit_1h_only": false,
+          "hit_in_book": false,
+          "nearest_published_delta": 1428.1,
+          "nearest_book_delta": 455.2,
+          "published_count": 5,
+          "book_count": 12,
+          "tol_abs": 214.24
+        },
+        {
+          "kind": "SWING_LOW",
+          "price": 83107.7,
+          "pivot_at": 1790841600000,
+          "confirmed_at": 1790877600000,
+          "move_pct": 3.021,
+          "hit": true,
+          "hit_1h_only": true,
+          "hit_in_book": true,
+          "nearest_published_delta": 1.3,
+          "nearest_book_delta": 1.3,
+          "published_count": 10,
+          "book_count": 16,
+          "tol_abs": 207.77
+        },
+        {
+          "kind": "SWING_HIGH",
+          "price": 87242.2,
+          "pivot_at": 1790942400000,
+          "confirmed_at": 1790956800000,
+          "move_pct": 4.975,
+          "hit": false,
+          "hit_1h_only": false,
+          "hit_in_book": false,
+          "nearest_published_delta": 2974.1,
+          "nearest_book_delta": 342.5,
+          "published_count": 5,
+          "book_count": 15,
+          "tol_abs": 218.11
+        },
+        {
+          "kind": "SWING_LOW",
+          "price": 83835.6,
+          "pivot_at": 1790964000000,
+          "confirmed_at": 1791032400000,
+          "move_pct": 3.905,
+          "hit": false,
+          "hit_1h_only": false,
+          "hit_in_book": false,
+          "nearest_published_delta": 720.4,
+          "nearest_book_delta": 720.4,
+          "published_count": 9,
+          "book_count": 11,
+          "tol_abs": 209.59
+        }
+      ]
+    },
+    "M5_liveness": {
+      "windows_elapsed": 338,
+      "terminal": 338,
+      "fraction": 1.0,
+      "machines_in_window": 239,
+      "resolved": 192,
+      "resolved_share": 0.8033,
+      "termination_states": {
+        "EXPIRED": 45,
+        "HELD": 36,
+        "RETESTED": 143,
+        "FAILED": 13,
+        "BROKEN": 2
+      },
+      "termination_reasons": {
+        "RELEVEL": 41,
+        "WINDOW_ELAPSED_UNTOUCHED": 36,
+        "TWO_CLOSES_HELD": 143,
+        "TWO_CLOSES_BACK_THROUGH": 13,
+        "LEVEL_EXPIRED": 3,
+        "UNDECIDED": 1,
+        "-": 2
+      },
+      "max_concurrency": 6,
+      "non_terminal_examples": []
+    },
+    "M6_event_rate": {
+      "breakouts_per_day": {
+        "2026-09-01": 18,
+        "2026-09-02": 6,
+        "2026-09-03": 10,
+        "2026-09-04": 2,
+        "2026-09-05": 1,
+        "2026-09-06": 4,
+        "2026-09-07": 18,
+        "2026-09-08": 16,
+        "2026-09-09": 21,
+        "2026-09-10": 2,
+        "2026-09-11": 4,
+        "2026-09-13": 3,
+        "2026-09-14": 6,
+        "2026-09-15": 8,
+        "2026-09-16": 11,
+        "2026-09-17": 13,
+        "2026-09-18": 6,
+        "2026-09-19": 2,
+        "2026-09-20": 2,
+        "2026-09-21": 8,
+        "2026-09-23": 4,
+        "2026-09-24": 4,
+        "2026-09-25": 15,
+        "2026-09-26": 2,
+        "2026-09-27": 6,
+        "2026-09-28": 5,
+        "2026-09-29": 7,
+        "2026-09-30": 9,
+        "2026-10-01": 14,
+        "2026-10-02": 10,
+        "2026-10-03": 2
+      },
+      "breakouts_per_day_median": 6,
+      "breakouts_per_day_max": 21,
+      "breakouts_total": 239,
+      "breakouts_by_source": {
+        "LEVEL": 237,
+        "RANGE_EDGE": 2
+      },
+      "breakouts_by_frame": {
+        "5m": 193,
+        "1h": 46
+      },
+      "breakouts_on_1h_frame_from_merged_5m_levels": 30,
+      "sweeps_per_day_median": 6,
+      "sweeps_total": 186
+    },
+    "M7_states": {
+      "joint_trend_range": {
+        "NEUTRAL|NO_RANGE": 20700,
+        "NEUTRAL|IN_RANGE": 2070,
+        "NEUTRAL|RANGE_BROKEN_DOWN": 1470,
+        "BEARISH|NO_RANGE": 9360,
+        "BEARISH|IN_RANGE": 1680,
+        "BULLISH|NO_RANGE": 10921,
+        "BULLISH|RANGE_BROKEN_DOWN": 1320
+      },
+      "trend": {
+        "NEUTRAL": 24240,
+        "BEARISH": 11040,
+        "BULLISH": 12241
+      },
+      "range": {
+        "NO_RANGE": 40981,
+        "IN_RANGE": 3750,
+        "RANGE_BROKEN_DOWN": 2790
+      },
+      "vwap_position": {
+        "ABOVE": 23210,
+        "BELOW_LOWER": 905,
+        "ABOVE_UPPER": 1219,
+        "BELOW": 22160,
+        "AT": 27
+      }
+    },
+    "publication_cap": {
+      "max_published": 10,
+      "median_published": 7,
+      "cap": 10,
+      "cap_respected": true
+    },
+    "lifecycle_census": {
+      "applicable": true,
+      "levels_created": 227,
+      "levels_5m_only": 179,
+      "levels_multi_tf": 37,
+      "levels_1h_only": 11,
+      "never_left_provisional": 86,
+      "promotions_by_1h_source": 33,
+      "transitions": {
+        "CONFIRMED->EXPIRED": 40,
+        "CONFIRMED->WEAKENED": 116,
+        "PROVISIONAL->CONFIRMED": 126,
+        "PROVISIONAL->EXPIRED": 84,
+        "WEAKENED->CONFIRMED": 24,
+        "WEAKENED->EXPIRED": 92
+      },
+      "expiry_reasons": {
+        "PROVISIONAL_UNTOUCHED": 84,
+        "AGE_24H": 92,
+        "FAR_AND_UNTOUCHED": 40
+      }
+    },
+    "snapshots": 47521
+  },
+  "R0_rescored": {
+    "counts": {
+      "swings_1h": 50,
+      "swings_5m": 362,
+      "levels_created": 242,
+      "levels_publishable_at_end": 24,
+      "candidates_merged": 144,
+      "candidates_merged_cross_tf": null,
+      "candidates_merged_same_tf": null,
+      "candidates_suppressed_by_1h": 26,
+      "breakouts_total_all_time": 811,
+      "sweeps_total_all_time": 440,
+      "retest_machines": 811,
+      "breakout_events_suppressed_by_cooldown": 64,
+      "range_episodes": 8
+    },
+    "M1_repaint": {
+      "violations": 0,
+      "vanished": 0,
+      "total": 0,
+      "violation_examples": [],
+      "vanished_examples": [],
+      "objects_audited": 1905
+    },
+    "M2_active_levels": {
+      "publishable": {
+        "median": 21,
+        "p95": 27,
+        "max": 29,
+        "min": 5,
+        "mean": 19.43
+      },
+      "book": {
+        "median": 21,
+        "p95": 27,
+        "max": 29,
+        "min": 5,
+        "mean": 19.43
+      },
+      "provisional_median": 0,
+      "note": "R0 has no PROVISIONAL state, so publishable and book are the same series"
+    },
+    "M3_duplicate_density": {
+      "hourly_sets_counted": 793,
+      "sets_with_duplicate": 467,
+      "dup_set_share": 0.5889,
+      "dup_pairs_total": 586,
+      "cross_tf_pairs": 364,
+      "tolerance": "0.25 * ATR_5m of the snapshot",
+      "examples": [
+        {
+          "info_ts": 1788242400000,
+          "a": {
+            "price": 79367.5,
+            "tf": "1h",
+            "id": 94
+          },
+          "b": {
+            "price": 79367.5,
+            "tf": "5m",
+            "id": 93
+          },
+          "tol": 26.06
+        },
+        {
+          "info_ts": 1788253200000,
+          "a": {
+            "price": 77553.4,
+            "tf": "1h",
+            "id": 77
+          },
+          "b": {
+            "price": 77553.4,
+            "tf": "5m",
+            "id": 74
+          },
+          "tol": 34.08
+        },
+        {
+          "info_ts": 1788256800000,
+          "a": {
+            "price": 77553.4,
+            "tf": "1h",
+            "id": 77
+          },
+          "b": {
+            "price": 77553.4,
+            "tf": "5m",
+            "id": 74
+          },
+          "tol": 28.49
+        },
+        {
+          "info_ts": 1788260400000,
+          "a": {
+            "price": 77896.3,
+            "tf": "5m",
+            "id": 57
+          },
+          "b": {
+            "price": 77920.0,
+            "tf": "5m",
+            "id": 89
+          },
+          "tol": 29.46
+        },
+        {
+          "info_ts": 1788267600000,
+          "a": {
+            "price": 77896.3,
+            "tf": "5m",
+            "id": 57
+          },
+          "b": {
+            "price": 77920.0,
+            "tf": "5m",
+            "id": 89
+          },
+          "tol": 32.21
+        },
+        {
+          "info_ts": 1788271200000,
+          "a": {
+            "price": 77803.9,
+            "tf": "5m",
+            "id": 65
+          },
+          "b": {
+            "price": 77843.9,
+            "tf": "5m",
+            "id": 62
+          },
+          "tol": 50.03
+        },
+        {
+          "info_ts": 1788271200000,
+          "a": {
+            "price": 77896.3,
+            "tf": "5m",
+            "id": 57
+          },
+          "b": {
+            "price": 77920.0,
+            "tf": "5m",
+            "id": 89
+          },
+          "tol": 50.03
+        },
+        {
+          "info_ts": 1788274800000,
+          "a": {
+            "price": 77803.9,
+            "tf": "5m",
+            "id": 65
+          },
+          "b": {
+            "price": 77843.9,
+            "tf": "5m",
+            "id": 62
+          },
+          "tol": 43.91
+        }
+      ]
+    },
+    "M4_coverage": {
+      "definition": {
+        "major_reversal_move_pct": 2.0,
+        "coverage_tol_pct": 0.25,
+        "checked_at": "close of the 1h bar immediately preceding the pivot bar"
+      },
+      "total_major_reversals": 27,
+      "hits": 12,
+      "coverage": 0.4444,
+      "skipped_pivot_before_window": 1,
+      "diagnostic_coverage_1h_sourced_only": 0.2593,
+      "diagnostic_coverage_whole_book": 0.4444,
+      "diagnostic_mean_move_hit": 3.25,
+      "diagnostic_mean_move_miss": 4.87,
+      "cases": [
+        {
+          "kind": "SWING_LOW",
+          "price": 76199.1,
+          "pivot_at": 1788343200000,
+          "confirmed_at": 1788404400000,
+          "move_pct": 3.887,
+          "hit": true,
+          "hit_1h_only": false,
+          "hit_in_book": true,
+          "nearest_published_delta": 164.9,
+          "nearest_book_delta": 164.9,
+          "published_count": 7,
+          "book_count": 25,
+          "tol_abs": 190.5
+        },
+        {
+          "kind": "SWING_HIGH",
+          "price": 82276.6,
+          "pivot_at": 1788469200000,
+          "confirmed_at": 1788508800000,
+          "move_pct": 7.976,
+          "hit": false,
+          "hit_1h_only": false,
+          "hit_in_book": false,
+          "nearest_published_delta": 4232.2,
+          "nearest_book_delta": 2717.4,
+          "published_count": 5,
+          "book_count": 22,
+          "tol_abs": 205.69
+        },
+        {
+          "kind": "SWING_LOW",
+          "price": 78603.9,
+          "pivot_at": 1788530400000,
+          "confirmed_at": 1788595200000,
+          "move_pct": 4.464,
+          "hit": false,
+          "hit_1h_only": false,
+          "hit_in_book": false,
+          "nearest_published_delta": 559.5,
+          "nearest_book_delta": 234.0,
+          "published_count": 10,
+          "book_count": 23,
+          "tol_abs": 196.51
+        },
+        {
+          "kind": "SWING_HIGH",
+          "price": 80522.7,
+          "pivot_at": 1788735600000,
+          "confirmed_at": 1788768000000,
+          "move_pct": 2.441,
+          "hit": false,
+          "hit_1h_only": false,
+          "hit_in_book": false,
+          "nearest_published_delta": 334.6,
+          "nearest_book_delta": 334.6,
+          "published_count": 7,
+          "book_count": 13,
+          "tol_abs": 201.31
+        },
+        {
+          "kind": "SWING_LOW",
+          "price": 77579.4,
+          "pivot_at": 1788872400000,
+          "confirmed_at": 1788883200000,
+          "move_pct": 3.655,
+          "hit": false,
+          "hit_1h_only": false,
+          "hit_in_book": false,
+          "nearest_published_delta": 536.8,
+          "nearest_book_delta": 536.8,
+          "published_count": 6,
+          "book_count": 21,
+          "tol_abs": 193.95
+        },
+        {
+          "kind": "SWING_HIGH",
+          "price": 79743.8,
+          "pivot_at": 1788940800000,
+          "confirmed_at": 1788984000000,
+          "move_pct": 2.79,
+          "hit": true,
+          "hit_1h_only": true,
+          "hit_in_book": true,
+          "nearest_published_delta": 184.6,
+          "nearest_book_delta": 131.0,
+          "published_count": 10,
+          "book_count": 18,
+          "tol_abs": 199.36
+        },
+        {
+          "kind": "SWING_LOW",
+          "price": 75903.0,
+          "pivot_at": 1789128000000,
+          "confirmed_at": 1789131600000,
+          "move_pct": 4.816,
+          "hit": false,
+          "hit_1h_only": false,
+          "hit_in_book": false,
+          "nearest_published_delta": 491.1,
+          "nearest_book_delta": 491.1,
+          "published_count": 7,
+          "book_count": 25,
+          "tol_abs": 189.76
+        },
+        {
+          "kind": "SWING_HIGH",
+          "price": 79909.7,
+          "pivot_at": 1789135200000,
+          "confirmed_at": 1789142400000,
+          "move_pct": 5.279,
+          "hit": true,
+          "hit_1h_only": true,
+          "hit_in_book": true,
+          "nearest_published_delta": 165.9,
+          "nearest_book_delta": 165.9,
+          "published_count": 10,
+          "book_count": 25,
+          "tol_abs": 199.77
+        },
+        {
+          "kind": "SWING_LOW",
+          "price": 76425.0,
+          "pivot_at": 1789297200000,
+          "confirmed_at": 1789311600000,
+          "move_pct": 4.361,
+          "hit": true,
+          "hit_1h_only": false,
+          "hit_in_book": true,
+          "nearest_published_delta": 30.9,
+          "nearest_book_delta": 30.9,
+          "published_count": 9,
+          "book_count": 16,
+          "tol_abs": 191.06
+        },
+        {
+          "kind": "SWING_HIGH",
+          "price": 79577.3,
+          "pivot_at": 1789416000000,
+          "confirmed_at": 1789430400000,
+          "move_pct": 4.288,
+          "hit": false,
+          "hit_1h_only": false,
+          "hit_in_book": false,
+          "nearest_published_delta": 1997.9,
+          "nearest_book_delta": 1233.0,
+          "published_count": 5,
+          "book_count": 16,
+          "tol_abs": 198.94
+        },
+        {
+          "kind": "SWING_LOW",
+          "price": 74919.6,
+          "pivot_at": 1789495200000,
+          "confirmed_at": 1789617600000,
+          "move_pct": 5.853,
+          "hit": false,
+          "hit_1h_only": false,
+          "hit_in_book": false,
+          "nearest_published_delta": 1385.8,
+          "nearest_book_delta": 639.8,
+          "published_count": 10,
+          "book_count": 19,
+          "tol_abs": 187.3
+        },
+        {
+          "kind": "SWING_HIGH",
+          "price": 81954.6,
+          "pivot_at": 1789830000000,
+          "confirmed_at": 1789873200000,
+          "move_pct": 9.39,
+          "hit": false,
+          "hit_1h_only": false,
+          "hit_in_book": false,
+          "nearest_published_delta": 219.6,
+          "nearest_book_delta": 219.6,
+          "published_count": 5,
+          "book_count": 5,
+          "tol_abs": 204.89
+        },
+        {
+          "kind": "SWING_LOW",
+          "price": 80092.3,
+          "pivot_at": 1789873200000,
+          "confirmed_at": 1789923600000,
+          "move_pct": 2.272,
+          "hit": false,
+          "hit_1h_only": false,
+          "hit_in_book": false,
+          "nearest_published_delta": 515.0,
+          "nearest_book_delta": 515.0,
+          "published_count": 6,
+          "book_count": 9,
+          "tol_abs": 200.23
+        },
+        {
+          "kind": "SWING_HIGH",
+          "price": 87383.6,
+          "pivot_at": 1790020800000,
+          "confirmed_at": 1790053200000,
+          "move_pct": 9.104,
+          "hit": false,
+          "hit_1h_only": false,
+          "hit_in_book": false,
+          "nearest_published_delta": 5648.6,
+          "nearest_book_delta": 5303.6,
+          "published_count": 5,
+          "book_count": 11,
+          "tol_abs": 218.46
+        },
+        {
+          "kind": "SWING_LOW",
+          "price": 85066.3,
+          "pivot_at": 1790053200000,
+          "confirmed_at": 1790136000000,
+          "move_pct": 2.652,
+          "hit": false,
+          "hit_1h_only": false,
+          "hit_in_book": false,
+          "nearest_published_delta": 2317.3,
+          "nearest_book_delta": 2317.3,
+          "published_count": 7,
+          "book_count": 13,
+          "tol_abs": 212.67
+        },
+        {
+          "kind": "SWING_HIGH",
+          "price": 87282.5,
+          "pivot_at": 1790136000000,
+          "confirmed_at": 1790164800000,
+          "move_pct": 2.605,
+          "hit": true,
+          "hit_1h_only": true,
+          "hit_in_book": true,
+          "nearest_published_delta": 101.1,
+          "nearest_book_delta": 101.1,
+          "published_count": 8,
+          "book_count": 9,
+          "tol_abs": 218.21
+        },
+        {
+          "kind": "SWING_LOW",
+          "price": 82800.0,
+          "pivot_at": 1790240400000,
+          "confirmed_at": 1790298000000,
+          "move_pct": 5.136,
+          "hit": false,
+          "hit_1h_only": false,
+          "hit_in_book": false,
+          "nearest_published_delta": 653.7,
+          "nearest_book_delta": 653.7,
+          "published_count": 6,
+          "book_count": 10,
+          "tol_abs": 207.0
+        },
+        {
+          "kind": "SWING_HIGH",
+          "price": 85241.0,
+          "pivot_at": 1790334000000,
+          "confirmed_at": 1790373600000,
+          "move_pct": 2.948,
+          "hit": true,
+          "hit_1h_only": true,
+          "hit_in_book": true,
+          "nearest_published_delta": 174.7,
+          "nearest_book_delta": 174.7,
+          "published_count": 10,
+          "book_count": 15,
+          "tol_abs": 213.1
+        },
+        {
+          "kind": "SWING_LOW",
+          "price": 83106.4,
+          "pivot_at": 1790344800000,
+          "confirmed_at": 1790413200000,
+          "move_pct": 2.504,
+          "hit": false,
+          "hit_1h_only": false,
+          "hit_in_book": false,
+          "nearest_published_delta": 219.6,
+          "nearest_book_delta": 219.6,
+          "published_count": 10,
+          "book_count": 15,
+          "tol_abs": 207.77
+        },
+        {
+          "kind": "SWING_HIGH",
+          "price": 85143.7,
+          "pivot_at": 1790514000000,
+          "confirmed_at": 1790550000000,
+          "move_pct": 2.451,
+          "hit": true,
+          "hit_1h_only": true,
+          "hit_in_book": true,
+          "nearest_published_delta": 77.4,
+          "nearest_book_delta": 77.4,
+          "published_count": 10,
+          "book_count": 23,
+          "tol_abs": 212.86
+        },
+        {
+          "kind": "SWING_LOW",
+          "price": 82468.0,
+          "pivot_at": 1790604000000,
+          "confirmed_at": 1790665200000,
+          "move_pct": 3.143,
+          "hit": true,
+          "hit_1h_only": false,
+          "hit_in_book": true,
+          "nearest_published_delta": 84.8,
+          "nearest_book_delta": 84.8,
+          "published_count": 9,
+          "book_count": 23,
+          "tol_abs": 206.17
+        },
+        {
+          "kind": "SWING_HIGH",
+          "price": 84556.0,
+          "pivot_at": 1790686800000,
+          "confirmed_at": 1790701200000,
+          "move_pct": 2.532,
+          "hit": true,
+          "hit_1h_only": false,
+          "hit_in_book": true,
+          "nearest_published_delta": 6.9,
+          "nearest_book_delta": 6.9,
+          "published_count": 10,
+          "book_count": 27,
+          "tol_abs": 211.39
+        },
+        {
+          "kind": "SWING_LOW",
+          "price": 82813.8,
+          "pivot_at": 1790697600000,
+          "confirmed_at": 1790773200000,
+          "move_pct": 2.06,
+          "hit": true,
+          "hit_1h_only": true,
+          "hit_in_book": true,
+          "nearest_published_delta": 13.8,
+          "nearest_book_delta": 13.8,
+          "published_count": 9,
+          "book_count": 25,
+          "tol_abs": 207.03
+        },
+        {
+          "kind": "SWING_HIGH",
+          "price": 85696.2,
+          "pivot_at": 1790773200000,
+          "confirmed_at": 1790780400000,
+          "move_pct": 3.481,
+          "hit": false,
+          "hit_1h_only": false,
+          "hit_in_book": false,
+          "nearest_published_delta": 1128.4,
+          "nearest_book_delta": 455.2,
+          "published_count": 5,
+          "book_count": 22,
+          "tol_abs": 214.24
+        },
+        {
+          "kind": "SWING_LOW",
+          "price": 83107.7,
+          "pivot_at": 1790841600000,
+          "confirmed_at": 1790877600000,
+          "move_pct": 3.021,
+          "hit": true,
+          "hit_1h_only": true,
+          "hit_in_book": true,
+          "nearest_published_delta": 1.3,
+          "nearest_book_delta": 1.3,
+          "published_count": 10,
+          "book_count": 26,
+          "tol_abs": 207.77
+        },
+        {
+          "kind": "SWING_HIGH",
+          "price": 87242.2,
+          "pivot_at": 1790942400000,
+          "confirmed_at": 1790956800000,
+          "move_pct": 4.975,
+          "hit": false,
+          "hit_1h_only": false,
+          "hit_in_book": false,
+          "nearest_published_delta": 342.5,
+          "nearest_book_delta": 342.5,
+          "published_count": 6,
+          "book_count": 26,
+          "tol_abs": 218.11
+        },
+        {
+          "kind": "SWING_LOW",
+          "price": 83835.6,
+          "pivot_at": 1790964000000,
+          "confirmed_at": 1791032400000,
+          "move_pct": 3.905,
+          "hit": true,
+          "hit_1h_only": false,
+          "hit_in_book": true,
+          "nearest_published_delta": 1.9,
+          "nearest_book_delta": 1.9,
+          "published_count": 10,
+          "book_count": 28,
+          "tol_abs": 209.59
+        }
+      ]
+    },
+    "M5_liveness": {
+      "windows_elapsed": 801,
+      "terminal": 801,
+      "fraction": 1.0,
+      "machines_in_window": 580,
+      "resolved": 185,
+      "resolved_share": 0.319,
+      "termination_states": {
+        "SUPERSEDED": 393,
+        "RETEST_HELD": 165,
+        "RETEST_FAILED": 14,
+        "NO_RETEST": 6,
+        "RETEST_INCONCLUSIVE": 2
+      },
+      "termination_reasons": {
+        "-": 580
+      },
+      "max_concurrency": 1,
+      "non_terminal_examples": []
+    },
+    "M6_event_rate": {
+      "breakouts_per_day": {
+        "2026-09-01": 38,
+        "2026-09-02": 18,
+        "2026-09-03": 31,
+        "2026-09-04": 2,
+        "2026-09-05": 5,
+        "2026-09-06": 18,
+        "2026-09-07": 26,
+        "2026-09-08": 16,
+        "2026-09-09": 47,
+        "2026-09-10": 8,
+        "2026-09-11": 29,
+        "2026-09-13": 9,
+        "2026-09-14": 11,
+        "2026-09-15": 30,
+        "2026-09-16": 11,
+        "2026-09-17": 37,
+        "2026-09-18": 12,
+        "2026-09-19": 2,
+        "2026-09-20": 6,
+        "2026-09-21": 15,
+        "2026-09-23": 5,
+        "2026-09-24": 8,
+        "2026-09-25": 23,
+        "2026-09-26": 2,
+        "2026-09-27": 20,
+        "2026-09-28": 27,
+        "2026-09-29": 24,
+        "2026-09-30": 33,
+        "2026-10-01": 37,
+        "2026-10-02": 25,
+        "2026-10-03": 5
+      },
+      "breakouts_per_day_median": 18,
+      "breakouts_per_day_max": 47,
+      "breakouts_total": 580,
+      "breakouts_by_source": {
+        "LEVEL": 578,
+        "RANGE_EDGE": 2
+      },
+      "breakouts_by_frame": {
+        "5m": 538,
+        "1h": 42
+      },
+      "breakouts_on_1h_frame_from_merged_5m_levels": 0,
+      "sweeps_per_day_median": 8,
+      "sweeps_total": 313
+    },
+    "M7_states": {
+      "joint_trend_range": {
+        "NEUTRAL|NO_RANGE": 20700,
+        "NEUTRAL|IN_RANGE": 2070,
+        "NEUTRAL|RANGE_BROKEN_DOWN": 1470,
+        "BEARISH|NO_RANGE": 9360,
+        "BEARISH|IN_RANGE": 1680,
+        "BULLISH|NO_RANGE": 10921,
+        "BULLISH|RANGE_BROKEN_DOWN": 1320
+      },
+      "trend": {
+        "NEUTRAL": 24240,
+        "BEARISH": 11040,
+        "BULLISH": 12241
+      },
+      "range": {
+        "NO_RANGE": 40981,
+        "IN_RANGE": 3750,
+        "RANGE_BROKEN_DOWN": 2790
+      },
+      "vwap_position": {
+        "ABOVE": 23210,
+        "BELOW_LOWER": 905,
+        "ABOVE_UPPER": 1219,
+        "BELOW": 22160,
+        "AT": 27
+      }
+    },
+    "publication_cap": {
+      "max_published": 10,
+      "median_published": 9,
+      "cap": 10,
+      "cap_respected": true
+    },
+    "lifecycle_census": {
+      "applicable": false,
+      "note": "R0 has no lifecycle: every level is publishable from creation"
+    },
+    "snapshots": 47521
+  }
+}

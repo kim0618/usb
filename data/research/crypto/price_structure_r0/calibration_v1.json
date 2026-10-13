@@ -1,0 +1,110 @@
+{
+  "window": {
+    "start_ms": 1786492800000,
+    "end_ms": 1788220800000,
+    "days": 20.0
+  },
+  "ladder": [
+    1.0,
+    1.5,
+    2.0,
+    3.0,
+    4.0,
+    5.0,
+    6.0
+  ],
+  "target_per_day": {
+    "1h": 2.0,
+    "5m": 8.0
+  },
+  "table": {
+    "1h": [
+      {
+        "theta": 1.0,
+        "confirmations": 163,
+        "per_day": 8.15
+      },
+      {
+        "theta": 1.5,
+        "confirmations": 89,
+        "per_day": 4.45
+      },
+      {
+        "theta": 2.0,
+        "confirmations": 52,
+        "per_day": 2.6
+      },
+      {
+        "theta": 3.0,
+        "confirmations": 20,
+        "per_day": 1.0
+      },
+      {
+        "theta": 4.0,
+        "confirmations": 12,
+        "per_day": 0.6
+      },
+      {
+        "theta": 5.0,
+        "confirmations": 8,
+        "per_day": 0.4
+      },
+      {
+        "theta": 6.0,
+        "confirmations": 6,
+        "per_day": 0.3
+      }
+    ],
+    "5m": [
+      {
+        "theta": 1.0,
+        "confirmations": 1834,
+        "per_day": 91.7
+      },
+      {
+        "theta": 1.5,
+        "confirmations": 1180,
+        "per_day": 59.0
+      },
+      {
+        "theta": 2.0,
+        "confirmations": 821,
+        "per_day": 41.05
+      },
+      {
+        "theta": 3.0,
+        "confirmations": 546,
+        "per_day": 27.3
+      },
+      {
+        "theta": 4.0,
+        "confirmations": 408,
+        "per_day": 20.4
+      },
+      {
+        "theta": 5.0,
+        "confirmations": 293,
+        "per_day": 14.65
+      },
+      {
+        "theta": 6.0,
+        "confirmations": 215,
+        "per_day": 10.75
+      }
+    ]
+  },
+  "chosen": {
+    "1h": {
+      "theta": 3.0,
+      "per_day": 1.0,
+      "met_target": true,
+      "target_per_day": 2.0
+    },
+    "5m": {
+      "theta": 6.0,
+      "per_day": 10.75,
+      "met_target": false,
+      "target_per_day": 8.0
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "frozen_at_local": "2026-10-04 (Asia/Seoul)",
+  "contract_r1": {
+    "path": "docs/crypto/price_structure_r1/CONTRACT_R1.md",
+    "sha256": "68eca59e2c5b4b851ddc1dcde42a8b9df9f9afa213adddb070408e3f979d6543"
+  },
+  "parent_contract_r0_v2": {
+    "path": "docs/crypto/price_structure_r0/CONTRACT_V2.md",
+    "sha256": "d41fb4f5cd6d28f48a309c3122b9eb5afc1bb45a0f430b009eacb72ea2c0bb22"
+  },
+  "statement": "Frozen before any R1 metric existed. At freeze time only the R0 artifacts on disk had been read; no R1 module existed, no R1 engine had been run, and no R1 level, event, snapshot or metric had been computed. The R0 duplicate density was not re-measured before this freeze either: M3 is instrumented in R1 code and applied to both runs after this point.",
+  "carried_without_recomputation": {
+    "theta_1h": 3.0,
+    "theta_5m": 6.0,
+    "source": "price_structure_r0.calibrate, held out warmup window, imported not re-tuned"
+  }
+}

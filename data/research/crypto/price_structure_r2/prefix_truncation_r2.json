@@ -1,0 +1,114 @@
+{
+  "cut_points": 6,
+  "identical": 6,
+  "rows": [
+    {
+      "T": "2026-09-04T00:00Z",
+      "T_ms": 1788480000000,
+      "identical": true,
+      "fields_compared": 29,
+      "differing_fields": [],
+      "publishable_levels": 9,
+      "book_levels": 10,
+      "published": 6,
+      "retests_open": 3,
+      "publishable_by_source": {
+        "5m": 9,
+        "1h": 6,
+        "D": 7,
+        "RANGE": 0,
+        "FLIP": 0
+      }
+    },
+    {
+      "T": "2026-09-11T00:00Z",
+      "T_ms": 1789084800000,
+      "identical": true,
+      "fields_compared": 29,
+      "differing_fields": [],
+      "publishable_levels": 11,
+      "book_levels": 12,
+      "published": 6,
+      "retests_open": 1,
+      "publishable_by_source": {
+        "5m": 9,
+        "1h": 7,
+        "D": 10,
+        "RANGE": 0,
+        "FLIP": 0
+      }
+    },
+    {
+      "T": "2026-09-16T00:00Z",
+      "T_ms": 1789516800000,
+      "identical": true,
+      "fields_compared": 29,
+      "differing_fields": [],
+      "publishable_levels": 10,
+      "book_levels": 10,
+      "published": 7,
+      "retests_open": 4,
+      "publishable_by_source": {
+        "5m": 9,
+        "1h": 6,
+        "D": 8,
+        "RANGE": 0,
+        "FLIP": 0
+      }
+    },
+    {
+      "T": "2026-09-25T00:00Z",
+      "T_ms": 1790294400000,
+      "identical": true,
+      "fields_compared": 29,
+      "differing_fields": [],
+      "publishable_levels": 8,
+      "book_levels": 11,
+      "published": 8,
+      "retests_open": 0,
+      "publishable_by_source": {
+        "5m": 7,
+        "1h": 3,
+        "D": 6,
+        "RANGE": 0,
+        "FLIP": 0
+      }
+    },
+    {
+      "T": "2026-09-30T00:00Z",
+      "T_ms": 1790726400000,
+      "identical": true,
+      "fields_compared": 29,
+      "differing_fields": [],
+      "publishable_levels": 11,
+      "book_levels": 11,
+      "published": 10,
+      "retests_open": 1,
+      "publishable_by_source": {
+        "5m": 7,
+        "1h": 7,
+        "D": 8,
+        "RANGE": 0,
+        "FLIP": 0
+      }
+    },
+    {
+      "T": "2026-10-03T22:00Z",
+      "T_ms": 1791064800000,
+      "identical": true,
+      "fields_compared": 29,
+      "differing_fields": [],
+      "publishable_levels": 9,
+      "book_levels": 11,
+      "published": 9,
+      "retests_open": 2,
+      "publishable_by_source": {
+        "5m": 7,
+        "1h": 8,
+        "D": 8,
+        "RANGE": 0,
+        "FLIP": 0
+      }
+    }
+  ]
+}

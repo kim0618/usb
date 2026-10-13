@@ -1,0 +1,32 @@
+{
+  "frozen_at_local": "2026-10-05 (Asia/Seoul)",
+  "contract_r2": {
+    "path": "docs/crypto/price_structure_r2/CONTRACT_R2.md",
+    "sha256": "b7839fb9cbd0fccbe019eee40c4a944cb753f4a7a333324f39880a071548069e"
+  },
+  "parent_contract_r1": {
+    "path": "docs/crypto/price_structure_r1/CONTRACT_R1.md",
+    "sha256": "68eca59e2c5b4b851ddc1dcde42a8b9df9f9afa213adddb070408e3f979d6543"
+  },
+  "parent_contract_r0_v2": {
+    "path": "docs/crypto/price_structure_r0/CONTRACT_V2.md",
+    "sha256": "d41fb4f5cd6d28f48a309c3122b9eb5afc1bb45a0f430b009eacb72ea2c0bb22"
+  },
+  "statement": "Frozen before any R2 metric existed. At freeze time no R2 module existed, no R2 engine had been run, and no R2 level, candidate, event, snapshot or metric had been computed. What had been read was the R0 and R1 contracts, the R0 and R1 result documents, and the R0 and R1 source code. The per case M4 forensics of R1 (metrics_r1.json M4_coverage.cases and diagnostics_r1.json) were deliberately NOT opened before this freeze, so that no source definition, lifetime or merge rule in this contract could be shaped by the prices at which the specific misses occurred. The only R1 findings used as premises are the ones stated in the R1 result document: that coverage against the whole book never exceeded 0.4444, that the publication cap bound exactly one case, that 13 of R0's 15 misses sat inside already traded price, and that 4 of the 5 reversals R1 lost had their covering level expire before the check.",
+  "sources_pre_registered": {
+    "S1": {"token": "D", "name": "previous UTC session high and low", "contract_section": 4},
+    "S2": {"token": "RANGE", "name": "frozen range high and low promoted into the level book", "contract_section": 5},
+    "S3": {"token": "FLIP", "name": "S-R flip level, claimed on a RETESTED termination", "contract_section": 6}
+  },
+  "rejected_before_results": {
+    "breakout_origin": "The 'breakout origin' half of the S3 family was rejected in contract section 6 before any R2 number existed: the base extreme is a swing extreme, so the swing source already creates a level there."
+  },
+  "carried_without_recomputation": {
+    "theta_1h": 3.0,
+    "theta_5m": 6.0,
+    "source": "price_structure_r0.calibrate, held out warmup window, imported not re-tuned",
+    "verdict_function": "price_structure_r1.metrics.verdict, imported not reimplemented",
+    "metric_suite": "price_structure_r1.metrics M1 to M7, imported not reimplemented"
+  },
+  "equivalence_blocker": "R2 with all three families disabled must reproduce R1's frozen metric payload exactly. Checked before any variant is scored."
+}

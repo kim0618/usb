@@ -1,0 +1,116 @@
+{
+  "verdict": "A_NOT_USABLE",
+  "failing_axes": [
+    "M4"
+  ],
+  "admitted": [
+    "S1"
+  ],
+  "final_combination": "SWING_S1",
+  "table": {
+    "SWING_ONLY": {
+      "M1": 0,
+      "M2_med": 9,
+      "M2_p95": 13,
+      "M3_share": 0.0404,
+      "M4": 0.2593,
+      "M4_hits": 7,
+      "M4_book": 0.2963,
+      "M5": 1.0,
+      "M6_med": 6,
+      "levels_created": 227,
+      "verdict": "A_NOT_USABLE"
+    },
+    "SWING_S1": {
+      "M1": 0,
+      "M2_med": 10,
+      "M2_p95": 14,
+      "M3_share": 0.0517,
+      "M4": 0.2963,
+      "M4_hits": 8,
+      "M4_book": 0.3333,
+      "M5": 1.0,
+      "M6_med": 6,
+      "levels_created": 247,
+      "verdict": "A_NOT_USABLE"
+    },
+    "SWING_S2": {
+      "M1": 0,
+      "M2_med": 9,
+      "M2_p95": 13,
+      "M3_share": 0.0404,
+      "M4": 0.2593,
+      "M4_hits": 7,
+      "M4_book": 0.2963,
+      "M5": 1.0,
+      "M6_med": 6,
+      "levels_created": 228,
+      "verdict": "A_NOT_USABLE"
+    },
+    "SWING_S3": {
+      "M1": 0,
+      "M2_med": 15,
+      "M2_p95": 22,
+      "M3_share": 0.2598,
+      "M4": 0.2963,
+      "M4_hits": 8,
+      "M4_book": 0.4074,
+      "M5": 1.0,
+      "M6_med": 4,
+      "levels_created": 220,
+      "verdict": "A_NOT_USABLE"
+    },
+    "SWING_S1_S2": {
+      "M1": 0,
+      "M2_med": 10,
+      "M2_p95": 14,
+      "M3_share": 0.0517,
+      "M4": 0.2963,
+      "M4_hits": 8,
+      "M4_book": 0.3333,
+      "M5": 1.0,
+      "M6_med": 6,
+      "levels_created": 248,
+      "verdict": "A_NOT_USABLE"
+    },
+    "SWING_S1_S3": {
+      "M1": 0,
+      "M2_med": 18,
+      "M2_p95": 24,
+      "M3_share": 0.2535,
+      "M4": 0.3704,
+      "M4_hits": 10,
+      "M4_book": 0.4444,
+      "M5": 1.0,
+      "M6_med": 5,
+      "levels_created": 232,
+      "verdict": "A_NOT_USABLE"
+    },
+    "SWING_S2_S3": {
+      "M1": 0,
+      "M2_med": 15,
+      "M2_p95": 22,
+      "M3_share": 0.2598,
+      "M4": 0.2963,
+      "M4_hits": 8,
+      "M4_book": 0.4074,
+      "M5": 1.0,
+      "M6_med": 4,
+      "levels_created": 221,
+      "verdict": "A_NOT_USABLE"
+    },
+    "SWING_S1_S2_S3": {
+      "M1": 0,
+      "M2_med": 18,
+      "M2_p95": 24,
+      "M3_share": 0.2535,
+      "M4": 0.3704,
+      "M4_hits": 10,
+      "M4_book": 0.4444,
+      "M5": 1.0,
+      "M6_med": 5,
+      "levels_created": 233,
+      "verdict": "A_NOT_USABLE"
+    }
+  }
+}

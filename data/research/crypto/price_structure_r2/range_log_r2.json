@@ -1,0 +1,129 @@
+[
+  {
+    "event": "RANGE_FROZEN",
+    "at": 1786932000000,
+    "high": 63366.0,
+    "low": 62505.1,
+    "width": 860.9000000000015,
+    "atr_1h": 147.300874725547
+  },
+  {
+    "event": "RANGE_BROKEN_UP",
+    "at": 1786939800000,
+    "high": 63366.0,
+    "low": 62505.1
+  },
+  {
+    "event": "RANGE_CLEARED",
+    "at": 1787025600000,
+    "from": "RANGE_BROKEN_UP"
+  },
+  {
+    "event": "RANGE_FROZEN",
+    "at": 1787029200000,
+    "high": 63366.0,
+    "low": 62676.4,
+    "width": 689.5999999999985,
+    "atr_1h": 221.86487832185028
+  },
+  {
+    "event": "RANGE_LOST",
+    "at": 1787104800000,
+    "high": 63366.0,
+    "low": 62676.4
+  },
+  {
+    "event": "RANGE_FROZEN",
+    "at": 1788253200000,
+    "high": 79367.5,
+    "low": 76824.3,
+    "width": 2543.199999999997,
+    "atr_1h": 469.39949448162537
+  },
+  {
+    "event": "RANGE_BROKEN_DOWN",
+    "at": 1788288300000,
+    "high": 79367.5,
+    "low": 76824.3
+  },
+  {
+    "event": "RANGE_CLEARED",
+    "at": 1788372000000,
+    "from": "RANGE_BROKEN_DOWN"
+  },
+  {
+    "event": "RANGE_FROZEN",
+    "at": 1788375600000,
+    "high": 79367.5,
+    "low": 76824.3,
+    "width": 2543.199999999997,
+    "atr_1h": 489.9738160556909
+  },
+  {
+    "event": "RANGE_LOST",
+    "at": 1788404400000,
+    "high": 79367.5,
+    "low": 76824.3
+  },
+  {
+    "event": "RANGE_FROZEN",
+    "at": 1788447600000,
+    "high": 79367.5,
+    "low": 76199.1,
+    "width": 3168.399999999994,
+    "atr_1h": 569.366306561055
+  },
+  {
+    "event": "RANGE_LOST",
+    "at": 1788494400000,
+    "high": 79367.5,
+    "low": 76199.1
+  },
+  {
+    "event": "RANGE_FROZEN",
+    "at": 1790607600000,
+    "high": 85241.0,
+    "low": 82800.0,
+    "width": 2441.0,
+    "atr_1h": 459.37138497724624
+  },
+  {
+    "event": "RANGE_LOST",
+    "at": 1790668800000,
+    "high": 85241.0,
+    "low": 82800.0
+  },
+  {
+    "event": "RANGE_FROZEN",
+    "at": 1790672400000,
+    "high": 85241.0,
+    "low": 82468.0,
+    "width": 2773.0,
+    "atr_1h": 470.56136644964346
+  },
+  {
+    "event": "RANGE_LOST",
+    "at": 1790722800000,
+    "high": 85241.0,
+    "low": 82468.0
+  },
+  {
+    "event": "RANGE_FROZEN",
+    "at": 1790773200000,
+    "high": 85143.7,
+    "low": 82468.0,
+    "width": 2675.699999999997,
+    "atr_1h": 504.43906581685593
+  },
+  {
+    "event": "RANGE_BROKEN_DOWN",
+    "at": 1790775900000,
+    "high": 85143.7,
+    "low": 82468.0
+  },
+  {
+    "event": "RANGE_CLEARED",
+    "at": 1790859600000,
+    "from": "RANGE_BROKEN_DOWN"
+  }
+]

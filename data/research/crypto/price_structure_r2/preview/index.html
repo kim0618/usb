@@ -1,0 +1,471 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Price Structure R2 preview</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<style>
+  :root {
+    --bg:#0d1117; --panel:#151b23; --line:#242c37; --txt:#e6edf3; --dim:#8b949e;
+    --up:#2ea043; --dn:#da3633; --lvl1h:#f0a52e; --lvl5m:#4f8ccc; --lvlmx:#2ea8a8;
+    --lvlD:#d2649a; --lvlRANGE:#5078c8; --lvlFLIP:#8f7ae6;
+    --vwap:#a371f7; --bull:#2ea043; --bear:#da3633; --neut:#6e7681; --warn:#f0a52e;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt);
+         font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace; }
+  header { padding:14px 16px; border-bottom:1px solid var(--line); display:flex;
+           flex-wrap:wrap; gap:14px; align-items:baseline; }
+  h1 { font-size:15px; margin:0; font-weight:600; letter-spacing:.02em; }
+  .tag { font-size:11px; padding:2px 7px; border-radius:3px; background:var(--panel);
+         color:var(--dim); border:1px solid var(--line); }
+  .tag.verdict { color:#f0a52e; border-color:#5a4418; background:#241c0c; }
+  .tag.ok { color:var(--up); border-color:#1c3d24; background:#0e1f14; }
+  main { display:grid; grid-template-columns:1fr 340px; gap:0; }
+  /* a grid item floors at its min-content width and the chart canvas reports a rounded up
+     pixel, which is what widened the whole page by one pixel in R0 and R1 */
+  main > * { min-width:0; }
+  @media (max-width:980px){ main{grid-template-columns:1fr} }
+  #chart { height:66vh; min-height:480px; border-right:1px solid var(--line); overflow:hidden; }
+  #strip { height:40px; border-top:1px solid var(--line);
+           border-right:1px solid var(--line); overflow:hidden; }
+  aside { padding:14px 16px; }
+  .kv { display:grid; grid-template-columns:140px 1fr; gap:3px 8px; margin-bottom:12px; }
+  .kv dt { color:var(--dim); }
+  .kv dd { margin:0; }
+  .b { font-weight:600; }
+  .BULLISH{color:var(--bull)} .BEARISH{color:var(--bear)} .NEUTRAL{color:var(--neut)}
+  .legend { display:flex; flex-wrap:wrap; gap:10px; padding:8px 16px;
+            border-top:1px solid var(--line); color:var(--dim); font-size:11px; }
+  .legend i { display:inline-block; width:16px; height:0; border-top:2px solid;
+              vertical-align:middle; margin-right:4px; }
+  table { width:100%; border-collapse:collapse; font-size:11px; }
+  th,td { text-align:left; padding:3px 5px; border-bottom:1px solid var(--line);
+          vertical-align:top; }
+  th { color:var(--dim); font-weight:500; }
+  td.num, th.num { text-align:right; }
+  .wrap { max-height:22vh; overflow:auto; }
+  .toggles { display:flex; gap:10px; flex-wrap:wrap; font-size:11px; color:var(--dim); }
+  .toggles label { cursor:pointer; user-select:none; }
+  .toggles input { vertical-align:-1px; margin-right:3px; accent-color:#4f8ccc; }
+  h2 { font-size:11px; color:var(--dim); text-transform:uppercase; letter-spacing:.08em;
+       margin:14px 0 6px; font-weight:600; }
+  section.ba { padding:12px 16px; border-top:1px solid var(--line); }
+  .scrollx { overflow-x:auto; }
+  .pass { color:var(--up) } .fail { color:var(--dn) } .same { color:var(--dim) }
+  tr.final td { background:#121a22; }
+  .note { color:var(--dim); font-size:11px; margin:6px 0 0; max-width:1150px; }
+  .big { font-size:12px; color:var(--txt); margin:8px 0 0; max-width:1150px; }
+  .src-5m{color:var(--lvl5m)} .src-1h{color:var(--lvl1h)} .src-D{color:var(--lvlD)}
+  .src-RANGE{color:var(--lvlRANGE)} .src-FLIP{color:var(--lvlFLIP)}
+  .lc-WEAKENED{opacity:.6}
+  .hit{color:var(--up)} .miss{color:var(--dn)}
+</style>
+<header>
+  <h1>Price Structure R2 &middot; missing level sources &middot; BTCUSDT 5m</h1>
+  <span class="tag" id="win"></span>
+  <span class="tag" id="cnt"></span>
+  <span class="tag" id="final"></span>
+  <span class="tag verdict" id="verdict"></span>
+  <span class="tag ok" id="blocker"></span>
+  <span class="tag">research preview, not deployed</span>
+  <span class="toggles">
+    <label><input type="checkbox" id="t_lD" checked>prev&nbsp;session</label>
+    <label><input type="checkbox" id="t_l1h" checked>1h</label>
+    <label><input type="checkbox" id="t_lmx" checked>multi&nbsp;token</label>
+    <label><input type="checkbox" id="t_l5m" checked>5m</label>
+    <label><input type="checkbox" id="t_m4" checked>major&nbsp;reversals</label>
+    <label><input type="checkbox" id="t_bo">breakouts</label>
+    <label><input type="checkbox" id="t_sw">sweeps</label>
+    <label><input type="checkbox" id="t_vw" checked>VWAP</label>
+  </span>
+</header>
+<main>
+  <div>
+    <div id="chart"></div>
+    <div id="strip"></div>
+  </div>
+  <aside>
+    <h2>Structure at cursor</h2>
+    <dl class="kv">
+      <dt>time</dt><dd id="f_t">&mdash;</dd>
+      <dt>close</dt><dd id="f_c">&mdash;</dd>
+      <dt>trend_structure</dt><dd id="f_trend" class="b">&mdash;</dd>
+      <dt>range_state</dt><dd id="f_range">&mdash;</dd>
+      <dt>nearest_res</dt><dd id="f_nr">&mdash;</dd>
+      <dt>nearest_sup</dt><dd id="f_ns">&mdash;</dd>
+      <dt>publishable</dt><dd id="f_al">&mdash;</dd>
+      <dt>by source token</dt><dd id="f_bs">&mdash;</dd>
+      <dt>published</dt><dd id="f_pb">&mdash;</dd>
+    </dl>
+    <h2>Major reversals, nearest published level</h2>
+    <div class="wrap"><table id="m4"><thead><tr><th>pivot</th><th>kind</th>
+      <th class="num">price</th><th class="num">move %</th><th class="num">nearest</th>
+      <th class="num">tol</th><th></th></tr></thead><tbody></tbody></table></div>
+    <p class="note" id="m4note"></p>
+  </aside>
+</main>
+<div class="legend">
+  <span><i style="border-color:var(--lvlD)"></i>holds the previous session token D, whatever else it holds</span>
+  <span><i style="border-color:var(--lvl1h)"></i>1h sourced</span>
+  <span><i style="border-color:var(--lvlmx)"></i>multi token without D, one identity</span>
+  <span><i style="border-color:var(--lvl5m)"></i>5m sourced</span>
+  <span><i style="border-color:var(--vwap)"></i>session VWAP</span>
+  <span>&#9632; major reversal, green hit and red miss</span>
+  <span>A line starts when the level first became publishable, so a 5m level nothing had touched
+        yet is drawn nowhere.</span>
+</div>
+<section class="ba">
+  <h2>The final combination against its gate, and against R1</h2>
+  <div class="scrollx"><table id="gate"><thead><tr><th>metric</th><th class="num">R0</th>
+    <th class="num">R1</th><th class="num">R2 final</th><th class="num">B bound</th>
+    <th>against the bound</th><th>what moved it</th></tr></thead><tbody></tbody></table></div>
+  <p class="note" id="gatenote"></p>
+
+  <h2>Every pre-registered variant. The four single family rows are the ones the admission rule reads</h2>
+  <div class="scrollx"><table id="lat"><thead><tr><th>variant</th><th>role</th>
+    <th class="num">M1</th><th class="num">M2 med</th><th class="num">M2 p95</th>
+    <th class="num">dup share</th><th class="num">M4</th><th class="num">hits</th>
+    <th class="num">M4 whole book</th><th class="num">M5</th><th class="num">M6 med</th>
+    <th>verdict</th><th>admitted</th></tr></thead><tbody></tbody></table></div>
+  <p class="note" id="latnote"></p>
+
+  <h2>What each family did, and what it cost</h2>
+  <div class="scrollx"><table id="fam"><thead><tr><th>family</th><th>what it is</th>
+    <th class="num">new M4 hits</th><th class="num">offered</th><th class="num">merged</th>
+    <th class="num">created a line</th><th class="num">M2 med delta</th>
+    <th class="num">dup share delta</th><th class="num">M6 total delta</th>
+    <th>admitted</th><th>why not</th></tr></thead><tbody></tbody></table></div>
+  <p class="big" id="famnote"></p>
+
+  <h2>The ceiling, measured against the whole book including levels never shown</h2>
+  <div class="scrollx"><table id="ceil"><thead><tr><th>variant</th>
+    <th class="num">M4 published</th><th class="num">M4 whole book</th>
+    </tr></thead><tbody></tbody></table></div>
+  <p class="big" id="ceilnote"></p>
+
+  <h2>Post verdict forensics, nothing here feeds the verdict</h2>
+  <p class="big" id="q1"></p>
+  <p class="big" id="q2"></p>
+  <p class="big" id="q4"></p>
+</section>
+<script src="lightweight-charts.standalone.production.js"></script>
+<script>
+const S = s => document.getElementById(s);
+const fmt = n => n == null ? "—" : Number(n).toLocaleString("en-US",{maximumFractionDigits:1});
+const iso = ms => new Date(ms).toISOString().slice(0,16).replace("T"," ") + "Z";
+const esc = s => String(s).replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+const band = srcs => srcs.includes("D") ? "D"
+  : (srcs.length > 1 ? "MULTI" : srcs[0]);
+
+Promise.all([fetch("overlay_r2.json").then(r=>r.json()),
+             fetch("metrics_r2.json").then(r=>r.json()),
+             fetch("diagnostics_r2.json").then(r=>r.json())])
+.then(([d, m, g]) => {
+  const V = m.variants, base = V.SWING_ONLY.core, fin = m.final.core;
+  S("win").textContent = iso(d.window.from) + "  →  " + iso(d.window.to);
+  S("cnt").textContent = d.candles.length + " bars · " + d.levels.length + " drawn levels · "
+    + d.day_objects.length + " session objects · " + d.breakouts.length + " breakouts";
+  S("final").textContent = "final: " + m.final_combination.replace(/_/g," ");
+  S("verdict").textContent = m.verdict.replace(/_/g," ") + "  ·  " + m.verdict_reasons.join("; ");
+  S("blocker").textContent = m.equivalence_blocker.swing_only_reproduces_r1
+    ? "swing only reproduces R1 byte for byte" : "BLOCKER FAILED";
+
+  // -------------------------------------------------------------- the gate table
+  const gi = (c, path) => path.split(".").reduce((o,k)=>o[k], c);
+  const rows = [
+    ["M2 publishable levels, median", 21, "M2_active_levels.publishable.median", "≤ 10", v=>v<=10, "S1 merges mostly, so it costs one"],
+    ["M2 publishable levels, p95", 27, "M2_active_levels.publishable.p95", "≤ 16", v=>v<=16, "S1"],
+    ["M3 hourly sets with a duplicate pair", 0.5889, "M3_duplicate_density.dup_set_share", "≤ 0.10", v=>v<=0.10, "S1 adds 7 pairs"],
+    ["M4 major reversal coverage", 0.4444, "M4_coverage.coverage", "≥ 0.60", v=>v>=0.60, "S1 adds one reversal"],
+    ["M4 against the whole book", 0.4444, "M4_coverage.diagnostic_coverage_whole_book", "—", null, "the ceiling, see below"],
+    ["M5 retest liveness", 1.0, "M5_liveness.fraction", "= 1.0", v=>v===1, "unchanged"],
+    ["M6 confirmed breakouts per day, median", 18, "M6_event_rate.breakouts_per_day_median", "≤ 12", v=>v<=12, "unchanged"],
+  ];
+  S("gate").querySelector("tbody").innerHTML = rows.map(([label, r0, path, bound, test, driver]) => {
+    const b = gi(base, path), f = gi(fin, path);
+    const cls = test ? (test(f) ? "pass" : "fail") : "same";
+    const verd = test ? (test(f) ? "inside the bound" : "outside the bound") : "reported only";
+    return `<tr><td>${esc(label)}</td><td class="num same">${r0}</td>`
+      + `<td class="num">${b}</td><td class="num b ${cls}">${f}</td>`
+      + `<td class="num">${bound}</td><td class="${cls}">${verd}</td><td>${driver}</td></tr>`;
+  }).join("");
+  S("gatenote").textContent =
+    "M1 repaint violations " + fin.M1_repaint.total + " over " + fin.M1_repaint.objects_audited
+    + " audited objects. Prefix truncation identical at " + m.prefix_truncation.identical + " of "
+    + m.prefix_truncation.cut_points + " cut points across " + m.prefix_truncation.rows[0].fields_compared
+    + " snapshot fields, two runs byte identical: " + m.deterministic_two_runs
+    + ". Publication cap respected, max " + fin.publication_cap.max_published
+    + " published, median " + fin.publication_cap.median_published
+    + ". M4 is the only failing axis: " + m.m4_is_the_only_failing_axis + ".";
+
+  // ----------------------------------------------------------------- the lattice
+  const admitted = m.admitted_families;
+  const famOf = n => (V[n].families || []);
+  const adm = f => m.admission[f];
+  const order = ["SWING_ONLY","SWING_S1","SWING_S2","SWING_S3","SWING_S1_S2","SWING_S1_S3",
+                 "SWING_S2_S3","SWING_S1_S2_S3"];
+  S("lat").querySelector("tbody").innerHTML = order.filter(n=>V[n]).map(n => {
+    const c = V[n].core, isFin = n === m.final_combination;
+    const fs = famOf(n);
+    const a = fs.length === 1
+      ? (adm(fs[0]).admitted ? `<span class="pass">yes</span>`
+                             : `<span class="fail">no</span>`)
+      : (fs.length === 0 ? "baseline" : `<span class="same">not read by the rule</span>`);
+    return `<tr class="${isFin?"final":""}"><td>${esc(n.replace(/_/g," "))}${isFin?" ←":""}</td>`
+      + `<td class="same">${V[n].role}</td>`
+      + `<td class="num ${c.M1_repaint.total===0?"pass":"fail"}">${c.M1_repaint.total}</td>`
+      + `<td class="num">${c.M2_active_levels.publishable.median}</td>`
+      + `<td class="num">${c.M2_active_levels.publishable.p95}</td>`
+      + `<td class="num">${c.M3_duplicate_density.dup_set_share}</td>`
+      + `<td class="num b">${c.M4_coverage.coverage}</td>`
+      + `<td class="num">${c.M4_coverage.hits} / ${c.M4_coverage.total_major_reversals}</td>`
+      + `<td class="num">${c.M4_coverage.diagnostic_coverage_whole_book}</td>`
+      + `<td class="num">${c.M5_liveness.fraction}</td>`
+      + `<td class="num">${c.M6_event_rate.breakouts_per_day_median}</td>`
+      + `<td>${esc(V[n].verdict[0].replace(/_/g," "))}</td><td>${a}</td></tr>`;
+  }).join("");
+  S("latnote").textContent =
+    "The admission rule, frozen in contract section 9, reads only the four single family rows: a "
+    + "family is admitted if it adds an M4 hit and keeps every non M4 B bound R1 already satisfied. "
+    + "Admitted: " + (admitted.length ? admitted.join(", ") : "none")
+    + ". The four multi family rows are diagnostics and are not read by the rule, because choosing "
+    + "the best subset after seeing it would be selection on the verdict metric with 27 cases.";
+
+  // -------------------------------------------------------------- per family table
+  const meta = {
+    S1: ["previous UTC session high and low, token D, expires when the next session supersedes it",
+         "day_objects_emitted","day_objects_created_new_level"],
+    S2: ["the frozen range boundary promoted into the level book, token RANGE, expires with its episode",
+         "range_objects_emitted","range_objects_created_new_level"],
+    S3: ["S-R flip, token FLIP, claimed on a RETESTED termination and taking the 10 day horizon",
+         "flip_claims","flip_levels_created"],
+  };
+  S("fam").querySelector("tbody").innerHTML = ["S1","S2","S3"].map(f => {
+    const n = "SWING_" + f, c = V[n], cost = c.cost_vs_swing_only, cen = c.extras.source_census;
+    const off = cen[meta[f][1]], made = cen[meta[f][2]];
+    const a = adm(f);
+    return `<tr><td class="b">${f}</td><td>${esc(meta[f][0])}</td>`
+      + `<td class="num b">${c.m4_attribution.hits_gained > 0 ? "+" : ""}`
+      + `${c.m4_attribution.hits_gained}${c.m4_attribution.hits_lost ? " / −" + c.m4_attribution.hits_lost : ""}</td>`
+      + `<td class="num">${off}</td><td class="num">${off - made}</td><td class="num">${made}</td>`
+      + `<td class="num ${cost.M2_publishable_median.delta > 1 ? "fail" : ""}">`
+      + `${cost.M2_publishable_median.delta >= 0 ? "+" : ""}${cost.M2_publishable_median.delta}</td>`
+      + `<td class="num ${cost.M3_dup_set_share.delta > 0.05 ? "fail" : ""}">`
+      + `${cost.M3_dup_set_share.delta >= 0 ? "+" : ""}${cost.M3_dup_set_share.delta}</td>`
+      + `<td class="num">${cost.M6_breakouts_total.delta}</td>`
+      + `<td class="${a.admitted?"pass":"fail"}">${a.admitted ? "yes" : "no"}</td>`
+      + `<td class="same">${esc(a.failed.join(", ") || "—")}</td></tr>`;
+  }).join("");
+  S("famnote").textContent =
+    "S2 changed nothing any metric can see, because R0's range is built out of four confirmed 1h "
+    + "swings, so its boundaries are swing extremes by construction: "
+    + V.SWING_S2.extras.source_census.range_objects_emitted + " boundary objects over "
+    + V.SWING_S2.extras.source_census.range_episodes_seen + " episodes, and all but "
+    + V.SWING_S2.extras.source_census.range_objects_created_new_level
+    + " merged into a level the book already held. S3 added a token to "
+    + V.SWING_S3.extras.source_census.flip_tokens_added + " existing levels and created no line at "
+    + "all, so its cost is not stacking but lifetime: a level that used to die 24 hours after its "
+    + "last touch now takes the 10 day horizon.";
+
+  // ------------------------------------------------------------------- the ceiling
+  const ceilRows = [["R0", 0.4444, 0.4444]].concat(order.filter(n=>V[n]).map(n =>
+    [n.replace(/_/g," "), V[n].core.M4_coverage.coverage,
+     V[n].core.M4_coverage.diagnostic_coverage_whole_book]));
+  const maxBook = Math.max(...ceilRows.map(r=>r[2]));
+  S("ceil").querySelector("tbody").innerHTML = ceilRows.map(([n,a,b]) =>
+    `<tr class="${b===maxBook?"final":""}"><td>${esc(n)}</td><td class="num">${a}</td>`
+    + `<td class="num b">${b}</td></tr>`).join("");
+  S("ceilnote").textContent =
+    "Coverage against the whole alive book, including every level that was never shown, reaches "
+    + maxBook + " and never exceeds it, in any of the eight R2 variants or in R0 or R1. The "
+    + "constraint is not publication, ranking, lifetime or the cap, all of which are measured "
+    + "separately and all of which are inside their bounds. It is that no level exists at the "
+    + "price.";
+
+  // ---------------------------------------------------------------- the forensics
+  const q1 = g.q1_mechanism_of_the_admitted_gain[0];
+  if (q1) {
+    const cov = q1.covered_by[0];
+    const basePrior = q1.levels_near_that_price_in_the_baseline
+      .filter(l => l.price === cov.price).slice(-1)[0];
+    S("q1").textContent = "The one reversal S1 bought is not a new line. "
+      + iso(q1.pivot_at) + ", a " + q1.kind + " at " + fmt(q1.price) + ", a " + q1.move_pct
+      + "% move, tolerance " + q1.tol_abs + ". It was covered by a " + cov.origin_kind
+      + " at " + fmt(cov.price) + " carrying sources [" + cov.sources.join(", ") + "]. "
+      + (basePrior ? "In the baseline the same level existed and was never drawn: created "
+          + iso(basePrior.created_at) + ", expired " + iso(basePrior.expired_at) + " as "
+          + (basePrior.transitions.slice(-1)[0] || {}).reason
+          + ", never touched. " : "")
+      + "With S1 the previous session's low landed inside its merge zone and promoted it to "
+      + "CONFIRMED, so it was published. The gain runs through the promotion path, not through a "
+      + "new price, and it is one case out of 27.";
+  }
+  const q2 = g.q2_the_reversal_s3_lost[0];
+  if (q2) {
+    S("q2").textContent = "S3 also lost a reversal, and the cause is the publication cap. "
+      + iso(q2.pivot_at) + ", a " + q2.kind + " at " + fmt(q2.price) + ", a " + q2.move_pct
+      + "% move, covered in the baseline by a published level at "
+      + fmt(q2.baseline_covered_by[0].price) + " with strength "
+      + q2.baseline_covered_by[0].strength + ". With S3 that level was still publishable, and so "
+      + "were two others inside tolerance, but they ranked " + q2.its_rank_on_its_side.join(", ")
+      + " on their side of price against " + q2.slots_per_side + " slots. The slots were taken by "
+      + "flip levels with strengths " + q2.outranked_by.map(x=>x.strength).join(", ")
+      + ", because strength counts touches and a 10 day horizon lets touches accumulate without "
+      + "bound.";
+  }
+  const s4 = g.q4_summary;
+  S("q4").textContent = "Of the " + s4.misses + " reversals the final combination still misses, "
+    + s4.at_a_price_already_traded + " are at a price the market had already traded and "
+    + s4.at_a_price_never_traded_before + " are beyond the prior high or low. The median distance "
+    + "from the reversal price to the nearest level of any kind in the book, published or not, is "
+    + s4.median_nearest_book_delta + " against an M4 tolerance of about 205, and "
+    + s4.nearest_structure_over_1000 + " misses have no structure within 1,000. Exactly "
+    + g.q3_in_the_book_but_not_published.length + " reversal had a covering level in the book that "
+    + "was not on the screen, and it was PROVISIONAL rather than outranked, so the publication cap "
+    + "bound zero times in the final combination.";
+
+  // ------------------------------------------------------------------------- chart
+  const lib = LightweightCharts;
+  const common = { layout:{ background:{color:"#0d1117"}, textColor:"#8b949e",
+                            attributionLogo:false },
+                   grid:{ vertLines:{color:"#1b222c"}, horzLines:{color:"#1b222c"} },
+                   rightPriceScale:{ borderColor:"#242c37" },
+                   timeScale:{ borderColor:"#242c37", timeVisible:true, secondsVisible:false,
+                               minBarSpacing:0.05 } };
+  const chart = lib.createChart(S("chart"), { ...common, crosshair:{ mode:0 } });
+  const candles = chart.addSeries(lib.CandlestickSeries, {
+    upColor:"#2ea043", downColor:"#da3633", borderUpColor:"#2ea043", borderDownColor:"#da3633",
+    wickUpColor:"#2ea043", wickDownColor:"#da3633" });
+  candles.setData(d.candles.map(c => ({ time:c.t, open:c.o, high:c.h, low:c.l, close:c.c })));
+
+  const vw = chart.addSeries(lib.LineSeries, { color:"#a371f7", lineWidth:1,
+    priceLineVisible:false, lastValueVisible:false, crosshairMarkerVisible:false });
+  vw.setData(d.candles.filter(c => c.vwap === c.vwap).map(c => ({ time:c.t, value:c.vwap })));
+
+  const t0 = d.candles[0].t, t1 = d.candles[d.candles.length-1].t;
+  const clamp = ms => Math.min(Math.max(Math.floor(ms/1000), t0), t1);
+  const col = { "1h":"#f0a52e", "5m":"#4f8ccc", "MULTI":"#2ea8a8", "D":"#d2649a",
+                "RANGE":"#5078c8", "FLIP":"#8f7ae6" };
+  const groups = { "1h":[], "5m":[], "MULTI":[], "D":[], "RANGE":[], "FLIP":[] };
+  for (const l of d.levels) {
+    const a = clamp(l.from), b = clamp(l.to);
+    if (b <= a) continue;
+    const key = band(l.sources);
+    const s = chart.addSeries(lib.LineSeries, {
+      color: col[key] || "#8b949e",
+      lineWidth: key === "5m" ? 1 : 2,
+      lineStyle: l.expired ? 2 : 0,
+      priceLineVisible:false, lastValueVisible:false, crosshairMarkerVisible:false });
+    s.setData([{ time:a, value:l.price }, { time:b, value:l.price }]);
+    (groups[key] || groups["5m"]).push(s);
+  }
+
+  const mBo = [], mSw = [], mM4 = [];
+  for (const b of d.breakouts) mBo.push({ time: clamp(b.confirmed_at),
+    position: b.direction === "UP" ? "belowBar" : "aboveBar",
+    color: b.direction === "UP" ? "#2ea043" : "#da3633",
+    shape: b.direction === "UP" ? "arrowUp" : "arrowDown",
+    text: (b.source === "RANGE_EDGE" ? "R" : b.tf) });
+  for (const s of d.sweeps) mSw.push({ time: clamp(s.confirmed_at),
+    position: s.direction === "UP" ? "aboveBar" : "belowBar", color:"#8b949e",
+    shape:"circle", text:"x" });
+  for (const c of m.m4_cases_final) {
+    if (c.pivot_at < d.window.from || c.pivot_at > d.window.to) continue;
+    mM4.push({ time: clamp(c.pivot_at),
+      position: c.kind === "SWING_HIGH" ? "aboveBar" : "belowBar",
+      color: c.hit ? "#2ea043" : "#da3633", shape:"square",
+      text: (c.hit ? "hit " : "miss ") + c.move_pct + "%" });
+  }
+  const markerPrim = lib.createSeriesMarkers(candles, []);
+  const redrawMarkers = () => {
+    const mk = [];
+    if (S("t_bo").checked) mk.push(...mBo);
+    if (S("t_sw").checked) mk.push(...mSw);
+    if (S("t_m4").checked) mk.push(...mM4);
+    mk.sort((a,b)=>a.time-b.time);
+    markerPrim.setMarkers(mk);
+  };
+  const applyToggles = () => {
+    groups["D"].forEach(s => s.applyOptions({ visible: S("t_lD").checked }));
+    groups["1h"].forEach(s => s.applyOptions({ visible: S("t_l1h").checked }));
+    groups["MULTI"].forEach(s => s.applyOptions({ visible: S("t_lmx").checked }));
+    groups["RANGE"].forEach(s => s.applyOptions({ visible: S("t_lmx").checked }));
+    groups["FLIP"].forEach(s => s.applyOptions({ visible: S("t_lmx").checked }));
+    groups["5m"].forEach(s => s.applyOptions({ visible: S("t_l5m").checked }));
+    vw.applyOptions({ visible: S("t_vw").checked });
+    redrawMarkers();
+  };
+  ["t_lD","t_l1h","t_lmx","t_l5m","t_m4","t_bo","t_sw","t_vw"].forEach(id =>
+    S(id).addEventListener("change", applyToggles));
+  applyToggles();
+
+  const strip = lib.createChart(S("strip"), { ...common, height:40,
+    rightPriceScale:{ visible:false }, leftPriceScale:{ visible:false },
+    timeScale:{ visible:false, minBarSpacing:0.05 },
+    grid:{ vertLines:{visible:false}, horzLines:{visible:false} }, crosshair:{ mode:0 } });
+  const trendCol = { BULLISH:"#2ea043", BEARISH:"#da3633", NEUTRAL:"#30363d" };
+  const hs = strip.addSeries(lib.HistogramSeries, { priceLineVisible:false,
+    lastValueVisible:false, base: 0 });
+  const sorted = d.track.slice().sort((a,b)=>a.info_ts-b.info_ts);
+  let si = 0, cur = sorted[0];
+  hs.setData(d.candles.map(c => {
+    while (si < sorted.length && sorted[si].info_ts <= c.t*1000) cur = sorted[si++];
+    return { time:c.t, value:1,
+             color: cur.range_state === "IN_RANGE" ? "#5078c8" : trendCol[cur.trend] };
+  }));
+  let syncing = false;
+  const sync = (a,b) => a.timeScale().subscribeVisibleLogicalRangeChange(r => {
+    if (!r || syncing) return;
+    syncing = true;
+    try { b.timeScale().setVisibleLogicalRange(r); } catch(e) {}
+    syncing = false;
+  });
+  sync(chart, strip); sync(strip, chart);
+
+  const show = r => {
+    if (!r) return;
+    S("f_t").textContent = iso(r.info_ts);
+    S("f_c").textContent = fmt(r.close);
+    S("f_trend").textContent = r.trend; S("f_trend").className = "b " + r.trend;
+    S("f_range").textContent = r.range_state
+      + (r.range_high != null ? "  " + fmt(r.range_low) + " – " + fmt(r.range_high) : "");
+    S("f_nr").textContent = fmt(r.nearest_resistance);
+    S("f_ns").textContent = fmt(r.nearest_support);
+    S("f_al").textContent = r.active_level_count + "  (book " + r.book_level_count
+      + ", +" + r.provisional_count + " provisional)";
+    S("f_bs").innerHTML = Object.entries(r.publishable_by_source)
+      .filter(([k,v]) => v > 0)
+      .map(([k,v]) => `<span class="src-${k}">${k} ${v}</span>`).join(" · ") || "—";
+    S("f_pb").innerHTML = r.published.length + " · " + r.published.map(p =>
+      `<span class="src-${band(p.sources)} lc-${p.lifecycle}">${fmt(p.price)}</span>`).join(", ");
+  };
+  show(sorted[sorted.length-1]);
+  chart.subscribeCrosshairMove(p => {
+    if (!p || !p.time) return;
+    const ms = p.time * 1000;
+    let best = sorted[0];
+    for (const r of sorted) { if (r.info_ts <= ms) best = r; else break; }
+    show(best);
+  });
+
+  // ------------------------------------------------------------- the M4 case list
+  S("m4").querySelector("tbody").innerHTML = m.m4_cases_final
+    .slice().sort((a,b) => b.move_pct - a.move_pct).map(c =>
+    `<tr><td>${iso(c.pivot_at)}</td><td>${c.kind === "SWING_HIGH" ? "high" : "low"}</td>`
+    + `<td class="num">${fmt(c.price)}</td><td class="num">${c.move_pct}</td>`
+    + `<td class="num">${fmt(c.nearest_published_delta)}</td>`
+    + `<td class="num same">${fmt(c.tol_abs)}</td>`
+    + `<td class="${c.hit?"hit":"miss"}">${c.hit ? "hit" : "miss"}</td></tr>`).join("");
+  S("m4note").textContent = fin.M4_coverage.hits + " of "
+    + fin.M4_coverage.total_major_reversals + " covered. Hits average a "
+    + fin.M4_coverage.diagnostic_mean_move_hit + "% swing and misses "
+    + fin.M4_coverage.diagnostic_mean_move_miss + "%, so the misses skew to the larger moves. "
+    + "Checked at the close of the 1h bar immediately preceding the pivot bar.";
+
+  requestAnimationFrame(() => {
+    chart.timeScale().setVisibleRange({ from: t0, to: t1 });
+    window.__chart = chart;
+    window.__ready = true;
+  });
+});
+</script>

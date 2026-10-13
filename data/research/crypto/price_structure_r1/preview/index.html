@@ -1,0 +1,343 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Price Structure R1 preview</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<style>
+  :root {
+    --bg:#0d1117; --panel:#151b23; --line:#242c37; --txt:#e6edf3; --dim:#8b949e;
+    --up:#2ea043; --dn:#da3633; --lvl1h:#f0a52e; --lvl5m:#4f8ccc; --lvlmx:#2ea8a8;
+    --vwap:#a371f7; --bull:#2ea043; --bear:#da3633; --neut:#6e7681; --warn:#f0a52e;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt);
+         font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace; }
+  header { padding:14px 16px; border-bottom:1px solid var(--line); display:flex;
+           flex-wrap:wrap; gap:14px; align-items:baseline; }
+  h1 { font-size:15px; margin:0; font-weight:600; letter-spacing:.02em; }
+  .tag { font-size:11px; padding:2px 7px; border-radius:3px; background:var(--panel);
+         color:var(--dim); border:1px solid var(--line); }
+  .tag.verdict { color:#f0a52e; border-color:#5a4418; background:#241c0c; }
+  main { display:grid; grid-template-columns:1fr 330px; gap:0; }
+  /* a grid item floors at its min-content width, and the chart canvas reports a rounded up
+     pixel, which is what was widening the whole page by one pixel */
+  main > * { min-width:0; }
+  @media (max-width:980px){ main{grid-template-columns:1fr} }
+  /* the chart library sizes its canvas to a rounded up pixel width; clip that one pixel
+     rather than letting it give the whole page a horizontal scrollbar */
+  #chart { height:72vh; min-height:520px; border-right:1px solid var(--line);
+           overflow:hidden; }
+  #strip { height:40px; border-top:1px solid var(--line);
+           border-right:1px solid var(--line); overflow:hidden; }
+  aside { padding:14px 16px; }
+  .kv { display:grid; grid-template-columns:132px 1fr; gap:3px 8px; margin-bottom:12px; }
+  .kv dt { color:var(--dim); }
+  .kv dd { margin:0; }
+  .b { font-weight:600; }
+  .BULLISH{color:var(--bull)} .BEARISH{color:var(--bear)} .NEUTRAL{color:var(--neut)}
+  .legend { display:flex; flex-wrap:wrap; gap:10px; padding:8px 16px;
+            border-top:1px solid var(--line); color:var(--dim); font-size:11px; }
+  .legend i { display:inline-block; width:16px; height:0; border-top:2px solid;
+              vertical-align:middle; margin-right:4px; }
+  table { width:100%; border-collapse:collapse; font-size:11px; }
+  th,td { text-align:left; padding:3px 4px; border-bottom:1px solid var(--line); }
+  th { color:var(--dim); font-weight:500; }
+  td.num, th.num { text-align:right; }
+  .wrap { max-height:19vh; overflow:auto; }
+  .toggles { display:flex; gap:10px; flex-wrap:wrap; font-size:11px; color:var(--dim); }
+  .toggles label { cursor:pointer; user-select:none; }
+  .toggles input { vertical-align:-1px; margin-right:3px; accent-color:#4f8ccc; }
+  h2 { font-size:11px; color:var(--dim); text-transform:uppercase; letter-spacing:.08em;
+       margin:14px 0 6px; font-weight:600; }
+  section.ba { padding:12px 16px; border-top:1px solid var(--line); }
+  .scrollx { overflow-x:auto; }
+  .pass { color:var(--up) } .fail { color:var(--dn) } .same { color:var(--dim) }
+  .state-RETESTED{color:var(--up)} .state-HELD{color:var(--up)}
+  .state-FAILED{color:var(--dn)} .state-EXPIRED{color:var(--dim)}
+  .state-BROKEN{color:var(--warn)} .state-RETEST_PENDING{color:var(--lvl5m)}
+  .note { color:var(--dim); font-size:11px; margin:6px 0 0; max-width:1100px; }
+  .pv-5m{color:var(--lvl5m)} .pv-1h{color:var(--lvl1h)} .pv-MULTI_TF{color:var(--lvlmx)}
+  .lc-WEAKENED{opacity:.6}
+</style>
+<header>
+  <h1>Price Structure R1 &middot; level curation &middot; BTCUSDT 5m</h1>
+  <span class="tag" id="win"></span>
+  <span class="tag" id="cnt"></span>
+  <span class="tag verdict" id="verdict"></span>
+  <span class="tag">research preview, not deployed</span>
+  <span class="toggles">
+    <label><input type="checkbox" id="t_l1h" checked>1h</label>
+    <label><input type="checkbox" id="t_lmx" checked>multi&nbsp;TF</label>
+    <label><input type="checkbox" id="t_l5m" checked>5m</label>
+    <label><input type="checkbox" id="t_bo" checked>breakouts</label>
+    <label><input type="checkbox" id="t_sw">sweeps</label>
+    <label><input type="checkbox" id="t_sg" checked>swing labels</label>
+    <label><input type="checkbox" id="t_vw" checked>VWAP</label>
+  </span>
+</header>
+<main>
+  <div>
+    <div id="chart"></div>
+    <div id="strip"></div>
+  </div>
+  <aside>
+    <h2>Structure at cursor</h2>
+    <dl class="kv">
+      <dt>time</dt><dd id="f_t">&mdash;</dd>
+      <dt>close</dt><dd id="f_c">&mdash;</dd>
+      <dt>trend_structure</dt><dd id="f_trend" class="b">&mdash;</dd>
+      <dt>range_state</dt><dd id="f_range">&mdash;</dd>
+      <dt>nearest_res</dt><dd id="f_nr">&mdash;</dd>
+      <dt>nearest_sup</dt><dd id="f_ns">&mdash;</dd>
+      <dt>failed_break</dt><dd id="f_fb">&mdash;</dd>
+      <dt>vwap_position</dt><dd id="f_vp">&mdash;</dd>
+      <dt>publishable</dt><dd id="f_al">&mdash;</dd>
+      <dt>book</dt><dd id="f_bk">&mdash;</dd>
+      <dt>published</dt><dd id="f_pb">&mdash;</dd>
+    </dl>
+    <h2>Retest machines open now</h2>
+    <table id="rtnow"><thead><tr><th>level</th><th>dir</th><th>state</th><th class="num">min left</th></tr></thead><tbody></tbody></table>
+    <p class="note" id="rtnote"></p>
+    <h2>Events in window</h2>
+    <div class="wrap"><table id="evt"><thead><tr><th>time</th><th>kind</th><th class="num">price</th><th>dir</th></tr></thead><tbody></tbody></table></div>
+  </aside>
+</main>
+<div class="legend">
+  <span><i style="border-color:var(--lvl1h)"></i>1h sourced</span>
+  <span><i style="border-color:var(--lvlmx)"></i>multi TF, one identity from both frames</span>
+  <span><i style="border-color:var(--lvl5m)"></i>5m sourced</span>
+  <span><i style="border-color:var(--vwap)"></i>session VWAP</span>
+  <span>&#9650;&#9660; confirmed breakout</span>
+  <span>&times; sweep</span>
+  <span>A line starts when the level first became publishable, so a 5m level nothing had touched yet is drawn nowhere.</span>
+</div>
+<section class="ba">
+  <h2>Before and after, both runs scored by the same code on the same bars</h2>
+  <div class="scrollx"><table id="ba"><thead><tr><th>metric</th><th class="num">R0</th><th class="num">R1</th>
+    <th class="num">B bound</th><th>R1 against the bound</th><th>what moved it</th></tr></thead><tbody></tbody></table></div>
+  <p class="note" id="banote"></p>
+  <h2>Post verdict attribution, no bound moved and nothing adopted</h2>
+  <div class="scrollx"><table id="attr"><thead><tr><th>variant</th><th class="num">M2 med</th><th class="num">M2 p95</th>
+    <th class="num">dup share</th><th class="num">M4</th><th class="num">M4 whole book</th>
+    <th class="num">M6 med</th><th>verdict if frozen</th><th>what it is</th></tr></thead><tbody></tbody></table></div>
+  <p class="note" id="attrnote"></p>
+</section>
+<script src="lightweight-charts.standalone.production.js"></script>
+<script>
+const S = s => document.getElementById(s);
+const fmt = n => n == null ? "—" : Number(n).toLocaleString("en-US",{maximumFractionDigits:1});
+const iso = ms => new Date(ms).toISOString().slice(0,16).replace("T"," ") + "Z";
+const esc = s => String(s).replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+
+Promise.all([fetch("overlay_r1.json").then(r=>r.json()),
+             fetch("metrics_r1.json").then(r=>r.json()),
+             fetch("diagnostics_r1.json").then(r=>r.json())])
+.then(([d, m, g]) => {
+  S("win").textContent = iso(d.window.from) + "  →  " + iso(d.window.to);
+  S("cnt").textContent = d.candles.length + " bars · " + d.levels.length + " published levels · "
+    + d.breakouts.length + " breakouts · " + d.retests.length + " retest machines";
+  S("verdict").textContent = m.verdict.replace(/_/g," ");
+
+  // ---------------------------------------------------------------- before and after
+  const ba = m.before_after;
+  const rows = [
+    ["M2 publishable levels, median", ba.M2_publishable_median, "≤ 10", v=>v<=10, "change 2"],
+    ["M2 publishable levels, p95", ba.M2_publishable_p95, "≤ 16", v=>v<=16, "change 2"],
+    ["M3 hourly sets with a duplicate pair", ba.M3_dup_set_share, "≤ 0.10", v=>v<=0.10, "change 1"],
+    ["M3 cross frame duplicate pairs", ba.M3_cross_tf_pairs, "—", null, "change 1"],
+    ["M4 major reversal coverage", ba.M4_coverage, "≥ 0.60", v=>v>=0.60, "cost of change 2"],
+    ["M5 retest liveness", ba.M5_liveness, "= 1.0", v=>v===1, "unchanged"],
+    ["M5 machines that resolved", ba.M5_resolved_share, "—", null, "change 3"],
+    ["M6 confirmed breakouts per day, median", ba.M6_breakouts_per_day_median, "≤ 12", v=>v<=12, "changes 1 and 2"],
+  ];
+  S("ba").querySelector("tbody").innerHTML = rows.map(([label, c, bound, test, driver]) => {
+    const cls = test ? (test(c.R1) ? "pass" : "fail") : "same";
+    const verd = test ? (test(c.R1) ? "inside the bound" : "outside the bound") : "reported only";
+    return `<tr><td>${esc(label)}</td><td class="num">${c.R0}</td>`
+      + `<td class="num b ${cls}">${c.R1}</td><td class="num">${bound}</td>`
+      + `<td class="${cls}">${verd}</td><td>${driver}</td></tr>`;
+  }).join("");
+  S("banote").textContent =
+    "M1 repaint violations " + m.R1.M1_repaint.total + " over " + m.R1.M1_repaint.objects_audited
+    + " audited objects, prefix truncation identical at " + m.prefix_truncation.identical + " of "
+    + m.prefix_truncation.cut_points + " cut points, two runs byte identical: "
+    + m.deterministic_two_runs + ". R0 superseded "
+    + ba.SUPERSEDED_to_EXPIRED.R0_SUPERSEDED + " machines before they could resolve; R1 has no "
+    + "SUPERSEDED state and displaces " + ba.SUPERSEDED_to_EXPIRED.R1_EXPIRED + ".";
+
+  S("attr").querySelector("tbody").innerHTML = g.attribution.map(r =>
+    `<tr><td>${esc(r.variant)}</td><td class="num">${r.M2_publishable_median}</td>`
+    + `<td class="num">${r.M2_publishable_p95}</td><td class="num">${r.M3_dup_set_share}</td>`
+    + `<td class="num b">${r.M4_coverage}</td><td class="num">${r.M4_coverage_whole_book}</td>`
+    + `<td class="num">${r.M6_breakouts_per_day_median}</td>`
+    + `<td>${esc(r.verdict_if_this_were_the_contract.replace(/_/g," "))}</td>`
+    + `<td>${esc(r.note)}</td></tr>`).join("");
+  const rv = g.ranking_vs_coverage_R1;
+  S("attrnote").textContent =
+    "Coverage against the whole book never exceeds " + Math.max(
+      ...g.attribution.map(r=>r.M4_coverage_whole_book))
+    + " in any variant, so the ceiling is what the swing sources create rather than what the cap "
+    + "publishes: in R1 a publishable level sat inside the tolerance in "
+    + rv.cases_with_a_publishable_level_in_tolerance + " of " + rv.major_reversals_scored
+    + " reversals and " + rv.cases_where_that_level_was_published + " of those were published, "
+    + "with " + rv.cases_outranked_by_the_cap + " outranked by the cap.";
+
+  // ------------------------------------------------------------------------- chart
+  const lib = LightweightCharts;
+  const common = { layout:{ background:{color:"#0d1117"}, textColor:"#8b949e",
+                            attributionLogo:false },
+                   grid:{ vertLines:{color:"#1b222c"}, horzLines:{color:"#1b222c"} },
+                   rightPriceScale:{ borderColor:"#242c37" },
+                   timeScale:{ borderColor:"#242c37", timeVisible:true, secondsVisible:false,
+                               minBarSpacing:0.05 } };
+  const chart = lib.createChart(S("chart"), { ...common, crosshair:{ mode:0 } });
+  const candles = chart.addSeries(lib.CandlestickSeries, {
+    upColor:"#2ea043", downColor:"#da3633", borderUpColor:"#2ea043", borderDownColor:"#da3633",
+    wickUpColor:"#2ea043", wickDownColor:"#da3633" });
+  candles.setData(d.candles.map(c => ({ time:c.t, open:c.o, high:c.h, low:c.l, close:c.c })));
+
+  const vw = chart.addSeries(lib.LineSeries, { color:"#a371f7", lineWidth:1,
+    priceLineVisible:false, lastValueVisible:false, crosshairMarkerVisible:false });
+  vw.setData(d.candles.filter(c => c.vwap === c.vwap).map(c => ({ time:c.t, value:c.vwap })));
+
+  // One short line series per level, starting at the moment it first became publishable.
+  const t0 = d.candles[0].t, t1 = d.candles[d.candles.length-1].t;
+  const clamp = ms => Math.min(Math.max(Math.floor(ms/1000), t0), t1);
+  const col = { "1h":"#f0a52e", "5m":"#4f8ccc", "MULTI_TF":"#2ea8a8" };
+  const groups = { "1h":[], "5m":[], "MULTI_TF":[] };
+  for (const l of d.levels) {
+    const a = clamp(l.from), b = clamp(l.to);
+    if (b <= a) continue;
+    const s = chart.addSeries(lib.LineSeries, {
+      color: col[l.provenance],
+      lineWidth: l.provenance === "5m" ? 1 : 2,
+      lineStyle: l.expired ? 2 : 0,
+      priceLineVisible:false, lastValueVisible:false, crosshairMarkerVisible:false });
+    s.setData([{ time:a, value:l.price }, { time:b, value:l.price }]);
+    groups[l.provenance].push(s);
+  }
+
+  const rh = chart.addSeries(lib.LineSeries, { color:"#5078c8", lineWidth:1, lineStyle:3,
+    priceLineVisible:false, lastValueVisible:false, crosshairMarkerVisible:false });
+  const rl = chart.addSeries(lib.LineSeries, { color:"#5078c8", lineWidth:1, lineStyle:3,
+    priceLineVisible:false, lastValueVisible:false, crosshairMarkerVisible:false });
+  const rhd = [], rld = [];
+  for (const r of d.track) {
+    const t = Math.floor(r.info_ts/1000);
+    if (t < t0 || t > t1) continue;
+    if (r.range_high != null) { rhd.push({time:t, value:r.range_high});
+                                rld.push({time:t, value:r.range_low}); }
+  }
+  rh.setData(rhd); rl.setData(rld);
+
+  const mBo = [], mSw = [], mSg = [];
+  for (const b of d.breakouts) mBo.push({ time: clamp(b.confirmed_at),
+    position: b.direction === "UP" ? "belowBar" : "aboveBar",
+    color: b.direction === "UP" ? "#2ea043" : "#da3633",
+    shape: b.direction === "UP" ? "arrowUp" : "arrowDown",
+    text: (b.source === "RANGE_EDGE" ? "R" : b.tf) });
+  for (const s of d.sweeps) mSw.push({ time: clamp(s.confirmed_at),
+    position: s.direction === "UP" ? "aboveBar" : "belowBar", color:"#8b949e",
+    shape:"circle", text:"x" });
+  for (const s of d.swings) if (s.tf === "1h") mSg.push({ time: clamp(s.confirmed_at),
+    position: s.kind === "SWING_HIGH" ? "aboveBar" : "belowBar", color:"#f0a52e",
+    shape:"square", text: s.label });
+  const markerPrim = lib.createSeriesMarkers(candles, []);
+  const redrawMarkers = () => {
+    const mk = [];
+    if (S("t_bo").checked) mk.push(...mBo);
+    if (S("t_sw").checked) mk.push(...mSw);
+    if (S("t_sg").checked) mk.push(...mSg);
+    mk.sort((a,b)=>a.time-b.time);
+    markerPrim.setMarkers(mk);
+  };
+  const applyToggles = () => {
+    groups["1h"].forEach(s => s.applyOptions({ visible: S("t_l1h").checked }));
+    groups["MULTI_TF"].forEach(s => s.applyOptions({ visible: S("t_lmx").checked }));
+    groups["5m"].forEach(s => s.applyOptions({ visible: S("t_l5m").checked }));
+    vw.applyOptions({ visible: S("t_vw").checked });
+    redrawMarkers();
+  };
+  ["t_l1h","t_lmx","t_l5m","t_bo","t_sw","t_sg","t_vw"].forEach(id =>
+    S(id).addEventListener("change", applyToggles));
+  applyToggles();
+
+  // Structure strip, one colour per hour, synced bar for bar with the main chart.
+  const strip = lib.createChart(S("strip"), { ...common, height:40,
+    rightPriceScale:{ visible:false }, leftPriceScale:{ visible:false },
+    timeScale:{ visible:false, minBarSpacing:0.05 },
+    grid:{ vertLines:{visible:false}, horzLines:{visible:false} }, crosshair:{ mode:0 } });
+  const trendCol = { BULLISH:"#2ea043", BEARISH:"#da3633", NEUTRAL:"#30363d" };
+  const hs = strip.addSeries(lib.HistogramSeries, { priceLineVisible:false,
+    lastValueVisible:false, base: 0 });
+  const sorted = d.track.slice().sort((a,b)=>a.info_ts-b.info_ts);
+  let si = 0, cur = sorted[0];
+  hs.setData(d.candles.map(c => {
+    while (si < sorted.length && sorted[si].info_ts <= c.t*1000) cur = sorted[si++];
+    return { time:c.t, value:1,
+             color: cur.range_state === "IN_RANGE" ? "#5078c8" : trendCol[cur.trend] };
+  }));
+  let syncing = false;
+  const sync = (a,b) => a.timeScale().subscribeVisibleLogicalRangeChange(r => {
+    if (!r || syncing) return;
+    syncing = true;
+    try { b.timeScale().setVisibleLogicalRange(r); } catch(e) {}
+    syncing = false;
+  });
+  sync(chart, strip); sync(strip, chart);
+
+  // ---------------------------------------------------------------- cursor readout
+  const track = sorted;
+  const show = r => {
+    if (!r) return;
+    S("f_t").textContent = iso(r.info_ts);
+    S("f_c").textContent = fmt(r.close);
+    S("f_trend").textContent = r.trend; S("f_trend").className = "b " + r.trend;
+    S("f_range").textContent = r.range_state
+      + (r.range_high != null ? "  " + fmt(r.range_low) + " – " + fmt(r.range_high) : "");
+    S("f_nr").textContent = fmt(r.nearest_resistance);
+    S("f_ns").textContent = fmt(r.nearest_support);
+    S("f_fb").textContent = r.failed_break_state;
+    S("f_vp").textContent = r.vwap_position;
+    S("f_al").textContent = r.active_level_count;
+    S("f_bk").textContent = r.book_level_count + "  (+" + r.provisional_count + " provisional)";
+    S("f_pb").innerHTML = r.published.length + " · " + r.published.map(p =>
+      `<span class="pv-${p.provenance} lc-${p.lifecycle}">${fmt(p.price)}</span>`).join(", ");
+    S("rtnow").querySelector("tbody").innerHTML = r.retests.length
+      ? r.retests.map(x => `<tr><td>${fmt(x.level_price)}</td><td>${x.direction}</td>`
+          + `<td class="state-${x.state}">${x.state}</td>`
+          + `<td class="num">${x.minutes_left}</td></tr>`).join("")
+      : `<tr><td colspan="4" class="same">none open</td></tr>`;
+    S("rtnote").textContent = r.retests_open + " machine(s) open. R0 could hold one, so the "
+      + "scalar retest_state was about whichever level broke last; here each line answers for "
+      + "itself. The scalar is still published and now names the latest breakout's own machine: "
+      + r.retest_state + ".";
+  };
+  show(track[track.length-1]);
+  chart.subscribeCrosshairMove(p => {
+    if (!p || !p.time) return;
+    const ms = p.time * 1000;
+    let best = track[0];
+    for (const r of track) { if (r.info_ts <= ms) best = r; else break; }
+    show(best);
+  });
+
+  const erows = [];
+  for (const b of d.breakouts) erows.push([b.confirmed_at,
+    "BREAKOUT " + (b.source==="RANGE_EDGE"?"range":b.tf), b.level_price, b.direction]);
+  for (const s of d.sweeps) erows.push([s.confirmed_at, "SWEEP", s.level_price, s.direction]);
+  for (const r of d.retests) if (r.terminated_at)
+    erows.push([r.terminated_at, r.state + (r.reason ? " " + r.reason : ""),
+                r.level_price, r.direction]);
+  erows.sort((a,b)=>b[0]-a[0]);
+  S("evt").querySelector("tbody").innerHTML = erows.slice(0,300).map(r =>
+    `<tr><td>${iso(r[0])}</td><td>${esc(r[1])}</td><td class="num">${fmt(r[2])}</td>`
+    + `<td>${r[3]}</td></tr>`).join("");
+
+  requestAnimationFrame(() => {
+    chart.timeScale().setVisibleRange({ from: t0, to: t1 });
+    window.__chart = chart;
+    window.__ready = true;
+  });
+});
+</script>

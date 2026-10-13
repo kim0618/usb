@@ -1,0 +1,1341 @@
+{
+  "verdict_reproduced_by_the_digest_engine": true,
+  "final_combination": "SWING_S1",
+  "q1_mechanism_of_the_admitted_gain": [
+    {
+      "pivot_at": 1788343200000,
+      "kind": "SWING_LOW",
+      "price": 76199.1,
+      "move_pct": 3.887,
+      "tol_abs": 190.5,
+      "covered_by": [
+        {
+          "id": 102,
+          "price": 76364.0,
+          "origin_kind": "SWING_LOW",
+          "sources": [
+            "5m",
+            "D"
+          ],
+          "lifecycle": "CONFIRMED",
+          "tf": "5m",
+          "confirm_tf": "1h",
+          "touches": 2,
+          "strength": 4,
+          "delta": 164.9
+        }
+      ],
+      "baseline_nearest_published_delta": 480.9,
+      "levels_near_that_price_with_S1": [
+        {
+          "id": 53,
+          "price": 76219.0,
+          "tf": "5m",
+          "origin_kind": "SWING_LOW",
+          "sources": [
+            "5m"
+          ],
+          "created_at": 1787332200000,
+          "expired_at": 1787375700000,
+          "final_state": "EXPIRED",
+          "touches": 1,
+          "merges": 0,
+          "transitions": [
+            {
+              "at": 1787375700000,
+              "from": "PROVISIONAL",
+              "to": "EXPIRED",
+              "reason": "PROVISIONAL_UNTOUCHED"
+            }
+          ]
+        },
+        {
+          "id": 59,
+          "price": 76451.4,
+          "tf": "5m",
+          "origin_kind": "SWING_LOW",
+          "sources": [
+            "5m",
+            "D"
+          ],
+          "created_at": 1787401500000,
+          "expired_at": 1787564700000,
+          "final_state": "EXPIRED",
+          "touches": 52,
+          "merges": 48,
+          "transitions": [
+            {
+              "at": 1787443200000,
+              "from": "PROVISIONAL",
+              "to": "CONFIRMED",
+              "reason": "PROMOTED_BY_D_SOURCE"
+            },
+            {
+              "at": 1787564700000,
+              "from": "CONFIRMED",
+              "to": "EXPIRED",
+              "reason": "AGE_24H"
+            }
+          ]
+        },
+        {
+          "id": 102,
+          "price": 76364.0,
+          "tf": "5m",
+          "origin_kind": "SWING_LOW",
+          "sources": [
+            "5m",
+            "D"
+          ],
+          "created_at": 1788293700000,
+          "expired_at": 1788435300000,
+          "final_state": "EXPIRED",
+          "touches": 5,
+          "merges": 1,
+          "transitions": [
+            {
+              "at": 1788307200000,
+              "from": "PROVISIONAL",
+              "to": "CONFIRMED",
+              "reason": "PROMOTED_BY_D_SOURCE"
+            },
+            {
+              "at": 1788435300000,
+              "from": "CONFIRMED",
+              "to": "EXPIRED",
+              "reason": "AGE_24H"
+            }
+          ]
+        },
+        {
+          "id": 107,
+          "price": 76199.1,
+          "tf": "5m",
+          "origin_kind": "SWING_LOW",
+          "sources": [
+            "1h",
+            "5m",
+            "D"
+          ],
+          "created_at": 1788356700000,
+          "expired_at": 1788471300000,
+          "final_state": "EXPIRED",
+          "touches": 3,
+          "merges": 2,
+          "transitions": [
+            {
+              "at": 1788393600000,
+              "from": "PROVISIONAL",
+              "to": "CONFIRMED",
+              "reason": "PROMOTED_BY_D_SOURCE"
+            },
+            {
+              "at": 1788471300000,
+              "from": "CONFIRMED",
+              "to": "EXPIRED",
+              "reason": "FAR_AND_UNTOUCHED"
+            }
+          ]
+        },
+        {
+          "id": 144,
+          "price": 76394.1,
+          "tf": "1h",
+          "origin_kind": "PREV_DAY_LOW",
+          "sources": [
+            "5m",
+            "D"
+          ],
+          "created_at": 1789084800000,
+          "expired_at": 1789217100000,
+          "final_state": "EXPIRED",
+          "touches": 4,
+          "merges": 1,
+          "transitions": [
+            {
+              "at": 1789217100000,
+              "from": "CONFIRMED",
+              "to": "EXPIRED",
+              "reason": "AGE_24H"
+            }
+          ]
+        },
+        {
+          "id": 146,
+          "price": 75903.0,
+          "tf": "5m",
+          "origin_kind": "SWING_LOW",
+          "sources": [
+            "1h",
+            "5m",
+            "D"
+          ],
+          "created_at": 1789130400000,
+          "expired_at": 1789739400000,
+          "final_state": "EXPIRED",
+          "touches": 43,
+          "merges": 2,
+          "transitions": [
+            {
+              "at": 1789131600000,
+              "from": "PROVISIONAL",
+              "to": "CONFIRMED",
+              "reason": "PROMOTED_BY_1h_SOURCE"
+            },
+            {
+              "at": 1789739400000,
+              "from": "CONFIRMED",
+              "to": "EXPIRED",
+              "reason": "FAR_AND_UNTOUCHED"
+            }
+          ]
+        },
+        {
+          "id": 153,
+          "price": 76425.0,
+          "tf": "5m",
+          "origin_kind": "SWING_LOW",
+          "sources": [
+            "1h",
+            "5m",
+            "D"
+          ],
+          "created_at": 1789302600000,
+          "expired_at": 1789779600000,
+          "final_state": "EXPIRED",
+          "touches": 49,
+          "merges": 3,
+          "transitions": [
+            {
+              "at": 1789311600000,
+              "from": "PROVISIONAL",
+              "to": "CONFIRMED",
+              "reason": "PROMOTED_BY_1h_SOURCE"
+            },
+            {
+              "at": 1789779600000,
+              "from": "CONFIRMED",
+              "to": "EXPIRED",
+              "reason": "FAR_AND_UNTOUCHED"
+            }
+          ]
+        },
+        {
+          "id": 155,
+          "price": 76305.4,
+          "tf": "5m",
+          "origin_kind": "SWING_LOW",
+          "sources": [
+            "1h",
+            "5m",
+            "D"
+          ],
+          "created_at": 1789351800000,
+          "expired_at": 1789778100000,
+          "final_state": "EXPIRED",
+          "touches": 41,
+          "merges": 4,
+          "transitions": [
+            {
+              "at": 1789354800000,
+              "from": "PROVISIONAL",
+              "to": "CONFIRMED",
+              "reason": "PROMOTED_BY_1h_SOURCE"
+            },
+            {
+              "at": 1789778100000,
+              "from": "CONFIRMED",
+              "to": "EXPIRED",
+              "reason": "FAR_AND_UNTOUCHED"
+            }
+          ]
+        },
+        {
+          "id": 162,
+          "price": 76095.4,
+          "tf": "5m",
+          "origin_kind": "SWING_HIGH",
+          "sources": [
+            "5m"
+          ],
+          "created_at": 1789546200000,
+          "expired_at": 1789740000000,
+          "final_state": "EXPIRED",
+          "touches": 16,
+          "merges": 0,
+          "transitions": [
+            {
+              "at": 1789558800000,
+              "from": "PROVISIONAL",
+              "to": "CONFIRMED",
+              "reason": "FIRST_TOUCH"
+            },
+            {
+              "at": 1789696800000,
+              "from": "CONFIRMED",
+              "to": "WEAKENED",
+              "reason": "NO_TOUCH_12H"
+            },
+            {
+              "at": 1789740000000,
+              "from": "WEAKENED",
+              "to": "EXPIRED",
+              "reason": "AGE_24H"
+            }
+          ]
+        },
+        {
+          "id": 165,
+          "price": 76529.1,
+          "tf": "1h",
+          "origin_kind": "PREV_DAY_HIGH",
+          "sources": [
+            "D"
+          ],
+          "created_at": 1789603200000,
+          "expired_at": 1789689600000,
+          "final_state": "EXPIRED",
+          "touches": 24,
+          "merges": 0,
+          "transitions": [
+            {
+              "at": 1789689600000,
+              "from": "CONFIRMED",
+              "to": "EXPIRED",
+              "reason": "DAY_SUPERSEDED"
+            }
+          ]
+        },
+        {
+          "id": 169,
+          "price": 76016.1,
+          "tf": "5m",
+          "origin_kind": "SWING_LOW",
+          "sources": [
+            "5m"
+          ],
+          "created_at": 1789628700000,
+          "expired_at": 1789739100000,
+          "final_state": "EXPIRED",
+          "touches": 3,
+          "merges": 1,
+          "transitions": [
+            {
+              "at": 1789652400000,
+              "from": "PROVISIONAL",
+              "to": "CONFIRMED",
+              "reason": "FIRST_TOUCH"
+            },
+            {
+              "at": 1789695900000,
+              "from": "CONFIRMED",
+              "to": "WEAKENED",
+              "reason": "NO_TOUCH_12H"
+            },
+            {
+              "at": 1789739100000,
+              "from": "WEAKENED",
+              "to": "EXPIRED",
+              "reason": "AGE_24H"
+            }
+          ]
+        },
+        {
+          "id": 171,
+          "price": 76134.0,
+          "tf": "5m",
+          "origin_kind": "SWING_LOW",
+          "sources": [
+            "5m"
+          ],
+          "created_at": 1789647600000,
+          "expired_at": 1789740000000,
+          "final_state": "EXPIRED",
+          "touches": 3,
+          "merges": 0,
+          "transitions": [
+            {
+              "at": 1789652400000,
+              "from": "PROVISIONAL",
+              "to": "CONFIRMED",
+              "reason": "FIRST_TOUCH"
+            },
+            {
+              "at": 1789696800000,
+              "from": "CONFIRMED",
+              "to": "WEAKENED",
+              "reason": "NO_TOUCH_12H"
+            },
+            {
+              "at": 1789740000000,
+              "from": "WEAKENED",
+              "to": "EXPIRED",
+              "reason": "AGE_24H"
+            }
+          ]
+        },
+        {
+          "id": 174,
+          "price": 75981.0,
+          "tf": "1h",
+          "origin_kind": "PREV_DAY_LOW",
+          "sources": [
+            "D"
+          ],
+          "created_at": 1789689600000,
+          "expired_at": 1789776000000,
+          "final_state": "EXPIRED",
+          "touches": 1,
+          "merges": 0,
+          "transitions": [
+            {
+              "at": 1789776000000,
+              "from": "CONFIRMED",
+              "to": "EXPIRED",
+              "reason": "DAY_SUPERSEDED"
+            }
+          ]
+        },
+        {
+          "id": 175,
+          "price": 76205.0,
+          "tf": "5m",
+          "origin_kind": "SWING_LOW",
+          "sources": [
+            "5m"
+          ],
+          "created_at": 1789696200000,
+          "expired_at": 1789739700000,
+          "final_state": "EXPIRED",
+          "touches": 1,
+          "merges": 0,
+          "transitions": [
+            {
+              "at": 1789739700000,
+              "from": "PROVISIONAL",
+              "to": "EXPIRED",
+              "reason": "PROVISIONAL_UNTOUCHED"
+            }
+          ]
+        },
+        {
+          "id": 177,
+          "price": 76242.5,
+          "tf": "1h",
+          "origin_kind": "PREV_DAY_LOW",
+          "sources": [
+            "D"
+          ],
+          "created_at": 1789776000000,
+          "expired_at": 1789862400000,
+          "final_state": "EXPIRED",
+          "touches": 1,
+          "merges": 0,
+          "transitions": [
+            {
+              "at": 1789862400000,
+              "from": "CONFIRMED",
+              "to": "EXPIRED",
+              "reason": "DAY_SUPERSEDED"
+            }
+          ]
+        }
+      ],
+      "levels_near_that_price_in_the_baseline": [
+        {
+          "id": 47,
+          "price": 76219.0,
+          "tf": "5m",
+          "origin_kind": "SWING_LOW",
+          "sources": [
+            "5m"
+          ],
+          "created_at": 1787332200000,
+          "expired_at": 1787375700000,
+          "final_state": "EXPIRED",
+          "touches": 1,
+          "merges": 0,
+          "transitions": [
+            {
+              "at": 1787375700000,
+              "from": "PROVISIONAL",
+              "to": "EXPIRED",
+              "reason": "PROVISIONAL_UNTOUCHED"
+            }
+          ]
+        },
+        {
+          "id": 52,
+          "price": 76451.4,
+          "tf": "5m",
+          "origin_kind": "SWING_LOW",
+          "sources": [
+            "5m"
+          ],
+          "created_at": 1787401500000,
+          "expired_at": 1787445000000,
+          "final_state": "EXPIRED",
+          "touches": 32,
+          "merges": 31,
+          "transitions": [
+            {
+              "at": 1787445000000,
+              "from": "PROVISIONAL",
+              "to": "EXPIRED",
+              "reason": "PROVISIONAL_UNTOUCHED"
+            }
+          ]
+        },
+        {
+          "id": 54,
+          "price": 76451.4,
+          "tf": "5m",
+          "origin_kind": "SWING_LOW",
+          "sources": [
+            "5m"
+          ],
+          "created_at": 1787445600000,
+          "expired_at": 1787564700000,
+          "final_state": "EXPIRED",
+          "touches": 19,
+          "merges": 15,
+          "transitions": [
+            {
+              "at": 1787461200000,
+              "from": "PROVISIONAL",
+              "to": "CONFIRMED",
+              "reason": "FIRST_TOUCH"
+            },
+            {
+              "at": 1787521500000,
+              "from": "CONFIRMED",
+              "to": "WEAKENED",
+              "reason": "NO_TOUCH_12H"
+            },
+            {
+              "at": 1787564700000,
+              "from": "WEAKENED",
+              "to": "EXPIRED",
+              "reason": "AGE_24H"
+            }
+          ]
+        },
+        {
+          "id": 93,
+          "price": 76364.0,
+          "tf": "5m",
+          "origin_kind": "SWING_LOW",
+          "sources": [
+            "5m"
+          ],
+          "created_at": 1788293700000,
+          "expired_at": 1788337200000,
+          "final_state": "EXPIRED",
+          "touches": 1,
+          "merges": 0,
+          "transitions": [
+            {
+              "at": 1788337200000,
+              "from": "PROVISIONAL",
+              "to": "EXPIRED",
+              "reason": "PROVISIONAL_UNTOUCHED"
+            }
+          ]
+        },
+        {
+          "id": 97,
+          "price": 76199.1,
+          "tf": "5m",
+          "origin_kind": "SWING_LOW",
+          "sources": [
+            "5m"
+          ],
+          "created_at": 1788356700000,
+          "expired_at": 1788400200000,
+          "final_state": "EXPIRED",
+          "touches": 1,
+          "merges": 0,
+          "transitions": [
+            {
+              "at": 1788400200000,
+              "from": "PROVISIONAL",
+              "to": "EXPIRED",
+              "reason": "PROVISIONAL_UNTOUCHED"
+            }
+          ]
+        },
+        {
+          "id": 98,
+          "price": 76199.1,
+          "tf": "1h",
+          "origin_kind": "SWING_LOW",
+          "sources": [
+            "1h"
+          ],
+          "created_at": 1788404400000,
+          "expired_at": 1788512100000,
+          "final_state": "EXPIRED",
+          "touches": 1,
+          "merges": 0,
+          "transitions": [
+            {
+              "at": 1788512100000,
+              "from": "CONFIRMED",
+              "to": "EXPIRED",
+              "reason": "FAR_AND_UNTOUCHED"
+            }
+          ]
+        },
+        {
+          "id": 132,
+          "price": 76394.1,
+          "tf": "5m",
+          "origin_kind": "SWING_LOW",
+          "sources": [
+            "5m"
+          ],
+          "created_at": 1789100700000,
+          "expired_at": 1789217100000,
+          "final_state": "EXPIRED",
+          "touches": 3,
+          "merges": 0,
+          "transitions": [
+            {
+              "at": 1789130100000,
+              "from": "PROVISIONAL",
+              "to": "CONFIRMED",
+              "reason": "FIRST_TOUCH"
+            },
+            {
+              "at": 1789173900000,
+              "from": "CONFIRMED",
+              "to": "WEAKENED",
+              "reason": "NO_TOUCH_12H"
+            },
+            {
+              "at": 1789217100000,
+              "from": "WEAKENED",
+              "to": "EXPIRED",
+              "reason": "AGE_24H"
+            }
+          ]
+        },
+        {
+          "id": 134,
+          "price": 75903.0,
+          "tf": "5m",
+          "origin_kind": "SWING_LOW",
+          "sources": [
+            "1h",
+            "5m"
+          ],
+          "created_at": 1789130400000,
+          "expired_at": 1789739400000,
+          "final_state": "EXPIRED",
+          "touches": 42,
+          "merges": 1,
+          "transitions": [
+            {
+              "at": 1789131600000,
+              "from": "PROVISIONAL",
+              "to": "CONFIRMED",
+              "reason": "PROMOTED_BY_1h_SOURCE"
+            },
+            {
+              "at": 1789739400000,
+              "from": "CONFIRMED",
+              "to": "EXPIRED",
+              "reason": "FAR_AND_UNTOUCHED"
+            }
+          ]
+        },
+        {
+          "id": 141,
+          "price": 76425.0,
+          "tf": "5m",
+          "origin_kind": "SWING_LOW",
+          "sources": [
+            "1h",
+            "5m"
+          ],
+          "created_at": 1789302600000,
+          "expired_at": 1789779600000,
+          "final_state": "EXPIRED",
+          "touches": 48,
+          "merges": 2,
+          "transitions": [
+            {
+              "at": 1789311600000,
+              "from": "PROVISIONAL",
+              "to": "CONFIRMED",
+              "reason": "PROMOTED_BY_1h_SOURCE"
+            },
+            {
+              "at": 1789779600000,
+              "from": "CONFIRMED",
+              "to": "EXPIRED",
+              "reason": "FAR_AND_UNTOUCHED"
+            }
+          ]
+        },
+        {
+          "id": 143,
+          "price": 76305.4,
+          "tf": "5m",
+          "origin_kind": "SWING_LOW",
+          "sources": [
+            "1h",
+            "5m"
+          ],
+          "created_at": 1789351800000,
+          "expired_at": 1789778100000,
+          "final_state": "EXPIRED",
+          "touches": 40,
+          "merges": 3,
+          "transitions": [
+            {
+              "at": 1789354800000,
+              "from": "PROVISIONAL",
+              "to": "CONFIRMED",
+              "reason": "PROMOTED_BY_1h_SOURCE"
+            },
+            {
+              "at": 1789778100000,
+              "from": "CONFIRMED",
+              "to": "EXPIRED",
+              "reason": "FAR_AND_UNTOUCHED"
+            }
+          ]
+        },
+        {
+          "id": 149,
+          "price": 76095.4,
+          "tf": "5m",
+          "origin_kind": "SWING_HIGH",
+          "sources": [
+            "5m"
+          ],
+          "created_at": 1789546200000,
+          "expired_at": 1789740000000,
+          "final_state": "EXPIRED",
+          "touches": 16,
+          "merges": 0,
+          "transitions": [
+            {
+              "at": 1789558800000,
+              "from": "PROVISIONAL",
+              "to": "CONFIRMED",
+              "reason": "FIRST_TOUCH"
+            },
+            {
+              "at": 1789696800000,
+              "from": "CONFIRMED",
+              "to": "WEAKENED",
+              "reason": "NO_TOUCH_12H"
+            },
+            {
+              "at": 1789740000000,
+              "from": "WEAKENED",
+              "to": "EXPIRED",
+              "reason": "AGE_24H"
+            }
+          ]
+        },
+        {
+          "id": 155,
+          "price": 76016.1,
+          "tf": "5m",
+          "origin_kind": "SWING_LOW",
+          "sources": [
+            "5m"
+          ],
+          "created_at": 1789628700000,
+          "expired_at": 1789739100000,
+          "final_state": "EXPIRED",
+          "touches": 3,
+          "merges": 1,
+          "transitions": [
+            {
+              "at": 1789652400000,
+              "from": "PROVISIONAL",
+              "to": "CONFIRMED",
+              "reason": "FIRST_TOUCH"
+            },
+            {
+              "at": 1789695900000,
+              "from": "CONFIRMED",
+              "to": "WEAKENED",
+              "reason": "NO_TOUCH_12H"
+            },
+            {
+              "at": 1789739100000,
+              "from": "WEAKENED",
+              "to": "EXPIRED",
+              "reason": "AGE_24H"
+            }
+          ]
+        },
+        {
+          "id": 157,
+          "price": 76134.0,
+          "tf": "5m",
+          "origin_kind": "SWING_LOW",
+          "sources": [
+            "5m"
+          ],
+          "created_at": 1789647600000,
+          "expired_at": 1789740000000,
+          "final_state": "EXPIRED",
+          "touches": 3,
+          "merges": 0,
+          "transitions": [
+            {
+              "at": 1789652400000,
+              "from": "PROVISIONAL",
+              "to": "CONFIRMED",
+              "reason": "FIRST_TOUCH"
+            },
+            {
+              "at": 1789696800000,
+              "from": "CONFIRMED",
+              "to": "WEAKENED",
+              "reason": "NO_TOUCH_12H"
+            },
+            {
+              "at": 1789740000000,
+              "from": "WEAKENED",
+              "to": "EXPIRED",
+              "reason": "AGE_24H"
+            }
+          ]
+        },
+        {
+          "id": 160,
+          "price": 76205.0,
+          "tf": "5m",
+          "origin_kind": "SWING_LOW",
+          "sources": [
+            "5m"
+          ],
+          "created_at": 1789696200000,
+          "expired_at": 1789739700000,
+          "final_state": "EXPIRED",
+          "touches": 1,
+          "merges": 0,
+          "transitions": [
+            {
+              "at": 1789739700000,
+              "from": "PROVISIONAL",
+              "to": "EXPIRED",
+              "reason": "PROVISIONAL_UNTOUCHED"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "q2_the_reversal_s3_lost": [
+    {
+      "pivot_at": 1789135200000,
+      "kind": "SWING_HIGH",
+      "price": 79909.7,
+      "move_pct": 5.279,
+      "baseline_covered_by": [
+        {
+          "id": 126,
+          "price": 79743.8,
+          "origin_kind": "SWING_HIGH",
+          "sources": [
+            "1h",
+            "5m"
+          ],
+          "lifecycle": "CONFIRMED",
+          "tf": "5m",
+          "confirm_tf": "1h",
+          "touches": 2,
+          "strength": 4,
+          "delta": -165.9
+        }
+      ],
+      "existed_but_unpublished": true,
+      "its_rank_on_its_side": [
+        6,
+        7,
+        8
+      ],
+      "slots_per_side": 5,
+      "outranked_by": [
+        {
+          "id": 51,
+          "price": 79559.2,
+          "origin_kind": "SWING_HIGH",
+          "sources": [
+            "1h",
+            "5m",
+            "FLIP"
+          ],
+          "lifecycle": "CONFIRMED",
+          "major": true,
+          "touches": 78,
+          "strength": 80,
+          "side_of_close": "ABOVE",
+          "distance": 346.2
+        },
+        {
+          "id": 72,
+          "price": 79700.5,
+          "origin_kind": "SWING_LOW",
+          "sources": [
+            "5m",
+            "FLIP"
+          ],
+          "lifecycle": "CONFIRMED",
+          "major": true,
+          "touches": 59,
+          "strength": 61,
+          "side_of_close": "ABOVE",
+          "distance": 487.5
+        },
+        {
+          "id": 83,
+          "price": 79367.5,
+          "origin_kind": "SWING_HIGH",
+          "sources": [
+            "1h",
+            "5m",
+            "FLIP"
+          ],
+          "lifecycle": "CONFIRMED",
+          "major": true,
+          "touches": 42,
+          "strength": 45,
+          "side_of_close": "ABOVE",
+          "distance": 154.5
+        },
+        {
+          "id": 88,
+          "price": 79280.8,
+          "origin_kind": "SWING_HIGH",
+          "sources": [
+            "1h",
+            "5m",
+            "FLIP"
+          ],
+          "lifecycle": "CONFIRMED",
+          "major": true,
+          "touches": 39,
+          "strength": 42,
+          "side_of_close": "ABOVE",
+          "distance": 67.8
+        },
+        {
+          "id": 111,
+          "price": 79483.3,
+          "origin_kind": "SWING_LOW",
+          "sources": [
+            "5m",
+            "FLIP"
+          ],
+          "lifecycle": "CONFIRMED",
+          "major": true,
+          "touches": 20,
+          "strength": 22,
+          "side_of_close": "ABOVE",
+          "distance": 270.3
+        }
+      ],
+      "candidate_in_tolerance": [
+        {
+          "id": 112,
+          "price": 79997.1,
+          "origin_kind": "SWING_HIGH",
+          "sources": [
+            "5m",
+            "FLIP"
+          ],
+          "lifecycle": "CONFIRMED",
+          "major": true,
+          "touches": 8,
+          "strength": 10,
+          "side_of_close": "ABOVE",
+          "distance": 784.1
+        },
+        {
+          "id": 110,
+          "price": 80067.0,
+          "origin_kind": "SWING_HIGH",
+          "sources": [
+            "5m",
+            "FLIP"
+          ],
+          "lifecycle": "CONFIRMED",
+          "major": true,
+          "touches": 8,
+          "strength": 10,
+          "side_of_close": "ABOVE",
+          "distance": 854.0
+        },
+        {
+          "id": 124,
+          "price": 79743.8,
+          "origin_kind": "SWING_HIGH",
+          "sources": [
+            "1h",
+            "5m"
+          ],
+          "lifecycle": "CONFIRMED",
+          "major": true,
+          "touches": 2,
+          "strength": 4,
+          "side_of_close": "ABOVE",
+          "distance": 530.8
+        }
+      ]
+    }
+  ],
+  "q3_in_the_book_but_not_published": [
+    {
+      "pivot_at": 1790604000000,
+      "kind": "SWING_LOW",
+      "price": 82468.0,
+      "move_pct": 3.143,
+      "nearest_book_delta": 84.8,
+      "publishable_in_tolerance": [],
+      "its_rank_on_its_side": null,
+      "outranked_by": []
+    }
+  ],
+  "q4_surviving_misses": [
+    {
+      "pivot_at": 1789830000000,
+      "kind": "SWING_HIGH",
+      "price": 81954.6,
+      "move_pct": 9.39,
+      "tol_abs": 204.89,
+      "nearest_published_delta": 564.7,
+      "nearest_book_delta": 219.6,
+      "in_book": false,
+      "published_count": 3,
+      "book_count": 5,
+      "traded_before": true,
+      "prior_high": 82276.6,
+      "prior_low": 62505.1,
+      "above_prior_high": false,
+      "below_prior_low": false
+    },
+    {
+      "pivot_at": 1790020800000,
+      "kind": "SWING_HIGH",
+      "price": 87383.6,
+      "move_pct": 9.104,
+      "tol_abs": 218.46,
+      "nearest_published_delta": 5303.6,
+      "nearest_book_delta": 5303.6,
+      "in_book": false,
+      "published_count": 5,
+      "book_count": 5,
+      "traded_before": false,
+      "prior_high": 86887.9,
+      "prior_low": 62505.1,
+      "above_prior_high": true,
+      "below_prior_low": false
+    },
+    {
+      "pivot_at": 1788469200000,
+      "kind": "SWING_HIGH",
+      "price": 82276.6,
+      "move_pct": 7.976,
+      "tol_abs": 205.69,
+      "nearest_published_delta": 2717.4,
+      "nearest_book_delta": 2717.4,
+      "in_book": false,
+      "published_count": 5,
+      "book_count": 11,
+      "traded_before": false,
+      "prior_high": 81771.4,
+      "prior_low": 62505.1,
+      "above_prior_high": true,
+      "below_prior_low": false
+    },
+    {
+      "pivot_at": 1789495200000,
+      "kind": "SWING_LOW",
+      "price": 74919.6,
+      "move_pct": 5.853,
+      "tol_abs": 187.3,
+      "nearest_published_delta": 983.4,
+      "nearest_book_delta": 639.8,
+      "in_book": false,
+      "published_count": 8,
+      "book_count": 9,
+      "traded_before": true,
+      "prior_high": 82276.6,
+      "prior_low": 62505.1,
+      "above_prior_high": false,
+      "below_prior_low": false
+    },
+    {
+      "pivot_at": 1790240400000,
+      "kind": "SWING_LOW",
+      "price": 82800.0,
+      "move_pct": 5.136,
+      "tol_abs": 207.0,
+      "nearest_published_delta": 653.7,
+      "nearest_book_delta": 653.7,
+      "in_book": false,
+      "published_count": 6,
+      "book_count": 8,
+      "traded_before": true,
+      "prior_high": 87383.6,
+      "prior_low": 62505.1,
+      "above_prior_high": false,
+      "below_prior_low": false
+    },
+    {
+      "pivot_at": 1790942400000,
+      "kind": "SWING_HIGH",
+      "price": 87242.2,
+      "move_pct": 4.975,
+      "tol_abs": 218.11,
+      "nearest_published_delta": 2974.1,
+      "nearest_book_delta": 342.5,
+      "in_book": false,
+      "published_count": 5,
+      "book_count": 15,
+      "traded_before": true,
+      "prior_high": 87383.6,
+      "prior_low": 62505.1,
+      "above_prior_high": false,
+      "below_prior_low": false
+    },
+    {
+      "pivot_at": 1789128000000,
+      "kind": "SWING_LOW",
+      "price": 75903.0,
+      "move_pct": 4.816,
+      "tol_abs": 189.76,
+      "nearest_published_delta": 491.1,
+      "nearest_book_delta": 491.1,
+      "in_book": false,
+      "published_count": 7,
+      "book_count": 11,
+      "traded_before": true,
+      "prior_high": 82276.6,
+      "prior_low": 62505.1,
+      "above_prior_high": false,
+      "below_prior_low": false
+    },
+    {
+      "pivot_at": 1788530400000,
+      "kind": "SWING_LOW",
+      "price": 78603.9,
+      "move_pct": 4.464,
+      "tol_abs": 196.51,
+      "nearest_published_delta": 676.9,
+      "nearest_book_delta": 676.9,
+      "in_book": false,
+      "published_count": 8,
+      "book_count": 9,
+      "traded_before": true,
+      "prior_high": 82276.6,
+      "prior_low": 62505.1,
+      "above_prior_high": false,
+      "below_prior_low": false
+    },
+    {
+      "pivot_at": 1789297200000,
+      "kind": "SWING_LOW",
+      "price": 76425.0,
+      "move_pct": 4.361,
+      "tol_abs": 191.06,
+      "nearest_published_delta": 522.0,
+      "nearest_book_delta": 522.0,
+      "in_book": false,
+      "published_count": 5,
+      "book_count": 6,
+      "traded_before": true,
+      "prior_high": 82276.6,
+      "prior_low": 62505.1,
+      "above_prior_high": false,
+      "below_prior_low": false
+    },
+    {
+      "pivot_at": 1789416000000,
+      "kind": "SWING_HIGH",
+      "price": 79577.3,
+      "move_pct": 4.288,
+      "tol_abs": 198.94,
+      "nearest_published_delta": 1233.0,
+      "nearest_book_delta": 1233.0,
+      "in_book": false,
+      "published_count": 5,
+      "book_count": 8,
+      "traded_before": true,
+      "prior_high": 82276.6,
+      "prior_low": 62505.1,
+      "above_prior_high": false,
+      "below_prior_low": false
+    },
+    {
+      "pivot_at": 1790964000000,
+      "kind": "SWING_LOW",
+      "price": 83835.6,
+      "move_pct": 3.905,
+      "tol_abs": 209.59,
+      "nearest_published_delta": 720.4,
+      "nearest_book_delta": 720.4,
+      "in_book": false,
+      "published_count": 9,
+      "book_count": 11,
+      "traded_before": true,
+      "prior_high": 87383.6,
+      "prior_low": 62505.1,
+      "above_prior_high": false,
+      "below_prior_low": false
+    },
+    {
+      "pivot_at": 1788872400000,
+      "kind": "SWING_LOW",
+      "price": 77579.4,
+      "move_pct": 3.655,
+      "tol_abs": 193.95,
+      "nearest_published_delta": 1552.8,
+      "nearest_book_delta": 536.8,
+      "in_book": false,
+      "published_count": 5,
+      "book_count": 13,
+      "traded_before": true,
+      "prior_high": 82276.6,
+      "prior_low": 62505.1,
+      "above_prior_high": false,
+      "below_prior_low": false
+    },
+    {
+      "pivot_at": 1790773200000,
+      "kind": "SWING_HIGH",
+      "price": 85696.2,
+      "move_pct": 3.481,
+      "tol_abs": 214.24,
+      "nearest_published_delta": 1428.1,
+      "nearest_book_delta": 455.2,
+      "in_book": false,
+      "published_count": 5,
+      "book_count": 13,
+      "traded_before": true,
+      "prior_high": 87383.6,
+      "prior_low": 62505.1,
+      "above_prior_high": false,
+      "below_prior_low": false
+    },
+    {
+      "pivot_at": 1790604000000,
+      "kind": "SWING_LOW",
+      "price": 82468.0,
+      "move_pct": 3.143,
+      "tol_abs": 206.17,
+      "nearest_published_delta": 332.0,
+      "nearest_book_delta": 84.8,
+      "in_book": true,
+      "published_count": 7,
+      "book_count": 10,
+      "traded_before": true,
+      "prior_high": 87383.6,
+      "prior_low": 62505.1,
+      "above_prior_high": false,
+      "below_prior_low": false
+    },
+    {
+      "pivot_at": 1790053200000,
+      "kind": "SWING_LOW",
+      "price": 85066.3,
+      "move_pct": 2.652,
+      "tol_abs": 212.67,
+      "nearest_published_delta": 2317.3,
+      "nearest_book_delta": 2317.3,
+      "in_book": false,
+      "published_count": 6,
+      "book_count": 6,
+      "traded_before": true,
+      "prior_high": 87383.6,
+      "prior_low": 62505.1,
+      "above_prior_high": false,
+      "below_prior_low": false
+    },
+    {
+      "pivot_at": 1790686800000,
+      "kind": "SWING_HIGH",
+      "price": 84556.0,
+      "move_pct": 2.532,
+      "tol_abs": 211.39,
+      "nearest_published_delta": 287.9,
+      "nearest_book_delta": 287.9,
+      "in_book": false,
+      "published_count": 8,
+      "book_count": 11,
+      "traded_before": true,
+      "prior_high": 87383.6,
+      "prior_low": 62505.1,
+      "above_prior_high": false,
+      "below_prior_low": false
+    },
+    {
+      "pivot_at": 1790344800000,
+      "kind": "SWING_LOW",
+      "price": 83106.4,
+      "move_pct": 2.504,
+      "tol_abs": 207.77,
+      "nearest_published_delta": 306.4,
+      "nearest_book_delta": 306.4,
+      "in_book": false,
+      "published_count": 9,
+      "book_count": 11,
+      "traded_before": true,
+      "prior_high": 87383.6,
+      "prior_low": 62505.1,
+      "above_prior_high": false,
+      "below_prior_low": false
+    },
+    {
+      "pivot_at": 1788735600000,
+      "kind": "SWING_HIGH",
+      "price": 80522.7,
+      "move_pct": 2.441,
+      "tol_abs": 201.31,
+      "nearest_published_delta": 334.6,
+      "nearest_book_delta": 334.6,
+      "in_book": false,
+      "published_count": 7,
+      "book_count": 11,
+      "traded_before": true,
+      "prior_high": 82276.6,
+      "prior_low": 62505.1,
+      "above_prior_high": false,
+      "below_prior_low": false
+    },
+    {
+      "pivot_at": 1789873200000,
+      "kind": "SWING_LOW",
+      "price": 80092.3,
+      "move_pct": 2.272,
+      "tol_abs": 200.23,
+      "nearest_published_delta": 515.0,
+      "nearest_book_delta": 515.0,
+      "in_book": false,
+      "published_count": 6,
+      "book_count": 7,
+      "traded_before": true,
+      "prior_high": 82276.6,
+      "prior_low": 62505.1,
+      "above_prior_high": false,
+      "below_prior_low": false
+    }
+  ],
+  "q4_summary": {
+    "misses": 19,
+    "at_a_price_already_traded": 17,
+    "at_a_price_never_traded_before": 2,
+    "beyond_the_prior_high_or_low": 2,
+    "nearest_structure_over_1000": 4,
+    "median_nearest_book_delta": 522.0
+  }
+}

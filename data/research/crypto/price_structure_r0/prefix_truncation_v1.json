@@ -1,0 +1,42 @@
+{
+  "cut_points": [
+    {
+      "info_ts": 1788480000000,
+      "identical": true,
+      "active": 22,
+      "published": 6
+    },
+    {
+      "info_ts": 1789084800000,
+      "identical": true,
+      "active": 25,
+      "published": 5
+    },
+    {
+      "info_ts": 1789516800000,
+      "identical": true,
+      "active": 20,
+      "published": 7
+    },
+    {
+      "info_ts": 1790294400000,
+      "identical": true,
+      "active": 15,
+      "published": 10
+    },
+    {
+      "info_ts": 1790726400000,
+      "identical": true,
+      "active": 26,
+      "published": 10
+    },
+    {
+      "info_ts": 1791064800000,
+      "identical": true,
+      "active": 23,
+      "published": 10
+    }
+  ],
+  "result": "PASS",
+  "method": "engine fed only bars closing at or before T; its published snapshot at T compared field by field with the full run's snapshot at T"
+}
