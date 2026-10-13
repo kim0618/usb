@@ -63,4 +63,36 @@ describe("dashboard strategy card", () => {
     expect(kstStamp(null)).toBe("-");
     expect(kstStamp("nope")).toBe("-");
   });
+
+  it("shows an official PnL of zero when the official book has no trade, and never the legacy figure", () => {
+    const b = base();
+    (b.card as never as { official: unknown }).official = { trades: 0, net_pnl: null, accounting_versions: [] };
+    (b.card as never as { net_pnl: unknown; trades: number }).net_pnl = null;
+    (b.card as never as { trades: number }).trades = 0;
+    (b.card as never as { legacy: unknown }).legacy = { trades: 3, net_pnl: "72.3555", accounting_versions: ["V0"] };
+    b.account = { ...b.account, total_pnl: "80.4785" };               // the account's all-time figure
+    const { container } = render(<DashboardStrategyCard bundle={b}/>);
+    const fields = Object.fromEntries([...container.querySelectorAll("dl > div")].map(el => [
+      el.querySelector("dt")!.textContent, el.querySelector("dd")!.textContent]));
+    expect(fields["공식 누적 손익"]).toBe("$0.00₩0");
+    expect(fields["공식 거래 수"]).toBe("0");
+    expect(container.textContent).not.toContain("80.48");
+    expect(container.textContent).not.toContain("72.36");
+  });
+
+  it("keeps a dash where trades exist but their net is unknown, and for a strategy without a book", () => {
+    const unknown = base();
+    (unknown.card as never as { official: unknown }).official = { trades: 5, net_pnl: null, accounting_versions: [] };
+    (unknown.card as never as { net_pnl: unknown }).net_pnl = null;
+    const first = render(<DashboardStrategyCard bundle={unknown}/>);
+    const netOf = (c: HTMLElement) => [...c.querySelectorAll("dl > div")]
+      .find(el => el.querySelector("dt")!.textContent === "공식 누적 손익")!.querySelector("dd")!.textContent;
+    expect(netOf(first.container)).toBe("-");
+    cleanup();
+    const shadow = base();
+    (shadow.card as never as { forward: unknown }).forward = {};
+    (shadow.card as never as { official: unknown }).official = { trades: 0, net_pnl: null, accounting_versions: [] };
+    const second = render(<DashboardStrategyCard bundle={shadow}/>);
+    expect(netOf(second.container)).toBe("-");                      // H has no capital book at all
+  });
 });

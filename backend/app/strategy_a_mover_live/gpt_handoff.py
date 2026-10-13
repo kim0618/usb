@@ -24,6 +24,8 @@ is updated, reclassified or deleted by anything here.
 
 from __future__ import annotations
 
+import logging
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
@@ -35,6 +37,9 @@ from app.repositories.scanner import ScannerSnapshotRepository
 from app.research.prompt import ResearchPromptService
 from app.strategy_a_mover_live import contract as LC
 from app.strategy_a_mover_live import scanner as SCAN
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -60,7 +65,8 @@ def existing_run(session: Session, trading_date) -> ScannerRun | None:
         trading_date, score_version=LC.RUN_SCORE_VERSION, provider=LC.RUN_PROVIDER)
 
 
-def persist(session: Session, live: SCAN.LiveScan, *, now: datetime) -> HandoffResult:
+def persist(session: Session, live: SCAN.LiveScan, *, now: datetime,
+            exchanges: Mapping[str, str] | None = None) -> HandoffResult:
     """Persist the run and its candidates, then render the deployed prompt if there are any."""
     repository = ScannerSnapshotRepository(session)
     found = existing_run(session, live.session)
@@ -72,7 +78,12 @@ def persist(session: Session, live: SCAN.LiveScan, *, now: datetime) -> HandoffR
                              prompt=prompt, prompt_chars=len(prompt or ""),
                              gpt_calls_expected=1 if candidates else 0,
                              metadata=live.metadata() | {"reused_run": True})
-    rows = SCAN.candidate_rows(live)
+    rows = SCAN.candidate_rows(live, exchanges)
+    unlisted = [row.symbol for row in rows if "exchange" not in row.score_components]
+    if unlisted:
+        # Persisted as they are: entry refuses a candidate with no exchange by name, which is
+        # the contract. This line is what makes that refusal visible at handoff time.
+        logger.warning("A-MOVER HANDOFF: no listed exchange for %s", ", ".join(unlisted))
     run = repository.create_run(
         trading_date=live.session, started_at=live.observed_at, provider=LC.RUN_PROVIDER,
         score_version=LC.RUN_SCORE_VERSION, status="RUNNING",

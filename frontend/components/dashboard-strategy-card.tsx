@@ -73,7 +73,11 @@ export function DashboardStrategyCard({ bundle, href }: { bundle: StrategyBundle
   const settled = account.books ? (account.books[account.evidence_status || ""]?.sessions ?? 0) > 0 : true;
   const official = card?.official;
   const trades = noBook || !card ? "-" : String(official?.trades ?? card.trades);
-  const net = noBook ? null : (official?.net_pnl ?? card?.net_pnl ?? null);
+  // A book that has recorded no official trade has an official PnL of zero, which is a fact and
+  // not a missing figure. Legacy (V0) rows never reach this field: `official` is the V1 book.
+  // A strategy with no capital book at all (H) stays a dash.
+  const officialTrades = official?.trades ?? card?.trades;
+  const net = noBook ? null : (official?.net_pnl ?? card?.net_pnl ?? (officialTrades === 0 ? "0" : null));
 
   return <article className="panel flex h-full flex-col p-5" data-strategy={row.strategy_id}
     data-state={state || "UNKNOWN"} data-dashboard-card="">

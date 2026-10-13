@@ -58,6 +58,31 @@ def normalize_status(card: Mapping[str, Any], *, waiting_signal_is_running: bool
     return ISSUE, "상태 확인 불가"
 
 
+def with_heartbeat(status: tuple[str, str | None], last_run_at: str | None, *, stale_seconds: int,
+                   now: datetime | None = None) -> tuple[str, str | None]:
+    """Turn a healthy-looking state into ISSUE when the runner's own heartbeat has gone stale.
+
+    ``last_run_at`` is the runner's last *successful* cycle. The threshold is the monitoring
+    module's existing ``heartbeat_stale_seconds``, passed in rather than chosen here. A missing
+    heartbeat (a runner that has not completed its first cycle since a restart) changes nothing:
+    absence is not evidence of a stall, and an ISSUE already on the card is kept as it is.
+    """
+    if last_run_at is None or status[0] == ISSUE:
+        return status
+    try:
+        beat = datetime.fromisoformat(str(last_run_at).replace("Z", "+00:00"))
+    except ValueError:
+        return status
+    if beat.tzinfo is None:
+        beat = beat.replace(tzinfo=timezone.utc)
+    age = ((now or datetime.now(timezone.utc)) - beat).total_seconds()
+    if age <= stale_seconds:
+        return status
+    minutes = int(age // 60)
+    shown = f"{minutes}분" if minutes < 120 else f"{minutes // 60}시간"
+    return ISSUE, f"러너 정상 실행 지연 · {shown}"
+
+
 def operating_day(start: str | None, now: datetime | None = None) -> int | None:
     """Calendar day number since ``start`` (an ISO date or timestamp), the start day being day 1.
 

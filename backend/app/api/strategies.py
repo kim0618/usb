@@ -30,7 +30,7 @@ from typing import Annotated, Any
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.simulation import broker_projection
@@ -38,7 +38,8 @@ from app.core.config import get_settings
 from app.core.database import get_db
 from app.repositories.simulation import SimulationStateRepository
 from app.services.performance_baseline import strategy_baseline_equity, strategy_performance_fields
-from app.models.strategy import StrategyStateRecord
+from app.models.runtime import RuntimeStateRecord
+from app.monitoring.config import OperationsConfig
 from app.services.simulation_runtime import get_active_runtime, get_active_sim_broker
 from app.strategies import books as BK
 from app.strategies import dashboard_ops as DASH
@@ -404,11 +405,14 @@ def _book_summary(book: PERF.Book) -> dict[str, Any]:
 
 
 def _a_last_run(db: Session) -> str | None:
-    """Newest write of A's strategy runner (``strategy_states``), as an ISO UTC timestamp.
+    """A's runner's last successful cycle: ``RuntimeStateRecord.last_heartbeat_at``.
 
-    The paper runtime records no heartbeat, so the last state write is the checkpoint the
-    runner leaves; ``None`` when it has written nothing."""
-    latest = db.scalar(select(func.max(StrategyStateRecord.updated_at)))
+    ``EntryManagementRuntime`` stamps it after every cycle that ran without absorbing an error,
+    whether or not there was a candidate. ``None`` until the first such cycle after a restart,
+    which the card shows as a dash; no other table is substituted, because a candidate-driven
+    write (``strategy_states``) goes quiet on any day with nothing to evaluate and read as a
+    stalled runner."""
+    latest = db.scalar(select(RuntimeStateRecord.last_heartbeat_at).where(RuntimeStateRecord.id == 1))
     if latest is None:
         return None
     return (latest if latest.tzinfo else latest.replace(tzinfo=timezone.utc)).isoformat()
@@ -455,12 +459,15 @@ def _card(db: Session, meta: REG.StrategyMeta) -> dict[str, Any]:
                    **({"today_unrealized_pnl": "보유 포지션 시가 평가값 없음"} if unrealized is None else {})},
         }
         decision = {"POSITION_OPEN": "포지션 보유", "WAITING_SIGNAL": "신호 없음"}.get(status["operational_status"])
+        last_run = _a_last_run(db)
         return card | {"dashboard": DASH.block(
             mode=DASH.mode_label(card, shadow=False, official_evidence=clock["status"] == "STARTED"),
-            status=DASH.normalize_status(card, waiting_signal_is_running=True),
+            status=DASH.with_heartbeat(
+                DASH.normalize_status(card, waiting_signal_is_running=True), last_run,
+                stale_seconds=OperationsConfig().heartbeat_stale_seconds),
             since=clock["official_paper_start"],
             sessions=PERF.strategy_metrics(books["official"])["operating_sessions"],
-            session_kind="공식", last_run_at=_a_last_run(db), last_decision=decision)}
+            session_kind="공식", last_run_at=last_run, last_decision=decision)}
     if meta.strategy_id == REG.STRATEGY_H_V2:
         # H shows states and counts where A and E show money: it has no capital book, so a money
         # field is None with a reason rather than a zero that would read as break-even.

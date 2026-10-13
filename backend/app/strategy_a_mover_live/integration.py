@@ -238,8 +238,10 @@ class SharedCollectorIntegration:
         if self.session_factory is None:
             return {"status": "NOT_PERSISTED_NO_DATABASE", "gpt_calls": 0, "persisted": False,
                     "candidates": live.candidate_count}
+        listed = {item.symbol: self._exchange_of(item.symbol)
+                  for item in live.selection.handoff}
         with self.session_factory() as database:
-            result = GPT.persist(database, live, now=self.now())
+            result = GPT.persist(database, live, now=self.now(), exchanges=listed)
         return {"status": "PERSISTED", "run_id": result.run_id, "reused": result.reused,
                 "candidates": result.candidate_count, "prompt_chars": result.prompt_chars,
                 "gpt_calls": result.gpt_calls_expected, "persisted": True,

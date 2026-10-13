@@ -28,6 +28,8 @@ from datetime import date, datetime
 from typing import Any
 
 from app.backtest.mover_scanner_v1 import actionability as A
+import app.market  # noqa: F401  (package init order: kiwoom.mapping imports back into app.market)
+from app.integrations.kiwoom.mapping import EXCHANGES
 from app.backtest.mover_scanner_v1 import contract as K
 from app.backtest.mover_scanner_v1.config import MoverScannerConfig
 from app.backtest.mover_scanner_v1.scan import MoverCandidate, SessionScan, scan_session
@@ -181,8 +183,29 @@ def candidate_payload(live: LiveScan, config: MoverScannerConfig | None = None) 
     return payload
 
 
-def candidate_rows(live: LiveScan) -> list[ScannerCandidateData]:
-    """The persistable rows, through the research module's own contiguity assertions."""
+def stored_exchange(exchanges: Mapping[str, str] | None, symbol: str) -> str | None:
+    """The canonical market name (NASDAQ / NYSE / AMEX) for a symbol the collector listed, or None.
+
+    ``exchanges`` is the Kiwoom listing the live collector already used to read this symbol's
+    bars (symbol -> ND / NY / NA). A symbol it does not list, or a value that is not one of the
+    three supported venues, yields None: the row is stored without an exchange and the entry
+    runtime refuses it by name. Nothing here defaults a venue.
+    """
+    raw = str((exchanges or {}).get(symbol) or "").strip().upper()
+    if raw in EXCHANGES:
+        return EXCHANGES[raw]
+    return raw if raw in EXCHANGES.values() else None
+
+
+def candidate_rows(live: LiveScan, exchanges: Mapping[str, str] | None = None,
+                   ) -> list[ScannerCandidateData]:
+    """The persistable rows, through the research module's own contiguity assertions.
+
+    The mover scanner's own components carry no venue (it is a research module that never
+    needed one), but entry binds every market-data lookup to the exchange stored on the
+    candidate. The venue is therefore added here, from the collector's listing, and only when
+    that listing has the symbol.
+    """
     rows = A.candidate_rows(live.selection, live.observed_at)
     contract = live.contract
     out: list[ScannerCandidateData] = []
@@ -199,6 +222,9 @@ def candidate_rows(live: LiveScan) -> list[ScannerCandidateData]:
         components["baseline_version"] = contract.baseline_version
         components["baseline_provider_contract"] = contract.baseline_provider_contract
         components.update(live.baseline_stamp)
+        exchange = stored_exchange(exchanges, row.symbol)
+        if exchange is not None:
+            components["exchange"] = exchange
         if live.baseline_readiness is not None:
             components["baseline_readiness"] = {
                 k: v for k, v in live.baseline_readiness.items() if k != "symbols"}

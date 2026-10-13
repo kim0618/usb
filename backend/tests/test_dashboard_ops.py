@@ -42,3 +42,38 @@ def test_mode_is_one_word():
     assert D.mode_label(card, shadow=False, official_evidence=False) == "PAPER"
     assert D.mode_label(card, shadow=True, official_evidence=False) == "SHADOW"
     assert D.mode_label({"lifecycle": "RETIRED"}, shadow=False, official_evidence=True) == "RETIRED"
+
+
+def test_a_fresh_runner_heartbeat_keeps_the_state_and_a_stale_one_is_an_issue():
+    beat = "2026-10-13T00:59:00+00:00"                      # 1 minute before NOW
+    assert D.with_heartbeat((D.RUNNING, None), beat, stale_seconds=180, now=NOW) == (D.RUNNING, None)
+    exactly = "2026-10-13T00:57:00+00:00"                   # 180 s: the threshold itself is not stale
+    assert D.with_heartbeat((D.RUNNING, None), exactly, stale_seconds=180, now=NOW) == (D.RUNNING, None)
+    state, reason = D.with_heartbeat((D.RUNNING, None), "2026-10-13T00:50:00+00:00", stale_seconds=180, now=NOW)
+    assert state == D.ISSUE and reason == "러너 정상 실행 지연 · 10분"
+    state, reason = D.with_heartbeat((D.WAITING, None), "2026-10-12T20:00:00+00:00", stale_seconds=180, now=NOW)
+    assert state == D.ISSUE and reason == "러너 정상 실행 지연 · 5시간"
+
+
+def test_a_missing_heartbeat_is_not_evidence_and_an_existing_issue_is_kept():
+    assert D.with_heartbeat((D.RUNNING, None), None, stale_seconds=180, now=NOW) == (D.RUNNING, None)
+    assert D.with_heartbeat((D.ISSUE, "결정 없음"), "2020-01-01T00:00:00+00:00",
+                            stale_seconds=180, now=NOW) == (D.ISSUE, "결정 없음")
+    assert D.with_heartbeat((D.RUNNING, None), "not-a-time", stale_seconds=180, now=NOW) == (D.RUNNING, None)
+
+
+def test_a_card_reads_the_runner_heartbeat_and_nothing_else(tmp_path):
+    from sqlalchemy.orm import sessionmaker
+
+    from app.api.strategies import _a_last_run
+    from app.core.database import Base, create_db_engine
+    from app.monitoring.service import RuntimeHealthService
+
+    engine = create_db_engine(f"sqlite:///{tmp_path / 'hb.sqlite3'}")
+    Base.metadata.create_all(engine)
+    with sessionmaker(bind=engine, expire_on_commit=False)() as session:
+        assert _a_last_run(session) is None                   # no cycle yet: a dash, not a guess
+        at = datetime(2026, 10, 13, 3, 4, tzinfo=timezone.utc)
+        RuntimeHealthService(session).record_heartbeat(at)
+        assert _a_last_run(session) == at.isoformat()
+    engine.dispose()

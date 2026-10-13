@@ -33,6 +33,7 @@ from app.services.entry_evaluation_log import (
     EntryEvaluationRecorder, EvaluationKey, EvaluationStatus, classify, finalize,
     session_diagnostics, session_states, session_trades,
 )
+from app.monitoring.service import RuntimeHealthService
 from app.services.exchange_authority import bind_exchange, bind_open_position, stored_exchange
 from app.services.position_lifecycle import strategy_state_sink
 from app.services.simulation_runtime import SimulationRuntimeContext
@@ -790,6 +791,12 @@ class EntryManagementRuntime:
         self._lifecycle = lifecycle or EntryLifecycleService(runtime, calendar=self._calendar)
         self._run_lock = asyncio.Lock()
         self._stop = asyncio.Event()
+        # One counter pair per cycle. ``_cycle_seq`` advances when a cycle actually ran (not when
+        # a concurrent caller held the lock); ``_cycle_errors`` counts every failure that cycle
+        # absorbed and retried, which is what keeps a cycle that failed from being reported as a
+        # healthy one.
+        self._cycle_seq = 0
+        self._cycle_errors = 0
 
     async def run_once(self, *, as_of: datetime | None = None) -> tuple[EntryOutcome, ...]:
         if self._run_lock.locked():
@@ -798,9 +805,12 @@ class EntryManagementRuntime:
             now = as_of or self._clock()
             if now.tzinfo is None or now.utcoffset() is None:
                 raise ValueError("entry management clock must be timezone-aware")
+            self._cycle_seq += 1
+            self._cycle_errors = 0
             try:
                 self._lifecycle.expire_ended_signals(now)
             except Exception:
+                self._cycle_errors += 1
                 logger.exception("ENTRY SIGNAL EXPIRY FAILED; retrying next tick")
             local = now.astimezone(self._calendar.timezone)
             window = self._calendar.session(local.date())
@@ -823,6 +833,7 @@ class EntryManagementRuntime:
                 try:
                     outcomes.append(self._lifecycle.evaluate(candidate, self._provider, as_of=now))
                 except Exception as error:
+                    self._cycle_errors += 1
                     logger.exception("ENTRY CANDIDATE FAILED: %s", candidate.symbol)
                     # One failed tick is counted, never concluded: the next minute
                     # retries this candidate exactly as it did before.
@@ -836,16 +847,39 @@ class EntryManagementRuntime:
         try:
             self._lifecycle.finalize_pending(now)
         except Exception:
+            self._cycle_errors += 1
             logger.exception("ENTRY EVALUATION FINALIZATION FAILED; retrying next tick")
+
+    def _record_heartbeat(self) -> None:
+        """Stamp ``RuntimeStateRecord.last_heartbeat_at`` for a cycle that ran and absorbed no error.
+
+        This is the runner's own last-success time: a process that is alive but whose cycle keeps
+        failing (an exception out of the tick, or a candidate that errors every minute) does not
+        advance it, so the failure stays visible as a stale time instead of being hidden by a
+        liveness stamp. A cycle with no candidate is still a successful cycle. The write is
+        observability only: any failure here is logged and never reaches the entry path.
+        """
+        factory = self.runtime.session_factory
+        if factory is None:
+            return
+        try:
+            with factory() as session:
+                RuntimeHealthService(session).record_heartbeat(self._clock())
+        except Exception:
+            logger.exception("ENTRY HEARTBEAT WRITE FAILED; entry evaluation is unaffected")
 
     async def run(self) -> None:
         while not self._stop.is_set():
+            seq = self._cycle_seq
             try:
                 await self.run_once()
             except asyncio.CancelledError:
                 raise
             except Exception:
                 logger.exception("ENTRY TICK FAILED; retrying at next minute boundary")
+            else:
+                if self._cycle_seq != seq and self._cycle_errors == 0:
+                    self._record_heartbeat()
             now = self._clock()
             boundary = now.replace(second=0, microsecond=0) + timedelta(minutes=1)
             try:

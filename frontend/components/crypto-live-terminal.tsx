@@ -420,8 +420,14 @@ function livePositionParts({ card, prefix, symbolConfig, fallback }: LivePartsIn
   const unrealizedKrw = card?.krw?.unrealized_pnl ?? f.unrealizedKrw ?? null;
   const marginMode = symbolConfig
     ? (MARGIN_MODE_LABELS[symbolConfig.margin_type] || symbolConfig.margin_type) : "-";
-  const reason = close && close.feasible === false
-    ? (close.reject_message || close.reject_code || "실시간 호가 확인 불가")
+  // Say which thing is missing: the card itself (not received yet), the server's own refusal, the
+  // book, or the opening fill. Only the book case is "호가 확인 불가".
+  const reason = !card ? "포지션 상세 조회 중"
+    : card.available === false ? (card.reject_message || "포지션 상세를 불러오지 못했습니다")
+    : close && close.feasible === false
+      ? (close.reject_message || (close.reject_code === "NO_LIQUIDITY" ? "청산 가능한 호가 깊이 부족"
+                                                                       : "실시간 호가 확인 불가"))
+    : card.opened_at_ms == null ? "진입 시각을 확인할 수 없어 순손익을 계산하지 않았습니다"
     : "실시간 호가 확인 불가";
   const pnl = {
     krw: unrealizedKrw != null ? signedKrw(unrealizedKrw) : null,
