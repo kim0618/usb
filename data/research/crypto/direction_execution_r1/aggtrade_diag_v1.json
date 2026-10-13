@@ -1,0 +1,126 @@
+{
+ "by_variant": {
+  "M1": {
+   "base_fills_with_through_volume_below_order_qty": 0.0,
+   "quotes": 662,
+   "through_1bp": {
+    "adverse_5m_bp_mean": -2.383323830599976,
+    "fill_rate": 0.7930513595166163,
+    "move_4h_from_fill_bp_mean": -2.3351172546105414,
+    "move_4h_from_ref_filled_bp_mean": -2.3478109895482513,
+    "move_4h_from_ref_unfilled_bp_mean": 8.997085908852787
+   },
+   "through_tick": {
+    "adverse_5m_bp_mean": -1.5606958074629838,
+    "fill_rate": 0.8670694864048338,
+    "move_4h_from_fill_bp_mean": -1.9373328399000462,
+    "move_4h_from_ref_filled_bp_mean": -1.9500296459254312,
+    "move_4h_from_ref_unfilled_bp_mean": 12.719511554104516
+   },
+   "touch": {
+    "adverse_5m_bp_mean": -1.0342596360693124,
+    "fill_rate": 0.9199395770392749,
+    "move_4h_from_fill_bp_mean": -1.0609457158458193,
+    "move_4h_from_ref_filled_bp_mean": -1.0736409067452513,
+    "move_4h_from_ref_unfilled_bp_mean": 12.336741739770908
+   },
+   "touch_only_share_of_touches": 0.05747126436781609,
+   "touch_only_vol_at_L_btc": {
+    "median": 0.8780000000000001,
+    "p25": 0.0965
+   }
+  },
+  "M2": {
+   "base_fills_with_through_volume_below_order_qty": 0.014778325123152709,
+   "quotes": 662,
+   "through_1bp": {
+    "adverse_5m_bp_mean": -2.351267040763164,
+    "fill_rate": 0.7945619335347432,
+    "move_4h_from_fill_bp_mean": -2.1513638497263163,
+    "move_4h_from_ref_filled_bp_mean": -2.1513638497263163,
+    "move_4h_from_ref_unfilled_bp_mean": 8.320716065853249
+   },
+   "through_tick": {
+    "adverse_5m_bp_mean": -1.0469404070614148,
+    "fill_rate": 0.9199395770392749,
+    "move_4h_from_fill_bp_mean": -1.0736409067452513,
+    "move_4h_from_ref_filled_bp_mean": -1.0736409067452513,
+    "move_4h_from_ref_unfilled_bp_mean": 12.336741739770908
+   },
+   "touch": {
+    "adverse_5m_bp_mean": 0.0,
+    "fill_rate": 1.0,
+    "move_4h_from_fill_bp_mean": 0.0,
+    "move_4h_from_ref_filled_bp_mean": 0.0,
+    "move_4h_from_ref_unfilled_bp_mean": null
+   },
+   "touch_only_share_of_touches": 0.08006042296072508,
+   "touch_only_vol_at_L_btc": {
+    "median": 0.28800000000000003,
+    "p25": 0.058
+   }
+  }
+ },
+ "files": [
+  {
+   "file": "BTCUSDT-aggTrades-2026-09-09.zip",
+   "sha256": "2f2cf57a5d30c3baa422444b2351ad8dfb9ca3ee01418a432ecc15df387a508a"
+  },
+  {
+   "file": "BTCUSDT-aggTrades-2026-09-10.zip",
+   "sha256": "8bb550b35069bc97f752566255530911aeda58f1fbb4158a2da9b4a7acd017eb"
+  },
+  {
+   "file": "BTCUSDT-aggTrades-2026-09-11.zip",
+   "sha256": "1859c03b05c563067a0ebe68594163a0ceec354ed80e061e781cac4a9dc7392f"
+  },
+  {
+   "file": "BTCUSDT-aggTrades-2026-09-12.zip",
+   "sha256": "c259f9306f0a5d30f965971234b7ba766db35f45f4a6f06dee9d8171c9253cd7"
+  },
+  {
+   "file": "BTCUSDT-aggTrades-2026-09-13.zip",
+   "sha256": "293a2edf87230709d266574511c7ddc453728a7157429cce617e11a12bbbba32"
+  },
+  {
+   "file": "BTCUSDT-aggTrades-2026-09-14.zip",
+   "sha256": "2deabfa8cf285f72b7e7b4fc2a36e1eaa0413fd8da982ea0b94bd7a8bd947529"
+  },
+  {
+   "file": "BTCUSDT-aggTrades-2026-09-15.zip",
+   "sha256": "4c0a707148a13d50e39364b5339840adcaaefb351a9fa24d7bf77166aae366ad"
+  },
+  {
+   "file": "BTCUSDT-aggTrades-2026-09-16.zip",
+   "sha256": "7913ca54ac75492ba4e812d0ff02ac74f1d44b8fbdcd557efb314504ddbac25c"
+  },
+  {
+   "file": "BTCUSDT-aggTrades-2026-09-17.zip",
+   "sha256": "7cca04b5490d013d1d028ee72c50d3baee5746ed6e379a452f888bdd3fbf1c29"
+  },
+  {
+   "file": "BTCUSDT-aggTrades-2026-09-18.zip",
+   "sha256": "d760ae7728a8964c94f2e0d7f30e97949ffc4330fc52744f44d59015ba17ef6d"
+  },
+  {
+   "file": "BTCUSDT-aggTrades-2026-09-19.zip",
+   "sha256": "8cd7826e31b222c6254ca2ae6d5d901374328848a657aa4032c0af3506455405"
+  },
+  {
+   "file": "BTCUSDT-aggTrades-2026-09-20.zip",
+   "sha256": "ccd0f7487712a653cba2ee54b970016817e06a12f1d05b675f0093df914b1be8"
+  },
+  {
+   "file": "BTCUSDT-aggTrades-2026-09-21.zip",
+   "sha256": "4ec6dc278b293522f4f7278781d8a1534ac295b1a3e424a0e8fd4f685b1821e8"
+  },
+  {
+   "file": "BTCUSDT-aggTrades-2026-09-22.zip",
+   "sha256": "d024d1955d2385eec53e0b8cec22192132d902ad8046dc21e17f68f06ec3a6a0"
+  }
+ ],
+ "hours": 331,
+ "order_qty_btc": 0.1,
+ "trades": 18052124,
+ "window": "Binance aggTrades BTCUSDT 2026-09-09 .. 2026-09-22 (HOLDOUT period; no classifier applied)"
+}
