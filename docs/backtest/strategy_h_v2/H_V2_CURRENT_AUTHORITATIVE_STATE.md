@@ -5,8 +5,8 @@ records a stage result as of its own date and is never edited after the fact. Wh
 and a result document disagree about the present, this document wins. When they disagree about
 what happened in a past stage, the result document wins.
 
-Last verified: 2026-10-10 18:51 KST, after the production activation, against the repository and the
-production host.
+Last verified: 2026-10-13 KST (H-V2 PAPER EXECUTION V1, local), against the repository and a
+read-only look at the production host. Production state below §L is unchanged since 2026-10-10.
 
 ## A. Purpose
 
@@ -22,6 +22,8 @@ Research build (D1-D6)   = COMPLETE, CLOSED unless a structural bug is found
 D7 forward shadow        = LAUNCHED 2026-10-04T08:34:30Z (baseline session 2026-10-02)
 Forward observation      = ACTIVE (prices and outcomes validated, 1D/5D matured)
 Production operations    = HEALTHY (repair 81f06c8 deployed, timer ENABLED, 2026-10-10)
+Paper execution          = READY (H_V2_PAPER_EXECUTION_V1 frozen and implemented locally, 2026-10-13);
+                           NOT deployed, NOT launched -> production H is still SHADOW_ONLY
 ```
 
 No further research is planned. A return to research is allowed only for a structural bug. It is
@@ -41,6 +43,8 @@ not allowed because APPROVE has not appeared or because of forward results.
 | D7 operations, 1st activation | FAILED, rolled back | `H_V2_D7_OPERATIONS_ACTIVATION_V1.md` |
 | D7 operations repair | DEPLOYED | `H_V2_D7_OPERATIONS_REPAIR_V1.md` |
 | D7 production activation | HEALTHY | `H_V2_D7_PRODUCTION_ACTIVATION_V1.md` |
+| Paper execution V1 | READY (local) | `H_V2_PAPER_EXECUTION_CONTRACT_V1.md` |
+| Refresh batch R1 | PREREGISTERED, executor NOT READY | `H_V2_REFRESH_BATCH_R1_PREREGISTRATION_V1.md` |
 
 ## D. Frozen contracts in force
 
@@ -52,6 +56,8 @@ not allowed because APPROVE has not appeared or because of forward results.
 | D7 runner contract id | `h_v2_d7_forward_shadow_paper_integration_v1` |
 | D5-D2R artifact consumed at launch | sha256 `118cbd78…7d14af` |
 | Refresh triggers | 10-Q, 10-K, 8-K, EARNINGS_RELEASE, GUIDANCE, MATERIAL_CORPORATE_EVENT; `daily_full_rerun = false` |
+| Paper execution contract | `docs/operations/h_paper_execution_v1.json`, sha256 `89f7beed…6c696c9b` (3 equal slots of 1/3 NAV, $10,000, next-session open via SimBroker `execution_v0`, TP1 half / TP2 rest / downgrade / explicit invalidation / Bear where it exists) |
+| Thesis evidence index | `docs/operations/h_thesis_evidence_v1.json` (chunked accessions of each T1 package) |
 
 ## E. Initial cohort (decision session 2026-09-16)
 
@@ -138,11 +144,22 @@ usb-h-forward.service  →  run_h_v2_d7 update
 
   A D3→D6 re-evaluation needs operator approval because it costs model calls. Until then the
   decisions stand (AEYE REJECT, FG/VRRM WATCH).
-* **sizing = NOT_DEFINED.** An APPROVE becomes an entry candidate only. Position creation is refused
-  with `SIZING_CONTRACT_REQUIRED`, so today's answer to "can a position be created" is NO.
+* **AEYE REFRESH_DUE is a scan artefact (2026-10-13).** Its 2026-09-18 8-K is chunked into the T1
+  package that D3 read (cutoff 2026-09-28). The scan compares against the decision session, not the
+  evidence cutoff. The research queue marks AEYE `EVIDENCE_ALREADY_IN_THESIS`. FG and VRRM are genuine.
+* **Sizing:** in production the forward contract still says NOT_DEFINED until the paper code is deployed
+  and `paper-launch` runs. After that, `H_V2_PAPER_EXECUTION_V1` applies, but only to an APPROVE
+  recorded after the launch.
+* **New-candidate intake (D1/E1/E2/E3) = NOT_WIRED.** It is a manual dev script on a stale universe
+  snapshot (CS_2024-10-25) and the mirror, which ends 2026-09-16. H tracks only its eight launch
+  issuers.
+* **Refresh executor = NOT READY.** No path re-runs D2→D6 for one ticker at a new decision session
+  (evidence fetch, fixed package dirs, price panel ends 2026-09-16, hardcoded D6 legs). The ledger
+  writer (`h_forward.transitions`) exists.
 * 21D/63D are PENDING until their own maturity sessions.
-* A/E/H UI integration (`/dashboard`, `/strategy-h`, `/strategy-compare`) is implemented. H has no
-  capital ledger and is excluded from combined P&L.
+* A/E/H UI integration (`/dashboard`, `/strategy-h`, `/strategy-compare`) is implemented. Once paper
+  is launched, H's card shows its own paper account and `/trading-h` shows positions and fills. H
+  stays out of the A+E combined P&L and the A/E paper gate.
 
 ## L. Production deployment state
 
@@ -174,7 +191,11 @@ Observation only. No research unless a structural bug is found:
 1. Check the first timer run's journal (Mon 2026-10-12 01:10 ET): `refresh_run=OK`, integrity PASS.
 2. Watch daily forward outcomes, new material filings, WATCH/REJECT transitions and a future APPROVE.
 3. Watch 21D (2026-11-02) and 63D (2027-01-04) maturation.
-4. Operator decisions still open: re-evaluating AEYE/FG/VRRM, and whether to freeze a sizing contract.
+4. Operator decisions still open:
+   * deploy paper execution and run `paper-launch`;
+   * approve building the refresh executor, then batch R1 (FG and VRRM, hard cap $24.00, `claude-opus-5-5`);
+   * whether to include AEYE despite EVIDENCE_ALREADY_IN_THESIS;
+   * whether to wire new-candidate intake.
 
 ## N. Authoritative commits
 
