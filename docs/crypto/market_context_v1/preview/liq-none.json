@@ -1,0 +1,18 @@
+{
+ "states": {
+  "PRICE": "LIVE",
+  "LIQUIDITY": "LIVE",
+  "FLOW": "LIVE",
+  "DERIVATIVES": "LIVE",
+  "AUXILIARY": "STALE"
+ },
+ "wall_states": {
+  "mc-wall-ASK": "NONE",
+  "mc-wall-BID": "NONE"
+ },
+ "liquidity_reasons": null,
+ "flow_reasons": null,
+ "ask_text": "ASK 매도 (mid 위)\n벽 없음 (완전관측)\n가장 가까운 벽\n-lm-wall.v2 기준 통과 후보 없음\n후보 / 선정 / 표시\n0 / 0 / 0\n깊이 ±0.1%\n8,475,000 USDTCOMPLETE\n깊이 ±0.25%\n≥ 8,475,000 USDTPARTIAL 하한\n깊이 ±0.5%\n≥ 8,475,000 USDTPARTIAL 하한\n깊이 ±1%\n≥ 8,475,000 USDTPARTIAL 하한",
+ "overflow": 0,
+ "name": "none"
+}

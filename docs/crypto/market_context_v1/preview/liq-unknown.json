@@ -1,0 +1,18 @@
+{
+ "states": {
+  "PRICE": "LIVE",
+  "LIQUIDITY": "UNKNOWN",
+  "FLOW": "UNKNOWN",
+  "DERIVATIVES": "LIVE",
+  "AUXILIARY": "STALE"
+ },
+ "wall_states": {
+  "mc-wall-ASK": "UNKNOWN",
+  "mc-wall-BID": "UNKNOWN"
+ },
+ "liquidity_reasons": "저널 디렉터리 없음",
+ "flow_reasons": "저널을 읽을 수 없음 · 체결 스트림 미연결",
+ "ask_text": "ASK 매도 (mid 위)\n미관측\n가장 가까운 벽\n-사용 가능한 책이 없습니다\n후보 / 선정 / 표시\n0 / 0 / 0\n깊이 ±0.1%\n-NOT_OBSERVED\n깊이 ±0.25%\n-NOT_OBSERVED\n깊이 ±0.5%\n-NOT_OBSERVED\n깊이 ±1%\n-NOT_OBSERVED",
+ "overflow": 0,
+ "name": "unknown"
+}

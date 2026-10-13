@@ -1,0 +1,842 @@
+[
+ {
+  "scrollWidth": 1600,
+  "clientWidth": 1600,
+  "horizontal_overflow_px": 0,
+  "worst_overflowing_node": null,
+  "worst_overflow_px": 0,
+  "page_height": 2955,
+  "panel": {
+   "x": 292,
+   "y": 823,
+   "w": 884,
+   "h": 1821
+  },
+  "chart": {
+   "x": 292,
+   "y": 291,
+   "w": 884,
+   "h": 520
+  },
+  "order_ticket": {
+   "x": 1188,
+   "y": 215,
+   "w": 360,
+   "h": 420
+  },
+  "open_layers": [
+   "PRICE",
+   "LIQUIDITY",
+   "FLOW"
+  ],
+  "states": {
+   "PRICE": "LIVE",
+   "LIQUIDITY": "LIVE",
+   "FLOW": "LIVE",
+   "DERIVATIVES": "LIVE",
+   "AUXILIARY": "STALE"
+  },
+  "wall_states": {
+   "mc-wall-ASK": "OK",
+   "mc-wall-BID": "OK"
+  },
+  "absorption": "NONE",
+  "vanish": [
+   "CANCEL_LIKE",
+   "CANCEL_LIKE",
+   "CANCEL_LIKE",
+   "CANCEL_LIKE"
+  ],
+  "dashes": 1,
+  "state_words": [
+   "LIVE",
+   "LIVE",
+   "LIVE",
+   "LIVE",
+   "STALE",
+   "LIVE",
+   "LIVE",
+   "LIVE",
+   "LIVE",
+   "STALE"
+  ],
+  "name": "btc-default-1600"
+ },
+ {
+  "scrollWidth": 1600,
+  "clientWidth": 1600,
+  "horizontal_overflow_px": 0,
+  "worst_overflowing_node": null,
+  "worst_overflow_px": 0,
+  "page_height": 3604,
+  "panel": {
+   "x": 292,
+   "y": 823,
+   "w": 884,
+   "h": 2470
+  },
+  "chart": {
+   "x": 292,
+   "y": 291,
+   "w": 884,
+   "h": 520
+  },
+  "order_ticket": {
+   "x": 1188,
+   "y": 215,
+   "w": 360,
+   "h": 420
+  },
+  "open_layers": [
+   "PRICE",
+   "LIQUIDITY",
+   "FLOW",
+   "DERIVATIVES",
+   "AUXILIARY"
+  ],
+  "states": {
+   "PRICE": "LIVE",
+   "LIQUIDITY": "LIVE",
+   "FLOW": "LIVE",
+   "DERIVATIVES": "LIVE",
+   "AUXILIARY": "STALE"
+  },
+  "wall_states": {
+   "mc-wall-ASK": "OK",
+   "mc-wall-BID": "OK"
+  },
+  "absorption": "NONE",
+  "vanish": [
+   "CANCEL_LIKE",
+   "CANCEL_LIKE",
+   "CANCEL_LIKE",
+   "CANCEL_LIKE"
+  ],
+  "dashes": 2,
+  "state_words": [
+   "LIVE",
+   "LIVE",
+   "LIVE",
+   "LIVE",
+   "STALE",
+   "LIVE",
+   "LIVE",
+   "LIVE",
+   "LIVE",
+   "STALE",
+   "STALE",
+   "LIVE"
+  ],
+  "name": "btc-expanded-1600"
+ },
+ {
+  "scrollWidth": 1600,
+  "clientWidth": 1600,
+  "horizontal_overflow_px": 0,
+  "worst_overflowing_node": null,
+  "worst_overflow_px": 0,
+  "page_height": 1897,
+  "panel": {
+   "x": 292,
+   "y": 823,
+   "w": 884,
+   "h": 764
+  },
+  "chart": {
+   "x": 292,
+   "y": 291,
+   "w": 884,
+   "h": 520
+  },
+  "order_ticket": {
+   "x": 1188,
+   "y": 215,
+   "w": 360,
+   "h": 420
+  },
+  "open_layers": [
+   "PRICE",
+   "LIQUIDITY",
+   "FLOW",
+   "DERIVATIVES",
+   "AUXILIARY"
+  ],
+  "states": {
+   "PRICE": "UNAVAILABLE",
+   "LIQUIDITY": "UNAVAILABLE",
+   "FLOW": "UNAVAILABLE",
+   "DERIVATIVES": "LIVE",
+   "AUXILIARY": "UNAVAILABLE"
+  },
+  "wall_states": {},
+  "absorption": null,
+  "vanish": [],
+  "dashes": 0,
+  "state_words": [
+   "UNAVAILABLE",
+   "UNAVAILABLE",
+   "UNAVAILABLE",
+   "LIVE",
+   "UNAVAILABLE",
+   "UNAVAILABLE",
+   "UNAVAILABLE",
+   "UNAVAILABLE",
+   "LIVE",
+   "UNAVAILABLE"
+  ],
+  "name": "eth-1600"
+ },
+ {
+  "scrollWidth": 1600,
+  "clientWidth": 1600,
+  "horizontal_overflow_px": 0,
+  "worst_overflowing_node": null,
+  "worst_overflow_px": 0,
+  "page_height": 1605,
+  "panel": {
+   "x": 292,
+   "y": 823,
+   "w": 884,
+   "h": 472
+  },
+  "chart": {
+   "x": 292,
+   "y": 291,
+   "w": 884,
+   "h": 520
+  },
+  "order_ticket": {
+   "x": 1188,
+   "y": 215,
+   "w": 360,
+   "h": 420
+  },
+  "open_layers": [
+   "PRICE",
+   "LIQUIDITY",
+   "FLOW"
+  ],
+  "states": {
+   "PRICE": "UNAVAILABLE",
+   "LIQUIDITY": "UNAVAILABLE",
+   "FLOW": "UNAVAILABLE",
+   "DERIVATIVES": "LIVE",
+   "AUXILIARY": "UNAVAILABLE"
+  },
+  "wall_states": {},
+  "absorption": null,
+  "vanish": [],
+  "dashes": 0,
+  "state_words": [
+   "UNAVAILABLE",
+   "UNAVAILABLE",
+   "UNAVAILABLE",
+   "LIVE",
+   "UNAVAILABLE",
+   "UNAVAILABLE",
+   "UNAVAILABLE",
+   "UNAVAILABLE",
+   "LIVE",
+   "UNAVAILABLE"
+  ],
+  "name": "sol-1600"
+ },
+ {
+  "scrollWidth": 1600,
+  "clientWidth": 1600,
+  "horizontal_overflow_px": 0,
+  "worst_overflowing_node": null,
+  "worst_overflow_px": 0,
+  "page_height": 2849,
+  "panel": {
+   "x": 816,
+   "y": 291,
+   "w": 360,
+   "h": 2235
+  },
+  "chart": {
+   "x": 292,
+   "y": 291,
+   "w": 884,
+   "h": 520
+  },
+  "order_ticket": {
+   "x": 1188,
+   "y": 215,
+   "w": 360,
+   "h": 420
+  },
+  "open_layers": [
+   "PRICE",
+   "LIQUIDITY",
+   "FLOW"
+  ],
+  "states": {
+   "PRICE": "LIVE",
+   "LIQUIDITY": "LIVE",
+   "FLOW": "LIVE",
+   "DERIVATIVES": "LIVE",
+   "AUXILIARY": "STALE"
+  },
+  "wall_states": {
+   "mc-wall-ASK": "OK",
+   "mc-wall-BID": "OK"
+  },
+  "absorption": "NONE",
+  "vanish": [
+   "CANCEL_LIKE",
+   "CANCEL_LIKE",
+   "CANCEL_LIKE",
+   "CANCEL_LIKE"
+  ],
+  "dashes": 1,
+  "state_words": [
+   "LIVE",
+   "LIVE",
+   "LIVE",
+   "LIVE",
+   "STALE",
+   "LIVE",
+   "LIVE",
+   "LIVE",
+   "LIVE",
+   "STALE"
+  ],
+  "name": "btc-beside-chart-1600"
+ },
+ {
+  "scrollWidth": 1440,
+  "clientWidth": 1440,
+  "horizontal_overflow_px": 0,
+  "worst_overflowing_node": null,
+  "worst_overflow_px": 0,
+  "page_height": 3085,
+  "panel": {
+   "x": 292,
+   "y": 823,
+   "w": 724,
+   "h": 1935
+  },
+  "chart": {
+   "x": 292,
+   "y": 291,
+   "w": 724,
+   "h": 520
+  },
+  "order_ticket": {
+   "x": 1028,
+   "y": 215,
+   "w": 360,
+   "h": 420
+  },
+  "open_layers": [
+   "PRICE",
+   "LIQUIDITY",
+   "FLOW"
+  ],
+  "states": {
+   "PRICE": "LIVE",
+   "LIQUIDITY": "LIVE",
+   "FLOW": "LIVE",
+   "DERIVATIVES": "LIVE",
+   "AUXILIARY": "STALE"
+  },
+  "wall_states": {
+   "mc-wall-ASK": "OK",
+   "mc-wall-BID": "OK"
+  },
+  "absorption": "ABSORPTION_CANDIDATE",
+  "vanish": [
+   "CANCEL_LIKE",
+   "CANCEL_LIKE",
+   "CANCEL_LIKE",
+   "CANCEL_LIKE"
+  ],
+  "dashes": 1,
+  "state_words": [
+   "LIVE",
+   "LIVE",
+   "LIVE",
+   "LIVE",
+   "STALE",
+   "LIVE",
+   "LIVE",
+   "LIVE",
+   "LIVE",
+   "STALE"
+  ],
+  "name": "btc-default-1440"
+ },
+ {
+  "scrollWidth": 1440,
+  "clientWidth": 1440,
+  "horizontal_overflow_px": 0,
+  "worst_overflowing_node": null,
+  "worst_overflow_px": 0,
+  "page_height": 3734,
+  "panel": {
+   "x": 292,
+   "y": 823,
+   "w": 724,
+   "h": 2584
+  },
+  "chart": {
+   "x": 292,
+   "y": 291,
+   "w": 724,
+   "h": 520
+  },
+  "order_ticket": {
+   "x": 1028,
+   "y": 215,
+   "w": 360,
+   "h": 420
+  },
+  "open_layers": [
+   "PRICE",
+   "LIQUIDITY",
+   "FLOW",
+   "DERIVATIVES",
+   "AUXILIARY"
+  ],
+  "states": {
+   "PRICE": "LIVE",
+   "LIQUIDITY": "LIVE",
+   "FLOW": "LIVE",
+   "DERIVATIVES": "LIVE",
+   "AUXILIARY": "STALE"
+  },
+  "wall_states": {
+   "mc-wall-ASK": "OK",
+   "mc-wall-BID": "OK"
+  },
+  "absorption": "ABSORPTION_CANDIDATE",
+  "vanish": [
+   "CANCEL_LIKE",
+   "CANCEL_LIKE",
+   "CANCEL_LIKE",
+   "CANCEL_LIKE"
+  ],
+  "dashes": 2,
+  "state_words": [
+   "LIVE",
+   "LIVE",
+   "LIVE",
+   "LIVE",
+   "STALE",
+   "LIVE",
+   "LIVE",
+   "LIVE",
+   "LIVE",
+   "STALE",
+   "STALE",
+   "LIVE"
+  ],
+  "name": "btc-expanded-1440"
+ },
+ {
+  "scrollWidth": 1440,
+  "clientWidth": 1440,
+  "horizontal_overflow_px": 0,
+  "worst_overflowing_node": null,
+  "worst_overflow_px": 0,
+  "page_height": 1930,
+  "panel": {
+   "x": 292,
+   "y": 823,
+   "w": 724,
+   "h": 780
+  },
+  "chart": {
+   "x": 292,
+   "y": 291,
+   "w": 724,
+   "h": 520
+  },
+  "order_ticket": {
+   "x": 1028,
+   "y": 215,
+   "w": 360,
+   "h": 420
+  },
+  "open_layers": [
+   "PRICE",
+   "LIQUIDITY",
+   "FLOW",
+   "DERIVATIVES",
+   "AUXILIARY"
+  ],
+  "states": {
+   "PRICE": "UNAVAILABLE",
+   "LIQUIDITY": "UNAVAILABLE",
+   "FLOW": "UNAVAILABLE",
+   "DERIVATIVES": "LIVE",
+   "AUXILIARY": "UNAVAILABLE"
+  },
+  "wall_states": {},
+  "absorption": null,
+  "vanish": [],
+  "dashes": 0,
+  "state_words": [
+   "UNAVAILABLE",
+   "UNAVAILABLE",
+   "UNAVAILABLE",
+   "LIVE",
+   "UNAVAILABLE",
+   "UNAVAILABLE",
+   "UNAVAILABLE",
+   "UNAVAILABLE",
+   "LIVE",
+   "UNAVAILABLE"
+  ],
+  "name": "eth-1440"
+ },
+ {
+  "scrollWidth": 1440,
+  "clientWidth": 1440,
+  "horizontal_overflow_px": 0,
+  "worst_overflowing_node": null,
+  "worst_overflow_px": 0,
+  "page_height": 1638,
+  "panel": {
+   "x": 292,
+   "y": 823,
+   "w": 724,
+   "h": 488
+  },
+  "chart": {
+   "x": 292,
+   "y": 291,
+   "w": 724,
+   "h": 520
+  },
+  "order_ticket": {
+   "x": 1028,
+   "y": 215,
+   "w": 360,
+   "h": 420
+  },
+  "open_layers": [
+   "PRICE",
+   "LIQUIDITY",
+   "FLOW"
+  ],
+  "states": {
+   "PRICE": "UNAVAILABLE",
+   "LIQUIDITY": "UNAVAILABLE",
+   "FLOW": "UNAVAILABLE",
+   "DERIVATIVES": "LIVE",
+   "AUXILIARY": "UNAVAILABLE"
+  },
+  "wall_states": {},
+  "absorption": null,
+  "vanish": [],
+  "dashes": 0,
+  "state_words": [
+   "UNAVAILABLE",
+   "UNAVAILABLE",
+   "UNAVAILABLE",
+   "LIVE",
+   "UNAVAILABLE",
+   "UNAVAILABLE",
+   "UNAVAILABLE",
+   "UNAVAILABLE",
+   "LIVE",
+   "UNAVAILABLE"
+  ],
+  "name": "sol-1440"
+ },
+ {
+  "scrollWidth": 1440,
+  "clientWidth": 1440,
+  "horizontal_overflow_px": 0,
+  "worst_overflowing_node": null,
+  "worst_overflow_px": 0,
+  "page_height": 2931,
+  "panel": {
+   "x": 656,
+   "y": 291,
+   "w": 360,
+   "h": 2301
+  },
+  "chart": {
+   "x": 292,
+   "y": 291,
+   "w": 724,
+   "h": 520
+  },
+  "order_ticket": {
+   "x": 1028,
+   "y": 215,
+   "w": 360,
+   "h": 420
+  },
+  "open_layers": [
+   "PRICE",
+   "LIQUIDITY",
+   "FLOW"
+  ],
+  "states": {
+   "PRICE": "LIVE",
+   "LIQUIDITY": "LIVE",
+   "FLOW": "LIVE",
+   "DERIVATIVES": "LIVE",
+   "AUXILIARY": "STALE"
+  },
+  "wall_states": {
+   "mc-wall-ASK": "OK",
+   "mc-wall-BID": "OK"
+  },
+  "absorption": "ABSORPTION_CANDIDATE",
+  "vanish": [
+   "CANCEL_LIKE",
+   "CANCEL_LIKE",
+   "CANCEL_LIKE",
+   "CANCEL_LIKE"
+  ],
+  "dashes": 1,
+  "state_words": [
+   "LIVE",
+   "LIVE",
+   "LIVE",
+   "LIVE",
+   "STALE",
+   "LIVE",
+   "LIVE",
+   "LIVE",
+   "LIVE",
+   "STALE"
+  ],
+  "name": "btc-beside-chart-1440"
+ },
+ {
+  "scrollWidth": 390,
+  "clientWidth": 390,
+  "horizontal_overflow_px": 0,
+  "worst_overflowing_node": null,
+  "worst_overflow_px": 0,
+  "page_height": 2510,
+  "panel": {
+   "x": 28,
+   "y": 1117,
+   "w": 334,
+   "h": 931
+  },
+  "chart": {
+   "x": 28,
+   "y": 413,
+   "w": 334,
+   "h": 260
+  },
+  "order_ticket": {
+   "x": 28,
+   "y": 685,
+   "w": 334,
+   "h": 420
+  },
+  "open_layers": [
+   "PRICE"
+  ],
+  "states": {
+   "PRICE": "LIVE",
+   "LIQUIDITY": "LIVE",
+   "FLOW": "LIVE",
+   "DERIVATIVES": "LIVE",
+   "AUXILIARY": "STALE"
+  },
+  "wall_states": {},
+  "absorption": null,
+  "vanish": [],
+  "dashes": 1,
+  "state_words": [
+   "LIVE",
+   "LIVE",
+   "LIVE",
+   "LIVE",
+   "STALE",
+   "LIVE",
+   "LIVE",
+   "LIVE",
+   "LIVE",
+   "STALE"
+  ],
+  "name": "btc-default-390"
+ },
+ {
+  "scrollWidth": 390,
+  "clientWidth": 390,
+  "horizontal_overflow_px": 0,
+  "worst_overflowing_node": null,
+  "worst_overflow_px": 0,
+  "page_height": 4757,
+  "panel": {
+   "x": 28,
+   "y": 1117,
+   "w": 334,
+   "h": 3178
+  },
+  "chart": {
+   "x": 28,
+   "y": 413,
+   "w": 334,
+   "h": 260
+  },
+  "order_ticket": {
+   "x": 28,
+   "y": 685,
+   "w": 334,
+   "h": 420
+  },
+  "open_layers": [
+   "PRICE",
+   "LIQUIDITY",
+   "FLOW",
+   "DERIVATIVES",
+   "AUXILIARY"
+  ],
+  "states": {
+   "PRICE": "LIVE",
+   "LIQUIDITY": "LIVE",
+   "FLOW": "LIVE",
+   "DERIVATIVES": "LIVE",
+   "AUXILIARY": "STALE"
+  },
+  "wall_states": {
+   "mc-wall-ASK": "OK",
+   "mc-wall-BID": "OK"
+  },
+  "absorption": "ABSORPTION_CANDIDATE",
+  "vanish": [
+   "CANCEL_LIKE",
+   "CANCEL_LIKE",
+   "CANCEL_LIKE",
+   "CANCEL_LIKE"
+  ],
+  "dashes": 2,
+  "state_words": [
+   "LIVE",
+   "LIVE",
+   "LIVE",
+   "LIVE",
+   "STALE",
+   "LIVE",
+   "LIVE",
+   "LIVE",
+   "LIVE",
+   "STALE",
+   "STALE",
+   "LIVE"
+  ],
+  "name": "btc-expanded-390"
+ },
+ {
+  "scrollWidth": 390,
+  "clientWidth": 390,
+  "horizontal_overflow_px": 0,
+  "worst_overflowing_node": null,
+  "worst_overflow_px": 0,
+  "page_height": 2516,
+  "panel": {
+   "x": 28,
+   "y": 1117,
+   "w": 334,
+   "h": 937
+  },
+  "chart": {
+   "x": 28,
+   "y": 413,
+   "w": 334,
+   "h": 260
+  },
+  "order_ticket": {
+   "x": 28,
+   "y": 685,
+   "w": 334,
+   "h": 420
+  },
+  "open_layers": [
+   "PRICE",
+   "LIQUIDITY",
+   "FLOW",
+   "DERIVATIVES",
+   "AUXILIARY"
+  ],
+  "states": {
+   "PRICE": "UNAVAILABLE",
+   "LIQUIDITY": "UNAVAILABLE",
+   "FLOW": "UNAVAILABLE",
+   "DERIVATIVES": "LIVE",
+   "AUXILIARY": "UNAVAILABLE"
+  },
+  "wall_states": {},
+  "absorption": null,
+  "vanish": [],
+  "dashes": 0,
+  "state_words": [
+   "UNAVAILABLE",
+   "UNAVAILABLE",
+   "UNAVAILABLE",
+   "LIVE",
+   "UNAVAILABLE",
+   "UNAVAILABLE",
+   "UNAVAILABLE",
+   "UNAVAILABLE",
+   "LIVE",
+   "UNAVAILABLE"
+  ],
+  "name": "eth-390"
+ },
+ {
+  "scrollWidth": 390,
+  "clientWidth": 390,
+  "horizontal_overflow_px": 0,
+  "worst_overflowing_node": null,
+  "worst_overflow_px": 0,
+  "page_height": 2055,
+  "panel": {
+   "x": 28,
+   "y": 1117,
+   "w": 334,
+   "h": 476
+  },
+  "chart": {
+   "x": 28,
+   "y": 413,
+   "w": 334,
+   "h": 260
+  },
+  "order_ticket": {
+   "x": 28,
+   "y": 685,
+   "w": 334,
+   "h": 420
+  },
+  "open_layers": [
+   "PRICE"
+  ],
+  "states": {
+   "PRICE": "UNAVAILABLE",
+   "LIQUIDITY": "UNAVAILABLE",
+   "FLOW": "UNAVAILABLE",
+   "DERIVATIVES": "LIVE",
+   "AUXILIARY": "UNAVAILABLE"
+  },
+  "wall_states": {},
+  "absorption": null,
+  "vanish": [],
+  "dashes": 0,
+  "state_words": [
+   "UNAVAILABLE",
+   "UNAVAILABLE",
+   "UNAVAILABLE",
+   "LIVE",
+   "UNAVAILABLE",
+   "UNAVAILABLE",
+   "UNAVAILABLE",
+   "UNAVAILABLE",
+   "LIVE",
+   "UNAVAILABLE"
+  ],
+  "name": "sol-390"
+ }
+]

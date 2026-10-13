@@ -1,0 +1,109 @@
+{
+ "pressed": [
+  "long-button",
+  "short-button",
+  "close-button"
+ ],
+ "requests_by_method": {
+  "GET": 120
+ },
+ "non_get_attempts_seen_by_browser": [],
+ "page_sentinel": {
+  "gets": "108",
+  "blocked": "3",
+  "last": "최근 POST http://127.0.0.1:8100/api/crypto/order"
+ },
+ "order_error_text": [
+  "NETWORK_ERROR · Paper Terminal API에 연결할 수 없습니다.",
+  "NETWORK_ERROR · Paper Terminal API에 연결할 수 없습니다."
+ ],
+ "backend_before": {
+  "BTCUSDT": {
+   "ledger_event_count": 5,
+   "position_side": "LONG",
+   "position_qty": "0.008",
+   "position_signed_qty": "0.008",
+   "avg_entry": "85480.10",
+   "realized_pnl": "0",
+   "cumulative_fees": "0.3761124400",
+   "cumulative_funding_paid": "0",
+   "used_margin": "68.38408",
+   "reset_count": 0,
+   "mode": "MANUAL",
+   "leverage": "10"
+  },
+  "ETHUSDT": {
+   "ledger_event_count": 1,
+   "position_side": null,
+   "position_qty": "0",
+   "position_signed_qty": "0",
+   "avg_entry": null,
+   "realized_pnl": "0",
+   "cumulative_fees": "0",
+   "cumulative_funding_paid": "0",
+   "used_margin": "0",
+   "reset_count": 0,
+   "mode": "MANUAL",
+   "leverage": "10"
+  },
+  "SOLUSDT": {
+   "ledger_event_count": 1,
+   "position_side": null,
+   "position_qty": "0",
+   "position_signed_qty": "0",
+   "avg_entry": null,
+   "realized_pnl": "0",
+   "cumulative_fees": "0",
+   "cumulative_funding_paid": "0",
+   "used_margin": "0",
+   "reset_count": 0,
+   "mode": "MANUAL",
+   "leverage": "10"
+  }
+ },
+ "backend_after": {
+  "BTCUSDT": {
+   "ledger_event_count": 5,
+   "position_side": "LONG",
+   "position_qty": "0.008",
+   "position_signed_qty": "0.008",
+   "avg_entry": "85480.10",
+   "realized_pnl": "0",
+   "cumulative_fees": "0.3761124400",
+   "cumulative_funding_paid": "0",
+   "used_margin": "68.38408",
+   "reset_count": 0,
+   "mode": "MANUAL",
+   "leverage": "10"
+  },
+  "ETHUSDT": {
+   "ledger_event_count": 1,
+   "position_side": null,
+   "position_qty": "0",
+   "position_signed_qty": "0",
+   "avg_entry": null,
+   "realized_pnl": "0",
+   "cumulative_fees": "0",
+   "cumulative_funding_paid": "0",
+   "used_margin": "0",
+   "reset_count": 0,
+   "mode": "MANUAL",
+   "leverage": "10"
+  },
+  "SOLUSDT": {
+   "ledger_event_count": 1,
+   "position_side": null,
+   "position_qty": "0",
+   "position_signed_qty": "0",
+   "avg_entry": null,
+   "realized_pnl": "0",
+   "cumulative_fees": "0",
+   "cumulative_funding_paid": "0",
+   "used_margin": "0",
+   "reset_count": 0,
+   "mode": "MANUAL",
+   "leverage": "10"
+  }
+ },
+ "backend_unchanged": true
+}

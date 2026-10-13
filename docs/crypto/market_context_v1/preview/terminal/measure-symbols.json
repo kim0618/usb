@@ -1,0 +1,683 @@
+{
+ "widths": {
+  "1600": {
+   "collapsed_default": {
+    "scrollWidth": 1600,
+    "clientWidth": 1600,
+    "overflowX": 0,
+    "panel": {
+     "x": 292,
+     "y": 1147.375,
+     "width": 884,
+     "height": 1901
+    },
+    "panelTop": 1147.375,
+    "panelCollapsed": "false",
+    "panelSymbol": "BTCUSDT",
+    "ticket": {
+     "x": 0,
+     "y": 0,
+     "width": 0,
+     "height": 0
+    },
+    "ticketTop": 0,
+    "chart": {
+     "x": 309,
+     "y": 598.375,
+     "width": 850,
+     "height": 520
+    },
+    "chartTop": 598.375,
+    "sentinelGets": "57",
+    "sentinelBlocked": "0",
+    "states": [
+     "LIVE",
+     "LIVE",
+     "LIVE",
+     "LIVE",
+     "STALE"
+    ],
+    "journal": "WRITING",
+    "widestChild": null
+   },
+   "toggled": {
+    "scrollWidth": 1600,
+    "clientWidth": 1600,
+    "overflowX": 0,
+    "panel": {
+     "x": 292,
+     "y": 475.375,
+     "width": 884,
+     "height": 91
+    },
+    "panelTop": 1147.375,
+    "panelCollapsed": "true",
+    "panelSymbol": "BTCUSDT",
+    "ticket": {
+     "x": 0,
+     "y": 0,
+     "width": 0,
+     "height": 0
+    },
+    "ticketTop": 672,
+    "chart": {
+     "x": 309,
+     "y": -73.625,
+     "width": 850,
+     "height": 520
+    },
+    "chartTop": 598.375,
+    "sentinelGets": "71",
+    "sentinelBlocked": "0",
+    "states": [
+     "LIVE",
+     "LIVE",
+     "LIVE",
+     "LIVE",
+     "STALE"
+    ],
+    "journal": null,
+    "widestChild": null
+   },
+   "symbol_ETHUSDT": {
+    "scrollWidth": 1600,
+    "clientWidth": 1600,
+    "overflowX": 0,
+    "panel": {
+     "x": 292,
+     "y": 1074.375,
+     "width": 884,
+     "height": 572.25
+    },
+    "panelTop": 1074.375,
+    "panelCollapsed": "false",
+    "panelSymbol": "ETHUSDT",
+    "ticket": {
+     "x": 0,
+     "y": 0,
+     "width": 0,
+     "height": 0
+    },
+    "ticketTop": 0,
+    "chart": {
+     "x": 309,
+     "y": 525.375,
+     "width": 850,
+     "height": 520
+    },
+    "chartTop": 525.375,
+    "sentinelGets": "101",
+    "sentinelBlocked": "0",
+    "states": [
+     "UNAVAILABLE",
+     "UNAVAILABLE",
+     "UNAVAILABLE",
+     "LIVE",
+     "UNAVAILABLE"
+    ],
+    "journal": "WRITING",
+    "widestChild": null
+   },
+   "symbol_SOLUSDT": {
+    "scrollWidth": 1600,
+    "clientWidth": 1600,
+    "overflowX": 0,
+    "panel": {
+     "x": 292,
+     "y": 1074.375,
+     "width": 884,
+     "height": 572.25
+    },
+    "panelTop": 1074.375,
+    "panelCollapsed": "false",
+    "panelSymbol": "SOLUSDT",
+    "ticket": {
+     "x": 0,
+     "y": 0,
+     "width": 0,
+     "height": 0
+    },
+    "ticketTop": 0,
+    "chart": {
+     "x": 309,
+     "y": 525.375,
+     "width": 850,
+     "height": 520
+    },
+    "chartTop": 525.375,
+    "sentinelGets": "130",
+    "sentinelBlocked": "0",
+    "states": [
+     "UNAVAILABLE",
+     "UNAVAILABLE",
+     "UNAVAILABLE",
+     "LIVE",
+     "UNAVAILABLE"
+    ],
+    "journal": "WRITING",
+    "widestChild": null
+   },
+   "symbol_BTCUSDT": {
+    "scrollWidth": 1600,
+    "clientWidth": 1600,
+    "overflowX": 0,
+    "panel": {
+     "x": 292,
+     "y": 1147.375,
+     "width": 884,
+     "height": 1901
+    },
+    "panelTop": 1147.375,
+    "panelCollapsed": "false",
+    "panelSymbol": "BTCUSDT",
+    "ticket": {
+     "x": 0,
+     "y": 0,
+     "width": 0,
+     "height": 0
+    },
+    "ticketTop": 0,
+    "chart": {
+     "x": 309,
+     "y": 598.375,
+     "width": 850,
+     "height": 520
+    },
+    "chartTop": 598.375,
+    "sentinelGets": "167",
+    "sentinelBlocked": "0",
+    "states": [
+     "LIVE",
+     "LIVE",
+     "LIVE",
+     "LIVE",
+     "STALE"
+    ],
+    "journal": "WRITING",
+    "widestChild": null
+   },
+   "production_route": {
+    "scrollWidth": 1600,
+    "clientWidth": 1600,
+    "overflowX": 0,
+    "panel": null,
+    "panelTop": null,
+    "panelCollapsed": null,
+    "panelSymbol": null,
+    "ticket": {
+     "x": 0,
+     "y": 0,
+     "width": 0,
+     "height": 0
+    },
+    "ticketTop": 0,
+    "chart": {
+     "x": 293,
+     "y": 495,
+     "width": 882,
+     "height": 520
+    },
+    "chartTop": 495,
+    "sentinelGets": null,
+    "sentinelBlocked": null,
+    "states": [],
+    "journal": null,
+    "widestChild": null
+   }
+  },
+  "1440": {
+   "collapsed_default": {
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflowX": 0,
+    "panel": {
+     "x": 292,
+     "y": 1128.375,
+     "width": 724,
+     "height": 1949.75
+    },
+    "panelTop": 1128.375,
+    "panelCollapsed": "false",
+    "panelSymbol": "BTCUSDT",
+    "ticket": {
+     "x": 0,
+     "y": 0,
+     "width": 0,
+     "height": 0
+    },
+    "ticketTop": 0,
+    "chart": {
+     "x": 309,
+     "y": 579.375,
+     "width": 690,
+     "height": 520
+    },
+    "chartTop": 579.375,
+    "sentinelGets": "56",
+    "sentinelBlocked": "0",
+    "states": [
+     "LIVE",
+     "LIVE",
+     "LIVE",
+     "LIVE",
+     "STALE"
+    ],
+    "journal": "WRITING",
+    "widestChild": null
+   },
+   "toggled": {
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflowX": 0,
+    "panel": {
+     "x": 292,
+     "y": 425.375,
+     "width": 724,
+     "height": 91
+    },
+    "panelTop": 1128.375,
+    "panelCollapsed": "true",
+    "panelSymbol": "BTCUSDT",
+    "ticket": {
+     "x": 0,
+     "y": 0,
+     "width": 0,
+     "height": 0
+    },
+    "ticketTop": 703,
+    "chart": {
+     "x": 309,
+     "y": -123.625,
+     "width": 690,
+     "height": 520
+    },
+    "chartTop": 579.375,
+    "sentinelGets": "71",
+    "sentinelBlocked": "0",
+    "states": [
+     "LIVE",
+     "LIVE",
+     "LIVE",
+     "LIVE",
+     "STALE"
+    ],
+    "journal": null,
+    "widestChild": null
+   },
+   "symbol_ETHUSDT": {
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflowX": 0,
+    "panel": {
+     "x": 292,
+     "y": 1074.375,
+     "width": 724,
+     "height": 588.5
+    },
+    "panelTop": 1074.375,
+    "panelCollapsed": "false",
+    "panelSymbol": "ETHUSDT",
+    "ticket": {
+     "x": 0,
+     "y": 0,
+     "width": 0,
+     "height": 0
+    },
+    "ticketTop": 0,
+    "chart": {
+     "x": 309,
+     "y": 525.375,
+     "width": 690,
+     "height": 520
+    },
+    "chartTop": 525.375,
+    "sentinelGets": "101",
+    "sentinelBlocked": "0",
+    "states": [
+     "UNAVAILABLE",
+     "UNAVAILABLE",
+     "UNAVAILABLE",
+     "LIVE",
+     "UNAVAILABLE"
+    ],
+    "journal": "WRITING",
+    "widestChild": null
+   },
+   "symbol_SOLUSDT": {
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflowX": 0,
+    "panel": {
+     "x": 292,
+     "y": 1074.375,
+     "width": 724,
+     "height": 588.5
+    },
+    "panelTop": 1074.375,
+    "panelCollapsed": "false",
+    "panelSymbol": "SOLUSDT",
+    "ticket": {
+     "x": 0,
+     "y": 0,
+     "width": 0,
+     "height": 0
+    },
+    "ticketTop": 0,
+    "chart": {
+     "x": 309,
+     "y": 525.375,
+     "width": 690,
+     "height": 520
+    },
+    "chartTop": 525.375,
+    "sentinelGets": "130",
+    "sentinelBlocked": "0",
+    "states": [
+     "UNAVAILABLE",
+     "UNAVAILABLE",
+     "UNAVAILABLE",
+     "LIVE",
+     "UNAVAILABLE"
+    ],
+    "journal": "WRITING",
+    "widestChild": null
+   },
+   "symbol_BTCUSDT": {
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflowX": 0,
+    "panel": {
+     "x": 292,
+     "y": 1147.375,
+     "width": 724,
+     "height": 1949.75
+    },
+    "panelTop": 1147.375,
+    "panelCollapsed": "false",
+    "panelSymbol": "BTCUSDT",
+    "ticket": {
+     "x": 0,
+     "y": 0,
+     "width": 0,
+     "height": 0
+    },
+    "ticketTop": 0,
+    "chart": {
+     "x": 309,
+     "y": 598.375,
+     "width": 690,
+     "height": 520
+    },
+    "chartTop": 598.375,
+    "sentinelGets": "167",
+    "sentinelBlocked": "0",
+    "states": [
+     "LIVE",
+     "LIVE",
+     "LIVE",
+     "LIVE",
+     "STALE"
+    ],
+    "journal": "WRITING",
+    "widestChild": null
+   },
+   "production_route": {
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflowX": 0,
+    "panel": null,
+    "panelTop": null,
+    "panelCollapsed": null,
+    "panelSymbol": null,
+    "ticket": {
+     "x": 0,
+     "y": 0,
+     "width": 0,
+     "height": 0
+    },
+    "ticketTop": 0,
+    "chart": {
+     "x": 293,
+     "y": 476,
+     "width": 722,
+     "height": 520
+    },
+    "chartTop": 476,
+    "sentinelGets": null,
+    "sentinelBlocked": null,
+    "states": [],
+    "journal": null,
+    "widestChild": null
+   }
+  },
+  "390": {
+   "collapsed_default": {
+    "scrollWidth": 390,
+    "clientWidth": 390,
+    "overflowX": 0,
+    "panel": {
+     "x": 28,
+     "y": 1902.625,
+     "width": 334,
+     "height": 111
+    },
+    "panelTop": 1902.625,
+    "panelCollapsed": "true",
+    "panelSymbol": "BTCUSDT",
+    "ticket": {
+     "x": 28,
+     "y": 1253.625,
+     "width": 334,
+     "height": 637
+    },
+    "ticketTop": 1253.625,
+    "chart": {
+     "x": 37,
+     "y": 1032.625,
+     "width": 316,
+     "height": 200
+    },
+    "chartTop": 1032.625,
+    "sentinelGets": "57",
+    "sentinelBlocked": "0",
+    "states": [
+     "LIVE",
+     "LIVE",
+     "LIVE",
+     "LIVE",
+     "STALE"
+    ],
+    "journal": null,
+    "widestChild": null
+   },
+   "toggled": {
+    "scrollWidth": 390,
+    "clientWidth": 390,
+    "overflowX": 0,
+    "panel": {
+     "x": 28,
+     "y": 538.625,
+     "width": 334,
+     "height": 947.25
+    },
+    "panelTop": 1902.625,
+    "panelCollapsed": "false",
+    "panelSymbol": "BTCUSDT",
+    "ticket": {
+     "x": 28,
+     "y": -110.375,
+     "width": 334,
+     "height": 637
+    },
+    "ticketTop": 1253.625,
+    "chart": {
+     "x": 37,
+     "y": -331.375,
+     "width": 316,
+     "height": 200
+    },
+    "chartTop": 1032.625,
+    "sentinelGets": "70",
+    "sentinelBlocked": "0",
+    "states": [
+     "LIVE",
+     "LIVE",
+     "LIVE",
+     "LIVE",
+     "STALE"
+    ],
+    "journal": "WRITING",
+    "widestChild": null
+   },
+   "symbol_ETHUSDT": {
+    "scrollWidth": 390,
+    "clientWidth": 390,
+    "overflowX": 0,
+    "panel": {
+     "x": 28,
+     "y": 1684.125,
+     "width": 334,
+     "height": 131
+    },
+    "panelTop": 1684.125,
+    "panelCollapsed": "true",
+    "panelSymbol": "ETHUSDT",
+    "ticket": {
+     "x": 28,
+     "y": 915.625,
+     "width": 334,
+     "height": 756.5
+    },
+    "ticketTop": 915.625,
+    "chart": {
+     "x": 37,
+     "y": 694.625,
+     "width": 316,
+     "height": 200
+    },
+    "chartTop": 694.625,
+    "sentinelGets": "94",
+    "sentinelBlocked": "0",
+    "states": [
+     "UNAVAILABLE",
+     "UNAVAILABLE",
+     "UNAVAILABLE",
+     "LIVE",
+     "UNAVAILABLE"
+    ],
+    "journal": null,
+    "widestChild": null
+   },
+   "symbol_SOLUSDT": {
+    "scrollWidth": 390,
+    "clientWidth": 390,
+    "overflowX": 0,
+    "panel": {
+     "x": 28,
+     "y": 1684.125,
+     "width": 334,
+     "height": 131
+    },
+    "panelTop": 1684.125,
+    "panelCollapsed": "true",
+    "panelSymbol": "SOLUSDT",
+    "ticket": {
+     "x": 28,
+     "y": 915.625,
+     "width": 334,
+     "height": 756.5
+    },
+    "ticketTop": 915.625,
+    "chart": {
+     "x": 37,
+     "y": 694.625,
+     "width": 316,
+     "height": 200
+    },
+    "chartTop": 694.625,
+    "sentinelGets": "117",
+    "sentinelBlocked": "0",
+    "states": [
+     "UNAVAILABLE",
+     "UNAVAILABLE",
+     "UNAVAILABLE",
+     "LIVE",
+     "UNAVAILABLE"
+    ],
+    "journal": null,
+    "widestChild": null
+   },
+   "symbol_BTCUSDT": {
+    "scrollWidth": 390,
+    "clientWidth": 390,
+    "overflowX": 0,
+    "panel": {
+     "x": 28,
+     "y": 1921.625,
+     "width": 334,
+     "height": 111
+    },
+    "panelTop": 1921.625,
+    "panelCollapsed": "true",
+    "panelSymbol": "BTCUSDT",
+    "ticket": {
+     "x": 28,
+     "y": 1272.625,
+     "width": 334,
+     "height": 637
+    },
+    "ticketTop": 1272.625,
+    "chart": {
+     "x": 37,
+     "y": 1051.625,
+     "width": 316,
+     "height": 200
+    },
+    "chartTop": 1051.625,
+    "sentinelGets": "148",
+    "sentinelBlocked": "0",
+    "states": [
+     "LIVE",
+     "LIVE",
+     "LIVE",
+     "LIVE",
+     "STALE"
+    ],
+    "journal": null,
+    "widestChild": null
+   },
+   "production_route": {
+    "scrollWidth": 390,
+    "clientWidth": 390,
+    "overflowX": 0,
+    "panel": null,
+    "panelTop": null,
+    "panelCollapsed": null,
+    "panelSymbol": null,
+    "ticket": {
+     "x": 16,
+     "y": 996.5,
+     "width": 358,
+     "height": 637
+    },
+    "ticketTop": 996.5,
+    "chart": {
+     "x": 25,
+     "y": 775.5,
+     "width": 340,
+     "height": 200
+    },
+    "chartTop": 775.5,
+    "sentinelGets": null,
+    "sentinelBlocked": null,
+    "states": [],
+    "journal": null,
+    "widestChild": null
+   }
+  }
+ },
+ "requests": {
+  "non_get": [],
+  "get": 523
+ }
+}
