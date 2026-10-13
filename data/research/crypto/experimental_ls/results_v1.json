@@ -1,0 +1,512 @@
+{
+  "schema": "PAPER_EXPERIMENTAL_LS_V1",
+  "as_of": "2026-09-23",
+  "pit_safe": true,
+  "hold_minutes": 240,
+  "candidates": [
+    {
+      "candidate": "EL_PREMIUM_B2",
+      "side": "LONG",
+      "hypothesis": "C1 premium B1 relaxed once to B1+B2; OI falling and HIGH retained",
+      "signal_events": 4636,
+      "metrics": {
+        "trades": 940,
+        "mean_net_bp": 3.8158137421283778,
+        "median_net_bp": 1.6409135312556475,
+        "profit_factor": 1.0562266004678538,
+        "win_rate": 0.5053191489361702,
+        "clustered_ci_mean_net_bp": [
+          -8.670307544213983,
+          15.807090542129027
+        ],
+        "trades_per_week": 3.2933333565049345,
+        "trades_per_month": 14.319825100753018
+      },
+      "folds": {
+        "2021": {
+          "trades": 389,
+          "mean_net_bp": 3.787476973620404,
+          "median_net_bp": 5.370631456937766,
+          "profit_factor": 1.0551737971510469,
+          "win_rate": 0.519280205655527
+        },
+        "2022": {
+          "trades": 256,
+          "mean_net_bp": -13.029201663642262,
+          "median_net_bp": -16.33750775075522,
+          "profit_factor": 0.8429602795179891,
+          "win_rate": 0.46875
+        },
+        "2023": {
+          "trades": 42,
+          "mean_net_bp": 62.474156752053936,
+          "median_net_bp": 35.13795726279348,
+          "profit_factor": 2.739139826878557,
+          "win_rate": 0.5714285714285714
+        },
+        "2024": {
+          "trades": 130,
+          "mean_net_bp": 27.03835466489516,
+          "median_net_bp": 6.338718118145031,
+          "profit_factor": 1.5470394341017681,
+          "win_rate": 0.5384615384615384
+        },
+        "2025": {
+          "trades": 75,
+          "mean_net_bp": 9.075945479377518,
+          "median_net_bp": -1.7257495768610254,
+          "profit_factor": 1.156489739280834,
+          "win_rate": 0.48
+        },
+        "2026": {
+          "trades": 48,
+          "mean_net_bp": -28.553845837941555,
+          "median_net_bp": -27.97092922458144,
+          "profit_factor": 0.615644199156227,
+          "win_rate": 0.4791666666666667
+        }
+      },
+      "periods": {
+        "first_half": {
+          "trades": 686,
+          "mean_net_bp": 1.0692401099800382,
+          "median_net_bp": 0.5048306297445442,
+          "profit_factor": 1.0148325847846962,
+          "win_rate": 0.5029154518950437
+        },
+        "second_half": {
+          "trades": 254,
+          "mean_net_bp": 11.233725205332167,
+          "median_net_bp": 3.48363537858197,
+          "profit_factor": 1.1989631724263388,
+          "win_rate": 0.5118110236220472
+        }
+      },
+      "top_5pct_winners_removed": {
+        "trades": 893,
+        "mean_net_bp": -20.612386648774812,
+        "median_net_bp": -7.515312231681844,
+        "profit_factor": 0.7114596566403729,
+        "win_rate": 0.47928331466965285
+      },
+      "mfe_bp": {
+        "mean": 166.0817700647085,
+        "median": 123.18447256739472
+      },
+      "mae_bp": {
+        "mean": -156.48647483311305,
+        "median": -107.16850679329758
+      },
+      "cost": {
+        "taker_rate_each_side": 0.00055,
+        "micro_return": 1.1841571614073798e-06,
+        "funding": "actual settlements; paid LONG / received SHORT"
+      },
+      "verdict": "CLEARLY_NEGATIVE"
+    },
+    {
+      "candidate": "EL_VOL_MID",
+      "side": "LONG",
+      "hypothesis": "C1 HIGH volatility relaxed once to MID/HIGH; B1 and OI falling retained",
+      "signal_events": 6162,
+      "metrics": {
+        "trades": 1689,
+        "mean_net_bp": 2.7161744153071723,
+        "median_net_bp": -2.0237509218031926,
+        "profit_factor": 1.0491878147791707,
+        "win_rate": 0.492599171107164,
+        "clustered_ci_mean_net_bp": [
+          -4.553668537307308,
+          10.344614548096326
+        ],
+        "trades_per_week": 5.877540874944764,
+        "trades_per_month": 25.5562824168692
+      },
+      "folds": {
+        "2021": {
+          "trades": 445,
+          "mean_net_bp": 5.493992454912665,
+          "median_net_bp": -0.43442685760904765,
+          "profit_factor": 1.0890699304948968,
+          "win_rate": 0.49887640449438203
+        },
+        "2022": {
+          "trades": 474,
+          "mean_net_bp": -5.558321527244471,
+          "median_net_bp": -7.258841719313657,
+          "profit_factor": 0.9065728001867861,
+          "win_rate": 0.4345991561181435
+        },
+        "2023": {
+          "trades": 121,
+          "mean_net_bp": 35.17421765855691,
+          "median_net_bp": 11.38567065273787,
+          "profit_factor": 2.035560992066121,
+          "win_rate": 0.5702479338842975
+        },
+        "2024": {
+          "trades": 299,
+          "mean_net_bp": 7.112928977978913,
+          "median_net_bp": 0.6381108083459285,
+          "profit_factor": 1.1399818430940847,
+          "win_rate": 0.5050167224080268
+        },
+        "2025": {
+          "trades": 186,
+          "mean_net_bp": 0.3224056560099024,
+          "median_net_bp": 17.180132358519295,
+          "profit_factor": 1.0062014963660164,
+          "win_rate": 0.5483870967741935
+        },
+        "2026": {
+          "trades": 164,
+          "mean_net_bp": -10.154739049922954,
+          "median_net_bp": 0.42906025896504574,
+          "profit_factor": 0.8073838874936163,
+          "win_rate": 0.5
+        }
+      },
+      "periods": {
+        "first_half": {
+          "trades": 1039,
+          "mean_net_bp": 3.886423282215363,
+          "median_net_bp": -4.45263265910408,
+          "profit_factor": 1.067572106033587,
+          "win_rate": 0.4773820981713186
+        },
+        "second_half": {
+          "trades": 650,
+          "mean_net_bp": 0.8455766111262326,
+          "median_net_bp": 2.0684526939255914,
+          "profit_factor": 1.0164022620126263,
+          "win_rate": 0.5169230769230769
+        }
+      },
+      "top_5pct_winners_removed": {
+        "trades": 1604,
+        "mean_net_bp": -18.948102531607045,
+        "median_net_bp": -6.645834818257226,
+        "profit_factor": 0.6741330503138108,
+        "win_rate": 0.46571072319201995
+      },
+      "mfe_bp": {
+        "mean": 132.01333582010108,
+        "median": 95.83381760933207
+      },
+      "mae_bp": {
+        "mean": -124.50252552885547,
+        "median": -81.2807881773403
+      },
+      "cost": {
+        "taker_rate_each_side": 0.00055,
+        "micro_return": 1.1841571614073798e-06,
+        "funding": "actual settlements; paid LONG / received SHORT"
+      },
+      "verdict": "CLEARLY_NEGATIVE"
+    },
+    {
+      "candidate": "EL_LIMITED_COMBO",
+      "side": "LONG",
+      "hypothesis": "B1+B2 and MID/HIGH; OI falling retained",
+      "signal_events": 12646,
+      "metrics": {
+        "trades": 2595,
+        "mean_net_bp": -3.401800546067859,
+        "median_net_bp": -5.111017140737575,
+        "profit_factor": 0.9416267190617343,
+        "win_rate": 0.47861271676300576,
+        "clustered_ci_mean_net_bp": [
+          -9.334414905212254,
+          2.5797005549776606
+        ],
+        "trades_per_week": 9.030184504010618,
+        "trades_per_month": 39.26437099650117
+      },
+      "folds": {
+        "2021": {
+          "trades": 776,
+          "mean_net_bp": -0.6008943285477765,
+          "median_net_bp": -6.0404703697391735,
+          "profit_factor": 0.990652500785289,
+          "win_rate": 0.4832474226804124
+        },
+        "2022": {
+          "trades": 740,
+          "mean_net_bp": -11.931318669771969,
+          "median_net_bp": -9.056471982812203,
+          "profit_factor": 0.809314400468175,
+          "win_rate": 0.45135135135135135
+        },
+        "2023": {
+          "trades": 187,
+          "mean_net_bp": 33.22941036370002,
+          "median_net_bp": 8.956582166928374,
+          "profit_factor": 2.0342091180824267,
+          "win_rate": 0.5401069518716578
+        },
+        "2024": {
+          "trades": 396,
+          "mean_net_bp": -4.859000633058867,
+          "median_net_bp": -3.44049220105076,
+          "profit_factor": 0.9120096615586682,
+          "win_rate": 0.4823232323232323
+        },
+        "2025": {
+          "trades": 263,
+          "mean_net_bp": -5.978454781383442,
+          "median_net_bp": -2.2779319929832376,
+          "profit_factor": 0.8908029815843036,
+          "win_rate": 0.4866920152091255
+        },
+        "2026": {
+          "trades": 233,
+          "mean_net_bp": -9.654954859564416,
+          "median_net_bp": -4.598360915587679,
+          "profit_factor": 0.8237818708570344,
+          "win_rate": 0.48497854077253216
+        }
+      },
+      "periods": {
+        "first_half": {
+          "trades": 1698,
+          "mean_net_bp": -1.976650986774523,
+          "median_net_bp": -6.785597155198757,
+          "profit_factor": 0.9671573575463649,
+          "win_rate": 0.4740871613663133
+        },
+        "second_half": {
+          "trades": 897,
+          "mean_net_bp": -6.09957529710474,
+          "median_net_bp": -2.8798027014984418,
+          "profit_factor": 0.8884155266213282,
+          "win_rate": 0.48717948717948717
+        }
+      },
+      "top_5pct_winners_removed": {
+        "trades": 2465,
+        "mean_net_bp": -24.792171882216316,
+        "median_net_bp": -11.08937060281952,
+        "profit_factor": 0.5958901902062873,
+        "win_rate": 0.4511156186612576
+      },
+      "mfe_bp": {
+        "mean": 125.68399904047727,
+        "median": 85.9587333751466
+      },
+      "mae_bp": {
+        "mean": -122.06888225528462,
+        "median": -82.04846472632643
+      },
+      "cost": {
+        "taker_rate_each_side": 0.00055,
+        "micro_return": 1.1841571614073798e-06,
+        "funding": "actual settlements; paid LONG / received SHORT"
+      },
+      "verdict": "CLEARLY_NEGATIVE"
+    },
+    {
+      "candidate": "ES_BREAKDOWN_OI_EXPANSION",
+      "side": "SHORT",
+      "hypothesis": "lower-tail 60m breakdown with expanding 15m OI",
+      "signal_events": 13418,
+      "metrics": {
+        "trades": 4242,
+        "mean_net_bp": -12.37471708915757,
+        "median_net_bp": -19.368895996517452,
+        "profit_factor": 0.7676253116340797,
+        "win_rate": 0.39957567185289955,
+        "clustered_ci_mean_net_bp": [
+          -16.190163063642675,
+          -8.703048582599571
+        ],
+        "trades_per_week": 14.633468228369026,
+        "trades_per_month": 63.628149040477076
+      },
+      "folds": {
+        "2021": {
+          "trades": 689,
+          "mean_net_bp": -9.837467894506212,
+          "median_net_bp": -21.96392950843367,
+          "profit_factor": 0.8612770907108189,
+          "win_rate": 0.42525399129172714
+        },
+        "2022": {
+          "trades": 714,
+          "mean_net_bp": -8.174571546829537,
+          "median_net_bp": -19.497027615633176,
+          "profit_factor": 0.8679165737958114,
+          "win_rate": 0.42296918767507
+        },
+        "2023": {
+          "trades": 797,
+          "mean_net_bp": -15.39151503723077,
+          "median_net_bp": -17.52339389868586,
+          "profit_factor": 0.6171680215921482,
+          "win_rate": 0.36888331242158096
+        },
+        "2024": {
+          "trades": 778,
+          "mean_net_bp": -18.403159060353648,
+          "median_net_bp": -24.62879730119393,
+          "profit_factor": 0.6767848469092685,
+          "win_rate": 0.38303341902313626
+        },
+        "2025": {
+          "trades": 731,
+          "mean_net_bp": -10.899956008643683,
+          "median_net_bp": -17.294243711262798,
+          "profit_factor": 0.7639272923446486,
+          "win_rate": 0.40355677154582764
+        },
+        "2026": {
+          "trades": 533,
+          "mean_net_bp": -9.99310947937852,
+          "median_net_bp": -16.529580801639288,
+          "profit_factor": 0.7659688637806186,
+          "win_rate": 0.399624765478424
+        }
+      },
+      "periods": {
+        "first_half": {
+          "trades": 2162,
+          "mean_net_bp": -11.266459152224813,
+          "median_net_bp": -19.27445161062373,
+          "profit_factor": 0.8028572119512855,
+          "win_rate": 0.40379278445883443
+        },
+        "second_half": {
+          "trades": 2080,
+          "mean_net_bp": -13.526665963988641,
+          "median_net_bp": -19.449440059812932,
+          "profit_factor": 0.7250917230614246,
+          "win_rate": 0.3951923076923077
+        }
+      },
+      "top_5pct_winners_removed": {
+        "trades": 4029,
+        "mean_net_bp": -31.341997733447844,
+        "median_net_bp": -24.139866646936525,
+        "profit_factor": 0.4410064206691413,
+        "win_rate": 0.3678332092330603
+      },
+      "mfe_bp": {
+        "mean": 106.78800724325136,
+        "median": 64.87083904558543
+      },
+      "mae_bp": {
+        "mean": -95.3253422684404,
+        "median": -64.82929203237785
+      },
+      "cost": {
+        "taker_rate_each_side": 0.00055,
+        "micro_return": 1.1841571614073798e-06,
+        "funding": "actual settlements; paid LONG / received SHORT"
+      },
+      "verdict": "CLEARLY_NEGATIVE"
+    },
+    {
+      "candidate": "ES_FAILED_REBOUND",
+      "side": "SHORT",
+      "hypothesis": "negative 4h trend, top-decile 15m rebound that closes down, falling OI",
+      "signal_events": 13991,
+      "metrics": {
+        "trades": 3796,
+        "mean_net_bp": -13.782299224876402,
+        "median_net_bp": -15.90431262161698,
+        "profit_factor": 0.7336391898146297,
+        "win_rate": 0.4125395152792413,
+        "clustered_ci_mean_net_bp": [
+          -17.971395795796763,
+          -9.511689622280333
+        ],
+        "trades_per_week": 13.096299196671,
+        "trades_per_month": 56.9443459445251
+      },
+      "folds": {
+        "2021": {
+          "trades": 593,
+          "mean_net_bp": -12.16320619080574,
+          "median_net_bp": -9.640031293532036,
+          "profit_factor": 0.8322756929334897,
+          "win_rate": 0.463743676222597
+        },
+        "2022": {
+          "trades": 683,
+          "mean_net_bp": -5.833796707956829,
+          "median_net_bp": -12.21950602544632,
+          "profit_factor": 0.8937984006425405,
+          "win_rate": 0.4260614934114202
+        },
+        "2023": {
+          "trades": 667,
+          "mean_net_bp": -16.70823871949291,
+          "median_net_bp": -15.02605578806887,
+          "profit_factor": 0.5742334313435854,
+          "win_rate": 0.38830584707646176
+        },
+        "2024": {
+          "trades": 676,
+          "mean_net_bp": -19.391189906657093,
+          "median_net_bp": -22.690385908788713,
+          "profit_factor": 0.6470638399105064,
+          "win_rate": 0.3994082840236686
+        },
+        "2025": {
+          "trades": 675,
+          "mean_net_bp": -13.916221546590817,
+          "median_net_bp": -15.923477720918696,
+          "profit_factor": 0.6907190466682959,
+          "win_rate": 0.4148148148148148
+        },
+        "2026": {
+          "trades": 502,
+          "mean_net_bp": -14.888554358959642,
+          "median_net_bp": -17.118327174522523,
+          "profit_factor": 0.6634293909705874,
+          "win_rate": 0.3804780876494024
+        }
+      },
+      "periods": {
+        "first_half": {
+          "trades": 1907,
+          "mean_net_bp": -11.06237501626354,
+          "median_net_bp": -12.785132763202439,
+          "profit_factor": 0.7989415402982832,
+          "win_rate": 0.42632406921866806
+        },
+        "second_half": {
+          "trades": 1889,
+          "mean_net_bp": -16.52814118666821,
+          "median_net_bp": -18.556347232731426,
+          "profit_factor": 0.6587493177175967,
+          "win_rate": 0.39862361037586025
+        }
+      },
+      "top_5pct_winners_removed": {
+        "trades": 3606,
+        "mean_net_bp": -30.96398273629745,
+        "median_net_bp": -20.183602445125146,
+        "profit_factor": 0.4315333542840297,
+        "win_rate": 0.38158624514697725
+      },
+      "mfe_bp": {
+        "mean": 102.33739664928197,
+        "median": 61.91861658621956
+      },
+      "mae_bp": {
+        "mean": -95.13869101705238,
+        "median": -62.30171219310576
+      },
+      "cost": {
+        "taker_rate_each_side": 0.00055,
+        "micro_return": 1.1841571614073798e-06,
+        "funding": "actual settlements; paid LONG / received SHORT"
+      },
+      "verdict": "CLEARLY_NEGATIVE"
+    }
+  ],
+  "selected": {
+    "LONG": null,
+    "SHORT": null
+  }
+}
