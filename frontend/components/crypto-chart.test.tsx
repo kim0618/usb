@@ -319,7 +319,7 @@ describe("terminal layout", () => {
     expect(screen.getByTestId("position-side")).toHaveTextContent("SHORT");
     expect(screen.getByTestId("position-upnl")).toHaveTextContent("+4.3");
     const strip = screen.getByTestId("position-strip");
-    ["수량", "진입가", "Mark", "청산가", "사용 마진", "마진 비율"].forEach(label =>
+    ["수량", "진입가", "Mark", "청산가", "사용 증거금", "마진 모드", "마진 비율"].forEach(label =>
       expect(strip).toHaveTextContent(label));
     expect(strip).toHaveTextContent("1분 30초 보유");
     // The headline shows both figures; without a live answer it falls back to the 1 s account.
@@ -354,7 +354,7 @@ describe("terminal layout", () => {
         expected_close_fee: null, expected_position_net_if_closed: null,
         expected_segment_net_if_closed: null })} />);
     expect(screen.getByTestId("close-preview-unavailable"))
-      .toHaveTextContent("미리보기 불가: 청산 가능한 호가 깊이 부족");
+      .toHaveTextContent("청산 가능한 호가 깊이 부족");
     expect(screen.queryByTestId("position-net-if-closed")).not.toBeInTheDocument();
     expect(screen.getByTestId("position-pnl-breakdown")).toHaveTextContent("+3.9500 USDT");
   });

@@ -161,10 +161,11 @@ describe("Strategy information architecture", () => {
     expect(snapshot.b.href).toBe("/trading-b");
   });
 
-  it("renames the sidebar group to 전략 and adds the dashboard entry", () => {
-    expect(navigationItems.map(item => item.label)).toEqual(["대시보드", "트레이딩", "종목 분석", "전략", "선물", "시스템"]);
+  it("has no 전략 menu and keeps the dashboard as the first entry", () => {
+    expect(navigationItems.map(item => item.label)).toEqual(["대시보드", "트레이딩", "종목 분석", "선물", "시스템"]);
     const dashboard = navigationItems[0];
     expect(dashboard.href).toBe("/dashboard");
-    expect(dashboard.activePaths).toEqual(["/dashboard"]);
+    expect(dashboard.activePaths).toContain("/dashboard");
+    expect(dashboard.activePaths).toContain("/strategy-compare");
   });
 });

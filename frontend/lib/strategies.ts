@@ -54,6 +54,16 @@ export type StrategyCardData = {
     maturity: HMaturity; evaluation: HEvaluation; sizing_contract: string;
   };
   last_signal_at: string | null; last_trade_at: string | null; na: Record<string, string>;
+  dashboard?: DashboardBlock;
+};
+
+/** The dashboard card's operating summary (GET /strategies/cards `dashboard`). The state is already
+ *  folded to one of RUNNING / WAITING / ISSUE and the mode to one word; raw statuses stay on the card. */
+export type DashboardBlock = {
+  mode: string; status: "RUNNING" | "WAITING" | "ISSUE"; status_reason: string | null;
+  operating_since: string | null; operating_day: number | null;
+  session_count: number | null; session_kind: string;
+  last_run_at: string | null; last_decision: string | null;
 };
 
 export type BookSummary = { trades: number; net_pnl: string | null; accounting_versions: string[] };
@@ -175,7 +185,7 @@ export type StrategyEquity = {
 export const OPERATING_ROUTES: Readonly<Record<string, { href: string }>> = {
   [STRATEGY_A]: { href: "/trading" },
   [STRATEGY_E]: { href: "/strategy-e" },
-  [STRATEGY_H]: { href: "/strategy-h" },
+  [STRATEGY_H]: { href: "/trading-h" },
 };
 
 /** "Strategy E · E-MAX V1": the registry's own display name and variant, nothing typed here. */

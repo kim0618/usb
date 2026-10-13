@@ -206,7 +206,10 @@ describe("dashboard route", () => {
         legacy: { trades: 3, net_pnl: "72.3555", accounting_versions: ["V0"] },
         paper_clock: { paper_evaluation_version: "AE_PAPER_V1", accounting_version: "V1", official_paper_start: null,
                        status: "NOT_STARTED", gate_contract: "AE_PAPER_EVALUATION_GATE_V1" },
-        na: { last_signal_at: "A 원장(simulation_trades)은 신호 시각을 기록하지 않는다" } },
+        na: { last_signal_at: "A 원장(simulation_trades)은 신호 시각을 기록하지 않는다" },
+        dashboard: { mode: "PAPER", status: "RUNNING", status_reason: null, operating_since: null, operating_day: null,
+                     session_count: 0, session_kind: "공식", last_run_at: "2026-10-13T00:32:00+00:00",
+                     last_decision: "신호 없음" } },
       { strategy_id: STRATEGY_E, display_name: "Strategy E", short_name: "E", variant_label: "E-MAX V1", version: "E-MAX V1",
         research_lifecycle: "PASSED_TO_PAPER", lifecycle: "PAPER", operational_status: "DATA_ERROR",
         runtime_status: "ERROR", evidence_status: "OFFICIAL_KIWOOM_PAPER", currency: "USD", equity: "9876.85",
@@ -214,7 +217,9 @@ describe("dashboard route", () => {
         net_pnl: null, equity_change: "-123.1542", trades: 0,
         official: { trades: 0, net_pnl: null, accounting_versions: [] },
         legacy: { trades: 3, net_pnl: "-123.1542", accounting_versions: ["V0"] },
-        last_signal_at: "2026-09-25T09:29:26-04:00", last_trade_at: "2026-09-25T09:35:00-04:00", na: {} },
+        last_signal_at: "2026-09-25T09:29:26-04:00", last_trade_at: "2026-09-25T09:35:00-04:00", na: {},
+        dashboard: { mode: "OFFICIAL PAPER", status: "ISSUE", status_reason: "데이터 오류", operating_since: "2026-09-28",
+                     operating_day: 16, session_count: 10, session_kind: "공식", last_run_at: null, last_decision: null } },
     ],
   };
 
@@ -226,25 +231,35 @@ describe("dashboard route", () => {
                json: async () => body ?? { error: { message: path } } } as Response;
     }));
     render(<DashboardPage/>);
-    expect(await screen.findAllByText("Strategy A")).not.toHaveLength(0);   // card + equity panel
-    expect(screen.getAllByText("Strategy E-MAX V1").length).toBeGreaterThan(0);
-    expect(document.querySelectorAll("[data-strategy]")).toHaveLength(2);
-    expect(screen.getByRole("heading", { name: "대시보드" })).toBeInTheDocument();
-    // The card's ledger side: research and operations on separate words, trade count, last signal.
-    const eFields = document.querySelector(`[data-operating-fields="${STRATEGY_E}"]`) as HTMLElement;
-    expect(eFields.textContent).toContain("Research: PASSED TO PAPER · Operations: DATA ERROR");
-    expect(eFields.textContent).toContain("공식 Net PnL (V1)");
-    expect(eFields.textContent).toContain("공식 거래 수0");                    // official starts empty
-    expect(document.querySelector(`[data-legacy-summary="${STRATEGY_E}"]`)!.textContent)
-      .toContain("Legacy Paper (V0, 공식 평가 제외): 거래 3건");
-    expect(screen.getAllByText("DATA ERROR").length).toBeGreaterThan(0);
-    const aFields = document.querySelector(`[data-operating-fields="${STRATEGY_A}"]`) as HTMLElement;
-    expect(aFields.textContent).toContain("WAITING SIGNAL");
-    expect(aFields.textContent).toContain("Official Paper: 시작 전");
-    // The account's latest session is labelled as such, never as the calendar day.
-    expect(screen.getAllByText("최근 세션 손익").length).toBe(2);
-    expect(screen.queryByText("오늘 손익")).not.toBeInTheDocument();
-    expect(aFields.querySelector("[title*='simulation_trades']")).not.toBeNull();   // a reason, not a zero
+    expect(await screen.findAllByText("Strategy A")).toHaveLength(1);
+    expect(screen.getAllByText("Strategy E-MAX V1")).toHaveLength(1);
+    expect(document.querySelectorAll("[data-dashboard-card]")).toHaveLength(2);
+    // No page heading or subtitle: the cards start the page.
+    expect(screen.queryByRole("heading", { level: 1 })).not.toBeInTheDocument();
+    expect(screen.queryByText("운영 중인 전략의 현재 상태와 각자의 성과를 확인합니다.")).not.toBeInTheDocument();
+    const a = document.querySelector(`[data-strategy="${STRATEGY_A}"]`) as HTMLElement;
+    const e = document.querySelector(`[data-strategy="${STRATEGY_E}"]`) as HTMLElement;
+    // One state and one mode per card, folded by the backend; no raw status words.
+    expect(a.querySelector("[data-status]")!.getAttribute("data-status")).toBe("RUNNING");
+    expect(a.querySelector("[data-mode]")!.textContent).toBe("PAPER");
+    expect(e.querySelector("[data-status]")!.getAttribute("data-status")).toBe("ISSUE");
+    expect(e.querySelector("[data-reason]")!.textContent).toBe("데이터 오류");
+    expect(e.querySelector("[data-mode]")!.textContent).toBe("OFFICIAL PAPER");
+    expect(e.querySelector("[data-period]")!.textContent).toBe("운영 16일째 · 공식 10세션");
+    expect(a.querySelector("[data-last-run]")!.textContent).toBe("마지막 실행 10/13 09:32 KST");
+    expect(e.querySelector("[data-last-run]")!.textContent).toBe("마지막 실행 -");
+    expect(a.textContent).toContain("신호 없음");
+    // Everything the old card carried is gone from the dashboard, and so is the curve section.
+    for (const gone of ["보유 포지션", "최근 세션 청산", "갱신", "오늘 실현손익", "오늘 미실현손익", "Research:", "Legacy Paper", "D7"]) {
+      expect(document.body.textContent).not.toContain(gone);
+    }
+    expect(screen.queryByText("전략 자산 추이")).not.toBeInTheDocument();
+    expect(document.querySelector("[data-equity]")).toBeNull();
+    expect(document.querySelector("[data-operating-fields]")).toBeNull();
+    // Same fields, same order on every card.
+    const labels = (card: HTMLElement) => [...card.querySelectorAll("dt")].map(dt => dt.textContent);
+    expect(labels(a)).toEqual(["초기 자본", "현재 자산", "최근 세션 손익", "공식 누적 손익", "공식 거래 수", "최근 결정"]);
+    expect(labels(e)).toEqual(labels(a));
   });
 
   it("has no mock import and no mock fallback left on the dashboard", () => {

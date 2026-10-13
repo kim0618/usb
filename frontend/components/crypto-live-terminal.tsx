@@ -11,8 +11,9 @@
  *  most dangerous path in the system untested until the day it is armed.
  */
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { PnlBreakdown, PnlHeadline, PositionCardShell, type BreakdownLine, type Fact } from "@/components/position-card";
 import { MetricCard } from "@/components/ui";
-import { CryptoApiError, holdingDuration, krw, num, price, qty as qtyFmt, signedKrw, signedUsdt,
+import { CryptoApiError, costUsdt, holdingDuration, krw, num, price, qty as qtyFmt, signedKrw, signedUsdt,
   toneClass, usdt } from "@/lib/crypto-paper";
 import type { OrderSide } from "@/lib/crypto-paper";
 import {
@@ -376,81 +377,103 @@ export function LivePositionPanel({ account, card }: {
 }) {
   const position = account.position;
   if (!position || position.is_flat) return null;
-  const long = position.side === "LONG";
   const open = card?.open ? card : null;
-  const close = open?.close;
-  const netShown = open?.net_complete === true && open.net_if_closed != null;
-  const leverage = account.symbol_config ? `${num(account.symbol_config.leverage)}x` : "-";
-  const rows: [string, string][] = [
-    ["진입가", price(open?.entry_price ?? position.entry_price)],
-    ["Mark", price(open?.mark_price ?? position.mark_price ?? account.mark?.mark_price ?? null)],
-    ["청산가", Number(position.liquidation_price) > 0 ? price(position.liquidation_price) : "-"],
-    // The margin Binance holds, off `positionRisk.initialMargin` - not `notional / leverage`,
-    // which ignores the maintenance tier. Beside the exposure above it so the two cannot be
-    // read as the same number.
-    ["증거금", usdt(open?.initial_margin ?? position.initial_margin, 2)],
-    ["유지 마진", usdt(position.maint_margin, 4)],
-    ["마진 모드", account.symbol_config
-      ? (MARGIN_MODE_LABELS[account.symbol_config.margin_type] || account.symbol_config.margin_type) : "-"],
-  ];
+  const parts = livePositionParts({
+    card: open, prefix: "live-position", symbolConfig: account.symbol_config,
+    fallback: { entry: position.entry_price, mark: position.mark_price ?? account.mark?.mark_price ?? null,
+                liquidation: position.liquidation_price, margin: position.initial_margin,
+                maint: position.maint_margin, unrealized: position.unrealized_pnl,
+                unrealizedKrw: account.position_krw?.unrealized_pnl ?? null },
+  });
   return (
-    <div className="panel p-5" data-testid="live-position-panel">
-      <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-        <span className={`rounded-md px-2 py-1 font-bold ${long ? "bg-success-soft text-success" : "bg-danger-soft text-danger"}`}
-          data-testid="live-position-side">{long ? "LONG" : "SHORT"}</span>
-        <span className="font-semibold tabular-nums text-foreground-secondary"
-          data-testid="live-position-leverage">{leverage}</span>
-        <span className="tabular-nums text-foreground-secondary"
-          data-testid="live-position-qty">{qtyFmt(position.qty)} {liveUnit(account)}</span>
-      </div>
-
-      {open && <LiveExposure card={open} testIdPrefix="live-position" />}
-
-      <div className="mb-3 grid gap-2 sm:grid-cols-2">
-        <div className="rounded-lg bg-surface-alt px-3 py-2">
-          <p className="text-[11px] text-muted">현재 손익</p>
-          {account.position_krw && (
-            <p className={`whitespace-nowrap text-lg font-bold tabular-nums leading-tight ${toneClass(account.position_krw.unrealized_pnl)}`}
-              data-testid="live-position-pnl-krw">
-              {signedKrw(account.position_krw.unrealized_pnl)}</p>
-          )}
-          <p className={`whitespace-nowrap tabular-nums ${account.position_krw ? "text-[11px]" : "text-lg font-bold leading-tight"} ${toneClass(position.unrealized_pnl)}`}
-            data-testid="live-position-pnl">{signedUsdt(position.unrealized_pnl)}</p>
-          <p className="text-[11px] text-muted">Binance Mark 기준</p>
-        </div>
-        {/* The figure this panel was missing. Same source, same number as the phone card. */}
-        <div className="rounded-lg bg-surface-alt px-3 py-2">
-          <p className="text-[11px] text-muted">청산 시 예상 순손익</p>
-          {netShown ? (
-            <>
-              {open?.krw?.net_if_closed != null && (
-                <p className={`whitespace-nowrap text-lg font-bold tabular-nums leading-tight ${toneClass(open.krw.net_if_closed)}`}
-                  data-testid="live-position-net-krw">{signedKrw(open.krw.net_if_closed)}</p>
-              )}
-              <p className={`whitespace-nowrap tabular-nums leading-tight ${open?.krw?.net_if_closed != null ? "text-[11px]" : "text-lg font-bold"} ${toneClass(open?.net_if_closed)}`}
-                data-testid="live-position-net">{signedUsdt(open?.net_if_closed ?? null)}</p>
-              <p className="text-[11px] text-muted">수수료·펀딩·체결가 포함</p>
-            </>
-          ) : (
-            <p className="mt-1 text-[11px] text-warning" data-testid="live-position-net-unavailable">
-              {close && close.feasible === false
-                ? (close.reject_message || close.reject_code || "미리보기 불가")
-                : "미리보기 불가"}
-            </p>
-          )}
-        </div>
-      </div>
-
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3">
-        {rows.map(([label, value]) => (
-          <div key={label}>
-            <dt className="text-[10px] text-muted">{label}</dt>
-            <dd className="text-sm font-semibold tabular-nums text-foreground">{value}</dd>
-          </div>
-        ))}
-      </dl>
-    </div>
+    <PositionCardShell source="LIVE" testId="live-position-panel" className="panel p-4 sm:p-5"
+      side={position.side === "LONG" ? "LONG" : "SHORT"} sideTestId="live-position-side"
+      leverage={account.symbol_config ? `${num(account.symbol_config.leverage)}x` : "-"}
+      leverageTestId="live-position-leverage"
+      qty={`${qtyFmt(position.qty)} ${liveUnit(account)}`} qtyTestId="live-position-qty"
+      held={open ? holdingDuration(open.opened_at_ms ?? null, Date.now()) : null}
+      top={open ? <LiveExposure card={open} testIdPrefix="live-position" /> : undefined}
+      headline={<PnlHeadline pnl={parts.pnl} net={parts.net}/>}
+      facts={parts.facts} breakdown={parts.breakdown} />
   );
+}
+
+type LivePartsInput = {
+  card: LivePositionCardData | null; prefix: string;
+  symbolConfig?: LiveAccount["symbol_config"] | null;
+  /** Snapshot figures used only while the server's card has not arrived. */
+  fallback?: { entry?: string | null; mark?: string | null; liquidation?: string | null; margin?: string | null;
+               maint?: string | null; unrealized?: string | null; unrealizedKrw?: string | null };
+};
+
+/** Everything the LIVE card prints, formatted from the server's card and nothing else.
+ *
+ *  The phone card and the wide panel both call this, so the two screens cannot disagree about a
+ *  position and the LIVE card reads in the same order as the paper one. No figure is derived: a
+ *  line the server does not supply is a dash, and "청산 시 예상 순손익" exists only when the
+ *  server priced the close. */
+function livePositionParts({ card, prefix, symbolConfig, fallback }: LivePartsInput) {
+  const f = fallback ?? {};
+  const close = card?.close;
+  const netShown = card?.net_complete === true && card.net_if_closed != null;
+  const unrealized = card?.unrealized_pnl ?? f.unrealized ?? null;
+  const unrealizedKrw = card?.krw?.unrealized_pnl ?? f.unrealizedKrw ?? null;
+  const marginMode = symbolConfig
+    ? (MARGIN_MODE_LABELS[symbolConfig.margin_type] || symbolConfig.margin_type) : "-";
+  const reason = close && close.feasible === false
+    ? (close.reject_message || close.reject_code || "실시간 호가 확인 불가")
+    : "실시간 호가 확인 불가";
+  const pnl = {
+    krw: unrealizedKrw != null ? signedKrw(unrealizedKrw) : null,
+    usdt: signedUsdt(unrealized), tone: unrealized, note: "Binance Mark 기준",
+    krwTestId: `${prefix}${prefix === "live-card" ? "-unrealized-krw" : "-pnl-krw"}`,
+    usdtTestId: `${prefix}${prefix === "live-card" ? "-unrealized" : "-pnl"}`,
+  };
+  const net = netShown
+    ? { shown: true as const, krw: card!.krw?.net_if_closed != null ? signedKrw(card!.krw!.net_if_closed) : null,
+        usdt: signedUsdt(card!.net_if_closed ?? null), tone: card!.net_if_closed,
+        note: "수수료·펀딩·체결가 포함", krwTestId: `${prefix}-net-krw`, usdtTestId: `${prefix}-net` }
+    : { shown: false as const, reason, testId: `${prefix}-net-unavailable` };
+  const entry = card?.entry_price ?? f.entry ?? null;
+  const mark = card?.mark_price ?? f.mark ?? null;
+  const liquidation = card?.liquidation_price ?? f.liquidation ?? null;
+  const facts: Fact[] = [
+    ["진입가", price(entry), `${prefix}-entry`],
+    ["Mark", price(mark), `${prefix}-mark`],
+    ["청산가", Number(liquidation) > 0 ? price(liquidation) : "-"],
+    // The margin Binance holds, off `positionRisk.initialMargin` - not `notional / leverage`,
+    // which ignores the maintenance tier.
+    ["사용 증거금", usdt(card?.initial_margin ?? f.margin ?? null, 2)],
+    ["마진 모드", marginMode],
+    ["유지 마진", usdt(card?.maint_margin ?? f.maint ?? null, 4)],
+    ["손익분기", price(card?.break_even_price ?? null)],
+  ];
+  if (!card) return { pnl, net, facts, breakdown: undefined };
+
+  const costOf = (value: string | null | undefined) => costUsdt(value, 4);
+  const lines: BreakdownLine[] = [
+    { label: "포지션 손익 (Mark 기준 미실현)", value: unrealizedKrw != null ? signedKrw(unrealizedKrw) : signedUsdt(unrealized),
+      sub: unrealizedKrw != null ? signedUsdt(unrealized) : undefined, tone: unrealized },
+    { label: "수수료 (확정)", value: costOf(card.commission_paid), tone: null },
+  ];
+  if (card.realized_since_open != null && Number(card.realized_since_open) !== 0) {
+    lines.push({ label: "부분청산 실현손익", value: signedUsdt(card.realized_since_open), tone: card.realized_since_open });
+  }
+  lines.push({ label: "현재까지 Funding", value: signedUsdt(card.funding_income ?? null), tone: card.funding_income ?? null });
+  lines.push({ label: "예상 청산 수수료", value: costOf(close?.exit_fee), tone: null });
+  lines.push({ label: "예상 체결비용 (슬리피지·스프레드)", value: "-", tone: null,
+    note: close?.exit_fill_price != null
+      ? `Mark ${price(card.mark_price)} → 예상 체결 ${price(close.exit_fill_price)} · 순손익에 포함` : undefined });
+  const breakdown = (
+    <PnlBreakdown testId={`${prefix}-breakdown`} lines={lines}
+      quoteAge={card.age_ms != null ? `Binance 기준 · ${Math.round(card.age_ms / 1000)}초 전` : null}
+      unavailable={netShown ? null : reason}
+      totals={[{ label: "청산 시 예상 순손익",
+        value: card.krw?.net_if_closed != null ? signedKrw(card.krw.net_if_closed) : signedUsdt(card.net_if_closed ?? null),
+        sub: card.krw?.net_if_closed != null ? signedUsdt(card.net_if_closed ?? null) : undefined,
+        tone: card.net_if_closed }]} />
+  );
+  return { pnl, net, facts, breakdown };
 }
 
 /** How much market the position is actually holding, in the one place both panels read it.
@@ -500,107 +523,33 @@ export function LiveExposure({ card, testIdPrefix }: {
  *  `userTrades` says opened the position. When the server cannot establish one of them it says
  *  so, and the card shows "-" rather than a confident wrong number.
  */
-export function LivePositionCard({ card, nowMs, onClose, busy }: {
+export function LivePositionCard({ card, nowMs, onClose, busy, symbolConfig }: {
   card: LivePositionCardData | null;
   nowMs: number;
   onClose: () => void;
   busy?: boolean;
+  /** Only for the 마진 모드 line: the account's per-symbol setting, which the card does not carry. */
+  symbolConfig?: LiveAccount["symbol_config"] | null;
 }) {
-  const [detail, setDetail] = useState(false);
   if (!card?.open) return null;
-  const long = card.side === "LONG";
-  const held = holdingDuration(card.opened_at_ms ?? null, nowMs);
-  const close = card.close;
-  const netShown = card.net_complete === true && card.net_if_closed != null;
-
+  const parts = livePositionParts({ card, prefix: "live-card", symbolConfig });
   return (
-    <section className="panel mb-2 p-3" data-testid="live-position-card" aria-label="현재 포지션">
-      <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
-        <span className={`rounded px-2 py-0.5 font-bold ${long ? "bg-success-soft text-success" : "bg-danger-soft text-danger"}`}
-          data-testid="live-card-side">{card.side}</span>
-        <span className="font-semibold tabular-nums text-foreground-secondary"
-          data-testid="live-card-leverage">{num(card.leverage)?.toString() ?? "-"}x</span>
-        <span className="tabular-nums text-foreground-secondary"
-          data-testid="live-card-qty">{qtyFmt(card.qty)} {baseAssetOf(card.symbol || DEFAULT_SYMBOL)}</span>
-        {/* Absent rather than wrong: a position whose opening fill is off the fetched page has
-            no honest duration, and `positionRisk.updateTime` is the last change, not the open. */}
-        <span className="ml-auto text-[11px] text-muted" data-testid="live-card-held">
-          {held ? `${held} 보유` : "보유 시간 -"}
-        </span>
-      </div>
-
-      <LiveExposure card={card} testIdPrefix="live-card" />
-
-      <div className="mb-3 grid grid-cols-2 gap-2">
-        <div className="rounded-lg bg-surface-alt px-3 py-2">
-          <p className="text-[11px] text-muted">현재 포지션 손익</p>
-          {card.krw?.unrealized_pnl != null ? <>
-            <p className={`whitespace-nowrap text-lg font-bold tabular-nums leading-tight sm:text-xl ${toneClass(card.krw.unrealized_pnl)}`}
-              data-testid="live-card-unrealized-krw">{signedKrw(card.krw.unrealized_pnl)}</p>
-            <p className={`whitespace-nowrap text-[11px] tabular-nums ${toneClass(card.unrealized_pnl)}`}
-              data-testid="live-card-unrealized">{signedUsdt(card.unrealized_pnl ?? null)}</p>
-          </> : <p className={`whitespace-nowrap text-lg font-bold tabular-nums leading-tight sm:text-xl ${toneClass(card.unrealized_pnl)}`}
-            data-testid="live-card-unrealized">{signedUsdt(card.unrealized_pnl ?? null)}</p>}
-          <p className="text-[11px] text-muted">Binance Mark 기준</p>
-        </div>
-        <div className="rounded-lg bg-surface-alt px-3 py-2">
-          <p className="text-[11px] text-muted">청산 시 예상 순손익</p>
-          {netShown ? (
-            <>
-              {card.krw?.net_if_closed != null && <p
-                className={`whitespace-nowrap text-lg font-bold tabular-nums leading-tight sm:text-xl ${toneClass(card.krw.net_if_closed)}`}
-                data-testid="live-card-net-krw">{signedKrw(card.krw.net_if_closed)}</p>}
-              <p className={`${card.krw?.net_if_closed != null ? "text-[11px]" : "text-lg font-bold sm:text-xl"} whitespace-nowrap tabular-nums leading-tight ${toneClass(card.net_if_closed)}`}
-                data-testid="live-card-net">{signedUsdt(card.net_if_closed ?? null)}</p>
-              <p className="text-[11px] text-muted">수수료·펀딩·체결가 포함</p>
-            </>
-          ) : (
-            <p className="mt-1 text-[11px] text-warning" data-testid="live-card-net-unavailable">
-              {close && close.feasible === false
-                ? (close.reject_message || close.reject_code || "미리보기 불가")
-                : "미리보기 불가"}
-            </p>
-          )}
-        </div>
-      </div>
-
-      <dl className="mb-2 grid grid-cols-2 gap-x-3 text-[11px]">
-        <div className="flex justify-between gap-2"><dt className="text-muted">진입가</dt>
-          <dd className="tabular-nums text-foreground-secondary"
-            data-testid="live-card-entry">{price(card.entry_price)}</dd></div>
-        <div className="flex justify-between gap-2"><dt className="text-muted">Mark</dt>
-          <dd className="tabular-nums text-foreground-secondary"
-            data-testid="live-card-mark">{price(card.mark_price)}</dd></div>
-      </dl>
-
-      <button type="button" className="btn-muted h-11 w-full text-sm font-bold"
-        data-testid="live-card-close" disabled={busy} onClick={onClose}>
-        CLOSE · 전량 청산
-      </button>
-
-      <button type="button" aria-expanded={detail} data-testid="live-card-detail-toggle"
-        className="mt-1.5 flex w-full items-center justify-between py-1 text-[11px] font-medium text-foreground-secondary"
-        onClick={() => setDetail(open => !open)}>
-        손익/비용 상세 <span aria-hidden="true">{detail ? "▲" : "▼"}</span>
-      </button>
-      {detail && (
-        <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]" data-testid="live-card-detail">
-          {([["청산가", Number(card.liquidation_price) > 0 ? price(card.liquidation_price) : "-"],
-             ["개시 증거금", usdt(card.initial_margin, 4)],
-             ["예상 청산가(체결)", price(close?.exit_fill_price)],
-             ["예상 청산 수수료", usdt(close?.exit_fee, 4)],
-             ["누적 수수료", usdt(card.commission_paid, 4)],
-             ["펀딩 수지", signedUsdt(card.funding_income ?? null, 4)],
-             ["부분청산 실현", signedUsdt(card.realized_since_open ?? null, 4)],
-             ["손익분기", price(card.break_even_price)]] as const).map(([label, value]) => (
-            <div key={label} className="flex justify-between gap-2">
-              <dt className="text-muted">{label}</dt>
-              <dd className="tabular-nums text-foreground-secondary">{value}</dd>
-            </div>
-          ))}
-        </dl>
-      )}
-    </section>
+    <PositionCardShell source="LIVE" testId="live-position-card" className="panel mb-2 p-3"
+      side={card.side === "LONG" ? "LONG" : "SHORT"} sideTestId="live-card-side"
+      leverage={`${num(card.leverage)?.toString() ?? "-"}x`} leverageTestId="live-card-leverage"
+      qty={`${qtyFmt(card.qty)} ${baseAssetOf(card.symbol || DEFAULT_SYMBOL)}`} qtyTestId="live-card-qty"
+      /* Absent rather than wrong: a position whose opening fill is off the fetched page has no
+         honest duration, and `positionRisk.updateTime` is the last change, not the open. */
+      held={holdingDuration(card.opened_at_ms ?? null, nowMs)} heldTestId="live-card-held"
+      top={<LiveExposure card={card} testIdPrefix="live-card" />}
+      headline={<PnlHeadline pnl={parts.pnl} net={parts.net}/>}
+      facts={parts.facts} breakdown={parts.breakdown}
+      fold={{ toggleTestId: "live-card-detail-toggle", detailTestId: "live-card-detail" }}
+      footer={
+        <button type="button" className="btn-muted h-11 w-full text-sm font-bold"
+          data-testid="live-card-close" disabled={busy} onClick={onClose}>
+          CLOSE · 전량 청산
+        </button>} />
   );
 }
 

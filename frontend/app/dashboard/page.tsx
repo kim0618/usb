@@ -1,42 +1,40 @@
 "use client";
 
 import Link from "next/link";
-import { ErrorState, LoadingState, PageHeader } from "@/components/ui";
-import { EquitySparkline, StrategyCards } from "@/components/strategy-runtime";
+import { ErrorState, LoadingState } from "@/components/ui";
+import { DashboardStrategyCards } from "@/components/dashboard-strategy-card";
 import { useApi } from "@/hooks/use-api";
 import { dashboardStrategies, STRATEGY_A, STRATEGY_E, STRATEGY_H } from "@/lib/strategies";
 
 const DETAIL_HREF: Readonly<Record<string, string>> = {
   [STRATEGY_A]: "/trading",
   [STRATEGY_E]: "/strategy-e",
-  [STRATEGY_H]: "/strategy-h",
+  [STRATEGY_H]: "/trading-h",
 };
+
+/** The screens the 전략 menu used to hold. Their routes and data are unchanged; this row is how
+ *  they are reached now. Strategy H's research detail is linked from Trading H. */
+const ANALYSIS_LINKS: ReadonlyArray<{ href: string; label: string }> = [
+  { href: "/strategy-compare", label: "전략 성과 비교" },
+  { href: "/daily", label: "전략별 일별 손익" },
+  { href: "/strategy-history", label: "연구 이력" },
+];
 
 /** The operating dashboard: every enabled strategy in the registry, each with its own account.
  *
- *  Figures come from the per-strategy API and are never summed across strategies. A strategy with
- *  no trade yet says so on its card instead of showing a zero. */
+ *  Figures come from the per-strategy API and are never summed across strategies. Every card has
+ *  the same twelve fields; a value the ledger does not record is "-". The equity curves and the
+ *  strategy comparison live on their own screen (/strategy-compare), not here. */
 export default function DashboardPage() {
   const state = useApi(dashboardStrategies, 60_000);
-  const header = <PageHeader title="대시보드" description="운영 중인 전략의 현재 상태와 각자의 성과를 확인합니다."/>;
 
-  if (state.loading) return <>{header}<LoadingState/></>;
-  if (!state.data) return <>{header}<ErrorState message={state.error || "전략 현황 조회 실패"} retry={state.refresh}/></>;
+  if (state.loading) return <LoadingState/>;
+  if (!state.data) return <ErrorState message={state.error || "전략 현황 조회 실패"} retry={state.refresh}/>;
 
   return <div className="trading-screen">
-    {header}
-    <StrategyCards bundles={state.data} hrefs={DETAIL_HREF}/>
-    <section aria-labelledby="dashboard-curve-title" className="mb-7">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 id="dashboard-curve-title" className="font-semibold">전략 자산 추이</h2>
-        <Link href="/strategy-compare" className="btn-action-secondary-compact">전략 성과 비교</Link>
-      </div>
-      <div className="grid gap-4 lg:grid-cols-2">
-        {state.data.map(({ row, equity }) => <div key={row.strategy_id} className="panel p-4" data-equity={row.strategy_id}>
-          <p className="label mb-2">{row.display_name}</p>
-          <EquitySparkline equity={equity}/>
-        </div>)}
-      </div>
-    </section>
+    <DashboardStrategyCards bundles={state.data} hrefs={DETAIL_HREF}/>
+    <nav aria-label="전략 분석" className="mt-6 flex flex-wrap gap-2" data-analysis-links="">
+      {ANALYSIS_LINKS.map(link => <Link key={link.href} href={link.href} className="btn-action-secondary-compact">{link.label}</Link>)}
+    </nav>
   </div>;
 }

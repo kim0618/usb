@@ -13,6 +13,7 @@ import {
   chartPriceFormat,
 } from "@/lib/crypto-paper";
 import { DEFAULT_SYMBOL, baseAsset as baseAssetOf } from "@/lib/crypto-symbols";
+import { PnlBreakdown, PnlHeadline, PositionCardShell, type BreakdownLine, type Fact } from "@/components/position-card";
 import type { Candle, Candle15sStatus, ChartBar, ChartOverlay, ChartPoint, CryptoAccount,
   HistoryTimeframe,
   LivePnl, OpenPositionPnl, PositionPnlPreview } from "@/lib/crypto-paper";
@@ -605,7 +606,7 @@ export function PositionPnlBreakdown({ preview, state }: { preview: PositionPnlP
   const partial = preview.partial_exit_fee !== "0" || preview.partial_realized_pnl !== "0";
   const cost = (key: keyof OpenPositionPnl) => costKrw(won[key] ?? null);
   const costUsd = (key: keyof OpenPositionPnl) => costUsdt(preview[key] as string | null, 4);
-  const lines: { label: string; value: string; sub: string; tone: string | null; note?: string }[] = [
+  const lines: BreakdownLine[] = [
     { label: "포지션 손익 (Mark 기준 미실현)", value: signedKrw(won.unrealized_pnl), sub: signedUsdt(preview.unrealized_pnl), tone: preview.unrealized_pnl },
     { label: "진입 수수료 (확정)", value: cost("entry_fee"), sub: costUsd("entry_fee"), tone: null },
   ];
@@ -626,54 +627,19 @@ export function PositionPnlBreakdown({ preview, state }: { preview: PositionPnlP
       ? "청산 가능한 호가 깊이 부족"
       : rejectLabel(preview.close_reject_code, preview.close_reject_message);
   return (
-    <div className="mt-3 border-t border-line pt-2" data-testid="position-pnl-breakdown">
-      <div className="mb-1 flex items-baseline justify-between gap-2">
-        <p className="text-[11px] font-semibold text-foreground-secondary">손익 분해</p>
-        <p className="text-[10px] text-muted" data-testid="preview-quote-age">
-          현재 호가 기준 · {freshness.ageSeconds == null ? "-" : `${freshness.ageSeconds}초 전`}
-        </p>
-      </div>
-      <dl className="space-y-1 text-[11px]">
-        {lines.map(line => (
-          <div key={line.label}>
-            <div className="flex justify-between gap-3">
-              <dt className="text-muted">{line.label}</dt>
-              <dd className={`shrink-0 whitespace-nowrap text-right tabular-nums ${line.tone == null ? "text-foreground-secondary" : toneClass(line.tone)}`}>
-                {line.value}<span className="ml-1.5 text-[10px] text-muted">{line.sub}</span>
-              </dd>
-            </div>
-            {line.note && <p className="text-right text-[10px] text-muted">{line.note}</p>}
-          </div>
-        ))}
-      </dl>
-      {available ? (
-        <div className="mt-2 space-y-1 border-t border-line pt-2 text-xs">
-          <div className="flex justify-between gap-3 font-semibold">
-            <span>청산 시 예상 순손익</span>
-            <span className={`shrink-0 whitespace-nowrap text-right tabular-nums ${toneClass(preview.expected_position_net_if_closed)}`}
-              data-testid="position-net-if-closed">
-              {signedKrw(won.expected_position_net_if_closed)}
-              <span className="ml-1.5 text-[10px] font-normal text-muted">{signedUsdt(preview.expected_position_net_if_closed)}</span>
-            </span>
-          </div>
-          <div className="flex justify-between gap-3 text-[11px]">
-            <span className="text-muted">청산 시 현재 구간 총손익 <span className="text-[10px]">(이전 거래 포함)</span></span>
-            <span className={`shrink-0 whitespace-nowrap text-right tabular-nums font-medium ${toneClass(preview.expected_segment_net_if_closed)}`}
-              data-testid="segment-net-if-closed">
-              {signedKrw(won.expected_segment_net_if_closed)}
-              <span className="ml-1.5 text-[10px] font-normal text-muted">{signedUsdt(preview.expected_segment_net_if_closed)}</span>
-            </span>
-          </div>
-          <p className="text-[10px] text-muted">
-            예상값은 {clockKst(preview.quote_ts_ms)} 호가로 전량 시장가 청산을 엔진에 시험 체결한 결과입니다. 실제 체결은 그 순간의 호가를 따릅니다.
-          </p>
-        </div>
-      ) : (
-        <p className="mt-2 rounded bg-warning-soft px-2 py-1 text-[11px] text-warning" data-testid="close-preview-unavailable">
-          미리보기 불가: {unavailableReason}
-        </p>
-      )}
-    </div>
+    <PnlBreakdown testId="position-pnl-breakdown" lines={lines}
+      quoteAge={`현재 호가 기준 · ${freshness.ageSeconds == null ? "-" : `${freshness.ageSeconds}초 전`}`}
+      quoteAgeTestId="preview-quote-age"
+      unavailable={available ? null : unavailableReason} unavailableTestId="close-preview-unavailable"
+      totals={[
+        { label: "청산 시 예상 순손익", value: signedKrw(won.expected_position_net_if_closed),
+          sub: signedUsdt(preview.expected_position_net_if_closed), tone: preview.expected_position_net_if_closed,
+          testId: "position-net-if-closed" },
+        { label: <>청산 시 현재 구간 총손익 <span className="text-[10px]">(이전 거래 포함)</span></>, minor: true,
+          value: signedKrw(won.expected_segment_net_if_closed), sub: signedUsdt(preview.expected_segment_net_if_closed),
+          tone: preview.expected_segment_net_if_closed, testId: "segment-net-if-closed" },
+      ]}
+      footnote={`예상값은 ${clockKst(preview.quote_ts_ms)} 호가로 전량 시장가 청산을 엔진에 시험 체결한 결과입니다. 실제 체결은 그 순간의 호가를 따릅니다.`}/>
   );
 }
 
@@ -696,34 +662,16 @@ export function LivePnlHeadline({ state, live, preview }: {
   const status = usingLive ? tickFreshness(live!) : opened ? previewFreshness(state, opened).status : "LIVE";
   const netShown = status === "LIVE" && feasible === true && net != null;
   return (
-    <div className="mb-3 grid grid-cols-2 gap-2" data-testid="live-pnl">
-      <div className="rounded-lg bg-surface-alt px-3 py-2">
-        <p className="text-[11px] text-muted">현재 포지션 손익</p>
-        <p className={`text-lg font-bold tabular-nums leading-tight sm:text-xl ${toneClass(unrealized)}`}
-          data-testid="live-unrealized">{signedKrw(unrealizedKrw ?? null)}</p>
-        <p className={`text-[11px] tabular-nums ${toneClass(unrealized)}`}>
-          {pct != null ? `${Number(pct) > 0 ? "+" : ""}${percent(pct, 2)} ` : ""}
-          <span className="text-muted" data-testid="position-upnl">{signedUsdt(unrealized ?? null)}</span>
-        </p>
-      </div>
-      <div className="rounded-lg bg-surface-alt px-3 py-2">
-        <p className="text-[11px] text-muted">청산 시 예상 순손익</p>
-        {netShown ? (
-          <>
-            <p className={`text-lg font-bold tabular-nums leading-tight sm:text-xl ${toneClass(net)}`}
-              data-testid="live-net-if-closed">{signedKrw(netKrw ?? null)}</p>
-            <p className="text-[11px] text-muted">수수료·체결비용 포함</p>
-          </>
-        ) : (
-          <p className="mt-1 text-[11px] text-warning" data-testid="live-net-unavailable">
-            미리보기 불가{status !== "LIVE" ? ` · ${status === "STALE" ? "시세 지연" : "연결 끊김"}` : ""}
-          </p>
-        )}
-      </div>
-      <p className="col-span-2 text-right text-[10px] text-muted" data-testid="live-source">
-        {usingLive ? "실시간 호가 기준" : "1초 갱신 기준"}
-      </p>
-    </div>
+    <PnlHeadline testId="live-pnl"
+      pnl={{ krw: signedKrw(unrealizedKrw ?? null), usdt: signedUsdt(unrealized ?? null), tone: unrealized,
+             pct: pct != null ? `${Number(pct) > 0 ? "+" : ""}${percent(pct, 2)}` : null,
+             krwTestId: "live-unrealized", usdtTestId: "position-upnl" }}
+      net={netShown
+        ? { shown: true, krw: signedKrw(netKrw ?? null), usdt: null, tone: net, note: "수수료·체결비용 포함",
+            krwTestId: "live-net-if-closed" }
+        : { shown: false, testId: "live-net-unavailable",
+            reason: status !== "LIVE" ? (status === "STALE" ? "시세 지연" : "연결 끊김") : "실시간 호가 확인 불가" }}
+      source={{ text: usingLive ? "실시간 호가 기준" : "1초 갱신 기준", testId: "live-source" }}/>
   );
 }
 
@@ -735,52 +683,41 @@ export function MobilePositionCard({ state, openedMs, nowMs, preview, live, onAc
   state: CryptoState; openedMs: number | null; nowMs: number; preview?: PositionPnlPreview | null;
   live?: LivePnl | null; onAction: (run: () => Promise<unknown>) => void; busy: boolean;
 }) {
-  const [detail, setDetail] = useState(false);
   const account = state.account;
   if (!account || account.position_side === null) return null;
-  const long = account.position_side === "LONG";
-  const held = holdingDuration(openedMs, nowMs);
   return (
-    <section className="panel mb-2 p-3" data-testid="mobile-position-card" aria-label="현재 포지션">
-      <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
-        <span className={`rounded px-2 py-0.5 font-bold ${long ? "bg-success-soft text-success" : "bg-danger-soft text-danger"}`}
-          data-testid="mobile-position-side">{account.position_side}</span>
-        <span className="font-semibold tabular-nums text-foreground-secondary">{num(account.leverage)?.toString() ?? "-"}x</span>
-        <span className="tabular-nums text-foreground-secondary">
-          {qty(account.position_qty)} {baseAssetOf(state.symbol ?? DEFAULT_SYMBOL)}</span>
-        {held && <span className="ml-auto text-[11px] text-muted">{held} 보유</span>}
-      </div>
-      <LivePnlHeadline state={state} live={live} preview={preview} />
-      <dl className="mb-2 grid grid-cols-2 gap-x-3 text-[11px]">
-        <div className="flex justify-between gap-2"><dt className="text-muted">진입가</dt>
-          <dd className="tabular-nums text-foreground-secondary">{price(account.avg_entry)}</dd></div>
-        <div className="flex justify-between gap-2"><dt className="text-muted">Mark</dt>
-          <dd className="tabular-nums text-foreground-secondary">{price(live?.position_open ? live.mark_price : state.quote?.mark_price)}</dd></div>
-      </dl>
-      <button type="button" className="btn-muted h-11 w-full text-sm font-bold" data-testid="mobile-close-button"
-        disabled={busy || state.quote === null}
-        onClick={() => onAction(() => cryptoApi.order(state.symbol ?? DEFAULT_SYMBOL,
-          { side: account.position_side!, intent: "CLOSE", qty: account.position_qty }))}>
-        CLOSE · 전량 청산
-      </button>
-      <button type="button" className="mt-1.5 flex w-full items-center justify-between py-1 text-[11px] font-medium text-foreground-secondary"
-        aria-expanded={detail} data-testid="mobile-position-detail-toggle" onClick={() => setDetail(open => !open)}>
-        손익/비용 상세 <span aria-hidden="true">{detail ? "▲" : "▼"}</span>
-      </button>
-      {detail && (
-        <div data-testid="mobile-position-detail">
-          <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
-            {([["청산가", price(account.liquidation_price)], ["사용 마진", usdt(account.used_margin)],
-               ["마진 비율", account.margin_ratio == null ? "-" : `${Number(account.margin_ratio).toFixed(2)}x`]] as const)
-              .map(([label, value]) => (
-                <div key={label} className="flex justify-between gap-2"><dt className="text-muted">{label}</dt>
-                  <dd className="tabular-nums text-foreground-secondary">{value}</dd></div>))}
-          </dl>
-          {preview?.position_open && <PositionPnlBreakdown preview={preview} state={state} />}
-        </div>
-      )}
-    </section>
+    <PositionCardShell source="PAPER" testId="mobile-position-card" className="panel mb-2 p-3"
+      side={account.position_side} sideTestId="mobile-position-side"
+      leverage={`${num(account.leverage)?.toString() ?? "-"}x`}
+      qty={`${qty(account.position_qty)} ${baseAssetOf(state.symbol ?? DEFAULT_SYMBOL)}`}
+      held={holdingDuration(openedMs, nowMs)}
+      headline={<LivePnlHeadline state={state} live={live} preview={preview} />}
+      facts={paperFacts(state, live)}
+      fold={{ toggleTestId: "mobile-position-detail-toggle", detailTestId: "mobile-position-detail" }}
+      breakdown={preview?.position_open ? <PositionPnlBreakdown preview={preview} state={state} /> : undefined}
+      footer={
+        <button type="button" className="btn-muted h-11 w-full text-sm font-bold" data-testid="mobile-close-button"
+          disabled={busy || state.quote === null}
+          onClick={() => onAction(() => cryptoApi.order(state.symbol ?? DEFAULT_SYMBOL,
+            { side: account.position_side!, intent: "CLOSE", qty: account.position_qty }))}>
+          CLOSE · 전량 청산
+        </button>} />
   );
+}
+
+/** The paper position's facts in the card's one order. 마진 모드 is a LIVE account setting the
+ *  paper engine does not have, so it is a dash here rather than a missing row. */
+function paperFacts(state: CryptoState, live?: LivePnl | null): Fact[] {
+  const account = state.account!;
+  return [
+    ["진입가", price(account.avg_entry)],
+    ["Mark", price(live?.position_open ? live.mark_price : state.quote?.mark_price)],
+    ["수량", `${qty(account.position_qty)} ${baseAssetOf(state.symbol ?? DEFAULT_SYMBOL)}`],
+    ["청산가", price(account.liquidation_price)],
+    ["사용 증거금", usdt(account.used_margin)],
+    ["마진 모드", "-"],
+    ["마진 비율", account.margin_ratio == null ? "-" : `${Number(account.margin_ratio).toFixed(2)}x`],
+  ];
 }
 
 export function PositionStrip({ state, openedMs, nowMs, preview, live }: {
@@ -791,40 +728,15 @@ export function PositionStrip({ state, openedMs, nowMs, preview, live }: {
   if (!account || account.position_side === null) {
     return <p className="px-1 py-2 text-xs text-muted" data-testid="position-strip">현재 포지션 없음</p>;
   }
-  const long = account.position_side === "LONG";
-  const held = holdingDuration(openedMs, nowMs);
-  const rows: [string, string][] = [
-    ["수량", `${qty(account.position_qty)} ${baseAssetOf(state.symbol ?? DEFAULT_SYMBOL)}`],
-    ["진입가", price(account.avg_entry)],
-    ["Mark", price(state.quote?.mark_price)],
-    ["청산가", price(account.liquidation_price)],
-    ["사용 마진", usdt(account.used_margin)],
-    ["마진 비율", account.margin_ratio == null ? "-" : `${Number(account.margin_ratio).toFixed(2)}x`],
-  ];
   return (
-    <section className="panel p-3 sm:p-4" data-testid="position-strip">
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span className={`rounded px-2 py-0.5 text-xs font-bold ${long ? "bg-success-soft text-success" : "bg-danger-soft text-danger"}`}
-            data-testid="position-side">{long ? "LONG" : "SHORT"}</span>
-          <span className="text-xs font-semibold tabular-nums text-foreground-secondary">
-            {num(account.leverage)?.toString() ?? "-"}x
-          </span>
-          {held && <span className="text-[11px] text-muted">{held} 보유</span>}
-        </div>
-
-      </div>
-      <LivePnlHeadline state={state} live={live} preview={preview} />
-      <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] sm:grid-cols-3">
-        {rows.map(([label, value]) => (
-          <div key={label} className="flex justify-between gap-2">
-            <dt className="text-muted">{label}</dt>
-            <dd className="tabular-nums text-foreground-secondary">{value}</dd>
-          </div>
-        ))}
-      </dl>
-      {preview?.position_open && <PositionPnlBreakdown preview={preview} state={state} />}
-    </section>
+    <PositionCardShell source="PAPER" testId="position-strip"
+      side={account.position_side} sideTestId="position-side"
+      leverage={`${num(account.leverage)?.toString() ?? "-"}x`}
+      qty={`${qty(account.position_qty)} ${baseAssetOf(state.symbol ?? DEFAULT_SYMBOL)}`}
+      held={holdingDuration(openedMs, nowMs)}
+      headline={<LivePnlHeadline state={state} live={live} preview={preview} />}
+      facts={paperFacts(state, live)}
+      breakdown={preview?.position_open ? <PositionPnlBreakdown preview={preview} state={state} /> : undefined} />
   );
 }
 

@@ -14,12 +14,12 @@ describe("Stage 9.10 navigation", () => {
   beforeEach(() => { pathname = "/candidates"; });
   afterEach(() => cleanup());
 
-  it("defines exactly six top-level menu entries, dashboard first", () => {
-    expect(navigationItems.map(item => item.label)).toEqual(["대시보드", "트레이딩", "종목 분석", "전략", "선물", "시스템"]);
-    expect(navigationItems).toHaveLength(6);
-    // The 전략 menu lands on the A/E comparison; a closed strategy's route is never a menu of its own.
-    // the strategy group is one screen now and lands on it
-    expect(navigationItems.find(item => item.label === "전략")!.href).toBe("/daily");
+  it("defines exactly five top-level menu entries, dashboard first and 선물 before 시스템", () => {
+    // The 전략 menu was removed: its screens are reached from the dashboard and from Trading H.
+    // 시스템 stays last.
+    expect(navigationItems.map(item => item.label)).toEqual(["대시보드", "트레이딩", "종목 분석", "선물", "시스템"]);
+    expect(navigationItems).toHaveLength(5);
+    expect(navigationItems.some(item => item.label === "전략")).toBe(false);
     expect(navigationItems.some(item => item.href === "/strategy-b" || item.href === "/trading-b")).toBe(false);
     const shell = source("components/app-shell.tsx");
     ["후보 종목", "GPT 분석", "설정"].forEach(label => expect(shell).not.toContain(`label: "${label}"`));
@@ -31,13 +31,14 @@ describe("Stage 9.10 navigation", () => {
     ["/candidates", "종목 분석"],
     ["/candidates/NVDA", "종목 분석"],
     ["/research", "종목 분석"],
-    ["/shadow", "전략"],
-    ["/strategy-b", "전략"],
-    ["/daily", "전략"],
-    ["/strategy-h", "전략"],
+    ["/shadow", "대시보드"],
+    ["/strategy-b", "대시보드"],
+    ["/daily", "대시보드"],
+    ["/strategy-compare", "대시보드"],
+    ["/strategy-history", "대시보드"],
+    ["/strategy-h", "트레이딩"],
+    ["/trading-h", "트레이딩"],
     ["/crypto-paper", "선물"],
-    ["/strategy-compare", "전략"],
-    ["/strategy-history", "전략"],
     ["/runtime", "시스템"],
     ["/settings", "시스템"],
   ])("maps %s to the %s group", (route, label) => {
@@ -94,9 +95,9 @@ describe("Stage 9.10 navigation", () => {
     expect(source("app/settings/page.tsx")).toContain("<SystemTabs/>");
   });
 
-  it("keeps the root redirect on trading while the dashboard is a menu entry only", () => {
-    expect(source("app/page.tsx")).toContain('redirect("/trading")');
-    expect(source("app/page.tsx")).not.toContain('redirect("/dashboard")');
+  it("lands the root on the dashboard", () => {
+    expect(source("app/page.tsx")).toContain('redirect("/dashboard")');
+    expect(source("app/page.tsx")).not.toContain('redirect("/trading")');
     const shell = source("components/app-shell.tsx");
     expect(shell).toContain('href="/trading" aria-label="USB Trading System"');
   });

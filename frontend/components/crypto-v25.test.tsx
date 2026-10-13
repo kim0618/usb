@@ -195,7 +195,9 @@ describe("live PnL headline", () => {
     const { rerender } = render(<LivePnlHeadline state={holding} live={live({ server_time_ms: 1_000_200 + 6_000 })} />);
     expect(screen.getByTestId("live-net-unavailable")).toHaveTextContent("시세 지연");
     rerender(<LivePnlHeadline state={holding} live={live({ close_feasible: false })} />);
-    expect(screen.getByTestId("live-net-unavailable")).toHaveTextContent("미리보기 불가");
+    // A dash with a short muted reason, not a warning as loud as a figure.
+    expect(screen.getByTestId("live-net-unavailable")).toHaveTextContent("실시간 호가 확인 불가");
+    expect(screen.getByTestId("live-net-unavailable").className).not.toContain("text-warning");
   });
 
   it("polls fast only while enabled, sequentially", async () => {

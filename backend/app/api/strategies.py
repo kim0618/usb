@@ -30,6 +30,7 @@ from typing import Annotated, Any
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, Query
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.simulation import broker_projection
@@ -37,10 +38,14 @@ from app.core.config import get_settings
 from app.core.database import get_db
 from app.repositories.simulation import SimulationStateRepository
 from app.services.performance_baseline import strategy_baseline_equity, strategy_performance_fields
+from app.models.strategy import StrategyStateRecord
 from app.services.simulation_runtime import get_active_runtime, get_active_sim_broker
 from app.strategies import books as BK
+from app.strategies import dashboard_ops as DASH
 from app.strategies import official as OFF
+from app.strategies.h_forward import cohort as HCO
 from app.strategies.h_forward import contract as HC
+from app.strategies.h_forward import store as HST
 from app.strategies.h_forward import views as HV
 from app.strategies import paper_gate as GATE
 from app.strategies import performance as PERF
@@ -398,6 +403,28 @@ def _book_summary(book: PERF.Book) -> dict[str, Any]:
             "accounting_versions": sorted({t.get("accounting_version") or "UNKNOWN" for t in closed})}
 
 
+def _a_last_run(db: Session) -> str | None:
+    """Newest write of A's strategy runner (``strategy_states``), as an ISO UTC timestamp.
+
+    The paper runtime records no heartbeat, so the last state write is the checkpoint the
+    runner leaves; ``None`` when it has written nothing."""
+    latest = db.scalar(select(func.max(StrategyStateRecord.updated_at)))
+    if latest is None:
+        return None
+    return (latest if latest.tzinfo else latest.replace(tzinfo=timezone.utc)).isoformat()
+
+
+def _h_last_decision() -> str | None:
+    """The decision of H's most recently decided issuer (APPROVE over WATCH over REJECT on a tie)."""
+    rank = {HC.APPROVE: 0, HC.WATCH: 1, HC.REJECT: 2}
+    rows = [r for r in HCO.rows() if r.get("decision_time") and r.get("decision")]
+    if not rows:
+        return None
+    newest = max(str(r["decision_time"]) for r in rows)
+    tied = [r["decision"] for r in rows if str(r["decision_time"]) == newest]
+    return min(tied, key=lambda d: rank.get(d, 9))
+
+
 def _card(db: Session, meta: REG.StrategyMeta) -> dict[str, Any]:
     today = _et_today()
     head = {k: v for k, v in meta.to_json().items()
@@ -412,7 +439,7 @@ def _card(db: Session, meta: REG.StrategyMeta) -> dict[str, Any]:
         trades = BK.a_trades(db, BK.a_account_id(db))
         unrealized = (projection["account"] or {}).get("unrealized_pnl")
         official = [t for t in trades if t.get("evaluation") == OFF.OFFICIAL]
-        return head | {
+        card = head | {
             "operational_status": status["operational_status"], "runtime_status": status["runtime_status"],
             "evidence_status": None, "currency": "USD",
             "equity": account["current_equity"], "initial_equity": account["initial_equity"],
@@ -427,10 +454,26 @@ def _card(db: Session, meta: REG.StrategyMeta) -> dict[str, Any]:
             "na": {"last_signal_at": "A 원장(simulation_trades)은 신호 시각을 기록하지 않는다",
                    **({"today_unrealized_pnl": "보유 포지션 시가 평가값 없음"} if unrealized is None else {})},
         }
+        decision = {"POSITION_OPEN": "포지션 보유", "WAITING_SIGNAL": "신호 없음"}.get(status["operational_status"])
+        return card | {"dashboard": DASH.block(
+            mode=DASH.mode_label(card, shadow=False, official_evidence=clock["status"] == "STARTED"),
+            status=DASH.normalize_status(card, waiting_signal_is_running=True),
+            since=clock["official_paper_start"],
+            sessions=PERF.strategy_metrics(books["official"])["operating_sessions"],
+            session_kind="공식", last_run_at=_a_last_run(db), last_decision=decision)}
     if meta.strategy_id == REG.STRATEGY_H_V2:
         # H shows states and counts where A and E show money: it has no capital book, so a money
         # field is None with a reason rather than a zero that would read as break-even.
-        return head | HV.card()
+        card = head | HV.card()
+        launch = card["forward"]["launch"]
+        return card | {"dashboard": DASH.block(
+            mode=DASH.mode_label(card, shadow=True, official_evidence=False),
+            status=DASH.normalize_status(card, waiting_signal_is_running=False),
+            since=launch.get("launched_at") if launch.get("status") == "LAUNCHED" else None,
+            sessions=len(HV.observed_sessions()) if launch.get("status") == "LAUNCHED" else None,
+            session_kind="관찰",
+            last_run_at=DASH.latest_mtime([*HST.iter_files(), *HST.price_dir().rglob("*.json")]),
+            last_decision=_h_last_decision())}
     status, account = _e_status(), _e_account()
     evidence = account["evidence_status"]
     books = BK.e_books()
@@ -438,7 +481,7 @@ def _card(db: Session, meta: REG.StrategyMeta) -> dict[str, Any]:
     trades = [t for s in sessions for t in s["trades"]]
     official = [t for t in trades if t.get("evaluation") == OFF.OFFICIAL]
     open_now = account["open_positions"]
-    return head | {
+    card = head | {
         "operational_status": status["operational_status"], "runtime_status": status["runtime_status"],
         "evidence_status": evidence, "currency": "USD",
         "equity": account["current_equity"], "initial_equity": account["initial_equity"],
@@ -453,6 +496,19 @@ def _card(db: Session, meta: REG.StrategyMeta) -> dict[str, Any]:
         "last_trade_at": _latest([t.get("exit_at") or t.get("entry_at") for t in trades]),
         "na": {} if not open_now else {"today_unrealized_pnl": "E는 보유 중 시가 평가를 기록하지 않는다"},
     }
+    selected = status["detail"].get("selected")
+    if selected:
+        decision: str | None = ", ".join(selected)
+    elif status["runtime_status"] in ("NO_DECISION", "ERROR"):
+        decision = "결정 없음"
+    else:
+        decision = "신호 없음" if selected is not None else None
+    return card | {"dashboard": DASH.block(
+        mode=DASH.mode_label(card, shadow=False, official_evidence=evidence == RB.OFFICIAL),
+        status=DASH.normalize_status(card, waiting_signal_is_running=False),
+        since=clock["official_paper_start"],
+        sessions=PERF.strategy_metrics(books["official"])["operating_sessions"],
+        session_kind="공식", last_run_at=status.get("last_update"), last_decision=decision)}
 
 
 def _sum_net(trades: list[dict[str, Any]]) -> str | None:

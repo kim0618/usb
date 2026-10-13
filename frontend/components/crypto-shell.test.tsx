@@ -23,8 +23,8 @@ describe("retained production crypto navigation and header", () => {
 
     pathname = "/daily";
     view.rerender(<AppShell><p>daily</p></AppShell>);
-    expect(screen.getByRole("link", { name: /전략/ })).toHaveAttribute("href", "/daily");
-    expect(screen.getByRole("link", { name: /전략/ })).toHaveClass("bg-primary-soft");
+    expect(screen.getByRole("link", { name: /대시보드/ })).toHaveAttribute("href", "/dashboard");
+    expect(screen.getByRole("link", { name: /대시보드/ })).toHaveClass("bg-primary-soft");
     expect(screen.queryByText("선물 수동매매")).not.toBeInTheDocument();
     for (const label of ["현재시각 :", "기준거래일 :", "USD/KRW :", "시장"]) {
       expect(screen.getByText(label)).toBeInTheDocument();

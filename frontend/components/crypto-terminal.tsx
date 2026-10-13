@@ -217,7 +217,7 @@ export function CryptoTerminal({ marketContext, contextBase }: {
                 chart, so nothing moves on a desktop. */}
             <div className="xl:hidden">
               <LivePositionCard card={binance.positionCard} nowMs={Date.now()}
-                busy={binance.busy}
+                busy={binance.busy} symbolConfig={account.symbol_config}
                 onClose={() => (gate.tradable
                   ? binance.order({ side: account.position?.side || "LONG", intent: "CLOSE" })
                   : activate())} />

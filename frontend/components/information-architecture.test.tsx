@@ -24,16 +24,21 @@ const projectFiles = (directory: string): string[] => readdirSync(directory, { w
 afterEach(() => cleanup());
 
 describe("Final information architecture", () => {
-  it("keeps six top-level menus and routes both trading screens to 트레이딩", () => {
-    expect(navigationItems.map(item => item.label)).toEqual(["대시보드", "트레이딩", "종목 분석", "전략", "선물", "시스템"]);
+  it("keeps five top-level menus and routes both trading screens to 트레이딩", () => {
+    expect(navigationItems.map(item => item.label)).toEqual(["대시보드", "트레이딩", "종목 분석", "선물", "시스템"]);
     const group = (route: string) => navigationItems.find(item => isNavigationActive(route, item))?.label;
     expect(group("/dashboard")).toBe("대시보드");
     expect(group("/trading")).toBe("트레이딩");
     expect(group("/trading-b")).toBe("트레이딩");
-    expect(group("/shadow")).toBe("전략");
-    expect(group("/strategy-b")).toBe("전략");
-    expect(group("/strategy-compare")).toBe("전략");
-    expect(group("/strategy-history")).toBe("전략");
+    // The retired 전략 menu's screens keep their routes; the dashboard is where they are reached from.
+    expect(group("/shadow")).toBe("대시보드");
+    expect(group("/strategy-b")).toBe("대시보드");
+    expect(group("/strategy-compare")).toBe("대시보드");
+    expect(group("/strategy-history")).toBe("대시보드");
+    expect(group("/daily")).toBe("대시보드");
+    expect(group("/strategy-h")).toBe("트레이딩");
+    // Crypto perpetuals are their own menu, not a tab inside 트레이딩: the equity screens are
+    // driven by the strategy registry and a manual futures terminal is not a strategy.
     expect(group("/crypto-paper")).toBe("선물");
   });
 
@@ -53,7 +58,7 @@ describe("Final information architecture", () => {
     expect(operatingTabs([...registry as never[],
       { strategy_id: "STRATEGY_H_V2", display_name: "Strategy H", variant_label: "Forward Shadow",
         enabled: true, mode: "FORWARD_SHADOW" }] as never)).toContainEqual(
-      { strategy_id: "STRATEGY_H_V2", href: "/strategy-h", label: "Strategy H · Forward Shadow" });
+      { strategy_id: "STRATEGY_H_V2", href: "/trading-h", label: "Strategy H · Forward Shadow" });
     expect(Object.keys(OPERATING_ROUTES))
       .toEqual(["STRATEGY_A", "STRATEGY_E_MAX_V1", "STRATEGY_H_V2"]);   // B is not operating
     // A's exit-rule experiment is not a tab: its variants are also called A to E, which collides
@@ -86,6 +91,7 @@ describe("Final information architecture", () => {
     expect(screen.queryByRole("link", { name: /Strategy B|전략 B/ })).not.toBeInTheDocument();   // closed: hidden
     pathname = "/trading-b";
   });
+
   it("gives the strategy group no tab bar: it is a single screen", () => {
     pathname = "/daily";
     render(<StrategyTabs/>);

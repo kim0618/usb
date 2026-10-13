@@ -76,7 +76,7 @@ describe("mobile position card", () => {
     render(<MobilePositionCard state={state()} openedMs={null} nowMs={1} onAction={() => {}} busy={false} />);
     fireEvent.click(screen.getByTestId("mobile-position-detail-toggle"));
     const detail = screen.getByTestId("mobile-position-detail");
-    ["청산가", "사용 마진", "마진 비율"].forEach(label => expect(detail).toHaveTextContent(label));
+    ["청산가", "사용 증거금", "마진 모드", "마진 비율"].forEach(label => expect(detail).toHaveTextContent(label));
     expect(detail).toHaveTextContent("92,138.0");
   });
 

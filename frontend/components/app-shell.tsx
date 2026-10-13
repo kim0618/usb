@@ -14,10 +14,14 @@ import { FX_CONFIG, FX_MODE_LABELS, formatFxRate } from "@/lib/fx";
 
 type NavigationItem = { href: string; icon: string; label: string; activePaths: string[] };
 export const navigationItems: NavigationItem[] = [
-  { href: "/dashboard", icon: "▦", label: "대시보드", activePaths: ["/dashboard"] },
-  { href: "/trading", icon: "↗", label: "트레이딩", activePaths: ["/trading", "/trading-b", "/strategy-e"] },
+  // The analysis screens that used to sit under a 전략 menu are reached from the dashboard's
+  // 전략 분석 links, so the dashboard stays lit on them. Strategy H's research detail is reached
+  // from Trading H and lights 트레이딩.
+  { href: "/dashboard", icon: "▦", label: "대시보드",
+    activePaths: ["/dashboard", "/daily", "/strategy-compare", "/strategy-history", "/shadow", "/strategy-b"] },
+  { href: "/trading", icon: "↗", label: "트레이딩",
+    activePaths: ["/trading", "/trading-b", "/strategy-e", "/trading-h", "/strategy-h"] },
   { href: "/candidates", icon: "◎", label: "종목 분석", activePaths: ["/candidates", "/research", "/adoption"] },
-  { href: "/daily", icon: "≋", label: "전략", activePaths: ["/daily", "/strategy-compare", "/strategy-h", "/shadow", "/strategy-history", "/strategy-b"] },
   // Crypto perpetuals. The symbol is chosen by the tab strip inside the screen rather than by
   // the route, so one menu entry covers all of them; `activePaths` is a list so a future
   // /crypto-paper/<SYMBOL> route would light the same entry without needing a submenu.
