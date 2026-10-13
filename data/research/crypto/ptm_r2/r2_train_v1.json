@@ -1,0 +1,3935 @@
+{
+ "basis_na_minutes": 24485,
+ "contract_sha256": "12cacdf3a24dfcb5ceb87362cc284e1d9eae8cae9031cebe32404c7d1da62c58",
+ "files_read": [
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-01.zip",
+   "role": "parity",
+   "sha256": "a856e033ceee252f4e3a262a7262a3f60a8f97138794b5fce4ec15d9c66b480e"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-02.zip",
+   "role": "parity",
+   "sha256": "38fc36d008360cb3d8a3c6fafac9dc754e1619d7832a8587e00409899522bdf9"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-03.zip",
+   "role": "parity",
+   "sha256": "f6b1620e5c52f30d2f498e1681775f152296d2ce52dca5c2ae35d402ab9716db"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-04.zip",
+   "role": "parity",
+   "sha256": "5b5bbd3711f1f732e153a4deaa8bc51916850fd7bfa805e9d85c5686403d8e4c"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-05.zip",
+   "role": "parity",
+   "sha256": "af5938c8d23be0f6bdea905ed847b0675c67d1f4b24e8c43832c224cc8b92f99"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-06.zip",
+   "role": "parity",
+   "sha256": "75eeef140b07d21a16eee1a9708738b60b1a72dda0d37e7515fc4a32dffd93e0"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-07.zip",
+   "role": "parity",
+   "sha256": "4d83f583ba355f29a962e588e5174185bf40897320d1e3cee928040e7f2e159d"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-08.zip",
+   "role": "parity",
+   "sha256": "ad03f5ae286bf20186fb0ef7bf5b836bef2f30eedae8f8915ba6436a448fe778"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-09.zip",
+   "role": "parity",
+   "sha256": "cc47f3d39f6974d88e4c348018bfff70b02419274224eb5ae3e5cc80b64f582c"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-10.zip",
+   "role": "parity",
+   "sha256": "ff62872b7c0f5c756b8454481d3a0f080d93eb082e18df058e4fe7589dc0a994"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-11.zip",
+   "role": "parity",
+   "sha256": "08b5af388d100828d5b5fd9c42bcb83bedc64c69e36b671b4361f3fc0d9e48de"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-12.zip",
+   "role": "parity",
+   "sha256": "ca475f250f36080108b21ab83a737c468c302d7f1d5a30081e3a1200296dfa12"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-13.zip",
+   "role": "parity",
+   "sha256": "add855eb76c91c57e1ea425ae3c9fbc953af1e87a906bdf4d290577bb9943456"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-14.zip",
+   "role": "parity",
+   "sha256": "69314932ca1a6aa0f2a45e5b0d0c271a27401f48042fde67414f6ab5a0cdfdff"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-15.zip",
+   "role": "parity",
+   "sha256": "8893455ad98126ec4e6bfca010f701388a188c68715a0f33f686bde60d24430c"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-16.zip",
+   "role": "parity",
+   "sha256": "503b30763484771e6d9031ee7c4103fec765da96803d6ed10f74d39aedcb0724"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-17.zip",
+   "role": "parity",
+   "sha256": "24aa9f01305f04779bf0e2bd27aff0008bd08a6213addc46a55a86236d9ba549"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-18.zip",
+   "role": "parity",
+   "sha256": "60b3135d6d8363acc65f85de8eed32d37c48ec6668176f4ca16113f372f62dce"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-19.zip",
+   "role": "parity",
+   "sha256": "f0f6a47bf03e405577ae9c3f33d8afb624d60b2587d8ce26527b24c6aae4a30d"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-20.zip",
+   "role": "parity",
+   "sha256": "ab02c3ac68a1cdf577f6f1ba22440169e690bcb1cdaae6fdaea50c43209049ed"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-21.zip",
+   "role": "parity",
+   "sha256": "6308c5107d830bb401046d5b97512051eef41313399d686b02445420aa73989a"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-22.zip",
+   "role": "parity",
+   "sha256": "0bc2409a959fce4dbe069038205d8bb41242a41b86bb1851cc8ad8b1585fb5e2"
+  },
+  {
+   "file": "data/research/crypto/market_context_r0/raw/binance_kline_1m_1786492800000_1791100800000.jsonl",
+   "role": "parity",
+   "sha256": "fa2deba911a825a9ee6b1ded7cccbe73e4a47f23f5fce0481ffcc4ab03436fdb"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-02.zip",
+   "role": "train",
+   "sha256": "0a270f354b15b053824a7bb87c652aa95acb4a255fc968fe0a24bdc9e785223e"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-03.zip",
+   "role": "train",
+   "sha256": "15a2676410d5104fac1ea15f7302addbf4d0de14f6db8ce10a4930c3f5d5e7fa"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-04.zip",
+   "role": "train",
+   "sha256": "d957fcde82f9b5a9a05264a9602e5deae03472aa0d424ddb0f27a04e58723217"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-05.zip",
+   "role": "train",
+   "sha256": "dcf7c567cbde49a5e564b29f01be95e28d32f12cb68c40b2a14da75930187dc8"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-06.zip",
+   "role": "train",
+   "sha256": "a640c7f935a1136d2f65f28f9606f0e063185c500f982aec273bb2ed3f61bfc5"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-07.zip",
+   "role": "train",
+   "sha256": "1367b5cd230474b0ecc6031b9e18cffe66e011c8fdd01c3325985a39c5d5ed48"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-08.zip",
+   "role": "train",
+   "sha256": "a864bdf38c9d06b7a6a1dc07c5593bbe7387cec3b869e9ebee020da053d94f37"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-09.zip",
+   "role": "train",
+   "sha256": "6e7bbfe650e6c56e189e78d521b3714feffd38468d1268b706a6626737326676"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-10.zip",
+   "role": "train",
+   "sha256": "4b78dd0174890c975effca2ed078163d6e9b4f7437f692e2c430c724b7eafc24"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-11.zip",
+   "role": "train",
+   "sha256": "67da3342f014166d2af97321599e0011453c4bd5a9282ef12c1a6131efd12993"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-12.zip",
+   "role": "train",
+   "sha256": "c905c5c8ff36d0dfac3a0581225ab305f72d1e11e634953d8d3a136161d10956"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-01.zip",
+   "role": "train",
+   "sha256": "9cdbcf68903434c850f9bec60d8174c2cfd105dd24a7566965b442ec15124e04"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-02.zip",
+   "role": "train",
+   "sha256": "63672d552f98ec125ac4d90d82154313fb9832b7e1aaed196101816bd61bfb89"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-03.zip",
+   "role": "train",
+   "sha256": "4532faf2f92d205fac79b7d25327d2045843b60a4494e00b0962e6b7f028bc06"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-04.zip",
+   "role": "train",
+   "sha256": "0f509e296da62eed5f4e903507ced0de9738ea96a7a885e76dd2394b8049e689"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-05.zip",
+   "role": "train",
+   "sha256": "768bdbbd11b08d935b3753ecfee7f1e351a346c71b11cf68a4a51296d694f368"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-06.zip",
+   "role": "train",
+   "sha256": "8587319eaf1b1f6d73fd34446acdecdc72c47b23ecfd2d88e2a6dd2a35470565"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-07.zip",
+   "role": "train",
+   "sha256": "6fc45fa135a6be85679a6ab0b1268fbd1f8258079295cd134b9a4c535c6b6b65"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-08.zip",
+   "role": "train",
+   "sha256": "806ee1d6efa856984fe79453d17f04c0fb5e447413fe828cbd3ec2df9a1f5fc4"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-09.zip",
+   "role": "train",
+   "sha256": "fa1adecbe41b530c12f481882115511297ac7b78a9a7ae9d9d21b11c745649a4"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-10.zip",
+   "role": "train",
+   "sha256": "0f2d2cd67b30ab186bf3db5a07acfe835f1d74335c6493c80e9e4f0598e29b2c"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-11.zip",
+   "role": "train",
+   "sha256": "96916aba47f230a9bc68cd3fd98d0d352e1fd8f23c16c515107c4d965a2067a3"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-12.zip",
+   "role": "train",
+   "sha256": "0f4788019cdb29f4db7b03d9efefce099d7adf49c0daf70a144b814b292bf577"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2023-01.zip",
+   "role": "train",
+   "sha256": "b7b04483464b36c89f519bf35d6461d278c709577562108b6a00fb786b92e6a6"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2023-02.zip",
+   "role": "train",
+   "sha256": "b62ca5df57b1715109cb1fd57097529b28410fb36b0db5bd41dbefe7e070db68"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2023-03.zip",
+   "role": "train",
+   "sha256": "1cb47aae71e941d3e9d333f9c96723eb35c8b4a7ec90e819c59a7c02f89b03bb"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2023-04.zip",
+   "role": "train",
+   "sha256": "2c22e2e460bf0e41884bf71031eebf60224ba470b25777a4d17ddc9298390650"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2023-05.zip",
+   "role": "train",
+   "sha256": "cf9e0ab390e3872ddb9d807ad161933a28e374e09dbee2b9addf659856d1e656"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2023-06.zip",
+   "role": "train",
+   "sha256": "8dac3fe301198e752b257817542a7ded393dbe00b604f67aba6bc0090778ae95"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-02.zip",
+   "role": "train",
+   "sha256": "0a270f354b15b053824a7bb87c652aa95acb4a255fc968fe0a24bdc9e785223e"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-03.zip",
+   "role": "train",
+   "sha256": "15a2676410d5104fac1ea15f7302addbf4d0de14f6db8ce10a4930c3f5d5e7fa"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-04.zip",
+   "role": "train",
+   "sha256": "d957fcde82f9b5a9a05264a9602e5deae03472aa0d424ddb0f27a04e58723217"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-05.zip",
+   "role": "train",
+   "sha256": "dcf7c567cbde49a5e564b29f01be95e28d32f12cb68c40b2a14da75930187dc8"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-06.zip",
+   "role": "train",
+   "sha256": "a640c7f935a1136d2f65f28f9606f0e063185c500f982aec273bb2ed3f61bfc5"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-07.zip",
+   "role": "train",
+   "sha256": "1367b5cd230474b0ecc6031b9e18cffe66e011c8fdd01c3325985a39c5d5ed48"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-08.zip",
+   "role": "train",
+   "sha256": "a864bdf38c9d06b7a6a1dc07c5593bbe7387cec3b869e9ebee020da053d94f37"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-09.zip",
+   "role": "train",
+   "sha256": "6e7bbfe650e6c56e189e78d521b3714feffd38468d1268b706a6626737326676"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-10.zip",
+   "role": "train",
+   "sha256": "4b78dd0174890c975effca2ed078163d6e9b4f7437f692e2c430c724b7eafc24"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-11.zip",
+   "role": "train",
+   "sha256": "67da3342f014166d2af97321599e0011453c4bd5a9282ef12c1a6131efd12993"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-12.zip",
+   "role": "train",
+   "sha256": "c905c5c8ff36d0dfac3a0581225ab305f72d1e11e634953d8d3a136161d10956"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-01.zip",
+   "role": "train",
+   "sha256": "9cdbcf68903434c850f9bec60d8174c2cfd105dd24a7566965b442ec15124e04"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-02.zip",
+   "role": "train",
+   "sha256": "63672d552f98ec125ac4d90d82154313fb9832b7e1aaed196101816bd61bfb89"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-03.zip",
+   "role": "train",
+   "sha256": "4532faf2f92d205fac79b7d25327d2045843b60a4494e00b0962e6b7f028bc06"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-04.zip",
+   "role": "train",
+   "sha256": "0f509e296da62eed5f4e903507ced0de9738ea96a7a885e76dd2394b8049e689"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-05.zip",
+   "role": "train",
+   "sha256": "768bdbbd11b08d935b3753ecfee7f1e351a346c71b11cf68a4a51296d694f368"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-06.zip",
+   "role": "train",
+   "sha256": "8587319eaf1b1f6d73fd34446acdecdc72c47b23ecfd2d88e2a6dd2a35470565"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-07.zip",
+   "role": "train",
+   "sha256": "6fc45fa135a6be85679a6ab0b1268fbd1f8258079295cd134b9a4c535c6b6b65"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-08.zip",
+   "role": "train",
+   "sha256": "806ee1d6efa856984fe79453d17f04c0fb5e447413fe828cbd3ec2df9a1f5fc4"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-09.zip",
+   "role": "train",
+   "sha256": "fa1adecbe41b530c12f481882115511297ac7b78a9a7ae9d9d21b11c745649a4"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-10.zip",
+   "role": "train",
+   "sha256": "0f2d2cd67b30ab186bf3db5a07acfe835f1d74335c6493c80e9e4f0598e29b2c"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-11.zip",
+   "role": "train",
+   "sha256": "96916aba47f230a9bc68cd3fd98d0d352e1fd8f23c16c515107c4d965a2067a3"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-12.zip",
+   "role": "train",
+   "sha256": "0f4788019cdb29f4db7b03d9efefce099d7adf49c0daf70a144b814b292bf577"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2023-01.zip",
+   "role": "train",
+   "sha256": "b7b04483464b36c89f519bf35d6461d278c709577562108b6a00fb786b92e6a6"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2023-02.zip",
+   "role": "train",
+   "sha256": "b62ca5df57b1715109cb1fd57097529b28410fb36b0db5bd41dbefe7e070db68"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2023-03.zip",
+   "role": "train",
+   "sha256": "1cb47aae71e941d3e9d333f9c96723eb35c8b4a7ec90e819c59a7c02f89b03bb"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2023-04.zip",
+   "role": "train",
+   "sha256": "2c22e2e460bf0e41884bf71031eebf60224ba470b25777a4d17ddc9298390650"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2023-05.zip",
+   "role": "train",
+   "sha256": "cf9e0ab390e3872ddb9d807ad161933a28e374e09dbee2b9addf659856d1e656"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2023-06.zip",
+   "role": "train",
+   "sha256": "8dac3fe301198e752b257817542a7ded393dbe00b604f67aba6bc0090778ae95"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2021-02.zip",
+   "role": "train_funding",
+   "sha256": "819a7b107443686adb313fc5fc223302a29f3981e1d1bd9828ad0ade65a8a8af"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2021-03.zip",
+   "role": "train_funding",
+   "sha256": "2125fd300848938c7b992b8f7b7b5007d5b277a4ff1ebda7da083b40242729da"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2021-04.zip",
+   "role": "train_funding",
+   "sha256": "9cd888e3b0a1954813d0062c2e60426fdc8e34a7f258f6838371ec67f535b028"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2021-05.zip",
+   "role": "train_funding",
+   "sha256": "ed934afb9cf84df6ecae742e755147333a84244836a66b51523abc66dd5f63af"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2021-06.zip",
+   "role": "train_funding",
+   "sha256": "7b8d9bfb8816636b800764dafb2aa2307d19166c695bfa245adbf7d01d61f766"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2021-07.zip",
+   "role": "train_funding",
+   "sha256": "8ab3df641d3bcf40527491f8e26d046ad2b662d1950ead9555ad32975571b7fe"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2021-08.zip",
+   "role": "train_funding",
+   "sha256": "7eb681cc45b94176f4b9192a62c3a1925d79031ba001cea2d8dec6ff6e5b9c35"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2021-09.zip",
+   "role": "train_funding",
+   "sha256": "03f25a7c25eef18d5f5b5b7bb0b664cab7a210b409f37e95a54e141808a0752d"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2021-10.zip",
+   "role": "train_funding",
+   "sha256": "f25820d6add687addbca3ef43bee58f70853a6da53832a0c1bc22d00dc8ec64a"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2021-11.zip",
+   "role": "train_funding",
+   "sha256": "e2e6b2d7218607e7e4a38137d50f553c2cfb901275c19edf567024c1cc6de85f"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2021-12.zip",
+   "role": "train_funding",
+   "sha256": "bf3ce484faf41d7dccfd38c5cc3d8de34d8297df30ab10784e874cc10fd1b310"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2022-01.zip",
+   "role": "train_funding",
+   "sha256": "22ee19079b620f5c6d820e7d7f8bafa7fde866d89bd664863b8bd527749c12cb"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2022-02.zip",
+   "role": "train_funding",
+   "sha256": "fa95088258a905c79ab79e8984d2f6f66933ec2e814dbab4ef9da89b01ab484a"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2022-03.zip",
+   "role": "train_funding",
+   "sha256": "4cf0883bc07f4ed4cdd3b0d8c0d166b4d15d21e666ab752f9f44401af4d6172f"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2022-04.zip",
+   "role": "train_funding",
+   "sha256": "57e2776cc68b3169fc9f8632dad67278f470cd453407a8ebe6c87963c8a31357"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2022-05.zip",
+   "role": "train_funding",
+   "sha256": "bced8a5013d09742b96682e6fd01ad4456213515a03d7586ec2b1f2689af5255"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2022-06.zip",
+   "role": "train_funding",
+   "sha256": "0cd0708f8903829eb46f98cf60f4b2516c986e1ccddf6620a5912b48e16baf93"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2022-07.zip",
+   "role": "train_funding",
+   "sha256": "29d58cce0cd45f74c6a112039835c6d9ee5a7e60e7c38c2503beb7930453a4fe"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2022-08.zip",
+   "role": "train_funding",
+   "sha256": "6f4f0c6c84c05694b4b4a5c085776730fd4059723eecd98ee6ffeb3fde4da811"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2022-09.zip",
+   "role": "train_funding",
+   "sha256": "d62cd4e13009de37add446dc4f63ead4c56dcc4955a1e60f6726bcadc5a68fa9"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2022-10.zip",
+   "role": "train_funding",
+   "sha256": "ad9efed10d4ca1567b865d7a158790977cec1b925395634217069df6696c8bc9"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2022-11.zip",
+   "role": "train_funding",
+   "sha256": "8febe5bec1a029e993bbf27490761f8c47c32849bf7dd13441b2b2f6ec1ffb51"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2022-12.zip",
+   "role": "train_funding",
+   "sha256": "4218c78331bcc4dbeb5768fa112242a880971c1f2cfd1d3f32aaa26ca34069af"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2023-01.zip",
+   "role": "train_funding",
+   "sha256": "05e3df32f28d0d50f4c5a280adee9368b4a66fc68c6ddca1b3277087ac0d19f5"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2023-02.zip",
+   "role": "train_funding",
+   "sha256": "5227accd9aaa59f71f5e682abffb58be5f99573ed208ab968b1704c81ac11345"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2023-03.zip",
+   "role": "train_funding",
+   "sha256": "ab022adff9b853d2f33cf80154e77c770f57c3392f0bbc36564b2e2cdbd0e872"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2023-04.zip",
+   "role": "train_funding",
+   "sha256": "2931039d26818edc65d4faefba84945fd1ba52989dd58fb127dc3cd7a12c7fbf"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2023-05.zip",
+   "role": "train_funding",
+   "sha256": "5d026fece46df86293054c8c56c2c8de575d30161b82979b11831831217a246e"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2023-06.zip",
+   "role": "train_funding",
+   "sha256": "3ffdde6f1dc9c3c065d77ae43f3ba64d19d4cb76512d4bc1d541933d4fb2e6f7"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/markPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2021-02.zip",
+   "role": "train",
+   "sha256": "b090f44eb2b24486e89c387db83533f309800aa44931d73964bfc211846205bf"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/markPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2021-03.zip",
+   "role": "train",
+   "sha256": "6e25031ed12e52dbd7ddc854e829e9c53df4c1fd621eda00db18ad3cc6c4b439"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/markPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2021-04.zip",
+   "role": "train",
+   "sha256": "8f8067c9b653c09fad49545daf1e3438190ec59ad8582b9f52f8395cee038c6a"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/markPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2021-05.zip",
+   "role": "train",
+   "sha256": "9f5a9515e9ee59519cdce2d8b6ea2a81a21fe377ad524214a292cc51a1d55482"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/markPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2021-06.zip",
+   "role": "train",
+   "sha256": "0bb4c8f4bfb11d662095277164bd6dbf645d8ef4470786f07be8342f4ccc52fd"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/markPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2021-07.zip",
+   "role": "train",
+   "sha256": "f803d5e91d9a932bee0b816abc7c6fdedcd9cf9c327474b195ef72d0c9693a06"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/markPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2021-08.zip",
+   "role": "train",
+   "sha256": "a4dd146ec0ef0f17f63940e3f32a22433fa9e093856f4ebfb8b9c12f0dccdec0"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/markPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2021-09.zip",
+   "role": "train",
+   "sha256": "70167cdb73095e89095038631e94f0629c453abb45a6e9f8f6de0f7429ec4723"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/markPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2021-10.zip",
+   "role": "train",
+   "sha256": "4301f4ae15eec9c9ae241b973ddda311e964fb3c87eeb2f8c4d8c26e7b10c507"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/markPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2021-11.zip",
+   "role": "train",
+   "sha256": "48b6337e60328c2a48c8664198b0ce01700a7aa3208d86c7eb0035edb06faa53"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/markPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2021-12.zip",
+   "role": "train",
+   "sha256": "b7d4014d14c149012c7b64423f1a683ab0364269945e02c1789dcdbe44ebce61"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/markPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2022-01.zip",
+   "role": "train",
+   "sha256": "620ec2bfdaed255236b7daa113488a4b2eada7bf3384b1fe640d40dd85d9c4bb"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/markPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2022-02.zip",
+   "role": "train",
+   "sha256": "9554d65c02469ef76ba92b7e8646d2ab606238ca83f23b73957a44c78c7674fd"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/markPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2022-03.zip",
+   "role": "train",
+   "sha256": "8cc7cd5451a9c9eaef4a82cb80ef96cabda957fb64943b3620e19bb467d71f49"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/markPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2022-04.zip",
+   "role": "train",
+   "sha256": "89d70dc94e4336f71380497008dd3de4831c8eb2b0cf25aa139c042204efb67c"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/markPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2022-05.zip",
+   "role": "train",
+   "sha256": "589544c8c2971e42d7b54d3d42c3dee01474b5bb8f03fe6884304b86af194e68"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/markPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2022-06.zip",
+   "role": "train",
+   "sha256": "7a4aadc8beebd88105f564c1e4c6db4d2ba3d768638926429aa0b109643b440a"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/markPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2022-07.zip",
+   "role": "train",
+   "sha256": "35d2afc48289d0c9e75b311672aae21c6d635f62bb3836eb63694f554d39f1c6"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/markPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2022-08.zip",
+   "role": "train",
+   "sha256": "fc15588d80e2fea766ce86906c5b7f1975f00a03637483f6606e26f1769a3675"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/markPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2022-09.zip",
+   "role": "train",
+   "sha256": "cceb950dfd6858865cd76f0ccf2637a930f274e75ae031e17bb4575b4e681427"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/markPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2022-10.zip",
+   "role": "train",
+   "sha256": "e6bba74c7ccb41dcd8a7ea1a65f40dc01de05e3128a265d77cd882898037780f"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/markPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2022-11.zip",
+   "role": "train",
+   "sha256": "da02544e804f995ad34dfd84f4cda4a8c62200fc465329817f2881d772689806"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/markPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2022-12.zip",
+   "role": "train",
+   "sha256": "03fe4fa0293236aba29e603e4bafcb128c3703f82bc7ef59bb385eb165f0b58a"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/markPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2023-01.zip",
+   "role": "train",
+   "sha256": "18abe5d64d97bf153d1d8f7f9b39f51c37454add602b6af8d51f267dd0f19094"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/markPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2023-02.zip",
+   "role": "train",
+   "sha256": "f84b1b0c1524f381fadaaee37b7be4912cb21fe947106cf01d6a9f0248e38d78"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/markPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2023-03.zip",
+   "role": "train",
+   "sha256": "1debe8c9ac4d0e21ffb0715157bdb543577eff49ce0adf88793572ea48e4da65"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/markPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2023-04.zip",
+   "role": "train",
+   "sha256": "f5a84258e4f0f62715f0c671b4807cee77ae21c7f2a42a45238728567762db00"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/markPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2023-05.zip",
+   "role": "train",
+   "sha256": "fa5ad18ee67b48ffde94a57c674900a7129c1f5078a3d82c02f4cd8ec3411e42"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/markPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2023-06.zip",
+   "role": "train",
+   "sha256": "9e888715d55dc099083916b35e386f5d1002a1daedc62c5ac489b789f709cc28"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/indexPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2021-02.zip",
+   "role": "train",
+   "sha256": "7d77228334d39a601470345e912e4d595a2c65991f400bed4c7db1ad9a23422d"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/indexPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2021-03.zip",
+   "role": "train",
+   "sha256": "b710aee156c1159314b4d1667a3d0b97e7dbf9d6b3dd3aacbda18c3e8c3464d4"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/indexPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2021-04.zip",
+   "role": "train",
+   "sha256": "a4f6d88e7554aa5a6b5a0564f995a70b99b3b37018ee918a9dd97e748813349a"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/indexPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2021-05.zip",
+   "role": "train",
+   "sha256": "7a60ca76a94d607925e78e0d5620f3a98159e49d8fba0af3072d58334163288e"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/indexPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2021-06.zip",
+   "role": "train",
+   "sha256": "95b748e39d543d39960dc13d3bffbeb0e5aa64e471f0f0f564988946675d1628"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/indexPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2021-07.zip",
+   "role": "train",
+   "sha256": "6ef78f7098109a67df014030998bd5cb0bc4743481f4c5bc0dbce03d2016caf4"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/indexPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2021-08.zip",
+   "role": "train",
+   "sha256": "f36d4ef7c44e6193522d7c5ce6112fe1850d14c35674f15612cdaf01790acf8f"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/indexPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2021-09.zip",
+   "role": "train",
+   "sha256": "cab1bef1745086c1838591a0fedb864f029c4f79eec7a633cc0e25c7f9dbe1d0"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/indexPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2021-10.zip",
+   "role": "train",
+   "sha256": "42987abacebef3d8dc85a7ee584c2fdee632ea57d16f35ffa846b265751d4e9c"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/indexPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2021-11.zip",
+   "role": "train",
+   "sha256": "2a12d8d4e6d3b52c22cc0f82805d68d77cdce78984d1c4f8cff88ca201c85f32"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/indexPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2021-12.zip",
+   "role": "train",
+   "sha256": "9f7e6cdcb72cfc808c5adbb369e5ccd75869b5bdb2a0698dca5e5f6a4cae50fe"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/indexPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2022-01.zip",
+   "role": "train",
+   "sha256": "d7634c971d14d06ad074dfd784378dc4a9266c7cab699e11685d8b2a056eae4f"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/indexPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2022-02.zip",
+   "role": "train",
+   "sha256": "648072fee21289d9dbd9c7e325c3e4ef0647633fede45d292e42d3063e8fd147"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/indexPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2022-03.zip",
+   "role": "train",
+   "sha256": "325e9294d4564965c3c3e3fad989ce8648f87f0115056016cfcad183f2c81860"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/indexPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2022-04.zip",
+   "role": "train",
+   "sha256": "f09a22ec6679c2628a96c3b70628e539ce83028eb30c7c19114547894c6a998e"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/indexPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2022-05.zip",
+   "role": "train",
+   "sha256": "5c2796e3f5ee878e0dd7a5dc669372c4e17415b2d6c38e41454febfd794f9c24"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/indexPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2022-06.zip",
+   "role": "train",
+   "sha256": "d8b6336ebfc20be6145ef6dfcd9b4acec3328ae4c7aee07f9397d505d556d70d"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/indexPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2022-07.zip",
+   "role": "train",
+   "sha256": "6c3f983e2f3a08d81e7360a9bd9b6d1cf6aee679561428ee740ea1129217e803"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/indexPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2022-08.zip",
+   "role": "train",
+   "sha256": "4ae92e75f20642e4a7da6996d8d258f02a1377bf9e0ffbcf22c99525ae8d1d9e"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/indexPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2022-09.zip",
+   "role": "train",
+   "sha256": "e9f968ce712a310551b4add5bf6692821583c8bd51dce8538508814b89e1e766"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/indexPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2022-10.zip",
+   "role": "train",
+   "sha256": "617ebdf6763ec4c86c2de1eafe2b1be8c7b7efa766d13299fa8d16543c530519"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/indexPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2022-11.zip",
+   "role": "train",
+   "sha256": "31e00d96ba11ce8b07c004d9ca0338cd18ce79876e8aa6f325c7aa3c8d91c083"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/indexPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2022-12.zip",
+   "role": "train",
+   "sha256": "dedd4201a877ce78fb7bb047670a2d8ab56e9609cd197e57ada65a755eedb561"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/indexPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2023-01.zip",
+   "role": "train",
+   "sha256": "26679213db50d47e58c4c1eadcaa685102ed59a98225918670621b13e863771f"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/indexPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2023-02.zip",
+   "role": "train",
+   "sha256": "d978fb94e424695bd4f3c0ee4b6c95d4cd3c85b9c099391cccec04d2bfdfa83d"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/indexPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2023-03.zip",
+   "role": "train",
+   "sha256": "e71f6fb2ef4d480e64fe6b96bbd2da6732050907d216239ae7d987e1e32ece88"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/indexPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2023-04.zip",
+   "role": "train",
+   "sha256": "1b8cf6cdd9c9255109f3a43c96fa7873d982f1016d0c241d60294763aa5df44e"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/indexPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2023-05.zip",
+   "role": "train",
+   "sha256": "00c03d06e2b48dd6287730ba637eb9ad9122f2b4296fca39c4263ddd5133b8d8"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/indexPriceKlines/BTCUSDT/1m/BTCUSDT-1m-2023-06.zip",
+   "role": "train",
+   "sha256": "fe7fb5b78bb432c81d13d925c3907cdfbfe6bdbab200a95b4b7fee71a3aabeb2"
+  }
+ ],
+ "funding_settlements": 2640,
+ "holm": {
+  "q1": {
+   "R0:S1_W1": 1.0,
+   "R0:S2_H1_opp": 1.0,
+   "R0:S3_M_opp": 0.7795346701777744,
+   "R0:S4_align_ge2": 0.1978686496138516,
+   "R0:S5_funding_paying": 0.450152177823622,
+   "R0:S6_basis_favourable": 0.01017885236823843,
+   "R0:S7_thesis_age_ge24h": 1.0,
+   "R0:S8_since_entry_le4h": 3.0589403746416204e-05,
+   "R0:S9_long": 1.0,
+   "R1:S1_W1": 0.023729280931988353,
+   "R1:S2_H1_opp": 1.0,
+   "R1:S3_M_opp": 1.0,
+   "R1:S4_align_ge2": 0.35151247863722895,
+   "R1:S5_funding_paying": 0.450152177823622,
+   "R1:S6_basis_favourable": 0.026525273865043233,
+   "R1:S7_thesis_age_ge24h": 0.561775054679605,
+   "R1:S8_since_entry_le4h": 1.5498959738888408e-08,
+   "R1:S9_long": 1.0,
+   "R2:S1_W1": 0.04852208896144351,
+   "R2:S2_H1_opp": 0.7795346701777744,
+   "R2:S3_M_opp": 1.0,
+   "R2:S4_align_ge2": 0.13509868199915256,
+   "R2:S5_funding_paying": 0.4486041856178036,
+   "R2:S6_basis_favourable": 0.026525273865043233,
+   "R2:S7_thesis_age_ge24h": 0.450152177823622,
+   "R2:S8_since_entry_le4h": 2.5811846093491125e-07,
+   "R2:S9_long": 1.0
+  },
+  "q2": {
+   "R0:P1": 1.0,
+   "R0:P2": 1.0,
+   "R0:P3": 1.0,
+   "R1:P1": 1.0,
+   "R1:P2": 1.0,
+   "R1:P3": 1.0,
+   "R2:P1": 1.0,
+   "R2:P2": 1.0,
+   "R2:P3": 1.0
+  },
+  "q3": {
+   "10x": 1.0,
+   "20x": 1.0,
+   "50x": 1.0,
+   "5x": 1.0
+  },
+  "tests": {
+   "q1": 27,
+   "q2": 9,
+   "q3": 4
+  }
+ },
+ "parity": {
+  "differences": 0,
+  "fields": [
+   "quote_volume",
+   "taker_buy_quote_volume"
+  ],
+  "overlap_minutes": 31680,
+  "pass": true
+ },
+ "population": {
+  "base_P0": {
+   "ambiguous_stop_bars": 0,
+   "catastrophic_rate": 0.0,
+   "cost_mean": 0.0006799583136348143,
+   "exit_kinds": {
+    "TIME": 5262
+   },
+   "funding_mean": -0.0003211546447657563,
+   "giveback_abs_mean": 0.032383322451576727,
+   "giveback_abs_median": 0.02419962440000306,
+   "giveback_pct_mean": 45.80589809139083,
+   "giveback_pct_median": 1.197643441908417,
+   "gross_mean": 0.0015781446290244932,
+   "gross_median": -0.0029653067960185853,
+   "hold_min_mean": 1865.678449258837,
+   "hold_min_median": 1920.0,
+   "mae_mean": 0.026662800854018204,
+   "mae_median": 0.019062961054617023,
+   "mfe_mean": 0.03396146708060122,
+   "mfe_median": 0.01960801343126084,
+   "n": 5262,
+   "net_mean": 0.0008981863153896785,
+   "net_median": -0.0037697608447051015,
+   "net_pos_share": 0.41980235651843406,
+   "pf": 1.0667956357625479
+  },
+  "dedup_noon": 877,
+  "long": 2304,
+  "overlap48h": 438,
+  "raw": 5262,
+  "short": 2958
+ },
+ "q1_recovery": {
+  "R0": {
+   "ended_by_I1_unrecovered_share": 0.17149122807017544,
+   "further_adverse_recovered": {
+    "max": 0.1683828946823006,
+    "mean": 0.011631565317248092,
+    "median": 0.008288165361389932,
+    "min": 0.005000067599326696,
+    "n": 3714,
+    "p5": 0.005233821357338808,
+    "p95": 0.029374754699054442
+   },
+   "further_adverse_unrecovered": {
+    "max": 0.23675134126110553,
+    "mean": 0.03639004276360956,
+    "median": 0.028436303743415547,
+    "min": 0.005108586624367195,
+    "n": 846,
+    "p5": 0.00754447610915171,
+    "p95": 0.08744523484051231
+   },
+   "n": 4560,
+   "recovery_rate": 0.8144736842105263,
+   "recovery_rate_ci": [
+    0.792170014136941,
+    0.8352742020156139
+   ],
+   "recovery_rate_dedup_noon": 0.8163001293661061,
+   "recovery_rate_long": 0.8157099697885196,
+   "recovery_rate_overlap48h": 0.8264248704663213,
+   "recovery_rate_short": 0.8135198135198135,
+   "share_of_entries": 0.8665906499429875,
+   "splits": {
+    "S1_W1": {
+     "by_direction": {
+      "LONG": -0.0008613273196532711,
+      "SHORT": -0.03316531521659727
+     },
+     "ci95": [
+      -0.047410468138047085,
+      0.01144672668493743
+     ],
+     "cluster": {
+      "estimate": -0.018661716088960056,
+      "p": 0.23802961161103503,
+      "se": 0.015816004261744284
+     },
+     "episodes0": 352,
+     "episodes1": 365,
+     "estimate": -0.018661716088960056,
+     "gate": {
+      "N": true,
+      "both_directions_same_sign": true,
+      "cluster_p": false,
+      "effect_ge_10pp": false,
+      "holm": false
+     },
+     "holm_p": 1.0,
+     "n0": 2576,
+     "n1": 1984,
+     "p": 0.2102635600016067,
+     "rate0": 0.8225931677018633,
+     "rate1": 0.8039314516129032,
+     "se": 0.014895517775060225
+    },
+    "S2_H1_opp": {
+     "by_direction": {
+      "LONG": -0.026144503013905918,
+      "SHORT": -0.013637647144553067
+     },
+     "ci95": [
+      -0.05075264000936458,
+      0.009595593171349108
+     ],
+     "cluster": {
+      "estimate": -0.01901055902826898,
+      "p": 0.2005980276845587,
+      "se": 0.014853744284517554
+     },
+     "episodes0": 346,
+     "episodes1": 374,
+     "estimate": -0.01901055902826898,
+     "gate": {
+      "N": true,
+      "both_directions_same_sign": true,
+      "cluster_p": false,
+      "effect_ge_10pp": false,
+      "holm": false
+     },
+     "holm_p": 1.0,
+     "n0": 2067,
+     "n1": 2493,
+     "p": 0.21143356087226423,
+     "rate0": 0.8248669569424286,
+     "rate1": 0.8058563979141596,
+     "se": 0.015212911014510784
+    },
+    "S3_M_opp": {
+     "by_direction": {
+      "LONG": -0.02398221684181967,
+      "SHORT": -0.03942273518023165
+     },
+     "ci95": [
+      -0.06792140955417998,
+      0.0030630627457470354
+     ],
+     "cluster": {
+      "estimate": -0.03287446897896784,
+      "p": 0.06510558160657438,
+      "se": 0.017822656917296037
+     },
+     "episodes0": 243,
+     "episodes1": 379,
+     "estimate": -0.03287446897896784,
+     "gate": {
+      "N": true,
+      "both_directions_same_sign": true,
+      "cluster_p": false,
+      "effect_ge_10pp": false,
+      "holm": false
+     },
+     "holm_p": 0.7795346701777744,
+     "n0": 673,
+     "n1": 3887,
+     "p": 0.07400373818355288,
+     "rate0": 0.8424962852897474,
+     "rate1": 0.8096218163107796,
+     "se": 0.018400676327367263
+    },
+    "S4_align_ge2": {
+     "by_direction": {
+      "LONG": 0.03347676652864606,
+      "SHORT": 0.042643760722627655
+     },
+     "ci95": [
+      0.008621650422353837,
+      0.06758496101013395
+     ],
+     "cluster": {
+      "estimate": 0.03862645871449166,
+      "p": 0.00814496180439059,
+      "se": 0.014598052412900693
+     },
+     "episodes0": 379,
+     "episodes1": 306,
+     "estimate": 0.03862645871449166,
+     "gate": {
+      "N": true,
+      "both_directions_same_sign": true,
+      "cluster_p": true,
+      "effect_ge_10pp": false,
+      "holm": false
+     },
+     "holm_p": 0.1978686496138516,
+     "n0": 2924,
+     "n1": 1636,
+     "p": 0.010992702756325088,
+     "rate0": 0.8006155950752394,
+     "rate1": 0.839242053789731,
+     "se": 0.015189740974025237
+    },
+    "S5_funding_paying": {
+     "by_direction": {
+      "LONG": -0.059529425639816114,
+      "SHORT": -0.10529570292892787
+     },
+     "ci95": [
+      -0.07658482814782117,
+      -0.004543353227558439
+     ],
+     "cluster": {
+      "estimate": -0.03994389468592485,
+      "p": 0.04623792406773537,
+      "se": 0.020039934173756168
+     },
+     "episodes0": 238,
+     "episodes1": 269,
+     "estimate": -0.03994389468592485,
+     "gate": {
+      "N": true,
+      "both_directions_same_sign": true,
+      "cluster_p": true,
+      "effect_ge_10pp": false,
+      "holm": false
+     },
+     "holm_p": 0.450152177823622,
+     "n0": 2491,
+     "n1": 2069,
+     "p": 0.032894998680842405,
+     "rate0": 0.832597350461662,
+     "rate1": 0.7926534557757371,
+     "se": 0.018723444422897043
+    },
+    "S6_basis_favourable": {
+     "by_direction": {
+      "LONG": 0.00946186320716913,
+      "SHORT": -0.11434394318717311
+     },
+     "ci95": [
+      -0.10038804280560605,
+      -0.02992963700795556
+     ],
+     "cluster": {
+      "estimate": -0.0636239731373982,
+      "p": 0.001894703015542506,
+      "se": 0.020482503537411136
+     },
+     "episodes0": 240,
+     "episodes1": 239,
+     "estimate": -0.0636239731373982,
+     "gate": {
+      "N": true,
+      "both_directions_same_sign": false,
+      "cluster_p": true,
+      "effect_ge_10pp": false,
+      "holm": true
+     },
+     "holm_p": 0.01017885236823843,
+     "n0": 2668,
+     "n1": 1815,
+     "p": 0.00042411884867660124,
+     "rate0": 0.8388305847076462,
+     "rate1": 0.775206611570248,
+     "se": 0.01805139015520192
+    },
+    "S7_thesis_age_ge24h": {
+     "by_direction": {
+      "LONG": -0.011480650179468754,
+      "SHORT": 0.037499174754076714
+     },
+     "ci95": [
+      -0.023263978238970844,
+      0.05411477563907
+     ],
+     "cluster": {
+      "estimate": 0.01477070881250886,
+      "p": 0.4414560512759626,
+      "se": 0.019189298611010864
+     },
+     "episodes0": 374,
+     "episodes1": 194,
+     "estimate": 0.01477070881250886,
+     "gate": {
+      "N": true,
+      "both_directions_same_sign": false,
+      "cluster_p": false,
+      "effect_ge_10pp": false,
+      "holm": false
+     },
+     "holm_p": 1.0,
+     "n0": 1768,
+     "n1": 2792,
+     "p": 0.4606760210118964,
+     "rate0": 0.8054298642533937,
+     "rate1": 0.8202005730659025,
+     "se": 0.02002172325759492
+    },
+    "S8_since_entry_le4h": {
+     "by_direction": {
+      "LONG": 0.07970211962891594,
+      "SHORT": 0.07982912106853413
+     },
+     "ci95": [
+      0.04821776821294774,
+      0.11230385293954491
+     ],
+     "cluster": {
+      "estimate": 0.07974812130572972,
+      "p": 3.7138272025104887e-07,
+      "se": 0.015688967696262233
+     },
+     "episodes0": 325,
+     "episodes1": 379,
+     "estimate": 0.07974812130572972,
+     "gate": {
+      "N": true,
+      "both_directions_same_sign": true,
+      "cluster_p": true,
+      "effect_ge_10pp": false,
+      "holm": true
+     },
+     "holm_p": 3.0589403746416204e-05,
+     "n0": 1285,
+     "n1": 3275,
+     "p": 1.2235761498566483e-06,
+     "rate0": 0.7571984435797665,
+     "rate1": 0.8369465648854962,
+     "se": 0.01643687529439176
+    },
+    "S9_long": {
+     "by_direction": {},
+     "ci95": [
+      -0.034121310935959825,
+      0.038266984097777686
+     ],
+     "cluster": {
+      "estimate": 0.0021901562687061116,
+      "p": 0.9166468361573792,
+      "se": 0.020926703518819294
+     },
+     "episodes0": 189,
+     "episodes1": 190,
+     "estimate": 0.0021901562687061116,
+     "gate": {
+      "N": true,
+      "both_directions_same_sign": true,
+      "cluster_p": false,
+      "effect_ge_10pp": false,
+      "holm": false
+     },
+     "holm_p": 1.0,
+     "n0": 2574,
+     "n1": 1986,
+     "p": 0.9050131760021437,
+     "rate0": 0.8135198135198135,
+     "rate1": 0.8157099697885196,
+     "se": 0.018353633687018065
+    }
+   },
+   "state_means": {
+    "adverse_duration_rec": 6.0,
+    "adverse_duration_unrec": 10.0,
+    "align_count_rec": 1.0,
+    "align_count_unrec": 1.0,
+    "since_entry_rec": 78.0,
+    "since_entry_unrec": 141.0,
+    "thesis_age_rec": 2171.0,
+    "thesis_age_unrec": 2234.5
+   },
+   "time_to_recovery_min": {
+    "max": 2531.0,
+    "mean": 155.21351642434033,
+    "median": 55.0,
+    "min": 1.0,
+    "n": 3714,
+    "p5": 2.6500000000000057,
+    "p95": 660.0499999999997
+   }
+  },
+  "R1": {
+   "ended_by_I1_unrecovered_share": 0.3137254901960784,
+   "further_adverse_recovered": {
+    "max": 0.1683828946823006,
+    "mean": 0.019365429584768716,
+    "median": 0.015295642831030187,
+    "min": 0.010000849930589029,
+    "n": 2456,
+    "p5": 0.010341575058939706,
+    "p95": 0.042245537122315185
+   },
+   "further_adverse_unrecovered": {
+    "max": 0.23675134126110553,
+    "mean": 0.039582257193504236,
+    "median": 0.03164080819441767,
+    "min": 0.010061326540239612,
+    "n": 1318,
+    "p5": 0.011939370450659164,
+    "p95": 0.09026949980213149
+   },
+   "n": 3774,
+   "recovery_rate": 0.6507684154742979,
+   "recovery_rate_ci": [
+    0.6143994928408582,
+    0.6849048442596422
+   ],
+   "recovery_rate_dedup_noon": 0.6438569206842923,
+   "recovery_rate_long": 0.6473105134474327,
+   "recovery_rate_overlap48h": 0.67601246105919,
+   "recovery_rate_short": 0.6534144059869037,
+   "share_of_entries": 0.7172177879133409,
+   "splits": {
+    "S1_W1": {
+     "by_direction": {
+      "LONG": -0.06002682763246148,
+      "SHORT": -0.0953780822086353
+     },
+     "ci95": [
+      -0.1258531252184306,
+      -0.03150534337761974
+     ],
+     "cluster": {
+      "estimate": -0.080127030040683,
+      "p": 0.0024170801444911303,
+      "se": 0.026413762923738426
+     },
+     "episodes0": 299,
+     "episodes1": 337,
+     "estimate": -0.080127030040683,
+     "gate": {
+      "N": true,
+      "both_directions_same_sign": true,
+      "cluster_p": true,
+      "effect_ge_10pp": false,
+      "holm": true
+     },
+     "holm_p": 0.023729280931988353,
+     "n0": 1923,
+     "n1": 1851,
+     "p": 0.0010317078666081893,
+     "rate0": 0.6900676027041082,
+     "rate1": 0.6099405726634252,
+     "se": 0.024416062896824124
+    },
+    "S2_H1_opp": {
+     "by_direction": {
+      "LONG": -0.010858760409466428,
+      "SHORT": -0.007219704506097768
+     },
+     "ci95": [
+      -0.05681295321592494,
+      0.03606965114810647
+     ],
+     "cluster": {
+      "estimate": -0.008998074377181364,
+      "p": 0.7229034189258661,
+      "se": 0.025376631056089383
+     },
+     "episodes0": 288,
+     "episodes1": 354,
+     "estimate": -0.008998074377181364,
+     "gate": {
+      "N": true,
+      "both_directions_same_sign": true,
+      "cluster_p": false,
+      "effect_ge_10pp": false,
+      "holm": false
+     },
+     "holm_p": 1.0,
+     "n0": 1400,
+     "n1": 2374,
+     "p": 0.7082364932164311,
+     "rate0": 0.6564285714285715,
+     "rate1": 0.6474304970513901,
+     "se": 0.02404451973292087
+    },
+    "S3_M_opp": {
+     "by_direction": {
+      "LONG": -0.019718245990598127,
+      "SHORT": 0.028058259753980797
+     },
+     "ci95": [
+      -0.049978758699631746,
+      0.06349910843422596
+     ],
+     "cluster": {
+      "estimate": 0.0076002208276277905,
+      "p": 0.8116395146859594,
+      "se": 0.031891962102345905
+     },
+     "episodes0": 177,
+     "episodes1": 367,
+     "estimate": 0.0076002208276277905,
+     "gate": {
+      "N": true,
+      "both_directions_same_sign": false,
+      "cluster_p": false,
+      "effect_ge_10pp": false,
+      "holm": false
+     },
+     "holm_p": 1.0,
+     "n0": 427,
+     "n1": 3347,
+     "p": 0.7939673224235081,
+     "rate0": 0.6440281030444965,
+     "rate1": 0.6516283238721243,
+     "se": 0.029101519623930233
+    },
+    "S4_align_ge2": {
+     "by_direction": {
+      "LONG": 0.055257694737792185,
+      "SHORT": 0.06439849286803623
+     },
+     "ci95": [
+      0.010426389966834865,
+      0.11233464379950546
+     ],
+     "cluster": {
+      "estimate": 0.06065591755697297,
+      "p": 0.019686357044539592,
+      "se": 0.0260072165508354
+     },
+     "episodes0": 365,
+     "episodes1": 237,
+     "estimate": 0.06065591755697297,
+     "gate": {
+      "N": true,
+      "both_directions_same_sign": true,
+      "cluster_p": true,
+      "effect_ge_10pp": false,
+      "holm": false
+     },
+     "holm_p": 0.35151247863722895,
+     "n0": 2801,
+     "n1": 973,
+     "p": 0.02067720462571935,
+     "rate0": 0.6351303106033559,
+     "rate1": 0.6957862281603289,
+     "se": 0.026214541201537187
+    },
+    "S5_funding_paying": {
+     "by_direction": {
+      "LONG": -0.08162679520552696,
+      "SHORT": -0.16402203488342193
+     },
+     "ci95": [
+      -0.13051846014811277,
+      -0.006954150740651949
+     ],
+     "cluster": {
+      "estimate": -0.06816050526506079,
+      "p": 0.04767193230060066,
+      "se": 0.03441960812486834
+     },
+     "episodes0": 211,
+     "episodes1": 250,
+     "estimate": -0.06816050526506079,
+     "gate": {
+      "N": true,
+      "both_directions_same_sign": true,
+      "cluster_p": true,
+      "effect_ge_10pp": false,
+      "holm": false
+     },
+     "holm_p": 0.450152177823622,
+     "n0": 2030,
+     "n1": 1744,
+     "p": 0.03135349686087898,
+     "rate0": 0.6822660098522167,
+     "rate1": 0.614105504587156,
+     "se": 0.03166489879679309
+    },
+    "S6_basis_favourable": {
+     "by_direction": {
+      "LONG": 0.02698665382437271,
+      "SHORT": -0.18424002874595768
+     },
+     "ci95": [
+      -0.15529814165740555,
+      -0.04043872822902949
+     ],
+     "cluster": {
+      "estimate": -0.09629683570553538,
+      "p": 0.0031632800905833135,
+      "se": 0.03262741430676879
+     },
+     "episodes0": 233,
+     "episodes1": 238,
+     "estimate": -0.09629683570553538,
+     "gate": {
+      "N": true,
+      "both_directions_same_sign": false,
+      "cluster_p": true,
+      "effect_ge_10pp": false,
+      "holm": true
+     },
+     "holm_p": 0.026525273865043233,
+     "n0": 2207,
+     "n1": 1512,
+     "p": 0.0012056942665928743,
+     "rate0": 0.686905301314001,
+     "rate1": 0.5906084656084656,
+     "se": 0.02974392431381809
+    },
+    "S7_thesis_age_ge24h": {
+     "by_direction": {
+      "LONG": 0.017944980870832627,
+      "SHORT": 0.0959707547480333
+     },
+     "ci95": [
+      0.001400017533809095,
+      0.12123055803213068
+     ],
+     "cluster": {
+      "estimate": 0.06008812384703599,
+      "p": 0.06678972751933235,
+      "se": 0.03277975592458002
+     },
+     "episodes0": 336,
+     "episodes1": 184,
+     "estimate": 0.06008812384703599,
+     "gate": {
+      "N": true,
+      "both_directions_same_sign": true,
+      "cluster_p": false,
+      "effect_ge_10pp": false,
+      "holm": false
+     },
+     "holm_p": 0.561775054679605,
+     "n0": 1294,
+     "n1": 2480,
+     "p": 0.04681458788996708,
+     "rate0": 0.6112828438948995,
+     "rate1": 0.6713709677419355,
+     "se": 0.030225812786151232
+    },
+    "S8_since_entry_le4h": {
+     "by_direction": {
+      "LONG": 0.1323897101130883,
+      "SHORT": 0.10317280299441
+     },
+     "ci95": [
+      0.08052314540550941,
+      0.1544032708690935
+     ],
+     "cluster": {
+      "estimate": 0.11574275916004462,
+      "p": 2.2083300614362502e-10,
+      "se": 0.018238390265076686
+     },
+     "episodes0": 349,
+     "episodes1": 355,
+     "estimate": 0.11574275916004462,
+     "gate": {
+      "N": true,
+      "both_directions_same_sign": true,
+      "cluster_p": true,
+      "effect_ge_10pp": true,
+      "holm": true
+     },
+     "holm_p": 1.5498959738888408e-08,
+     "n0": 1918,
+     "n1": 1856,
+     "p": 5.740355458847558e-10,
+     "rate0": 0.5938477580813347,
+     "rate1": 0.7095905172413793,
+     "se": 0.018676019407281537
+    },
+    "S9_long": {
+     "by_direction": {},
+     "ci95": [
+      -0.06926152267686952,
+      0.05604550786768263
+     ],
+     "cluster": {
+      "estimate": -0.0061038925394709675,
+      "p": 0.8670092795084954,
+      "se": 0.036450175149961864
+     },
+     "episodes0": 185,
+     "episodes1": 185,
+     "estimate": -0.0061038925394709675,
+     "gate": {
+      "N": true,
+      "both_directions_same_sign": true,
+      "cluster_p": false,
+      "effect_ge_10pp": false,
+      "holm": false
+     },
+     "holm_p": 1.0,
+     "n0": 2138,
+     "n1": 1636,
+     "p": 0.8501416618108644,
+     "rate0": 0.6534144059869037,
+     "rate1": 0.6473105134474327,
+     "se": 0.03230638045149006
+    }
+   },
+   "state_means": {
+    "adverse_duration_rec": 21.0,
+    "adverse_duration_unrec": 40.0,
+    "align_count_rec": 1.0,
+    "align_count_unrec": 1.0,
+    "since_entry_rec": 206.0,
+    "since_entry_unrec": 344.0,
+    "thesis_age_rec": 2434.5,
+    "thesis_age_unrec": 2329.5
+   },
+   "time_to_recovery_min": {
+    "max": 2453.0,
+    "mean": 259.47434853420197,
+    "median": 130.0,
+    "min": 1.0,
+    "n": 2456,
+    "p5": 7.0,
+    "p95": 975.25
+   }
+  },
+  "R2": {
+   "ended_by_I1_unrecovered_share": 0.4064620355411955,
+   "further_adverse_recovered": {
+    "max": 0.1683828946823006,
+    "mean": 0.02602935592858211,
+    "median": 0.02148734350726489,
+    "min": 0.015014647191515906,
+    "n": 1645,
+    "p5": 0.015478347913606649,
+    "p95": 0.050143488031260244
+   },
+   "further_adverse_unrecovered": {
+    "max": 0.24180215925969128,
+    "mean": 0.043818569941310594,
+    "median": 0.035155452690633304,
+    "min": 0.015001268294409398,
+    "n": 1450,
+    "p5": 0.017075949355719523,
+    "p95": 0.09740553369401578
+   },
+   "n": 3095,
+   "recovery_rate": 0.531502423263328,
+   "recovery_rate_ci": [
+    0.4884285976389675,
+    0.573316684005595
+   ],
+   "recovery_rate_dedup_noon": 0.49809160305343514,
+   "recovery_rate_long": 0.5190156599552572,
+   "recovery_rate_overlap48h": 0.5426356589147286,
+   "recovery_rate_short": 0.5410490307867731,
+   "share_of_entries": 0.5881793994678829,
+   "splits": {
+    "S1_W1": {
+     "by_direction": {
+      "LONG": -0.0738082999054534,
+      "SHORT": -0.1046189135648003
+     },
+     "ci95": [
+      -0.1502160113112295,
+      -0.031620410297997864
+     ],
+     "cluster": {
+      "estimate": -0.09250543268118644,
+      "p": 0.002774306404329588,
+      "se": 0.030920713013878567
+     },
+     "episodes0": 245,
+     "episodes1": 305,
+     "estimate": -0.09250543268118644,
+     "gate": {
+      "N": true,
+      "both_directions_same_sign": true,
+      "cluster_p": true,
+      "effect_ge_10pp": false,
+      "holm": true
+     },
+     "holm_p": 0.04852208896144351,
+     "n0": 1387,
+     "n1": 1708,
+     "p": 0.002426104448072176,
+     "rate0": 0.5825522710886806,
+     "rate1": 0.49004683840749413,
+     "se": 0.030505594933971796
+    },
+    "S2_H1_opp": {
+     "by_direction": {
+      "LONG": -0.12220388705537222,
+      "SHORT": -0.008317183462532296
+     },
+     "ci95": [
+      -0.12100674424305473,
+      0.0010520178164468437
+     ],
+     "cluster": {
+      "estimate": -0.057259860521033046,
+      "p": 0.08461669372912181,
+      "se": 0.03320364754935473
+     },
+     "episodes0": 242,
+     "episodes1": 320,
+     "estimate": -0.057259860521033046,
+     "gate": {
+      "N": true,
+      "both_directions_same_sign": true,
+      "cluster_p": false,
+      "effect_ge_10pp": false,
+      "holm": false
+     },
+     "holm_p": 0.7795346701777744,
+     "n0": 1034,
+     "n1": 2061,
+     "p": 0.0708667881979795,
+     "rate0": 0.5696324951644101,
+     "rate1": 0.512372634643377,
+     "se": 0.03169955456812894
+    },
+    "S3_M_opp": {
+     "by_direction": {
+      "LONG": 0.11240786240786244,
+      "SHORT": -0.050511542156786327
+     },
+     "ci95": [
+      -0.07138293875739711,
+      0.08733251593143689
+     ],
+     "cluster": {
+      "estimate": 0.010576546338635251,
+      "p": 0.8133486779999239,
+      "se": 0.04479532869539685
+     },
+     "episodes0": 136,
+     "episodes1": 344,
+     "estimate": 0.010576546338635251,
+     "gate": {
+      "N": true,
+      "both_directions_same_sign": false,
+      "cluster_p": false,
+      "effect_ge_10pp": false,
+      "holm": false
+     },
+     "holm_p": 1.0,
+     "n0": 318,
+     "n1": 2777,
+     "p": 0.7947190345994454,
+     "rate0": 0.5220125786163522,
+     "rate1": 0.5325891249549874,
+     "se": 0.04064968714927856
+    },
+    "S4_align_ge2": {
+     "by_direction": {
+      "LONG": 0.14272596090777906,
+      "SHORT": 0.05695370676777478
+     },
+     "ci95": [
+      0.02654084256139111,
+      0.15947198071365173
+     ],
+     "cluster": {
+      "estimate": 0.09240626483151393,
+      "p": 0.006927312795018964,
+      "se": 0.034220506064501444
+     },
+     "episodes0": 334,
+     "episodes1": 179,
+     "estimate": 0.09240626483151393,
+     "gate": {
+      "N": true,
+      "both_directions_same_sign": true,
+      "cluster_p": true,
+      "effect_ge_10pp": false,
+      "holm": false
+     },
+     "holm_p": 0.13509868199915256,
+     "n0": 2450,
+     "n1": 645,
+     "p": 0.007110456947323819,
+     "rate0": 0.5122448979591837,
+     "rate1": 0.6046511627906976,
+     "se": 0.03433101572416858
+    },
+    "S5_funding_paying": {
+     "by_direction": {
+      "LONG": -0.055285650022492194,
+      "SHORT": -0.18471538993147735
+     },
+     "ci95": [
+      -0.15126941012727999,
+      -0.009300438848351624
+     ],
+     "cluster": {
+      "estimate": -0.08010636341421012,
+      "p": 0.05165239394526412,
+      "se": 0.041164213550185985
+     },
+     "episodes0": 187,
+     "episodes1": 230,
+     "estimate": -0.08010636341421012,
+     "gate": {
+      "N": true,
+      "both_directions_same_sign": true,
+      "cluster_p": false,
+      "effect_ge_10pp": false,
+      "holm": false
+     },
+     "holm_p": 0.4486041856178036,
+     "n0": 1662,
+     "n1": 1433,
+     "p": 0.028037761601112723,
+     "rate0": 0.5685920577617328,
+     "rate1": 0.4884856943475227,
+     "se": 0.0364657269652557
+    },
+    "S6_basis_favourable": {
+     "by_direction": {
+      "LONG": 0.04064626695146789,
+      "SHORT": -0.20568376472566396
+     },
+     "ci95": [
+      -0.16769710782279518,
+      -0.04230718521621958
+     ],
+     "cluster": {
+      "estimate": -0.10206648697214737,
+      "p": 0.007382108093474032,
+      "se": 0.03809735147125774
+     },
+     "episodes0": 216,
+     "episodes1": 233,
+     "estimate": -0.10206648697214737,
+     "gate": {
+      "N": true,
+      "both_directions_same_sign": false,
+      "cluster_p": true,
+      "effect_ge_10pp": true,
+      "holm": true
+     },
+     "holm_p": 0.026525273865043233,
+     "n0": 1855,
+     "n1": 1200,
+     "p": 0.0012283947107970471,
+     "rate0": 0.568733153638814,
+     "rate1": 0.4666666666666667,
+     "se": 0.03157798752122949
+    },
+    "S7_thesis_age_ge24h": {
+     "by_direction": {
+      "LONG": 0.0204648624513184,
+      "SHORT": 0.12362952146495548
+     },
+     "ci95": [
+      0.00835951864229588,
+      0.14674871407496345
+     ],
+     "cluster": {
+      "estimate": 0.0773324734262072,
+      "p": 0.0416957397911521,
+      "se": 0.03797240126341926
+     },
+     "episodes0": 277,
+     "episodes1": 180,
+     "estimate": 0.0773324734262072,
+     "gate": {
+      "N": true,
+      "both_directions_same_sign": true,
+      "cluster_p": true,
+      "effect_ge_10pp": false,
+      "holm": false
+     },
+     "holm_p": 0.450152177823622,
+     "n0": 942,
+     "n1": 2153,
+     "p": 0.030010145188241466,
+     "rate0": 0.47770700636942676,
+     "rate1": 0.555039479795634,
+     "se": 0.03563779973103093
+    },
+    "S8_since_entry_le4h": {
+     "by_direction": {
+      "LONG": 0.13549480965515237,
+      "SHORT": 0.11976970112577867
+     },
+     "ci95": [
+      0.08496100769274201,
+      0.17220712037486274
+     ],
+     "cluster": {
+      "estimate": 0.12639531444554397,
+      "p": 3.259996837430068e-09,
+      "se": 0.021357993412258133
+     },
+     "episodes0": 330,
+     "episodes1": 300,
+     "estimate": 0.12639531444554397,
+     "gate": {
+      "N": true,
+      "both_directions_same_sign": true,
+      "cluster_p": true,
+      "effect_ge_10pp": true,
+      "holm": true
+     },
+     "holm_p": 2.5811846093491125e-07,
+     "n0": 1999,
+     "n1": 1096,
+     "p": 9.927633112881202e-09,
+     "rate0": 0.4867433716858429,
+     "rate1": 0.6131386861313869,
+     "se": 0.022050974014452673
+    },
+    "S9_long": {
+     "by_direction": {},
+     "ci95": [
+      -0.09733814263633056,
+      0.051322661195435375
+     ],
+     "cluster": {
+      "estimate": -0.022033370831515908,
+      "p": 0.6264373600420987,
+      "se": 0.04526654167201782
+     },
+     "episodes0": 176,
+     "episodes1": 172,
+     "estimate": -0.022033370831515908,
+     "gate": {
+      "N": true,
+      "both_directions_same_sign": true,
+      "cluster_p": false,
+      "effect_ge_10pp": false,
+      "holm": false
+     },
+     "holm_p": 1.0,
+     "n0": 1754,
+     "n1": 1341,
+     "p": 0.5613178453568571,
+     "rate0": 0.5410490307867731,
+     "rate1": 0.5190156599552572,
+     "se": 0.037930682042244916
+    }
+   },
+   "state_means": {
+    "adverse_duration_rec": 46.0,
+    "adverse_duration_unrec": 76.0,
+    "align_count_rec": 1.0,
+    "align_count_unrec": 1.0,
+    "since_entry_rec": 333.0,
+    "since_entry_unrec": 512.0,
+    "thesis_age_rec": 2717.0,
+    "thesis_age_unrec": 2516.0
+   },
+   "time_to_recovery_min": {
+    "max": 2538.0,
+    "mean": 335.54285714285714,
+    "median": 203.0,
+    "min": 1.0,
+    "n": 1645,
+    "p5": 11.0,
+    "p95": 1166.8
+   }
+  }
+ },
+ "q2_protection": {
+  "R0": {
+   "H4_opp_W1": {
+    "fired_share": 0.9577275175013462,
+    "giveback": {
+     "max": 0.28296354013084857,
+     "mean": 0.010112280921719532,
+     "median": 0.002954191709244214,
+     "min": 0.0,
+     "n": 3714,
+     "p5": 0.00010074759401635381,
+     "p95": 0.03902978298299829
+    },
+    "giveback_ratio_median": 1.1598717767628937,
+    "gross_mean": 0.0011059186272861787,
+    "hold_min_median": 480.0,
+    "mfe_after": {
+     "max": 0.3618232281152718,
+     "mean": 0.01121819954900571,
+     "median": 0.0019187409627772767,
+     "min": 0.0,
+     "n": 3714,
+     "p5": 7.856385108072628e-05,
+     "p95": 0.050959212574361513
+    },
+    "net": {
+     "max": 0.22511008477571248,
+     "mean": 0.0002704884184579587,
+     "median": -0.0011681694039693783,
+     "min": -0.11162678662419287,
+     "n": 3714,
+     "p5": -0.018983161060972774,
+     "p95": 0.027311854968727914
+    },
+    "paired_giveback_vs_P0_mean": -0.022022587427687798,
+    "paired_net_vs_P0": {
+     "ci95": [
+      -0.004179548422286574,
+      0.0020539583216328482
+     ],
+     "long": 9.819705823240648e-05,
+     "mean": -0.0008702941215975108,
+     "p": 0.5850469921846667,
+     "se": 0.0015938648227914393,
+     "short": -0.0016195566389444385
+    }
+   },
+   "M_opp": {
+    "fired_share": 0.9991922455573505,
+    "giveback": {
+     "max": 0.04695676049570452,
+     "mean": 0.0035096855504488517,
+     "median": 0.0025971520023485017,
+     "min": 0.0,
+     "n": 3714,
+     "p5": 0.0002926439473369513,
+     "p95": 0.009435318280940129
+    },
+    "giveback_ratio_median": 1.3090909090909901,
+    "gross_mean": -4.227863709472339e-05,
+    "hold_min_median": 227.0,
+    "mfe_after": {
+     "max": 0.10282985604443062,
+     "mean": 0.0034674069133541286,
+     "median": 0.001706408021504402,
+     "min": -0.0,
+     "n": 3714,
+     "p5": 0.00010303781706196836,
+     "p95": 0.012353281428891407
+    },
+    "net": {
+     "max": 0.059489693379569615,
+     "mean": -0.0009605835326190765,
+     "median": -0.0013829247401363047,
+     "min": -0.04461099715789468,
+     "n": 3714,
+     "p5": -0.005835121302121853,
+     "p95": 0.0055291915239086215
+    },
+    "paired_giveback_vs_P0_mean": -0.028625182798958478,
+    "paired_net_vs_P0": {
+     "ci95": [
+      -0.005845417760109631,
+      0.0013264081100528699
+     ],
+     "long": -0.0010935874432346688,
+     "mean": -0.0021013660726745464,
+     "p": 0.2525926384649009,
+     "se": 0.0018367384418367496,
+     "short": -0.0028810228920119873
+    }
+   },
+   "P0": {
+    "fired_share": 0.0,
+    "giveback": {
+     "max": 0.33234211781613987,
+     "mean": 0.03213486834940733,
+     "median": 0.023413642501109277,
+     "min": 0.0,
+     "n": 3714,
+     "p5": 0.0032383045540152534,
+     "p95": 0.08832447896445554
+    },
+    "giveback_ratio_median": 1.153946219505668,
+    "gross_mean": 0.0017393425841855288,
+    "hold_min_median": 2400.0,
+    "mfe_after": {
+     "max": 0.42536670155469203,
+     "mean": 0.03387421093359286,
+     "median": 0.020049749891549062,
+     "min": 0.0,
+     "n": 3714,
+     "p5": 0.0012906056562917545,
+     "p95": 0.11183550721052843
+    },
+    "net": {
+     "max": 0.22511008477571248,
+     "mean": 0.0011407825400554692,
+     "median": -0.0029883286759289657,
+     "min": -0.21787376918774648,
+     "n": 3714,
+     "p5": -0.05623555132150071,
+     "p95": 0.07680214413332932
+    },
+    "safety_rate_20x": 0.5573505654281099
+   },
+   "P1": {
+    "fired_share": 0.9892299407646742,
+    "gate": {
+     "both_directions": false,
+     "giveback_down": true,
+     "net_up_holm": false,
+     "safety_not_worse_20x": true
+    },
+    "giveback": {
+     "max": 0.285298026462272,
+     "mean": 0.005434180564060741,
+     "median": 0.001884387026650669,
+     "min": 0.0,
+     "n": 3714,
+     "p5": 7.54058130429447e-05,
+     "p95": 0.020426385234437072
+    },
+    "giveback_ratio_median": 1.2195945945945843,
+    "gross_mean": 0.00010581279555868605,
+    "hold_min_median": 296.0,
+    "holm_p": 1.0,
+    "mfe_after": {
+     "max": 0.3892346614460458,
+     "mean": 0.005539993359619427,
+     "median": 0.0012901397789091273,
+     "min": -0.0,
+     "n": 3714,
+     "p5": 6.683512523691926e-05,
+     "p95": 0.02406052425425146
+    },
+    "net": {
+     "max": 0.10371121177870621,
+     "mean": -0.0007998471983567702,
+     "median": -0.0011651332256855597,
+     "min": -0.10727583678503375,
+     "n": 3714,
+     "p5": -0.010692677486920026,
+     "p95": 0.010035858747744762
+    },
+    "paired_giveback_vs_P0_mean": -0.02670068778534659,
+    "paired_net_vs_P0": {
+     "ci95": [
+      -0.005428247674581848,
+      0.0013091412581498344
+     ],
+     "long": -0.001239946595224176,
+     "mean": -0.0019406297384122397,
+     "p": 0.2723998344305655,
+     "se": 0.0017681425671348366,
+     "short": -0.002482705522540541
+    },
+    "safety_rate_20x": 0.15401184706515886
+   },
+   "P2": {
+    "fired_share": 0.9321486268174475,
+    "gate": {
+     "both_directions": false,
+     "giveback_down": true,
+     "net_up_holm": false,
+     "safety_not_worse_20x": true
+    },
+    "giveback": {
+     "max": 0.28865916644651324,
+     "mean": 0.013786603031150544,
+     "median": 0.008436209165664288,
+     "min": 0.0,
+     "n": 3714,
+     "p5": 0.00016464629645028263,
+     "p95": 0.043933167769540545
+    },
+    "giveback_ratio_median": 1.2558832428218818,
+    "gross_mean": 0.0012838792298954889,
+    "hold_min_median": 540.0,
+    "holm_p": 1.0,
+    "mfe_after": {
+     "max": 0.3892346614460458,
+     "mean": 0.015070482261046033,
+     "median": 0.004547410141551689,
+     "min": -0.0,
+     "n": 3714,
+     "p5": 0.00012001998397124237,
+     "p95": 0.06150548023813359
+    },
+    "net": {
+     "max": 0.22511008477571248,
+     "mean": 0.0004711717790335075,
+     "median": -0.0014337706438719055,
+     "min": -0.11162678662419287,
+     "n": 3714,
+     "p5": -0.024449129914471807,
+     "p95": 0.035288287332650846
+    },
+    "paired_giveback_vs_P0_mean": -0.018348265318256785,
+    "paired_net_vs_P0": {
+     "ci95": [
+      -0.003716606475671268,
+      0.002033292583912922
+     ],
+     "long": 3.787331741211394e-05,
+     "mean": -0.0006696107610219622,
+     "p": 0.649288311624013,
+     "se": 0.001472477486622513,
+     "short": -0.0012169480136786975
+    },
+    "safety_rate_20x": 0.24178782983306407
+   },
+   "P3": {
+    "fired_share": 0.6106623586429726,
+    "gate": {
+     "both_directions": false,
+     "giveback_down": true,
+     "net_up_holm": false,
+     "safety_not_worse_20x": true
+    },
+    "giveback": {
+     "max": 0.2908509808895676,
+     "mean": 0.02552387412655041,
+     "median": 0.018058407262525167,
+     "min": 0.0,
+     "n": 3714,
+     "p5": 0.002447156981919674,
+     "p95": 0.06909043317729005
+    },
+    "giveback_ratio_median": 1.2577411139562769,
+    "gross_mean": 0.0007873403226954852,
+    "hold_min_median": 1200.0,
+    "holm_p": 1.0,
+    "mfe_after": {
+     "max": 0.3892346614460458,
+     "mean": 0.0263112144492459,
+     "median": 0.01336754415497482,
+     "min": -0.0,
+     "n": 3714,
+     "p5": 0.0007052656922302836,
+     "p95": 0.09504603428573305
+    },
+    "net": {
+     "max": 0.22511008477571248,
+     "mean": 0.00011063422346105469,
+     "median": -0.0034112235249023166,
+     "min": -0.21787376918774648,
+     "n": 3714,
+     "p5": -0.04195084236208374,
+     "p95": 0.06057692119695889
+    },
+    "paired_giveback_vs_P0_mean": -0.006610994222856917,
+    "paired_net_vs_P0": {
+     "ci95": [
+      -0.003048266009652868,
+      0.0009139669597317106
+     ],
+     "long": -1.5090459659673058e-05,
+     "mean": -0.0010301483165944148,
+     "p": 0.3043913021953991,
+     "se": 0.0010030050610142238,
+     "short": -0.0018154366299823243
+    },
+    "safety_rate_20x": 0.41787829833064083
+   },
+   "P4": "IDENTICAL_TO_P0 (I1 is the 1D invalidation under V3)",
+   "W3": {
+    "fired_share": 0.9267635971997846,
+    "giveback": {
+     "max": 0.28865916644651324,
+     "mean": 0.014925598574406763,
+     "median": 0.00954044268987947,
+     "min": 0.0,
+     "n": 3714,
+     "p5": 0.0008772062124936975,
+     "p95": 0.04491753292046484
+    },
+    "giveback_ratio_median": 1.3333215706712913,
+    "gross_mean": 0.0011105381526034881,
+    "hold_min_median": 544.0,
+    "mfe_after": {
+     "max": 0.3892346614460458,
+     "mean": 0.01603613672701025,
+     "median": 0.0058245253418443,
+     "min": -0.0,
+     "n": 3714,
+     "p5": 0.0002483167670754516,
+     "p95": 0.06164777684084304
+    },
+    "net": {
+     "max": 0.22511008477571248,
+     "mean": 0.000297942571856843,
+     "median": -0.0021248861223103193,
+     "min": -0.11162678662419287,
+     "n": 3714,
+     "p5": -0.02522020573589955,
+     "p95": 0.0350789158295939
+    },
+    "paired_giveback_vs_P0_mean": -0.017209269775000566,
+    "paired_net_vs_P0": {
+     "ci95": [
+      -0.0039116971889205585,
+      0.001825097644797843
+     ],
+     "long": -0.0001616231891218983,
+     "mean": -0.0008428399681986268,
+     "p": 0.566495625484552,
+     "se": 0.0014703599145029652,
+     "short": -0.0013698558144757517
+    }
+   },
+   "n_recovered": 3714
+  },
+  "R1": {
+   "H4_opp_W1": {
+    "fired_share": 0.9352605863192183,
+    "giveback": {
+     "max": 0.27511536344231136,
+     "mean": 0.010888201643006024,
+     "median": 0.0032962586718588427,
+     "min": 0.0,
+     "n": 2456,
+     "p5": 0.0002332427786243818,
+     "p95": 0.04089001068465006
+    },
+    "giveback_ratio_median": 1.2469785854337805,
+    "gross_mean": 0.001405173087072738,
+    "hold_min_median": 720.0,
+    "mfe_after": {
+     "max": 0.33100977693951894,
+     "mean": 0.01229337473007876,
+     "median": 0.002185095734352105,
+     "min": -0.0,
+     "n": 2456,
+     "p5": 0.0001178123026708,
+     "p95": 0.06043834280307073
+    },
+    "net": {
+     "max": 0.18601646965609758,
+     "mean": 0.0006512866106460808,
+     "median": -0.0013280395466270106,
+     "min": -0.10497823605831344,
+     "n": 2456,
+     "p5": -0.020374569961478625,
+     "p95": 0.030667581916933667
+    },
+    "paired_giveback_vs_P0_mean": -0.02200216318869178,
+    "paired_net_vs_P0": {
+     "ci95": [
+      -0.0039010991794406966,
+      0.0027223474448318697
+     ],
+     "long": 0.0005384603451655698,
+     "mean": -0.00042371310856223856,
+     "p": 0.8045149133467784,
+     "se": 0.0017119151441242785,
+     "short": -0.0011530915534425175
+    }
+   },
+   "M_opp": {
+    "fired_share": 0.9995928338762216,
+    "giveback": {
+     "max": 0.04695676049570452,
+     "mean": 0.004924598633710914,
+     "median": 0.0037604513083140945,
+     "min": 0.0,
+     "n": 2456,
+     "p5": 0.0007487047750397713,
+     "p95": 0.012341030792978797
+    },
+    "giveback_ratio_median": 1.3773879655944226,
+    "gross_mean": -0.00021584216767198114,
+    "hold_min_median": 493.5,
+    "mfe_after": {
+     "max": 0.10282985604443062,
+     "mean": 0.004708756466038932,
+     "median": 0.0025014283895073985,
+     "min": 0.0,
+     "n": 2456,
+     "p5": 0.00017508857873668737,
+     "p95": 0.016527930284153558
+    },
+    "net": {
+     "max": 0.059489693379569615,
+     "mean": -0.0010685752348739825,
+     "median": -0.001721312347043532,
+     "min": -0.04461099715789468,
+     "n": 2456,
+     "p5": -0.007457052079807783,
+     "p95": 0.007906810251335808
+    },
+    "paired_giveback_vs_P0_mean": -0.027965766197986887,
+    "paired_net_vs_P0": {
+     "ci95": [
+      -0.006070085749889842,
+      0.0016504071339198418
+     ],
+     "long": -0.00013750477947083604,
+     "mean": -0.0021435749540823015,
+     "p": 0.27744708350902003,
+     "se": 0.0019736948436970543,
+     "short": -0.003664282409281688
+    }
+   },
+   "P0": {
+    "fired_share": 0.0,
+    "giveback": {
+     "max": 0.3199097283085013,
+     "mean": 0.03289036483169781,
+     "median": 0.02372855616495756,
+     "min": 0.00033056129117814415,
+     "n": 2456,
+     "p5": 0.003817793316291368,
+     "p95": 0.08930321974254662
+    },
+    "giveback_ratio_median": 1.1651985274783063,
+    "gross_mean": 0.001570469329176644,
+    "hold_min_median": 2640.0,
+    "mfe_after": {
+     "max": 0.4072042068361086,
+     "mean": 0.034460834160874455,
+     "median": 0.020881562599874837,
+     "min": 0.0,
+     "n": 2456,
+     "p5": 0.0014218129057689821,
+     "p95": 0.11036571847741608
+    },
+    "net": {
+     "max": 0.19816682327167068,
+     "mean": 0.0010749997192083193,
+     "median": -0.0031818242565323793,
+     "min": -0.21787376918774648,
+     "n": 2456,
+     "p5": -0.05630615889543418,
+     "p95": 0.07376475378850612
+    },
+    "safety_rate_20x": 0.6640879478827362
+   },
+   "P1": {
+    "fired_share": 0.9816775244299675,
+    "gate": {
+     "both_directions": false,
+     "giveback_down": true,
+     "net_up_holm": false,
+     "safety_not_worse_20x": true
+    },
+    "giveback": {
+     "max": 0.285298026462272,
+     "mean": 0.007326478442432326,
+     "median": 0.004066250470884436,
+     "min": 0.0,
+     "n": 2456,
+     "p5": 0.00024287694042374186,
+     "p95": 0.024140897238602493
+    },
+    "giveback_ratio_median": 1.2881589723694802,
+    "gross_mean": 0.0004336162378053745,
+    "hold_min_median": 559.5,
+    "holm_p": 1.0,
+    "mfe_after": {
+     "max": 0.3892346614460458,
+     "mean": 0.007760094680237702,
+     "median": 0.0024070466578268723,
+     "min": -0.0,
+     "n": 2456,
+     "p5": 0.00012620739483110155,
+     "p95": 0.03130762797727232
+    },
+    "net": {
+     "max": 0.10371121177870621,
+     "mean": -0.00039266681170180555,
+     "median": -0.0013563537914352362,
+     "min": -0.05102746734462617,
+     "n": 2456,
+     "p5": -0.013092092397172963,
+     "p95": 0.01762493116011396
+    },
+    "paired_giveback_vs_P0_mean": -0.02556388638926548,
+    "paired_net_vs_P0": {
+     "ci95": [
+      -0.005234166511447314,
+      0.002156841219817196
+     ],
+     "long": -0.00012303526524004707,
+     "mean": -0.001467666530910125,
+     "p": 0.4322300798910233,
+     "se": 0.001868731345551375,
+     "short": -0.0024869682562820745
+    },
+    "safety_rate_20x": 0.3705211726384365
+   },
+   "P2": {
+    "fired_share": 0.8921009771986971,
+    "gate": {
+     "both_directions": false,
+     "giveback_down": true,
+     "net_up_holm": false,
+     "safety_not_worse_20x": true
+    },
+    "giveback": {
+     "max": 0.28865916644651324,
+     "mean": 0.01595162208785274,
+     "median": 0.010899684914353613,
+     "min": 0.0,
+     "n": 2456,
+     "p5": 0.00040175208618858926,
+     "p95": 0.0470529215992406
+    },
+    "giveback_ratio_median": 1.272415850349309,
+    "gross_mean": 0.0015896718046623278,
+    "hold_min_median": 878.0,
+    "holm_p": 1.0,
+    "mfe_after": {
+     "max": 0.3892346614460458,
+     "mean": 0.017541293892515068,
+     "median": 0.00629747113828838,
+     "min": 0.0,
+     "n": 2456,
+     "p5": 0.0001928119468480871,
+     "p95": 0.06867485459831954
+    },
+    "net": {
+     "max": 0.19571945086561823,
+     "mean": 0.0008752715264890997,
+     "median": -0.0017790632156190773,
+     "min": -0.10497823605831344,
+     "n": 2456,
+     "p5": -0.027108413523077187,
+     "p95": 0.041511779732919876
+    },
+    "paired_giveback_vs_P0_mean": -0.016938742743845065,
+    "paired_net_vs_P0": {
+     "ci95": [
+      -0.003237585170849493,
+      0.002611406782936312
+     ],
+     "long": 2.4951819874272344e-06,
+     "mean": -0.00019972819271922007,
+     "p": 0.8950558638646163,
+     "se": 0.0015141303135039696,
+     "short": -0.00035302422265074437
+    },
+    "safety_rate_20x": 0.44299674267100975
+   },
+   "P3": {
+    "fired_share": 0.5362377850162866,
+    "gate": {
+     "both_directions": false,
+     "giveback_down": true,
+     "net_up_holm": false,
+     "safety_not_worse_20x": true
+    },
+    "giveback": {
+     "max": 0.2908509808895676,
+     "mean": 0.027319203441295927,
+     "median": 0.019731290842696148,
+     "min": 0.00042998274888494947,
+     "n": 2456,
+     "p5": 0.0033203724076397434,
+     "p95": 0.0713390170881383
+    },
+    "giveback_ratio_median": 1.2604516129032213,
+    "gross_mean": 0.0010108842713741509,
+    "hold_min_median": 1440.0,
+    "holm_p": 1.0,
+    "mfe_after": {
+     "max": 0.3892346614460458,
+     "mean": 0.028330087712670076,
+     "median": 0.01581959489406798,
+     "min": 0.0,
+     "n": 2456,
+     "p5": 0.0008947389698198971,
+     "p95": 0.09631006626981442
+    },
+    "net": {
+     "max": 0.19571945086561823,
+     "mean": 0.0004371563863308709,
+     "median": -0.003755702840845432,
+     "min": -0.21787376918774648,
+     "n": 2456,
+     "p5": -0.04357131364679116,
+     "p95": 0.061332014759736195
+    },
+    "paired_giveback_vs_P0_mean": -0.005571161390401877,
+    "paired_net_vs_P0": {
+     "ci95": [
+      -0.0025567847110300385,
+      0.001226609846846645
+     ],
+     "long": -8.437791677939857e-05,
+     "mean": -0.0006378433328774484,
+     "p": 0.5015645834228262,
+     "se": 0.000949129222275733,
+     "short": -0.0010573994357033862
+    },
+    "safety_rate_20x": 0.5716612377850163
+   },
+   "P4": "IDENTICAL_TO_P0 (I1 is the 1D invalidation under V3)",
+   "W3": {
+    "fired_share": 0.887214983713355,
+    "giveback": {
+     "max": 0.28865916644651324,
+     "mean": 0.017222595180821216,
+     "median": 0.01183113656545226,
+     "min": 0.0,
+     "n": 2456,
+     "p5": 0.0017805586549659858,
+     "p95": 0.0471015053447586
+    },
+    "giveback_ratio_median": 1.3216568652518808,
+    "gross_mean": 0.001338277959953708,
+    "hold_min_median": 901.0,
+    "mfe_after": {
+     "max": 0.3892346614460458,
+     "mean": 0.01856087314077492,
+     "median": 0.008046427821159718,
+     "min": 0.0,
+     "n": 2456,
+     "p5": 0.00038437162662988134,
+     "p95": 0.06867485459831954
+    },
+    "net": {
+     "max": 0.19571945086561823,
+     "mean": 0.0006231177348226614,
+     "median": -0.0025451945923496686,
+     "min": -0.10497823605831344,
+     "n": 2456,
+     "p5": -0.02792138453311746,
+     "p95": 0.04176524944796711
+    },
+    "paired_giveback_vs_P0_mean": -0.01566776965087659,
+    "paired_net_vs_P0": {
+     "ci95": [
+      -0.0034585504892460177,
+      0.0024107075122703947
+     ],
+     "long": -0.00018376968698740739,
+     "mean": -0.00045188198438565747,
+     "p": 0.7652120633097942,
+     "se": 0.0015131150321725697,
+     "short": -0.0006551253078965721
+    }
+   },
+   "n_recovered": 2456
+  },
+  "R2": {
+   "H4_opp_W1": {
+    "fired_share": 0.9075987841945289,
+    "giveback": {
+     "max": 0.24834792901726432,
+     "mean": 0.012033599961259208,
+     "median": 0.004217721081951953,
+     "min": 0.0,
+     "n": 1645,
+     "p5": 0.00029580640617916655,
+     "p95": 0.04379958134235954
+    },
+    "giveback_ratio_median": 1.2786855374468513,
+    "gross_mean": 0.0011517559942025378,
+    "hold_min_median": 960.0,
+    "mfe_after": {
+     "max": 0.33100977693951894,
+     "mean": 0.013185355955461747,
+     "median": 0.002664957556631986,
+     "min": 0.0,
+     "n": 1645,
+     "p5": 0.00014615889706792728,
+     "p95": 0.06064903602671564
+    },
+    "net": {
+     "max": 0.18601646965609758,
+     "mean": 0.0005038934215886023,
+     "median": -0.001373464899158685,
+     "min": -0.10497823605831344,
+     "n": 1645,
+     "p5": -0.02533666437066847,
+     "p95": 0.03176557017204573
+    },
+    "paired_giveback_vs_P0_mean": -0.021252868893412366,
+    "paired_net_vs_P0": {
+     "ci95": [
+      -0.004766293261806407,
+      0.002683116076839345
+     ],
+     "long": 0.0010013376499938473,
+     "mean": -0.0008692488032254603,
+     "p": 0.6525492538483327,
+     "se": 0.0019307048566698719,
+     "short": -0.0022411436098014746
+    }
+   },
+   "M_opp": {
+    "fired_share": 0.9987841945288753,
+    "giveback": {
+     "max": 0.04713595912374713,
+     "mean": 0.006063971993316745,
+     "median": 0.004593434686359532,
+     "min": 0.0,
+     "n": 1645,
+     "p5": 0.001197992650305002,
+     "p95": 0.014647438693975704
+    },
+    "giveback_ratio_median": 1.4638680663925179,
+    "gross_mean": -0.0005203033332079044,
+    "hold_min_median": 718.0,
+    "mfe_after": {
+     "max": 0.060710957262681275,
+     "mean": 0.005543668660108841,
+     "median": 0.0029686530365797825,
+     "min": 0.0,
+     "n": 1645,
+     "p5": 0.0002404879960996587,
+     "p95": 0.019862278499335195
+    },
+    "net": {
+     "max": 0.038843998565568916,
+     "mean": -0.0012812317783737744,
+     "median": -0.002065808153447147,
+     "min": -0.04461099715789468,
+     "n": 1645,
+     "p5": -0.008588024692486835,
+     "p95": 0.009544848633314194
+    },
+    "paired_giveback_vs_P0_mean": -0.02722249686135483,
+    "paired_net_vs_P0": {
+     "ci95": [
+      -0.00714140387257111,
+      0.0016594411941101964
+     ],
+     "long": 0.0003160423662877381,
+     "mean": -0.002654374003187837,
+     "p": 0.24259228536481003,
+     "se": 0.0022715460622622545,
+     "short": -0.004832888010727352
+    }
+   },
+   "P0": {
+    "fired_share": 0.0,
+    "giveback": {
+     "max": 0.3191245807948373,
+     "mean": 0.033286468854671576,
+     "median": 0.023829411648261134,
+     "min": 0.00032855356411598535,
+     "n": 1645,
+     "p5": 0.0040165842442944745,
+     "p95": 0.0899919184119155
+    },
+    "giveback_ratio_median": 1.1603763613686948,
+    "gross_mean": 0.0017595215798823362,
+    "hold_min_median": 2880.0,
+    "mfe_after": {
+     "max": 0.3892346614460458,
+     "mean": 0.035045990434553906,
+     "median": 0.021711810120214725,
+     "min": 0.0,
+     "n": 1645,
+     "p5": 0.0014258378279381257,
+     "p95": 0.11169150816461389
+    },
+    "net": {
+     "max": 0.19816682327167068,
+     "mean": 0.0013731422248140627,
+     "median": -0.0034626495919476124,
+     "min": -0.21437745335198724,
+     "n": 1645,
+     "p5": -0.057010937933431705,
+     "p95": 0.06963606874738906
+    },
+    "safety_rate_20x": 0.833434650455927
+   },
+   "P1": {
+    "fired_share": 0.9732522796352584,
+    "gate": {
+     "both_directions": false,
+     "giveback_down": true,
+     "net_up_holm": false,
+     "safety_not_worse_20x": true
+    },
+    "giveback": {
+     "max": 0.285298026462272,
+     "mean": 0.00907848534684612,
+     "median": 0.006369105212233217,
+     "min": 0.0,
+     "n": 1645,
+     "p5": 0.000369822438600731,
+     "p95": 0.028071796599364627
+    },
+    "giveback_ratio_median": 1.2999999999999163,
+    "gross_mean": 0.0002597630713778283,
+    "hold_min_median": 780.0,
+    "holm_p": 1.0,
+    "mfe_after": {
+     "max": 0.3892346614460458,
+     "mean": 0.009338248418223949,
+     "median": 0.0036664425727643835,
+     "min": 0.0,
+     "n": 1645,
+     "p5": 0.0001914868692141747,
+     "p95": 0.038836364512510754
+    },
+    "net": {
+     "max": 0.10371121177870621,
+     "mean": -0.0004673301352795273,
+     "median": -0.0015687955773971056,
+     "min": -0.05102746734462617,
+     "n": 1645,
+     "p5": -0.015378719176054004,
+     "p95": 0.021292596569662484
+    },
+    "paired_giveback_vs_P0_mean": -0.024207983507825458,
+    "paired_net_vs_P0": {
+     "ci95": [
+      -0.006207384946043027,
+      0.0021097563035928648
+     ],
+     "long": 0.0001451430550386772,
+     "mean": -0.00184047236009359,
+     "p": 0.39199764022675077,
+     "se": 0.002150083900625322,
+     "short": -0.003296729819452977
+    },
+    "safety_rate_20x": 0.6972644376899696
+   },
+   "P2": {
+    "fired_share": 0.8486322188449849,
+    "gate": {
+     "both_directions": false,
+     "giveback_down": true,
+     "net_up_holm": false,
+     "safety_not_worse_20x": true
+    },
+    "giveback": {
+     "max": 0.28865916644651324,
+     "mean": 0.018467115087679783,
+     "median": 0.013198402308436608,
+     "min": 0.0,
+     "n": 1645,
+     "p5": 0.000772606129092912,
+     "p95": 0.05429808644819937
+    },
+    "giveback_ratio_median": 1.2644307550322378,
+    "gross_mean": 0.001394986269513573,
+    "hold_min_median": 1140.0,
+    "holm_p": 1.0,
+    "mfe_after": {
+     "max": 0.3892346614460458,
+     "mean": 0.019862101357193355,
+     "median": 0.008710285020413266,
+     "min": 0.0,
+     "n": 1645,
+     "p5": 0.00028443766969461494,
+     "p95": 0.06861216512764454
+    },
+    "net": {
+     "max": 0.19571945086561823,
+     "mean": 0.0008021056412956446,
+     "median": -0.0020100447166700682,
+     "min": -0.10497823605831344,
+     "n": 1645,
+     "p5": -0.033186349092979316,
+     "p95": 0.04330112171688665
+    },
+    "paired_giveback_vs_P0_mean": -0.014819353766991795,
+    "paired_net_vs_P0": {
+     "ci95": [
+      -0.003967355539632471,
+      0.002491562345016116
+     ],
+     "long": 0.00027327158976246673,
+     "mean": -0.0005710365835184185,
+     "p": 0.7273561914597914,
+     "se": 0.0016378762079607531,
+     "short": -0.0011902552227212593
+    },
+    "safety_rate_20x": 0.731306990881459
+   },
+   "P3": {
+    "fired_share": 0.47112462006079026,
+    "gate": {
+     "both_directions": false,
+     "giveback_down": true,
+     "net_up_holm": false,
+     "safety_not_worse_20x": true
+    },
+    "giveback": {
+     "max": 0.27977438196440074,
+     "mean": 0.029557207218820814,
+     "median": 0.02180588040376108,
+     "min": 0.00032855356411598535,
+     "n": 1645,
+     "p5": 0.003760418522986719,
+     "p95": 0.08231358012978376
+    },
+    "giveback_ratio_median": 1.250019866417753,
+    "gross_mean": 0.0008156995511791152,
+    "hold_min_median": 1920.0,
+    "holm_p": 1.0,
+    "mfe_after": {
+     "max": 0.3892346614460458,
+     "mean": 0.03037290676999993,
+     "median": 0.017263727291283892,
+     "min": 0.0,
+     "n": 1645,
+     "p5": 0.0010423086756105927,
+     "p95": 0.0966060754247456
+    },
+    "net": {
+     "max": 0.19571945086561823,
+     "mean": 0.00035610097163043614,
+     "median": -0.003951190333494346,
+     "min": -0.21437745335198724,
+     "n": 1645,
+     "p5": -0.04622145586568318,
+     "p95": 0.06154613982236104
+    },
+    "paired_giveback_vs_P0_mean": -0.0037292616358507633,
+    "paired_net_vs_P0": {
+     "ci95": [
+      -0.0027870241507529556,
+      0.0007298219912824334
+     ],
+     "long": -0.0006569986660368165,
+     "mean": -0.0010170412531836268,
+     "p": 0.254429567503478,
+     "se": 0.0008924105934374046,
+     "short": -0.0012810977765283897
+    },
+    "safety_rate_20x": 0.7969604863221884
+   },
+   "P4": "IDENTICAL_TO_P0 (I1 is the 1D invalidation under V3)",
+   "W3": {
+    "fired_share": 0.8425531914893617,
+    "giveback": {
+     "max": 0.28865916644651324,
+     "mean": 0.019970989678739497,
+     "median": 0.014065518405944055,
+     "min": 4.623514109125537e-05,
+     "n": 1645,
+     "p5": 0.0022893633619535335,
+     "p95": 0.05403167882649299
+    },
+    "giveback_ratio_median": 1.2963288803462467,
+    "gross_mean": 0.0011170493572831275,
+    "hold_min_median": 1200.0,
+    "mfe_after": {
+     "max": 0.3892346614460458,
+     "mean": 0.02108803903602263,
+     "median": 0.010436477226798413,
+     "min": 0.0,
+     "n": 1645,
+     "p5": 0.0005101890640346386,
+     "p95": 0.06928639662937239
+    },
+    "net": {
+     "max": 0.19571945086561823,
+     "mean": 0.0005256593494733612,
+     "median": -0.0030823284562308735,
+     "min": -0.10497823605831344,
+     "n": 1645,
+     "p5": -0.033712059289509745,
+     "p95": 0.04540042980040118
+    },
+    "paired_giveback_vs_P0_mean": -0.013315479175932078,
+    "paired_net_vs_P0": {
+     "ci95": [
+      -0.004137488977598381,
+      0.0021679881567412897
+     ],
+     "long": 0.00011468635973708002,
+     "mean": -0.0008474828753407015,
+     "p": 0.5988395388170715,
+     "se": 0.001610969640762876,
+     "short": -0.0015531412395284108
+    }
+   },
+   "n_recovered": 1645
+  }
+ },
+ "q3_leverage": {
+  "100x": {
+   "LIQ_ONLY": {
+    "A_FIXED_NOTIONAL": {
+     "account_pnl": {
+      "max": 0.27135352835249027,
+      "mean": -0.0035264273038318585,
+      "median": -0.0105,
+      "min": -0.012910379134718384,
+      "n": 5262,
+      "p5": -0.010656752856673592,
+      "p95": 0.03600450853446876
+     },
+     "by_direction": {
+      "LONG": -0.0036536881310397307,
+      "SHORT": -0.003427303251807878
+     },
+     "gain_per_tail_risk": -0.33091011410886756,
+     "margin": 0.01,
+     "max_adverse_account": {
+      "max": -0.0,
+      "mean": -0.005528231213631249,
+      "median": -0.006,
+      "min": -0.006,
+      "n": 5262,
+      "p5": -0.006,
+      "p95": -0.002025866721933982
+     },
+     "notional": 1.0
+    },
+    "B_FIXED_MARGIN": {
+     "account_pnl": {
+      "max": 2.7135352835249025,
+      "mean": -0.03526427303831859,
+      "median": -0.10500000000000001,
+      "min": -0.12910379134718383,
+      "n": 5262,
+      "p5": -0.1065675285667359,
+      "p95": 0.3600450853446876
+     },
+     "by_direction": {
+      "LONG": -0.036536881310397305,
+      "SHORT": -0.034273032518078776
+     },
+     "gain_per_tail_risk": -0.33091011410886767,
+     "margin": 0.1,
+     "max_adverse_account": {
+      "max": -0.0,
+      "mean": -0.055282312136312496,
+      "median": -0.06,
+      "min": -0.06,
+      "n": 5262,
+      "p5": -0.06,
+      "p95": -0.020258667219339818
+     },
+     "notional": 10.0
+    },
+    "R0_cohort": 4560,
+    "R0_recovered_before_stop_share": 0.15986842105263158,
+    "R0_recovered_then_reached_protection_share": {
+     "P1": 0.1418859649122807,
+     "P2": 0.0949561403508772,
+     "P3": 0.030043859649122807
+    },
+    "R0_stopped_before_recovery_share": 0.837280701754386,
+    "exit_kinds": {
+     "I1": 472,
+     "LIQUIDATION": 4397,
+     "MAX_HOLD": 393
+    },
+    "mae_over_liq": {
+     "max": 1.0,
+     "mean": 0.9213718689385415,
+     "median": 1.0,
+     "min": 0.0,
+     "n": 5262,
+     "p5": 0.337644453655663,
+     "p95": 1.0
+    },
+    "safety_or_liq_rate": 0.8356138350437096,
+    "underlying_net": {
+     "max": 0.27135352835249027,
+     "mean": -0.000603091509077013,
+     "median": -0.006998184,
+     "min": -0.009408563134718384,
+     "n": 5262,
+     "p5": -0.00715493685667359,
+     "p95": 0.03600450853446876
+    }
+   },
+   "SAFETY_ON": {
+    "A_FIXED_NOTIONAL": {
+     "account_pnl": {
+      "max": 0.27135352835249027,
+      "mean": -0.0009491030215030299,
+      "median": -0.0033999840000000004,
+      "min": -0.005265714,
+      "n": 5262,
+      "p5": -0.0034999840000000003,
+      "p95": 0.0033923208700660564
+     },
+     "by_direction": {
+      "LONG": -0.0008656191054977944,
+      "SHORT": -0.0010141290331582235
+     },
+     "gain_per_tail_risk": -0.27117353150843826,
+     "margin": 0.01,
+     "max_adverse_account": {
+      "max": -0.0,
+      "mean": -0.0023306799504881678,
+      "median": -0.0024000000000000002,
+      "min": -0.0024000000000000002,
+      "n": 5262,
+      "p5": -0.0024000000000000002,
+      "p95": -0.002025866721933982
+     },
+     "notional": 1.0
+    },
+    "B_FIXED_MARGIN": {
+     "account_pnl": {
+      "max": 2.7135352835249025,
+      "mean": -0.009491030215030298,
+      "median": -0.03399984,
+      "min": -0.052657140000000005,
+      "n": 5262,
+      "p5": -0.034999840000000004,
+      "p95": 0.03392320870066057
+     },
+     "by_direction": {
+      "LONG": -0.008656191054977941,
+      "SHORT": -0.010141290331582235
+     },
+     "gain_per_tail_risk": -0.27117353150843826,
+     "inference": {
+      "ci95": [
+       -0.014963170369582062,
+       -0.0032206378868961895
+      ],
+      "mean": -0.009491030215030298,
+      "p": 0.0011934367259819722,
+      "se": 0.002928928858157347
+     },
+     "margin": 0.1,
+     "max_adverse_account": {
+      "max": -0.0,
+      "mean": -0.02330679950488168,
+      "median": -0.024,
+      "min": -0.024,
+      "n": 5262,
+      "p5": -0.024,
+      "p95": -0.020258667219339818
+     },
+     "notional": 10.0
+    },
+    "R0_cohort": 4560,
+    "R0_recovered_before_stop_share": 0.0,
+    "R0_recovered_then_reached_protection_share": {
+     "P1": 0.0,
+     "P2": 0.0,
+     "P3": 0.0
+    },
+    "R0_stopped_before_recovery_share": 1.0,
+    "exit_kinds": {
+     "I1": 172,
+     "MAX_HOLD": 157,
+     "SAFETY": 4933
+    },
+    "mae_over_liq": {
+     "max": 0.4,
+     "mean": 0.3884466584146947,
+     "median": 0.4,
+     "min": 0.0,
+     "n": 5262,
+     "p5": 0.337644453655663,
+     "p95": 0.4
+    },
+    "safety_or_liq_rate": 0.9374762447738503,
+    "underlying_net": {
+     "max": 0.27135352835249027,
+     "mean": -0.0009491030215030299,
+     "median": -0.0033999840000000004,
+     "min": -0.005265714,
+     "n": 5262,
+     "p5": -0.0034999840000000003,
+     "p95": 0.0033923208700660564
+    }
+   },
+   "liq_dist": 0.006,
+   "safety_dist": 0.0024000000000000002
+  },
+  "10x": {
+   "LIQ_ONLY": {
+    "A_FIXED_NOTIONAL": {
+     "account_pnl": {
+      "max": 0.27135352835249027,
+      "mean": 0.0006020865544248467,
+      "median": -0.003856060227753935,
+      "min": -0.10286998925086452,
+      "n": 5262,
+      "p5": -0.05777410190556173,
+      "p95": 0.07972989729626852
+     },
+     "by_direction": {
+      "LONG": -0.00036130045490721834,
+      "SHORT": 0.0013524731904968816
+     },
+     "gain_per_tail_risk": 0.010421391844550433,
+     "margin": 0.1,
+     "max_adverse_account": {
+      "max": -0.0,
+      "mean": -0.025755963197956085,
+      "median": -0.019062961054617023,
+      "min": -0.096,
+      "n": 5262,
+      "p5": -0.07477522488923152,
+      "p95": -0.002025866721933982
+     },
+     "notional": 1.0
+    },
+    "B_FIXED_MARGIN": {
+     "account_pnl": {
+      "max": 0.27135352835249027,
+      "mean": 0.0006020865544248467,
+      "median": -0.003856060227753935,
+      "min": -0.10286998925086452,
+      "n": 5262,
+      "p5": -0.05777410190556173,
+      "p95": 0.07972989729626852
+     },
+     "by_direction": {
+      "LONG": -0.00036130045490721834,
+      "SHORT": 0.0013524731904968816
+     },
+     "gain_per_tail_risk": 0.010421391844550433,
+     "margin": 0.1,
+     "max_adverse_account": {
+      "max": -0.0,
+      "mean": -0.025755963197956085,
+      "median": -0.019062961054617023,
+      "min": -0.096,
+      "n": 5262,
+      "p5": -0.07477522488923152,
+      "p95": -0.002025866721933982
+     },
+     "notional": 1.0
+    },
+    "R0_cohort": 4560,
+    "R0_recovered_before_stop_share": 0.8138157894736842,
+    "R0_recovered_then_reached_protection_share": {
+     "P1": 0.8048245614035088,
+     "P2": 0.7574561403508772,
+     "P3": 0.4949561403508772
+    },
+    "R0_stopped_before_recovery_share": 0.007236842105263158,
+    "exit_kinds": {
+     "I1": 3153,
+     "LIQUIDATION": 124,
+     "MAX_HOLD": 1985
+    },
+    "mae_over_liq": {
+     "max": 1.0,
+     "mean": 0.26829128331204255,
+     "median": 0.19857251098559398,
+     "min": 0.0,
+     "n": 5262,
+     "p5": 0.021102778353478936,
+     "p95": 0.7789085925961615
+    },
+    "safety_or_liq_rate": 0.02356518434055492,
+    "underlying_net": {
+     "max": 0.27135352835249027,
+     "mean": 0.0006843178702743339,
+     "median": -0.003856060227753935,
+     "min": -0.09941917325086451,
+     "n": 5262,
+     "p5": -0.05777410190556173,
+     "p95": 0.07972989729626852
+    }
+   },
+   "SAFETY_ON": {
+    "A_FIXED_NOTIONAL": {
+     "account_pnl": {
+      "max": 0.27135352835249027,
+      "mean": -1.2873621685155475e-05,
+      "median": -0.005659502308894329,
+      "min": -0.04195492378539844,
+      "n": 5262,
+      "p5": -0.039517487098272,
+      "p95": 0.0780644814662557
+     },
+     "by_direction": {
+      "LONG": -0.001038301593047621,
+      "SHORT": 0.000785837009152951
+     },
+     "gain_per_tail_risk": -0.0003257702508548021,
+     "margin": 0.1,
+     "max_adverse_account": {
+      "max": -0.0,
+      "mean": -0.020766888229076096,
+      "median": -0.019062961054617023,
+      "min": -0.038400000000000004,
+      "n": 5262,
+      "p5": -0.038400000000000004,
+      "p95": -0.002025866721933982
+     },
+     "notional": 1.0
+    },
+    "B_FIXED_MARGIN": {
+     "account_pnl": {
+      "max": 0.27135352835249027,
+      "mean": -1.2873621685155475e-05,
+      "median": -0.005659502308894329,
+      "min": -0.04195492378539844,
+      "n": 5262,
+      "p5": -0.039517487098272,
+      "p95": 0.0780644814662557
+     },
+     "by_direction": {
+      "LONG": -0.001038301593047621,
+      "SHORT": 0.000785837009152951
+     },
+     "gain_per_tail_risk": -0.0003257702508548021,
+     "inference": {
+      "ci95": [
+       -0.0030122667369280242,
+       0.003227933527805577
+      ],
+      "mean": -1.2873621685155475e-05,
+      "p": 0.9934722860868425,
+      "se": 0.001573529344793614
+     },
+     "margin": 0.1,
+     "max_adverse_account": {
+      "max": -0.0,
+      "mean": -0.020766888229076096,
+      "median": -0.019062961054617023,
+      "min": -0.038400000000000004,
+      "n": 5262,
+      "p5": -0.038400000000000004,
+      "p95": -0.002025866721933982
+     },
+     "notional": 1.0
+    },
+    "R0_cohort": 4560,
+    "R0_recovered_before_stop_share": 0.7927631578947368,
+    "R0_recovered_then_reached_protection_share": {
+     "P1": 0.781359649122807,
+     "P2": 0.719078947368421,
+     "P3": 0.4342105263157895
+    },
+    "R0_stopped_before_recovery_share": 0.0861842105263158,
+    "exit_kinds": {
+     "I1": 2483,
+     "MAX_HOLD": 1593,
+     "SAFETY": 1186
+    },
+    "mae_over_liq": {
+     "max": 0.4,
+     "mean": 0.21632175238620932,
+     "median": 0.19857251098559398,
+     "min": 0.0,
+     "n": 5262,
+     "p5": 0.021102778353478936,
+     "p95": 0.4
+    },
+    "safety_or_liq_rate": 0.22538958570885595,
+    "underlying_net": {
+     "max": 0.27135352835249027,
+     "mean": -1.2873621685155475e-05,
+     "median": -0.005659502308894329,
+     "min": -0.04195492378539844,
+     "n": 5262,
+     "p5": -0.039517487098272,
+     "p95": 0.0780644814662557
+    }
+   },
+   "holm_p_B_P0": 1.0,
+   "liq_dist": 0.096,
+   "profile": "BALANCED",
+   "safety_dist": 0.038400000000000004
+  },
+  "20x": {
+   "LIQ_ONLY": {
+    "A_FIXED_NOTIONAL": {
+     "account_pnl": {
+      "max": 0.27135352835249027,
+      "mean": -0.0003287190346099539,
+      "median": -0.0046934923399075245,
+      "min": -0.05303453978539844,
+      "n": 5262,
+      "p5": -0.05059522015863343,
+      "p95": 0.07873690806322393
+     },
+     "by_direction": {
+      "LONG": -0.0015446034687103386,
+      "SHORT": 0.0006183390235939967
+     },
+     "gain_per_tail_risk": -0.00649703734027259,
+     "margin": 0.05,
+     "max_adverse_account": {
+      "max": -0.0,
+      "mean": -0.022248091303865798,
+      "median": -0.019062961054617023,
+      "min": -0.046,
+      "n": 5262,
+      "p5": -0.046,
+      "p95": -0.002025866721933982
+     },
+     "notional": 1.0
+    },
+    "B_FIXED_MARGIN": {
+     "account_pnl": {
+      "max": 0.5427070567049805,
+      "mean": -0.0006574380692199078,
+      "median": -0.009386984679815049,
+      "min": -0.10606907957079688,
+      "n": 5262,
+      "p5": -0.10119044031726686,
+      "p95": 0.15747381612644787
+     },
+     "by_direction": {
+      "LONG": -0.0030892069374206773,
+      "SHORT": 0.0012366780471879935
+     },
+     "gain_per_tail_risk": -0.00649703734027259,
+     "margin": 0.1,
+     "max_adverse_account": {
+      "max": -0.0,
+      "mean": -0.044496182607731596,
+      "median": -0.038125922109234045,
+      "min": -0.092,
+      "n": 5262,
+      "p5": -0.092,
+      "p95": -0.004051733443867964
+     },
+     "notional": 2.0
+    },
+    "R0_cohort": 4560,
+    "R0_recovered_before_stop_share": 0.8028508771929824,
+    "R0_recovered_then_reached_protection_share": {
+     "P1": 0.7925438596491228,
+     "P2": 0.7348684210526316,
+     "P3": 0.45416666666666666
+    },
+    "R0_stopped_before_recovery_share": 0.06315789473684211,
+    "exit_kinds": {
+     "I1": 2665,
+     "LIQUIDATION": 879,
+     "MAX_HOLD": 1718
+    },
+    "mae_over_liq": {
+     "max": 1.0,
+     "mean": 0.4836541587796914,
+     "median": 0.4144121968395005,
+     "min": 0.0,
+     "n": 5262,
+     "p5": 0.044040580911608215,
+     "p95": 1.0
+    },
+    "safety_or_liq_rate": 0.16704675028506272,
+    "underlying_net": {
+     "max": 0.27135352835249027,
+     "mean": 0.0002551130186017528,
+     "median": -0.0046934923399075245,
+     "min": -0.04955872378539844,
+     "n": 5262,
+     "p5": -0.04707689785002895,
+     "p95": 0.07873690806322393
+    }
+   },
+   "SAFETY_ON": {
+    "A_FIXED_NOTIONAL": {
+     "account_pnl": {
+      "max": 0.27135352835249027,
+      "mean": -0.00017471176107452388,
+      "median": -0.018063170075218765,
+      "min": -0.023335683378216742,
+      "n": 5262,
+      "p5": -0.019623705346838504,
+      "p95": 0.07091924833726598
+     },
+     "by_direction": {
+      "LONG": -0.0003840701062519024,
+      "SHORT": -1.1641569293361036e-05
+     },
+     "gain_per_tail_risk": -0.008903097452116553,
+     "margin": 0.05,
+     "max_adverse_account": {
+      "max": -0.0,
+      "mean": -0.013743966229707305,
+      "median": -0.0184,
+      "min": -0.0184,
+      "n": 5262,
+      "p5": -0.0184,
+      "p95": -0.002025866721933982
+     },
+     "notional": 1.0
+    },
+    "B_FIXED_MARGIN": {
+     "account_pnl": {
+      "max": 0.5427070567049805,
+      "mean": -0.00034942352214904776,
+      "median": -0.03612634015043753,
+      "min": -0.046671366756433484,
+      "n": 5262,
+      "p5": -0.03924741069367701,
+      "p95": 0.14183849667453197
+     },
+     "by_direction": {
+      "LONG": -0.0007681402125038048,
+      "SHORT": -2.3283138586722072e-05
+     },
+     "gain_per_tail_risk": -0.008903097452116553,
+     "inference": {
+      "ci95": [
+       -0.0047687572914657805,
+       0.004669362635999915
+      ],
+      "mean": -0.00034942352214904776,
+      "p": 0.8829172953200661,
+      "se": 0.002372639817341916
+     },
+     "margin": 0.1,
+     "max_adverse_account": {
+      "max": -0.0,
+      "mean": -0.02748793245941461,
+      "median": -0.0368,
+      "min": -0.0368,
+      "n": 5262,
+      "p5": -0.0368,
+      "p95": -0.004051733443867964
+     },
+     "notional": 2.0
+    },
+    "R0_cohort": 4560,
+    "R0_recovered_before_stop_share": 0.7076754385964912,
+    "R0_recovered_then_reached_protection_share": {
+     "P1": 0.6828947368421052,
+     "P2": 0.5861842105263158,
+     "P3": 0.29912280701754385
+    },
+    "R0_stopped_before_recovery_share": 0.2449561403508772,
+    "exit_kinds": {
+     "I1": 1462,
+     "MAX_HOLD": 1100,
+     "SAFETY": 2700
+    },
+    "mae_over_liq": {
+     "max": 0.4,
+     "mean": 0.2987818745588544,
+     "median": 0.4,
+     "min": 0.0,
+     "n": 5262,
+     "p5": 0.044040580911608215,
+     "p95": 0.4
+    },
+    "safety_or_liq_rate": 0.5131128848346637,
+    "underlying_net": {
+     "max": 0.27135352835249027,
+     "mean": -0.00017471176107452388,
+     "median": -0.018063170075218765,
+     "min": -0.023335683378216742,
+     "n": 5262,
+     "p5": -0.019623705346838504,
+     "p95": 0.07091924833726598
+    }
+   },
+   "holm_p_B_P0": 1.0,
+   "liq_dist": 0.046,
+   "profile": "INFEASIBLE",
+   "safety_dist": 0.0184
+  },
+  "50x": {
+   "LIQ_ONLY": {
+    "A_FIXED_NOTIONAL": {
+     "account_pnl": {
+      "max": 0.27135352835249027,
+      "mean": -0.0021112049326701874,
+      "median": -0.0201053226410109,
+      "min": -0.024443699378216742,
+      "n": 5262,
+      "p5": -0.02071614244209455,
+      "p95": 0.06786526665250903
+     },
+     "by_direction": {
+      "LONG": -0.002134159306332544,
+      "SHORT": -0.002093325663935208
+     },
+     "gain_per_tail_risk": -0.10191110331334108,
+     "margin": 0.02,
+     "max_adverse_account": {
+      "max": -0.0,
+      "mean": -0.012451478036731734,
+      "median": -0.016,
+      "min": -0.016,
+      "n": 5262,
+      "p5": -0.016,
+      "p95": -0.002025866721933982
+     },
+     "notional": 1.0
+    },
+    "B_FIXED_MARGIN": {
+     "account_pnl": {
+      "max": 1.3567676417624512,
+      "mean": -0.010556024663350943,
+      "median": -0.1005266132050545,
+      "min": -0.1222184968910837,
+      "n": 5262,
+      "p5": -0.10358071221047274,
+      "p95": 0.33932633326254513
+     },
+     "by_direction": {
+      "LONG": -0.010670796531662724,
+      "SHORT": -0.010466628319676045
+     },
+     "gain_per_tail_risk": -0.10191110331334113,
+     "margin": 0.1,
+     "max_adverse_account": {
+      "max": -0.0,
+      "mean": -0.062257390183658674,
+      "median": -0.08,
+      "min": -0.08,
+      "n": 5262,
+      "p5": -0.08,
+      "p95": -0.010129333609669909
+     },
+     "notional": 5.0
+    },
+    "R0_cohort": 4560,
+    "R0_recovered_before_stop_share": 0.6776315789473685,
+    "R0_recovered_then_reached_protection_share": {
+     "P1": 0.649780701754386,
+     "P2": 0.5445175438596491,
+     "P3": 0.26644736842105265
+    },
+    "R0_stopped_before_recovery_share": 0.28399122807017546,
+    "exit_kinds": {
+     "I1": 1306,
+     "LIQUIDATION": 2969,
+     "MAX_HOLD": 987
+    },
+    "mae_over_liq": {
+     "max": 1.0,
+     "mean": 0.7782173772957333,
+     "median": 1.0,
+     "min": 0.0,
+     "n": 5262,
+     "p5": 0.12661667012087363,
+     "p95": 1.0
+    },
+    "safety_or_liq_rate": 0.564234131508932,
+    "underlying_net": {
+     "max": 0.27135352835249027,
+     "mean": -0.00013767230173138118,
+     "median": -0.016614506641010898,
+     "min": -0.020936883378216743,
+     "n": 5262,
+     "p5": -0.017210217246212547,
+     "p95": 0.06786526665250903
+    }
+   },
+   "SAFETY_ON": {
+    "A_FIXED_NOTIONAL": {
+     "account_pnl": {
+      "max": 0.27135352835249027,
+      "mean": -0.0005999504113914686,
+      "median": -0.007397984000000001,
+      "min": -0.009808363134718385,
+      "n": 5262,
+      "p5": -0.007562812289644758,
+      "p95": 0.04024298721992447
+     },
+     "by_direction": {
+      "LONG": -0.0008899057395217272,
+      "SHORT": -0.00037410285357804165
+     },
+     "gain_per_tail_risk": -0.07932900995214963,
+     "margin": 0.02,
+     "max_adverse_account": {
+      "max": -0.0,
+      "mean": -0.005859634400774956,
+      "median": -0.0064,
+      "min": -0.0064,
+      "n": 5262,
+      "p5": -0.0064,
+      "p95": -0.002025866721933982
+     },
+     "notional": 1.0
+    },
+    "B_FIXED_MARGIN": {
+     "account_pnl": {
+      "max": 1.3567676417624512,
+      "mean": -0.0029997520569573434,
+      "median": -0.03698992,
+      "min": -0.04904181567359192,
+      "n": 5262,
+      "p5": -0.037814061448223794,
+      "p95": 0.20121493609962232
+     },
+     "by_direction": {
+      "LONG": -0.004449528697608637,
+      "SHORT": -0.0018705142678902096
+     },
+     "gain_per_tail_risk": -0.07932900995214964,
+     "inference": {
+      "ci95": [
+       -0.0092706148728003,
+       0.00344090854742233
+      ],
+      "mean": -0.0029997520569573434,
+      "p": 0.3585124012784284,
+      "se": 0.003266979989017528
+     },
+     "margin": 0.1,
+     "max_adverse_account": {
+      "max": -0.0,
+      "mean": -0.029298172003874776,
+      "median": -0.032,
+      "min": -0.032,
+      "n": 5262,
+      "p5": -0.032,
+      "p95": -0.010129333609669909
+     },
+     "notional": 5.0
+    },
+    "R0_cohort": 4560,
+    "R0_recovered_before_stop_share": 0.2107456140350877,
+    "R0_recovered_then_reached_protection_share": {
+     "P1": 0.18640350877192982,
+     "P2": 0.12587719298245614,
+     "P3": 0.04078947368421053
+    },
+    "R0_stopped_before_recovery_share": 0.7839912280701754,
+    "exit_kinds": {
+     "I1": 521,
+     "MAX_HOLD": 419,
+     "SAFETY": 4322
+    },
+    "mae_over_liq": {
+     "max": 0.4,
+     "mean": 0.36622715004843465,
+     "median": 0.4,
+     "min": 0.0,
+     "n": 5262,
+     "p5": 0.12661667012087363,
+     "p95": 0.4
+    },
+    "safety_or_liq_rate": 0.8213606993538578,
+    "underlying_net": {
+     "max": 0.27135352835249027,
+     "mean": -0.0005999504113914686,
+     "median": -0.007397984000000001,
+     "min": -0.009808363134718385,
+     "n": 5262,
+     "p5": -0.007562812289644758,
+     "p95": 0.04024298721992447
+    }
+   },
+   "holm_p_B_P0": 1.0,
+   "liq_dist": 0.016,
+   "profile": "INFEASIBLE",
+   "safety_dist": 0.0064
+  },
+  "5x": {
+   "LIQ_ONLY": {
+    "A_FIXED_NOTIONAL": {
+     "account_pnl": {
+      "max": 0.27135352835249027,
+      "mean": 0.0008434744048466054,
+      "median": -0.0037697608447051015,
+      "min": -0.20069942208238634,
+      "n": 5262,
+      "p5": -0.05654102393377769,
+      "p95": 0.07980206986077173
+     },
+     "by_direction": {
+      "LONG": 0.00019259252502190974,
+      "SHORT": 0.0013504493376106693
+     },
+     "gain_per_tail_risk": 0.014917918816512847,
+     "margin": 0.2,
+     "max_adverse_account": {
+      "max": -0.0,
+      "mean": -0.02662468835066198,
+      "median": -0.019062961054617023,
+      "min": -0.196,
+      "n": 5262,
+      "p5": -0.07477522488923152,
+      "p95": -0.002025866721933982
+     },
+     "notional": 1.0
+    },
+    "B_FIXED_MARGIN": {
+     "account_pnl": {
+      "max": 0.13567676417624513,
+      "mean": 0.0004217372024233027,
+      "median": -0.0018848804223525507,
+      "min": -0.10034971104119317,
+      "n": 5262,
+      "p5": -0.028270511966888845,
+      "p95": 0.03990103493038587
+     },
+     "by_direction": {
+      "LONG": 9.629626251095487e-05,
+      "SHORT": 0.0006752246688053347
+     },
+     "gain_per_tail_risk": 0.014917918816512847,
+     "margin": 0.1,
+     "max_adverse_account": {
+      "max": -0.0,
+      "mean": -0.01331234417533099,
+      "median": -0.009531480527308511,
+      "min": -0.098,
+      "n": 5262,
+      "p5": -0.03738761244461576,
+      "p95": -0.001012933360966991
+     },
+     "notional": 0.5
+    },
+    "R0_cohort": 4560,
+    "R0_recovered_before_stop_share": 0.8144736842105263,
+    "R0_recovered_then_reached_protection_share": {
+     "P1": 0.8057017543859649,
+     "P2": 0.7592105263157894,
+     "P3": 0.49736842105263157
+    },
+    "R0_stopped_before_recovery_share": 0.0004385964912280702,
+    "exit_kinds": {
+     "I1": 3233,
+     "LIQUIDATION": 12,
+     "MAX_HOLD": 2017
+    },
+    "mae_over_liq": {
+     "max": 1.0,
+     "mean": 0.1358402466870509,
+     "median": 0.0972600053806991,
+     "min": 0.0,
+     "n": 5262,
+     "p5": 0.010336054703744785,
+     "p95": 0.3815062494348546
+    },
+    "safety_or_liq_rate": 0.002280501710376283,
+    "underlying_net": {
+     "max": 0.27135352835249027,
+     "mean": 0.0008513417161350892,
+     "median": -0.0037697608447051015,
+     "min": -0.19710260608238633,
+     "n": 5262,
+     "p5": -0.05654102393377769,
+     "p95": 0.07980206986077173
+    }
+   },
+   "SAFETY_ON": {
+    "A_FIXED_NOTIONAL": {
+     "account_pnl": {
+      "max": 0.27135352835249027,
+      "mean": 0.000678816118597715,
+      "median": -0.0038715488309215935,
+      "min": -0.08193824367747325,
+      "n": 5262,
+      "p5": -0.06302663854205182,
+      "p95": 0.07972989729626852
+     },
+     "by_direction": {
+      "LONG": -0.00027363178471219115,
+      "SHORT": 0.0014206822339547212
+     },
+     "gain_per_tail_risk": 0.01077030497421823,
+     "margin": 0.2,
+     "max_adverse_account": {
+      "max": -0.0,
+      "mean": -0.025189570016045954,
+      "median": -0.019062961054617023,
+      "min": -0.07840000000000001,
+      "n": 5262,
+      "p5": -0.07477522488923152,
+      "p95": -0.002025866721933982
+     },
+     "notional": 1.0
+    },
+    "B_FIXED_MARGIN": {
+     "account_pnl": {
+      "max": 0.13567676417624513,
+      "mean": 0.0003394080592988575,
+      "median": -0.0019357744154607968,
+      "min": -0.040969121838736626,
+      "n": 5262,
+      "p5": -0.03151331927102591,
+      "p95": 0.03986494864813426
+     },
+     "by_direction": {
+      "LONG": -0.00013681589235609558,
+      "SHORT": 0.0007103411169773606
+     },
+     "gain_per_tail_risk": 0.01077030497421823,
+     "inference": {
+      "ci95": [
+       -0.0013051456678419603,
+       0.002172038853199562
+      ],
+      "mean": 0.0003394080592988575,
+      "p": 0.7032901245171194,
+      "se": 0.0008911086287412092
+     },
+     "margin": 0.1,
+     "max_adverse_account": {
+      "max": -0.0,
+      "mean": -0.012594785008022977,
+      "median": -0.009531480527308511,
+      "min": -0.039200000000000006,
+      "n": 5262,
+      "p5": -0.03738761244461576,
+      "p95": -0.001012933360966991
+     },
+     "notional": 0.5
+    },
+    "R0_cohort": 4560,
+    "R0_recovered_before_stop_share": 0.8131578947368421,
+    "R0_recovered_then_reached_protection_share": {
+     "P1": 0.8041666666666667,
+     "P2": 0.756140350877193,
+     "P3": 0.49144736842105263
+    },
+    "R0_stopped_before_recovery_share": 0.014473684210526316,
+    "exit_kinds": {
+     "I1": 3090,
+     "MAX_HOLD": 1938,
+     "SAFETY": 234
+    },
+    "mae_over_liq": {
+     "max": 0.4,
+     "mean": 0.1285182143675814,
+     "median": 0.0972600053806991,
+     "min": 0.0,
+     "n": 5262,
+     "p5": 0.010336054703744785,
+     "p95": 0.3815062494348546
+    },
+    "safety_or_liq_rate": 0.04446978335233751,
+    "underlying_net": {
+     "max": 0.27135352835249027,
+     "mean": 0.000678816118597715,
+     "median": -0.0038715488309215935,
+     "min": -0.08193824367747325,
+     "n": 5262,
+     "p5": -0.06302663854205182,
+     "p95": 0.07972989729626852
+    }
+   },
+   "holm_p_B_P0": 1.0,
+   "liq_dist": 0.196,
+   "profile": "SAFE",
+   "safety_dist": 0.07840000000000001
+  }
+ },
+ "split": "TRAIN",
+ "study": "PTM-R2",
+ "train_coverage": {
+  "end_ms_exclusive": 1688169600000,
+  "expected_minutes": 1267200,
+  "files": 29,
+  "invalid_minutes": 0,
+  "missing_minutes": 0,
+  "rows_read": 1267200,
+  "start_ms": 1612137600000
+ },
+ "validation_candidates": {
+  "base_method_leverages_passing_q3": [],
+  "leverage_profiles": {},
+  "leverage_profiles_descriptive": {
+   "BALANCED": 10,
+   "SAFE": 5
+  },
+  "profit_protection": [],
+  "recovery_filter": [
+   "R1:S8_since_entry_le4h",
+   "R2:S8_since_entry_le4h"
+  ]
+ }
+}

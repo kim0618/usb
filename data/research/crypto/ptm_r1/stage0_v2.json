@@ -1,0 +1,4732 @@
+{
+ "census": {
+  "V1": {
+   "alignment": {
+    "D_H4_H1_pct": 43.208,
+    "D_H4_pct": 65.225
+   },
+   "duration": {
+    "D": {
+     "mean_min": 188.8,
+     "median_min": 7.0,
+     "p90_min": 307.0,
+     "runs": 6686
+    },
+    "H1": {
+     "mean_min": 23.1,
+     "median_min": 6.0,
+     "p90_min": 71.0,
+     "runs": 54687
+    },
+    "H4": {
+     "mean_min": 50.3,
+     "median_min": 7.0,
+     "p90_min": 162.70000000000073,
+     "runs": 25144
+    },
+    "M": {
+     "mean_min": 8.6,
+     "median_min": 6.0,
+     "p90_min": 20.0,
+     "runs": 146784
+    },
+    "REGIME": {
+     "mean_min": 52.0,
+     "median_min": 7.0,
+     "p90_min": 171.0,
+     "runs": 15876
+    }
+   },
+   "evaluation": {
+    "evaluated_days": 879.001,
+    "first_index_all_defined": 1439
+   },
+   "families": {
+    "F1": {
+     "LONG": {
+      "interval_minutes_primary": {
+       "mean": 274.3,
+       "n": 4612,
+       "p10": 5.0,
+       "p25": 17.0,
+       "p50": 66.0,
+       "p75": 260.0,
+       "p90": 544.0
+      },
+      "invalidation": {
+       "I1": {
+        "invalidated_within_48h": 4613,
+        "minutes_to_invalidation": {
+         "mean": 44.1,
+         "n": 4613,
+         "p10": 3.0,
+         "p25": 10.0,
+         "p50": 34.0,
+         "p75": 63.0,
+         "p90": 95.0
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.0,
+          "eligible": 4613,
+          "thesis_alive": 0
+         },
+         "24h": {
+          "alive_share": 0.0,
+          "eligible": 4613,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 4613,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.0028,
+          "eligible": 4613,
+          "thesis_alive": 13
+         },
+         "8h": {
+          "alive_share": 0.0,
+          "eligible": 4613,
+          "thesis_alive": 0
+         }
+        },
+        "within_48h_share": 1.0
+       },
+       "I2": {
+        "invalidated_within_48h": 4613,
+        "minutes_to_invalidation": {
+         "mean": 102.9,
+         "n": 4613,
+         "p10": 1.0,
+         "p25": 5.0,
+         "p50": 30.0,
+         "p75": 149.0,
+         "p90": 292.8
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.0069,
+          "eligible": 4613,
+          "thesis_alive": 32
+         },
+         "24h": {
+          "alive_share": 0.0,
+          "eligible": 4613,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 4613,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.1658,
+          "eligible": 4613,
+          "thesis_alive": 765
+         },
+         "8h": {
+          "alive_share": 0.0336,
+          "eligible": 4613,
+          "thesis_alive": 155
+         }
+        },
+        "within_48h_share": 1.0
+       },
+       "I3": {
+        "invalidated_within_48h": 4613,
+        "minutes_to_invalidation": {
+         "mean": 153.5,
+         "n": 4613,
+         "p10": 10.0,
+         "p25": 28.0,
+         "p50": 75.0,
+         "p75": 241.0,
+         "p90": 390.0
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.0147,
+          "eligible": 4613,
+          "thesis_alive": 68
+         },
+         "24h": {
+          "alive_share": 0.0007,
+          "eligible": 4613,
+          "thesis_alive": 3
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 4613,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.2515,
+          "eligible": 4613,
+          "thesis_alive": 1160
+         },
+         "8h": {
+          "alive_share": 0.059,
+          "eligible": 4613,
+          "thesis_alive": 272
+         }
+        },
+        "within_48h_share": 1.0
+       },
+       "I4": {
+        "invalidated_within_48h": 4613,
+        "minutes_to_invalidation": {
+         "mean": 70.8,
+         "n": 4613,
+         "p10": 1.0,
+         "p25": 3.0,
+         "p50": 13.0,
+         "p75": 63.0,
+         "p90": 250.0
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.0052,
+          "eligible": 4613,
+          "thesis_alive": 24
+         },
+         "24h": {
+          "alive_share": 0.0,
+          "eligible": 4613,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 4613,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.1136,
+          "eligible": 4613,
+          "thesis_alive": 524
+         },
+         "8h": {
+          "alive_share": 0.0225,
+          "eligible": 4613,
+          "thesis_alive": 104
+         }
+        },
+        "within_48h_share": 1.0
+       }
+      },
+      "primary_dedup": 4613,
+      "raw": 4613
+     },
+     "SHORT": {
+      "interval_minutes_primary": {
+       "mean": 227.6,
+       "n": 5547,
+       "p10": 6.0,
+       "p25": 17.0,
+       "p50": 59.0,
+       "p75": 238.0,
+       "p90": 520.8
+      },
+      "invalidation": {
+       "I1": {
+        "invalidated_within_48h": 5548,
+        "minutes_to_invalidation": {
+         "mean": 45.5,
+         "n": 5548,
+         "p10": 3.0,
+         "p25": 10.0,
+         "p50": 34.0,
+         "p75": 66.0,
+         "p90": 102.0
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.0,
+          "eligible": 5548,
+          "thesis_alive": 0
+         },
+         "24h": {
+          "alive_share": 0.0,
+          "eligible": 5548,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 5548,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.0023,
+          "eligible": 5548,
+          "thesis_alive": 13
+         },
+         "8h": {
+          "alive_share": 0.0,
+          "eligible": 5548,
+          "thesis_alive": 0
+         }
+        },
+        "within_48h_share": 1.0
+       },
+       "I2": {
+        "invalidated_within_48h": 5548,
+        "minutes_to_invalidation": {
+         "mean": 107.9,
+         "n": 5548,
+         "p10": 1.0,
+         "p25": 5.0,
+         "p50": 25.0,
+         "p75": 151.0,
+         "p90": 324.3
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.0106,
+          "eligible": 5548,
+          "thesis_alive": 59
+         },
+         "24h": {
+          "alive_share": 0.0005,
+          "eligible": 5548,
+          "thesis_alive": 3
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 5548,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.1763,
+          "eligible": 5548,
+          "thesis_alive": 978
+         },
+         "8h": {
+          "alive_share": 0.0451,
+          "eligible": 5548,
+          "thesis_alive": 250
+         }
+        },
+        "within_48h_share": 1.0
+       },
+       "I3": {
+        "invalidated_within_48h": 5548,
+        "minutes_to_invalidation": {
+         "mean": 164.9,
+         "n": 5548,
+         "p10": 9.0,
+         "p25": 27.0,
+         "p50": 80.0,
+         "p75": 248.0,
+         "p90": 425.0
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.0214,
+          "eligible": 5548,
+          "thesis_alive": 119
+         },
+         "24h": {
+          "alive_share": 0.0013,
+          "eligible": 5548,
+          "thesis_alive": 7
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 5548,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.2678,
+          "eligible": 5548,
+          "thesis_alive": 1486
+         },
+         "8h": {
+          "alive_share": 0.0789,
+          "eligible": 5548,
+          "thesis_alive": 438
+         }
+        },
+        "within_48h_share": 1.0
+       },
+       "I4": {
+        "invalidated_within_48h": 5548,
+        "minutes_to_invalidation": {
+         "mean": 78.6,
+         "n": 5548,
+         "p10": 1.0,
+         "p25": 3.0,
+         "p50": 13.0,
+         "p75": 71.0,
+         "p90": 267.0
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.0081,
+          "eligible": 5548,
+          "thesis_alive": 45
+         },
+         "24h": {
+          "alive_share": 0.0005,
+          "eligible": 5548,
+          "thesis_alive": 3
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 5548,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.1267,
+          "eligible": 5548,
+          "thesis_alive": 703
+         },
+         "8h": {
+          "alive_share": 0.0319,
+          "eligible": 5548,
+          "thesis_alive": 177
+         }
+        },
+        "within_48h_share": 1.0
+       }
+      },
+      "primary_dedup": 5548,
+      "raw": 5548
+     },
+     "all_family_one_position_48h_N": 222,
+     "overlap_adjusted_48h_N": 414,
+     "primary_dedup_total": 10161
+    },
+    "F2": {
+     "LONG": {
+      "interval_minutes_primary": {
+       "mean": 696.2,
+       "n": 1817,
+       "p10": 73.6,
+       "p25": 145.0,
+       "p50": 346.0,
+       "p75": 639.0,
+       "p90": 1755.2
+      },
+      "invalidation": {
+       "I1": {
+        "invalidated_within_48h": 1818,
+        "minutes_to_invalidation": {
+         "mean": 49.3,
+         "n": 1818,
+         "p10": 8.0,
+         "p25": 23.0,
+         "p50": 41.0,
+         "p75": 64.0,
+         "p90": 99.0
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.0,
+          "eligible": 1818,
+          "thesis_alive": 0
+         },
+         "24h": {
+          "alive_share": 0.0,
+          "eligible": 1818,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 1818,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.005,
+          "eligible": 1818,
+          "thesis_alive": 9
+         },
+         "8h": {
+          "alive_share": 0.0,
+          "eligible": 1818,
+          "thesis_alive": 0
+         }
+        },
+        "within_48h_share": 1.0
+       },
+       "I2": {
+        "invalidated_within_48h": 1818,
+        "minutes_to_invalidation": {
+         "mean": 164.9,
+         "n": 1818,
+         "p10": 9.0,
+         "p25": 31.0,
+         "p50": 109.0,
+         "p75": 241.0,
+         "p90": 396.3
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.0121,
+          "eligible": 1818,
+          "thesis_alive": 22
+         },
+         "24h": {
+          "alive_share": 0.0,
+          "eligible": 1818,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 1818,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.2569,
+          "eligible": 1818,
+          "thesis_alive": 467
+         },
+         "8h": {
+          "alive_share": 0.055,
+          "eligible": 1818,
+          "thesis_alive": 100
+         }
+        },
+        "within_48h_share": 1.0
+       },
+       "I3": {
+        "invalidated_within_48h": 1818,
+        "minutes_to_invalidation": {
+         "mean": 195.4,
+         "n": 1818,
+         "p10": 23.0,
+         "p25": 49.0,
+         "p50": 136.5,
+         "p75": 274.8,
+         "p90": 447.0
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.0198,
+          "eligible": 1818,
+          "thesis_alive": 36
+         },
+         "24h": {
+          "alive_share": 0.0011,
+          "eligible": 1818,
+          "thesis_alive": 2
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 1818,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.3141,
+          "eligible": 1818,
+          "thesis_alive": 571
+         },
+         "8h": {
+          "alive_share": 0.0803,
+          "eligible": 1818,
+          "thesis_alive": 146
+         }
+        },
+        "within_48h_share": 1.0
+       },
+       "I4": {
+        "invalidated_within_48h": 1818,
+        "minutes_to_invalidation": {
+         "mean": 144.6,
+         "n": 1818,
+         "p10": 6.0,
+         "p25": 21.2,
+         "p50": 73.5,
+         "p75": 227.0,
+         "p90": 363.6
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.011,
+          "eligible": 1818,
+          "thesis_alive": 20
+         },
+         "24h": {
+          "alive_share": 0.0,
+          "eligible": 1818,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 1818,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.2272,
+          "eligible": 1818,
+          "thesis_alive": 413
+         },
+         "8h": {
+          "alive_share": 0.0468,
+          "eligible": 1818,
+          "thesis_alive": 85
+         }
+        },
+        "within_48h_share": 1.0
+       }
+      },
+      "primary_dedup": 1818,
+      "raw": 9961
+     },
+     "SHORT": {
+      "interval_minutes_primary": {
+       "mean": 563.9,
+       "n": 2238,
+       "p10": 72.0,
+       "p25": 137.0,
+       "p50": 330.0,
+       "p75": 589.0,
+       "p90": 1131.6
+      },
+      "invalidation": {
+       "I1": {
+        "invalidated_within_48h": 2239,
+        "minutes_to_invalidation": {
+         "mean": 49.1,
+         "n": 2239,
+         "p10": 7.0,
+         "p25": 20.0,
+         "p50": 41.0,
+         "p75": 65.0,
+         "p90": 102.0
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.0,
+          "eligible": 2239,
+          "thesis_alive": 0
+         },
+         "24h": {
+          "alive_share": 0.0,
+          "eligible": 2239,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 2239,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.0031,
+          "eligible": 2239,
+          "thesis_alive": 7
+         },
+         "8h": {
+          "alive_share": 0.0,
+          "eligible": 2239,
+          "thesis_alive": 0
+         }
+        },
+        "within_48h_share": 1.0
+       },
+       "I2": {
+        "invalidated_within_48h": 2239,
+        "minutes_to_invalidation": {
+         "mean": 177.0,
+         "n": 2239,
+         "p10": 8.0,
+         "p25": 28.0,
+         "p50": 115.0,
+         "p75": 263.0,
+         "p90": 431.2
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.0197,
+          "eligible": 2239,
+          "thesis_alive": 44
+         },
+         "24h": {
+          "alive_share": 0.0013,
+          "eligible": 2239,
+          "thesis_alive": 3
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 2239,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.2836,
+          "eligible": 2239,
+          "thesis_alive": 635
+         },
+         "8h": {
+          "alive_share": 0.0755,
+          "eligible": 2239,
+          "thesis_alive": 169
+         }
+        },
+        "within_48h_share": 1.0
+       },
+       "I3": {
+        "invalidated_within_48h": 2239,
+        "minutes_to_invalidation": {
+         "mean": 211.6,
+         "n": 2239,
+         "p10": 21.0,
+         "p25": 47.0,
+         "p50": 154.0,
+         "p75": 302.5,
+         "p90": 491.2
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.0304,
+          "eligible": 2239,
+          "thesis_alive": 68
+         },
+         "24h": {
+          "alive_share": 0.0018,
+          "eligible": 2239,
+          "thesis_alive": 4
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 2239,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.3448,
+          "eligible": 2239,
+          "thesis_alive": 772
+         },
+         "8h": {
+          "alive_share": 0.105,
+          "eligible": 2239,
+          "thesis_alive": 235
+         }
+        },
+        "within_48h_share": 1.0
+       },
+       "I4": {
+        "invalidated_within_48h": 2239,
+        "minutes_to_invalidation": {
+         "mean": 158.9,
+         "n": 2239,
+         "p10": 6.0,
+         "p25": 21.0,
+         "p50": 81.0,
+         "p75": 243.5,
+         "p90": 405.2
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.0183,
+          "eligible": 2239,
+          "thesis_alive": 41
+         },
+         "24h": {
+          "alive_share": 0.0013,
+          "eligible": 2239,
+          "thesis_alive": 3
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 2239,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.2546,
+          "eligible": 2239,
+          "thesis_alive": 570
+         },
+         "8h": {
+          "alive_share": 0.0679,
+          "eligible": 2239,
+          "thesis_alive": 152
+         }
+        },
+        "within_48h_share": 1.0
+       }
+      },
+      "primary_dedup": 2239,
+      "raw": 13431
+     },
+     "all_family_one_position_48h_N": 127,
+     "overlap_adjusted_48h_N": 422,
+     "primary_dedup_total": 4057
+    },
+    "F3": {
+     "LONG": {
+      "interval_minutes_primary": {
+       "mean": 976.6,
+       "n": 1295,
+       "p10": 120.0,
+       "p25": 258.5,
+       "p50": 470.0,
+       "p75": 835.0,
+       "p90": 2459.4
+      },
+      "invalidation": {
+       "I1": {
+        "invalidated_within_48h": 1296,
+        "minutes_to_invalidation": {
+         "mean": 27.0,
+         "n": 1296,
+         "p10": 1.0,
+         "p25": 3.0,
+         "p50": 9.0,
+         "p75": 38.0,
+         "p90": 77.0
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.0,
+          "eligible": 1296,
+          "thesis_alive": 0
+         },
+         "24h": {
+          "alive_share": 0.0,
+          "eligible": 1296,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 1296,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.0,
+          "eligible": 1296,
+          "thesis_alive": 0
+         },
+         "8h": {
+          "alive_share": 0.0,
+          "eligible": 1296,
+          "thesis_alive": 0
+         }
+        },
+        "within_48h_share": 1.0
+       },
+       "I2": {
+        "invalidated_within_48h": 1296,
+        "minutes_to_invalidation": {
+         "mean": 157.2,
+         "n": 1296,
+         "p10": 13.0,
+         "p25": 38.0,
+         "p50": 114.0,
+         "p75": 202.2,
+         "p90": 373.5
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.0116,
+          "eligible": 1296,
+          "thesis_alive": 15
+         },
+         "24h": {
+          "alive_share": 0.0,
+          "eligible": 1296,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 1296,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.2307,
+          "eligible": 1296,
+          "thesis_alive": 299
+         },
+         "8h": {
+          "alive_share": 0.0486,
+          "eligible": 1296,
+          "thesis_alive": 63
+         }
+        },
+        "within_48h_share": 1.0
+       },
+       "I3": {
+        "invalidated_within_48h": 1296,
+        "minutes_to_invalidation": {
+         "mean": 181.6,
+         "n": 1296,
+         "p10": 18.0,
+         "p25": 50.0,
+         "p50": 130.0,
+         "p75": 258.2,
+         "p90": 440.0
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.0177,
+          "eligible": 1296,
+          "thesis_alive": 23
+         },
+         "24h": {
+          "alive_share": 0.0008,
+          "eligible": 1296,
+          "thesis_alive": 1
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 1296,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.2755,
+          "eligible": 1296,
+          "thesis_alive": 357
+         },
+         "8h": {
+          "alive_share": 0.0772,
+          "eligible": 1296,
+          "thesis_alive": 100
+         }
+        },
+        "within_48h_share": 1.0
+       },
+       "I4": {
+        "invalidated_within_48h": 1296,
+        "minutes_to_invalidation": {
+         "mean": 145.6,
+         "n": 1296,
+         "p10": 10.0,
+         "p25": 30.0,
+         "p50": 96.0,
+         "p75": 188.0,
+         "p90": 359.0
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.0108,
+          "eligible": 1296,
+          "thesis_alive": 14
+         },
+         "24h": {
+          "alive_share": 0.0,
+          "eligible": 1296,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 1296,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.2137,
+          "eligible": 1296,
+          "thesis_alive": 277
+         },
+         "8h": {
+          "alive_share": 0.0424,
+          "eligible": 1296,
+          "thesis_alive": 55
+         }
+        },
+        "within_48h_share": 1.0
+       }
+      },
+      "primary_dedup": 1296,
+      "raw": 4653
+     },
+     "SHORT": {
+      "interval_minutes_primary": {
+       "mean": 751.2,
+       "n": 1680,
+       "p10": 121.0,
+       "p25": 236.0,
+       "p50": 439.0,
+       "p75": 757.2,
+       "p90": 1808.9
+      },
+      "invalidation": {
+       "I1": {
+        "invalidated_within_48h": 1681,
+        "minutes_to_invalidation": {
+         "mean": 27.9,
+         "n": 1681,
+         "p10": 1.0,
+         "p25": 3.0,
+         "p50": 10.0,
+         "p75": 36.0,
+         "p90": 81.0
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.0,
+          "eligible": 1681,
+          "thesis_alive": 0
+         },
+         "24h": {
+          "alive_share": 0.0,
+          "eligible": 1681,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 1681,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.003,
+          "eligible": 1681,
+          "thesis_alive": 5
+         },
+         "8h": {
+          "alive_share": 0.0,
+          "eligible": 1681,
+          "thesis_alive": 0
+         }
+        },
+        "within_48h_share": 1.0
+       },
+       "I2": {
+        "invalidated_within_48h": 1681,
+        "minutes_to_invalidation": {
+         "mean": 170.2,
+         "n": 1681,
+         "p10": 12.0,
+         "p25": 38.0,
+         "p50": 120.0,
+         "p75": 241.0,
+         "p90": 409.0
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.0161,
+          "eligible": 1681,
+          "thesis_alive": 27
+         },
+         "24h": {
+          "alive_share": 0.0006,
+          "eligible": 1681,
+          "thesis_alive": 1
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 1681,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.2504,
+          "eligible": 1681,
+          "thesis_alive": 421
+         },
+         "8h": {
+          "alive_share": 0.0654,
+          "eligible": 1681,
+          "thesis_alive": 110
+         }
+        },
+        "within_48h_share": 1.0
+       },
+       "I3": {
+        "invalidated_within_48h": 1681,
+        "minutes_to_invalidation": {
+         "mean": 194.9,
+         "n": 1681,
+         "p10": 17.0,
+         "p25": 52.0,
+         "p50": 136.0,
+         "p75": 269.0,
+         "p90": 450.0
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.0262,
+          "eligible": 1681,
+          "thesis_alive": 44
+         },
+         "24h": {
+          "alive_share": 0.0012,
+          "eligible": 1681,
+          "thesis_alive": 2
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 1681,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.2891,
+          "eligible": 1681,
+          "thesis_alive": 486
+         },
+         "8h": {
+          "alive_share": 0.0874,
+          "eligible": 1681,
+          "thesis_alive": 147
+         }
+        },
+        "within_48h_share": 1.0
+       },
+       "I4": {
+        "invalidated_within_48h": 1681,
+        "minutes_to_invalidation": {
+         "mean": 160.0,
+         "n": 1681,
+         "p10": 9.0,
+         "p25": 30.0,
+         "p50": 106.0,
+         "p75": 209.0,
+         "p90": 396.0
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.0161,
+          "eligible": 1681,
+          "thesis_alive": 27
+         },
+         "24h": {
+          "alive_share": 0.0006,
+          "eligible": 1681,
+          "thesis_alive": 1
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 1681,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.232,
+          "eligible": 1681,
+          "thesis_alive": 390
+         },
+         "8h": {
+          "alive_share": 0.0619,
+          "eligible": 1681,
+          "thesis_alive": 104
+         }
+        },
+        "within_48h_share": 1.0
+       }
+      },
+      "primary_dedup": 1681,
+      "raw": 6531
+     },
+     "all_family_one_position_48h_N": 83,
+     "overlap_adjusted_48h_N": 415,
+     "primary_dedup_total": 2977
+    },
+    "UNCLASSIFIED_EVEN": {
+     "LONG": {
+      "interval_minutes_primary": null,
+      "invalidation": {
+       "I1": {
+        "invalidated_within_48h": 0,
+        "minutes_to_invalidation": null,
+        "survival": {
+         "12h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "24h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "8h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         }
+        },
+        "within_48h_share": null
+       },
+       "I2": {
+        "invalidated_within_48h": 0,
+        "minutes_to_invalidation": null,
+        "survival": {
+         "12h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "24h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "8h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         }
+        },
+        "within_48h_share": null
+       },
+       "I3": {
+        "invalidated_within_48h": 0,
+        "minutes_to_invalidation": null,
+        "survival": {
+         "12h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "24h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "8h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         }
+        },
+        "within_48h_share": null
+       },
+       "I4": {
+        "invalidated_within_48h": 0,
+        "minutes_to_invalidation": null,
+        "survival": {
+         "12h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "24h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "8h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         }
+        },
+        "within_48h_share": null
+       }
+      },
+      "primary_dedup": 0,
+      "raw": 0
+     },
+     "SHORT": {
+      "interval_minutes_primary": null,
+      "invalidation": {
+       "I1": {
+        "invalidated_within_48h": 0,
+        "minutes_to_invalidation": null,
+        "survival": {
+         "12h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "24h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "8h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         }
+        },
+        "within_48h_share": null
+       },
+       "I2": {
+        "invalidated_within_48h": 0,
+        "minutes_to_invalidation": null,
+        "survival": {
+         "12h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "24h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "8h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         }
+        },
+        "within_48h_share": null
+       },
+       "I3": {
+        "invalidated_within_48h": 0,
+        "minutes_to_invalidation": null,
+        "survival": {
+         "12h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "24h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "8h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         }
+        },
+        "within_48h_share": null
+       },
+       "I4": {
+        "invalidated_within_48h": 0,
+        "minutes_to_invalidation": null,
+        "survival": {
+         "12h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "24h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "8h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         }
+        },
+        "within_48h_share": null
+       }
+      },
+      "primary_dedup": 0,
+      "raw": 0
+     },
+     "all_family_one_position_48h_N": 0,
+     "overlap_adjusted_48h_N": 0,
+     "primary_dedup_total": 0
+    }
+   },
+   "flips": {
+    "D": {
+     "buy_sell_direct": 6687,
+     "changes": 6687,
+     "changes_per_day": 7.61,
+     "changes_per_week": 53.25
+    },
+    "H1": {
+     "buy_sell_direct": 54688,
+     "changes": 54688,
+     "changes_per_day": 62.22,
+     "changes_per_week": 435.51
+    },
+    "H4": {
+     "buy_sell_direct": 25145,
+     "changes": 25145,
+     "changes_per_day": 28.61,
+     "changes_per_week": 200.24
+    },
+    "M": {
+     "buy_sell_direct": 146782,
+     "changes": 146782,
+     "changes_per_day": 166.99,
+     "changes_per_week": 1168.91
+    }
+   },
+   "regimes": 31537,
+   "setups_total_raw": 44737,
+   "state_frequency": {
+    "D": {
+     "BUY_pct": 44.306,
+     "EVEN_pct": 0.0,
+     "NONE_pct": 0.0,
+     "SELL_pct": 55.694
+    },
+    "H1": {
+     "BUY_pct": 48.225,
+     "EVEN_pct": 0.0,
+     "NONE_pct": 0.0,
+     "SELL_pct": 51.775
+    },
+    "H4": {
+     "BUY_pct": 46.661,
+     "EVEN_pct": 0.0,
+     "NONE_pct": 0.0,
+     "SELL_pct": 53.339
+    },
+    "M": {
+     "BUY_pct": 49.114,
+     "EVEN_pct": 0.0,
+     "NONE_pct": 0.008,
+     "SELL_pct": 50.878
+    }
+   }
+  },
+  "V2A": {
+   "alignment": {
+    "D_H4_H1_pct": 31.304,
+    "D_H4_pct": 55.992
+   },
+   "duration": {
+    "D": {
+     "mean_min": 3319.6,
+     "median_min": 2880.0,
+     "p90_min": 5760.0,
+     "runs": 380
+    },
+    "H1": {
+     "mean_min": 117.5,
+     "median_min": 60.0,
+     "p90_min": 240.0,
+     "runs": 10775
+    },
+    "H4": {
+     "mean_min": 518.7,
+     "median_min": 480.0,
+     "p90_min": 960.0,
+     "runs": 2440
+    },
+    "M": {
+     "mean_min": 8.6,
+     "median_min": 6.0,
+     "p90_min": 20.0,
+     "runs": 146784
+    },
+    "REGIME": {
+     "mean_min": 530.1,
+     "median_min": 480.0,
+     "p90_min": 1200.0,
+     "runs": 1337
+    }
+   },
+   "evaluation": {
+    "evaluated_days": 879.001,
+    "first_index_all_defined": 1439
+   },
+   "families": {
+    "F1": {
+     "LONG": {
+      "interval_minutes_primary": {
+       "mean": 2198.8,
+       "n": 575,
+       "p10": 483.4,
+       "p25": 720.0,
+       "p50": 1168.0,
+       "p75": 2326.5,
+       "p90": 4838.4
+      },
+      "invalidation": {
+       "I1": {
+        "invalidated_within_48h": 576,
+        "minutes_to_invalidation": {
+         "mean": 110.9,
+         "n": 576,
+         "p10": 49.0,
+         "p25": 60.0,
+         "p50": 60.0,
+         "p75": 120.0,
+         "p90": 237.0
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.0,
+          "eligible": 576,
+          "thesis_alive": 0
+         },
+         "24h": {
+          "alive_share": 0.0,
+          "eligible": 576,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 576,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.0625,
+          "eligible": 576,
+          "thesis_alive": 36
+         },
+         "8h": {
+          "alive_share": 0.0035,
+          "eligible": 576,
+          "thesis_alive": 2
+         }
+        },
+        "within_48h_share": 1.0
+       },
+       "I2": {
+        "invalidated_within_48h": 576,
+        "minutes_to_invalidation": {
+         "mean": 489.6,
+         "n": 576,
+         "p10": 180.0,
+         "p25": 237.0,
+         "p50": 360.0,
+         "p75": 660.0,
+         "p90": 960.0
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.1736,
+          "eligible": 576,
+          "thesis_alive": 100
+         },
+         "24h": {
+          "alive_share": 0.026,
+          "eligible": 576,
+          "thesis_alive": 15
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 576,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.5295,
+          "eligible": 576,
+          "thesis_alive": 305
+         },
+         "8h": {
+          "alive_share": 0.2865,
+          "eligible": 576,
+          "thesis_alive": 165
+         }
+        },
+        "within_48h_share": 1.0
+       },
+       "I3": {
+        "invalidated_within_48h": 574,
+        "minutes_to_invalidation": {
+         "mean": 558.2,
+         "n": 576,
+         "p10": 180.0,
+         "p25": 240.0,
+         "p50": 420.0,
+         "p75": 720.0,
+         "p90": 1193.0
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.2309,
+          "eligible": 576,
+          "thesis_alive": 133
+         },
+         "24h": {
+          "alive_share": 0.0451,
+          "eligible": 576,
+          "thesis_alive": 26
+         },
+         "48h": {
+          "alive_share": 0.0035,
+          "eligible": 576,
+          "thesis_alive": 2
+         },
+         "4h": {
+          "alive_share": 0.6545,
+          "eligible": 576,
+          "thesis_alive": 377
+         },
+         "8h": {
+          "alive_share": 0.3681,
+          "eligible": 576,
+          "thesis_alive": 212
+         }
+        },
+        "within_48h_share": 0.9965
+       },
+       "I4": {
+        "invalidated_within_48h": 576,
+        "minutes_to_invalidation": {
+         "mean": 470.0,
+         "n": 576,
+         "p10": 177.0,
+         "p25": 235.8,
+         "p50": 333.5,
+         "p75": 611.5,
+         "p90": 960.0
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.1597,
+          "eligible": 576,
+          "thesis_alive": 92
+         },
+         "24h": {
+          "alive_share": 0.0243,
+          "eligible": 576,
+          "thesis_alive": 14
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 576,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.5052,
+          "eligible": 576,
+          "thesis_alive": 291
+         },
+         "8h": {
+          "alive_share": 0.2656,
+          "eligible": 576,
+          "thesis_alive": 153
+         }
+        },
+        "within_48h_share": 1.0
+       }
+      },
+      "primary_dedup": 576,
+      "raw": 576
+     },
+     "SHORT": {
+      "interval_minutes_primary": {
+       "mean": 1752.6,
+       "n": 717,
+       "p10": 480.0,
+       "p25": 719.0,
+       "p50": 1147.0,
+       "p75": 1970.0,
+       "p90": 3803.2
+      },
+      "invalidation": {
+       "I1": {
+        "invalidated_within_48h": 718,
+        "minutes_to_invalidation": {
+         "mean": 117.6,
+         "n": 718,
+         "p10": 52.0,
+         "p25": 60.0,
+         "p50": 60.0,
+         "p75": 120.0,
+         "p90": 239.3
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.0,
+          "eligible": 718,
+          "thesis_alive": 0
+         },
+         "24h": {
+          "alive_share": 0.0,
+          "eligible": 718,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 718,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.0696,
+          "eligible": 718,
+          "thesis_alive": 50
+         },
+         "8h": {
+          "alive_share": 0.0084,
+          "eligible": 718,
+          "thesis_alive": 6
+         }
+        },
+        "within_48h_share": 1.0
+       },
+       "I2": {
+        "invalidated_within_48h": 715,
+        "minutes_to_invalidation": {
+         "mean": 551.9,
+         "n": 718,
+         "p10": 180.0,
+         "p25": 240.0,
+         "p50": 420.0,
+         "p75": 720.0,
+         "p90": 1197.0
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.1992,
+          "eligible": 718,
+          "thesis_alive": 143
+         },
+         "24h": {
+          "alive_share": 0.0418,
+          "eligible": 718,
+          "thesis_alive": 30
+         },
+         "48h": {
+          "alive_share": 0.0042,
+          "eligible": 718,
+          "thesis_alive": 3
+         },
+         "4h": {
+          "alive_share": 0.5669,
+          "eligible": 718,
+          "thesis_alive": 407
+         },
+         "8h": {
+          "alive_share": 0.3273,
+          "eligible": 718,
+          "thesis_alive": 235
+         }
+        },
+        "within_48h_share": 0.9958
+       },
+       "I3": {
+        "invalidated_within_48h": 712,
+        "minutes_to_invalidation": {
+         "mean": 642.7,
+         "n": 718,
+         "p10": 217.1,
+         "p25": 240.0,
+         "p50": 479.5,
+         "p75": 780.0,
+         "p90": 1379.3
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.273,
+          "eligible": 718,
+          "thesis_alive": 196
+         },
+         "24h": {
+          "alive_share": 0.0752,
+          "eligible": 718,
+          "thesis_alive": 54
+         },
+         "48h": {
+          "alive_share": 0.0084,
+          "eligible": 718,
+          "thesis_alive": 6
+         },
+         "4h": {
+          "alive_share": 0.688,
+          "eligible": 718,
+          "thesis_alive": 494
+         },
+         "8h": {
+          "alive_share": 0.4276,
+          "eligible": 718,
+          "thesis_alive": 307
+         }
+        },
+        "within_48h_share": 0.9916
+       },
+       "I4": {
+        "invalidated_within_48h": 715,
+        "minutes_to_invalidation": {
+         "mean": 536.2,
+         "n": 718,
+         "p10": 179.0,
+         "p25": 239.0,
+         "p50": 420.0,
+         "p75": 719.0,
+         "p90": 1196.3
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.1922,
+          "eligible": 718,
+          "thesis_alive": 138
+         },
+         "24h": {
+          "alive_share": 0.039,
+          "eligible": 718,
+          "thesis_alive": 28
+         },
+         "48h": {
+          "alive_share": 0.0042,
+          "eligible": 718,
+          "thesis_alive": 3
+         },
+         "4h": {
+          "alive_share": 0.5404,
+          "eligible": 718,
+          "thesis_alive": 388
+         },
+         "8h": {
+          "alive_share": 0.3092,
+          "eligible": 718,
+          "thesis_alive": 222
+         }
+        },
+        "within_48h_share": 0.9958
+       }
+      },
+      "primary_dedup": 718,
+      "raw": 718
+     },
+     "all_family_one_position_48h_N": 235,
+     "overlap_adjusted_48h_N": 365,
+     "primary_dedup_total": 1294
+    },
+    "F2": {
+     "LONG": {
+      "interval_minutes_primary": {
+       "mean": 2198.8,
+       "n": 575,
+       "p10": 495.4,
+       "p25": 727.0,
+       "p50": 1165.0,
+       "p75": 2326.5,
+       "p90": 4842.6
+      },
+      "invalidation": {
+       "I1": {
+        "invalidated_within_48h": 576,
+        "minutes_to_invalidation": {
+         "mean": 93.4,
+         "n": 576,
+         "p10": 25.0,
+         "p25": 38.0,
+         "p50": 55.0,
+         "p75": 117.0,
+         "p90": 210.5
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.0,
+          "eligible": 576,
+          "thesis_alive": 0
+         },
+         "24h": {
+          "alive_share": 0.0,
+          "eligible": 576,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 576,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.0625,
+          "eligible": 576,
+          "thesis_alive": 36
+         },
+         "8h": {
+          "alive_share": 0.0035,
+          "eligible": 576,
+          "thesis_alive": 2
+         }
+        },
+        "within_48h_share": 1.0
+       },
+       "I2": {
+        "invalidated_within_48h": 576,
+        "minutes_to_invalidation": {
+         "mean": 471.3,
+         "n": 576,
+         "p10": 153.5,
+         "p25": 211.0,
+         "p50": 349.0,
+         "p75": 649.0,
+         "p90": 953.5
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.1736,
+          "eligible": 576,
+          "thesis_alive": 100
+         },
+         "24h": {
+          "alive_share": 0.026,
+          "eligible": 576,
+          "thesis_alive": 15
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 576,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.5295,
+          "eligible": 576,
+          "thesis_alive": 305
+         },
+         "8h": {
+          "alive_share": 0.2865,
+          "eligible": 576,
+          "thesis_alive": 165
+         }
+        },
+        "within_48h_share": 1.0
+       },
+       "I3": {
+        "invalidated_within_48h": 574,
+        "minutes_to_invalidation": {
+         "mean": 539.8,
+         "n": 576,
+         "p10": 165.5,
+         "p25": 221.0,
+         "p50": 400.5,
+         "p75": 707.0,
+         "p90": 1176.0
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.2309,
+          "eligible": 576,
+          "thesis_alive": 133
+         },
+         "24h": {
+          "alive_share": 0.0451,
+          "eligible": 576,
+          "thesis_alive": 26
+         },
+         "48h": {
+          "alive_share": 0.0035,
+          "eligible": 576,
+          "thesis_alive": 2
+         },
+         "4h": {
+          "alive_share": 0.6545,
+          "eligible": 576,
+          "thesis_alive": 377
+         },
+         "8h": {
+          "alive_share": 0.3681,
+          "eligible": 576,
+          "thesis_alive": 212
+         }
+        },
+        "within_48h_share": 0.9965
+       },
+       "I4": {
+        "invalidated_within_48h": 576,
+        "minutes_to_invalidation": {
+         "mean": 451.7,
+         "n": 576,
+         "p10": 144.0,
+         "p25": 208.0,
+         "p50": 312.5,
+         "p75": 600.5,
+         "p90": 946.5
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.1597,
+          "eligible": 576,
+          "thesis_alive": 92
+         },
+         "24h": {
+          "alive_share": 0.0243,
+          "eligible": 576,
+          "thesis_alive": 14
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 576,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.5052,
+          "eligible": 576,
+          "thesis_alive": 291
+         },
+         "8h": {
+          "alive_share": 0.2656,
+          "eligible": 576,
+          "thesis_alive": 153
+         }
+        },
+        "within_48h_share": 1.0
+       }
+      },
+      "primary_dedup": 576,
+      "raw": 8390
+     },
+     "SHORT": {
+      "interval_minutes_primary": {
+       "mean": 1750.1,
+       "n": 718,
+       "p10": 488.4,
+       "p25": 708.5,
+       "p50": 1157.5,
+       "p75": 1961.2,
+       "p90": 3782.0
+      },
+      "invalidation": {
+       "I1": {
+        "invalidated_within_48h": 719,
+        "minutes_to_invalidation": {
+         "mean": 101.5,
+         "n": 719,
+         "p10": 28.8,
+         "p25": 41.0,
+         "p50": 58.0,
+         "p75": 115.5,
+         "p90": 222.2
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.0,
+          "eligible": 719,
+          "thesis_alive": 0
+         },
+         "24h": {
+          "alive_share": 0.0,
+          "eligible": 719,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 719,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.0709,
+          "eligible": 719,
+          "thesis_alive": 51
+         },
+         "8h": {
+          "alive_share": 0.0097,
+          "eligible": 719,
+          "thesis_alive": 7
+         }
+        },
+        "within_48h_share": 1.0
+       },
+       "I2": {
+        "invalidated_within_48h": 716,
+        "minutes_to_invalidation": {
+         "mean": 534.2,
+         "n": 719,
+         "p10": 165.6,
+         "p25": 218.5,
+         "p50": 414.0,
+         "p75": 698.0,
+         "p90": 1177.0
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.1975,
+          "eligible": 719,
+          "thesis_alive": 142
+         },
+         "24h": {
+          "alive_share": 0.0417,
+          "eligible": 719,
+          "thesis_alive": 30
+         },
+         "48h": {
+          "alive_share": 0.0042,
+          "eligible": 719,
+          "thesis_alive": 3
+         },
+         "4h": {
+          "alive_share": 0.5675,
+          "eligible": 719,
+          "thesis_alive": 408
+         },
+         "8h": {
+          "alive_share": 0.3282,
+          "eligible": 719,
+          "thesis_alive": 236
+         }
+        },
+        "within_48h_share": 0.9958
+       },
+       "I3": {
+        "invalidated_within_48h": 713,
+        "minutes_to_invalidation": {
+         "mean": 624.8,
+         "n": 719,
+         "p10": 183.0,
+         "p25": 228.0,
+         "p50": 456.0,
+         "p75": 772.0,
+         "p90": 1355.2
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.2726,
+          "eligible": 719,
+          "thesis_alive": 196
+         },
+         "24h": {
+          "alive_share": 0.0751,
+          "eligible": 719,
+          "thesis_alive": 54
+         },
+         "48h": {
+          "alive_share": 0.0083,
+          "eligible": 719,
+          "thesis_alive": 6
+         },
+         "4h": {
+          "alive_share": 0.6885,
+          "eligible": 719,
+          "thesis_alive": 495
+         },
+         "8h": {
+          "alive_share": 0.4284,
+          "eligible": 719,
+          "thesis_alive": 308
+         }
+        },
+        "within_48h_share": 0.9917
+       },
+       "I4": {
+        "invalidated_within_48h": 716,
+        "minutes_to_invalidation": {
+         "mean": 518.5,
+         "n": 719,
+         "p10": 160.0,
+         "p25": 216.0,
+         "p50": 399.0,
+         "p75": 694.0,
+         "p90": 1175.2
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.1905,
+          "eligible": 719,
+          "thesis_alive": 137
+         },
+         "24h": {
+          "alive_share": 0.0389,
+          "eligible": 719,
+          "thesis_alive": 28
+         },
+         "48h": {
+          "alive_share": 0.0042,
+          "eligible": 719,
+          "thesis_alive": 3
+         },
+         "4h": {
+          "alive_share": 0.541,
+          "eligible": 719,
+          "thesis_alive": 389
+         },
+         "8h": {
+          "alive_share": 0.3102,
+          "eligible": 719,
+          "thesis_alive": 223
+         }
+        },
+        "within_48h_share": 0.9958
+       }
+      },
+      "primary_dedup": 719,
+      "raw": 12849
+     },
+     "all_family_one_position_48h_N": 108,
+     "overlap_adjusted_48h_N": 404,
+     "primary_dedup_total": 1295
+    },
+    "F3": {
+     "LONG": {
+      "interval_minutes_primary": {
+       "mean": 3274.4,
+       "n": 386,
+       "p10": 656.0,
+       "p25": 912.0,
+       "p50": 1740.0,
+       "p75": 3827.0,
+       "p90": 7671.5
+      },
+      "invalidation": {
+       "I1": {
+        "invalidated_within_48h": 387,
+        "minutes_to_invalidation": {
+         "mean": 110.3,
+         "n": 387,
+         "p10": 53.0,
+         "p25": 60.0,
+         "p50": 60.0,
+         "p75": 120.0,
+         "p90": 194.8
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.0,
+          "eligible": 387,
+          "thesis_alive": 0
+         },
+         "24h": {
+          "alive_share": 0.0,
+          "eligible": 387,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 387,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.0439,
+          "eligible": 387,
+          "thesis_alive": 17
+         },
+         "8h": {
+          "alive_share": 0.0026,
+          "eligible": 387,
+          "thesis_alive": 1
+         }
+        },
+        "within_48h_share": 1.0
+       },
+       "I2": {
+        "invalidated_within_48h": 387,
+        "minutes_to_invalidation": {
+         "mean": 410.8,
+         "n": 387,
+         "p10": 60.0,
+         "p25": 119.0,
+         "p50": 298.0,
+         "p75": 599.0,
+         "p90": 900.0
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.1938,
+          "eligible": 387,
+          "thesis_alive": 75
+         },
+         "24h": {
+          "alive_share": 0.0258,
+          "eligible": 387,
+          "thesis_alive": 10
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 387,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.5349,
+          "eligible": 387,
+          "thesis_alive": 207
+         },
+         "8h": {
+          "alive_share": 0.2946,
+          "eligible": 387,
+          "thesis_alive": 114
+         }
+        },
+        "within_48h_share": 1.0
+       },
+       "I3": {
+        "invalidated_within_48h": 386,
+        "minutes_to_invalidation": {
+         "mean": 491.8,
+         "n": 387,
+         "p10": 60.0,
+         "p25": 120.0,
+         "p50": 356.0,
+         "p75": 741.0,
+         "p90": 1080.0
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.2506,
+          "eligible": 387,
+          "thesis_alive": 97
+         },
+         "24h": {
+          "alive_share": 0.0413,
+          "eligible": 387,
+          "thesis_alive": 16
+         },
+         "48h": {
+          "alive_share": 0.0026,
+          "eligible": 387,
+          "thesis_alive": 1
+         },
+         "4h": {
+          "alive_share": 0.5891,
+          "eligible": 387,
+          "thesis_alive": 228
+         },
+         "8h": {
+          "alive_share": 0.3437,
+          "eligible": 387,
+          "thesis_alive": 133
+         }
+        },
+        "within_48h_share": 0.9974
+       },
+       "I4": {
+        "invalidated_within_48h": 387,
+        "minutes_to_invalidation": {
+         "mean": 400.8,
+         "n": 387,
+         "p10": 60.0,
+         "p25": 118.0,
+         "p50": 296.0,
+         "p75": 540.0,
+         "p90": 897.6
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.1835,
+          "eligible": 387,
+          "thesis_alive": 71
+         },
+         "24h": {
+          "alive_share": 0.0258,
+          "eligible": 387,
+          "thesis_alive": 10
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 387,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.5245,
+          "eligible": 387,
+          "thesis_alive": 203
+         },
+         "8h": {
+          "alive_share": 0.2817,
+          "eligible": 387,
+          "thesis_alive": 109
+         }
+        },
+        "within_48h_share": 1.0
+       }
+      },
+      "primary_dedup": 387,
+      "raw": 839
+     },
+     "SHORT": {
+      "interval_minutes_primary": {
+       "mean": 2388.8,
+       "n": 526,
+       "p10": 634.0,
+       "p25": 899.2,
+       "p50": 1560.0,
+       "p75": 2799.8,
+       "p90": 5010.0
+      },
+      "invalidation": {
+       "I1": {
+        "invalidated_within_48h": 527,
+        "minutes_to_invalidation": {
+         "mean": 124.7,
+         "n": 527,
+         "p10": 57.0,
+         "p25": 60.0,
+         "p50": 114.0,
+         "p75": 174.5,
+         "p90": 240.0
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.0019,
+          "eligible": 527,
+          "thesis_alive": 1
+         },
+         "24h": {
+          "alive_share": 0.0,
+          "eligible": 527,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 527,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.0816,
+          "eligible": 527,
+          "thesis_alive": 43
+         },
+         "8h": {
+          "alive_share": 0.0076,
+          "eligible": 527,
+          "thesis_alive": 4
+         }
+        },
+        "within_48h_share": 1.0
+       },
+       "I2": {
+        "invalidated_within_48h": 525,
+        "minutes_to_invalidation": {
+         "mean": 458.1,
+         "n": 527,
+         "p10": 60.0,
+         "p25": 119.0,
+         "p50": 300.0,
+         "p75": 600.0,
+         "p90": 1080.0
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.2011,
+          "eligible": 527,
+          "thesis_alive": 106
+         },
+         "24h": {
+          "alive_share": 0.0474,
+          "eligible": 527,
+          "thesis_alive": 25
+         },
+         "48h": {
+          "alive_share": 0.0038,
+          "eligible": 527,
+          "thesis_alive": 2
+         },
+         "4h": {
+          "alive_share": 0.5541,
+          "eligible": 527,
+          "thesis_alive": 292
+         },
+         "8h": {
+          "alive_share": 0.3188,
+          "eligible": 527,
+          "thesis_alive": 168
+         }
+        },
+        "within_48h_share": 0.9962
+       },
+       "I3": {
+        "invalidated_within_48h": 523,
+        "minutes_to_invalidation": {
+         "mean": 545.3,
+         "n": 527,
+         "p10": 60.0,
+         "p25": 120.0,
+         "p50": 358.0,
+         "p75": 778.5,
+         "p90": 1219.6
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.2581,
+          "eligible": 527,
+          "thesis_alive": 136
+         },
+         "24h": {
+          "alive_share": 0.0721,
+          "eligible": 527,
+          "thesis_alive": 38
+         },
+         "48h": {
+          "alive_share": 0.0076,
+          "eligible": 527,
+          "thesis_alive": 4
+         },
+         "4h": {
+          "alive_share": 0.6205,
+          "eligible": 527,
+          "thesis_alive": 327
+         },
+         "8h": {
+          "alive_share": 0.3681,
+          "eligible": 527,
+          "thesis_alive": 194
+         }
+        },
+        "within_48h_share": 0.9924
+       },
+       "I4": {
+        "invalidated_within_48h": 525,
+        "minutes_to_invalidation": {
+         "mean": 449.9,
+         "n": 527,
+         "p10": 60.0,
+         "p25": 118.0,
+         "p50": 300.0,
+         "p75": 600.0,
+         "p90": 1078.8
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.1992,
+          "eligible": 527,
+          "thesis_alive": 105
+         },
+         "24h": {
+          "alive_share": 0.0455,
+          "eligible": 527,
+          "thesis_alive": 24
+         },
+         "48h": {
+          "alive_share": 0.0038,
+          "eligible": 527,
+          "thesis_alive": 2
+         },
+         "4h": {
+          "alive_share": 0.5351,
+          "eligible": 527,
+          "thesis_alive": 282
+         },
+         "8h": {
+          "alive_share": 0.3112,
+          "eligible": 527,
+          "thesis_alive": 164
+         }
+        },
+        "within_48h_share": 0.9962
+       }
+      },
+      "primary_dedup": 527,
+      "raw": 1220
+     },
+     "all_family_one_position_48h_N": 62,
+     "overlap_adjusted_48h_N": 366,
+     "primary_dedup_total": 914
+    },
+    "UNCLASSIFIED_EVEN": {
+     "LONG": {
+      "interval_minutes_primary": null,
+      "invalidation": {
+       "I1": {
+        "invalidated_within_48h": 0,
+        "minutes_to_invalidation": null,
+        "survival": {
+         "12h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "24h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "8h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         }
+        },
+        "within_48h_share": null
+       },
+       "I2": {
+        "invalidated_within_48h": 0,
+        "minutes_to_invalidation": null,
+        "survival": {
+         "12h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "24h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "8h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         }
+        },
+        "within_48h_share": null
+       },
+       "I3": {
+        "invalidated_within_48h": 0,
+        "minutes_to_invalidation": null,
+        "survival": {
+         "12h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "24h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "8h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         }
+        },
+        "within_48h_share": null
+       },
+       "I4": {
+        "invalidated_within_48h": 0,
+        "minutes_to_invalidation": null,
+        "survival": {
+         "12h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "24h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "8h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         }
+        },
+        "within_48h_share": null
+       }
+      },
+      "primary_dedup": 0,
+      "raw": 0
+     },
+     "SHORT": {
+      "interval_minutes_primary": null,
+      "invalidation": {
+       "I1": {
+        "invalidated_within_48h": 1,
+        "minutes_to_invalidation": {
+         "mean": 4.0,
+         "n": 1,
+         "p10": 4.0,
+         "p25": 4.0,
+         "p50": 4.0,
+         "p75": 4.0,
+         "p90": 4.0
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.0,
+          "eligible": 1,
+          "thesis_alive": 0
+         },
+         "24h": {
+          "alive_share": 0.0,
+          "eligible": 1,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 1,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.0,
+          "eligible": 1,
+          "thesis_alive": 0
+         },
+         "8h": {
+          "alive_share": 0.0,
+          "eligible": 1,
+          "thesis_alive": 0
+         }
+        },
+        "within_48h_share": 1.0
+       },
+       "I2": {
+        "invalidated_within_48h": 1,
+        "minutes_to_invalidation": {
+         "mean": 64.0,
+         "n": 1,
+         "p10": 64.0,
+         "p25": 64.0,
+         "p50": 64.0,
+         "p75": 64.0,
+         "p90": 64.0
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.0,
+          "eligible": 1,
+          "thesis_alive": 0
+         },
+         "24h": {
+          "alive_share": 0.0,
+          "eligible": 1,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 1,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.0,
+          "eligible": 1,
+          "thesis_alive": 0
+         },
+         "8h": {
+          "alive_share": 0.0,
+          "eligible": 1,
+          "thesis_alive": 0
+         }
+        },
+        "within_48h_share": 1.0
+       },
+       "I3": {
+        "invalidated_within_48h": 1,
+        "minutes_to_invalidation": {
+         "mean": 64.0,
+         "n": 1,
+         "p10": 64.0,
+         "p25": 64.0,
+         "p50": 64.0,
+         "p75": 64.0,
+         "p90": 64.0
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.0,
+          "eligible": 1,
+          "thesis_alive": 0
+         },
+         "24h": {
+          "alive_share": 0.0,
+          "eligible": 1,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 1,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.0,
+          "eligible": 1,
+          "thesis_alive": 0
+         },
+         "8h": {
+          "alive_share": 0.0,
+          "eligible": 1,
+          "thesis_alive": 0
+         }
+        },
+        "within_48h_share": 1.0
+       },
+       "I4": {
+        "invalidated_within_48h": 1,
+        "minutes_to_invalidation": {
+         "mean": 64.0,
+         "n": 1,
+         "p10": 64.0,
+         "p25": 64.0,
+         "p50": 64.0,
+         "p75": 64.0,
+         "p90": 64.0
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.0,
+          "eligible": 1,
+          "thesis_alive": 0
+         },
+         "24h": {
+          "alive_share": 0.0,
+          "eligible": 1,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 1,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.0,
+          "eligible": 1,
+          "thesis_alive": 0
+         },
+         "8h": {
+          "alive_share": 0.0,
+          "eligible": 1,
+          "thesis_alive": 0
+         }
+        },
+        "within_48h_share": 1.0
+       }
+      },
+      "primary_dedup": 1,
+      "raw": 1
+     },
+     "all_family_one_position_48h_N": 0,
+     "overlap_adjusted_48h_N": 1,
+     "primary_dedup_total": 1
+    }
+   },
+   "flips": {
+    "D": {
+     "buy_sell_direct": 381,
+     "changes": 381,
+     "changes_per_day": 0.43,
+     "changes_per_week": 3.03
+    },
+    "H1": {
+     "buy_sell_direct": 10776,
+     "changes": 10776,
+     "changes_per_day": 12.26,
+     "changes_per_week": 85.82
+    },
+    "H4": {
+     "buy_sell_direct": 2441,
+     "changes": 2441,
+     "changes_per_day": 2.78,
+     "changes_per_week": 19.44
+    },
+    "M": {
+     "buy_sell_direct": 146782,
+     "changes": 146782,
+     "changes_per_day": 166.99,
+     "changes_per_week": 1168.91
+    }
+   },
+   "regimes": 2583,
+   "setups_total_raw": 24593,
+   "state_frequency": {
+    "D": {
+     "BUY_pct": 43.8,
+     "EVEN_pct": 0.0,
+     "NONE_pct": 0.0,
+     "SELL_pct": 56.2
+    },
+    "H1": {
+     "BUY_pct": 48.109,
+     "EVEN_pct": 0.0,
+     "NONE_pct": 0.0,
+     "SELL_pct": 51.891
+    },
+    "H4": {
+     "BUY_pct": 46.815,
+     "EVEN_pct": 0.0,
+     "NONE_pct": 0.0,
+     "SELL_pct": 53.185
+    },
+    "M": {
+     "BUY_pct": 49.114,
+     "EVEN_pct": 0.0,
+     "NONE_pct": 0.008,
+     "SELL_pct": 50.878
+    }
+   }
+  },
+  "V2B": {
+   "alignment": {
+    "D_H4_H1_pct": 32.327,
+    "D_H4_pct": 59.642
+   },
+   "duration": {
+    "D": {
+     "mean_min": 2755.6,
+     "median_min": 1837.5,
+     "p90_min": 5663.3,
+     "runs": 458
+    },
+    "H1": {
+     "mean_min": 23.1,
+     "median_min": 6.0,
+     "p90_min": 71.0,
+     "runs": 54681
+    },
+    "H4": {
+     "mean_min": 452.2,
+     "median_min": 318.0,
+     "p90_min": 934.4000000000001,
+     "runs": 2797
+    },
+    "M": {
+     "mean_min": 8.6,
+     "median_min": 6.0,
+     "p90_min": 20.0,
+     "runs": 146764
+    },
+    "REGIME": {
+     "mean_min": 463.3,
+     "median_min": 323.0,
+     "p90_min": 1004.7999999999997,
+     "runs": 1628
+    }
+   },
+   "evaluation": {
+    "evaluated_days": 878.835,
+    "first_index_all_defined": 1678
+   },
+   "families": {
+    "F1": {
+     "LONG": {
+      "interval_minutes_primary": {
+       "mean": 1810.0,
+       "n": 698,
+       "p10": 387.7,
+       "p25": 575.2,
+       "p50": 926.5,
+       "p75": 1973.0,
+       "p90": 3799.5
+      },
+      "invalidation": {
+       "I1": {
+        "invalidated_within_48h": 699,
+        "minutes_to_invalidation": {
+         "mean": 33.2,
+         "n": 699,
+         "p10": 2.0,
+         "p25": 5.0,
+         "p50": 19.0,
+         "p75": 52.5,
+         "p90": 82.0
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.0,
+          "eligible": 699,
+          "thesis_alive": 0
+         },
+         "24h": {
+          "alive_share": 0.0,
+          "eligible": 699,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 699,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.0,
+          "eligible": 699,
+          "thesis_alive": 0
+         },
+         "8h": {
+          "alive_share": 0.0,
+          "eligible": 699,
+          "thesis_alive": 0
+         }
+        },
+        "within_48h_share": 1.0
+       },
+       "I2": {
+        "invalidated_within_48h": 699,
+        "minutes_to_invalidation": {
+         "mean": 441.6,
+         "n": 699,
+         "p10": 104.8,
+         "p25": 186.0,
+         "p50": 309.0,
+         "p75": 556.0,
+         "p90": 958.4
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.166,
+          "eligible": 699,
+          "thesis_alive": 116
+         },
+         "24h": {
+          "alive_share": 0.0372,
+          "eligible": 699,
+          "thesis_alive": 26
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 699,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.6538,
+          "eligible": 699,
+          "thesis_alive": 457
+         },
+         "8h": {
+          "alive_share": 0.3162,
+          "eligible": 699,
+          "thesis_alive": 221
+         }
+        },
+        "within_48h_share": 1.0
+       },
+       "I3": {
+        "invalidated_within_48h": 699,
+        "minutes_to_invalidation": {
+         "mean": 455.5,
+         "n": 699,
+         "p10": 109.4,
+         "p25": 191.0,
+         "p50": 324.0,
+         "p75": 574.5,
+         "p90": 975.0
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.1803,
+          "eligible": 699,
+          "thesis_alive": 126
+         },
+         "24h": {
+          "alive_share": 0.0386,
+          "eligible": 699,
+          "thesis_alive": 27
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 699,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.6738,
+          "eligible": 699,
+          "thesis_alive": 471
+         },
+         "8h": {
+          "alive_share": 0.329,
+          "eligible": 699,
+          "thesis_alive": 230
+         }
+        },
+        "within_48h_share": 1.0
+       },
+       "I4": {
+        "invalidated_within_48h": 699,
+        "minutes_to_invalidation": {
+         "mean": 434.3,
+         "n": 699,
+         "p10": 98.8,
+         "p25": 175.5,
+         "p50": 300.0,
+         "p75": 542.5,
+         "p90": 958.4
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.1631,
+          "eligible": 699,
+          "thesis_alive": 114
+         },
+         "24h": {
+          "alive_share": 0.0372,
+          "eligible": 699,
+          "thesis_alive": 26
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 699,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.6423,
+          "eligible": 699,
+          "thesis_alive": 449
+         },
+         "8h": {
+          "alive_share": 0.3076,
+          "eligible": 699,
+          "thesis_alive": 215
+         }
+        },
+        "within_48h_share": 1.0
+       }
+      },
+      "primary_dedup": 699,
+      "raw": 699
+     },
+     "SHORT": {
+      "interval_minutes_primary": {
+       "mean": 1465.8,
+       "n": 861,
+       "p10": 397.0,
+       "p25": 548.0,
+       "p50": 888.0,
+       "p75": 1749.0,
+       "p90": 3371.0
+      },
+      "invalidation": {
+       "I1": {
+        "invalidated_within_48h": 862,
+        "minutes_to_invalidation": {
+         "mean": 35.2,
+         "n": 862,
+         "p10": 2.0,
+         "p25": 6.0,
+         "p50": 20.5,
+         "p75": 56.0,
+         "p90": 86.0
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.0,
+          "eligible": 862,
+          "thesis_alive": 0
+         },
+         "24h": {
+          "alive_share": 0.0,
+          "eligible": 862,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 862,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.0012,
+          "eligible": 862,
+          "thesis_alive": 1
+         },
+         "8h": {
+          "alive_share": 0.0,
+          "eligible": 862,
+          "thesis_alive": 0
+         }
+        },
+        "within_48h_share": 1.0
+       },
+       "I2": {
+        "invalidated_within_48h": 857,
+        "minutes_to_invalidation": {
+         "mean": 501.9,
+         "n": 862,
+         "p10": 112.1,
+         "p25": 210.0,
+         "p50": 353.0,
+         "p75": 607.0,
+         "p90": 1084.6
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.1914,
+          "eligible": 862,
+          "thesis_alive": 165
+         },
+         "24h": {
+          "alive_share": 0.0452,
+          "eligible": 862,
+          "thesis_alive": 39
+         },
+         "48h": {
+          "alive_share": 0.0058,
+          "eligible": 862,
+          "thesis_alive": 5
+         },
+         "4h": {
+          "alive_share": 0.7077,
+          "eligible": 862,
+          "thesis_alive": 610
+         },
+         "8h": {
+          "alive_share": 0.3712,
+          "eligible": 862,
+          "thesis_alive": 320
+         }
+        },
+        "within_48h_share": 0.9942
+       },
+       "I3": {
+        "invalidated_within_48h": 857,
+        "minutes_to_invalidation": {
+         "mean": 518.7,
+         "n": 862,
+         "p10": 117.1,
+         "p25": 218.2,
+         "p50": 363.0,
+         "p75": 629.5,
+         "p90": 1141.7
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.2019,
+          "eligible": 862,
+          "thesis_alive": 174
+         },
+         "24h": {
+          "alive_share": 0.0499,
+          "eligible": 862,
+          "thesis_alive": 43
+         },
+         "48h": {
+          "alive_share": 0.0058,
+          "eligible": 862,
+          "thesis_alive": 5
+         },
+         "4h": {
+          "alive_share": 0.7193,
+          "eligible": 862,
+          "thesis_alive": 620
+         },
+         "8h": {
+          "alive_share": 0.384,
+          "eligible": 862,
+          "thesis_alive": 331
+         }
+        },
+        "within_48h_share": 0.9942
+       },
+       "I4": {
+        "invalidated_within_48h": 857,
+        "minutes_to_invalidation": {
+         "mean": 495.6,
+         "n": 862,
+         "p10": 104.1,
+         "p25": 200.0,
+         "p50": 348.5,
+         "p75": 598.0,
+         "p90": 1077.9
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.1868,
+          "eligible": 862,
+          "thesis_alive": 161
+         },
+         "24h": {
+          "alive_share": 0.0452,
+          "eligible": 862,
+          "thesis_alive": 39
+         },
+         "48h": {
+          "alive_share": 0.0058,
+          "eligible": 862,
+          "thesis_alive": 5
+         },
+         "4h": {
+          "alive_share": 0.6972,
+          "eligible": 862,
+          "thesis_alive": 601
+         },
+         "8h": {
+          "alive_share": 0.3666,
+          "eligible": 862,
+          "thesis_alive": 316
+         }
+        },
+        "within_48h_share": 0.9942
+       }
+      },
+      "primary_dedup": 862,
+      "raw": 862
+     },
+     "all_family_one_position_48h_N": 206,
+     "overlap_adjusted_48h_N": 368,
+     "primary_dedup_total": 1561
+    },
+    "F2": {
+     "LONG": {
+      "interval_minutes_primary": {
+       "mean": 2049.2,
+       "n": 617,
+       "p10": 436.6,
+       "p25": 630.0,
+       "p50": 1044.0,
+       "p75": 2293.0,
+       "p90": 4378.6
+      },
+      "invalidation": {
+       "I1": {
+        "invalidated_within_48h": 618,
+        "minutes_to_invalidation": {
+         "mean": 40.6,
+         "n": 618,
+         "p10": 4.0,
+         "p25": 13.0,
+         "p50": 32.0,
+         "p75": 56.8,
+         "p90": 88.3
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.0,
+          "eligible": 618,
+          "thesis_alive": 0
+         },
+         "24h": {
+          "alive_share": 0.0,
+          "eligible": 618,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 618,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.0,
+          "eligible": 618,
+          "thesis_alive": 0
+         },
+         "8h": {
+          "alive_share": 0.0,
+          "eligible": 618,
+          "thesis_alive": 0
+         }
+        },
+        "within_48h_share": 1.0
+       },
+       "I2": {
+        "invalidated_within_48h": 618,
+        "minutes_to_invalidation": {
+         "mean": 444.4,
+         "n": 618,
+         "p10": 91.7,
+         "p25": 182.0,
+         "p50": 307.0,
+         "p75": 557.5,
+         "p90": 976.8
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.1683,
+          "eligible": 618,
+          "thesis_alive": 104
+         },
+         "24h": {
+          "alive_share": 0.0372,
+          "eligible": 618,
+          "thesis_alive": 23
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 618,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.6537,
+          "eligible": 618,
+          "thesis_alive": 404
+         },
+         "8h": {
+          "alive_share": 0.3236,
+          "eligible": 618,
+          "thesis_alive": 200
+         }
+        },
+        "within_48h_share": 1.0
+       },
+       "I3": {
+        "invalidated_within_48h": 618,
+        "minutes_to_invalidation": {
+         "mean": 458.2,
+         "n": 618,
+         "p10": 98.0,
+         "p25": 188.2,
+         "p50": 325.0,
+         "p75": 589.8,
+         "p90": 1004.9
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.1828,
+          "eligible": 618,
+          "thesis_alive": 113
+         },
+         "24h": {
+          "alive_share": 0.0388,
+          "eligible": 618,
+          "thesis_alive": 24
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 618,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.6699,
+          "eligible": 618,
+          "thesis_alive": 414
+         },
+         "8h": {
+          "alive_share": 0.3366,
+          "eligible": 618,
+          "thesis_alive": 208
+         }
+        },
+        "within_48h_share": 1.0
+       },
+       "I4": {
+        "invalidated_within_48h": 618,
+        "minutes_to_invalidation": {
+         "mean": 439.6,
+         "n": 618,
+         "p10": 87.7,
+         "p25": 174.2,
+         "p50": 301.0,
+         "p75": 551.8,
+         "p90": 976.8
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.1667,
+          "eligible": 618,
+          "thesis_alive": 103
+         },
+         "24h": {
+          "alive_share": 0.0372,
+          "eligible": 618,
+          "thesis_alive": 23
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 618,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.6424,
+          "eligible": 618,
+          "thesis_alive": 397
+         },
+         "8h": {
+          "alive_share": 0.3188,
+          "eligible": 618,
+          "thesis_alive": 197
+         }
+        },
+        "within_48h_share": 1.0
+       }
+      },
+      "primary_dedup": 618,
+      "raw": 7225
+     },
+     "SHORT": {
+      "interval_minutes_primary": {
+       "mean": 1618.0,
+       "n": 780,
+       "p10": 423.9,
+       "p25": 598.0,
+       "p50": 976.5,
+       "p75": 1873.5,
+       "p90": 3588.1
+      },
+      "invalidation": {
+       "I1": {
+        "invalidated_within_48h": 781,
+        "minutes_to_invalidation": {
+         "mean": 40.8,
+         "n": 781,
+         "p10": 4.0,
+         "p25": 12.0,
+         "p50": 31.0,
+         "p75": 60.0,
+         "p90": 92.0
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.0,
+          "eligible": 781,
+          "thesis_alive": 0
+         },
+         "24h": {
+          "alive_share": 0.0,
+          "eligible": 781,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 781,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.0013,
+          "eligible": 781,
+          "thesis_alive": 1
+         },
+         "8h": {
+          "alive_share": 0.0,
+          "eligible": 781,
+          "thesis_alive": 0
+         }
+        },
+        "within_48h_share": 1.0
+       },
+       "I2": {
+        "invalidated_within_48h": 776,
+        "minutes_to_invalidation": {
+         "mean": 505.9,
+         "n": 781,
+         "p10": 97.0,
+         "p25": 221.0,
+         "p50": 355.0,
+         "p75": 618.0,
+         "p90": 1106.0
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.2036,
+          "eligible": 781,
+          "thesis_alive": 159
+         },
+         "24h": {
+          "alive_share": 0.0487,
+          "eligible": 781,
+          "thesis_alive": 38
+         },
+         "48h": {
+          "alive_share": 0.0064,
+          "eligible": 781,
+          "thesis_alive": 5
+         },
+         "4h": {
+          "alive_share": 0.7119,
+          "eligible": 781,
+          "thesis_alive": 556
+         },
+         "8h": {
+          "alive_share": 0.3662,
+          "eligible": 781,
+          "thesis_alive": 286
+         }
+        },
+        "within_48h_share": 0.9936
+       },
+       "I3": {
+        "invalidated_within_48h": 776,
+        "minutes_to_invalidation": {
+         "mean": 523.7,
+         "n": 781,
+         "p10": 105.0,
+         "p25": 226.0,
+         "p50": 364.0,
+         "p75": 634.0,
+         "p90": 1144.0
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.2138,
+          "eligible": 781,
+          "thesis_alive": 167
+         },
+         "24h": {
+          "alive_share": 0.0538,
+          "eligible": 781,
+          "thesis_alive": 42
+         },
+         "48h": {
+          "alive_share": 0.0064,
+          "eligible": 781,
+          "thesis_alive": 5
+         },
+         "4h": {
+          "alive_share": 0.7234,
+          "eligible": 781,
+          "thesis_alive": 565
+         },
+         "8h": {
+          "alive_share": 0.3816,
+          "eligible": 781,
+          "thesis_alive": 298
+         }
+        },
+        "within_48h_share": 0.9936
+       },
+       "I4": {
+        "invalidated_within_48h": 776,
+        "minutes_to_invalidation": {
+         "mean": 499.7,
+         "n": 781,
+         "p10": 87.0,
+         "p25": 214.0,
+         "p50": 352.0,
+         "p75": 606.0,
+         "p90": 1096.0
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.1985,
+          "eligible": 781,
+          "thesis_alive": 155
+         },
+         "24h": {
+          "alive_share": 0.0487,
+          "eligible": 781,
+          "thesis_alive": 38
+         },
+         "48h": {
+          "alive_share": 0.0064,
+          "eligible": 781,
+          "thesis_alive": 5
+         },
+         "4h": {
+          "alive_share": 0.7042,
+          "eligible": 781,
+          "thesis_alive": 550
+         },
+         "8h": {
+          "alive_share": 0.3611,
+          "eligible": 781,
+          "thesis_alive": 282
+         }
+        },
+        "within_48h_share": 0.9936
+       }
+      },
+      "primary_dedup": 781,
+      "raw": 10714
+     },
+     "all_family_one_position_48h_N": 100,
+     "overlap_adjusted_48h_N": 408,
+     "primary_dedup_total": 1399
+    },
+    "F3": {
+     "LONG": {
+      "interval_minutes_primary": {
+       "mean": 2016.4,
+       "n": 627,
+       "p10": 429.4,
+       "p25": 617.5,
+       "p50": 965.0,
+       "p75": 2151.5,
+       "p90": 4509.0
+      },
+      "invalidation": {
+       "I1": {
+        "invalidated_within_48h": 628,
+        "minutes_to_invalidation": {
+         "mean": 26.7,
+         "n": 628,
+         "p10": 1.0,
+         "p25": 3.0,
+         "p50": 9.0,
+         "p75": 40.2,
+         "p90": 77.3
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.0,
+          "eligible": 628,
+          "thesis_alive": 0
+         },
+         "24h": {
+          "alive_share": 0.0,
+          "eligible": 628,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 628,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.0016,
+          "eligible": 628,
+          "thesis_alive": 1
+         },
+         "8h": {
+          "alive_share": 0.0,
+          "eligible": 628,
+          "thesis_alive": 0
+         }
+        },
+        "within_48h_share": 1.0
+       },
+       "I2": {
+        "invalidated_within_48h": 628,
+        "minutes_to_invalidation": {
+         "mean": 417.7,
+         "n": 628,
+         "p10": 86.0,
+         "p25": 161.0,
+         "p50": 296.5,
+         "p75": 540.2,
+         "p90": 937.5
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.1592,
+          "eligible": 628,
+          "thesis_alive": 100
+         },
+         "24h": {
+          "alive_share": 0.0334,
+          "eligible": 628,
+          "thesis_alive": 21
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 628,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.5557,
+          "eligible": 628,
+          "thesis_alive": 349
+         },
+         "8h": {
+          "alive_share": 0.3041,
+          "eligible": 628,
+          "thesis_alive": 191
+         }
+        },
+        "within_48h_share": 1.0
+       },
+       "I3": {
+        "invalidated_within_48h": 628,
+        "minutes_to_invalidation": {
+         "mean": 429.7,
+         "n": 628,
+         "p10": 88.7,
+         "p25": 168.0,
+         "p50": 301.0,
+         "p75": 571.8,
+         "p90": 957.6
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.164,
+          "eligible": 628,
+          "thesis_alive": 103
+         },
+         "24h": {
+          "alive_share": 0.035,
+          "eligible": 628,
+          "thesis_alive": 22
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 628,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.5717,
+          "eligible": 628,
+          "thesis_alive": 359
+         },
+         "8h": {
+          "alive_share": 0.3137,
+          "eligible": 628,
+          "thesis_alive": 197
+         }
+        },
+        "within_48h_share": 1.0
+       },
+       "I4": {
+        "invalidated_within_48h": 628,
+        "minutes_to_invalidation": {
+         "mean": 412.1,
+         "n": 628,
+         "p10": 83.0,
+         "p25": 154.0,
+         "p50": 283.5,
+         "p75": 529.0,
+         "p90": 937.5
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.1561,
+          "eligible": 628,
+          "thesis_alive": 98
+         },
+         "24h": {
+          "alive_share": 0.0334,
+          "eligible": 628,
+          "thesis_alive": 21
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 628,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.5462,
+          "eligible": 628,
+          "thesis_alive": 343
+         },
+         "8h": {
+          "alive_share": 0.2962,
+          "eligible": 628,
+          "thesis_alive": 186
+         }
+        },
+        "within_48h_share": 1.0
+       }
+      },
+      "primary_dedup": 628,
+      "raw": 5045
+     },
+     "SHORT": {
+      "interval_minutes_primary": {
+       "mean": 1575.9,
+       "n": 801,
+       "p10": 424.0,
+       "p25": 582.0,
+       "p50": 939.0,
+       "p75": 1852.0,
+       "p90": 3591.0
+      },
+      "invalidation": {
+       "I1": {
+        "invalidated_within_48h": 802,
+        "minutes_to_invalidation": {
+         "mean": 28.0,
+         "n": 802,
+         "p10": 1.0,
+         "p25": 2.2,
+         "p50": 9.0,
+         "p75": 37.8,
+         "p90": 79.0
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.0,
+          "eligible": 802,
+          "thesis_alive": 0
+         },
+         "24h": {
+          "alive_share": 0.0,
+          "eligible": 802,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": 0.0,
+          "eligible": 802,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": 0.0025,
+          "eligible": 802,
+          "thesis_alive": 2
+         },
+         "8h": {
+          "alive_share": 0.0,
+          "eligible": 802,
+          "thesis_alive": 0
+         }
+        },
+        "within_48h_share": 1.0
+       },
+       "I2": {
+        "invalidated_within_48h": 798,
+        "minutes_to_invalidation": {
+         "mean": 476.4,
+         "n": 802,
+         "p10": 97.0,
+         "p25": 168.0,
+         "p50": 319.5,
+         "p75": 585.2,
+         "p90": 1051.0
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.1808,
+          "eligible": 802,
+          "thesis_alive": 145
+         },
+         "24h": {
+          "alive_share": 0.0461,
+          "eligible": 802,
+          "thesis_alive": 37
+         },
+         "48h": {
+          "alive_share": 0.005,
+          "eligible": 802,
+          "thesis_alive": 4
+         },
+         "4h": {
+          "alive_share": 0.6122,
+          "eligible": 802,
+          "thesis_alive": 491
+         },
+         "8h": {
+          "alive_share": 0.3342,
+          "eligible": 802,
+          "thesis_alive": 268
+         }
+        },
+        "within_48h_share": 0.995
+       },
+       "I3": {
+        "invalidated_within_48h": 798,
+        "minutes_to_invalidation": {
+         "mean": 492.3,
+         "n": 802,
+         "p10": 102.1,
+         "p25": 174.0,
+         "p50": 328.5,
+         "p75": 600.8,
+         "p90": 1077.3
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.1883,
+          "eligible": 802,
+          "thesis_alive": 151
+         },
+         "24h": {
+          "alive_share": 0.0511,
+          "eligible": 802,
+          "thesis_alive": 41
+         },
+         "48h": {
+          "alive_share": 0.005,
+          "eligible": 802,
+          "thesis_alive": 4
+         },
+         "4h": {
+          "alive_share": 0.6272,
+          "eligible": 802,
+          "thesis_alive": 503
+         },
+         "8h": {
+          "alive_share": 0.3491,
+          "eligible": 802,
+          "thesis_alive": 280
+         }
+        },
+        "within_48h_share": 0.995
+       },
+       "I4": {
+        "invalidated_within_48h": 798,
+        "minutes_to_invalidation": {
+         "mean": 469.7,
+         "n": 802,
+         "p10": 92.1,
+         "p25": 161.0,
+         "p50": 315.0,
+         "p75": 576.8,
+         "p90": 1031.5
+        },
+        "survival": {
+         "12h": {
+          "alive_share": 0.1771,
+          "eligible": 802,
+          "thesis_alive": 142
+         },
+         "24h": {
+          "alive_share": 0.0461,
+          "eligible": 802,
+          "thesis_alive": 37
+         },
+         "48h": {
+          "alive_share": 0.005,
+          "eligible": 802,
+          "thesis_alive": 4
+         },
+         "4h": {
+          "alive_share": 0.6022,
+          "eligible": 802,
+          "thesis_alive": 483
+         },
+         "8h": {
+          "alive_share": 0.3292,
+          "eligible": 802,
+          "thesis_alive": 264
+         }
+        },
+        "within_48h_share": 0.995
+       }
+      },
+      "primary_dedup": 802,
+      "raw": 7390
+     },
+     "all_family_one_position_48h_N": 114,
+     "overlap_adjusted_48h_N": 407,
+     "primary_dedup_total": 1430
+    },
+    "UNCLASSIFIED_EVEN": {
+     "LONG": {
+      "interval_minutes_primary": null,
+      "invalidation": {
+       "I1": {
+        "invalidated_within_48h": 0,
+        "minutes_to_invalidation": null,
+        "survival": {
+         "12h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "24h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "8h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         }
+        },
+        "within_48h_share": null
+       },
+       "I2": {
+        "invalidated_within_48h": 0,
+        "minutes_to_invalidation": null,
+        "survival": {
+         "12h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "24h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "8h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         }
+        },
+        "within_48h_share": null
+       },
+       "I3": {
+        "invalidated_within_48h": 0,
+        "minutes_to_invalidation": null,
+        "survival": {
+         "12h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "24h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "8h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         }
+        },
+        "within_48h_share": null
+       },
+       "I4": {
+        "invalidated_within_48h": 0,
+        "minutes_to_invalidation": null,
+        "survival": {
+         "12h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "24h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "8h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         }
+        },
+        "within_48h_share": null
+       }
+      },
+      "primary_dedup": 0,
+      "raw": 0
+     },
+     "SHORT": {
+      "interval_minutes_primary": null,
+      "invalidation": {
+       "I1": {
+        "invalidated_within_48h": 0,
+        "minutes_to_invalidation": null,
+        "survival": {
+         "12h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "24h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "8h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         }
+        },
+        "within_48h_share": null
+       },
+       "I2": {
+        "invalidated_within_48h": 0,
+        "minutes_to_invalidation": null,
+        "survival": {
+         "12h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "24h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "8h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         }
+        },
+        "within_48h_share": null
+       },
+       "I3": {
+        "invalidated_within_48h": 0,
+        "minutes_to_invalidation": null,
+        "survival": {
+         "12h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "24h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "8h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         }
+        },
+        "within_48h_share": null
+       },
+       "I4": {
+        "invalidated_within_48h": 0,
+        "minutes_to_invalidation": null,
+        "survival": {
+         "12h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "24h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "48h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "4h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         },
+         "8h": {
+          "alive_share": null,
+          "eligible": 0,
+          "thesis_alive": 0
+         }
+        },
+        "within_48h_share": null
+       }
+      },
+      "primary_dedup": 0,
+      "raw": 0
+     },
+     "all_family_one_position_48h_N": 0,
+     "overlap_adjusted_48h_N": 0,
+     "primary_dedup_total": 0
+    }
+   },
+   "flips": {
+    "D": {
+     "buy_sell_direct": 459,
+     "changes": 459,
+     "changes_per_day": 0.52,
+     "changes_per_week": 3.66
+    },
+    "H1": {
+     "buy_sell_direct": 54682,
+     "changes": 54682,
+     "changes_per_day": 62.22,
+     "changes_per_week": 435.55
+    },
+    "H4": {
+     "buy_sell_direct": 2798,
+     "changes": 2798,
+     "changes_per_day": 3.18,
+     "changes_per_week": 22.29
+    },
+    "M": {
+     "buy_sell_direct": 146762,
+     "changes": 146762,
+     "changes_per_day": 167.0,
+     "changes_per_week": 1168.97
+    }
+   },
+   "regimes": 3256,
+   "setups_total_raw": 31935,
+   "state_frequency": {
+    "D": {
+     "BUY_pct": 43.818,
+     "EVEN_pct": 0.0,
+     "NONE_pct": 0.0,
+     "SELL_pct": 56.182
+    },
+    "H1": {
+     "BUY_pct": 48.219,
+     "EVEN_pct": 0.0,
+     "NONE_pct": 0.0,
+     "SELL_pct": 51.781
+    },
+    "H4": {
+     "BUY_pct": 46.421,
+     "EVEN_pct": 0.0,
+     "NONE_pct": 0.0,
+     "SELL_pct": 53.579
+    },
+    "M": {
+     "BUY_pct": 49.113,
+     "EVEN_pct": 0.0,
+     "NONE_pct": 0.008,
+     "SELL_pct": 50.879
+    }
+   }
+  }
+ },
+ "contract_sha256": {
+  "v1": "752cbd19339530bb0a9439e9037db430e09c7b122f7cfb82280b485df74eef61",
+  "v2": "b711e419f1ca52793cc844afea03afe0bdb04ead8524de228f08b4907bb70a0d"
+ },
+ "files_read": [
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-01.zip",
+   "role": "parity",
+   "sha256": "a856e033ceee252f4e3a262a7262a3f60a8f97138794b5fce4ec15d9c66b480e"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-02.zip",
+   "role": "parity",
+   "sha256": "38fc36d008360cb3d8a3c6fafac9dc754e1619d7832a8587e00409899522bdf9"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-03.zip",
+   "role": "parity",
+   "sha256": "f6b1620e5c52f30d2f498e1681775f152296d2ce52dca5c2ae35d402ab9716db"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-04.zip",
+   "role": "parity",
+   "sha256": "5b5bbd3711f1f732e153a4deaa8bc51916850fd7bfa805e9d85c5686403d8e4c"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-05.zip",
+   "role": "parity",
+   "sha256": "af5938c8d23be0f6bdea905ed847b0675c67d1f4b24e8c43832c224cc8b92f99"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-06.zip",
+   "role": "parity",
+   "sha256": "75eeef140b07d21a16eee1a9708738b60b1a72dda0d37e7515fc4a32dffd93e0"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-07.zip",
+   "role": "parity",
+   "sha256": "4d83f583ba355f29a962e588e5174185bf40897320d1e3cee928040e7f2e159d"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-08.zip",
+   "role": "parity",
+   "sha256": "ad03f5ae286bf20186fb0ef7bf5b836bef2f30eedae8f8915ba6436a448fe778"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-09.zip",
+   "role": "parity",
+   "sha256": "cc47f3d39f6974d88e4c348018bfff70b02419274224eb5ae3e5cc80b64f582c"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-10.zip",
+   "role": "parity",
+   "sha256": "ff62872b7c0f5c756b8454481d3a0f080d93eb082e18df058e4fe7589dc0a994"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-11.zip",
+   "role": "parity",
+   "sha256": "08b5af388d100828d5b5fd9c42bcb83bedc64c69e36b671b4361f3fc0d9e48de"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-12.zip",
+   "role": "parity",
+   "sha256": "ca475f250f36080108b21ab83a737c468c302d7f1d5a30081e3a1200296dfa12"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-13.zip",
+   "role": "parity",
+   "sha256": "add855eb76c91c57e1ea425ae3c9fbc953af1e87a906bdf4d290577bb9943456"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-14.zip",
+   "role": "parity",
+   "sha256": "69314932ca1a6aa0f2a45e5b0d0c271a27401f48042fde67414f6ab5a0cdfdff"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-15.zip",
+   "role": "parity",
+   "sha256": "8893455ad98126ec4e6bfca010f701388a188c68715a0f33f686bde60d24430c"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-16.zip",
+   "role": "parity",
+   "sha256": "503b30763484771e6d9031ee7c4103fec765da96803d6ed10f74d39aedcb0724"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-17.zip",
+   "role": "parity",
+   "sha256": "24aa9f01305f04779bf0e2bd27aff0008bd08a6213addc46a55a86236d9ba549"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-18.zip",
+   "role": "parity",
+   "sha256": "60b3135d6d8363acc65f85de8eed32d37c48ec6668176f4ca16113f372f62dce"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-19.zip",
+   "role": "parity",
+   "sha256": "f0f6a47bf03e405577ae9c3f33d8afb624d60b2587d8ce26527b24c6aae4a30d"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-20.zip",
+   "role": "parity",
+   "sha256": "ab02c3ac68a1cdf577f6f1ba22440169e690bcb1cdaae6fdaea50c43209049ed"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-21.zip",
+   "role": "parity",
+   "sha256": "6308c5107d830bb401046d5b97512051eef41313399d686b02445420aa73989a"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-22.zip",
+   "role": "parity",
+   "sha256": "0bc2409a959fce4dbe069038205d8bb41242a41b86bb1851cc8ad8b1585fb5e2"
+  },
+  {
+   "file": "data/research/crypto/market_context_r0/raw/binance_kline_1m_1786492800000_1791100800000.jsonl",
+   "role": "parity",
+   "sha256": "fa2deba911a825a9ee6b1ded7cccbe73e4a47f23f5fce0481ffcc4ab03436fdb"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-02.zip",
+   "role": "train",
+   "sha256": "0a270f354b15b053824a7bb87c652aa95acb4a255fc968fe0a24bdc9e785223e"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-03.zip",
+   "role": "train",
+   "sha256": "15a2676410d5104fac1ea15f7302addbf4d0de14f6db8ce10a4930c3f5d5e7fa"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-04.zip",
+   "role": "train",
+   "sha256": "d957fcde82f9b5a9a05264a9602e5deae03472aa0d424ddb0f27a04e58723217"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-05.zip",
+   "role": "train",
+   "sha256": "dcf7c567cbde49a5e564b29f01be95e28d32f12cb68c40b2a14da75930187dc8"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-06.zip",
+   "role": "train",
+   "sha256": "a640c7f935a1136d2f65f28f9606f0e063185c500f982aec273bb2ed3f61bfc5"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-07.zip",
+   "role": "train",
+   "sha256": "1367b5cd230474b0ecc6031b9e18cffe66e011c8fdd01c3325985a39c5d5ed48"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-08.zip",
+   "role": "train",
+   "sha256": "a864bdf38c9d06b7a6a1dc07c5593bbe7387cec3b869e9ebee020da053d94f37"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-09.zip",
+   "role": "train",
+   "sha256": "6e7bbfe650e6c56e189e78d521b3714feffd38468d1268b706a6626737326676"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-10.zip",
+   "role": "train",
+   "sha256": "4b78dd0174890c975effca2ed078163d6e9b4f7437f692e2c430c724b7eafc24"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-11.zip",
+   "role": "train",
+   "sha256": "67da3342f014166d2af97321599e0011453c4bd5a9282ef12c1a6131efd12993"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-12.zip",
+   "role": "train",
+   "sha256": "c905c5c8ff36d0dfac3a0581225ab305f72d1e11e634953d8d3a136161d10956"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-01.zip",
+   "role": "train",
+   "sha256": "9cdbcf68903434c850f9bec60d8174c2cfd105dd24a7566965b442ec15124e04"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-02.zip",
+   "role": "train",
+   "sha256": "63672d552f98ec125ac4d90d82154313fb9832b7e1aaed196101816bd61bfb89"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-03.zip",
+   "role": "train",
+   "sha256": "4532faf2f92d205fac79b7d25327d2045843b60a4494e00b0962e6b7f028bc06"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-04.zip",
+   "role": "train",
+   "sha256": "0f509e296da62eed5f4e903507ced0de9738ea96a7a885e76dd2394b8049e689"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-05.zip",
+   "role": "train",
+   "sha256": "768bdbbd11b08d935b3753ecfee7f1e351a346c71b11cf68a4a51296d694f368"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-06.zip",
+   "role": "train",
+   "sha256": "8587319eaf1b1f6d73fd34446acdecdc72c47b23ecfd2d88e2a6dd2a35470565"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-07.zip",
+   "role": "train",
+   "sha256": "6fc45fa135a6be85679a6ab0b1268fbd1f8258079295cd134b9a4c535c6b6b65"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-08.zip",
+   "role": "train",
+   "sha256": "806ee1d6efa856984fe79453d17f04c0fb5e447413fe828cbd3ec2df9a1f5fc4"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-09.zip",
+   "role": "train",
+   "sha256": "fa1adecbe41b530c12f481882115511297ac7b78a9a7ae9d9d21b11c745649a4"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-10.zip",
+   "role": "train",
+   "sha256": "0f2d2cd67b30ab186bf3db5a07acfe835f1d74335c6493c80e9e4f0598e29b2c"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-11.zip",
+   "role": "train",
+   "sha256": "96916aba47f230a9bc68cd3fd98d0d352e1fd8f23c16c515107c4d965a2067a3"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-12.zip",
+   "role": "train",
+   "sha256": "0f4788019cdb29f4db7b03d9efefce099d7adf49c0daf70a144b814b292bf577"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2023-01.zip",
+   "role": "train",
+   "sha256": "b7b04483464b36c89f519bf35d6461d278c709577562108b6a00fb786b92e6a6"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2023-02.zip",
+   "role": "train",
+   "sha256": "b62ca5df57b1715109cb1fd57097529b28410fb36b0db5bd41dbefe7e070db68"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2023-03.zip",
+   "role": "train",
+   "sha256": "1cb47aae71e941d3e9d333f9c96723eb35c8b4a7ec90e819c59a7c02f89b03bb"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2023-04.zip",
+   "role": "train",
+   "sha256": "2c22e2e460bf0e41884bf71031eebf60224ba470b25777a4d17ddc9298390650"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2023-05.zip",
+   "role": "train",
+   "sha256": "cf9e0ab390e3872ddb9d807ad161933a28e374e09dbee2b9addf659856d1e656"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2023-06.zip",
+   "role": "train",
+   "sha256": "8dac3fe301198e752b257817542a7ded393dbe00b604f67aba6bc0090778ae95"
+  }
+ ],
+ "judgement": {
+  "V2A": {
+   "D_flips_per_day": {
+    "V1": 7.61,
+    "limit": 2.537,
+    "variant": 0.43
+   },
+   "SLOWER": true,
+   "families": {
+    "F1": {
+     "HOLD_LENGTH": false,
+     "I4_alive_24h_count": 42,
+     "I4_alive_share_12h": 0.1777,
+     "SAMPLE": true,
+     "overlap_adjusted_48h_N": 365
+    },
+    "F2": {
+     "HOLD_LENGTH": false,
+     "I4_alive_24h_count": 42,
+     "I4_alive_share_12h": 0.1768,
+     "SAMPLE": true,
+     "overlap_adjusted_48h_N": 404
+    },
+    "F3": {
+     "HOLD_LENGTH": false,
+     "I4_alive_24h_count": 34,
+     "I4_alive_share_12h": 0.1926,
+     "SAMPLE": true,
+     "overlap_adjusted_48h_N": 366
+    }
+   },
+   "regime_median_min": {
+    "V1": 7.0,
+    "need": 21.0,
+    "variant": 480.0
+   },
+   "verdict": "A_V2_THESIS_TOO_FAST"
+  },
+  "V2B": {
+   "D_flips_per_day": {
+    "V1": 7.61,
+    "limit": 2.537,
+    "variant": 0.52
+   },
+   "SLOWER": true,
+   "families": {
+    "F1": {
+     "HOLD_LENGTH": false,
+     "I4_alive_24h_count": 65,
+     "I4_alive_share_12h": 0.1762,
+     "SAMPLE": true,
+     "overlap_adjusted_48h_N": 368
+    },
+    "F2": {
+     "HOLD_LENGTH": false,
+     "I4_alive_24h_count": 61,
+     "I4_alive_share_12h": 0.1844,
+     "SAMPLE": true,
+     "overlap_adjusted_48h_N": 408
+    },
+    "F3": {
+     "HOLD_LENGTH": false,
+     "I4_alive_24h_count": 58,
+     "I4_alive_share_12h": 0.1678,
+     "SAMPLE": true,
+     "overlap_adjusted_48h_N": 407
+    }
+   },
+   "regime_median_min": {
+    "V1": 7.0,
+    "need": 21.0,
+    "variant": 323.0
+   },
+   "verdict": "A_V2_THESIS_TOO_FAST"
+  }
+ },
+ "leak_check": {
+  "V1": {
+   "perturbation_visible_after_cut": true,
+   "setups_equal_up_to_cut": true,
+   "states_equal_up_to_cut": true
+  },
+  "V2A": {
+   "perturbation_visible_after_cut": true,
+   "setups_equal_up_to_cut": true,
+   "states_equal_up_to_cut": true
+  },
+  "V2B": {
+   "perturbation_visible_after_cut": true,
+   "setups_equal_up_to_cut": true,
+   "states_equal_up_to_cut": true
+  },
+  "pass": true
+ },
+ "parity": {
+  "differences": 0,
+  "fields": [
+   "quote_volume",
+   "taker_buy_quote_volume"
+  ],
+  "overlap_minutes": 31680,
+  "pass": true
+ },
+ "split": "TRAIN",
+ "stage": "0-V2",
+ "study": "PTM-R1",
+ "train_coverage": {
+  "end_ms_exclusive": 1688169600000,
+  "expected_minutes": 1267200,
+  "files": 29,
+  "invalid_minutes": 0,
+  "missing_minutes": 0,
+  "rows_read": 1267200,
+  "start_ms": 1612137600000
+ },
+ "verdict": "A_V2_THESIS_TOO_FAST"
+}

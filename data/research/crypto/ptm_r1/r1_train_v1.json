@@ -1,0 +1,4441 @@
+{
+ "catastrophic_fraction": {
+  "L10": 0.038400000000000004,
+  "L20": 0.0184
+ },
+ "contract_sha256": {
+  "CONTRACT_PTM_R1_V3.md": "c34cc8011204c136fd6debafc8e1e2f1d4e31cea9f755a0f8ac9da1e6b9cb14e",
+  "CONTRACT_PTM_R1_V3_TRAIN_STUDY.md": "310290c2380212a4193ed7144fc1939e118fd518208359fe8da8720512985a53"
+ },
+ "families": {
+  "F1": {
+   "by_direction": {
+    "LONG": {
+     "L20": {
+      "A1": {
+       "ambiguous_stop_bars": 1,
+       "catastrophic_rate": 0.0,
+       "cost_mean": 0.0011121683514998672,
+       "exit_kinds": {
+        "FIXED_STOP": 231,
+        "MAX_HOLD": 17
+       },
+       "funding_mean": 0.00011128078374324872,
+       "giveback_abs_mean": 0.014981090654407888,
+       "giveback_abs_median": 0.009251493027549237,
+       "giveback_pct_mean": 4.419957509405412,
+       "giveback_pct_median": 2.0043269230769294,
+       "gross_mean": -0.0005928644867629432,
+       "gross_median": -0.005,
+       "hold_min_mean": 508.883064516129,
+       "hold_min_median": 118.0,
+       "mae_mean": 0.004854064374807522,
+       "mae_median": 0.005,
+       "mfe_mean": 0.014388226167644944,
+       "mfe_median": 0.004427372414936626,
+       "n": 248,
+       "net_mean": -0.0017050328382628111,
+       "net_median": -0.005998684000000001,
+       "net_pos_share": 0.06854838709677419,
+       "pf": 0.6981955803643
+      },
+      "A2": {
+       "ambiguous_stop_bars": 0,
+       "catastrophic_rate": 0.0,
+       "cost_mean": 0.0011794715821568536,
+       "exit_kinds": {
+        "FIXED_STOP": 197,
+        "MAX_HOLD": 51
+       },
+       "funding_mean": 0.0001773574783771923,
+       "giveback_abs_mean": 0.022749445501355593,
+       "giveback_abs_median": 0.017366683921638863,
+       "giveback_pct_mean": 4.139080822043366,
+       "giveback_pct_median": 1.9015717142492505,
+       "gross_mean": 0.0018602075593223196,
+       "gross_median": -0.01,
+       "hold_min_mean": 1084.7298387096773,
+       "hold_min_median": 616.0,
+       "mae_mean": 0.00918337389310826,
+       "mae_median": 0.01,
+       "mfe_mean": 0.024609653060677906,
+       "mfe_median": 0.010662782822901562,
+       "n": 248,
+       "net_mean": 0.0006807359771654679,
+       "net_median": -0.010996183999999999,
+       "net_pos_share": 0.1935483870967742,
+       "pf": 1.0767758762797843
+      },
+      "A3": {
+       "ambiguous_stop_bars": 0,
+       "catastrophic_rate": 0.6411290322580645,
+       "cost_mean": 0.0012815104002084157,
+       "exit_kinds": {
+        "CATASTROPHIC": 159,
+        "MAX_HOLD": 89
+       },
+       "funding_mean": 0.000279840250345791,
+       "giveback_abs_mean": 0.029469906610458327,
+       "giveback_abs_median": 0.02537179634599765,
+       "giveback_pct_mean": 4.36464492220287,
+       "giveback_pct_median": 1.8554714430349448,
+       "gross_mean": 0.0009722997252496384,
+       "gross_median": -0.0184,
+       "hold_min_mean": 1661.266129032258,
+       "hold_min_median": 1618.5,
+       "mae_mean": 0.015239000780618428,
+       "mae_median": 0.0184,
+       "mfe_mean": 0.030442206335707968,
+       "mfe_median": 0.016649232452911722,
+       "n": 248,
+       "net_mean": -0.000309210674958779,
+       "net_median": -0.019391984,
+       "net_pos_share": 0.29838709677419356,
+       "pf": 0.975995699380495
+      },
+      "B": {
+       "ambiguous_stop_bars": 0,
+       "catastrophic_rate": 0.6411290322580645,
+       "cost_mean": 0.0012815104002084157,
+       "exit_kinds": {
+        "CATASTROPHIC": 159,
+        "MAX_HOLD": 89
+       },
+       "funding_mean": 0.000279840250345791,
+       "giveback_abs_mean": 0.029469906610458327,
+       "giveback_abs_median": 0.02537179634599765,
+       "giveback_pct_mean": 4.36464492220287,
+       "giveback_pct_median": 1.8554714430349448,
+       "gross_mean": 0.0009722997252496384,
+       "gross_median": -0.0184,
+       "hold_min_mean": 1661.266129032258,
+       "hold_min_median": 1618.5,
+       "mae_mean": 0.015239000780618428,
+       "mae_median": 0.0184,
+       "mfe_mean": 0.030442206335707968,
+       "mfe_median": 0.016649232452911722,
+       "n": 248,
+       "net_mean": -0.000309210674958779,
+       "net_median": -0.019391984,
+       "net_pos_share": 0.29838709677419356,
+       "pf": 0.975995699380495
+      },
+      "C": {
+       "ambiguous_stop_bars": 0,
+       "catastrophic_rate": 0.5483870967741935,
+       "cost_mean": 0.0012546385646641628,
+       "exit_kinds": {
+        "CATASTROPHIC": 136,
+        "I1": 64,
+        "MAX_HOLD": 48
+       },
+       "funding_mean": 0.0002528635910092593,
+       "giveback_abs_mean": 0.027979778848265642,
+       "giveback_abs_median": 0.023653739350956507,
+       "giveback_pct_mean": 4.427342942364679,
+       "giveback_pct_median": 1.7764410256410348,
+       "gross_mean": 0.0011819473098064874,
+       "gross_median": -0.0184,
+       "hold_min_mean": 1436.1209677419354,
+       "hold_min_median": 1210.0,
+       "mae_mean": 0.014394149172721003,
+       "mae_median": 0.0184,
+       "mfe_mean": 0.02916172615807213,
+       "mfe_median": 0.014664821941978268,
+       "n": 248,
+       "net_mean": -7.26912548576768e-05,
+       "net_median": -0.019391984,
+       "net_pos_share": 0.28225806451612906,
+       "pf": 0.9938098635241354
+      }
+     },
+     "user_metrics": {
+      "fixed_stop_false_exit": {
+       "A1": {
+        "fixed_stop_exits": 231,
+        "later_recovered_entry": 166,
+        "later_recovered_net_be": 154,
+        "recovered_entry_share": 0.7186147186147186,
+        "recovered_net_be_share": 0.6666666666666666
+       },
+       "A2": {
+        "fixed_stop_exits": 197,
+        "later_recovered_entry": 88,
+        "later_recovered_net_be": 82,
+        "recovered_entry_share": 0.4467005076142132,
+        "recovered_net_be_share": 0.41624365482233505
+       }
+      },
+      "hold_value": {
+       "C_minus_A1": {
+        "mean": 0.001632341583405134,
+        "median": -0.0133933,
+        "n": 248,
+        "p10": -0.013544312766704024,
+        "p90": 0.02963472029777485
+       },
+       "C_minus_A2": {
+        "mean": -0.0007534272320231444,
+        "median": -0.008395800000000002,
+        "n": 248,
+        "p10": -0.008495732612329415,
+        "p90": 0.010367468836370837
+       },
+       "C_minus_A3": {
+        "mean": 0.00023651942010110161,
+        "median": 0.0,
+        "n": 248,
+        "p10": -0.0016996929039333065,
+        "p90": 0.006188368671256477
+       },
+       "C_minus_B": {
+        "mean": 0.00023651942010110161,
+        "median": 0.0,
+        "n": 248,
+        "p10": -0.0016996929039333065,
+        "p90": 0.006188368671256477
+       }
+      },
+      "invalidation_loss": {
+       "gross_negative_share": 0.625,
+       "i1_exits": 64,
+       "net_all_i1": {
+        "mean": 0.0013670614541269367,
+        "median": -0.002477251397533674,
+        "n": 64,
+        "p10": -0.00924918003035041,
+        "p90": 0.014251069235117712
+       },
+       "net_negative_share": 0.625,
+       "net_of_negative": {
+        "mean": -0.005926891340207691,
+        "median": -0.005246426681678103,
+        "n": 40,
+        "p10": -0.011767472434593742,
+        "p90": -0.001740954023015659
+       }
+      },
+      "loss_then_recovery": {
+       "0.5pct": {
+        "reached": 226,
+        "recovered_entry": 166,
+        "recovered_entry_share": 0.7345132743362832,
+        "recovered_net_be": 154,
+        "recovered_net_be_share": 0.6814159292035398
+       },
+       "1.0pct": {
+        "reached": 182,
+        "recovered_entry": 88,
+        "recovered_entry_share": 0.4835164835164835,
+        "recovered_net_be": 82,
+        "recovered_net_be_share": 0.45054945054945056
+       },
+       "any": {
+        "reached": 248,
+        "recovered_entry": 244,
+        "recovered_entry_share": 0.9838709677419355,
+        "recovered_net_be": 234,
+        "recovered_net_be_share": 0.9435483870967742
+       }
+      }
+     }
+    },
+    "SHORT": {
+     "L20": {
+      "A1": {
+       "ambiguous_stop_bars": 5,
+       "catastrophic_rate": 0.0,
+       "cost_mean": 0.0009053770250098184,
+       "exit_kinds": {
+        "FIXED_STOP": 277,
+        "MAX_HOLD": 25
+       },
+       "funding_mean": -9.627364974504052e-05,
+       "giveback_abs_mean": 0.014210689400698437,
+       "giveback_abs_median": 0.008778854380628195,
+       "giveback_pct_mean": 5.894737927255632,
+       "giveback_pct_median": 2.1741573033707864,
+       "gross_mean": -0.0009333495097181949,
+       "gross_median": -0.005,
+       "hold_min_mean": 499.6092715231788,
+       "hold_min_median": 110.0,
+       "mae_mean": 0.004839054265328228,
+       "mae_median": 0.005,
+       "mfe_mean": 0.013277339890980242,
+       "mfe_median": 0.004171892903533758,
+       "n": 302,
+       "net_mean": -0.0018387265347280142,
+       "net_median": -0.0060036840000000005,
+       "net_pos_share": 0.08278145695364239,
+       "pf": 0.6620443491289811
+      },
+      "A2": {
+       "ambiguous_stop_bars": 0,
+       "catastrophic_rate": 0.0,
+       "cost_mean": 0.0007657038542612515,
+       "exit_kinds": {
+        "FIXED_STOP": 232,
+        "MAX_HOLD": 70
+       },
+       "funding_mean": -0.00023502841074539362,
+       "giveback_abs_mean": 0.023429684744345602,
+       "giveback_abs_median": 0.01718611870223163,
+       "giveback_pct_mean": 5.638916021407879,
+       "giveback_pct_median": 1.8956089258430175,
+       "gross_mean": 0.0009034699867092967,
+       "gross_median": -0.01,
+       "hold_min_mean": 1092.7185430463576,
+       "hold_min_median": 580.0,
+       "mae_mean": 0.009101317738112439,
+       "mae_median": 0.01,
+       "mfe_mean": 0.024333154731054896,
+       "mfe_median": 0.01058027060417338,
+       "n": 302,
+       "net_mean": 0.0001377661324480441,
+       "net_median": -0.010906184000000001,
+       "net_pos_share": 0.2119205298013245,
+       "pf": 1.0164298451795906
+      },
+      "A3": {
+       "ambiguous_stop_bars": 0,
+       "catastrophic_rate": 0.6324503311258278,
+       "cost_mean": 0.0006411959881824446,
+       "exit_kinds": {
+        "CATASTROPHIC": 191,
+        "MAX_HOLD": 111
+       },
+       "funding_mean": -0.00036000548460607244,
+       "giveback_abs_mean": 0.030598894038267273,
+       "giveback_abs_median": 0.02560309308807282,
+       "giveback_pct_mean": 7.930393462614629,
+       "giveback_pct_median": 1.9317990208656801,
+       "gross_mean": -3.494557703455074e-05,
+       "gross_median": -0.0184,
+       "hold_min_mean": 1613.7615894039734,
+       "hold_min_median": 1348.0,
+       "mae_mean": 0.014905706500056353,
+       "mae_median": 0.0184,
+       "mfe_mean": 0.030563948461232723,
+       "mfe_median": 0.016016276495193882,
+       "n": 302,
+       "net_mean": -0.0006761415652169957,
+       "net_median": -0.01910418606397908,
+       "net_pos_share": 0.3211920529801324,
+       "pf": 0.9452751554989521
+      },
+      "B": {
+       "ambiguous_stop_bars": 0,
+       "catastrophic_rate": 0.6324503311258278,
+       "cost_mean": 0.0006411959881824446,
+       "exit_kinds": {
+        "CATASTROPHIC": 191,
+        "MAX_HOLD": 111
+       },
+       "funding_mean": -0.00036000548460607244,
+       "giveback_abs_mean": 0.030598894038267273,
+       "giveback_abs_median": 0.02560309308807282,
+       "giveback_pct_mean": 7.930393462614629,
+       "giveback_pct_median": 1.9317990208656801,
+       "gross_mean": -3.494557703455074e-05,
+       "gross_median": -0.0184,
+       "hold_min_mean": 1613.7615894039734,
+       "hold_min_median": 1348.0,
+       "mae_mean": 0.014905706500056353,
+       "mae_median": 0.0184,
+       "mfe_mean": 0.030563948461232723,
+       "mfe_median": 0.016016276495193882,
+       "n": 302,
+       "net_mean": -0.0006761415652169957,
+       "net_median": -0.01910418606397908,
+       "net_pos_share": 0.3211920529801324,
+       "pf": 0.9452751554989521
+      },
+      "C": {
+       "ambiguous_stop_bars": 0,
+       "catastrophic_rate": 0.5629139072847682,
+       "cost_mean": 0.0006552041952294598,
+       "exit_kinds": {
+        "CATASTROPHIC": 170,
+        "I1": 62,
+        "MAX_HOLD": 70
+       },
+       "funding_mean": -0.00034590463800875673,
+       "giveback_abs_mean": 0.029632983113178347,
+       "giveback_abs_median": 0.024339133607785196,
+       "giveback_pct_mean": 7.68143413583259,
+       "giveback_pct_median": 1.8776147979751276,
+       "gross_mean": 0.00015033352356683485,
+       "gross_median": -0.0184,
+       "hold_min_mean": 1447.0629139072848,
+       "hold_min_median": 1147.5,
+       "mae_mean": 0.014341572261990392,
+       "mae_median": 0.0184,
+       "mfe_mean": 0.02978331663674518,
+       "mfe_median": 0.01532519724103898,
+       "n": 302,
+       "net_mean": -0.0005048706716626252,
+       "net_median": -0.018914736613099573,
+       "net_pos_share": 0.3211920529801324,
+       "pf": 0.956366053104033
+      }
+     },
+     "user_metrics": {
+      "fixed_stop_false_exit": {
+       "A1": {
+        "fixed_stop_exits": 277,
+        "later_recovered_entry": 198,
+        "later_recovered_net_be": 183,
+        "recovered_entry_share": 0.7148014440433214,
+        "recovered_net_be_share": 0.6606498194945848
+       },
+       "A2": {
+        "fixed_stop_exits": 232,
+        "later_recovered_entry": 85,
+        "later_recovered_net_be": 78,
+        "recovered_entry_share": 0.36637931034482757,
+        "recovered_net_be_share": 0.33620689655172414
+       }
+      },
+      "hold_value": {
+       "C_minus_A1": {
+        "mean": 0.0013338558630653888,
+        "median": -0.013029034215789602,
+        "n": 302,
+        "p10": -0.013406699999999999,
+        "p90": 0.031620307475807234
+       },
+       "C_minus_A2": {
+        "mean": -0.0006426368041106695,
+        "median": -0.008302896939893419,
+        "n": 302,
+        "p10": -0.0084042,
+        "p90": 0.01446419128257977
+       },
+       "C_minus_A3": {
+        "mean": 0.0001712708935543707,
+        "median": 0.0,
+        "n": 302,
+        "p10": 0.0,
+        "p90": 0.0006361229824752743
+       },
+       "C_minus_B": {
+        "mean": 0.0001712708935543707,
+        "median": 0.0,
+        "n": 302,
+        "p10": 0.0,
+        "p90": 0.0006361229824752743
+       }
+      },
+      "invalidation_loss": {
+       "gross_negative_share": 0.45161290322580644,
+       "i1_exits": 62,
+       "net_all_i1": {
+        "mean": 0.005795838020804977,
+        "median": 0.0003086278617449757,
+        "n": 62,
+        "p10": -0.009353254556050884,
+        "p90": 0.03410468228395521
+       },
+       "net_negative_share": 0.46774193548387094,
+       "net_of_negative": {
+        "mean": -0.007005620894188534,
+        "median": -0.006531031425569938,
+        "n": 29,
+        "p10": -0.011403748480529729,
+        "p90": -0.002890678886652644
+       }
+      },
+      "loss_then_recovery": {
+       "0.5pct": {
+        "reached": 273,
+        "recovered_entry": 198,
+        "recovered_entry_share": 0.7252747252747253,
+        "recovered_net_be": 183,
+        "recovered_net_be_share": 0.6703296703296703
+       },
+       "1.0pct": {
+        "reached": 216,
+        "recovered_entry": 85,
+        "recovered_entry_share": 0.39351851851851855,
+        "recovered_net_be": 78,
+        "recovered_net_be_share": 0.3611111111111111
+       },
+       "any": {
+        "reached": 302,
+        "recovered_entry": 296,
+        "recovered_entry_share": 0.9801324503311258,
+        "recovered_net_be": 280,
+        "recovered_net_be_share": 0.9271523178807947
+       }
+      }
+     }
+    }
+   },
+   "controls": {
+    "direction_placebo": {
+     "ambiguous_stop_bars": 0,
+     "catastrophic_rate": 0.4381818181818182,
+     "cost_mean": 0.0010488225708435886,
+     "exit_kinds": {
+      "CATASTROPHIC": 241,
+      "TIME": 309
+     },
+     "funding_mean": 4.771075306579272e-05,
+     "giveback_abs_mean": 0.012842536856233114,
+     "giveback_abs_median": 0.008762007451889264,
+     "giveback_pct_mean": 11.673266959520609,
+     "giveback_pct_median": 0.783783130957044,
+     "gross_mean": -0.0013154597405338683,
+     "gross_median": 0.0023061616832503185,
+     "hold_min_mean": 710.8690909090909,
+     "hold_min_median": 563.0,
+     "mae_mean": 0.012151863736194242,
+     "mae_median": 0.01522066145996026,
+     "mfe_mean": 0.011527077115699245,
+     "mfe_median": 0.013084670682327326,
+     "n": 550,
+     "net_mean": -0.0023642823113774573,
+     "net_median": 0.0012357946614321971,
+     "net_pos_share": 0.5109090909090909,
+     "pf": 0.7315062282707122
+    },
+    "random_timestamp": {
+     "C_minus_control": {
+      "ci95": [
+       -0.005364323102881863,
+       0.0011298622262895014
+      ],
+      "mean": -0.0019715766443774265,
+      "p": 0.24145464255041482,
+      "se": 0.001683153687226085
+     },
+     "summary": {
+      "ambiguous_stop_bars": 0,
+      "catastrophic_rate": 0.4781818181818182,
+      "cost_mean": 0.0009241087001303905,
+      "exit_kinds": {
+       "CATASTROPHIC": 263,
+       "TIME": 287
+      },
+      "funding_mean": -7.746091431234551e-05,
+      "giveback_abs_mean": 0.02491742934187891,
+      "giveback_abs_median": 0.021518451266355182,
+      "giveback_pct_mean": 405.675728915433,
+      "giveback_pct_median": 1.6681136543014932,
+      "gross_mean": 0.0025856883007863334,
+      "gross_median": -0.010347784487493294,
+      "hold_min_mean": 1207.2854545454545,
+      "hold_min_median": 766.0,
+      "mae_mean": 0.013008014910536126,
+      "mae_median": 0.01720107110566438,
+      "mfe_mean": 0.027503117642665234,
+      "mfe_median": 0.011822547869338063,
+      "n": 550,
+      "net_mean": 0.001661579600655942,
+      "net_median": -0.01129229793497047,
+      "net_pos_share": 0.3290909090909091,
+      "pf": 1.1603465236566466
+     }
+    },
+    "time_shift": {
+     "14d": {
+      "ambiguous_stop_bars": 1,
+      "catastrophic_rate": 0.5428051001821493,
+      "cost_mean": 0.0009686694062385856,
+      "exit_kinds": {
+       "CATASTROPHIC": 298,
+       "TIME": 251
+      },
+      "funding_mean": -3.243107263240294e-05,
+      "giveback_abs_mean": 0.025737621166191535,
+      "giveback_abs_median": 0.022928122020972524,
+      "giveback_pct_mean": 12.499566382888045,
+      "giveback_pct_median": 1.7037183335748818,
+      "gross_mean": 0.0006905636640587842,
+      "gross_median": -0.0184,
+      "hold_min_mean": 1246.7650273224044,
+      "hold_min_median": 1090.0,
+      "mae_mean": 0.013642918765750169,
+      "mae_median": 0.0184,
+      "mfe_mean": 0.026428184830250317,
+      "mfe_median": 0.014541601591219422,
+      "n": 549,
+      "net_mean": -0.0002781057421798025,
+      "net_median": -0.018995298990596834,
+      "net_pos_share": 0.3442622950819672,
+      "pf": 0.9746854550055175
+     },
+     "30d": {
+      "ambiguous_stop_bars": 2,
+      "catastrophic_rate": 0.5418181818181819,
+      "cost_mean": 0.0009697256505878406,
+      "exit_kinds": {
+       "CATASTROPHIC": 298,
+       "TIME": 252
+      },
+      "funding_mean": -3.105155720192903e-05,
+      "giveback_abs_mean": 0.025304382356211463,
+      "giveback_abs_median": 0.02290355636857036,
+      "giveback_pct_mean": 75.98838083356128,
+      "giveback_pct_median": 1.7255080873352477,
+      "gross_mean": 0.0005328047749049756,
+      "gross_median": -0.0184,
+      "hold_min_mean": 1282.5218181818182,
+      "hold_min_median": 1121.0,
+      "mae_mean": 0.013732433544813098,
+      "mae_median": 0.0184,
+      "mfe_mean": 0.025837187131116438,
+      "mfe_median": 0.013825472149087914,
+      "n": 550,
+      "net_mean": -0.00043692087568286556,
+      "net_median": -0.01904509494593916,
+      "net_pos_share": 0.35818181818181816,
+      "pf": 0.9603462493988549
+     },
+     "7d": {
+      "ambiguous_stop_bars": 0,
+      "catastrophic_rate": 0.5628415300546448,
+      "cost_mean": 0.000920618405050334,
+      "exit_kinds": {
+       "CATASTROPHIC": 309,
+       "TIME": 240
+      },
+      "funding_mean": -8.161271503467244e-05,
+      "giveback_abs_mean": 0.025539947497612358,
+      "giveback_abs_median": 0.022441168285393248,
+      "giveback_pct_mean": 145.23893851435216,
+      "giveback_pct_median": 1.755936534446765,
+      "gross_mean": -0.0013906945594124689,
+      "gross_median": -0.0184,
+      "hold_min_mean": 1222.3315118397086,
+      "hold_min_median": 1000.0,
+      "mae_mean": 0.014451700788835878,
+      "mae_median": 0.0184,
+      "mfe_mean": 0.024149252938199885,
+      "mfe_median": 0.012607753920411024,
+      "n": 549,
+      "net_mean": -0.0023113129644628037,
+      "net_median": -0.019113964843773302,
+      "net_pos_share": 0.30783242258652094,
+      "pf": 0.7999090930275933
+     }
+    }
+   },
+   "entries": {
+    "evaluated": 550,
+    "long": 248,
+    "primary": 551,
+    "raw": 21609,
+    "short": 302
+   },
+   "horizons": {
+    "12h": {
+     "gross_mean": 0.0002533168576204058,
+     "gross_median": -0.0005840207515782625,
+     "mae_median": 0.011216560952758137,
+     "mfe_median": 0.011374666881224793,
+     "n": 550,
+     "net_mean": -0.0006955421937526032,
+     "net_median": -0.0017332297167496247,
+     "net_pos_share": 0.44727272727272727,
+     "pf": 0.9117208024862726
+    },
+    "1h": {
+     "gross_mean": -0.00012434781850369553,
+     "gross_median": -0.0008236094332859656,
+     "mae_median": 0.003683558951505239,
+     "mfe_median": 0.003066405826519736,
+     "n": 550,
+     "net_mean": -0.0011200325108719298,
+     "net_median": -0.0018256737289120573,
+     "net_pos_share": 0.3145454545454546,
+     "pf": 0.6184214839648471
+    },
+    "24h": {
+     "gross_mean": 0.0014929893449189017,
+     "gross_median": -0.0002626680301309192,
+     "mae_median": 0.017979086523376375,
+     "mfe_median": 0.01902944716027627,
+     "n": 550,
+     "net_mean": 0.0006088451095605198,
+     "net_median": -0.001049001695251085,
+     "net_pos_share": 0.4727272727272727,
+     "pf": 1.0528130135771767
+    },
+    "48h": {
+     "gross_mean": 0.0010469474532578537,
+     "gross_median": 0.0009241086609241833,
+     "mae_median": 0.02619441713952564,
+     "mfe_median": 0.026439715829024935,
+     "n": 550,
+     "net_mean": 0.00028533227302681975,
+     "net_median": -0.00018624875743058152,
+     "net_pos_share": 0.49818181818181817,
+     "pf": 1.0171832957901332
+    },
+    "4h": {
+     "gross_mean": -0.0002778795415694653,
+     "gross_median": -0.0010088140862658523,
+     "mae_median": 0.006654305602497745,
+     "mfe_median": 0.006073672019281162,
+     "n": 550,
+     "net_mean": -0.001263594841658039,
+     "net_median": -0.002018521337560729,
+     "net_pos_share": 0.3690909090909091,
+     "pf": 0.745683086278191
+    },
+    "8h": {
+     "gross_mean": 4.552836215549583e-05,
+     "gross_median": -0.0010275221991949968,
+     "mae_median": 0.009300167127862524,
+     "mfe_median": 0.008709647378359109,
+     "n": 550,
+     "net_mean": -0.0009134506166815482,
+     "net_median": -0.0018676564494942466,
+     "net_pos_share": 0.41818181818181815,
+     "pf": 0.8616916591914474
+    }
+   },
+   "inference": {
+    "P1_C_net": {
+     "ci95": [
+      -0.0029804479131430887,
+      0.002464629855939037
+     ],
+     "mean": -0.0003099970437214845,
+     "p": 0.8239712074576101,
+     "se": 0.001393619590094155
+    },
+    "P1_cluster_by_thesis_episode": {
+     "clusters": 370,
+     "mean": -0.0003099970437214845,
+     "p": 0.8314089663673233,
+     "se": 0.001456103890581062
+    },
+    "P2a_C_minus_A1": {
+     "ci95": [
+      -0.0006062817977010832,
+      0.0039236565147171346
+     ],
+     "mean": 0.0014684457878731288,
+     "p": 0.20269651422433346,
+     "se": 0.0011527107026878263
+    },
+    "P2b_C_minus_A2": {
+     "ci95": [
+      -0.0021373852349958035,
+      0.0009049076408170723
+     ],
+     "mean": -0.000692593215242113,
+     "p": 0.3693051688185168,
+     "se": 0.0007714546671349482
+    }
+   },
+   "overlap_adjusted_C": {
+    "ambiguous_stop_bars": 0,
+    "catastrophic_rate": 0.5384615384615384,
+    "cost_mean": 0.0008651793866077945,
+    "exit_kinds": {
+     "CATASTROPHIC": 217,
+     "TIME": 186
+    },
+    "funding_mean": -0.00013570533764785354,
+    "giveback_abs_mean": 0.029357539048409643,
+    "giveback_abs_median": 0.023549045901416266,
+    "giveback_pct_mean": 8.030065864964273,
+    "giveback_pct_median": 1.7871440619818009,
+    "gross_mean": 0.001320310290579528,
+    "gross_median": -0.0184,
+    "hold_min_mean": 1326.6203473945409,
+    "hold_min_median": 960.0,
+    "mae_mean": 0.013712112107928907,
+    "mae_median": 0.0184,
+    "mfe_mean": 0.03067784933898917,
+    "mfe_median": 0.015579092320764154,
+    "n": 403,
+    "net_mean": 0.00045513090397173334,
+    "net_median": -0.018626213349825956,
+    "net_pos_share": 0.31265508684863524,
+    "pf": 1.0402810363107913
+   },
+   "pooled": {
+    "L10": {
+     "A1": {
+      "ambiguous_stop_bars": 6,
+      "catastrophic_rate": 0.0,
+      "cost_mean": 0.0009986211140453312,
+      "exit_kinds": {
+       "FIXED_STOP": 508,
+       "MAX_HOLD": 42
+      },
+      "funding_mean": -2.685468826684641e-06,
+      "giveback_abs_mean": 0.01455807032964379,
+      "giveback_abs_median": 0.009011725599134709,
+      "giveback_pct_mean": 5.228619634434809,
+      "giveback_pct_median": 2.1212513367411425,
+      "gross_mean": -0.0007798217175492817,
+      "gross_median": -0.005,
+      "hold_min_mean": 503.7909090909091,
+      "hold_min_median": 114.0,
+      "mae_mean": 0.004845822460147983,
+      "mae_median": 0.005,
+      "mfe_mean": 0.013778248612094509,
+      "mfe_median": 0.0042448072680937865,
+      "n": 550,
+      "net_mean": -0.0017784428315946134,
+      "net_median": -0.0060036840000000005,
+      "net_pos_share": 0.07636363636363637,
+      "pf": 0.67868281503161
+     },
+     "A2": {
+      "ambiguous_stop_bars": 0,
+      "catastrophic_rate": 0.0,
+      "cost_mean": 0.0009522754842941775,
+      "exit_kinds": {
+       "FIXED_STOP": 429,
+       "MAX_HOLD": 121
+      },
+      "funding_mean": -4.907986437739127e-05,
+      "giveback_abs_mean": 0.023122958685688286,
+      "giveback_abs_median": 0.01733806095189893,
+      "giveback_pct_mean": 4.9616595419873395,
+      "giveback_pct_median": 1.9015717142492505,
+      "gross_mean": 0.0013348716558148053,
+      "gross_median": -0.01,
+      "hold_min_mean": 1089.1163636363635,
+      "hold_min_median": 599.5,
+      "mae_mean": 0.009138317604365101,
+      "mae_median": 0.01,
+      "mfe_mean": 0.02445783034150309,
+      "mfe_median": 0.010615131467642092,
+      "n": 550,
+      "net_mean": 0.000382596171520628,
+      "net_median": -0.010996183999999999,
+      "net_pos_share": 0.20363636363636364,
+      "pf": 1.0444765943884127
+     },
+     "A3": {
+      "ambiguous_stop_bars": 0,
+      "catastrophic_rate": 0.0,
+      "cost_mean": 0.0009241106922058635,
+      "exit_kinds": {
+       "FIXED_STOP": 333,
+       "MAX_HOLD": 217
+      },
+      "funding_mean": -7.735594507850178e-05,
+      "giveback_abs_mean": 0.030786751291240932,
+      "giveback_abs_median": 0.02682905290337771,
+      "giveback_pct_mean": 6.424480963133285,
+      "giveback_pct_median": 1.9280990348300457,
+      "gross_mean": 0.00014335793931784412,
+      "gross_median": -0.02,
+      "hold_min_mean": 1720.158181818182,
+      "hold_min_median": 1766.0,
+      "mae_mean": 0.01604990415144645,
+      "mae_median": 0.02,
+      "mfe_mean": 0.030930109230558778,
+      "mfe_median": 0.01689774840513003,
+      "n": 550,
+      "net_mean": -0.0007807527528880202,
+      "net_median": -0.020810576532331856,
+      "net_pos_share": 0.32545454545454544,
+      "pf": 0.9403862951423557
+     },
+     "B": {
+      "ambiguous_stop_bars": 0,
+      "catastrophic_rate": 0.3381818181818182,
+      "cost_mean": 0.0008581745099412218,
+      "exit_kinds": {
+       "CATASTROPHIC": 186,
+       "MAX_HOLD": 364
+      },
+      "funding_mean": -0.00014304775160668188,
+      "giveback_abs_mean": 0.03558464145878987,
+      "giveback_abs_median": 0.03325151524075809,
+      "giveback_pct_mean": 5.854319916812653,
+      "giveback_pct_median": 1.2093984285473582,
+      "gross_mean": 0.0001985359934908193,
+      "gross_median": -0.004747317632917691,
+      "hold_min_mean": 2357.2,
+      "hold_min_median": 2880.0,
+      "mae_mean": 0.024508787222196345,
+      "mae_median": 0.02619441713952564,
+      "mfe_mean": 0.03578317745228069,
+      "mfe_median": 0.023270510238993236,
+      "n": 550,
+      "net_mean": -0.0006596385164504026,
+      "net_median": -0.005748702167437617,
+      "net_pos_share": 0.4381818181818182,
+      "pf": 0.9582587242684241
+     },
+     "C": {
+      "ambiguous_stop_bars": 0,
+      "catastrophic_rate": 0.23454545454545456,
+      "cost_mean": 0.0008466003973551748,
+      "exit_kinds": {
+       "CATASTROPHIC": 129,
+       "I1": 250,
+       "MAX_HOLD": 171
+      },
+      "funding_mean": -0.0001546467490369142,
+      "giveback_abs_mean": 0.03245168108666887,
+      "giveback_abs_median": 0.027276999542838076,
+      "giveback_pct_mean": 5.830160486368406,
+      "giveback_pct_median": 1.4282511210762348,
+      "gross_mean": 0.0009090704402138874,
+      "gross_median": -0.004782524699692203,
+      "hold_min_mean": 1867.3472727272726,
+      "hold_min_median": 1690.0,
+      "mae_mean": 0.021870752251945083,
+      "mae_median": 0.020541001595079877,
+      "mfe_mean": 0.033360751526882754,
+      "mfe_median": 0.019354223888479682,
+      "n": 550,
+      "net_mean": 6.24700428587121e-05,
+      "net_median": -0.00573914443240621,
+      "net_pos_share": 0.40545454545454546,
+      "pf": 1.0045621233886912
+     }
+    },
+    "L20": {
+     "A1": {
+      "ambiguous_stop_bars": 6,
+      "catastrophic_rate": 0.0,
+      "cost_mean": 0.0009986211140453312,
+      "exit_kinds": {
+       "FIXED_STOP": 508,
+       "MAX_HOLD": 42
+      },
+      "funding_mean": -2.685468826684641e-06,
+      "giveback_abs_mean": 0.01455807032964379,
+      "giveback_abs_median": 0.009011725599134709,
+      "giveback_pct_mean": 5.228619634434809,
+      "giveback_pct_median": 2.1212513367411425,
+      "gross_mean": -0.0007798217175492817,
+      "gross_median": -0.005,
+      "hold_min_mean": 503.7909090909091,
+      "hold_min_median": 114.0,
+      "mae_mean": 0.004845822460147983,
+      "mae_median": 0.005,
+      "mfe_mean": 0.013778248612094509,
+      "mfe_median": 0.0042448072680937865,
+      "n": 550,
+      "net_mean": -0.0017784428315946134,
+      "net_median": -0.0060036840000000005,
+      "net_pos_share": 0.07636363636363637,
+      "pf": 0.67868281503161
+     },
+     "A2": {
+      "ambiguous_stop_bars": 0,
+      "catastrophic_rate": 0.0,
+      "cost_mean": 0.0009522754842941775,
+      "exit_kinds": {
+       "FIXED_STOP": 429,
+       "MAX_HOLD": 121
+      },
+      "funding_mean": -4.907986437739127e-05,
+      "giveback_abs_mean": 0.023122958685688286,
+      "giveback_abs_median": 0.01733806095189893,
+      "giveback_pct_mean": 4.9616595419873395,
+      "giveback_pct_median": 1.9015717142492505,
+      "gross_mean": 0.0013348716558148053,
+      "gross_median": -0.01,
+      "hold_min_mean": 1089.1163636363635,
+      "hold_min_median": 599.5,
+      "mae_mean": 0.009138317604365101,
+      "mae_median": 0.01,
+      "mfe_mean": 0.02445783034150309,
+      "mfe_median": 0.010615131467642092,
+      "n": 550,
+      "net_mean": 0.000382596171520628,
+      "net_median": -0.010996183999999999,
+      "net_pos_share": 0.20363636363636364,
+      "pf": 1.0444765943884127
+     },
+     "A3": {
+      "ambiguous_stop_bars": 0,
+      "catastrophic_rate": 0.6363636363636364,
+      "cost_mean": 0.0009299195776050644,
+      "exit_kinds": {
+       "CATASTROPHIC": 350,
+       "MAX_HOLD": 200
+      },
+      "funding_mean": -7.149322593686858e-05,
+      "giveback_abs_mean": 0.030089823343546148,
+      "giveback_abs_median": 0.025403290236363035,
+      "giveback_pct_mean": 6.316697042866242,
+      "giveback_pct_median": 1.8996629518936694,
+      "gross_mean": 0.00041923048654086536,
+      "gross_median": -0.0184,
+      "hold_min_mean": 1635.1818181818182,
+      "hold_min_median": 1474.5,
+      "mae_mean": 0.015055991921109799,
+      "mae_median": 0.0184,
+      "mfe_mean": 0.030509053830087014,
+      "mfe_median": 0.016154367633644473,
+      "n": 550,
+      "net_mean": -0.0005106890910641993,
+      "net_median": -0.01924382870643647,
+      "net_pos_share": 0.3109090909090909,
+      "pf": 0.9594451463756661
+     },
+     "B": {
+      "ambiguous_stop_bars": 0,
+      "catastrophic_rate": 0.6363636363636364,
+      "cost_mean": 0.0009299195776050644,
+      "exit_kinds": {
+       "CATASTROPHIC": 350,
+       "MAX_HOLD": 200
+      },
+      "funding_mean": -7.149322593686858e-05,
+      "giveback_abs_mean": 0.030089823343546148,
+      "giveback_abs_median": 0.025403290236363035,
+      "giveback_pct_mean": 6.316697042866242,
+      "giveback_pct_median": 1.8996629518936694,
+      "gross_mean": 0.00041923048654086536,
+      "gross_median": -0.0184,
+      "hold_min_mean": 1635.1818181818182,
+      "hold_min_median": 1474.5,
+      "mae_mean": 0.015055991921109799,
+      "mae_median": 0.0184,
+      "mfe_mean": 0.030509053830087014,
+      "mfe_median": 0.016154367633644473,
+      "n": 550,
+      "net_mean": -0.0005106890910641993,
+      "net_median": -0.01924382870643647,
+      "net_pos_share": 0.3109090909090909,
+      "pf": 0.9594451463756661
+     },
+     "C": {
+      "ambiguous_stop_bars": 0,
+      "catastrophic_rate": 0.5563636363636364,
+      "cost_mean": 0.0009254946018109258,
+      "exit_kinds": {
+       "CATASTROPHIC": 306,
+       "I1": 126,
+       "MAX_HOLD": 118
+      },
+      "funding_mean": -7.591460019699675e-05,
+      "giveback_abs_mean": 0.028887538280999527,
+      "giveback_abs_median": 0.024108128786804267,
+      "giveback_pct_mean": 6.208779727109887,
+      "giveback_pct_median": 1.849178459274417,
+      "gross_mean": 0.0006154975580894413,
+      "gross_median": -0.0184,
+      "hold_min_mean": 1442.129090909091,
+      "hold_min_median": 1194.5,
+      "mae_mean": 0.01436527966901074,
+      "mae_median": 0.0184,
+      "mfe_mean": 0.029503035839088972,
+      "mfe_median": 0.01522066145996026,
+      "n": 550,
+      "net_mean": -0.0003099970437214845,
+      "net_median": -0.01900886594862717,
+      "net_pos_share": 0.30363636363636365,
+      "pf": 0.9733870845237808
+     }
+    },
+    "stress_L20": {
+     "A1": {
+      "ambiguous_stop_bars": 6,
+      "catastrophic_rate": 0.0,
+      "cost_mean": 0.0013511493723325334,
+      "exit_kinds": {
+       "FIXED_STOP": 508,
+       "MAX_HOLD": 42
+      },
+      "funding_mean": -2.685468826684641e-06,
+      "giveback_abs_mean": 0.01455807032964379,
+      "giveback_abs_median": 0.009011725599134709,
+      "giveback_pct_mean": 5.228619634434809,
+      "giveback_pct_median": 2.1212513367411425,
+      "gross_mean": -0.0007798217175492817,
+      "gross_median": -0.005,
+      "hold_min_mean": 503.7909090909091,
+      "hold_min_median": 114.0,
+      "mae_mean": 0.004845822460147983,
+      "mae_median": 0.005,
+      "mfe_mean": 0.013778248612094509,
+      "mfe_median": 0.0042448072680937865,
+      "n": 550,
+      "net_mean": -0.0021309710898818144,
+      "net_median": -0.0063564500000000005,
+      "net_pos_share": 0.07636363636363637,
+      "pf": 0.6363821446835856
+     },
+     "A2": {
+      "ambiguous_stop_bars": 0,
+      "catastrophic_rate": 0.0,
+      "cost_mean": 0.0013048086191613341,
+      "exit_kinds": {
+       "FIXED_STOP": 429,
+       "MAX_HOLD": 121
+      },
+      "funding_mean": -4.907986437739127e-05,
+      "giveback_abs_mean": 0.023122958685688286,
+      "giveback_abs_median": 0.01733806095189893,
+      "giveback_pct_mean": 4.9616595419873395,
+      "giveback_pct_median": 1.9015717142492505,
+      "gross_mean": 0.0013348716558148053,
+      "gross_median": -0.01,
+      "hold_min_mean": 1089.1163636363635,
+      "hold_min_median": 599.5,
+      "mae_mean": 0.009138317604365101,
+      "mae_median": 0.01,
+      "mfe_mean": 0.02445783034150309,
+      "mfe_median": 0.010615131467642092,
+      "n": 550,
+      "net_mean": 3.006303665347028e-05,
+      "net_median": -0.011348200000000001,
+      "net_pos_share": 0.20363636363636364,
+      "pf": 1.0033843512560796
+     },
+     "A3": {
+      "ambiguous_stop_bars": 0,
+      "catastrophic_rate": 0.6363636363636364,
+      "cost_mean": 0.0012824584579592577,
+      "exit_kinds": {
+       "CATASTROPHIC": 350,
+       "MAX_HOLD": 200
+      },
+      "funding_mean": -7.149322593686858e-05,
+      "giveback_abs_mean": 0.030089823343546148,
+      "giveback_abs_median": 0.025403290236363035,
+      "giveback_pct_mean": 6.316697042866242,
+      "giveback_pct_median": 1.8996629518936694,
+      "gross_mean": 0.00041923048654086536,
+      "gross_median": -0.0184,
+      "hold_min_mean": 1635.1818181818182,
+      "hold_min_median": 1474.5,
+      "mae_mean": 0.015055991921109799,
+      "mae_median": 0.0184,
+      "mfe_mean": 0.030509053830087014,
+      "mfe_median": 0.016154367633644473,
+      "n": 550,
+      "net_mean": -0.000863227971418392,
+      "net_median": -0.019597264706436468,
+      "net_pos_share": 0.3090909090909091,
+      "pf": 0.9327492004804239
+     },
+     "B": {
+      "ambiguous_stop_bars": 0,
+      "catastrophic_rate": 0.6363636363636364,
+      "cost_mean": 0.0012824584579592577,
+      "exit_kinds": {
+       "CATASTROPHIC": 350,
+       "MAX_HOLD": 200
+      },
+      "funding_mean": -7.149322593686858e-05,
+      "giveback_abs_mean": 0.030089823343546148,
+      "giveback_abs_median": 0.025403290236363035,
+      "giveback_pct_mean": 6.316697042866242,
+      "giveback_pct_median": 1.8996629518936694,
+      "gross_mean": 0.00041923048654086536,
+      "gross_median": -0.0184,
+      "hold_min_mean": 1635.1818181818182,
+      "hold_min_median": 1474.5,
+      "mae_mean": 0.015055991921109799,
+      "mae_median": 0.0184,
+      "mfe_mean": 0.030509053830087014,
+      "mfe_median": 0.016154367633644473,
+      "n": 550,
+      "net_mean": -0.000863227971418392,
+      "net_median": -0.019597264706436468,
+      "net_pos_share": 0.3090909090909091,
+      "pf": 0.9327492004804239
+     },
+     "C": {
+      "ambiguous_stop_bars": 0,
+      "catastrophic_rate": 0.5563636363636364,
+      "cost_mean": 0.001278033122011718,
+      "exit_kinds": {
+       "CATASTROPHIC": 306,
+       "I1": 126,
+       "MAX_HOLD": 118
+      },
+      "funding_mean": -7.591460019699675e-05,
+      "giveback_abs_mean": 0.028887538280999527,
+      "giveback_abs_median": 0.024108128786804267,
+      "giveback_pct_mean": 6.208779727109887,
+      "giveback_pct_median": 1.849178459274417,
+      "gross_mean": 0.0006154975580894413,
+      "gross_median": -0.0184,
+      "hold_min_mean": 1442.129090909091,
+      "hold_min_median": 1194.5,
+      "mae_mean": 0.01436527966901074,
+      "mae_median": 0.0184,
+      "mfe_mean": 0.029503035839088972,
+      "mfe_median": 0.01522066145996026,
+      "n": 550,
+      "net_mean": -0.0006625355639222761,
+      "net_median": -0.01936230194862717,
+      "net_pos_share": 0.29818181818181816,
+      "pf": 0.9442977789307742
+     }
+    }
+   },
+   "user_metrics_pooled": {
+    "fixed_stop_false_exit": {
+     "A1": {
+      "fixed_stop_exits": 508,
+      "later_recovered_entry": 364,
+      "later_recovered_net_be": 337,
+      "recovered_entry_share": 0.7165354330708661,
+      "recovered_net_be_share": 0.6633858267716536
+     },
+     "A2": {
+      "fixed_stop_exits": 429,
+      "later_recovered_entry": 173,
+      "later_recovered_net_be": 160,
+      "recovered_entry_share": 0.40326340326340326,
+      "recovered_net_be_share": 0.372960372960373
+     }
+    },
+    "hold_value": {
+     "C_minus_A1": {
+      "mean": 0.0014684457878731288,
+      "median": -0.013191976086743277,
+      "n": 550,
+      "p10": -0.013488328609400874,
+      "p90": 0.0313641355304922
+     },
+     "C_minus_A2": {
+      "mean": -0.000692593215242113,
+      "median": -0.008303791479529274,
+      "n": 550,
+      "p10": -0.00847157033888621,
+      "p90": 0.01290024978533543
+     },
+     "C_minus_A3": {
+      "mean": 0.0002006920473427148,
+      "median": 0.0,
+      "n": 550,
+      "p10": -0.0002679356045552268,
+      "p90": 0.004644952665807274
+     },
+     "C_minus_B": {
+      "mean": 0.0002006920473427148,
+      "median": 0.0,
+      "n": 550,
+      "p10": -0.0002679356045552268,
+      "p90": 0.004644952665807274
+     }
+    },
+    "invalidation_loss": {
+     "gross_negative_share": 0.5396825396825397,
+     "i1_exits": 126,
+     "net_all_i1": {
+      "mean": 0.0035463007170954963,
+      "median": -0.0017234379958502538,
+      "n": 126,
+      "p10": -0.009371548328578673,
+      "p90": 0.02590757243349709
+     },
+     "net_negative_share": 0.5476190476190477,
+     "net_of_negative": {
+      "mean": -0.006380270428112682,
+      "median": -0.005716428672803594,
+      "n": 69,
+      "p10": -0.011703812062447288,
+      "p90": -0.0019293692806727054
+     }
+    },
+    "loss_then_recovery": {
+     "0.5pct": {
+      "reached": 499,
+      "recovered_entry": 364,
+      "recovered_entry_share": 0.7294589178356713,
+      "recovered_net_be": 337,
+      "recovered_net_be_share": 0.6753507014028056
+     },
+     "1.0pct": {
+      "reached": 398,
+      "recovered_entry": 173,
+      "recovered_entry_share": 0.43467336683417085,
+      "recovered_net_be": 160,
+      "recovered_net_be_share": 0.4020100502512563
+     },
+     "any": {
+      "reached": 550,
+      "recovered_entry": 540,
+      "recovered_entry_share": 0.9818181818181818,
+      "recovered_net_be": 514,
+      "recovered_net_be_share": 0.9345454545454546
+     }
+    }
+   }
+  },
+  "F2": {
+   "by_direction": {
+    "LONG": {
+     "L20": {
+      "A1": {
+       "ambiguous_stop_bars": 0,
+       "catastrophic_rate": 0.0,
+       "cost_mean": 0.0010824687521621987,
+       "exit_kinds": {
+        "FIXED_STOP": 190,
+        "MAX_HOLD": 20
+       },
+       "funding_mean": 8.090458878391031e-05,
+       "giveback_abs_mean": 0.015102352320824072,
+       "giveback_abs_median": 0.009433402194251981,
+       "giveback_pct_mean": 225.31390888966678,
+       "giveback_pct_median": 2.026617647058812,
+       "gross_mean": 0.0007603267565766368,
+       "gross_median": -0.005,
+       "hold_min_mean": 564.1904761904761,
+       "hold_min_median": 173.5,
+       "mae_mean": 0.004737903887788172,
+       "mae_median": 0.005,
+       "mfe_mean": 0.01586267907740071,
+       "mfe_median": 0.004703819045586477,
+       "n": 210,
+       "net_mean": -0.0003221419955855625,
+       "net_median": -0.005998684000000001,
+       "net_pos_share": 0.09523809523809523,
+       "pf": 0.9411223521370371
+      },
+      "A2": {
+       "ambiguous_stop_bars": 1,
+       "catastrophic_rate": 0.0,
+       "cost_mean": 0.001155009528378212,
+       "exit_kinds": {
+        "FIXED_STOP": 162,
+        "MAX_HOLD": 48
+       },
+       "funding_mean": 0.00015220183611444206,
+       "giveback_abs_mean": 0.022185853446931976,
+       "giveback_abs_median": 0.015771535968555732,
+       "giveback_pct_mean": 15.181367627835966,
+       "giveback_pct_median": 2.0386534459542007,
+       "gross_mean": 0.0032473845275400102,
+       "gross_median": -0.01,
+       "hold_min_mean": 1103.3428571428572,
+       "hold_min_median": 580.5,
+       "mae_mean": 0.00892934211918664,
+       "mae_median": 0.01,
+       "mfe_mean": 0.025433237974471987,
+       "mfe_median": 0.00907669026536373,
+       "n": 210,
+       "net_mean": 0.0020923749991618,
+       "net_median": -0.010996183999999999,
+       "net_pos_share": 0.21428571428571427,
+       "pf": 1.244584741321732
+      },
+      "A3": {
+       "ambiguous_stop_bars": 1,
+       "catastrophic_rate": 0.5952380952380952,
+       "cost_mean": 0.0012722123884744568,
+       "exit_kinds": {
+        "CATASTROPHIC": 125,
+        "MAX_HOLD": 85
+       },
+       "funding_mean": 0.0002692501520159452,
+       "giveback_abs_mean": 0.02891149102801646,
+       "giveback_abs_median": 0.024000483285361335,
+       "giveback_pct_mean": 9.074585420299304,
+       "giveback_pct_median": 1.7289911784889653,
+       "gross_mean": 0.003556472917023481,
+       "gross_median": -0.0184,
+       "hold_min_mean": 1721.2,
+       "hold_min_median": 1798.5,
+       "mae_mean": 0.014572940200855965,
+       "mae_median": 0.0184,
+       "mfe_mean": 0.03246796394503995,
+       "mfe_median": 0.016995750808124988,
+       "n": 210,
+       "net_mean": 0.0022842605285490233,
+       "net_median": -0.019391984,
+       "net_pos_share": 0.3380952380952381,
+       "pf": 1.1911906258139344
+      },
+      "B": {
+       "ambiguous_stop_bars": 1,
+       "catastrophic_rate": 0.5952380952380952,
+       "cost_mean": 0.0012722123884744568,
+       "exit_kinds": {
+        "CATASTROPHIC": 125,
+        "MAX_HOLD": 85
+       },
+       "funding_mean": 0.0002692501520159452,
+       "giveback_abs_mean": 0.02891149102801646,
+       "giveback_abs_median": 0.024000483285361335,
+       "giveback_pct_mean": 9.074585420299304,
+       "giveback_pct_median": 1.7289911784889653,
+       "gross_mean": 0.003556472917023481,
+       "gross_median": -0.0184,
+       "hold_min_mean": 1721.2,
+       "hold_min_median": 1798.5,
+       "mae_mean": 0.014572940200855965,
+       "mae_median": 0.0184,
+       "mfe_mean": 0.03246796394503995,
+       "mfe_median": 0.016995750808124988,
+       "n": 210,
+       "net_mean": 0.0022842605285490233,
+       "net_median": -0.019391984,
+       "net_pos_share": 0.3380952380952381,
+       "pf": 1.1911906258139344
+      },
+      "C": {
+       "ambiguous_stop_bars": 1,
+       "catastrophic_rate": 0.5047619047619047,
+       "cost_mean": 0.0012405421771586387,
+       "exit_kinds": {
+        "CATASTROPHIC": 106,
+        "I1": 65,
+        "MAX_HOLD": 39
+       },
+       "funding_mean": 0.0002380671395335872,
+       "giveback_abs_mean": 0.027622482909562082,
+       "giveback_abs_median": 0.022866715655660355,
+       "giveback_pct_mean": 17.016149827530334,
+       "giveback_pct_median": 1.7049778566279579,
+       "gross_mean": 0.0025820752501034268,
+       "gross_median": -0.0184,
+       "hold_min_mean": 1404.452380952381,
+       "hold_min_median": 1124.5,
+       "mae_mean": 0.013595833777029121,
+       "mae_median": 0.0184,
+       "mfe_mean": 0.030204558159665513,
+       "mfe_median": 0.014891742697354715,
+       "n": 210,
+       "net_mean": 0.0013415330729447867,
+       "net_median": -0.01895970795379557,
+       "net_pos_share": 0.3,
+       "pf": 1.1225195135485764
+      }
+     },
+     "user_metrics": {
+      "fixed_stop_false_exit": {
+       "A1": {
+        "fixed_stop_exits": 190,
+        "later_recovered_entry": 136,
+        "later_recovered_net_be": 129,
+        "recovered_entry_share": 0.7157894736842105,
+        "recovered_net_be_share": 0.6789473684210526
+       },
+       "A2": {
+        "fixed_stop_exits": 162,
+        "later_recovered_entry": 72,
+        "later_recovered_net_be": 65,
+        "recovered_entry_share": 0.4444444444444444,
+        "recovered_net_be_share": 0.4012345679012346
+       }
+      },
+      "hold_value": {
+       "C_minus_A1": {
+        "mean": 0.0016636750685303495,
+        "median": -0.01296102395379557,
+        "n": 210,
+        "p10": -0.013505507569005608,
+        "p90": 0.024314512759839323
+       },
+       "C_minus_A2": {
+        "mean": -0.0007508419262170118,
+        "median": -0.0083958,
+        "n": 210,
+        "p10": -0.008495517993509012,
+        "p90": 0.011546227426630917
+       },
+       "C_minus_A3": {
+        "mean": -0.0009427274556042366,
+        "median": 0.0,
+        "n": 210,
+        "p10": -0.004578805200813402,
+        "p90": 0.0063718077816871865
+       },
+       "C_minus_B": {
+        "mean": -0.0009427274556042366,
+        "median": 0.0,
+        "n": 210,
+        "p10": -0.004578805200813402,
+        "p90": 0.0063718077816871865
+       }
+      },
+      "invalidation_loss": {
+       "gross_negative_share": 0.5076923076923077,
+       "i1_exits": 65,
+       "net_all_i1": {
+        "mean": 0.004571052841263925,
+        "median": -0.001671143056697071,
+        "n": 65,
+        "p10": -0.009207057073057348,
+        "p90": 0.023661994562282625
+       },
+       "net_negative_share": 0.5692307692307692,
+       "net_of_negative": {
+        "mean": -0.005624978568231984,
+        "median": -0.004808666529093586,
+        "n": 37,
+        "p10": -0.011509071184164017,
+        "p90": -0.001432154928406741
+       }
+      },
+      "loss_then_recovery": {
+       "0.5pct": {
+        "reached": 181,
+        "recovered_entry": 136,
+        "recovered_entry_share": 0.7513812154696132,
+        "recovered_net_be": 129,
+        "recovered_net_be_share": 0.712707182320442
+       },
+       "1.0pct": {
+        "reached": 145,
+        "recovered_entry": 72,
+        "recovered_entry_share": 0.496551724137931,
+        "recovered_net_be": 65,
+        "recovered_net_be_share": 0.4482758620689655
+       },
+       "any": {
+        "reached": 210,
+        "recovered_entry": 207,
+        "recovered_entry_share": 0.9857142857142858,
+        "recovered_net_be": 195,
+        "recovered_net_be_share": 0.9285714285714286
+       }
+      }
+     }
+    },
+    "SHORT": {
+     "L20": {
+      "A1": {
+       "ambiguous_stop_bars": 1,
+       "catastrophic_rate": 0.0,
+       "cost_mean": 0.0008715442846844544,
+       "exit_kinds": {
+        "FIXED_STOP": 241,
+        "MAX_HOLD": 26
+       },
+       "funding_mean": -0.0001296438574859436,
+       "giveback_abs_mean": 0.01536684001294103,
+       "giveback_abs_median": 0.00941117497660737,
+       "giveback_pct_mean": 17.78858547288943,
+       "giveback_pct_median": 2.0344228277678043,
+       "gross_mean": -8.28434079650896e-06,
+       "gross_median": -0.005,
+       "hold_min_mean": 592.0224719101124,
+       "hold_min_median": 143.0,
+       "mae_mean": 0.004798456553270205,
+       "mae_median": 0.005,
+       "mfe_mean": 0.015358555672144518,
+       "mfe_median": 0.0048336133598188,
+       "n": 267,
+       "net_mean": -0.000879828625480964,
+       "net_median": -0.0060036840000000005,
+       "net_pos_share": 0.09363295880149813,
+       "pf": 0.8354845593506902
+      },
+      "A2": {
+       "ambiguous_stop_bars": 1,
+       "catastrophic_rate": 0.0,
+       "cost_mean": 0.0007666322057560707,
+       "exit_kinds": {
+        "FIXED_STOP": 207,
+        "MAX_HOLD": 60
+       },
+       "funding_mean": -0.00023445131505717284,
+       "giveback_abs_mean": 0.022195860379196353,
+       "giveback_abs_median": 0.016214043258840564,
+       "giveback_pct_mean": 12.99493459507732,
+       "giveback_pct_median": 2.004793803361417,
+       "gross_mean": 0.00020095837351269386,
+       "gross_median": -0.01,
+       "hold_min_mean": 1132.692883895131,
+       "hold_min_median": 629.0,
+       "mae_mean": 0.00899709684493125,
+       "mae_median": 0.01,
+       "mfe_mean": 0.022396818752709047,
+       "mfe_median": 0.009721191601069434,
+       "n": 267,
+       "net_mean": -0.0005656738322433772,
+       "net_median": -0.010906184000000001,
+       "net_pos_share": 0.20599250936329588,
+       "pf": 0.933043594654656
+      },
+      "A3": {
+       "ambiguous_stop_bars": 0,
+       "catastrophic_rate": 0.5955056179775281,
+       "cost_mean": 0.0005658705993720165,
+       "exit_kinds": {
+        "CATASTROPHIC": 159,
+        "MAX_HOLD": 108
+       },
+       "funding_mean": -0.0004346132612081161,
+       "giveback_abs_mean": 0.029431868563980085,
+       "giveback_abs_median": 0.024641016897779866,
+       "giveback_pct_mean": 4.825969855221144,
+       "giveback_pct_median": 1.7709448212648933,
+       "gross_mean": 0.0014002788397344344,
+       "gross_median": -0.0184,
+       "hold_min_mean": 1694.0861423220974,
+       "hold_min_median": 1860.0,
+       "mae_mean": 0.014767743235341043,
+       "mae_median": 0.0184,
+       "mfe_mean": 0.030832147403714517,
+       "mfe_median": 0.018195090869963404,
+       "n": 267,
+       "net_mean": 0.0008344082403624177,
+       "net_median": -0.018929162337269555,
+       "net_pos_share": 0.3295880149812734,
+       "pf": 1.0705851449021764
+      },
+      "B": {
+       "ambiguous_stop_bars": 0,
+       "catastrophic_rate": 0.5955056179775281,
+       "cost_mean": 0.0005658705993720165,
+       "exit_kinds": {
+        "CATASTROPHIC": 159,
+        "MAX_HOLD": 108
+       },
+       "funding_mean": -0.0004346132612081161,
+       "giveback_abs_mean": 0.029431868563980085,
+       "giveback_abs_median": 0.024641016897779866,
+       "giveback_pct_mean": 4.825969855221144,
+       "giveback_pct_median": 1.7709448212648933,
+       "gross_mean": 0.0014002788397344344,
+       "gross_median": -0.0184,
+       "hold_min_mean": 1694.0861423220974,
+       "hold_min_median": 1860.0,
+       "mae_mean": 0.014767743235341043,
+       "mae_median": 0.0184,
+       "mfe_mean": 0.030832147403714517,
+       "mfe_median": 0.018195090869963404,
+       "n": 267,
+       "net_mean": 0.0008344082403624177,
+       "net_median": -0.018929162337269555,
+       "net_pos_share": 0.3295880149812734,
+       "pf": 1.0705851449021764
+      },
+      "C": {
+       "ambiguous_stop_bars": 0,
+       "catastrophic_rate": 0.5131086142322098,
+       "cost_mean": 0.0005864058305759242,
+       "exit_kinds": {
+        "CATASTROPHIC": 137,
+        "I1": 63,
+        "MAX_HOLD": 67
+       },
+       "funding_mean": -0.00041395262053608046,
+       "giveback_abs_mean": 0.027736268653845982,
+       "giveback_abs_median": 0.023536673357583138,
+       "giveback_pct_mean": 4.771261526048766,
+       "giveback_pct_median": 1.5806097286726952,
+       "gross_mean": 0.0016510977759905583,
+       "gross_median": -0.0184,
+       "hold_min_mean": 1453.9213483146068,
+       "hold_min_median": 1215.0,
+       "mae_mean": 0.013735960782956955,
+       "mae_median": 0.0184,
+       "mfe_mean": 0.029387366429836543,
+       "mfe_median": 0.01586869750756914,
+       "n": 267,
+       "net_mean": 0.0010646919454146342,
+       "net_median": -0.016948925596157245,
+       "net_pos_share": 0.3408239700374532,
+       "pf": 1.0992763481033943
+      }
+     },
+     "user_metrics": {
+      "fixed_stop_false_exit": {
+       "A1": {
+        "fixed_stop_exits": 241,
+        "later_recovered_entry": 168,
+        "later_recovered_net_be": 157,
+        "recovered_entry_share": 0.6970954356846473,
+        "recovered_net_be_share": 0.6514522821576764
+       },
+       "A2": {
+        "fixed_stop_exits": 207,
+        "later_recovered_entry": 89,
+        "later_recovered_net_be": 83,
+        "recovered_entry_share": 0.42995169082125606,
+        "recovered_net_be_share": 0.40096618357487923
+       }
+      },
+      "hold_value": {
+       "C_minus_A1": {
+        "mean": 0.0019445205708955977,
+        "median": -0.010945241596157245,
+        "n": 267,
+        "p10": -0.013406699999999999,
+        "p90": 0.03071795173778913
+       },
+       "C_minus_A2": {
+        "mean": 0.0016303657776580104,
+        "median": -0.00794020952928709,
+        "n": 267,
+        "p10": -0.0084042,
+        "p90": 0.019160444171148063
+       },
+       "C_minus_A3": {
+        "mean": 0.00023028370505221628,
+        "median": 0.0,
+        "n": 267,
+        "p10": -0.0009522644884068588,
+        "p90": 0.006686629091975988
+       },
+       "C_minus_B": {
+        "mean": 0.00023028370505221628,
+        "median": 0.0,
+        "n": 267,
+        "p10": -0.0009522644884068588,
+        "p90": 0.006686629091975988
+       }
+      },
+      "invalidation_loss": {
+       "gross_negative_share": 0.49206349206349204,
+       "i1_exits": 63,
+       "net_all_i1": {
+        "mean": 0.00382880590550118,
+        "median": -0.000849933958159088,
+        "n": 63,
+        "p10": -0.009929379758861795,
+        "p90": 0.02775041287960014
+       },
+       "net_negative_share": 0.5396825396825397,
+       "net_of_negative": {
+        "mean": -0.006404512515699011,
+        "median": -0.006522672315102673,
+        "n": 34,
+        "p10": -0.011388436024430364,
+        "p90": -0.00110690777053883
+       }
+      },
+      "loss_then_recovery": {
+       "0.5pct": {
+        "reached": 230,
+        "recovered_entry": 168,
+        "recovered_entry_share": 0.7304347826086957,
+        "recovered_net_be": 157,
+        "recovered_net_be_share": 0.6826086956521739
+       },
+       "1.0pct": {
+        "reached": 186,
+        "recovered_entry": 89,
+        "recovered_entry_share": 0.478494623655914,
+        "recovered_net_be": 83,
+        "recovered_net_be_share": 0.44623655913978494
+       },
+       "any": {
+        "reached": 267,
+        "recovered_entry": 264,
+        "recovered_entry_share": 0.9887640449438202,
+        "recovered_net_be": 256,
+        "recovered_net_be_share": 0.9588014981273408
+       }
+      }
+     }
+    }
+   },
+   "controls": {
+    "direction_placebo": {
+     "ambiguous_stop_bars": 0,
+     "catastrophic_rate": 0.44654088050314467,
+     "cost_mean": 0.0010572371795280872,
+     "exit_kinds": {
+      "CATASTROPHIC": 213,
+      "TIME": 264
+     },
+     "funding_mean": 5.628622527748323e-05,
+     "giveback_abs_mean": 0.01306748952943792,
+     "giveback_abs_median": 0.009066069342396066,
+     "giveback_pct_mean": 23.274263082688265,
+     "giveback_pct_median": 1.0776850886340086,
+     "gross_mean": -0.0022062214765666646,
+     "gross_median": -0.0002647940047737496,
+     "hold_min_mean": 665.4905660377359,
+     "hold_min_median": 470.0,
+     "mae_mean": 0.012061036403863627,
+     "mae_median": 0.015739849021885632,
+     "mfe_mean": 0.010861268052871256,
+     "mfe_median": 0.011687907988809476,
+     "n": 477,
+     "net_mean": -0.003263458656094752,
+     "net_median": -0.001192228411102615,
+     "net_pos_share": 0.4779874213836478,
+     "pf": 0.6364592246003162
+    },
+    "random_timestamp": {
+     "C_minus_control": {
+      "ci95": [
+       -0.0021955993493205724,
+       0.004544028620340433
+      ],
+      "mean": 0.0015076424632418331,
+      "p": 0.38341565705048025,
+      "se": 0.0017297013327879193
+     },
+     "summary": {
+      "ambiguous_stop_bars": 1,
+      "catastrophic_rate": 0.49266247379454925,
+      "cost_mean": 0.0008869299867463901,
+      "exit_kinds": {
+       "CATASTROPHIC": 235,
+       "TIME": 242
+      },
+      "funding_mean": -0.00011388927303184395,
+      "giveback_abs_mean": 0.027155203006901458,
+      "giveback_abs_median": 0.023253594742891792,
+      "giveback_pct_mean": 13.911627134778241,
+      "giveback_pct_median": 1.5553324436622515,
+      "gross_mean": 0.0005658592105991327,
+      "gross_median": -0.012547208090140094,
+      "hold_min_mean": 1281.2683438155136,
+      "hold_min_median": 969.0,
+      "mae_mean": 0.013252032976081908,
+      "mae_median": 0.017909864312975143,
+      "mfe_mean": 0.02772106221750059,
+      "mfe_median": 0.014486365042179372,
+      "n": 477,
+      "net_mean": -0.00032107077614725754,
+      "net_median": -0.013263434933975256,
+      "net_pos_share": 0.3228511530398323,
+      "pf": 0.9694490630903417
+     }
+    },
+    "time_shift": {
+     "14d": {
+      "ambiguous_stop_bars": 1,
+      "catastrophic_rate": 0.542016806722689,
+      "cost_mean": 0.0009489427294238827,
+      "exit_kinds": {
+       "CATASTROPHIC": 258,
+       "TIME": 218
+      },
+      "funding_mean": -5.2068694333348694e-05,
+      "giveback_abs_mean": 0.024889317844207497,
+      "giveback_abs_median": 0.02238676441915706,
+      "giveback_pct_mean": 204.88486691513125,
+      "giveback_pct_median": 1.754150311430462,
+      "gross_mean": -0.000965775932950768,
+      "gross_median": -0.0184,
+      "hold_min_mean": 1166.8508403361345,
+      "hold_min_median": 838.0,
+      "mae_mean": 0.013554394081384029,
+      "mae_median": 0.0184,
+      "mfe_mean": 0.023923541911256733,
+      "mfe_median": 0.01246949934256647,
+      "n": 476,
+      "net_mean": -0.0019147186623746507,
+      "net_median": -0.019001981120405034,
+      "net_pos_share": 0.3382352941176471,
+      "pf": 0.825327129926582
+     },
+     "30d": {
+      "ambiguous_stop_bars": 1,
+      "catastrophic_rate": 0.5303983228511531,
+      "cost_mean": 0.0009630742663365485,
+      "exit_kinds": {
+       "CATASTROPHIC": 253,
+       "TIME": 224
+      },
+      "funding_mean": -3.785603885302885e-05,
+      "giveback_abs_mean": 0.025802440909855163,
+      "giveback_abs_median": 0.02271173944967722,
+      "giveback_pct_mean": 21.329431517771873,
+      "giveback_pct_median": 1.6886297872340439,
+      "gross_mean": -0.0009663235632609547,
+      "gross_median": -0.0184,
+      "hold_min_mean": 1198.6603773584907,
+      "hold_min_median": 889.0,
+      "mae_mean": 0.013485858552979279,
+      "mae_median": 0.0184,
+      "mfe_mean": 0.024836117346594213,
+      "mfe_median": 0.013782549885927864,
+      "n": 477,
+      "net_mean": -0.0019293978295975033,
+      "net_median": -0.018886992803112596,
+      "net_pos_share": 0.33752620545073375,
+      "pf": 0.8226344360078515
+     },
+     "7d": {
+      "ambiguous_stop_bars": 0,
+      "catastrophic_rate": 0.5283018867924528,
+      "cost_mean": 0.000909004298403127,
+      "exit_kinds": {
+       "CATASTROPHIC": 252,
+       "TIME": 225
+      },
+      "funding_mean": -9.290392306966792e-05,
+      "giveback_abs_mean": 0.024759847707389277,
+      "giveback_abs_median": 0.02247169077659983,
+      "giveback_pct_mean": 237.93119133540503,
+      "giveback_pct_median": 1.7440288857201613,
+      "gross_mean": -1.7292341803169498e-05,
+      "gross_median": -0.0184,
+      "hold_min_mean": 1179.74213836478,
+      "hold_min_median": 840.0,
+      "mae_mean": 0.013466339776448703,
+      "mae_median": 0.0184,
+      "mfe_mean": 0.024742555365586113,
+      "mfe_median": 0.013750326455993722,
+      "n": 477,
+      "net_mean": -0.000926296640206297,
+      "net_median": -0.018862171670337075,
+      "net_pos_share": 0.36477987421383645,
+      "pf": 0.9140102033750198
+     }
+    }
+   },
+   "entries": {
+    "evaluated": 477,
+    "long": 210,
+    "primary": 478,
+    "raw": 2059,
+    "short": 267
+   },
+   "horizons": {
+    "12h": {
+     "gross_mean": 0.0012700480009381987,
+     "gross_median": 0.0004431576459464903,
+     "mae_median": 0.011060716788219072,
+     "mfe_median": 0.012936689149150915,
+     "n": 477,
+     "net_mean": 0.00034513775309929,
+     "net_median": -0.0005847198630382234,
+     "net_pos_share": 0.480083857442348,
+     "pf": 1.0432187754743305
+    },
+    "1h": {
+     "gross_mean": 8.082875130456206e-06,
+     "gross_median": -0.00036774846005338535,
+     "mae_median": 0.002862734583840121,
+     "mfe_median": 0.002981557747657959,
+     "n": 477,
+     "net_mean": -0.0009820302734129026,
+     "net_median": -0.001359756371382644,
+     "net_pos_share": 0.3689727463312369,
+     "pf": 0.6404416859719954
+    },
+    "24h": {
+     "gross_mean": 0.0012648586591957165,
+     "gross_median": 0.00043944681401053565,
+     "mae_median": 0.016247450009837516,
+     "mfe_median": 0.019859934208666052,
+     "n": 477,
+     "net_mean": 0.00041301845901812583,
+     "net_median": -0.0005310871543607586,
+     "net_pos_share": 0.48846960167714887,
+     "pf": 1.0340919655403742
+    },
+    "48h": {
+     "gross_mean": 0.0018483102109689512,
+     "gross_median": 0.0014293666443376818,
+     "mae_median": 0.024883328047858977,
+     "mfe_median": 0.026721807597744895,
+     "n": 477,
+     "net_mean": 0.0011629721191025206,
+     "net_median": 0.00017862132412924754,
+     "net_pos_share": 0.5031446540880503,
+     "pf": 1.0686540276896108
+    },
+    "4h": {
+     "gross_mean": -0.0001160188920490359,
+     "gross_median": -0.0003928916827853346,
+     "mae_median": 0.006346561778067805,
+     "mfe_median": 0.006119681160867363,
+     "n": 477,
+     "net_mean": -0.001090185580214434,
+     "net_median": -0.0013774469082609073,
+     "net_pos_share": 0.4088050314465409,
+     "pf": 0.7764056790144109
+    },
+    "8h": {
+     "gross_mean": 0.0005588476988011527,
+     "gross_median": -0.000652096951458847,
+     "mae_median": 0.009045984304306032,
+     "mfe_median": 0.009544183740457068,
+     "n": 477,
+     "net_mean": -0.0003937032235886772,
+     "net_median": -0.0016773243694651167,
+     "net_pos_share": 0.4339622641509434,
+     "pf": 0.9397486705727379
+    }
+   },
+   "inference": {
+    "P1_C_net": {
+     "ci95": [
+      -0.0018987835532112882,
+      0.004292881716382221
+     ],
+     "mean": 0.0011865716870945757,
+     "p": 0.4583464446893951,
+     "se": 0.0016000752866630024
+    },
+    "P1_cluster_by_thesis_episode": {
+     "clusters": 330,
+     "mean": 0.0011865716870945757,
+     "p": 0.43483374513660134,
+     "se": 0.001519401301296526
+    },
+    "P2a_C_minus_A1": {
+     "ci95": [
+      -0.0008765905893571721,
+      0.004409352823377003
+     ],
+     "mean": 0.0018208778968983187,
+     "p": 0.16920510383944917,
+     "se": 0.0013245036626036075
+    },
+    "P2b_C_minus_A2": {
+     "ci95": [
+      -0.001442798604589641,
+      0.002468122066164981
+     ],
+     "mean": 0.0005820353419897618,
+     "p": 0.5575495946105222,
+     "se": 0.0009924128952482122
+    }
+   },
+   "overlap_adjusted_C": {
+    "ambiguous_stop_bars": 1,
+    "catastrophic_rate": 0.5300546448087432,
+    "cost_mean": 0.0008062308541493915,
+    "exit_kinds": {
+     "CATASTROPHIC": 194,
+     "TIME": 172
+    },
+    "funding_mean": -0.00019406679858840123,
+    "giveback_abs_mean": 0.028458515324067186,
+    "giveback_abs_median": 0.023931526101511308,
+    "giveback_pct_mean": 3.8058688488107935,
+    "giveback_pct_median": 1.7656150281543004,
+    "gross_mean": 0.0012539016133968387,
+    "gross_median": -0.0184,
+    "hold_min_mean": 1348.22131147541,
+    "hold_min_median": 1049.5,
+    "mae_mean": 0.01355919963427991,
+    "mae_median": 0.0184,
+    "mfe_mean": 0.029712416937464032,
+    "mfe_median": 0.014603530829989497,
+    "n": 366,
+    "net_mean": 0.0004476707592474469,
+    "net_median": -0.018446492676171794,
+    "net_pos_share": 0.28415300546448086,
+    "pf": 1.0395411901068097
+   },
+   "pooled": {
+    "L10": {
+     "A1": {
+      "ambiguous_stop_bars": 1,
+      "catastrophic_rate": 0.0,
+      "cost_mean": 0.0009644041131337759,
+      "exit_kinds": {
+       "FIXED_STOP": 431,
+       "MAX_HOLD": 46
+      },
+      "funding_mean": -3.694957296462428e-05,
+      "giveback_abs_mean": 0.015250398890625388,
+      "giveback_abs_median": 0.009413925923685281,
+      "giveback_pct_mean": 107.92140602466773,
+      "giveback_pct_median": 2.0305202374133082,
+      "gross_mean": 0.0003300979033300334,
+      "gross_median": -0.005,
+      "hold_min_mean": 579.769392033543,
+      "hold_min_median": 164.0,
+      "mae_mean": 0.004771798147083146,
+      "mae_median": 0.005,
+      "mfe_mean": 0.01558049679395542,
+      "mfe_median": 0.004753824876772339,
+      "n": 477,
+      "net_mean": -0.0006343062098037431,
+      "net_median": -0.005998684000000001,
+      "net_pos_share": 0.09433962264150944,
+      "pf": 0.8825862985319615
+     },
+     "A2": {
+      "ambiguous_stop_bars": 2,
+      "catastrophic_rate": 0.0,
+      "cost_mean": 0.0009376159326966361,
+      "exit_kinds": {
+       "FIXED_STOP": 369,
+       "MAX_HOLD": 108
+      },
+      "funding_mean": -6.422665730866312e-05,
+      "giveback_abs_mean": 0.02219145481153279,
+      "giveback_abs_median": 0.015927560978064352,
+      "giveback_pct_mean": 13.954944056939834,
+      "giveback_pct_median": 2.0279638212038664,
+      "gross_mean": 0.0015421522778014494,
+      "gross_median": -0.01,
+      "hold_min_mean": 1119.7714884696018,
+      "hold_min_median": 596.0,
+      "mae_mean": 0.008967267720389596,
+      "mae_median": 0.01,
+      "mfe_mean": 0.02373360708933424,
+      "mfe_median": 0.00955523614794418,
+      "n": 477,
+      "net_mean": 0.0006045363451048136,
+      "net_median": -0.010996183999999999,
+      "net_pos_share": 0.20964360587002095,
+      "pf": 1.0711617748469877
+     },
+     "A3": {
+      "ambiguous_stop_bars": 1,
+      "catastrophic_rate": 0.0,
+      "cost_mean": 0.0008674273544585245,
+      "exit_kinds": {
+       "FIXED_STOP": 273,
+       "MAX_HOLD": 204
+      },
+      "funding_mean": -0.00013411273221815436,
+      "giveback_abs_mean": 0.029991445386755123,
+      "giveback_abs_median": 0.025630657612888613,
+      "giveback_pct_mean": 7.15722793729606,
+      "giveback_pct_median": 1.7503840814437763,
+      "gross_mean": 0.001822943659763989,
+      "gross_median": -0.02,
+      "hold_min_mean": 1766.2494758909854,
+      "hold_min_median": 2048.0,
+      "mae_mean": 0.015617083516961545,
+      "mae_median": 0.02,
+      "mfe_mean": 0.03181438904651911,
+      "mfe_median": 0.018297566697498713,
+      "n": 477,
+      "net_mean": 0.000955516305305464,
+      "net_median": -0.020678428954018353,
+      "net_pos_share": 0.33962264150943394,
+      "pf": 1.076672994526046
+     },
+     "B": {
+      "ambiguous_stop_bars": 0,
+      "catastrophic_rate": 0.33962264150943394,
+      "cost_mean": 0.0008226915522187212,
+      "exit_kinds": {
+       "CATASTROPHIC": 162,
+       "MAX_HOLD": 315
+      },
+      "funding_mean": -0.00017885715506425927,
+      "giveback_abs_mean": 0.035510254945306595,
+      "giveback_abs_median": 0.03480938067555461,
+      "giveback_pct_mean": 10.555164766036572,
+      "giveback_pct_median": 1.1701927887971233,
+      "gross_mean": 0.0014908769600732454,
+      "gross_median": -0.003282926198785008,
+      "hold_min_mean": 2343.329140461216,
+      "hold_min_median": 2880.0,
+      "mae_mean": 0.023889731268309584,
+      "mae_median": 0.024883328047858977,
+      "mfe_mean": 0.03700113190537984,
+      "mfe_median": 0.02504956854422069,
+      "n": 477,
+      "net_mean": 0.0006681854078545233,
+      "net_median": -0.004095016648356381,
+      "net_pos_share": 0.44234800838574423,
+      "pf": 1.042818724881157
+     },
+     "C": {
+      "ambiguous_stop_bars": 0,
+      "catastrophic_rate": 0.23060796645702306,
+      "cost_mean": 0.0008140461710538107,
+      "exit_kinds": {
+       "CATASTROPHIC": 110,
+       "I1": 222,
+       "MAX_HOLD": 145
+      },
+      "funding_mean": -0.00018721226235061104,
+      "giveback_abs_mean": 0.03229724441452431,
+      "giveback_abs_median": 0.02632689442545011,
+      "giveback_pct_mean": 13.99547263671476,
+      "giveback_pct_median": 1.2987654070710364,
+      "gross_mean": 0.001450192579120849,
+      "gross_median": -0.0042128272641462905,
+      "hold_min_mean": 1796.3207547169811,
+      "hold_min_median": 1898.0,
+      "mae_mean": 0.02079665518897584,
+      "mae_median": 0.018779532924031117,
+      "mfe_mean": 0.033747436993645165,
+      "mfe_median": 0.019998518238505625,
+      "n": 477,
+      "net_mean": 0.0006361464080670379,
+      "net_median": -0.00529577393779223,
+      "net_pos_share": 0.39832285115303984,
+      "pf": 1.0469095697370805
+     }
+    },
+    "L20": {
+     "A1": {
+      "ambiguous_stop_bars": 1,
+      "catastrophic_rate": 0.0,
+      "cost_mean": 0.0009644041131337759,
+      "exit_kinds": {
+       "FIXED_STOP": 431,
+       "MAX_HOLD": 46
+      },
+      "funding_mean": -3.694957296462428e-05,
+      "giveback_abs_mean": 0.015250398890625388,
+      "giveback_abs_median": 0.009413925923685281,
+      "giveback_pct_mean": 107.92140602466773,
+      "giveback_pct_median": 2.0305202374133082,
+      "gross_mean": 0.0003300979033300334,
+      "gross_median": -0.005,
+      "hold_min_mean": 579.769392033543,
+      "hold_min_median": 164.0,
+      "mae_mean": 0.004771798147083146,
+      "mae_median": 0.005,
+      "mfe_mean": 0.01558049679395542,
+      "mfe_median": 0.004753824876772339,
+      "n": 477,
+      "net_mean": -0.0006343062098037431,
+      "net_median": -0.005998684000000001,
+      "net_pos_share": 0.09433962264150944,
+      "pf": 0.8825862985319615
+     },
+     "A2": {
+      "ambiguous_stop_bars": 2,
+      "catastrophic_rate": 0.0,
+      "cost_mean": 0.0009376159326966361,
+      "exit_kinds": {
+       "FIXED_STOP": 369,
+       "MAX_HOLD": 108
+      },
+      "funding_mean": -6.422665730866312e-05,
+      "giveback_abs_mean": 0.02219145481153279,
+      "giveback_abs_median": 0.015927560978064352,
+      "giveback_pct_mean": 13.954944056939834,
+      "giveback_pct_median": 2.0279638212038664,
+      "gross_mean": 0.0015421522778014494,
+      "gross_median": -0.01,
+      "hold_min_mean": 1119.7714884696018,
+      "hold_min_median": 596.0,
+      "mae_mean": 0.008967267720389596,
+      "mae_median": 0.01,
+      "mfe_mean": 0.02373360708933424,
+      "mfe_median": 0.00955523614794418,
+      "n": 477,
+      "net_mean": 0.0006045363451048136,
+      "net_median": -0.010996183999999999,
+      "net_pos_share": 0.20964360587002095,
+      "pf": 1.0711617748469877
+     },
+     "A3": {
+      "ambiguous_stop_bars": 1,
+      "catastrophic_rate": 0.5953878406708596,
+      "cost_mean": 0.0008768386826246634,
+      "exit_kinds": {
+       "CATASTROPHIC": 284,
+       "MAX_HOLD": 193
+      },
+      "funding_mean": -0.0001247362868327432,
+      "giveback_abs_mean": 0.029202771535568425,
+      "giveback_abs_median": 0.02442009106604895,
+      "giveback_pct_mean": 6.696429537959958,
+      "giveback_pct_median": 1.7382142531067757,
+      "gross_mean": 0.0023495466725031965,
+      "gross_median": -0.0184,
+      "hold_min_mean": 1706.0230607966457,
+      "hold_min_median": 1849.0,
+      "mae_mean": 0.014681980893114907,
+      "mae_median": 0.0184,
+      "mfe_mean": 0.03155231820807163,
+      "mfe_median": 0.018025933399631322,
+      "n": 477,
+      "net_mean": 0.0014727079898785337,
+      "net_median": -0.019163346253180044,
+      "net_pos_share": 0.3333333333333333,
+      "pf": 1.123997836937666
+     },
+     "B": {
+      "ambiguous_stop_bars": 1,
+      "catastrophic_rate": 0.5953878406708596,
+      "cost_mean": 0.0008768386826246634,
+      "exit_kinds": {
+       "CATASTROPHIC": 284,
+       "MAX_HOLD": 193
+      },
+      "funding_mean": -0.0001247362868327432,
+      "giveback_abs_mean": 0.029202771535568425,
+      "giveback_abs_median": 0.02442009106604895,
+      "giveback_pct_mean": 6.696429537959958,
+      "giveback_pct_median": 1.7382142531067757,
+      "gross_mean": 0.0023495466725031965,
+      "gross_median": -0.0184,
+      "hold_min_mean": 1706.0230607966457,
+      "hold_min_median": 1849.0,
+      "mae_mean": 0.014681980893114907,
+      "mae_median": 0.0184,
+      "mfe_mean": 0.03155231820807163,
+      "mfe_median": 0.018025933399631322,
+      "n": 477,
+      "net_mean": 0.0014727079898785337,
+      "net_median": -0.019163346253180044,
+      "net_pos_share": 0.3333333333333333,
+      "pf": 1.123997836937666
+     },
+     "C": {
+      "ambiguous_stop_bars": 1,
+      "catastrophic_rate": 0.5094339622641509,
+      "cost_mean": 0.0008743903856752326,
+      "exit_kinds": {
+       "CATASTROPHIC": 243,
+       "I1": 128,
+       "MAX_HOLD": 106
+      },
+      "funding_mean": -0.00012689989597710726,
+      "giveback_abs_mean": 0.027686174301016588,
+      "giveback_abs_median": 0.02329801591946626,
+      "giveback_pct_mean": 10.162092853745053,
+      "giveback_pct_median": 1.6724003057939358,
+      "gross_mean": 0.0020609620727698084,
+      "gross_median": -0.0184,
+      "hold_min_mean": 1432.1425576519916,
+      "hold_min_median": 1170.0,
+      "mae_mean": 0.013674269648271746,
+      "mae_median": 0.0184,
+      "mfe_mean": 0.02974713637378641,
+      "mfe_median": 0.015739849021885632,
+      "n": 477,
+      "net_mean": 0.0011865716870945757,
+      "net_median": -0.017144695887093962,
+      "net_pos_share": 0.3228511530398323,
+      "pf": 1.1096282674191265
+     }
+    },
+    "stress_L20": {
+     "A1": {
+      "ambiguous_stop_bars": 1,
+      "catastrophic_rate": 0.0,
+      "cost_mean": 0.001316937081743616,
+      "exit_kinds": {
+       "FIXED_STOP": 431,
+       "MAX_HOLD": 46
+      },
+      "funding_mean": -3.694957296462428e-05,
+      "giveback_abs_mean": 0.015250398890625388,
+      "giveback_abs_median": 0.009413925923685281,
+      "giveback_pct_mean": 107.92140602466773,
+      "giveback_pct_median": 2.0305202374133082,
+      "gross_mean": 0.0003300979033300334,
+      "gross_median": -0.005,
+      "hold_min_mean": 579.769392033543,
+      "hold_min_median": 164.0,
+      "mae_mean": 0.004771798147083146,
+      "mae_median": 0.005,
+      "mfe_mean": 0.01558049679395542,
+      "mfe_median": 0.004753824876772339,
+      "n": 477,
+      "net_mean": -0.0009868391784135823,
+      "net_median": -0.00635095,
+      "net_pos_share": 0.09433962264150944,
+      "pf": 0.8275240661980058
+     },
+     "A2": {
+      "ambiguous_stop_bars": 2,
+      "catastrophic_rate": 0.0,
+      "cost_mean": 0.001290197791697166,
+      "exit_kinds": {
+       "FIXED_STOP": 369,
+       "MAX_HOLD": 108
+      },
+      "funding_mean": -6.422665730866312e-05,
+      "giveback_abs_mean": 0.02219145481153279,
+      "giveback_abs_median": 0.015927560978064352,
+      "giveback_pct_mean": 13.954944056939834,
+      "giveback_pct_median": 2.0279638212038664,
+      "gross_mean": 0.0015421522778014494,
+      "gross_median": -0.01,
+      "hold_min_mean": 1119.7714884696018,
+      "hold_min_median": 596.0,
+      "mae_mean": 0.008967267720389596,
+      "mae_median": 0.01,
+      "mfe_mean": 0.02373360708933424,
+      "mfe_median": 0.00955523614794418,
+      "n": 477,
+      "net_mean": 0.00025195448610428316,
+      "net_median": -0.011348200000000001,
+      "net_pos_share": 0.20754716981132076,
+      "pf": 1.0287163420939975
+     },
+     "A3": {
+      "ambiguous_stop_bars": 1,
+      "catastrophic_rate": 0.5953878406708596,
+      "cost_mean": 0.0012293937795704037,
+      "exit_kinds": {
+       "CATASTROPHIC": 284,
+       "MAX_HOLD": 193
+      },
+      "funding_mean": -0.0001247362868327432,
+      "giveback_abs_mean": 0.029202771535568425,
+      "giveback_abs_median": 0.02442009106604895,
+      "giveback_pct_mean": 6.696429537959958,
+      "giveback_pct_median": 1.7382142531067757,
+      "gross_mean": 0.0023495466725031965,
+      "gross_median": -0.0184,
+      "hold_min_mean": 1706.0230607966457,
+      "hold_min_median": 1849.0,
+      "mae_mean": 0.014681980893114907,
+      "mae_median": 0.0184,
+      "mfe_mean": 0.03155231820807163,
+      "mfe_median": 0.018025933399631322,
+      "n": 477,
+      "net_mean": 0.0011201528929327938,
+      "net_median": -0.019516782253180043,
+      "net_pos_share": 0.3270440251572327,
+      "pf": 1.0924784069696143
+     },
+     "B": {
+      "ambiguous_stop_bars": 1,
+      "catastrophic_rate": 0.5953878406708596,
+      "cost_mean": 0.0012293937795704037,
+      "exit_kinds": {
+       "CATASTROPHIC": 284,
+       "MAX_HOLD": 193
+      },
+      "funding_mean": -0.0001247362868327432,
+      "giveback_abs_mean": 0.029202771535568425,
+      "giveback_abs_median": 0.02442009106604895,
+      "giveback_pct_mean": 6.696429537959958,
+      "giveback_pct_median": 1.7382142531067757,
+      "gross_mean": 0.0023495466725031965,
+      "gross_median": -0.0184,
+      "hold_min_mean": 1706.0230607966457,
+      "hold_min_median": 1849.0,
+      "mae_mean": 0.014681980893114907,
+      "mae_median": 0.0184,
+      "mfe_mean": 0.03155231820807163,
+      "mfe_median": 0.018025933399631322,
+      "n": 477,
+      "net_mean": 0.0011201528929327938,
+      "net_median": -0.019516782253180043,
+      "net_pos_share": 0.3270440251572327,
+      "pf": 1.0924784069696143
+     },
+     "C": {
+      "ambiguous_stop_bars": 1,
+      "catastrophic_rate": 0.5094339622641509,
+      "cost_mean": 0.0012269170138404664,
+      "exit_kinds": {
+       "CATASTROPHIC": 243,
+       "I1": 128,
+       "MAX_HOLD": 106
+      },
+      "funding_mean": -0.00012689989597710726,
+      "giveback_abs_mean": 0.027686174301016588,
+      "giveback_abs_median": 0.02329801591946626,
+      "giveback_pct_mean": 10.162092853745053,
+      "giveback_pct_median": 1.6724003057939358,
+      "gross_mean": 0.0020609620727698084,
+      "gross_median": -0.0184,
+      "hold_min_mean": 1432.1425576519916,
+      "hold_min_median": 1170.0,
+      "mae_mean": 0.013674269648271746,
+      "mae_median": 0.0184,
+      "mfe_mean": 0.02974713637378641,
+      "mfe_median": 0.015739849021885632,
+      "n": 477,
+      "net_mean": 0.0008340450589293424,
+      "net_median": -0.01749813188709396,
+      "net_pos_share": 0.31865828092243187,
+      "pf": 1.0753907641475284
+     }
+    }
+   },
+   "user_metrics_pooled": {
+    "fixed_stop_false_exit": {
+     "A1": {
+      "fixed_stop_exits": 431,
+      "later_recovered_entry": 304,
+      "later_recovered_net_be": 286,
+      "recovered_entry_share": 0.7053364269141531,
+      "recovered_net_be_share": 0.6635730858468677
+     },
+     "A2": {
+      "fixed_stop_exits": 369,
+      "later_recovered_entry": 161,
+      "later_recovered_net_be": 148,
+      "recovered_entry_share": 0.4363143631436314,
+      "recovered_net_be_share": 0.4010840108401084
+     }
+    },
+    "hold_value": {
+     "C_minus_A1": {
+      "mean": 0.0018208778968983187,
+      "median": -0.011415792826429549,
+      "n": 477,
+      "p10": -0.013472628846034493,
+      "p90": 0.02813762896833326
+     },
+     "C_minus_A2": {
+      "mean": 0.0005820353419897618,
+      "median": -0.008157162253180044,
+      "n": 477,
+      "p10": -0.008476301001730167,
+      "p90": 0.015551271525721156
+     },
+     "C_minus_A3": {
+      "mean": -0.0002861363027839579,
+      "median": 0.0,
+      "n": 477,
+      "p10": -0.002869141066636202,
+      "p90": 0.006686629091975999
+     },
+     "C_minus_B": {
+      "mean": -0.0002861363027839579,
+      "median": 0.0,
+      "n": 477,
+      "p10": -0.002869141066636202,
+      "p90": 0.006686629091975999
+     }
+    },
+    "invalidation_loss": {
+     "gross_negative_share": 0.5,
+     "i1_exits": 128,
+     "net_all_i1": {
+      "mean": 0.004205728177568199,
+      "median": -0.0010837083242476366,
+      "n": 128,
+      "p10": -0.009678329339124912,
+      "p90": 0.02504115844988099
+     },
+     "net_negative_share": 0.5546875,
+     "net_of_negative": {
+      "mean": -0.005998276514906336,
+      "median": -0.005127369416427743,
+      "n": 71,
+      "p10": -0.011623775914691983,
+      "p90": -0.001093743912524029
+     }
+    },
+    "loss_then_recovery": {
+     "0.5pct": {
+      "reached": 411,
+      "recovered_entry": 304,
+      "recovered_entry_share": 0.7396593673965937,
+      "recovered_net_be": 286,
+      "recovered_net_be_share": 0.6958637469586375
+     },
+     "1.0pct": {
+      "reached": 331,
+      "recovered_entry": 161,
+      "recovered_entry_share": 0.486404833836858,
+      "recovered_net_be": 148,
+      "recovered_net_be_share": 0.4471299093655589
+     },
+     "any": {
+      "reached": 477,
+      "recovered_entry": 471,
+      "recovered_entry_share": 0.9874213836477987,
+      "recovered_net_be": 451,
+      "recovered_net_be_share": 0.9454926624737946
+     }
+    }
+   }
+  },
+  "F3": {
+   "by_direction": {
+    "LONG": {
+     "L20": {
+      "A1": {
+       "ambiguous_stop_bars": 2,
+       "catastrophic_rate": 0.0,
+       "cost_mean": 0.0011103868251978956,
+       "exit_kinds": {
+        "FIXED_STOP": 160,
+        "MAX_HOLD": 21
+       },
+       "funding_mean": 0.00010751112172144811,
+       "giveback_abs_mean": 0.014928935955712456,
+       "giveback_abs_median": 0.008612293023017248,
+       "giveback_pct_mean": 7.279580870169435,
+       "giveback_pct_median": 2.238682896379525,
+       "gross_mean": 0.0033834069528950604,
+       "gross_median": -0.005,
+       "hold_min_mean": 584.7900552486187,
+       "hold_min_median": 115.0,
+       "mae_mean": 0.00467304335786049,
+       "mae_median": 0.005,
+       "mfe_mean": 0.018312342908607518,
+       "mfe_median": 0.004023276552841182,
+       "n": 181,
+       "net_mean": 0.002273020127697164,
+       "net_median": -0.005998684000000001,
+       "net_pos_share": 0.11602209944751381,
+       "pf": 1.425700150900351
+      },
+      "A2": {
+       "ambiguous_stop_bars": 0,
+       "catastrophic_rate": 0.0,
+       "cost_mean": 0.0011723859658181474,
+       "exit_kinds": {
+        "FIXED_STOP": 146,
+        "MAX_HOLD": 35
+       },
+       "funding_mean": 0.00016979639205434217,
+       "giveback_abs_mean": 0.022175744984142255,
+       "giveback_abs_median": 0.01642341111968814,
+       "giveback_pct_mean": 10.395901976759207,
+       "giveback_pct_median": 2.151172223038145,
+       "gross_mean": 0.002811147527610852,
+       "gross_median": -0.01,
+       "hold_min_mean": 1000.5690607734807,
+       "hold_min_median": 389.0,
+       "mae_mean": 0.008884876638352565,
+       "mae_median": 0.01,
+       "mfe_mean": 0.024986892511753102,
+       "mfe_median": 0.008268567363320267,
+       "n": 181,
+       "net_mean": 0.0016387615617927053,
+       "net_median": -0.010996183999999999,
+       "net_pos_share": 0.18232044198895028,
+       "pf": 1.183178911917474
+      },
+      "A3": {
+       "ambiguous_stop_bars": 0,
+       "catastrophic_rate": 0.6077348066298343,
+       "cost_mean": 0.0012588632144475197,
+       "exit_kinds": {
+        "CATASTROPHIC": 110,
+        "MAX_HOLD": 71
+       },
+       "funding_mean": 0.00025540848623696204,
+       "giveback_abs_mean": 0.029140331594186088,
+       "giveback_abs_median": 0.02369281201980547,
+       "giveback_pct_mean": 9.245867335793292,
+       "giveback_pct_median": 1.7997407919547428,
+       "gross_mean": 0.004541456421115347,
+       "gross_median": -0.0184,
+       "hold_min_mean": 1668.364640883978,
+       "hold_min_median": 1816.0,
+       "mae_mean": 0.014933978401458294,
+       "mae_median": 0.0184,
+       "mfe_mean": 0.03368178801530144,
+       "mfe_median": 0.019911810321052714,
+       "n": 181,
+       "net_mean": 0.0032825932066678255,
+       "net_median": -0.019391984,
+       "net_pos_share": 0.32044198895027626,
+       "pf": 1.2671924792463387
+      },
+      "B": {
+       "ambiguous_stop_bars": 0,
+       "catastrophic_rate": 0.6077348066298343,
+       "cost_mean": 0.0012588632144475197,
+       "exit_kinds": {
+        "CATASTROPHIC": 110,
+        "MAX_HOLD": 71
+       },
+       "funding_mean": 0.00025540848623696204,
+       "giveback_abs_mean": 0.029140331594186088,
+       "giveback_abs_median": 0.02369281201980547,
+       "giveback_pct_mean": 9.245867335793292,
+       "giveback_pct_median": 1.7997407919547428,
+       "gross_mean": 0.004541456421115347,
+       "gross_median": -0.0184,
+       "hold_min_mean": 1668.364640883978,
+       "hold_min_median": 1816.0,
+       "mae_mean": 0.014933978401458294,
+       "mae_median": 0.0184,
+       "mfe_mean": 0.03368178801530144,
+       "mfe_median": 0.019911810321052714,
+       "n": 181,
+       "net_mean": 0.0032825932066678255,
+       "net_median": -0.019391984,
+       "net_pos_share": 0.32044198895027626,
+       "pf": 1.2671924792463387
+      },
+      "C": {
+       "ambiguous_stop_bars": 0,
+       "catastrophic_rate": 0.4419889502762431,
+       "cost_mean": 0.0011985179086511704,
+       "exit_kinds": {
+        "CATASTROPHIC": 80,
+        "I1": 67,
+        "MAX_HOLD": 34
+       },
+       "funding_mean": 0.0001953652275521123,
+       "giveback_abs_mean": 0.02477602310050975,
+       "giveback_abs_median": 0.020910183822485662,
+       "giveback_pct_mean": 9.105733344721292,
+       "giveback_pct_median": 1.684793135502324,
+       "gross_mean": 0.0039373621981159046,
+       "gross_median": -0.008104518742322098,
+       "hold_min_mean": 1173.4419889502763,
+       "hold_min_median": 578.0,
+       "mae_mean": 0.012961377839408698,
+       "mae_median": 0.01573248313519182,
+       "mfe_mean": 0.028713385298625656,
+       "mfe_median": 0.011366963382249518,
+       "n": 181,
+       "net_mean": 0.0027388442894647333,
+       "net_median": -0.009341881380732673,
+       "net_pos_share": 0.32044198895027626,
+       "pf": 1.2733351348290953
+      }
+     },
+     "user_metrics": {
+      "fixed_stop_false_exit": {
+       "A1": {
+        "fixed_stop_exits": 160,
+        "later_recovered_entry": 91,
+        "later_recovered_net_be": 84,
+        "recovered_entry_share": 0.56875,
+        "recovered_net_be_share": 0.525
+       },
+       "A2": {
+        "fixed_stop_exits": 146,
+        "later_recovered_entry": 51,
+        "later_recovered_net_be": 49,
+        "recovered_entry_share": 0.3493150684931507,
+        "recovered_net_be_share": 0.3356164383561644
+       }
+      },
+      "hold_value": {
+       "C_minus_A1": {
+        "mean": 0.0004658241617675697,
+        "median": -0.0038320359767294873,
+        "n": 181,
+        "p10": -0.013492364060099463,
+        "p90": 0.018283799477438297
+       },
+       "C_minus_A2": {
+        "mean": 0.0011000827276720282,
+        "median": -0.0009821277455885,
+        "n": 181,
+        "p10": -0.008485060430489893,
+        "p90": 0.01457500961830573
+       },
+       "C_minus_A3": {
+        "mean": -0.0005437489172030922,
+        "median": 0.0,
+        "n": 181,
+        "p10": -0.010970171919296745,
+        "p90": 0.014258675894776382
+       },
+       "C_minus_B": {
+        "mean": -0.0005437489172030922,
+        "median": 0.0,
+        "n": 181,
+        "p10": -0.010970171919296745,
+        "p90": 0.014258675894776382
+       }
+      },
+      "invalidation_loss": {
+       "gross_negative_share": 0.5074626865671642,
+       "i1_exits": 67,
+       "net_all_i1": {
+        "mean": 0.003903712439678764,
+        "median": -0.0010634235177399737,
+        "n": 67,
+        "p10": -0.00983313983999928,
+        "p90": 0.021110441045096094
+       },
+       "net_negative_share": 0.5671641791044776,
+       "net_of_negative": {
+        "mean": -0.0061200040760607055,
+        "median": -0.0064323725331820476,
+        "n": 38,
+        "p10": -0.010976865524202203,
+        "p90": -0.0010593408119261819
+       }
+      },
+      "loss_then_recovery": {
+       "0.5pct": {
+        "reached": 142,
+        "recovered_entry": 91,
+        "recovered_entry_share": 0.6408450704225352,
+        "recovered_net_be": 84,
+        "recovered_net_be_share": 0.5915492957746479
+       },
+       "1.0pct": {
+        "reached": 122,
+        "recovered_entry": 51,
+        "recovered_entry_share": 0.4180327868852459,
+        "recovered_net_be": 49,
+        "recovered_net_be_share": 0.4016393442622951
+       },
+       "any": {
+        "reached": 181,
+        "recovered_entry": 173,
+        "recovered_entry_share": 0.9558011049723757,
+        "recovered_net_be": 160,
+        "recovered_net_be_share": 0.8839779005524862
+       }
+      }
+     }
+    },
+    "SHORT": {
+     "L20": {
+      "A1": {
+       "ambiguous_stop_bars": 1,
+       "catastrophic_rate": 0.0,
+       "cost_mean": 0.0008241609738298846,
+       "exit_kinds": {
+        "FIXED_STOP": 210,
+        "MAX_HOLD": 24
+       },
+       "funding_mean": -0.00017641908242767255,
+       "giveback_abs_mean": 0.01618564199768475,
+       "giveback_abs_median": 0.009386983734088302,
+       "giveback_pct_mean": 96.90183554460816,
+       "giveback_pct_median": 2.0821911498508663,
+       "gross_mean": 0.0012078874848856181,
+       "gross_median": -0.005,
+       "hold_min_mean": 588.6538461538462,
+       "hold_min_median": 126.5,
+       "mae_mean": 0.004765129504085161,
+       "mae_median": 0.005,
+       "mfe_mean": 0.017393529482570367,
+       "mfe_median": 0.0045422833571509,
+       "n": 234,
+       "net_mean": 0.0003837265110557332,
+       "net_median": -0.0060036840000000005,
+       "net_pos_share": 0.10256410256410256,
+       "pf": 1.0727618444655287
+      },
+      "A2": {
+       "ambiguous_stop_bars": 1,
+       "catastrophic_rate": 0.0,
+       "cost_mean": 0.0007591912169205584,
+       "exit_kinds": {
+        "FIXED_STOP": 186,
+        "MAX_HOLD": 48
+       },
+       "funding_mean": -0.00024115923456419268,
+       "giveback_abs_mean": 0.023080303812298888,
+       "giveback_abs_median": 0.016038665665307587,
+       "giveback_pct_mean": 176.19153145009867,
+       "giveback_pct_median": 2.100259819913186,
+       "gross_mean": 0.0016670970304975784,
+       "gross_median": -0.01,
+       "hold_min_mean": 994.7521367521367,
+       "hold_min_median": 362.0,
+       "mae_mean": 0.008984167043142496,
+       "mae_median": 0.01,
+       "mfe_mean": 0.024747400842796457,
+       "mfe_median": 0.00890774521953358,
+       "n": 234,
+       "net_mean": 0.0009079058135770202,
+       "net_median": -0.010906281411761315,
+       "net_pos_share": 0.20085470085470086,
+       "pf": 1.1053428588813998
+      },
+      "A3": {
+       "ambiguous_stop_bars": 0,
+       "catastrophic_rate": 0.6111111111111112,
+       "cost_mean": 0.0006379450891871901,
+       "exit_kinds": {
+        "CATASTROPHIC": 143,
+        "MAX_HOLD": 91
+       },
+       "funding_mean": -0.0003626137516403717,
+       "giveback_abs_mean": 0.03004903326626199,
+       "giveback_abs_median": 0.02403182249096114,
+       "giveback_pct_mean": 5.4599841113494865,
+       "giveback_pct_median": 1.8629902018055708,
+       "gross_mean": 0.0012503183448764285,
+       "gross_median": -0.0184,
+       "hold_min_mean": 1596.4102564102564,
+       "hold_min_median": 1354.5,
+       "mae_mean": 0.014734910299276262,
+       "mae_median": 0.0184,
+       "mfe_mean": 0.03129935161113843,
+       "mfe_median": 0.018399917154029055,
+       "n": 234,
+       "net_mean": 0.0006123732556892377,
+       "net_median": -0.01902926293752584,
+       "net_pos_share": 0.32905982905982906,
+       "pf": 1.0506991286696286
+      },
+      "B": {
+       "ambiguous_stop_bars": 0,
+       "catastrophic_rate": 0.6111111111111112,
+       "cost_mean": 0.0006379450891871901,
+       "exit_kinds": {
+        "CATASTROPHIC": 143,
+        "MAX_HOLD": 91
+       },
+       "funding_mean": -0.0003626137516403717,
+       "giveback_abs_mean": 0.03004903326626199,
+       "giveback_abs_median": 0.02403182249096114,
+       "giveback_pct_mean": 5.4599841113494865,
+       "giveback_pct_median": 1.8629902018055708,
+       "gross_mean": 0.0012503183448764285,
+       "gross_median": -0.0184,
+       "hold_min_mean": 1596.4102564102564,
+       "hold_min_median": 1354.5,
+       "mae_mean": 0.014734910299276262,
+       "mae_median": 0.0184,
+       "mfe_mean": 0.03129935161113843,
+       "mfe_median": 0.018399917154029055,
+       "n": 234,
+       "net_mean": 0.0006123732556892377,
+       "net_median": -0.01902926293752584,
+       "net_pos_share": 0.32905982905982906,
+       "pf": 1.0506991286696286
+      },
+      "C": {
+       "ambiguous_stop_bars": 0,
+       "catastrophic_rate": 0.48717948717948717,
+       "cost_mean": 0.0006765770497674783,
+       "exit_kinds": {
+        "CATASTROPHIC": 114,
+        "I1": 66,
+        "MAX_HOLD": 54
+       },
+       "funding_mean": -0.00032393470465539513,
+       "giveback_abs_mean": 0.026203497014655602,
+       "giveback_abs_median": 0.022268641908420844,
+       "giveback_pct_mean": 141.05036289265627,
+       "giveback_pct_median": 1.8224433388623433,
+       "gross_mean": 0.001344491154253269,
+       "gross_median": -0.009842763912701336,
+       "hold_min_mean": 1228.2222222222222,
+       "hold_min_median": 706.5,
+       "mae_mean": 0.0134840633039185,
+       "mae_median": 0.017766087010192222,
+       "mfe_mean": 0.02754798816890888,
+       "mfe_median": 0.012995737956532638,
+       "n": 234,
+       "net_mean": 0.0006679141044857903,
+       "net_median": -0.010744870792997754,
+       "net_pos_share": 0.3247863247863248,
+       "pf": 1.0630581064271483
+      }
+     },
+     "user_metrics": {
+      "fixed_stop_false_exit": {
+       "A1": {
+        "fixed_stop_exits": 210,
+        "later_recovered_entry": 124,
+        "later_recovered_net_be": 112,
+        "recovered_entry_share": 0.5904761904761905,
+        "recovered_net_be_share": 0.5333333333333333
+       },
+       "A2": {
+        "fixed_stop_exits": 186,
+        "later_recovered_entry": 68,
+        "later_recovered_net_be": 63,
+        "recovered_entry_share": 0.3655913978494624,
+        "recovered_net_be_share": 0.3387096774193548
+       }
+      },
+      "hold_value": {
+       "C_minus_A1": {
+        "mean": 0.0002841875934300572,
+        "median": -0.007886812407611937,
+        "n": 234,
+        "p10": -0.013406699999999999,
+        "p90": 0.025004027331244894
+       },
+       "C_minus_A2": {
+        "mean": -0.00023999170909122953,
+        "median": -0.007993263651143084,
+        "n": 234,
+        "p10": -0.008404199999999999,
+        "p90": 0.014602944856196181
+       },
+       "C_minus_A3": {
+        "mean": 5.554084879655256e-05,
+        "median": 0.0,
+        "n": 234,
+        "p10": -0.00384341471564165,
+        "p90": 0.010284756254587253
+       },
+       "C_minus_B": {
+        "mean": 5.554084879655256e-05,
+        "median": 0.0,
+        "n": 234,
+        "p10": -0.00384341471564165,
+        "p90": 0.010284756254587253
+       }
+      },
+      "invalidation_loss": {
+       "gross_negative_share": 0.5303030303030303,
+       "i1_exits": 66,
+       "net_all_i1": {
+        "mean": 0.0035868289819593027,
+        "median": -0.0019394469891055265,
+        "n": 66,
+        "p10": -0.00946930146618152,
+        "p90": 0.020198865989172997
+       },
+       "net_negative_share": 0.5454545454545454,
+       "net_of_negative": {
+        "mean": -0.006723913249850052,
+        "median": -0.007091553634223053,
+        "n": 36,
+        "p10": -0.010281684975257221,
+        "p90": -0.0021446274397115264
+       }
+      },
+      "loss_then_recovery": {
+       "0.5pct": {
+        "reached": 198,
+        "recovered_entry": 124,
+        "recovered_entry_share": 0.6262626262626263,
+        "recovered_net_be": 112,
+        "recovered_net_be_share": 0.5656565656565656
+       },
+       "1.0pct": {
+        "reached": 168,
+        "recovered_entry": 68,
+        "recovered_entry_share": 0.40476190476190477,
+        "recovered_net_be": 63,
+        "recovered_net_be_share": 0.375
+       },
+       "any": {
+        "reached": 234,
+        "recovered_entry": 224,
+        "recovered_entry_share": 0.9572649572649573,
+        "recovered_net_be": 214,
+        "recovered_net_be_share": 0.9145299145299145
+       }
+      }
+     }
+    }
+   },
+   "controls": {
+    "direction_placebo": {
+     "ambiguous_stop_bars": 0,
+     "catastrophic_rate": 0.41204819277108434,
+     "cost_mean": 0.00105949698128689,
+     "exit_kinds": {
+      "CATASTROPHIC": 171,
+      "TIME": 244
+     },
+     "funding_mean": 5.84057697688261e-05,
+     "giveback_abs_mean": 0.012153918363434532,
+     "giveback_abs_median": 0.007959241031651576,
+     "giveback_pct_mean": 27.007894949573654,
+     "giveback_pct_median": 0.9254109429588953,
+     "gross_mean": -0.0016674019177497007,
+     "gross_median": 0.0006118278803430854,
+     "hold_min_mean": 516.4771084337349,
+     "hold_min_median": 309.0,
+     "mae_mean": 0.011119282333109794,
+     "mae_median": 0.011985789700853289,
+     "mfe_mean": 0.01048651644568483,
+     "mfe_median": 0.011595997179620454,
+     "n": 415,
+     "net_mean": -0.002726898899036591,
+     "net_median": -0.0003016342251289131,
+     "net_pos_share": 0.491566265060241,
+     "pf": 0.6780747880713245
+    },
+    "random_timestamp": {
+     "C_minus_control": {
+      "ci95": [
+       -0.0017279107841630652,
+       0.006032225221416199
+      ],
+      "mean": 0.002327438907543613,
+      "p": 0.23690444628816987,
+      "se": 0.0019678039039927133
+     },
+     "summary": {
+      "ambiguous_stop_bars": 0,
+      "catastrophic_rate": 0.4891566265060241,
+      "cost_mean": 0.0009059135073540434,
+      "exit_kinds": {
+       "CATASTROPHIC": 203,
+       "TIME": 212
+      },
+      "funding_mean": -9.549727786878648e-05,
+      "giveback_abs_mean": 0.024782033451595534,
+      "giveback_abs_median": 0.020829080553052215,
+      "giveback_pct_mean": 67.65447070356049,
+      "giveback_pct_median": 1.794498188622162,
+      "gross_mean": 0.000149613676540049,
+      "gross_median": -0.011566817731087697,
+      "hold_min_mean": 1126.6409638554217,
+      "hold_min_median": 654.0,
+      "mae_mean": 0.013257440383203537,
+      "mae_median": 0.017837338795764768,
+      "mfe_mean": 0.024931647128135583,
+      "mfe_median": 0.01179809289924827,
+      "n": 415,
+      "net_mean": -0.0007562998308139947,
+      "net_median": -0.012643101323298976,
+      "net_pos_share": 0.2819277108433735,
+      "pf": 0.9287335946206978
+     }
+    },
+    "time_shift": {
+     "14d": {
+      "ambiguous_stop_bars": 1,
+      "catastrophic_rate": 0.4927536231884058,
+      "cost_mean": 0.0009309069425760904,
+      "exit_kinds": {
+       "CATASTROPHIC": 204,
+       "TIME": 210
+      },
+      "funding_mean": -7.177863570484116e-05,
+      "giveback_abs_mean": 0.0226684325031626,
+      "giveback_abs_median": 0.020126386257067322,
+      "giveback_pct_mean": 38.09483407787598,
+      "giveback_pct_median": 1.7276119402985113,
+      "gross_mean": 0.0011665029893970214,
+      "gross_median": -0.011066394429389725,
+      "hold_min_mean": 1014.4227053140097,
+      "hold_min_median": 593.5,
+      "mae_mean": 0.012975100592293946,
+      "mae_median": 0.01784309111168314,
+      "mfe_mean": 0.023834935492559627,
+      "mfe_median": 0.01072725737125868,
+      "n": 414,
+      "net_mean": 0.00023559604682093022,
+      "net_median": -0.011954891865274994,
+      "net_pos_share": 0.35507246376811596,
+      "pf": 1.0227189393329377
+     },
+     "30d": {
+      "ambiguous_stop_bars": 2,
+      "catastrophic_rate": 0.5048309178743962,
+      "cost_mean": 0.000911406426960404,
+      "exit_kinds": {
+       "CATASTROPHIC": 209,
+       "TIME": 205
+      },
+      "funding_mean": -8.9131522546307e-05,
+      "giveback_abs_mean": 0.023943411730955495,
+      "giveback_abs_median": 0.02153383115460808,
+      "giveback_pct_mean": 428.03643266487376,
+      "giveback_pct_median": 1.706411672295138,
+      "gross_mean": -0.0011914380150477286,
+      "gross_median": -0.0184,
+      "hold_min_mean": 1011.9589371980676,
+      "hold_min_median": 652.5,
+      "mae_mean": 0.013439356299843252,
+      "mae_median": 0.0184,
+      "mfe_mean": 0.02275197371590777,
+      "mfe_median": 0.012170010941704945,
+      "n": 414,
+      "net_mean": -0.002102844442008133,
+      "net_median": -0.018145306063562846,
+      "net_pos_share": 0.34299516908212563,
+      "pf": 0.7997400732508253
+     },
+     "7d": {
+      "ambiguous_stop_bars": 0,
+      "catastrophic_rate": 0.4745762711864407,
+      "cost_mean": 0.0008877008288104029,
+      "exit_kinds": {
+       "CATASTROPHIC": 196,
+       "TIME": 217
+      },
+      "funding_mean": -0.00011331419261304729,
+      "giveback_abs_mean": 0.022866720610044262,
+      "giveback_abs_median": 0.020307033588588458,
+      "giveback_pct_mean": 7.976796982567495,
+      "giveback_pct_median": 1.6624745913430121,
+      "gross_mean": -0.0003475553825745662,
+      "gross_median": -0.006974855818278947,
+      "hold_min_mean": 1012.0217917675545,
+      "hold_min_median": 596.0,
+      "mae_mean": 0.013009383523475778,
+      "mae_median": 0.017153952083562962,
+      "mfe_mean": 0.0225191652274697,
+      "mfe_median": 0.01081730769230771,
+      "n": 413,
+      "net_mean": -0.0012352562113849698,
+      "net_median": -0.007778285305443129,
+      "net_pos_share": 0.36561743341404357,
+      "pf": 0.874784086129278
+     }
+    }
+   },
+   "entries": {
+    "evaluated": 415,
+    "long": 181,
+    "primary": 415,
+    "raw": 924,
+    "short": 234
+   },
+   "horizons": {
+    "12h": {
+     "gross_mean": 0.0007824852711287727,
+     "gross_median": -0.00023297987557624467,
+     "mae_median": 0.013228624223080798,
+     "mfe_median": 0.013227868677554877,
+     "n": 415,
+     "net_mean": -0.00012545888512889173,
+     "net_median": -0.001273192416825457,
+     "net_pos_share": 0.4578313253012048,
+     "pf": 0.9863652683500846
+    },
+    "1h": {
+     "gross_mean": -0.0002095311485332984,
+     "gross_median": -0.0005184486153343437,
+     "mae_median": 0.0038008923916391657,
+     "mfe_median": 0.0031000949795817467,
+     "n": 415,
+     "net_mean": -0.0011817404701193347,
+     "net_median": -0.0015193733910266766,
+     "net_pos_share": 0.344578313253012,
+     "pf": 0.6400733737859883
+    },
+    "24h": {
+     "gross_mean": 0.0008373072471265438,
+     "gross_median": -0.0010085076672441406,
+     "mae_median": 0.017313422463144823,
+     "mfe_median": 0.018254490213881924,
+     "n": 415,
+     "net_mean": 1.6361961204887516e-05,
+     "net_median": -0.0018389238079081554,
+     "net_pos_share": 0.4674698795180723,
+     "pf": 1.001277819224572
+    },
+    "48h": {
+     "gross_mean": 0.002388934086584978,
+     "gross_median": -0.00038071411089668494,
+     "mae_median": 0.026825757733786704,
+     "mfe_median": 0.026878395906995478,
+     "n": 415,
+     "net_mean": 0.001734191107132431,
+     "net_median": -0.0009404039885009831,
+     "net_pos_share": 0.4867469879518072,
+     "pf": 1.1065406419594164
+    },
+    "4h": {
+     "gross_mean": 0.000215751490104832,
+     "gross_median": -0.0007078840270847708,
+     "mae_median": 0.007472340526076371,
+     "mfe_median": 0.006492509575138472,
+     "n": 415,
+     "net_mean": -0.00073491436679531,
+     "net_median": -0.0017019012571310125,
+     "net_pos_share": 0.42168674698795183,
+     "pf": 0.8743327529965291
+    },
+    "8h": {
+     "gross_mean": -0.0003778162554566405,
+     "gross_median": -0.001712809945002669,
+     "mae_median": 0.01082249978324401,
+     "mfe_median": 0.010334728416765193,
+     "n": 415,
+     "net_mean": -0.0013015353873733113,
+     "net_median": -0.0025646299264491176,
+     "net_pos_share": 0.42650602409638555,
+     "pf": 0.8409124022129727
+    }
+   },
+   "inference": {
+    "P1_C_net": {
+     "ci95": [
+      -0.002025934875520047,
+      0.005219726320075162
+     ],
+     "mean": 0.0015711390767296181,
+     "p": 0.4018856832091524,
+     "se": 0.001874290044441298
+    },
+    "P1_cluster_by_thesis_episode": {
+     "clusters": 297,
+     "mean": 0.0015711390767296181,
+     "p": 0.37060648785658556,
+     "se": 0.0017548001513485664
+    },
+    "P2a_C_minus_A1": {
+     "ci95": [
+      -0.0018801901078110447,
+      0.002931447001781694
+     ],
+     "mean": 0.00036340739793388793,
+     "p": 0.7676344751184353,
+     "se": 0.0012299278027630698
+    },
+    "P2b_C_minus_A2": {
+     "ci95": [
+      -0.001364858020977238,
+      0.0023201154906284066
+     ],
+     "mean": 0.00034447449103925125,
+     "p": 0.7104936831179373,
+     "se": 0.0009280195538442624
+    }
+   },
+   "overlap_adjusted_C": {
+    "ambiguous_stop_bars": 0,
+    "catastrophic_rate": 0.5236593059936908,
+    "cost_mean": 0.0008602759669315279,
+    "exit_kinds": {
+     "CATASTROPHIC": 166,
+     "TIME": 151
+    },
+    "funding_mean": -0.00014110904673311447,
+    "giveback_abs_mean": 0.02682570946431759,
+    "giveback_abs_median": 0.021743621399176877,
+    "giveback_pct_mean": 109.87413549906839,
+    "giveback_pct_median": 1.8982948412366278,
+    "gross_mean": 0.0005943683994558925,
+    "gross_median": -0.0184,
+    "hold_min_mean": 1184.4984227129337,
+    "hold_min_median": 720.0,
+    "mae_mean": 0.013847685987544933,
+    "mae_median": 0.0184,
+    "mfe_mean": 0.027420077863773484,
+    "mfe_median": 0.011762437331276465,
+    "n": 317,
+    "net_mean": -0.00026590756747563583,
+    "net_median": -0.01842000194729634,
+    "net_pos_share": 0.2996845425867508,
+    "pf": 0.9762671079826963
+   },
+   "pooled": {
+    "L10": {
+     "A1": {
+      "ambiguous_stop_bars": 3,
+      "catastrophic_rate": 0.0,
+      "cost_mean": 0.0009489968270771375,
+      "exit_kinds": {
+       "FIXED_STOP": 370,
+       "MAX_HOLD": 45
+      },
+      "funding_mean": -5.258446326865847e-05,
+      "giveback_abs_mean": 0.015637536470945027,
+      "giveback_abs_median": 0.009013820784971035,
+      "giveback_pct_mean": 57.4856596558501,
+      "giveback_pct_median": 2.1032098004292656,
+      "gross_mean": 0.002156728505872869,
+      "gross_median": -0.005,
+      "hold_min_mean": 586.9686746987952,
+      "hold_min_median": 125.0,
+      "mae_mean": 0.004724966630671509,
+      "mae_median": 0.005,
+      "mfe_mean": 0.017794264976817895,
+      "mfe_median": 0.00436724313326553,
+      "n": 415,
+      "net_mean": 0.0012077316787957313,
+      "net_median": -0.005998684000000001,
+      "net_pos_share": 0.10843373493975904,
+      "pf": 1.2277702995719566
+     },
+     "A2": {
+      "ambiguous_stop_bars": 1,
+      "catastrophic_rate": 0.0,
+      "cost_mean": 0.0009394038664397479,
+      "exit_kinds": {
+       "FIXED_STOP": 332,
+       "MAX_HOLD": 83
+      },
+      "funding_mean": -6.192316608719312e-05,
+      "giveback_abs_mean": 0.022685785383632983,
+      "giveback_abs_median": 0.01618800673738096,
+      "giveback_pct_mean": 103.53049286735181,
+      "giveback_pct_median": 2.1179125978922904,
+      "gross_mean": 0.0021660684521301148,
+      "gross_median": -0.01,
+      "hold_min_mean": 997.289156626506,
+      "hold_min_median": 382.0,
+      "mae_mean": 0.00894086207141484,
+      "mae_median": 0.01,
+      "mfe_mean": 0.02485185383576309,
+      "mfe_median": 0.008732997590204294,
+      "n": 415,
+      "net_mean": 0.001226664585690367,
+      "net_median": -0.010996183999999999,
+      "net_pos_share": 0.1927710843373494,
+      "pf": 1.140006475520384
+     },
+     "A3": {
+      "ambiguous_stop_bars": 0,
+      "catastrophic_rate": 0.0,
+      "cost_mean": 0.000905175078488095,
+      "exit_kinds": {
+       "FIXED_STOP": 242,
+       "MAX_HOLD": 173
+      },
+      "funding_mean": -9.666869963940757e-05,
+      "giveback_abs_mean": 0.03046802576526832,
+      "giveback_abs_median": 0.025138525875588052,
+      "giveback_pct_mean": 7.1601961797900175,
+      "giveback_pct_median": 1.8206361392925692,
+      "gross_mean": 0.002395796081498927,
+      "gross_median": -0.02,
+      "hold_min_mean": 1693.978313253012,
+      "hold_min_median": 1816.0,
+      "mae_mean": 0.015773714065794364,
+      "mae_median": 0.02,
+      "mfe_mean": 0.03286382184676725,
+      "mfe_median": 0.019753130294683063,
+      "n": 415,
+      "net_mean": 0.0014906210030108317,
+      "net_median": -0.02072675652198373,
+      "net_pos_share": 0.3349397590361446,
+      "pf": 1.1167229423388316
+     },
+     "B": {
+      "ambiguous_stop_bars": 1,
+      "catastrophic_rate": 0.35180722891566263,
+      "cost_mean": 0.0008503452893682526,
+      "exit_kinds": {
+       "CATASTROPHIC": 146,
+       "MAX_HOLD": 269
+      },
+      "funding_mean": -0.00015203741665670477,
+      "giveback_abs_mean": 0.03582771237513759,
+      "giveback_abs_median": 0.034551441829593466,
+      "giveback_pct_mean": 6.89822397389931,
+      "giveback_pct_median": 1.2186166557460874,
+      "gross_mean": 0.0011699371423356754,
+      "gross_median": -0.00555810885428909,
+      "hold_min_mean": 2309.744578313253,
+      "hold_min_median": 2880.0,
+      "mae_mean": 0.024401799808826008,
+      "mae_median": 0.026825757733786704,
+      "mfe_mean": 0.03699764951747327,
+      "mfe_median": 0.02444057887208051,
+      "n": 415,
+      "net_mean": 0.0003195918529674214,
+      "net_median": -0.006151343438865918,
+      "net_pos_share": 0.43855421686746987,
+      "pf": 1.0197305007527921
+     },
+     "C": {
+      "ambiguous_stop_bars": 1,
+      "catastrophic_rate": 0.20240963855421687,
+      "cost_mean": 0.0008453097709570302,
+      "exit_kinds": {
+       "CATASTROPHIC": 84,
+       "I1": 211,
+       "MAX_HOLD": 120
+      },
+      "funding_mean": -0.00015694238082657227,
+      "giveback_abs_mean": 0.029423470040677333,
+      "giveback_abs_median": 0.0251507785848879,
+      "giveback_pct_mean": 83.99637070620612,
+      "giveback_pct_median": 1.417574773939245,
+      "gross_mean": 0.0011068349419492084,
+      "gross_median": -0.004978439658989697,
+      "hold_min_mean": 1540.3542168674699,
+      "hold_min_median": 1438.0,
+      "mae_mean": 0.019787546375826692,
+      "mae_median": 0.017121301103588893,
+      "mfe_mean": 0.030530304982626544,
+      "mfe_median": 0.016280942881256144,
+      "n": 415,
+      "net_mean": 0.0002615251709921779,
+      "net_median": -0.005954420693350119,
+      "net_pos_share": 0.3927710843373494,
+      "pf": 1.0203740063892077
+     }
+    },
+    "L20": {
+     "A1": {
+      "ambiguous_stop_bars": 3,
+      "catastrophic_rate": 0.0,
+      "cost_mean": 0.0009489968270771375,
+      "exit_kinds": {
+       "FIXED_STOP": 370,
+       "MAX_HOLD": 45
+      },
+      "funding_mean": -5.258446326865847e-05,
+      "giveback_abs_mean": 0.015637536470945027,
+      "giveback_abs_median": 0.009013820784971035,
+      "giveback_pct_mean": 57.4856596558501,
+      "giveback_pct_median": 2.1032098004292656,
+      "gross_mean": 0.002156728505872869,
+      "gross_median": -0.005,
+      "hold_min_mean": 586.9686746987952,
+      "hold_min_median": 125.0,
+      "mae_mean": 0.004724966630671509,
+      "mae_median": 0.005,
+      "mfe_mean": 0.017794264976817895,
+      "mfe_median": 0.00436724313326553,
+      "n": 415,
+      "net_mean": 0.0012077316787957313,
+      "net_median": -0.005998684000000001,
+      "net_pos_share": 0.10843373493975904,
+      "pf": 1.2277702995719566
+     },
+     "A2": {
+      "ambiguous_stop_bars": 1,
+      "catastrophic_rate": 0.0,
+      "cost_mean": 0.0009394038664397479,
+      "exit_kinds": {
+       "FIXED_STOP": 332,
+       "MAX_HOLD": 83
+      },
+      "funding_mean": -6.192316608719312e-05,
+      "giveback_abs_mean": 0.022685785383632983,
+      "giveback_abs_median": 0.01618800673738096,
+      "giveback_pct_mean": 103.53049286735181,
+      "giveback_pct_median": 2.1179125978922904,
+      "gross_mean": 0.0021660684521301148,
+      "gross_median": -0.01,
+      "hold_min_mean": 997.289156626506,
+      "hold_min_median": 382.0,
+      "mae_mean": 0.00894086207141484,
+      "mae_median": 0.01,
+      "mfe_mean": 0.02485185383576309,
+      "mfe_median": 0.008732997590204294,
+      "n": 415,
+      "net_mean": 0.001226664585690367,
+      "net_median": -0.010996183999999999,
+      "net_pos_share": 0.1927710843373494,
+      "pf": 1.140006475520384
+     },
+     "A3": {
+      "ambiguous_stop_bars": 0,
+      "catastrophic_rate": 0.6096385542168675,
+      "cost_mean": 0.000908755163095912,
+      "exit_kinds": {
+       "CATASTROPHIC": 253,
+       "MAX_HOLD": 162
+      },
+      "funding_mean": -9.3066703313149e-05,
+      "giveback_abs_mean": 0.029652707958681898,
+      "giveback_abs_median": 0.023881506229337407,
+      "giveback_pct_mean": 7.111176553817749,
+      "giveback_pct_median": 1.8419548514851487,
+      "gross_mean": 0.0026857303733083425,
+      "gross_median": -0.0184,
+      "hold_min_mean": 1627.7927710843373,
+      "hold_min_median": 1548.0,
+      "mae_mean": 0.014821732772758063,
+      "mae_median": 0.0184,
+      "mfe_mean": 0.032338438331990245,
+      "mfe_median": 0.01840040614854288,
+      "n": 415,
+      "net_mean": 0.00177697521021243,
+      "net_median": -0.01922750199789755,
+      "net_pos_share": 0.3253012048192771,
+      "pf": 1.1460268578953856
+     },
+     "B": {
+      "ambiguous_stop_bars": 0,
+      "catastrophic_rate": 0.6096385542168675,
+      "cost_mean": 0.000908755163095912,
+      "exit_kinds": {
+       "CATASTROPHIC": 253,
+       "MAX_HOLD": 162
+      },
+      "funding_mean": -9.3066703313149e-05,
+      "giveback_abs_mean": 0.029652707958681898,
+      "giveback_abs_median": 0.023881506229337407,
+      "giveback_pct_mean": 7.111176553817749,
+      "giveback_pct_median": 1.8419548514851487,
+      "gross_mean": 0.0026857303733083425,
+      "gross_median": -0.0184,
+      "hold_min_mean": 1627.7927710843373,
+      "hold_min_median": 1548.0,
+      "mae_mean": 0.014821732772758063,
+      "mae_median": 0.0184,
+      "mfe_mean": 0.032338438331990245,
+      "mfe_median": 0.01840040614854288,
+      "n": 415,
+      "net_mean": 0.00177697521021243,
+      "net_median": -0.01922750199789755,
+      "net_pos_share": 0.3253012048192771,
+      "pf": 1.1460268578953856
+     },
+     "C": {
+      "ambiguous_stop_bars": 0,
+      "catastrophic_rate": 0.4674698795180723,
+      "cost_mean": 0.0009042187255697632,
+      "exit_kinds": {
+       "CATASTROPHIC": 194,
+       "I1": 133,
+       "MAX_HOLD": 88
+      },
+      "funding_mean": -9.744485470465094e-05,
+      "giveback_abs_mean": 0.025580912006317295,
+      "giveback_abs_median": 0.02176541832350079,
+      "giveback_pct_mean": 83.50342807777379,
+      "giveback_pct_median": 1.7528463256252529,
+      "gross_mean": 0.0024753578022993824,
+      "gross_median": -0.008837231819992963,
+      "hold_min_mean": 1204.3301204819277,
+      "hold_min_median": 652.0,
+      "mae_mean": 0.013256096872409405,
+      "mae_median": 0.017121301103588893,
+      "mfe_mean": 0.028056269808616675,
+      "mfe_median": 0.011985789700853289,
+      "n": 415,
+      "net_mean": 0.0015711390767296181,
+      "net_median": -0.009930594667292993,
+      "net_pos_share": 0.3228915662650602,
+      "pf": 1.1519096239319362
+     }
+    },
+    "stress_L20": {
+     "A1": {
+      "ambiguous_stop_bars": 3,
+      "catastrophic_rate": 0.0,
+      "cost_mean": 0.001301552556111717,
+      "exit_kinds": {
+       "FIXED_STOP": 370,
+       "MAX_HOLD": 45
+      },
+      "funding_mean": -5.258446326865847e-05,
+      "giveback_abs_mean": 0.015637536470945027,
+      "giveback_abs_median": 0.009013820784971035,
+      "giveback_pct_mean": 57.4856596558501,
+      "giveback_pct_median": 2.1032098004292656,
+      "gross_mean": 0.002156728505872869,
+      "gross_median": -0.005,
+      "hold_min_mean": 586.9686746987952,
+      "hold_min_median": 125.0,
+      "mae_mean": 0.004724966630671509,
+      "mae_median": 0.005,
+      "mfe_mean": 0.017794264976817895,
+      "mfe_median": 0.00436724313326553,
+      "n": 415,
+      "net_mean": 0.0008551759497611518,
+      "net_median": -0.00635095,
+      "net_pos_share": 0.10602409638554217,
+      "pf": 1.152250298170511
+     },
+     "A2": {
+      "ambiguous_stop_bars": 1,
+      "catastrophic_rate": 0.0,
+      "cost_mean": 0.001291934169692442,
+      "exit_kinds": {
+       "FIXED_STOP": 332,
+       "MAX_HOLD": 83
+      },
+      "funding_mean": -6.192316608719312e-05,
+      "giveback_abs_mean": 0.022685785383632983,
+      "giveback_abs_median": 0.01618800673738096,
+      "giveback_pct_mean": 103.53049286735181,
+      "giveback_pct_median": 2.1179125978922904,
+      "gross_mean": 0.0021660684521301148,
+      "gross_median": -0.01,
+      "hold_min_mean": 997.289156626506,
+      "hold_min_median": 382.0,
+      "mae_mean": 0.00894086207141484,
+      "mae_median": 0.01,
+      "mfe_mean": 0.02485185383576309,
+      "mfe_median": 0.008732997590204294,
+      "n": 415,
+      "net_mean": 0.0008741342824376726,
+      "net_median": -0.011348200000000001,
+      "net_pos_share": 0.19036144578313252,
+      "pf": 1.0966292503767383
+     },
+     "A3": {
+      "ambiguous_stop_bars": 0,
+      "catastrophic_rate": 0.6096385542168675,
+      "cost_mean": 0.0012613349497368183,
+      "exit_kinds": {
+       "CATASTROPHIC": 253,
+       "MAX_HOLD": 162
+      },
+      "funding_mean": -9.3066703313149e-05,
+      "giveback_abs_mean": 0.029652707958681898,
+      "giveback_abs_median": 0.023881506229337407,
+      "giveback_pct_mean": 7.111176553817749,
+      "giveback_pct_median": 1.8419548514851487,
+      "gross_mean": 0.0026857303733083425,
+      "gross_median": -0.0184,
+      "hold_min_mean": 1627.7927710843373,
+      "hold_min_median": 1548.0,
+      "mae_mean": 0.014821732772758063,
+      "mae_median": 0.0184,
+      "mfe_mean": 0.032338438331990245,
+      "mfe_median": 0.01840040614854288,
+      "n": 415,
+      "net_mean": 0.0014243954235715244,
+      "net_median": -0.01957909799789755,
+      "net_pos_share": 0.3204819277108434,
+      "pf": 1.11480003946441
+     },
+     "B": {
+      "ambiguous_stop_bars": 0,
+      "catastrophic_rate": 0.6096385542168675,
+      "cost_mean": 0.0012613349497368183,
+      "exit_kinds": {
+       "CATASTROPHIC": 253,
+       "MAX_HOLD": 162
+      },
+      "funding_mean": -9.3066703313149e-05,
+      "giveback_abs_mean": 0.029652707958681898,
+      "giveback_abs_median": 0.023881506229337407,
+      "giveback_pct_mean": 7.111176553817749,
+      "giveback_pct_median": 1.8419548514851487,
+      "gross_mean": 0.0026857303733083425,
+      "gross_median": -0.0184,
+      "hold_min_mean": 1627.7927710843373,
+      "hold_min_median": 1548.0,
+      "mae_mean": 0.014821732772758063,
+      "mae_median": 0.0184,
+      "mfe_mean": 0.032338438331990245,
+      "mfe_median": 0.01840040614854288,
+      "n": 415,
+      "net_mean": 0.0014243954235715244,
+      "net_median": -0.01957909799789755,
+      "net_pos_share": 0.3204819277108434,
+      "pf": 1.11480003946441
+     },
+     "C": {
+      "ambiguous_stop_bars": 0,
+      "catastrophic_rate": 0.4674698795180723,
+      "cost_mean": 0.0012567826835972046,
+      "exit_kinds": {
+       "CATASTROPHIC": 194,
+       "I1": 133,
+       "MAX_HOLD": 88
+      },
+      "funding_mean": -9.744485470465094e-05,
+      "giveback_abs_mean": 0.025580912006317295,
+      "giveback_abs_median": 0.02176541832350079,
+      "giveback_pct_mean": 83.50342807777379,
+      "giveback_pct_median": 1.7528463256252529,
+      "gross_mean": 0.0024753578022993824,
+      "gross_median": -0.008837231819992963,
+      "hold_min_mean": 1204.3301204819277,
+      "hold_min_median": 652.0,
+      "mae_mean": 0.013256096872409405,
+      "mae_median": 0.017121301103588893,
+      "mfe_mean": 0.028056269808616675,
+      "mfe_median": 0.011985789700853289,
+      "n": 415,
+      "net_mean": 0.0012185751187021785,
+      "net_median": -0.010282673928450854,
+      "net_pos_share": 0.3108433734939759,
+      "pf": 1.1151444193084608
+     }
+    }
+   },
+   "user_metrics_pooled": {
+    "fixed_stop_false_exit": {
+     "A1": {
+      "fixed_stop_exits": 370,
+      "later_recovered_entry": 215,
+      "later_recovered_net_be": 196,
+      "recovered_entry_share": 0.581081081081081,
+      "recovered_net_be_share": 0.5297297297297298
+     },
+     "A2": {
+      "fixed_stop_exits": 332,
+      "later_recovered_entry": 119,
+      "later_recovered_net_be": 112,
+      "recovered_entry_share": 0.35843373493975905,
+      "recovered_net_be_share": 0.3373493975903614
+     }
+    },
+    "hold_value": {
+     "C_minus_A1": {
+      "mean": 0.00036340739793388793,
+      "median": -0.0048740159375641415,
+      "n": 415,
+      "p10": -0.0134067,
+      "p90": 0.019835621968685352
+     },
+     "C_minus_A2": {
+      "mean": 0.00034447449103925125,
+      "median": -0.007594228466812141,
+      "n": 415,
+      "p10": -0.0084042,
+      "p90": 0.014599852804347464
+     },
+     "C_minus_A3": {
+      "mean": -0.00020583613348281057,
+      "median": 0.0,
+      "n": 415,
+      "p10": -0.005279356964530227,
+      "p90": 0.012119038259991914
+     },
+     "C_minus_B": {
+      "mean": -0.00020583613348281057,
+      "median": 0.0,
+      "n": 415,
+      "p10": -0.005279356964530227,
+      "p90": 0.012119038259991914
+     }
+    },
+    "invalidation_loss": {
+     "gross_negative_share": 0.518796992481203,
+     "i1_exits": 133,
+     "net_all_i1": {
+      "mean": 0.003746462002013467,
+      "median": -0.0011480477832400996,
+      "n": 133,
+      "p10": -0.009790026331752789,
+      "p90": 0.020339398630619426
+     },
+     "net_negative_share": 0.556390977443609,
+     "net_of_negative": {
+      "mean": -0.006413797728174441,
+      "median": -0.006665489319216914,
+      "n": 74,
+      "p10": -0.010587168760751742,
+      "p90": -0.0013136700323652913
+     }
+    },
+    "loss_then_recovery": {
+     "0.5pct": {
+      "reached": 340,
+      "recovered_entry": 215,
+      "recovered_entry_share": 0.6323529411764706,
+      "recovered_net_be": 196,
+      "recovered_net_be_share": 0.5764705882352941
+     },
+     "1.0pct": {
+      "reached": 290,
+      "recovered_entry": 119,
+      "recovered_entry_share": 0.4103448275862069,
+      "recovered_net_be": 112,
+      "recovered_net_be_share": 0.38620689655172413
+     },
+     "any": {
+      "reached": 415,
+      "recovered_entry": 397,
+      "recovered_entry_share": 0.9566265060240964,
+      "recovered_net_be": 374,
+      "recovered_net_be_share": 0.9012048192771084
+     }
+    }
+   }
+  }
+ },
+ "files_read": [
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-01.zip",
+   "role": "parity",
+   "sha256": "a856e033ceee252f4e3a262a7262a3f60a8f97138794b5fce4ec15d9c66b480e"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-02.zip",
+   "role": "parity",
+   "sha256": "38fc36d008360cb3d8a3c6fafac9dc754e1619d7832a8587e00409899522bdf9"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-03.zip",
+   "role": "parity",
+   "sha256": "f6b1620e5c52f30d2f498e1681775f152296d2ce52dca5c2ae35d402ab9716db"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-04.zip",
+   "role": "parity",
+   "sha256": "5b5bbd3711f1f732e153a4deaa8bc51916850fd7bfa805e9d85c5686403d8e4c"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-05.zip",
+   "role": "parity",
+   "sha256": "af5938c8d23be0f6bdea905ed847b0675c67d1f4b24e8c43832c224cc8b92f99"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-06.zip",
+   "role": "parity",
+   "sha256": "75eeef140b07d21a16eee1a9708738b60b1a72dda0d37e7515fc4a32dffd93e0"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-07.zip",
+   "role": "parity",
+   "sha256": "4d83f583ba355f29a962e588e5174185bf40897320d1e3cee928040e7f2e159d"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-08.zip",
+   "role": "parity",
+   "sha256": "ad03f5ae286bf20186fb0ef7bf5b836bef2f30eedae8f8915ba6436a448fe778"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-09.zip",
+   "role": "parity",
+   "sha256": "cc47f3d39f6974d88e4c348018bfff70b02419274224eb5ae3e5cc80b64f582c"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-10.zip",
+   "role": "parity",
+   "sha256": "ff62872b7c0f5c756b8454481d3a0f080d93eb082e18df058e4fe7589dc0a994"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-11.zip",
+   "role": "parity",
+   "sha256": "08b5af388d100828d5b5fd9c42bcb83bedc64c69e36b671b4361f3fc0d9e48de"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-12.zip",
+   "role": "parity",
+   "sha256": "ca475f250f36080108b21ab83a737c468c302d7f1d5a30081e3a1200296dfa12"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-13.zip",
+   "role": "parity",
+   "sha256": "add855eb76c91c57e1ea425ae3c9fbc953af1e87a906bdf4d290577bb9943456"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-14.zip",
+   "role": "parity",
+   "sha256": "69314932ca1a6aa0f2a45e5b0d0c271a27401f48042fde67414f6ab5a0cdfdff"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-15.zip",
+   "role": "parity",
+   "sha256": "8893455ad98126ec4e6bfca010f701388a188c68715a0f33f686bde60d24430c"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-16.zip",
+   "role": "parity",
+   "sha256": "503b30763484771e6d9031ee7c4103fec765da96803d6ed10f74d39aedcb0724"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-17.zip",
+   "role": "parity",
+   "sha256": "24aa9f01305f04779bf0e2bd27aff0008bd08a6213addc46a55a86236d9ba549"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-18.zip",
+   "role": "parity",
+   "sha256": "60b3135d6d8363acc65f85de8eed32d37c48ec6668176f4ca16113f372f62dce"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-19.zip",
+   "role": "parity",
+   "sha256": "f0f6a47bf03e405577ae9c3f33d8afb624d60b2587d8ce26527b24c6aae4a30d"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-20.zip",
+   "role": "parity",
+   "sha256": "ab02c3ac68a1cdf577f6f1ba22440169e690bcb1cdaae6fdaea50c43209049ed"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-21.zip",
+   "role": "parity",
+   "sha256": "6308c5107d830bb401046d5b97512051eef41313399d686b02445420aa73989a"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-22.zip",
+   "role": "parity",
+   "sha256": "0bc2409a959fce4dbe069038205d8bb41242a41b86bb1851cc8ad8b1585fb5e2"
+  },
+  {
+   "file": "data/research/crypto/market_context_r0/raw/binance_kline_1m_1786492800000_1791100800000.jsonl",
+   "role": "parity",
+   "sha256": "fa2deba911a825a9ee6b1ded7cccbe73e4a47f23f5fce0481ffcc4ab03436fdb"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-02.zip",
+   "role": "train",
+   "sha256": "0a270f354b15b053824a7bb87c652aa95acb4a255fc968fe0a24bdc9e785223e"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-03.zip",
+   "role": "train",
+   "sha256": "15a2676410d5104fac1ea15f7302addbf4d0de14f6db8ce10a4930c3f5d5e7fa"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-04.zip",
+   "role": "train",
+   "sha256": "d957fcde82f9b5a9a05264a9602e5deae03472aa0d424ddb0f27a04e58723217"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-05.zip",
+   "role": "train",
+   "sha256": "dcf7c567cbde49a5e564b29f01be95e28d32f12cb68c40b2a14da75930187dc8"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-06.zip",
+   "role": "train",
+   "sha256": "a640c7f935a1136d2f65f28f9606f0e063185c500f982aec273bb2ed3f61bfc5"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-07.zip",
+   "role": "train",
+   "sha256": "1367b5cd230474b0ecc6031b9e18cffe66e011c8fdd01c3325985a39c5d5ed48"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-08.zip",
+   "role": "train",
+   "sha256": "a864bdf38c9d06b7a6a1dc07c5593bbe7387cec3b869e9ebee020da053d94f37"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-09.zip",
+   "role": "train",
+   "sha256": "6e7bbfe650e6c56e189e78d521b3714feffd38468d1268b706a6626737326676"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-10.zip",
+   "role": "train",
+   "sha256": "4b78dd0174890c975effca2ed078163d6e9b4f7437f692e2c430c724b7eafc24"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-11.zip",
+   "role": "train",
+   "sha256": "67da3342f014166d2af97321599e0011453c4bd5a9282ef12c1a6131efd12993"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-12.zip",
+   "role": "train",
+   "sha256": "c905c5c8ff36d0dfac3a0581225ab305f72d1e11e634953d8d3a136161d10956"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-01.zip",
+   "role": "train",
+   "sha256": "9cdbcf68903434c850f9bec60d8174c2cfd105dd24a7566965b442ec15124e04"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-02.zip",
+   "role": "train",
+   "sha256": "63672d552f98ec125ac4d90d82154313fb9832b7e1aaed196101816bd61bfb89"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-03.zip",
+   "role": "train",
+   "sha256": "4532faf2f92d205fac79b7d25327d2045843b60a4494e00b0962e6b7f028bc06"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-04.zip",
+   "role": "train",
+   "sha256": "0f509e296da62eed5f4e903507ced0de9738ea96a7a885e76dd2394b8049e689"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-05.zip",
+   "role": "train",
+   "sha256": "768bdbbd11b08d935b3753ecfee7f1e351a346c71b11cf68a4a51296d694f368"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-06.zip",
+   "role": "train",
+   "sha256": "8587319eaf1b1f6d73fd34446acdecdc72c47b23ecfd2d88e2a6dd2a35470565"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-07.zip",
+   "role": "train",
+   "sha256": "6fc45fa135a6be85679a6ab0b1268fbd1f8258079295cd134b9a4c535c6b6b65"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-08.zip",
+   "role": "train",
+   "sha256": "806ee1d6efa856984fe79453d17f04c0fb5e447413fe828cbd3ec2df9a1f5fc4"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-09.zip",
+   "role": "train",
+   "sha256": "fa1adecbe41b530c12f481882115511297ac7b78a9a7ae9d9d21b11c745649a4"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-10.zip",
+   "role": "train",
+   "sha256": "0f2d2cd67b30ab186bf3db5a07acfe835f1d74335c6493c80e9e4f0598e29b2c"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-11.zip",
+   "role": "train",
+   "sha256": "96916aba47f230a9bc68cd3fd98d0d352e1fd8f23c16c515107c4d965a2067a3"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-12.zip",
+   "role": "train",
+   "sha256": "0f4788019cdb29f4db7b03d9efefce099d7adf49c0daf70a144b814b292bf577"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2023-01.zip",
+   "role": "train",
+   "sha256": "b7b04483464b36c89f519bf35d6461d278c709577562108b6a00fb786b92e6a6"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2023-02.zip",
+   "role": "train",
+   "sha256": "b62ca5df57b1715109cb1fd57097529b28410fb36b0db5bd41dbefe7e070db68"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2023-03.zip",
+   "role": "train",
+   "sha256": "1cb47aae71e941d3e9d333f9c96723eb35c8b4a7ec90e819c59a7c02f89b03bb"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2023-04.zip",
+   "role": "train",
+   "sha256": "2c22e2e460bf0e41884bf71031eebf60224ba470b25777a4d17ddc9298390650"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2023-05.zip",
+   "role": "train",
+   "sha256": "cf9e0ab390e3872ddb9d807ad161933a28e374e09dbee2b9addf659856d1e656"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2023-06.zip",
+   "role": "train",
+   "sha256": "8dac3fe301198e752b257817542a7ded393dbe00b604f67aba6bc0090778ae95"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-02.zip",
+   "role": "train",
+   "sha256": "0a270f354b15b053824a7bb87c652aa95acb4a255fc968fe0a24bdc9e785223e"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-03.zip",
+   "role": "train",
+   "sha256": "15a2676410d5104fac1ea15f7302addbf4d0de14f6db8ce10a4930c3f5d5e7fa"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-04.zip",
+   "role": "train",
+   "sha256": "d957fcde82f9b5a9a05264a9602e5deae03472aa0d424ddb0f27a04e58723217"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-05.zip",
+   "role": "train",
+   "sha256": "dcf7c567cbde49a5e564b29f01be95e28d32f12cb68c40b2a14da75930187dc8"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-06.zip",
+   "role": "train",
+   "sha256": "a640c7f935a1136d2f65f28f9606f0e063185c500f982aec273bb2ed3f61bfc5"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-07.zip",
+   "role": "train",
+   "sha256": "1367b5cd230474b0ecc6031b9e18cffe66e011c8fdd01c3325985a39c5d5ed48"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-08.zip",
+   "role": "train",
+   "sha256": "a864bdf38c9d06b7a6a1dc07c5593bbe7387cec3b869e9ebee020da053d94f37"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-09.zip",
+   "role": "train",
+   "sha256": "6e7bbfe650e6c56e189e78d521b3714feffd38468d1268b706a6626737326676"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-10.zip",
+   "role": "train",
+   "sha256": "4b78dd0174890c975effca2ed078163d6e9b4f7437f692e2c430c724b7eafc24"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-11.zip",
+   "role": "train",
+   "sha256": "67da3342f014166d2af97321599e0011453c4bd5a9282ef12c1a6131efd12993"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-12.zip",
+   "role": "train",
+   "sha256": "c905c5c8ff36d0dfac3a0581225ab305f72d1e11e634953d8d3a136161d10956"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-01.zip",
+   "role": "train",
+   "sha256": "9cdbcf68903434c850f9bec60d8174c2cfd105dd24a7566965b442ec15124e04"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-02.zip",
+   "role": "train",
+   "sha256": "63672d552f98ec125ac4d90d82154313fb9832b7e1aaed196101816bd61bfb89"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-03.zip",
+   "role": "train",
+   "sha256": "4532faf2f92d205fac79b7d25327d2045843b60a4494e00b0962e6b7f028bc06"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-04.zip",
+   "role": "train",
+   "sha256": "0f509e296da62eed5f4e903507ced0de9738ea96a7a885e76dd2394b8049e689"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-05.zip",
+   "role": "train",
+   "sha256": "768bdbbd11b08d935b3753ecfee7f1e351a346c71b11cf68a4a51296d694f368"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-06.zip",
+   "role": "train",
+   "sha256": "8587319eaf1b1f6d73fd34446acdecdc72c47b23ecfd2d88e2a6dd2a35470565"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-07.zip",
+   "role": "train",
+   "sha256": "6fc45fa135a6be85679a6ab0b1268fbd1f8258079295cd134b9a4c535c6b6b65"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-08.zip",
+   "role": "train",
+   "sha256": "806ee1d6efa856984fe79453d17f04c0fb5e447413fe828cbd3ec2df9a1f5fc4"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-09.zip",
+   "role": "train",
+   "sha256": "fa1adecbe41b530c12f481882115511297ac7b78a9a7ae9d9d21b11c745649a4"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-10.zip",
+   "role": "train",
+   "sha256": "0f2d2cd67b30ab186bf3db5a07acfe835f1d74335c6493c80e9e4f0598e29b2c"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-11.zip",
+   "role": "train",
+   "sha256": "96916aba47f230a9bc68cd3fd98d0d352e1fd8f23c16c515107c4d965a2067a3"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-12.zip",
+   "role": "train",
+   "sha256": "0f4788019cdb29f4db7b03d9efefce099d7adf49c0daf70a144b814b292bf577"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2023-01.zip",
+   "role": "train",
+   "sha256": "b7b04483464b36c89f519bf35d6461d278c709577562108b6a00fb786b92e6a6"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2023-02.zip",
+   "role": "train",
+   "sha256": "b62ca5df57b1715109cb1fd57097529b28410fb36b0db5bd41dbefe7e070db68"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2023-03.zip",
+   "role": "train",
+   "sha256": "1cb47aae71e941d3e9d333f9c96723eb35c8b4a7ec90e819c59a7c02f89b03bb"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2023-04.zip",
+   "role": "train",
+   "sha256": "2c22e2e460bf0e41884bf71031eebf60224ba470b25777a4d17ddc9298390650"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2023-05.zip",
+   "role": "train",
+   "sha256": "cf9e0ab390e3872ddb9d807ad161933a28e374e09dbee2b9addf659856d1e656"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2023-06.zip",
+   "role": "train",
+   "sha256": "8dac3fe301198e752b257817542a7ded393dbe00b604f67aba6bc0090778ae95"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2021-02.zip",
+   "role": "train_funding",
+   "sha256": "819a7b107443686adb313fc5fc223302a29f3981e1d1bd9828ad0ade65a8a8af"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2021-03.zip",
+   "role": "train_funding",
+   "sha256": "2125fd300848938c7b992b8f7b7b5007d5b277a4ff1ebda7da083b40242729da"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2021-04.zip",
+   "role": "train_funding",
+   "sha256": "9cd888e3b0a1954813d0062c2e60426fdc8e34a7f258f6838371ec67f535b028"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2021-05.zip",
+   "role": "train_funding",
+   "sha256": "ed934afb9cf84df6ecae742e755147333a84244836a66b51523abc66dd5f63af"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2021-06.zip",
+   "role": "train_funding",
+   "sha256": "7b8d9bfb8816636b800764dafb2aa2307d19166c695bfa245adbf7d01d61f766"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2021-07.zip",
+   "role": "train_funding",
+   "sha256": "8ab3df641d3bcf40527491f8e26d046ad2b662d1950ead9555ad32975571b7fe"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2021-08.zip",
+   "role": "train_funding",
+   "sha256": "7eb681cc45b94176f4b9192a62c3a1925d79031ba001cea2d8dec6ff6e5b9c35"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2021-09.zip",
+   "role": "train_funding",
+   "sha256": "03f25a7c25eef18d5f5b5b7bb0b664cab7a210b409f37e95a54e141808a0752d"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2021-10.zip",
+   "role": "train_funding",
+   "sha256": "f25820d6add687addbca3ef43bee58f70853a6da53832a0c1bc22d00dc8ec64a"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2021-11.zip",
+   "role": "train_funding",
+   "sha256": "e2e6b2d7218607e7e4a38137d50f553c2cfb901275c19edf567024c1cc6de85f"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2021-12.zip",
+   "role": "train_funding",
+   "sha256": "bf3ce484faf41d7dccfd38c5cc3d8de34d8297df30ab10784e874cc10fd1b310"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2022-01.zip",
+   "role": "train_funding",
+   "sha256": "22ee19079b620f5c6d820e7d7f8bafa7fde866d89bd664863b8bd527749c12cb"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2022-02.zip",
+   "role": "train_funding",
+   "sha256": "fa95088258a905c79ab79e8984d2f6f66933ec2e814dbab4ef9da89b01ab484a"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2022-03.zip",
+   "role": "train_funding",
+   "sha256": "4cf0883bc07f4ed4cdd3b0d8c0d166b4d15d21e666ab752f9f44401af4d6172f"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2022-04.zip",
+   "role": "train_funding",
+   "sha256": "57e2776cc68b3169fc9f8632dad67278f470cd453407a8ebe6c87963c8a31357"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2022-05.zip",
+   "role": "train_funding",
+   "sha256": "bced8a5013d09742b96682e6fd01ad4456213515a03d7586ec2b1f2689af5255"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2022-06.zip",
+   "role": "train_funding",
+   "sha256": "0cd0708f8903829eb46f98cf60f4b2516c986e1ccddf6620a5912b48e16baf93"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2022-07.zip",
+   "role": "train_funding",
+   "sha256": "29d58cce0cd45f74c6a112039835c6d9ee5a7e60e7c38c2503beb7930453a4fe"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2022-08.zip",
+   "role": "train_funding",
+   "sha256": "6f4f0c6c84c05694b4b4a5c085776730fd4059723eecd98ee6ffeb3fde4da811"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2022-09.zip",
+   "role": "train_funding",
+   "sha256": "d62cd4e13009de37add446dc4f63ead4c56dcc4955a1e60f6726bcadc5a68fa9"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2022-10.zip",
+   "role": "train_funding",
+   "sha256": "ad9efed10d4ca1567b865d7a158790977cec1b925395634217069df6696c8bc9"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2022-11.zip",
+   "role": "train_funding",
+   "sha256": "8febe5bec1a029e993bbf27490761f8c47c32849bf7dd13441b2b2f6ec1ffb51"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2022-12.zip",
+   "role": "train_funding",
+   "sha256": "4218c78331bcc4dbeb5768fa112242a880971c1f2cfd1d3f32aaa26ca34069af"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2023-01.zip",
+   "role": "train_funding",
+   "sha256": "05e3df32f28d0d50f4c5a280adee9368b4a66fc68c6ddca1b3277087ac0d19f5"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2023-02.zip",
+   "role": "train_funding",
+   "sha256": "5227accd9aaa59f71f5e682abffb58be5f99573ed208ab968b1704c81ac11345"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2023-03.zip",
+   "role": "train_funding",
+   "sha256": "ab022adff9b853d2f33cf80154e77c770f57c3392f0bbc36564b2e2cdbd0e872"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2023-04.zip",
+   "role": "train_funding",
+   "sha256": "2931039d26818edc65d4faefba84945fd1ba52989dd58fb127dc3cd7a12c7fbf"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2023-05.zip",
+   "role": "train_funding",
+   "sha256": "5d026fece46df86293054c8c56c2c8de575d30161b82979b11831831217a246e"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-2023-06.zip",
+   "role": "train_funding",
+   "sha256": "3ffdde6f1dc9c3c065d77ae43f3ba64d19d4cb76512d4bc1d541933d4fb2e6f7"
+  }
+ ],
+ "funding_settlements": 2640,
+ "holm": {
+  "adjusted_p": {
+   "F1_P1": 1.0,
+   "F1_P2a": 1.0,
+   "F1_P2b": 1.0,
+   "F2_P1": 1.0,
+   "F2_P2a": 1.0,
+   "F2_P2b": 1.0,
+   "F3_P1": 1.0,
+   "F3_P2a": 1.0,
+   "F3_P2b": 1.0
+  },
+  "raw_p": {
+   "F1_P1": 0.8239712074576101,
+   "F1_P2a": 0.20269651422433346,
+   "F1_P2b": 0.3693051688185168,
+   "F2_P1": 0.4583464446893951,
+   "F2_P2a": 0.16920510383944917,
+   "F2_P2b": 0.5575495946105222,
+   "F3_P1": 0.4018856832091524,
+   "F3_P2a": 0.7676344751184353,
+   "F3_P2b": 0.7104936831179373
+  },
+  "tests": 9
+ },
+ "ordering_diagnostic": "NOT_RUN (aggTrades lie in the HOLDOUT window)",
+ "parity": {
+  "differences": 0,
+  "fields": [
+   "quote_volume",
+   "taker_buy_quote_volume"
+  ],
+  "overlap_minutes": 31680,
+  "pass": true
+ },
+ "price_minutes": 1267200,
+ "split": "TRAIN",
+ "study": "PTM-R1 V3",
+ "train_coverage": {
+  "end_ms_exclusive": 1688169600000,
+  "expected_minutes": 1267200,
+  "files": 29,
+  "invalid_minutes": 0,
+  "missing_minutes": 0,
+  "rows_read": 1267200,
+  "start_ms": 1612137600000
+ },
+ "train_tail_excluded_primary": 2,
+ "validation_candidates": [],
+ "verdicts": {
+  "F1": {
+   "gates": {
+    "1_P1_positive_holm": false,
+    "2_PF_gt_1": false,
+    "3_beats_random_control_lb": false,
+    "4_catastrophic_le_10pct": false,
+    "5_both_directions_positive": false,
+    "6_overlap_adjusted_positive": true,
+    "7_not_sig_worse_than_A": true,
+    "8_stress_positive": false
+   },
+   "holm_p": {
+    "P1": 1.0,
+    "P2a": 1.0,
+    "P2b": 1.0
+   },
+   "verdict": "A_TRAIN_FAIL"
+  },
+  "F2": {
+   "gates": {
+    "1_P1_positive_holm": false,
+    "2_PF_gt_1": true,
+    "3_beats_random_control_lb": false,
+    "4_catastrophic_le_10pct": false,
+    "5_both_directions_positive": true,
+    "6_overlap_adjusted_positive": true,
+    "7_not_sig_worse_than_A": true,
+    "8_stress_positive": true
+   },
+   "holm_p": {
+    "P1": 1.0,
+    "P2a": 1.0,
+    "P2b": 1.0
+   },
+   "verdict": "B_TRAIN_WEAK"
+  },
+  "F3": {
+   "gates": {
+    "1_P1_positive_holm": false,
+    "2_PF_gt_1": true,
+    "3_beats_random_control_lb": false,
+    "4_catastrophic_le_10pct": false,
+    "5_both_directions_positive": true,
+    "6_overlap_adjusted_positive": false,
+    "7_not_sig_worse_than_A": true,
+    "8_stress_positive": true
+   },
+   "holm_p": {
+    "P1": 1.0,
+    "P2a": 1.0,
+    "P2b": 1.0
+   },
+   "verdict": "B_TRAIN_WEAK"
+  }
+ }
+}

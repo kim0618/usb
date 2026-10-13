@@ -1,0 +1,1237 @@
+{
+ "alignment": {
+  "D_H4_H1_M_pct": 26.443,
+  "D_H4_H1_pct": 43.208,
+  "D_H4_pct": 65.225,
+  "NO_TRADE_pct": 34.775
+ },
+ "contract": "docs/crypto/personal_trading_method_r1/CONTRACT_PTM_R1_V1.md",
+ "contract_sha256": "752cbd19339530bb0a9439e9037db430e09c7b122f7cfb82280b485df74eef61",
+ "duplicate_share_one_position_48h": 0.9903,
+ "evaluation": {
+  "evaluated_days": 879.001,
+  "evaluated_minutes": 1265761,
+  "first_boundary_open_ms": 1612223940000,
+  "first_index_all_defined": 1439
+ },
+ "families": {
+  "F1": {
+   "LONG": {
+    "duplicate_share_primary": 0.0,
+    "interval_minutes_primary": {
+     "mean": 274.3,
+     "n": 4612,
+     "p10": 5.0,
+     "p25": 17.0,
+     "p50": 66.0,
+     "p75": 260.0,
+     "p90": 544.0
+    },
+    "interval_minutes_raw": {
+     "mean": 274.3,
+     "n": 4612,
+     "p10": 5.0,
+     "p25": 17.0,
+     "p50": 66.0,
+     "p75": 260.0,
+     "p90": 544.0
+    },
+    "invalidation": {
+     "I1": {
+      "accepted_setups": 4613,
+      "invalidated_within_48h": 4613,
+      "minutes_to_invalidation": {
+       "mean": 44.1,
+       "n": 4613,
+       "p10": 3.0,
+       "p25": 10.0,
+       "p50": 34.0,
+       "p75": 63.0,
+       "p90": 95.0
+      },
+      "minutes_to_invalidation_within_48h": {
+       "mean": 44.1,
+       "n": 4613,
+       "p10": 3.0,
+       "p25": 10.0,
+       "p50": 34.0,
+       "p75": 63.0,
+       "p90": 95.0
+      },
+      "not_by_48h": 0,
+      "train_tail_censored": 0,
+      "within_48h_share": 1.0
+     },
+     "I2": {
+      "accepted_setups": 4613,
+      "invalidated_within_48h": 4613,
+      "minutes_to_invalidation": {
+       "mean": 102.9,
+       "n": 4613,
+       "p10": 1.0,
+       "p25": 5.0,
+       "p50": 30.0,
+       "p75": 149.0,
+       "p90": 292.8
+      },
+      "minutes_to_invalidation_within_48h": {
+       "mean": 102.9,
+       "n": 4613,
+       "p10": 1.0,
+       "p25": 5.0,
+       "p50": 30.0,
+       "p75": 149.0,
+       "p90": 292.8
+      },
+      "not_by_48h": 0,
+      "train_tail_censored": 0,
+      "within_48h_share": 1.0
+     },
+     "I3": {
+      "accepted_setups": 4613,
+      "invalidated_within_48h": 4613,
+      "minutes_to_invalidation": {
+       "mean": 153.5,
+       "n": 4613,
+       "p10": 10.0,
+       "p25": 28.0,
+       "p50": 75.0,
+       "p75": 241.0,
+       "p90": 390.0
+      },
+      "minutes_to_invalidation_within_48h": {
+       "mean": 153.5,
+       "n": 4613,
+       "p10": 10.0,
+       "p25": 28.0,
+       "p50": 75.0,
+       "p75": 241.0,
+       "p90": 390.0
+      },
+      "not_by_48h": 0,
+      "train_tail_censored": 0,
+      "within_48h_share": 1.0
+     },
+     "I4": {
+      "accepted_setups": 4613,
+      "invalidated_within_48h": 4613,
+      "minutes_to_invalidation": {
+       "mean": 70.8,
+       "n": 4613,
+       "p10": 1.0,
+       "p25": 3.0,
+       "p50": 13.0,
+       "p75": 63.0,
+       "p90": 250.0
+      },
+      "minutes_to_invalidation_within_48h": {
+       "mean": 70.8,
+       "n": 4613,
+       "p10": 1.0,
+       "p25": 3.0,
+       "p50": 13.0,
+       "p75": 63.0,
+       "p90": 250.0
+      },
+      "not_by_48h": 0,
+      "train_tail_censored": 0,
+      "within_48h_share": 1.0
+     }
+    },
+    "one_position_48h": 100,
+    "primary_dedup": 4613,
+    "raw": 4613
+   },
+   "SHORT": {
+    "duplicate_share_primary": 0.0,
+    "interval_minutes_primary": {
+     "mean": 227.6,
+     "n": 5547,
+     "p10": 6.0,
+     "p25": 17.0,
+     "p50": 59.0,
+     "p75": 238.0,
+     "p90": 520.8
+    },
+    "interval_minutes_raw": {
+     "mean": 227.6,
+     "n": 5547,
+     "p10": 6.0,
+     "p25": 17.0,
+     "p50": 59.0,
+     "p75": 238.0,
+     "p90": 520.8
+    },
+    "invalidation": {
+     "I1": {
+      "accepted_setups": 5548,
+      "invalidated_within_48h": 5548,
+      "minutes_to_invalidation": {
+       "mean": 45.5,
+       "n": 5548,
+       "p10": 3.0,
+       "p25": 10.0,
+       "p50": 34.0,
+       "p75": 66.0,
+       "p90": 102.0
+      },
+      "minutes_to_invalidation_within_48h": {
+       "mean": 45.5,
+       "n": 5548,
+       "p10": 3.0,
+       "p25": 10.0,
+       "p50": 34.0,
+       "p75": 66.0,
+       "p90": 102.0
+      },
+      "not_by_48h": 0,
+      "train_tail_censored": 0,
+      "within_48h_share": 1.0
+     },
+     "I2": {
+      "accepted_setups": 5548,
+      "invalidated_within_48h": 5548,
+      "minutes_to_invalidation": {
+       "mean": 107.9,
+       "n": 5548,
+       "p10": 1.0,
+       "p25": 5.0,
+       "p50": 25.0,
+       "p75": 151.0,
+       "p90": 324.3
+      },
+      "minutes_to_invalidation_within_48h": {
+       "mean": 107.9,
+       "n": 5548,
+       "p10": 1.0,
+       "p25": 5.0,
+       "p50": 25.0,
+       "p75": 151.0,
+       "p90": 324.3
+      },
+      "not_by_48h": 0,
+      "train_tail_censored": 0,
+      "within_48h_share": 1.0
+     },
+     "I3": {
+      "accepted_setups": 5548,
+      "invalidated_within_48h": 5548,
+      "minutes_to_invalidation": {
+       "mean": 164.9,
+       "n": 5548,
+       "p10": 9.0,
+       "p25": 27.0,
+       "p50": 80.0,
+       "p75": 248.0,
+       "p90": 425.0
+      },
+      "minutes_to_invalidation_within_48h": {
+       "mean": 164.9,
+       "n": 5548,
+       "p10": 9.0,
+       "p25": 27.0,
+       "p50": 80.0,
+       "p75": 248.0,
+       "p90": 425.0
+      },
+      "not_by_48h": 0,
+      "train_tail_censored": 0,
+      "within_48h_share": 1.0
+     },
+     "I4": {
+      "accepted_setups": 5548,
+      "invalidated_within_48h": 5548,
+      "minutes_to_invalidation": {
+       "mean": 78.6,
+       "n": 5548,
+       "p10": 1.0,
+       "p25": 3.0,
+       "p50": 13.0,
+       "p75": 71.0,
+       "p90": 267.0
+      },
+      "minutes_to_invalidation_within_48h": {
+       "mean": 78.6,
+       "n": 5548,
+       "p10": 1.0,
+       "p25": 3.0,
+       "p50": 13.0,
+       "p75": 71.0,
+       "p90": 267.0
+      },
+      "not_by_48h": 0,
+      "train_tail_censored": 0,
+      "within_48h_share": 1.0
+     }
+    },
+    "one_position_48h": 122,
+    "primary_dedup": 5548,
+    "raw": 5548
+   },
+   "primary_dedup_total": 10161,
+   "viability": "RESEARCHABLE"
+  },
+  "F2": {
+   "LONG": {
+    "duplicate_share_primary": 0.8175,
+    "interval_minutes_primary": {
+     "mean": 696.2,
+     "n": 1817,
+     "p10": 73.6,
+     "p25": 145.0,
+     "p50": 346.0,
+     "p75": 639.0,
+     "p90": 1755.2
+    },
+    "interval_minutes_raw": {
+     "mean": 127.0,
+     "n": 9960,
+     "p10": 4.0,
+     "p25": 8.0,
+     "p50": 19.0,
+     "p75": 53.0,
+     "p90": 169.0
+    },
+    "invalidation": {
+     "I1": {
+      "accepted_setups": 1818,
+      "invalidated_within_48h": 1818,
+      "minutes_to_invalidation": {
+       "mean": 49.3,
+       "n": 1818,
+       "p10": 8.0,
+       "p25": 23.0,
+       "p50": 41.0,
+       "p75": 64.0,
+       "p90": 99.0
+      },
+      "minutes_to_invalidation_within_48h": {
+       "mean": 49.3,
+       "n": 1818,
+       "p10": 8.0,
+       "p25": 23.0,
+       "p50": 41.0,
+       "p75": 64.0,
+       "p90": 99.0
+      },
+      "not_by_48h": 0,
+      "train_tail_censored": 0,
+      "within_48h_share": 1.0
+     },
+     "I2": {
+      "accepted_setups": 1818,
+      "invalidated_within_48h": 1818,
+      "minutes_to_invalidation": {
+       "mean": 164.9,
+       "n": 1818,
+       "p10": 9.0,
+       "p25": 31.0,
+       "p50": 109.0,
+       "p75": 241.0,
+       "p90": 396.3
+      },
+      "minutes_to_invalidation_within_48h": {
+       "mean": 164.9,
+       "n": 1818,
+       "p10": 9.0,
+       "p25": 31.0,
+       "p50": 109.0,
+       "p75": 241.0,
+       "p90": 396.3
+      },
+      "not_by_48h": 0,
+      "train_tail_censored": 0,
+      "within_48h_share": 1.0
+     },
+     "I3": {
+      "accepted_setups": 1818,
+      "invalidated_within_48h": 1818,
+      "minutes_to_invalidation": {
+       "mean": 195.4,
+       "n": 1818,
+       "p10": 23.0,
+       "p25": 49.0,
+       "p50": 136.5,
+       "p75": 274.8,
+       "p90": 447.0
+      },
+      "minutes_to_invalidation_within_48h": {
+       "mean": 195.4,
+       "n": 1818,
+       "p10": 23.0,
+       "p25": 49.0,
+       "p50": 136.5,
+       "p75": 274.8,
+       "p90": 447.0
+      },
+      "not_by_48h": 0,
+      "train_tail_censored": 0,
+      "within_48h_share": 1.0
+     },
+     "I4": {
+      "accepted_setups": 1818,
+      "invalidated_within_48h": 1818,
+      "minutes_to_invalidation": {
+       "mean": 144.6,
+       "n": 1818,
+       "p10": 6.0,
+       "p25": 21.2,
+       "p50": 73.5,
+       "p75": 227.0,
+       "p90": 363.6
+      },
+      "minutes_to_invalidation_within_48h": {
+       "mean": 144.6,
+       "n": 1818,
+       "p10": 6.0,
+       "p25": 21.2,
+       "p50": 73.5,
+       "p75": 227.0,
+       "p90": 363.6
+      },
+      "not_by_48h": 0,
+      "train_tail_censored": 0,
+      "within_48h_share": 1.0
+     }
+    },
+    "one_position_48h": 51,
+    "primary_dedup": 1818,
+    "raw": 9961
+   },
+   "SHORT": {
+    "duplicate_share_primary": 0.8333,
+    "interval_minutes_primary": {
+     "mean": 563.9,
+     "n": 2238,
+     "p10": 72.0,
+     "p25": 137.0,
+     "p50": 330.0,
+     "p75": 589.0,
+     "p90": 1131.6
+    },
+    "interval_minutes_raw": {
+     "mean": 94.0,
+     "n": 13430,
+     "p10": 3.0,
+     "p25": 8.0,
+     "p50": 19.0,
+     "p75": 49.0,
+     "p90": 150.1
+    },
+    "invalidation": {
+     "I1": {
+      "accepted_setups": 2239,
+      "invalidated_within_48h": 2239,
+      "minutes_to_invalidation": {
+       "mean": 49.1,
+       "n": 2239,
+       "p10": 7.0,
+       "p25": 20.0,
+       "p50": 41.0,
+       "p75": 65.0,
+       "p90": 102.0
+      },
+      "minutes_to_invalidation_within_48h": {
+       "mean": 49.1,
+       "n": 2239,
+       "p10": 7.0,
+       "p25": 20.0,
+       "p50": 41.0,
+       "p75": 65.0,
+       "p90": 102.0
+      },
+      "not_by_48h": 0,
+      "train_tail_censored": 0,
+      "within_48h_share": 1.0
+     },
+     "I2": {
+      "accepted_setups": 2239,
+      "invalidated_within_48h": 2239,
+      "minutes_to_invalidation": {
+       "mean": 177.0,
+       "n": 2239,
+       "p10": 8.0,
+       "p25": 28.0,
+       "p50": 115.0,
+       "p75": 263.0,
+       "p90": 431.2
+      },
+      "minutes_to_invalidation_within_48h": {
+       "mean": 177.0,
+       "n": 2239,
+       "p10": 8.0,
+       "p25": 28.0,
+       "p50": 115.0,
+       "p75": 263.0,
+       "p90": 431.2
+      },
+      "not_by_48h": 0,
+      "train_tail_censored": 0,
+      "within_48h_share": 1.0
+     },
+     "I3": {
+      "accepted_setups": 2239,
+      "invalidated_within_48h": 2239,
+      "minutes_to_invalidation": {
+       "mean": 211.6,
+       "n": 2239,
+       "p10": 21.0,
+       "p25": 47.0,
+       "p50": 154.0,
+       "p75": 302.5,
+       "p90": 491.2
+      },
+      "minutes_to_invalidation_within_48h": {
+       "mean": 211.6,
+       "n": 2239,
+       "p10": 21.0,
+       "p25": 47.0,
+       "p50": 154.0,
+       "p75": 302.5,
+       "p90": 491.2
+      },
+      "not_by_48h": 0,
+      "train_tail_censored": 0,
+      "within_48h_share": 1.0
+     },
+     "I4": {
+      "accepted_setups": 2239,
+      "invalidated_within_48h": 2239,
+      "minutes_to_invalidation": {
+       "mean": 158.9,
+       "n": 2239,
+       "p10": 6.0,
+       "p25": 21.0,
+       "p50": 81.0,
+       "p75": 243.5,
+       "p90": 405.2
+      },
+      "minutes_to_invalidation_within_48h": {
+       "mean": 158.9,
+       "n": 2239,
+       "p10": 6.0,
+       "p25": 21.0,
+       "p50": 81.0,
+       "p75": 243.5,
+       "p90": 405.2
+      },
+      "not_by_48h": 0,
+      "train_tail_censored": 0,
+      "within_48h_share": 1.0
+     }
+    },
+    "one_position_48h": 76,
+    "primary_dedup": 2239,
+    "raw": 13431
+   },
+   "primary_dedup_total": 4057,
+   "viability": "RESEARCHABLE"
+  },
+  "F3": {
+   "LONG": {
+    "duplicate_share_primary": 0.7215,
+    "interval_minutes_primary": {
+     "mean": 976.6,
+     "n": 1295,
+     "p10": 120.0,
+     "p25": 258.5,
+     "p50": 470.0,
+     "p75": 835.0,
+     "p90": 2459.4
+    },
+    "interval_minutes_raw": {
+     "mean": 271.9,
+     "n": 4652,
+     "p10": 4.0,
+     "p25": 12.0,
+     "p50": 43.0,
+     "p75": 139.0,
+     "p90": 473.0
+    },
+    "invalidation": {
+     "I1": {
+      "accepted_setups": 1296,
+      "invalidated_within_48h": 1296,
+      "minutes_to_invalidation": {
+       "mean": 27.0,
+       "n": 1296,
+       "p10": 1.0,
+       "p25": 3.0,
+       "p50": 9.0,
+       "p75": 38.0,
+       "p90": 77.0
+      },
+      "minutes_to_invalidation_within_48h": {
+       "mean": 27.0,
+       "n": 1296,
+       "p10": 1.0,
+       "p25": 3.0,
+       "p50": 9.0,
+       "p75": 38.0,
+       "p90": 77.0
+      },
+      "not_by_48h": 0,
+      "train_tail_censored": 0,
+      "within_48h_share": 1.0
+     },
+     "I2": {
+      "accepted_setups": 1296,
+      "invalidated_within_48h": 1296,
+      "minutes_to_invalidation": {
+       "mean": 157.2,
+       "n": 1296,
+       "p10": 13.0,
+       "p25": 38.0,
+       "p50": 114.0,
+       "p75": 202.2,
+       "p90": 373.5
+      },
+      "minutes_to_invalidation_within_48h": {
+       "mean": 157.2,
+       "n": 1296,
+       "p10": 13.0,
+       "p25": 38.0,
+       "p50": 114.0,
+       "p75": 202.2,
+       "p90": 373.5
+      },
+      "not_by_48h": 0,
+      "train_tail_censored": 0,
+      "within_48h_share": 1.0
+     },
+     "I3": {
+      "accepted_setups": 1296,
+      "invalidated_within_48h": 1296,
+      "minutes_to_invalidation": {
+       "mean": 181.6,
+       "n": 1296,
+       "p10": 18.0,
+       "p25": 50.0,
+       "p50": 130.0,
+       "p75": 258.2,
+       "p90": 440.0
+      },
+      "minutes_to_invalidation_within_48h": {
+       "mean": 181.6,
+       "n": 1296,
+       "p10": 18.0,
+       "p25": 50.0,
+       "p50": 130.0,
+       "p75": 258.2,
+       "p90": 440.0
+      },
+      "not_by_48h": 0,
+      "train_tail_censored": 0,
+      "within_48h_share": 1.0
+     },
+     "I4": {
+      "accepted_setups": 1296,
+      "invalidated_within_48h": 1296,
+      "minutes_to_invalidation": {
+       "mean": 145.6,
+       "n": 1296,
+       "p10": 10.0,
+       "p25": 30.0,
+       "p50": 96.0,
+       "p75": 188.0,
+       "p90": 359.0
+      },
+      "minutes_to_invalidation_within_48h": {
+       "mean": 145.6,
+       "n": 1296,
+       "p10": 10.0,
+       "p25": 30.0,
+       "p50": 96.0,
+       "p75": 188.0,
+       "p90": 359.0
+      },
+      "not_by_48h": 0,
+      "train_tail_censored": 0,
+      "within_48h_share": 1.0
+     }
+    },
+    "one_position_48h": 27,
+    "primary_dedup": 1296,
+    "raw": 4653
+   },
+   "SHORT": {
+    "duplicate_share_primary": 0.7426,
+    "interval_minutes_primary": {
+     "mean": 751.2,
+     "n": 1680,
+     "p10": 121.0,
+     "p25": 236.0,
+     "p50": 439.0,
+     "p75": 757.2,
+     "p90": 1808.9
+    },
+    "interval_minutes_raw": {
+     "mean": 193.3,
+     "n": 6530,
+     "p10": 5.0,
+     "p25": 13.0,
+     "p50": 41.0,
+     "p75": 128.0,
+     "p90": 378.0
+    },
+    "invalidation": {
+     "I1": {
+      "accepted_setups": 1681,
+      "invalidated_within_48h": 1681,
+      "minutes_to_invalidation": {
+       "mean": 27.9,
+       "n": 1681,
+       "p10": 1.0,
+       "p25": 3.0,
+       "p50": 10.0,
+       "p75": 36.0,
+       "p90": 81.0
+      },
+      "minutes_to_invalidation_within_48h": {
+       "mean": 27.9,
+       "n": 1681,
+       "p10": 1.0,
+       "p25": 3.0,
+       "p50": 10.0,
+       "p75": 36.0,
+       "p90": 81.0
+      },
+      "not_by_48h": 0,
+      "train_tail_censored": 0,
+      "within_48h_share": 1.0
+     },
+     "I2": {
+      "accepted_setups": 1681,
+      "invalidated_within_48h": 1681,
+      "minutes_to_invalidation": {
+       "mean": 170.2,
+       "n": 1681,
+       "p10": 12.0,
+       "p25": 38.0,
+       "p50": 120.0,
+       "p75": 241.0,
+       "p90": 409.0
+      },
+      "minutes_to_invalidation_within_48h": {
+       "mean": 170.2,
+       "n": 1681,
+       "p10": 12.0,
+       "p25": 38.0,
+       "p50": 120.0,
+       "p75": 241.0,
+       "p90": 409.0
+      },
+      "not_by_48h": 0,
+      "train_tail_censored": 0,
+      "within_48h_share": 1.0
+     },
+     "I3": {
+      "accepted_setups": 1681,
+      "invalidated_within_48h": 1681,
+      "minutes_to_invalidation": {
+       "mean": 194.9,
+       "n": 1681,
+       "p10": 17.0,
+       "p25": 52.0,
+       "p50": 136.0,
+       "p75": 269.0,
+       "p90": 450.0
+      },
+      "minutes_to_invalidation_within_48h": {
+       "mean": 194.9,
+       "n": 1681,
+       "p10": 17.0,
+       "p25": 52.0,
+       "p50": 136.0,
+       "p75": 269.0,
+       "p90": 450.0
+      },
+      "not_by_48h": 0,
+      "train_tail_censored": 0,
+      "within_48h_share": 1.0
+     },
+     "I4": {
+      "accepted_setups": 1681,
+      "invalidated_within_48h": 1681,
+      "minutes_to_invalidation": {
+       "mean": 160.0,
+       "n": 1681,
+       "p10": 9.0,
+       "p25": 30.0,
+       "p50": 106.0,
+       "p75": 209.0,
+       "p90": 396.0
+      },
+      "minutes_to_invalidation_within_48h": {
+       "mean": 160.0,
+       "n": 1681,
+       "p10": 9.0,
+       "p25": 30.0,
+       "p50": 106.0,
+       "p75": 209.0,
+       "p90": 396.0
+      },
+      "not_by_48h": 0,
+      "train_tail_censored": 0,
+      "within_48h_share": 1.0
+     }
+    },
+    "one_position_48h": 56,
+    "primary_dedup": 1681,
+    "raw": 6531
+   },
+   "primary_dedup_total": 2977,
+   "viability": "RESEARCHABLE"
+  },
+  "UNCLASSIFIED_EVEN": {
+   "LONG": {
+    "duplicate_share_primary": null,
+    "interval_minutes_primary": null,
+    "interval_minutes_raw": null,
+    "invalidation": {
+     "I1": {
+      "accepted_setups": 0,
+      "invalidated_within_48h": 0,
+      "minutes_to_invalidation": null,
+      "minutes_to_invalidation_within_48h": null,
+      "not_by_48h": 0,
+      "train_tail_censored": 0,
+      "within_48h_share": null
+     },
+     "I2": {
+      "accepted_setups": 0,
+      "invalidated_within_48h": 0,
+      "minutes_to_invalidation": null,
+      "minutes_to_invalidation_within_48h": null,
+      "not_by_48h": 0,
+      "train_tail_censored": 0,
+      "within_48h_share": null
+     },
+     "I3": {
+      "accepted_setups": 0,
+      "invalidated_within_48h": 0,
+      "minutes_to_invalidation": null,
+      "minutes_to_invalidation_within_48h": null,
+      "not_by_48h": 0,
+      "train_tail_censored": 0,
+      "within_48h_share": null
+     },
+     "I4": {
+      "accepted_setups": 0,
+      "invalidated_within_48h": 0,
+      "minutes_to_invalidation": null,
+      "minutes_to_invalidation_within_48h": null,
+      "not_by_48h": 0,
+      "train_tail_censored": 0,
+      "within_48h_share": null
+     }
+    },
+    "one_position_48h": 0,
+    "primary_dedup": 0,
+    "raw": 0
+   },
+   "SHORT": {
+    "duplicate_share_primary": null,
+    "interval_minutes_primary": null,
+    "interval_minutes_raw": null,
+    "invalidation": {
+     "I1": {
+      "accepted_setups": 0,
+      "invalidated_within_48h": 0,
+      "minutes_to_invalidation": null,
+      "minutes_to_invalidation_within_48h": null,
+      "not_by_48h": 0,
+      "train_tail_censored": 0,
+      "within_48h_share": null
+     },
+     "I2": {
+      "accepted_setups": 0,
+      "invalidated_within_48h": 0,
+      "minutes_to_invalidation": null,
+      "minutes_to_invalidation_within_48h": null,
+      "not_by_48h": 0,
+      "train_tail_censored": 0,
+      "within_48h_share": null
+     },
+     "I3": {
+      "accepted_setups": 0,
+      "invalidated_within_48h": 0,
+      "minutes_to_invalidation": null,
+      "minutes_to_invalidation_within_48h": null,
+      "not_by_48h": 0,
+      "train_tail_censored": 0,
+      "within_48h_share": null
+     },
+     "I4": {
+      "accepted_setups": 0,
+      "invalidated_within_48h": 0,
+      "minutes_to_invalidation": null,
+      "minutes_to_invalidation_within_48h": null,
+      "not_by_48h": 0,
+      "train_tail_censored": 0,
+      "within_48h_share": null
+     }
+    },
+    "one_position_48h": 0,
+    "primary_dedup": 0,
+    "raw": 0
+   },
+   "primary_dedup_total": 0,
+   "viability": "NOT_STUDIED"
+  }
+ },
+ "files_read": [
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-01.zip",
+   "role": "parity",
+   "sha256": "a856e033ceee252f4e3a262a7262a3f60a8f97138794b5fce4ec15d9c66b480e"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-02.zip",
+   "role": "parity",
+   "sha256": "38fc36d008360cb3d8a3c6fafac9dc754e1619d7832a8587e00409899522bdf9"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-03.zip",
+   "role": "parity",
+   "sha256": "f6b1620e5c52f30d2f498e1681775f152296d2ce52dca5c2ae35d402ab9716db"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-04.zip",
+   "role": "parity",
+   "sha256": "5b5bbd3711f1f732e153a4deaa8bc51916850fd7bfa805e9d85c5686403d8e4c"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-05.zip",
+   "role": "parity",
+   "sha256": "af5938c8d23be0f6bdea905ed847b0675c67d1f4b24e8c43832c224cc8b92f99"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-06.zip",
+   "role": "parity",
+   "sha256": "75eeef140b07d21a16eee1a9708738b60b1a72dda0d37e7515fc4a32dffd93e0"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-07.zip",
+   "role": "parity",
+   "sha256": "4d83f583ba355f29a962e588e5174185bf40897320d1e3cee928040e7f2e159d"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-08.zip",
+   "role": "parity",
+   "sha256": "ad03f5ae286bf20186fb0ef7bf5b836bef2f30eedae8f8915ba6436a448fe778"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-09.zip",
+   "role": "parity",
+   "sha256": "cc47f3d39f6974d88e4c348018bfff70b02419274224eb5ae3e5cc80b64f582c"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-10.zip",
+   "role": "parity",
+   "sha256": "ff62872b7c0f5c756b8454481d3a0f080d93eb082e18df058e4fe7589dc0a994"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-11.zip",
+   "role": "parity",
+   "sha256": "08b5af388d100828d5b5fd9c42bcb83bedc64c69e36b671b4361f3fc0d9e48de"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-12.zip",
+   "role": "parity",
+   "sha256": "ca475f250f36080108b21ab83a737c468c302d7f1d5a30081e3a1200296dfa12"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-13.zip",
+   "role": "parity",
+   "sha256": "add855eb76c91c57e1ea425ae3c9fbc953af1e87a906bdf4d290577bb9943456"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-14.zip",
+   "role": "parity",
+   "sha256": "69314932ca1a6aa0f2a45e5b0d0c271a27401f48042fde67414f6ab5a0cdfdff"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-15.zip",
+   "role": "parity",
+   "sha256": "8893455ad98126ec4e6bfca010f701388a188c68715a0f33f686bde60d24430c"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-16.zip",
+   "role": "parity",
+   "sha256": "503b30763484771e6d9031ee7c4103fec765da96803d6ed10f74d39aedcb0724"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-17.zip",
+   "role": "parity",
+   "sha256": "24aa9f01305f04779bf0e2bd27aff0008bd08a6213addc46a55a86236d9ba549"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-18.zip",
+   "role": "parity",
+   "sha256": "60b3135d6d8363acc65f85de8eed32d37c48ec6668176f4ca16113f372f62dce"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-19.zip",
+   "role": "parity",
+   "sha256": "f0f6a47bf03e405577ae9c3f33d8afb624d60b2587d8ce26527b24c6aae4a30d"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-20.zip",
+   "role": "parity",
+   "sha256": "ab02c3ac68a1cdf577f6f1ba22440169e690bcb1cdaae6fdaea50c43209049ed"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-21.zip",
+   "role": "parity",
+   "sha256": "6308c5107d830bb401046d5b97512051eef41313399d686b02445420aa73989a"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-22.zip",
+   "role": "parity",
+   "sha256": "0bc2409a959fce4dbe069038205d8bb41242a41b86bb1851cc8ad8b1585fb5e2"
+  },
+  {
+   "file": "data/research/crypto/market_context_r0/raw/binance_kline_1m_1786492800000_1791100800000.jsonl",
+   "role": "parity",
+   "sha256": "fa2deba911a825a9ee6b1ded7cccbe73e4a47f23f5fce0481ffcc4ab03436fdb"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-02.zip",
+   "role": "train",
+   "sha256": "0a270f354b15b053824a7bb87c652aa95acb4a255fc968fe0a24bdc9e785223e"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-03.zip",
+   "role": "train",
+   "sha256": "15a2676410d5104fac1ea15f7302addbf4d0de14f6db8ce10a4930c3f5d5e7fa"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-04.zip",
+   "role": "train",
+   "sha256": "d957fcde82f9b5a9a05264a9602e5deae03472aa0d424ddb0f27a04e58723217"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-05.zip",
+   "role": "train",
+   "sha256": "dcf7c567cbde49a5e564b29f01be95e28d32f12cb68c40b2a14da75930187dc8"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-06.zip",
+   "role": "train",
+   "sha256": "a640c7f935a1136d2f65f28f9606f0e063185c500f982aec273bb2ed3f61bfc5"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-07.zip",
+   "role": "train",
+   "sha256": "1367b5cd230474b0ecc6031b9e18cffe66e011c8fdd01c3325985a39c5d5ed48"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-08.zip",
+   "role": "train",
+   "sha256": "a864bdf38c9d06b7a6a1dc07c5593bbe7387cec3b869e9ebee020da053d94f37"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-09.zip",
+   "role": "train",
+   "sha256": "6e7bbfe650e6c56e189e78d521b3714feffd38468d1268b706a6626737326676"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-10.zip",
+   "role": "train",
+   "sha256": "4b78dd0174890c975effca2ed078163d6e9b4f7437f692e2c430c724b7eafc24"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-11.zip",
+   "role": "train",
+   "sha256": "67da3342f014166d2af97321599e0011453c4bd5a9282ef12c1a6131efd12993"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-12.zip",
+   "role": "train",
+   "sha256": "c905c5c8ff36d0dfac3a0581225ab305f72d1e11e634953d8d3a136161d10956"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-01.zip",
+   "role": "train",
+   "sha256": "9cdbcf68903434c850f9bec60d8174c2cfd105dd24a7566965b442ec15124e04"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-02.zip",
+   "role": "train",
+   "sha256": "63672d552f98ec125ac4d90d82154313fb9832b7e1aaed196101816bd61bfb89"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-03.zip",
+   "role": "train",
+   "sha256": "4532faf2f92d205fac79b7d25327d2045843b60a4494e00b0962e6b7f028bc06"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-04.zip",
+   "role": "train",
+   "sha256": "0f509e296da62eed5f4e903507ced0de9738ea96a7a885e76dd2394b8049e689"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-05.zip",
+   "role": "train",
+   "sha256": "768bdbbd11b08d935b3753ecfee7f1e351a346c71b11cf68a4a51296d694f368"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-06.zip",
+   "role": "train",
+   "sha256": "8587319eaf1b1f6d73fd34446acdecdc72c47b23ecfd2d88e2a6dd2a35470565"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-07.zip",
+   "role": "train",
+   "sha256": "6fc45fa135a6be85679a6ab0b1268fbd1f8258079295cd134b9a4c535c6b6b65"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-08.zip",
+   "role": "train",
+   "sha256": "806ee1d6efa856984fe79453d17f04c0fb5e447413fe828cbd3ec2df9a1f5fc4"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-09.zip",
+   "role": "train",
+   "sha256": "fa1adecbe41b530c12f481882115511297ac7b78a9a7ae9d9d21b11c745649a4"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-10.zip",
+   "role": "train",
+   "sha256": "0f2d2cd67b30ab186bf3db5a07acfe835f1d74335c6493c80e9e4f0598e29b2c"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-11.zip",
+   "role": "train",
+   "sha256": "96916aba47f230a9bc68cd3fd98d0d352e1fd8f23c16c515107c4d965a2067a3"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-12.zip",
+   "role": "train",
+   "sha256": "0f4788019cdb29f4db7b03d9efefce099d7adf49c0daf70a144b814b292bf577"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2023-01.zip",
+   "role": "train",
+   "sha256": "b7b04483464b36c89f519bf35d6461d278c709577562108b6a00fb786b92e6a6"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2023-02.zip",
+   "role": "train",
+   "sha256": "b62ca5df57b1715109cb1fd57097529b28410fb36b0db5bd41dbefe7e070db68"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2023-03.zip",
+   "role": "train",
+   "sha256": "1cb47aae71e941d3e9d333f9c96723eb35c8b4a7ec90e819c59a7c02f89b03bb"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2023-04.zip",
+   "role": "train",
+   "sha256": "2c22e2e460bf0e41884bf71031eebf60224ba470b25777a4d17ddc9298390650"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2023-05.zip",
+   "role": "train",
+   "sha256": "cf9e0ab390e3872ddb9d807ad161933a28e374e09dbee2b9addf659856d1e656"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2023-06.zip",
+   "role": "train",
+   "sha256": "8dac3fe301198e752b257817542a7ded393dbe00b604f67aba6bc0090778ae95"
+  }
+ ],
+ "flips": {
+  "D": {
+   "buy_sell_direct": 6687,
+   "changes": 6687,
+   "changes_per_day": 7.61,
+   "changes_per_week": 53.25
+  },
+  "H1": {
+   "buy_sell_direct": 54688,
+   "changes": 54688,
+   "changes_per_day": 62.22,
+   "changes_per_week": 435.51
+  },
+  "H4": {
+   "buy_sell_direct": 25145,
+   "changes": 25145,
+   "changes_per_day": 28.61,
+   "changes_per_week": 200.24
+  },
+  "M": {
+   "buy_sell_direct": 146782,
+   "changes": 146782,
+   "changes_per_day": 166.99,
+   "changes_per_week": 1168.91
+  }
+ },
+ "parity": {
+  "differences": 0,
+  "fields": [
+   "quote_volume",
+   "taker_buy_quote_volume"
+  ],
+  "overlap_minutes": 31680,
+  "pass": true
+ },
+ "regimes": {
+  "count": 31537,
+  "long_regimes": 7282,
+  "short_regimes": 8594
+ },
+ "setups_total_raw": 44737,
+ "split": "TRAIN",
+ "stage": 0,
+ "state_frequency": {
+  "D": {
+   "BUY_pct": 44.306,
+   "EVEN_count": 0,
+   "EVEN_pct": 0.0,
+   "NONE_count": 0,
+   "NONE_pct": 0.0,
+   "SELL_pct": 55.694,
+   "window_minutes": 1440
+  },
+  "H1": {
+   "BUY_pct": 48.225,
+   "EVEN_count": 0,
+   "EVEN_pct": 0.0,
+   "NONE_count": 0,
+   "NONE_pct": 0.0,
+   "SELL_pct": 51.775,
+   "window_minutes": 60
+  },
+  "H4": {
+   "BUY_pct": 46.661,
+   "EVEN_count": 0,
+   "EVEN_pct": 0.0,
+   "NONE_count": 0,
+   "NONE_pct": 0.0,
+   "SELL_pct": 53.339,
+   "window_minutes": 240
+  },
+  "M": {
+   "BUY_pct": 49.114,
+   "EVEN_count": 0,
+   "EVEN_pct": 0.0,
+   "NONE_count": 96,
+   "NONE_pct": 0.008,
+   "SELL_pct": 50.878,
+   "window_minutes": 10
+  }
+ },
+ "study": "PTM-R1",
+ "train_coverage": {
+  "end_ms_exclusive": 1688169600000,
+  "expected_minutes": 1267200,
+  "files": 29,
+  "invalid_minutes": 0,
+  "missing_minutes": 0,
+  "rows_read": 1267200,
+  "start_ms": 1612137600000
+ },
+ "verdict": "B_STAGE0_RESEARCHABLE"
+}

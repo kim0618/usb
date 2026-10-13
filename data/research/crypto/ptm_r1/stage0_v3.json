@@ -1,0 +1,1281 @@
+{
+ "census_v3": {
+  "H4_excursions": {
+   "H4_excursions_against": 1313,
+   "episodes": 380,
+   "episodes_with_H4_against": 380,
+   "left_via_even_or_none": 0,
+   "returned_share": 0.8119,
+   "returned_to_thesis_dir": 1066,
+   "still_against_at_episode_end": 247
+  },
+  "evaluation": {
+   "evaluated_days": 879.001,
+   "first_index_all_defined": 1439
+  },
+  "families": {
+   "F1": {
+    "I1_within_48h_share_pooled": 0.6642,
+    "LONG": {
+     "I1_within_48h": 184,
+     "I1_within_48h_share": 0.739,
+     "interval_minutes_primary": {
+      "mean": 5098.0,
+      "n": 248,
+      "p10": 2805.4,
+      "p25": 2915.8,
+      "p50": 4002.0,
+      "p75": 5771.0,
+      "p90": 8646.9
+     },
+     "minutes_to_I1": {
+      "mean": 2872.1,
+      "n": 249,
+      "p10": 908.8,
+      "p25": 1347.0,
+      "p50": 2361.0,
+      "p75": 3834.0,
+      "p90": 5760.0
+     },
+     "primary_dedup": 249,
+     "raw": 8574,
+     "raw_by_tag": {
+      "M_REALIGN": 8390,
+      "THESIS_START": 184
+     },
+     "survival": {
+      "12h": {
+       "alive_share": 0.9157,
+       "eligible": 249,
+       "thesis_alive": 228
+      },
+      "24h": {
+       "alive_share": 0.5181,
+       "eligible": 249,
+       "thesis_alive": 129
+      },
+      "48h": {
+       "alive_share": 0.261,
+       "eligible": 249,
+       "thesis_alive": 65
+      },
+      "4h": {
+       "alive_share": 0.988,
+       "eligible": 249,
+       "thesis_alive": 246
+      },
+      "8h": {
+       "alive_share": 0.9558,
+       "eligible": 249,
+       "thesis_alive": 238
+      }
+     }
+    },
+    "SHORT": {
+     "I1_within_48h": 182,
+     "I1_within_48h_share": 0.6026,
+     "interval_minutes_primary": {
+      "mean": 4172.2,
+      "n": 301,
+      "p10": 2876.0,
+      "p25": 2900.0,
+      "p50": 3310.0,
+      "p75": 4499.0,
+      "p90": 6530.0
+     },
+     "minutes_to_I1": {
+      "mean": 4540.3,
+      "n": 302,
+      "p10": 955.5,
+      "p25": 1424.0,
+      "p50": 2640.0,
+      "p75": 5275.2,
+      "p90": 9933.9
+     },
+     "primary_dedup": 302,
+     "raw": 13035,
+     "raw_by_tag": {
+      "M_REALIGN": 12849,
+      "THESIS_START": 186
+     },
+     "survival": {
+      "12h": {
+       "alive_share": 0.9338,
+       "eligible": 302,
+       "thesis_alive": 282
+      },
+      "24h": {
+       "alive_share": 0.606,
+       "eligible": 302,
+       "thesis_alive": 183
+      },
+      "48h": {
+       "alive_share": 0.3974,
+       "eligible": 302,
+       "thesis_alive": 120
+      },
+      "4h": {
+       "alive_share": 0.9901,
+       "eligible": 302,
+       "thesis_alive": 299
+      },
+      "8h": {
+       "alive_share": 0.9702,
+       "eligible": 302,
+       "thesis_alive": 293
+      }
+     }
+    },
+    "all_family_one_position_48h_N": 195,
+    "long_share_primary": 0.4519,
+    "overlap_adjusted_48h_N": 404,
+    "primary_dedup_total": 551,
+    "survival_pooled": {
+     "12h": {
+      "alive_share": 0.9256,
+      "eligible": 551,
+      "thesis_alive": 510
+     },
+     "24h": {
+      "alive_share": 0.5662,
+      "eligible": 551,
+      "thesis_alive": 312
+     },
+     "48h": {
+      "alive_share": 0.3358,
+      "eligible": 551,
+      "thesis_alive": 185
+     },
+     "4h": {
+      "alive_share": 0.9891,
+      "eligible": 551,
+      "thesis_alive": 545
+     },
+     "8h": {
+      "alive_share": 0.9637,
+      "eligible": 551,
+      "thesis_alive": 531
+     }
+    },
+    "warning_sequence": {
+     "I1_after_W1_share": 0.6574,
+     "I1_after_W1_within_48h": 353,
+     "I1_while_W1_active": 254,
+     "I1_while_W1_active_share": 0.6959,
+     "I1_within_48h": 365,
+     "W1_before_I1": 537,
+     "W1_before_I1_share": 0.9764,
+     "W1_runs_before_I1_or_48h": {
+      "mean": 2.3,
+      "n": 550,
+      "p10": 1.0,
+      "p25": 2.0,
+      "p50": 2.0,
+      "p75": 3.0,
+      "p90": 4.0
+     },
+     "eligible": 550,
+     "neutral_before_I1_within_48h": 0
+    }
+   },
+   "F2": {
+    "I1_within_48h_share_pooled": 0.6339,
+    "LONG": {
+     "I1_within_48h": 147,
+     "I1_within_48h_share": 0.6967,
+     "interval_minutes_primary": {
+      "mean": 6018.6,
+      "n": 210,
+      "p10": 2890.7,
+      "p25": 3177.8,
+      "p50": 4320.0,
+      "p75": 6803.8,
+      "p90": 9812.1
+     },
+     "minutes_to_I1": {
+      "mean": 2846.2,
+      "n": 211,
+      "p10": 540.0,
+      "p25": 1194.5,
+      "p50": 2280.0,
+      "p75": 3960.0,
+      "p90": 5580.0
+     },
+     "primary_dedup": 211,
+     "raw": 839,
+     "raw_by_tag": {
+      "H1_REALIGN": 839
+     },
+     "survival": {
+      "12h": {
+       "alive_share": 0.8673,
+       "eligible": 211,
+       "thesis_alive": 183
+      },
+      "24h": {
+       "alive_share": 0.5972,
+       "eligible": 211,
+       "thesis_alive": 126
+      },
+      "48h": {
+       "alive_share": 0.3033,
+       "eligible": 211,
+       "thesis_alive": 64
+      },
+      "4h": {
+       "alive_share": 0.9716,
+       "eligible": 211,
+       "thesis_alive": 205
+      },
+      "8h": {
+       "alive_share": 0.9289,
+       "eligible": 211,
+       "thesis_alive": 196
+      }
+     }
+    },
+    "SHORT": {
+     "I1_within_48h": 156,
+     "I1_within_48h_share": 0.5843,
+     "interval_minutes_primary": {
+      "mean": 4714.3,
+      "n": 266,
+      "p10": 2880.0,
+      "p25": 3047.5,
+      "p50": 3623.5,
+      "p75": 5213.5,
+      "p90": 7829.5
+     },
+     "minutes_to_I1": {
+      "mean": 4432.9,
+      "n": 267,
+      "p10": 636.0,
+      "p25": 1257.0,
+      "p50": 2460.0,
+      "p75": 5006.5,
+      "p90": 10055.0
+     },
+     "primary_dedup": 267,
+     "raw": 1220,
+     "raw_by_tag": {
+      "H1_REALIGN": 1220
+     },
+     "survival": {
+      "12h": {
+       "alive_share": 0.8914,
+       "eligible": 267,
+       "thesis_alive": 238
+      },
+      "24h": {
+       "alive_share": 0.6517,
+       "eligible": 267,
+       "thesis_alive": 174
+      },
+      "48h": {
+       "alive_share": 0.4157,
+       "eligible": 267,
+       "thesis_alive": 111
+      },
+      "4h": {
+       "alive_share": 0.9738,
+       "eligible": 267,
+       "thesis_alive": 260
+      },
+      "8h": {
+       "alive_share": 0.9363,
+       "eligible": 267,
+       "thesis_alive": 250
+      }
+     }
+    },
+    "all_family_one_position_48h_N": 62,
+    "long_share_primary": 0.4414,
+    "overlap_adjusted_48h_N": 366,
+    "primary_dedup_total": 478,
+    "survival_pooled": {
+     "12h": {
+      "alive_share": 0.8808,
+      "eligible": 478,
+      "thesis_alive": 421
+     },
+     "24h": {
+      "alive_share": 0.6276,
+      "eligible": 478,
+      "thesis_alive": 300
+     },
+     "48h": {
+      "alive_share": 0.3661,
+      "eligible": 478,
+      "thesis_alive": 175
+     },
+     "4h": {
+      "alive_share": 0.9728,
+      "eligible": 478,
+      "thesis_alive": 465
+     },
+     "8h": {
+      "alive_share": 0.9331,
+      "eligible": 478,
+      "thesis_alive": 446
+     }
+    },
+    "warning_sequence": {
+     "I1_after_W1_share": 0.6162,
+     "I1_after_W1_within_48h": 281,
+     "I1_while_W1_active": 212,
+     "I1_while_W1_active_share": 0.702,
+     "I1_within_48h": 302,
+     "W1_before_I1": 456,
+     "W1_before_I1_share": 0.956,
+     "W1_runs_before_I1_or_48h": {
+      "mean": 2.3,
+      "n": 477,
+      "p10": 1.0,
+      "p25": 1.0,
+      "p50": 2.0,
+      "p75": 3.0,
+      "p90": 4.0
+     },
+     "eligible": 477,
+     "neutral_before_I1_within_48h": 0
+    }
+   },
+   "F3": {
+    "I1_within_48h_share_pooled": 0.6458,
+    "LONG": {
+     "I1_within_48h": 131,
+     "I1_within_48h_share": 0.7238,
+     "interval_minutes_primary": {
+      "mean": 6979.7,
+      "n": 180,
+      "p10": 3067.8,
+      "p25": 3639.8,
+      "p50": 5072.5,
+      "p75": 8142.2,
+      "p90": 11144.7
+     },
+     "minutes_to_I1": {
+      "mean": 2387.2,
+      "n": 181,
+      "p10": 240.0,
+      "p25": 540.0,
+      "p50": 1800.0,
+      "p75": 3120.0,
+      "p90": 5520.0
+     },
+     "primary_dedup": 181,
+     "raw": 392,
+     "raw_by_tag": {
+      "H4_REALIGN": 392
+     },
+     "survival": {
+      "12h": {
+       "alive_share": 0.6851,
+       "eligible": 181,
+       "thesis_alive": 124
+      },
+      "24h": {
+       "alive_share": 0.5359,
+       "eligible": 181,
+       "thesis_alive": 97
+      },
+      "48h": {
+       "alive_share": 0.2762,
+       "eligible": 181,
+       "thesis_alive": 50
+      },
+      "4h": {
+       "alive_share": 0.895,
+       "eligible": 181,
+       "thesis_alive": 162
+      },
+      "8h": {
+       "alive_share": 0.7624,
+       "eligible": 181,
+       "thesis_alive": 138
+      }
+     }
+    },
+    "SHORT": {
+     "I1_within_48h": 137,
+     "I1_within_48h_share": 0.5855,
+     "interval_minutes_primary": {
+      "mean": 5377.3,
+      "n": 233,
+      "p10": 2880.0,
+      "p25": 3254.0,
+      "p50": 4080.0,
+      "p75": 6300.0,
+      "p90": 10031.4
+     },
+     "minutes_to_I1": {
+      "mean": 4114.2,
+      "n": 234,
+      "p10": 240.0,
+      "p25": 711.5,
+      "p50": 2036.0,
+      "p75": 4755.0,
+      "p90": 9528.0
+     },
+     "primary_dedup": 234,
+     "raw": 532,
+     "raw_by_tag": {
+      "H4_REALIGN": 532
+     },
+     "survival": {
+      "12h": {
+       "alive_share": 0.7009,
+       "eligible": 234,
+       "thesis_alive": 164
+      },
+      "24h": {
+       "alive_share": 0.5897,
+       "eligible": 234,
+       "thesis_alive": 138
+      },
+      "48h": {
+       "alive_share": 0.4145,
+       "eligible": 234,
+       "thesis_alive": 97
+      },
+      "4h": {
+       "alive_share": 0.8932,
+       "eligible": 234,
+       "thesis_alive": 209
+      },
+      "8h": {
+       "alive_share": 0.7991,
+       "eligible": 234,
+       "thesis_alive": 187
+      }
+     }
+    },
+    "all_family_one_position_48h_N": 148,
+    "long_share_primary": 0.4361,
+    "overlap_adjusted_48h_N": 317,
+    "primary_dedup_total": 415,
+    "survival_pooled": {
+     "12h": {
+      "alive_share": 0.694,
+      "eligible": 415,
+      "thesis_alive": 288
+     },
+     "24h": {
+      "alive_share": 0.5663,
+      "eligible": 415,
+      "thesis_alive": 235
+     },
+     "48h": {
+      "alive_share": 0.3542,
+      "eligible": 415,
+      "thesis_alive": 147
+     },
+     "4h": {
+      "alive_share": 0.894,
+      "eligible": 415,
+      "thesis_alive": 371
+     },
+     "8h": {
+      "alive_share": 0.7831,
+      "eligible": 415,
+      "thesis_alive": 325
+     }
+    },
+    "warning_sequence": {
+     "I1_after_W1_share": 0.5817,
+     "I1_after_W1_within_48h": 203,
+     "I1_while_W1_active": 180,
+     "I1_while_W1_active_share": 0.6716,
+     "I1_within_48h": 268,
+     "W1_before_I1": 349,
+     "W1_before_I1_share": 0.841,
+     "W1_runs_before_I1_or_48h": {
+      "mean": 2.0,
+      "n": 415,
+      "p10": 1.0,
+      "p25": 1.0,
+      "p50": 2.0,
+      "p75": 3.0,
+      "p90": 4.0
+     },
+     "eligible": 415,
+     "neutral_before_I1_within_48h": 0
+    }
+   },
+   "UNCLASSIFIED_EVEN": {
+    "I1_within_48h_share_pooled": 1.0,
+    "LONG": {
+     "I1_within_48h": 0,
+     "I1_within_48h_share": null,
+     "interval_minutes_primary": null,
+     "minutes_to_I1": null,
+     "primary_dedup": 0,
+     "raw": 0,
+     "raw_by_tag": {},
+     "survival": {
+      "12h": {
+       "alive_share": null,
+       "eligible": 0,
+       "thesis_alive": 0
+      },
+      "24h": {
+       "alive_share": null,
+       "eligible": 0,
+       "thesis_alive": 0
+      },
+      "48h": {
+       "alive_share": null,
+       "eligible": 0,
+       "thesis_alive": 0
+      },
+      "4h": {
+       "alive_share": null,
+       "eligible": 0,
+       "thesis_alive": 0
+      },
+      "8h": {
+       "alive_share": null,
+       "eligible": 0,
+       "thesis_alive": 0
+      }
+     }
+    },
+    "SHORT": {
+     "I1_within_48h": 1,
+     "I1_within_48h_share": 1.0,
+     "interval_minutes_primary": null,
+     "minutes_to_I1": {
+      "mean": 64.0,
+      "n": 1,
+      "p10": 64.0,
+      "p25": 64.0,
+      "p50": 64.0,
+      "p75": 64.0,
+      "p90": 64.0
+     },
+     "primary_dedup": 1,
+     "raw": 1,
+     "raw_by_tag": {
+      "M_EVEN": 1
+     },
+     "survival": {
+      "12h": {
+       "alive_share": 0.0,
+       "eligible": 1,
+       "thesis_alive": 0
+      },
+      "24h": {
+       "alive_share": 0.0,
+       "eligible": 1,
+       "thesis_alive": 0
+      },
+      "48h": {
+       "alive_share": 0.0,
+       "eligible": 1,
+       "thesis_alive": 0
+      },
+      "4h": {
+       "alive_share": 0.0,
+       "eligible": 1,
+       "thesis_alive": 0
+      },
+      "8h": {
+       "alive_share": 0.0,
+       "eligible": 1,
+       "thesis_alive": 0
+      }
+     }
+    },
+    "all_family_one_position_48h_N": 0,
+    "long_share_primary": 0.0,
+    "overlap_adjusted_48h_N": 1,
+    "primary_dedup_total": 1,
+    "survival_pooled": {
+     "12h": {
+      "alive_share": 0.0,
+      "eligible": 1,
+      "thesis_alive": 0
+     },
+     "24h": {
+      "alive_share": 0.0,
+      "eligible": 1,
+      "thesis_alive": 0
+     },
+     "48h": {
+      "alive_share": 0.0,
+      "eligible": 1,
+      "thesis_alive": 0
+     },
+     "4h": {
+      "alive_share": 0.0,
+      "eligible": 1,
+      "thesis_alive": 0
+     },
+     "8h": {
+      "alive_share": 0.0,
+      "eligible": 1,
+      "thesis_alive": 0
+     }
+    },
+    "warning_sequence": {
+     "I1_after_W1_share": null,
+     "I1_after_W1_within_48h": 0,
+     "I1_while_W1_active": 1,
+     "I1_while_W1_active_share": 1.0,
+     "I1_within_48h": 1,
+     "W1_before_I1": 0,
+     "W1_before_I1_share": 0.0,
+     "W1_runs_before_I1_or_48h": {
+      "mean": 1.0,
+      "n": 1,
+      "p10": 1.0,
+      "p25": 1.0,
+      "p50": 1.0,
+      "p75": 1.0,
+      "p90": 1.0
+     },
+     "eligible": 1,
+     "neutral_before_I1_within_48h": 0
+    }
+   }
+  },
+  "flips": {
+   "D": {
+    "buy_sell_direct": 381,
+    "changes": 381,
+    "changes_per_day": 0.43,
+    "changes_per_week": 3.03
+   },
+   "H1": {
+    "buy_sell_direct": 10776,
+    "changes": 10776,
+    "changes_per_day": 12.26,
+    "changes_per_week": 85.82
+   },
+   "H4": {
+    "buy_sell_direct": 2441,
+    "changes": 2441,
+    "changes_per_day": 2.78,
+    "changes_per_week": 19.44
+   },
+   "M": {
+    "buy_sell_direct": 146782,
+    "changes": 146782,
+    "changes_per_day": 166.99,
+    "changes_per_week": 1168.91
+   }
+  },
+  "setups_total_raw": 24593,
+  "state_frequency": {
+   "D": {
+    "BUY_pct": 43.8,
+    "EVEN_pct": 0.0,
+    "NONE_pct": 0.0,
+    "SELL_pct": 56.2
+   },
+   "H1": {
+    "BUY_pct": 48.109,
+    "EVEN_pct": 0.0,
+    "NONE_pct": 0.0,
+    "SELL_pct": 51.891
+   },
+   "H4": {
+    "BUY_pct": 46.815,
+    "EVEN_pct": 0.0,
+    "NONE_pct": 0.0,
+    "SELL_pct": 53.185
+   },
+   "M": {
+    "BUY_pct": 49.114,
+    "EVEN_pct": 0.0,
+    "NONE_pct": 0.008,
+    "SELL_pct": 50.878
+   }
+  },
+  "thesis": {
+   "duration": {
+    "mean": 3319.6,
+    "n": 380,
+    "p10": 1440.0,
+    "p25": 1440.0,
+    "p50": 2880.0,
+    "p75": 4320.0,
+    "p90": 5760.0
+   },
+   "duration_days_hist": {
+    "1": 187,
+    "10": 1,
+    "12": 2,
+    "17": 1,
+    "19": 1,
+    "2": 84,
+    "26": 1,
+    "3": 47,
+    "4": 29,
+    "5": 12,
+    "6": 7,
+    "7": 2,
+    "8": 2,
+    "9": 4
+   },
+   "episodes_complete": 380,
+   "flips_per_day": 0.43,
+   "long_episodes": 190,
+   "neutral_days": 0,
+   "short_episodes": 190
+  },
+  "warnings": {
+   "W1": {
+    "run_minutes": {
+     "mean": 447.0,
+     "n": 1244,
+     "p10": 240.0,
+     "p25": 240.0,
+     "p50": 240.0,
+     "p75": 480.0,
+     "p90": 960.0
+    },
+    "runs": 1246,
+    "runs_per_thesis_day": 1.418,
+    "share_of_thesis_minutes_pct": 44.008
+   },
+   "W2": {
+    "run_minutes": {
+     "mean": 106.8,
+     "n": 2715,
+     "p10": 60.0,
+     "p25": 60.0,
+     "p50": 60.0,
+     "p75": 120.0,
+     "p90": 180.0
+    },
+    "runs": 2716,
+    "runs_per_thesis_day": 3.09,
+    "share_of_thesis_minutes_pct": 22.919
+   },
+   "W3": {
+    "run_minutes": {
+     "mean": 7.9,
+     "n": 18112,
+     "p10": 1.0,
+     "p25": 2.0,
+     "p50": 5.0,
+     "p75": 11.0,
+     "p90": 18.0
+    },
+    "runs": 18113,
+    "runs_per_thesis_day": 20.606,
+    "share_of_thesis_minutes_pct": 11.265
+   }
+  },
+  "within_thesis_changes": {
+   "H1": {
+    "per_episode": {
+     "mean": 27.8,
+     "n": 380,
+     "p10": 10.0,
+     "p25": 12.0,
+     "p50": 18.0,
+     "p75": 35.0,
+     "p90": 51.0
+    },
+    "per_thesis_day": 12.043
+   },
+   "H4": {
+    "per_episode": {
+     "mean": 6.0,
+     "n": 380,
+     "p10": 1.9,
+     "p25": 2.0,
+     "p50": 4.0,
+     "p75": 8.0,
+     "p90": 12.0
+    },
+    "per_thesis_day": 2.584
+   },
+   "M": {
+    "per_episode": {
+     "mean": 385.0,
+     "n": 380,
+     "p10": 151.9,
+     "p25": 166.0,
+     "p50": 302.0,
+     "p75": 478.0,
+     "p90": 710.2
+    },
+    "per_thesis_day": 167.011
+   }
+  }
+ },
+ "comparison": {
+  "V1": {
+   "D_flips_per_day": 7.61,
+   "families": {
+    "F1": {
+     "overlap_48h_N": 414,
+     "primary": 10161,
+     "survival": {
+      "12h": 0.0068,
+      "24h": 0.0003,
+      "48h": 0.0
+     }
+    },
+    "F2": {
+     "overlap_48h_N": 422,
+     "primary": 4057,
+     "survival": {
+      "12h": 0.015,
+      "24h": 0.0007,
+      "48h": 0.0
+     }
+    },
+    "F3": {
+     "overlap_48h_N": 415,
+     "primary": 2977,
+     "survival": {
+      "12h": 0.0138,
+      "24h": 0.0003,
+      "48h": 0.0
+     }
+    }
+   },
+   "thesis": "D=H4 regime (I4)",
+   "thesis_median_min": 7.0
+  },
+  "V2A": {
+   "D_flips_per_day": 0.43,
+   "families": {
+    "F1": {
+     "overlap_48h_N": 365,
+     "primary": 1294,
+     "survival": {
+      "12h": 0.1777,
+      "24h": 0.0325,
+      "48h": 0.0023
+     }
+    },
+    "F2": {
+     "overlap_48h_N": 404,
+     "primary": 1295,
+     "survival": {
+      "12h": 0.1768,
+      "24h": 0.0324,
+      "48h": 0.0023
+     }
+    },
+    "F3": {
+     "overlap_48h_N": 366,
+     "primary": 914,
+     "survival": {
+      "12h": 0.1926,
+      "24h": 0.0372,
+      "48h": 0.0022
+     }
+    }
+   },
+   "thesis": "D=H4 regime (I4)",
+   "thesis_median_min": 480.0
+  },
+  "V2B": {
+   "D_flips_per_day": 0.52,
+   "families": {
+    "F1": {
+     "overlap_48h_N": 368,
+     "primary": 1561,
+     "survival": {
+      "12h": 0.1762,
+      "24h": 0.0416,
+      "48h": 0.0032
+     }
+    },
+    "F2": {
+     "overlap_48h_N": 408,
+     "primary": 1399,
+     "survival": {
+      "12h": 0.1844,
+      "24h": 0.0436,
+      "48h": 0.0036
+     }
+    },
+    "F3": {
+     "overlap_48h_N": 407,
+     "primary": 1430,
+     "survival": {
+      "12h": 0.1678,
+      "24h": 0.0406,
+      "48h": 0.0028
+     }
+    }
+   },
+   "thesis": "D=H4 regime (I4)",
+   "thesis_median_min": 323.0
+  },
+  "V3": {
+   "D_flips_per_day": 0.43,
+   "families": {
+    "F1": {
+     "overlap_48h_N": 404,
+     "primary": 551,
+     "survival": {
+      "12h": 0.9256,
+      "24h": 0.5662,
+      "48h": 0.3358
+     }
+    },
+    "F2": {
+     "overlap_48h_N": 366,
+     "primary": 478,
+     "survival": {
+      "12h": 0.8808,
+      "24h": 0.6276,
+      "48h": 0.3661
+     }
+    },
+    "F3": {
+     "overlap_48h_N": 317,
+     "primary": 415,
+     "survival": {
+      "12h": 0.694,
+      "24h": 0.5663,
+      "48h": 0.3542
+     }
+    }
+   },
+   "thesis": "completed 1D alone (I1)",
+   "thesis_median_min": 2880.0
+  }
+ },
+ "contract_sha256": {
+  "V1": "752cbd19339530bb0a9439e9037db430e09c7b122f7cfb82280b485df74eef61",
+  "V2": "b711e419f1ca52793cc844afea03afe0bdb04ead8524de228f08b4907bb70a0d",
+  "V3": "c34cc8011204c136fd6debafc8e1e2f1d4e31cea9f755a0f8ac9da1e6b9cb14e"
+ },
+ "files_read": [
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-01.zip",
+   "role": "parity",
+   "sha256": "a856e033ceee252f4e3a262a7262a3f60a8f97138794b5fce4ec15d9c66b480e"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-02.zip",
+   "role": "parity",
+   "sha256": "38fc36d008360cb3d8a3c6fafac9dc754e1619d7832a8587e00409899522bdf9"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-03.zip",
+   "role": "parity",
+   "sha256": "f6b1620e5c52f30d2f498e1681775f152296d2ce52dca5c2ae35d402ab9716db"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-04.zip",
+   "role": "parity",
+   "sha256": "5b5bbd3711f1f732e153a4deaa8bc51916850fd7bfa805e9d85c5686403d8e4c"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-05.zip",
+   "role": "parity",
+   "sha256": "af5938c8d23be0f6bdea905ed847b0675c67d1f4b24e8c43832c224cc8b92f99"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-06.zip",
+   "role": "parity",
+   "sha256": "75eeef140b07d21a16eee1a9708738b60b1a72dda0d37e7515fc4a32dffd93e0"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-07.zip",
+   "role": "parity",
+   "sha256": "4d83f583ba355f29a962e588e5174185bf40897320d1e3cee928040e7f2e159d"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-08.zip",
+   "role": "parity",
+   "sha256": "ad03f5ae286bf20186fb0ef7bf5b836bef2f30eedae8f8915ba6436a448fe778"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-09.zip",
+   "role": "parity",
+   "sha256": "cc47f3d39f6974d88e4c348018bfff70b02419274224eb5ae3e5cc80b64f582c"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-10.zip",
+   "role": "parity",
+   "sha256": "ff62872b7c0f5c756b8454481d3a0f080d93eb082e18df058e4fe7589dc0a994"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-11.zip",
+   "role": "parity",
+   "sha256": "08b5af388d100828d5b5fd9c42bcb83bedc64c69e36b671b4361f3fc0d9e48de"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-12.zip",
+   "role": "parity",
+   "sha256": "ca475f250f36080108b21ab83a737c468c302d7f1d5a30081e3a1200296dfa12"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-13.zip",
+   "role": "parity",
+   "sha256": "add855eb76c91c57e1ea425ae3c9fbc953af1e87a906bdf4d290577bb9943456"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-14.zip",
+   "role": "parity",
+   "sha256": "69314932ca1a6aa0f2a45e5b0d0c271a27401f48042fde67414f6ab5a0cdfdff"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-15.zip",
+   "role": "parity",
+   "sha256": "8893455ad98126ec4e6bfca010f701388a188c68715a0f33f686bde60d24430c"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-16.zip",
+   "role": "parity",
+   "sha256": "503b30763484771e6d9031ee7c4103fec765da96803d6ed10f74d39aedcb0724"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-17.zip",
+   "role": "parity",
+   "sha256": "24aa9f01305f04779bf0e2bd27aff0008bd08a6213addc46a55a86236d9ba549"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-18.zip",
+   "role": "parity",
+   "sha256": "60b3135d6d8363acc65f85de8eed32d37c48ec6668176f4ca16113f372f62dce"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-19.zip",
+   "role": "parity",
+   "sha256": "f0f6a47bf03e405577ae9c3f33d8afb624d60b2587d8ce26527b24c6aae4a30d"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-20.zip",
+   "role": "parity",
+   "sha256": "ab02c3ac68a1cdf577f6f1ba22440169e690bcb1cdaae6fdaea50c43209049ed"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-21.zip",
+   "role": "parity",
+   "sha256": "6308c5107d830bb401046d5b97512051eef41313399d686b02445420aa73989a"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-09-22.zip",
+   "role": "parity",
+   "sha256": "0bc2409a959fce4dbe069038205d8bb41242a41b86bb1851cc8ad8b1585fb5e2"
+  },
+  {
+   "file": "data/research/crypto/market_context_r0/raw/binance_kline_1m_1786492800000_1791100800000.jsonl",
+   "role": "parity",
+   "sha256": "fa2deba911a825a9ee6b1ded7cccbe73e4a47f23f5fce0481ffcc4ab03436fdb"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-02.zip",
+   "role": "train",
+   "sha256": "0a270f354b15b053824a7bb87c652aa95acb4a255fc968fe0a24bdc9e785223e"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-03.zip",
+   "role": "train",
+   "sha256": "15a2676410d5104fac1ea15f7302addbf4d0de14f6db8ce10a4930c3f5d5e7fa"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-04.zip",
+   "role": "train",
+   "sha256": "d957fcde82f9b5a9a05264a9602e5deae03472aa0d424ddb0f27a04e58723217"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-05.zip",
+   "role": "train",
+   "sha256": "dcf7c567cbde49a5e564b29f01be95e28d32f12cb68c40b2a14da75930187dc8"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-06.zip",
+   "role": "train",
+   "sha256": "a640c7f935a1136d2f65f28f9606f0e063185c500f982aec273bb2ed3f61bfc5"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-07.zip",
+   "role": "train",
+   "sha256": "1367b5cd230474b0ecc6031b9e18cffe66e011c8fdd01c3325985a39c5d5ed48"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-08.zip",
+   "role": "train",
+   "sha256": "a864bdf38c9d06b7a6a1dc07c5593bbe7387cec3b869e9ebee020da053d94f37"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-09.zip",
+   "role": "train",
+   "sha256": "6e7bbfe650e6c56e189e78d521b3714feffd38468d1268b706a6626737326676"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-10.zip",
+   "role": "train",
+   "sha256": "4b78dd0174890c975effca2ed078163d6e9b4f7437f692e2c430c724b7eafc24"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-11.zip",
+   "role": "train",
+   "sha256": "67da3342f014166d2af97321599e0011453c4bd5a9282ef12c1a6131efd12993"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2021-12.zip",
+   "role": "train",
+   "sha256": "c905c5c8ff36d0dfac3a0581225ab305f72d1e11e634953d8d3a136161d10956"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-01.zip",
+   "role": "train",
+   "sha256": "9cdbcf68903434c850f9bec60d8174c2cfd105dd24a7566965b442ec15124e04"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-02.zip",
+   "role": "train",
+   "sha256": "63672d552f98ec125ac4d90d82154313fb9832b7e1aaed196101816bd61bfb89"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-03.zip",
+   "role": "train",
+   "sha256": "4532faf2f92d205fac79b7d25327d2045843b60a4494e00b0962e6b7f028bc06"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-04.zip",
+   "role": "train",
+   "sha256": "0f509e296da62eed5f4e903507ced0de9738ea96a7a885e76dd2394b8049e689"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-05.zip",
+   "role": "train",
+   "sha256": "768bdbbd11b08d935b3753ecfee7f1e351a346c71b11cf68a4a51296d694f368"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-06.zip",
+   "role": "train",
+   "sha256": "8587319eaf1b1f6d73fd34446acdecdc72c47b23ecfd2d88e2a6dd2a35470565"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-07.zip",
+   "role": "train",
+   "sha256": "6fc45fa135a6be85679a6ab0b1268fbd1f8258079295cd134b9a4c535c6b6b65"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-08.zip",
+   "role": "train",
+   "sha256": "806ee1d6efa856984fe79453d17f04c0fb5e447413fe828cbd3ec2df9a1f5fc4"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-09.zip",
+   "role": "train",
+   "sha256": "fa1adecbe41b530c12f481882115511297ac7b78a9a7ae9d9d21b11c745649a4"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-10.zip",
+   "role": "train",
+   "sha256": "0f2d2cd67b30ab186bf3db5a07acfe835f1d74335c6493c80e9e4f0598e29b2c"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-11.zip",
+   "role": "train",
+   "sha256": "96916aba47f230a9bc68cd3fd98d0d352e1fd8f23c16c515107c4d965a2067a3"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2022-12.zip",
+   "role": "train",
+   "sha256": "0f4788019cdb29f4db7b03d9efefce099d7adf49c0daf70a144b814b292bf577"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2023-01.zip",
+   "role": "train",
+   "sha256": "b7b04483464b36c89f519bf35d6461d278c709577562108b6a00fb786b92e6a6"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2023-02.zip",
+   "role": "train",
+   "sha256": "b62ca5df57b1715109cb1fd57097529b28410fb36b0db5bd41dbefe7e070db68"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2023-03.zip",
+   "role": "train",
+   "sha256": "1cb47aae71e941d3e9d333f9c96723eb35c8b4a7ec90e819c59a7c02f89b03bb"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2023-04.zip",
+   "role": "train",
+   "sha256": "2c22e2e460bf0e41884bf71031eebf60224ba470b25777a4d17ddc9298390650"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2023-05.zip",
+   "role": "train",
+   "sha256": "cf9e0ab390e3872ddb9d807ad161933a28e374e09dbee2b9addf659856d1e656"
+  },
+  {
+   "file": "data/runtime/crypto/d5_2/archive/binance/futures/um/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2023-06.zip",
+   "role": "train",
+   "sha256": "8dac3fe301198e752b257817542a7ded393dbe00b604f67aba6bc0090778ae95"
+  }
+ ],
+ "judgement": {
+  "TOO_SLOW": false,
+  "families": {
+   "F1": {
+    "I1_within_48h_share": 0.6642,
+    "QUALIFIES": true,
+    "SAMPLE": true,
+    "overlap_adjusted_48h_N": 404,
+    "survival_12h": 0.9256,
+    "survival_24h": 0.5662,
+    "survival_48h": 0.3358
+   },
+   "F2": {
+    "I1_within_48h_share": 0.6339,
+    "QUALIFIES": true,
+    "SAMPLE": true,
+    "overlap_adjusted_48h_N": 366,
+    "survival_12h": 0.8808,
+    "survival_24h": 0.6276,
+    "survival_48h": 0.3661
+   },
+   "F3": {
+    "I1_within_48h_share": 0.6458,
+    "QUALIFIES": true,
+    "SAMPLE": true,
+    "overlap_adjusted_48h_N": 317,
+    "survival_12h": 0.694,
+    "survival_24h": 0.5663,
+    "survival_48h": 0.3542
+   }
+  },
+  "thesis_median_min": 2880.0,
+  "verdict": "D_V3_RESEARCHABLE"
+ },
+ "leak_check": {
+  "pass": true,
+  "perturbation_visible_after_cut": true,
+  "setups_equal": true,
+  "state_D_equal": true,
+  "state_H1_equal": true,
+  "state_H4_equal": true,
+  "state_M_equal": true,
+  "warnings_equal": true
+ },
+ "parity": {
+  "differences": 0,
+  "fields": [
+   "quote_volume",
+   "taker_buy_quote_volume"
+  ],
+  "overlap_minutes": 31680,
+  "pass": true
+ },
+ "split": "TRAIN",
+ "stage": "0-V3",
+ "study": "PTM-R1",
+ "train_coverage": {
+  "end_ms_exclusive": 1688169600000,
+  "expected_minutes": 1267200,
+  "files": 29,
+  "invalid_minutes": 0,
+  "missing_minutes": 0,
+  "rows_read": 1267200,
+  "start_ms": 1612137600000
+ },
+ "verdict": "D_V3_RESEARCHABLE"
+}
