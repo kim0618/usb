@@ -1,0 +1,54 @@
+{
+ "code_sha256": {
+  "data.py": "31c5aa1d659200ed2df374a52516e267eee861afb42e2f8165ff8f27eab64091",
+  "features.py": "2b92580159278bd67266029a4d2dea3bcce4049290774ffa39d5cecca4d1225e",
+  "metrics.py": "0afcbef58c5430bb46fcb062f20b98e1767c2e8338e66eeaf0f96ade6c9ac197",
+  "models.py": "ba868064f93fa7330a4f59ed1bc62ea6aad9405de8d523a3ee98ad298bbbba11",
+  "r1_train.py": "86bf6d31c555b7e977fabf2cd4c166a847a3d2232c2153eefd9bb475a8467b35",
+  "r2/hdata.py": "915ef5cbf5fc4404bf6afa1b4626770d77b1dd90af9037b3faa59b81eb730d61",
+  "r2/holdout.py": "7abfe21dc43c57dd7acd1be6cd147a7dbbff08cd2e47d4e41acfeea0e1a676cf",
+  "study.py": "cc77cde87de3746ef9f06f741385ade1d0e9bb52898a044ace0fda30acc778d4",
+  "val_data.py": "0f4c6757a4238a254bf7868eca744283c2e494771fbf2a810ca1606cb5c7b5f0"
+ },
+ "contract_sha256": "ad49b70c4431a790fa919646c1ee65f4bbb2647874a2140c03e4755ea6e16534",
+ "cost_config": {
+  "base_rt": 1.184e-06,
+  "fee_side": 0.0005,
+  "funding": "Binance actual settlements"
+ },
+ "cost_config_sha256": "9aae27f746b7c8af605a44f2b8bc5f519e6fc54621c8f6935bb72d71fbdb5df7",
+ "feature_config_sha256": "d457ccec570ed3dee37c787873b531793c3e75be43e17e11f433b5f6963fb13b",
+ "model_pickle_sha256": {
+  "GB": "0947f0ad95450077dad4f14d3af60ce339063fb4e3ec9332baef4b7f69659eb5",
+  "LR_price": "4df640bb0f1d4e7405785358bc02c603f30aab0457321f14947f0bd09bf4a195",
+  "RF": "83be3bb2f43ea4bc5e381cb7fdc9003ced87e2d8379a31735183faf40ed9a518"
+ },
+ "phase1_files_read": 1720,
+ "phase1_latest_file": "BTCUSDT-fundingRate-2025-03.zip",
+ "train_hours": 21018,
+ "validation_parity": {
+  "GB": {
+   "got": {
+    "accuracy": 0.5870006770480705,
+    "gross": 0.0009743814539782328,
+    "n": 2954,
+    "net": -2.5987472672432008e-05
+   },
+   "match": true
+  },
+  "RF": {
+   "got": {
+    "accuracy": 0.5736821086261981,
+    "gross": 0.0005295164875219167,
+    "n": 5008,
+    "net": -0.00046485929266789624
+   },
+   "match": true
+  }
+ },
+ "validation_prediction_sha256": {
+  "GB": "30112f858c05925630361122b48b23461d5281e9edeab1c2a49b8363153c88e8",
+  "LR_price": "72ace464161e0ceb59f8968de6e9db93abbea7c176112c8624821719f4c185ad",
+  "RF": "84213a67a43fed68c28f8dfe3dc4284b8e3f1a1d53c38c9483125a1fda01c1ce"
+ }
+}
