@@ -68,8 +68,9 @@ export function DashboardStrategyCard({ bundle, href }: { bundle: StrategyBundle
   const { row, account, card } = bundle;
   const block = card?.dashboard;
   const state = block?.status;
-  // H has no capital book: its money and trade fields are "-", with the reason on the API's `na`.
-  const noBook = card?.forward != null;
+  // H before its paper launch has no capital book: money and trade fields are "-", with the reason on
+  // the API's `na`. Once launched, its card carries the H paper account like A's and E's.
+  const noBook = card?.forward != null && card?.initial_equity == null;
   const settled = account.books ? (account.books[account.evidence_status || ""]?.sessions ?? 0) > 0 : true;
   const official = card?.official;
   const trades = noBook || !card ? "-" : String(official?.trades ?? card.trades);

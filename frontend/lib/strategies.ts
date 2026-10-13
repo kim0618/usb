@@ -289,6 +289,39 @@ export type HForwardView = {
                    sizing_contract: string; why: string };
   price_store: { source: string; latest_session: string | null; sessions_observed: number };
   rows: HCohortRow[]; ledger_rows: number; snapshot_rows: number;
+  /** signal key (ticker|thesis_version|decision_time) -> what the paper book did with it. */
+  paper_actions?: Record<string, string>;
+};
+
+/** Strategy H's paper book (H_V2_PAPER_EXECUTION_V1). Separate from the forward shadow and never
+ *  summed with it: the shadow measures decisions, this book measures the paper portfolio. */
+export type HPaperAccount = {
+  launched: boolean; reason?: string; launched_at?: string; currency?: string;
+  initial_equity?: string | null; current_equity?: string | null; cash?: string | null;
+  positions_value?: string | null; unrealized_pnl?: string | null; realized_pnl?: string | null;
+  total_pnl?: string | null; today_pnl?: string | null; last_session?: string | null;
+  open_positions?: number; trades?: number; fills?: number; win_rate?: string | null;
+  pending_entries?: Array<{ signal_key: string; ticker: string; entry_effective_session: string; state: string }>;
+  mode?: string;
+};
+
+export type HPaperTrade = {
+  trade_id: string; position_id: string; ticker: string; status: string; position_status: string;
+  entry_session: string; entry_price: string; current_shares: string; initial_shares: string;
+  tp1: string | null; tp2: string | null; bear: string | null; bear_rule: string | null;
+  mark_price: string | null; realized_pnl: string | null; unrealized_pnl: string | null;
+  net_pnl: string | null; exit_reason: string | null;
+};
+
+export type HPaperFill = {
+  event_id: string; ticker: string; session: string; trade_action: string; quantity: string;
+  fill_price: string; raw_price: string; exit_reason?: string;
+};
+
+export type HPaperView = {
+  available: boolean; strategy_id: string;
+  paper: { mode: string; launched: boolean; launched_at: string | null };
+  account: HPaperAccount; positions: HPaperTrade[]; trades: HPaperTrade[]; fills: HPaperFill[];
 };
 
 export type HIssuerView = HCohortRow & {
@@ -335,6 +368,8 @@ export const strategiesApi = {
   daily: (limit = 60) => apiFetch<DailyView>(`/api/v1/strategies/daily?limit=${limit}`),
   forward: (id: string = STRATEGY_H) =>
     apiFetch<HForwardView>(`/api/v1/strategies/${encodeURIComponent(id)}/forward`),
+  paper: (id: string = STRATEGY_H) =>
+    apiFetch<HPaperView>(`/api/v1/strategies/${encodeURIComponent(id)}/paper`),
   forwardIssuer: (ticker: string, id: string = STRATEGY_H) =>
     apiFetch<HIssuerView>(`/api/v1/strategies/${encodeURIComponent(id)}/forward/${encodeURIComponent(ticker)}`),
 };

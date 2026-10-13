@@ -4,11 +4,13 @@ import Link from "next/link";
 import { EmptyState, ErrorState, LoadingState, MetricCard, PageHeader, StatusBadge } from "@/components/ui";
 import { TradingTabs } from "@/components/section-tabs";
 import { useApi } from "@/hooks/use-api";
-import { kstDate, kstTime } from "@/lib/format";
+import { formatSignedUsd, formatUsd, kstDate, kstTime } from "@/lib/format";
 import {
   byRecentDecision, decisionReason, horizonProgress, latestDecision, nextEvaluation, observationState,
 } from "@/lib/h-trading";
-import { H_APPROVE, H_REJECT, H_WATCH, strategiesApi, type HForwardView } from "@/lib/strategies";
+import {
+  H_APPROVE, H_REJECT, H_WATCH, strategiesApi, type HForwardView, type HPaperView,
+} from "@/lib/strategies";
 
 const DECISION_TONE: Readonly<Record<string, "success" | "warning" | "danger" | "neutral">> = {
   [H_APPROVE]: "success", [H_WATCH]: "warning", [H_REJECT]: "neutral",
@@ -20,11 +22,15 @@ const decisionBadge = (decision: string | null) =>
 const monthDay = (session: string) => session.slice(5).replace("-", "/");
 
 /** Strategy H inside the Trading menu: is the forward shadow running, what is it watching, what did
- *  it last decide, how much evaluation has accumulated. Contract, launch and D7 detail stay on the
- *  research screen (/strategy-h). H holds no capital, so there is no asset or cash card here. */
+ *  it last decide, how much evaluation has accumulated, and - once the H paper book is launched -
+ *  what the paper account holds. Contract, launch and D7 detail stay on the research screen
+ *  (/strategy-h). Before the paper launch H holds no capital, so there is no asset or cash card. */
 export default function TradingHPage() {
   const state = useApi(strategiesApi.forward, 60_000);
-  const header = <PageHeader title="Strategy H · Forward Shadow" description="미래 데이터 관찰 중 · 실제 주문 없음"
+  const paperState = useApi(strategiesApi.paper, 60_000);
+  const paper = paperState.data?.paper?.launched ? paperState.data : null;
+  const header = <PageHeader title={paper ? "Strategy H · Paper + Forward Shadow" : "Strategy H · Forward Shadow"}
+    description={paper ? "가상 계좌 · 실제 주문 없음" : "미래 데이터 관찰 중 · 실제 주문 없음"}
     actions={<Link href="/strategy-h" className="btn-action-secondary-compact">연구 상세 보기</Link>}/>;
 
   if (state.loading) return <><TradingTabs/>{header}<LoadingState/></>;
@@ -34,11 +40,69 @@ export default function TradingHPage() {
   return <div className="trading-screen">
     <TradingTabs/>
     {header}
+    {paper && <PaperAccount view={paper}/>}
     <Kpis view={view}/>
+    {paper && <PaperPositions view={paper}/>}
     <Watching view={view}/>
-    <RecentDecisions view={view}/>
+    <RecentDecisions view={view} paper={paper != null}/>
+    {paper && <PaperFills view={paper}/>}
     <ForwardProgress view={view}/>
   </div>;
+}
+
+const money = (value: string | null | undefined) => value == null ? "-" : formatUsd(value);
+const signed = (value: string | null | undefined) => value == null ? "-" : formatSignedUsd(value);
+const pct = (value: string | null | undefined) => value == null ? "-" : `${(Number(value) * 100).toFixed(1)}%`;
+
+const ACTION_LABEL: Readonly<Record<string, string>> = {
+  BUY: "BUY", SELL_TP1: "TP1 50% 매도", SELL_TP2: "TP2 전량 매도", SELL_BEAR: "Bear 이탈 매도",
+  SELL_DECISION_DOWNGRADE: "판정 하향 매도", SELL_INVALIDATION: "Thesis 무효 매도",
+  BUY_PENDING: "진입 대기", WAITING_SLOT: "슬롯 대기", CLOSE: "청산 예정", NONE: "없음",
+};
+
+/** H's own paper account: never summed with A or E, never mixed with the forward shadow. */
+function PaperAccount({ view }: { view: HPaperView }) {
+  const a = view.account;
+  return <section aria-label="H paper 계좌" className="mb-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-4" data-h-paper-account="">
+    <MetricCard accent="primary" label="현재 자산" value={money(a.current_equity)} detail={`초기 자본 ${money(a.initial_equity)}`}/>
+    <MetricCard accent="bluegreen" label="현금" value={money(a.cash)} detail={`포지션 ${money(a.positions_value)}`}/>
+    <MetricCard accent="green" label="누적 손익" value={signed(a.total_pnl)}
+      detail={`실현 ${signed(a.realized_pnl)} · 미실현 ${signed(a.unrealized_pnl)}`}/>
+    <MetricCard accent="gold" label="거래 수" value={String(a.trades ?? 0)} detail={`승률 ${pct(a.win_rate)}`}/>
+  </section>;
+}
+
+function PaperPositions({ view }: { view: HPaperView }) {
+  const rows = view.positions;
+  const pending = view.account.pending_entries ?? [];
+  return <section aria-labelledby="h-positions-title" className="mb-7">
+    <h2 id="h-positions-title" className="mb-3 font-semibold">보유 포지션</h2>
+    {!rows.length ? <EmptyState title={pending.length ? `진입 대기 ${pending.map(p => p.ticker).join(", ")}` : "보유 포지션이 없습니다."}/>
+      : <div className="table-wrap"><table>
+      <thead><tr><th>종목</th><th>진입가</th><th>현재가</th><th>수익률</th><th>TP1</th><th>TP2</th><th>Bear</th><th>실현</th><th>미실현</th></tr></thead>
+      <tbody>{rows.map(row => { const back = row.mark_price && row.entry_price
+        ? (Number(row.mark_price) / Number(row.entry_price) - 1) : null; return <tr key={row.position_id}>
+        <td className="font-bold text-foreground">{row.ticker}{row.position_status === "PARTIAL" ? " · 50%" : ""}</td>
+        <td>{money(row.entry_price)}</td><td>{money(row.mark_price)}</td>
+        <td>{back == null ? "-" : `${(back * 100).toFixed(1)}%`}</td>
+        <td>{money(row.tp1)}</td><td>{money(row.tp2)}</td>
+        <td>{row.bear == null ? "평가 안 함" : money(row.bear)}</td>
+        <td>{signed(row.realized_pnl)}</td><td>{signed(row.unrealized_pnl)}</td>
+      </tr>; })}</tbody></table></div>}
+  </section>;
+}
+
+function PaperFills({ view }: { view: HPaperView }) {
+  const rows = view.fills.slice(0, 10);
+  return <section aria-labelledby="h-fills-title" className="mb-7">
+    <h2 id="h-fills-title" className="mb-3 font-semibold">최근 체결</h2>
+    {!rows.length ? <EmptyState title="아직 체결이 없습니다."/> : <div className="table-wrap"><table>
+      <thead><tr><th>세션</th><th>종목</th><th>체결</th><th>수량</th><th>체결가</th></tr></thead>
+      <tbody>{rows.map(row => <tr key={row.event_id}>
+        <td>{monthDay(row.session)}</td><td className="font-bold text-foreground">{row.ticker}</td>
+        <td>{ACTION_LABEL[row.trade_action] ?? row.trade_action}</td><td>{row.quantity}</td><td>{money(row.fill_price)}</td>
+      </tr>)}</tbody></table></div>}
+  </section>;
 }
 
 function Kpis({ view }: { view: HForwardView }) {
@@ -68,20 +132,29 @@ function Watching({ view }: { view: HForwardView }) {
   </section>;
 }
 
-function RecentDecisions({ view }: { view: HForwardView }) {
+function RecentDecisions({ view, paper = false }: { view: HForwardView; paper?: boolean }) {
   const rows = byRecentDecision(view.rows.filter(row => row.decision));
   return <section aria-labelledby="h-decisions-title" className="mb-7">
     <h2 id="h-decisions-title" className="mb-3 font-semibold">최근 결정</h2>
     {!rows.length ? <EmptyState title="아직 기록된 결정이 없습니다."/> : <div className="table-wrap"><table>
-      <thead><tr><th>결정</th><th>종목</th><th>결정 시각</th><th>현재 상태</th><th>사유</th></tr></thead>
+      <thead><tr><th>결정</th><th>종목</th><th>결정 시각</th><th>현재 상태</th><th>사유</th>{paper && <th>Paper 조치</th>}</tr></thead>
       <tbody>{rows.map(row => <tr key={row.ticker}>
         <td>{decisionBadge(row.decision)}</td>
         <td className="font-bold text-foreground">{row.ticker}</td>
         <td>{kstTime(row.decision_time)}</td>
         <td>{observationState(row)}</td>
         <td className="text-foreground-secondary">{decisionReason(row)}</td>
+        {paper && <td>{paperAction(view, row)}</td>}
       </tr>)}</tbody></table></div>}
   </section>;
+}
+
+/** What the paper book did with the issuer's current decision. A decision from before the paper
+ *  launch was never a paper signal, so it reads "관찰만" rather than a missing action. */
+function paperAction(view: HForwardView, row: HForwardView["rows"][number]): string {
+  const key = `${row.ticker}|${row.thesis_version ?? ""}|${row.decision_time ?? ""}`;
+  const action = view.paper_actions?.[key];
+  return action ? (ACTION_LABEL[action] ?? action) : "관찰만";
 }
 
 function ForwardProgress({ view }: { view: HForwardView }) {

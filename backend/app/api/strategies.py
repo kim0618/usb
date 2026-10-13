@@ -473,8 +473,10 @@ def _card(db: Session, meta: REG.StrategyMeta) -> dict[str, Any]:
         # field is None with a reason rather than a zero that would read as break-even.
         card = head | HV.card()
         launch = card["forward"]["launch"]
+        # Once the H paper book is launched the card carries real paper money beside the shadow.
+        paper = (card.get("paper") or {}).get("mode") == "SHADOW_PLUS_PAPER"
         return card | {"dashboard": DASH.block(
-            mode=DASH.mode_label(card, shadow=True, official_evidence=False),
+            mode="PAPER + SHADOW" if paper else DASH.mode_label(card, shadow=True, official_evidence=False),
             status=DASH.normalize_status(card, waiting_signal_is_running=False),
             since=launch.get("launched_at") if launch.get("status") == "LAUNCHED" else None,
             sessions=len(HV.observed_sessions()) if launch.get("status") == "LAUNCHED" else None,
@@ -699,3 +701,18 @@ async def strategy_forward_issuer(strategy_id: str, ticker: str) -> dict[str, An
                 "reason": "launch snapshot에 없는 종목이다",
                 "contract": HC.state()}
     return {"available": True} | body
+
+
+@router.get("/{strategy_id}/paper")
+async def strategy_paper(strategy_id: str) -> dict[str, Any]:
+    """H's paper book: account, open positions, recent fills, pending entries and the research queue.
+
+    The forward shadow (``/forward``) and this paper book are two separate results and are never
+    summed: one measures decision quality, the other what the paper portfolio actually did.
+    """
+    if strategy_id != REG.STRATEGY_H_V2:
+        return {"strategy_id": strategy_id, "available": False, "state": "NOT_AN_H_PAPER_BOOK"}
+    from app.strategies.h_forward import research_queue as HRQ
+    return {"available": True, "strategy_id": strategy_id, "paper": HV.paper_state(),
+            "account": HV.account(), "positions": HV.positions(), "trades": HV.trades(),
+            "fills": HV.fills()[:50], "research_queue": HRQ.build()}

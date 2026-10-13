@@ -27,7 +27,9 @@ from app.strategies.h_forward import store as ST
 
 SOURCE = "MASSIVE_GROUPED_DAILY"
 SCHEMA = "h_v2_d7_price_session_v1"
-FIELDS = ("close", "high", "low", "volume")
+#: ``open`` was added for H paper execution (entries fill at the next session open). Sessions stored
+#: before it carry no open; they are never rewritten, so their ``Bar.open`` reads as ``None``.
+FIELDS = ("open", "close", "high", "low", "volume")
 
 
 @dataclass(frozen=True)
@@ -37,6 +39,7 @@ class Bar:
     high: float | None
     low: float | None
     volume: float | None
+    open: float | None = None
 
 
 def session_path(session: str) -> Path:
@@ -82,7 +85,7 @@ def bars_of(session: str) -> dict[str, Bar]:
             continue
         out[symbol] = Bar(session=session, close=float(close),
                           high=_opt(row.get("high")), low=_opt(row.get("low")),
-                          volume=_opt(row.get("volume")))
+                          volume=_opt(row.get("volume")), open=_opt(row.get("open")))
     return out
 
 
@@ -152,7 +155,7 @@ def collect(sessions: Iterable[str], symbols: Iterable[str], *, client, fetched_
             failed[session] = f"{type(error).__name__}: {error}"
             continue
         rows = body.get("results") or []
-        bars = {r["T"]: {"close": r.get("c"), "high": r.get("h"), "low": r.get("l"),
+        bars = {r["T"]: {"open": r.get("o"), "close": r.get("c"), "high": r.get("h"), "low": r.get("l"),
                          "volume": r.get("v")}
                 for r in rows if r.get("T") in wanted and isinstance(r.get("c"), (int, float))}
         if not bars:

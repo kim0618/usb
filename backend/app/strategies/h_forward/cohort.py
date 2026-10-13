@@ -130,8 +130,12 @@ def position_reason(decision: str | None) -> str:
     if decision in (C.WATCH, C.REJECT):
         return f"{decision}는 포지션을 만들지 않는다 (D7 계약)"
     if decision == C.APPROVE:
-        return (C.SIZING_CONTRACT_REQUIRED if not C.sizing_is_defined()
-                else "APPROVE 진입 후보")
+        # The forward shadow never holds a position; the paper book (H_V2_PAPER_EXECUTION_V1) does,
+        # but only for an APPROVE recorded after the paper launch.
+        from app.strategies.h_paper import service as HP
+        if HP.launched():
+            return "APPROVE: paper 시작 이후의 APPROVE만 H paper 진입 신호"
+        return C.SIZING_CONTRACT_REQUIRED if not C.sizing_is_defined() else "APPROVE 진입 후보"
     return "결정 없음"
 
 

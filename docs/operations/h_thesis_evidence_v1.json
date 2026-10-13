@@ -1,0 +1,124 @@
+{
+ "issuers": {
+  "AEYE": {
+   "chunked_accessions": [
+    "0001104659-26-053022",
+    "0001104659-26-059498",
+    "0001104659-26-075458",
+    "0001104659-26-076658",
+    "0001104659-26-095913",
+    "0001104659-26-096032",
+    "0001104659-26-108940"
+   ],
+   "cik": "0001362190",
+   "data_cutoff": "2026-09-28T05:49:37.377541Z",
+   "package": "data/runtime/strategy_h_v2/d2_1/D2_1-20260928T072430Z/packages/AEYE.json",
+   "package_sha256": "dcd005f568b41d431d2f1ed351e2d17c0061eea12a1bb7708e9a0a8d9b61c2c9",
+   "thesis_version": "T1:0feb2f5ac5395d43"
+  },
+  "COLL": {
+   "chunked_accessions": [
+    "0001104659-26-062536",
+    "0001104659-26-079323",
+    "0001104659-26-095464",
+    "0001628280-26-011992",
+    "0001628280-26-031697",
+    "0001628280-26-053849",
+    "0001628280-26-053851"
+   ],
+   "cik": "0001267565",
+   "data_cutoff": "2026-09-28T05:49:37.377541Z",
+   "package": "data/runtime/strategy_h_v2/d2_1/D2_1-20260928T072430Z/packages/COLL.json",
+   "package_sha256": "572c80c810c0fb493ef582be2db870498f45cbd25f82cc920e8493faa53b3768",
+   "thesis_version": "T1:515e976796d76019"
+  },
+  "DORM": {
+   "chunked_accessions": [
+    "0000868780-26-000014",
+    "0000868780-26-000023",
+    "0000868780-26-000028",
+    "0000868780-26-000037",
+    "0000868780-26-000039",
+    "0001193125-26-254167",
+    "0001193125-26-273121"
+   ],
+   "cik": "0000868780",
+   "data_cutoff": "2026-09-28T05:49:37.377541Z",
+   "package": "data/runtime/strategy_h_v2/d2_1/D2_1-20260928T072430Z/packages/DORM.json",
+   "package_sha256": "71fb120c61c2e1aaf5a8a005ff20435e99a8b0a06e90e1e82453b0bb719084b8",
+   "thesis_version": "T1:ea591d646d5e4f68"
+  },
+  "FG": {
+   "chunked_accessions": [
+    "0001934850-26-000026",
+    "0001934850-26-000065",
+    "0001934850-26-000081",
+    "0001934850-26-000085"
+   ],
+   "cik": "0001934850",
+   "data_cutoff": "2026-09-28T05:49:37.377541Z",
+   "package": "data/runtime/strategy_h_v2/d2_1/D2_1-20260928T072430Z/packages/FG.json",
+   "package_sha256": "c67d14b6d929f7f87424efaa04ee4f42c16f463414a5617d89543112f4cfa504",
+   "thesis_version": "T1:779b199568fd395b"
+  },
+  "IDCC": {
+   "chunked_accessions": [
+    "0001405495-26-000011",
+    "0001405495-26-000034",
+    "0001405495-26-000035",
+    "0001405495-26-000055",
+    "0001405495-26-000065",
+    "0001405495-26-000066"
+   ],
+   "cik": "0001405495",
+   "data_cutoff": "2026-09-28T05:49:37.377541Z",
+   "package": "data/runtime/strategy_h_v2/d2_1/D2_1-20260928T072430Z/packages/IDCC.json",
+   "package_sha256": "22f87f161765bac9526d03259d5ea685bd662a26bf96b0bc70d3155f676343ab",
+   "thesis_version": "T1:fb4c702c9a819fe5"
+  },
+  "SCCO": {
+   "chunked_accessions": [
+    "0001104659-26-021492",
+    "0001104659-26-052647",
+    "0001104659-26-078041",
+    "0001104659-26-084713",
+    "0001104659-26-085515",
+    "0001104659-26-089169",
+    "0001140361-26-026337"
+   ],
+   "cik": "0001001838",
+   "data_cutoff": "2026-09-28T05:49:37.377541Z",
+   "package": "data/runtime/strategy_h_v2/d2_1/D2_1-20260928T072430Z/packages/SCCO.json",
+   "package_sha256": "8a7054f7a2d292c6852fc2ed417fdd1d40a97239106e94e9bdc30e8061698322",
+   "thesis_version": "T1:e8d25eeb6560a410"
+  },
+  "TG": {
+   "chunked_accessions": [
+    "0001628280-26-016665",
+    "0001628280-26-054593",
+    "0001628280-26-054595",
+    "0001628280-26-061976"
+   ],
+   "cik": "0000850429",
+   "data_cutoff": "2026-09-28T05:49:37.377541Z",
+   "package": "data/runtime/strategy_h_v2/d2_1/D2_1-20260928T072430Z/packages/TG.json",
+   "package_sha256": "7b8874f3eb6d80fe265be613e716dc6636d015d670874bf2d2b954dbb70970fb",
+   "thesis_version": "T1:f3f3941c8c3573dc"
+  },
+  "VRRM": {
+   "chunked_accessions": [
+    "0001193125-26-067293",
+    "0001193125-26-321686",
+    "0001193125-26-335111",
+    "0001193125-26-335490"
+   ],
+   "cik": "0001682745",
+   "data_cutoff": "2026-09-28T05:49:37.377541Z",
+   "package": "data/runtime/strategy_h_v2/d2_1/D2_1-20260928T072430Z/packages/VRRM.json",
+   "package_sha256": "e2208db97282a8abeee7c40e0761f5b418d964bcaff70c529a584cdd97325f73",
+   "thesis_version": "T1:84ff3bd842e560d5"
+  }
+ },
+ "rule": "an accession is in the thesis when at least one of its chunks is in the D2.1 package D3 read",
+ "schema": "h_thesis_evidence_v1"
+}

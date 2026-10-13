@@ -30,6 +30,14 @@ calls, zero research cost. Commands::
     python -m app.dev.run_h_v2_d7 refresh-scan --dry-run  # the same, without replacing the queue
     python -m app.dev.run_h_v2_d7 status         # the cohort as the files state it
     python -m app.dev.run_h_v2_d7 verify         # integrity of the snapshot, ledger and contract
+    python -m app.dev.run_h_v2_d7 paper-launch   # write H_PAPER_V1_LAUNCH once (operator, after approval)
+    python -m app.dev.run_h_v2_d7 paper-run      # recompute the paper book, append the new events
+    python -m app.dev.run_h_v2_d7 paper-verify   # paper invariants and prefix reproduction
+    python -m app.dev.run_h_v2_d7 paper-status   # account, positions, pending entries
+    python -m app.dev.run_h_v2_d7 research-queue # REFRESH_DUE + new candidates, evidence-checked (no model call)
+
+``update`` runs the paper step last, in its own failure domain (H_V2_PAPER_EXECUTION_V1): it reads
+the prices and the ledger the earlier steps wrote and never writes either.
 """
 
 from __future__ import annotations
@@ -51,7 +59,9 @@ from app.strategies.h_forward import outcomes as OUT
 from app.strategies.h_forward import prices as PR
 from app.strategies.h_forward import sec_refresh as SR
 from app.strategies.h_forward import store as ST
+from app.strategies.h_forward import research_queue as RQ
 from app.strategies.h_forward import views as VW
+from app.strategies.h_paper import service as HP
 
 D7_CONTRACT = "h_v2_d7_forward_shadow_paper_integration_v1"
 RUNTIME_ROOT = Path("data/runtime/strategy_h_v2")
@@ -86,7 +96,9 @@ def cohort_symbols() -> list[str]:
     """The symbols the price store tracks: the launch cohort (or D4's universe before launch) + SPY."""
     launched = [row["ticker"] for row in ST.launch_rows()]
     if launched:
-        return sorted(set(launched) | {C.benchmark()})
+        # Every issuer the forward ledger names, so a paper position is always priced.
+        ledgered = [row["ticker"] for row in ST.ledger() if isinstance(row.get("ticker"), str)]
+        return sorted(set(launched) | set(ledgered) | {C.benchmark()})
     from app.dev.run_strategy_h_v2_d6 import D4_UNIVERSE
     return sorted(set(D4_UNIVERSE) | {C.benchmark()})
 
@@ -576,13 +588,43 @@ def update() -> dict[str, Any]:
     integrity = verify()
     refresh = _material_refresh() if ST.launched() else {"refresh_run": "NOT_LAUNCHED",
                                                          "research_refresh_due": []}
+    paper = _paper_step()
+    queue = _research_queue_step()
     return {"prices": price_report, "decision_counts": body["decision_counts"],
             "maturity": body["maturity"], "evaluation": body["evaluation"],
             "integrity": integrity["verdict"], "integrity_problems": integrity["problems"],
             "refresh": refresh,
             "refresh_due": refresh["research_refresh_due"],
+            "paper": paper, "research_queue": queue,
             "decisions_changed": 0,
             "note": "가격 갱신은 결정을 바꾸지 않는다 (D7 계약 §transitions)"}
+
+
+def _paper_step() -> dict[str, Any]:
+    """Step 4: H paper execution. Never raises into the forward steps; failure is reported."""
+    try:
+        return HP.run()
+    except Exception as exc:                                   # never into the price step
+        return {"paper_run": "PAPER_ERROR", "problems": [f"{type(exc).__name__}: {exc}"], "appended": 0}
+
+
+def _research_queue_step() -> dict[str, Any]:
+    """Step 5: rebuild the research queue (a plan; no model call is made here)."""
+    try:
+        body = RQ.build()
+        sha = RQ.write(body)
+        return {"state": "OK", "queued": body["queued"], "intake_state": body["intake_state"], "sha256": sha}
+    except Exception as exc:
+        return {"state": "ERROR", "error": f"{type(exc).__name__}: {exc}"}
+
+
+def research_queue() -> dict[str, Any]:
+    return RQ.build()
+
+
+def paper_status() -> dict[str, Any]:
+    return {"paper": VW.paper_state(), "account": VW.account(), "positions": VW.positions(),
+            "recent_fills": VW.fills()[:20]}
 
 
 def verify() -> dict[str, Any]:
@@ -643,12 +685,15 @@ def status() -> dict[str, Any]:
 
 COMMANDS = {"preflight": preflight, "launch": launch, "collect-prices": collect_prices,
             "update": update, "sec-refresh": sec_refresh, "refresh-scan": refresh_scan,
-            "status": status, "verify": verify}
+            "status": status, "verify": verify,
+            "paper-launch": HP.launch, "paper-run": HP.run, "paper-verify": HP.verify,
+            "paper-status": paper_status, "research-queue": research_queue}
 
 #: ``update`` exits non-zero only for the forward shadow's own integrity. A degraded SEC refresh is
 #: success for the unit (prices were collected) but is never silent: it is printed to stderr, kept in
 #: ``refresh_status.json`` and present in the JSON on stdout.
 EXIT_INTEGRITY_FAILURE = 2
+EXIT_PAPER_INTEGRITY_FAILURE = 3
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -672,6 +717,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         if body.get("integrity") != "PASS":
             print(f"H_FORWARD_INTEGRITY_FAILURE: {body.get('integrity_problems')}", file=sys.stderr)
             return EXIT_INTEGRITY_FAILURE
+        paper = body.get("paper") or {}
+        if paper.get("paper_run") not in ("OK", "NOT_LAUNCHED"):
+            print(f"H_PAPER_FAILURE: {paper.get('paper_run')}: {paper.get('problems')} "
+                  f"(forward shadow updated; paper events left unchanged)", file=sys.stderr)
+            return EXIT_PAPER_INTEGRITY_FAILURE
+    if args.command == "paper-verify" and body.get("verdict") != "PASS":
+        return EXIT_PAPER_INTEGRITY_FAILURE
     return 0
 
 

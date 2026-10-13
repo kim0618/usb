@@ -1,0 +1,104 @@
+{
+ "declaration": {
+  "contract_id": "H_V2_PAPER_EXECUTION_V1",
+  "step": "H-V2 PAPER EXECUTION V1",
+  "declared_at_kst": "2026-10-13",
+  "status": "FROZEN_BEFORE_ANY_PAPER_RESULT",
+  "purpose": "Turn a Strategy H APPROVE into a simulated paper position and manage it to its exit with rules frozen before any H paper result exists. Paper only: no broker, no exchange, no real money.",
+  "checksum_recipe": "sha256 of json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False)",
+  "supersedes_for_paper": "the position_rule block of H_V2_D7_FORWARD_SHADOW_V1 (which stays frozen and keeps describing the forward shadow, which itself never holds a position)",
+  "research_build": "CLOSED",
+  "forward_shadow": "UNCHANGED_AND_KEPT"
+ },
+ "launch": {
+  "record": "H_PAPER_V1_LAUNCH",
+  "written_once": true,
+  "before_launch": "SHADOW_ONLY",
+  "after_launch": "SHADOW_PLUS_PAPER",
+  "signal_must_be_strictly_after_launch": true,
+  "historical_backfill": false,
+  "why": "Only an APPROVE recorded after the paper launch timestamp is an entry signal. WATCH and REJECT states that existed before launch are never turned into hypothetical trades."
+ },
+ "account": {
+  "initial_equity": "10000",
+  "currency": "USD",
+  "leverage": "1.0",
+  "short_selling": false,
+  "convention_source": "Strategy E DEFAULT_INITIAL_EQUITY = 10000 (no shared A/E paper account abstraction exists; H keeps its own book, like E)"
+ },
+ "signals": {
+  "entry_signal_decision": "APPROVE",
+  "never_enter": ["WATCH", "REJECT", "NOT_DECISION_ELIGIBLE"],
+  "source": "H's own forward ledger (append-only); a row's decision_time is the decision effective time",
+  "d5_contract_required": "D5_D2R_V1",
+  "d5_contract_missing_or_other": "REFUSED (no entry)"
+ },
+ "sizing": {
+  "contract": "H_EQUAL_SLOT_V1",
+  "max_open_positions": 3,
+  "slot_fraction": "1/3",
+  "equity_basis": "paper NAV at the close of the last stored session before the entry session (initial equity before any NAV exists)",
+  "slot_budget": "min(equity_basis * slot_fraction, cash)",
+  "quantity": "floor(slot_budget / buy_effective_price(raw open)) whole shares, the E convention (ROUND_DOWN)",
+  "zero_quantity": "ENTRY_REJECTED_ZERO_QUANTITY",
+  "no_free_slot": "APPROVE_WAITING_SLOT (queued in decision-time order; enters at the first session open at which a slot is free and its decision is still APPROVE)",
+  "forced_replacement": false,
+  "pyramiding": false,
+  "averaging_down": false,
+  "duplicate_identity": ["ticker", "thesis_version", "decision_time"],
+  "already_open_ticker": "a new APPROVE for a ticker H already holds is recorded as APPROVE_IGNORED_ALREADY_OPEN"
+ },
+ "execution": {
+  "broker": "app.broker.sim.SimBroker",
+  "cost_config": "app.execution.config.ExecutionConfig() = execution_v0 (spread 10bp + slippage 5bp price-embedded, commission 10bp per leg on raw notional, fx 0)",
+  "accounting": "app.broker.accounting ACCOUNTING_V1 (net = gross at fill prices - commission - fx)",
+  "entry_price": "raw = the regular-session OPEN of the first trading session whose open is strictly after decision_time",
+  "pending_state": "PENDING_ENTRY until that session's bar is stored",
+  "missing_open": "the entry stays PENDING_ENTRY and fills at the first later stored session that has an open; never at a close, never at a price before the decision",
+  "retroactive_fill": false,
+  "price_source": "H's own D7 price store (Massive grouped daily: open, high, low, close)",
+  "planned_initial_risk": "entry notional (H has no stop level; R multiples are return on notional)"
+ },
+ "exits": {
+  "evaluated_from": "the first session strictly after the entry session (the entry session's own bar is not used for exits)",
+  "levels_source": "TP1, TP2 and Bear of the APPROVE row that opened the position, frozen at entry",
+  "TP1": {"level": "D5 Base fair value (TP1)", "action": "sell floor(initial_shares * 0.5)", "remaining_fraction": "0.5", "reason": "TP1",
+          "fill": "raw = open if open >= TP1, else TP1 when high >= TP1", "absent": "TP1 exit not used"},
+  "TP2": {"level": "D5 Bull fair value (TP2)", "action": "sell all remaining", "reason": "TP2",
+          "fill": "raw = open if open >= TP2, else TP2 when high >= TP2", "absent": "TP2 exit not used"},
+  "BEAR_BREACH": {"level": "D5 Bear anchor", "action": "sell all remaining", "reason": "BEAR_BREACH",
+                  "fill": "raw = open if open <= Bear, else Bear when low <= Bear",
+                  "not_available": "NOT_EVALUATED: no stop of any kind is substituted (VRRM: NEGATIVE_IMPLIED_EQUITY)"},
+  "same_bar_order": "execution_v0 ambiguous_bar_policy WORST_CASE: when one daily bar touches Bear and a TP and the open does not decide it, Bear is taken first. TP1 then TP2 in the same bar is allowed (one upward path).",
+  "DECISION_DOWNGRADE": {"trigger": "a later forward-ledger row for the same ticker with APPROVE->WATCH or APPROVE->REJECT",
+                         "action": "sell all remaining at the open of the first session strictly after that row's decision_time",
+                         "reasons": ["DECISION_DOWNGRADE_WATCH", "DECISION_DOWNGRADE_REJECT"]},
+  "THESIS_INVALIDATED": {"trigger": "a forward-ledger row for the ticker carrying cause THESIS_INVALIDATED, written by a D3->D6 re-evaluation",
+                         "action": "sell all remaining at the next session open", "reason": "THESIS_INVALIDATED",
+                         "mechanical_detection": false,
+                         "why": "D3 invalidation candidates are free-text conditions with sources. No frozen contract evaluates them mechanically, so V1 invents none and acts only on an explicit re-evaluation record."},
+  "fixed_percentage_stop": false,
+  "atr_stop": false,
+  "time_stop": false,
+  "pending_entry_cancelled_when": "the ticker's decision is no longer APPROVE before the entry fills (APPROVE_CANCELLED_DECISION_CHANGED)"
+ },
+ "trade_actions": ["BUY", "SELL_TP1", "SELL_TP2", "SELL_DECISION_DOWNGRADE", "SELL_INVALIDATION", "SELL_BEAR"],
+ "marks": {
+  "nav": "cash + sum(shares * close) at each stored session close after launch",
+  "missing_close_for_held_ticker": "NAV_INCOMPLETE for that session; the last price is never substituted",
+  "session_gap": "processing stops before an expected session that the store does not hold (PAPER_STALLED_AT_GAP)"
+ },
+ "integrity": {
+  "events_append_only": true,
+  "recompute_must_reproduce_stored_prefix": true,
+  "a_e_records_untouched": true,
+  "forward_shadow_untouched": true
+ },
+ "research_budget": {
+  "automatic_daily_research": false,
+  "production_daily_budget_usd": null,
+  "production_daily_budget_status": "NOT_APPROVED (operator decision; until set, no model call is scheduled)",
+  "batch_budget": "each research batch freezes its own sample, model and hard cap in a preregistration before any call"
+ },
+ "not_under_ae_paper_gate": true
+}

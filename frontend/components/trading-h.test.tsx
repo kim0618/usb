@@ -108,3 +108,37 @@ describe("the retired 전략 menu's screens stay reachable", () => {
     expect(readFileSync("components/ae-operations.tsx", "utf8")).toContain('href="/shadow"');   // from the history screen
   });
 });
+
+describe("Trading H paper book", () => {
+  const paper = {
+    available: true, strategy_id: STRATEGY_H, paper: { mode: "SHADOW_PLUS_PAPER", launched: true, launched_at: "2026-10-14T00:00:00+00:00" },
+    account: { launched: true, initial_equity: "10000", current_equity: "10120.5", cash: "6700", positions_value: "3420.5",
+               unrealized_pnl: "90.5", realized_pnl: "30", total_pnl: "120.5", trades: 0, fills: 2, win_rate: null,
+               pending_entries: [] },
+    positions: [{ trade_id: "t", position_id: "STRATEGY_H_V2|2026-10-15|AAA", ticker: "AAA", status: "OPEN", position_status: "PARTIAL",
+                  entry_session: "2026-10-15", entry_price: "10.015", current_shares: "166", initial_shares: "332",
+                  tp1: "12", tp2: "15", bear: null, bear_rule: "NOT_EVALUATED", mark_price: "12.5",
+                  realized_pnl: "30", unrealized_pnl: "90.5", net_pnl: null, exit_reason: null }],
+    trades: [],
+    fills: [{ event_id: "e2", ticker: "AAA", session: "2026-10-16", trade_action: "SELL_TP1", quantity: "166", fill_price: "11.982", raw_price: "12" },
+            { event_id: "e1", ticker: "AAA", session: "2026-10-15", trade_action: "BUY", quantity: "332", fill_price: "10.015", raw_price: "10" }],
+  };
+  beforeEach(() => {
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo) => {
+      const path = String(input).replace(/^https?:\/\/[^/]+/, "");
+      const body = path.endsWith("/forward") ? view : path.endsWith("/paper") ? paper : {};
+      return { ok: true, status: 200, json: async () => body } as Response;
+    }));
+  });
+
+  it("shows the paper account, open positions with TP/Bear and recent fills, and labels the mode", async () => {
+    const { container } = render(<TradingHPage/>);
+    await screen.findByText("보유 포지션");
+    const text = container.textContent!;
+    for (const label of ["Strategy H · Paper + Forward Shadow", "가상 계좌 · 실제 주문 없음", "현재 자산", "누적 손익",
+                         "보유 포지션", "최근 체결", "TP1 50% 매도", "평가 안 함", "Paper 조치", "관찰만"]) expect(text).toContain(label);
+    expect(text).toContain("$10,120.50");
+    expect(text).not.toContain("$0.00 Bear");
+  });
+});
+

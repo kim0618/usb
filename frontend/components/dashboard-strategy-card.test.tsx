@@ -95,4 +95,20 @@ describe("dashboard strategy card", () => {
     const second = render(<DashboardStrategyCard bundle={shadow}/>);
     expect(netOf(second.container)).toBe("-");                      // H has no capital book at all
   });
+
+  it("shows H's paper account once launched: $10,000 with no trade is a real zero, not a dash", () => {
+    const h = base({ account: { strategy_id: "STRATEGY_H_V2", available: true, currency: "USD", initial_equity: "10000",
+      current_equity: "10000", today_pnl: "0", total_pnl: "0", open_positions: 0, closed_trades_today: 0, source: "H_PAPER_EVENTS" } });
+    (h.card as never as Record<string, unknown>).forward = {};
+    (h.card as never as Record<string, unknown>).initial_equity = "10000";
+    (h.card as never as Record<string, unknown>).official = { trades: 0, net_pnl: "0", accounting_versions: [] };
+    (h.card as never as Record<string, unknown>).dashboard = { ...block, mode: "PAPER + SHADOW", session_kind: "관찰", last_decision: "WATCH" };
+    const { container } = render(<DashboardStrategyCard bundle={h}/>);
+    const fields = Object.fromEntries([...container.querySelectorAll("dl > div")].map(el => [
+      el.querySelector("dt")!.textContent, el.querySelector("dd")!.textContent]));
+    expect(fields["초기 자본"]).toContain("$10,000.00");
+    expect(fields["현재 자산"]).toContain("$10,000.00");
+    expect(fields["공식 거래 수"]).toBe("0");
+    expect(container.querySelector("[data-mode]")!.textContent).toBe("PAPER + SHADOW");
+  });
 });
