@@ -1,0 +1,126 @@
+{
+ "record": "MANUAL_R2_PROVENANCE_CONTRACT_V1",
+ "status": "DESIGN_ONLY",
+ "production_applied": false,
+ "vocabulary": {
+  "origins": [
+   "USER_MANUAL",
+   "DEV_SMOKE",
+   "DEPLOY_SMOKE",
+   "SIZING_TEST",
+   "PNL_TEST",
+   "RESET_TEST",
+   "LIQUIDATION_TEST",
+   "ACCOUNTING_TEST",
+   "RESEARCH_TEST",
+   "TEST_UNSPECIFIED",
+   "AUTO_PAPER",
+   "UNKNOWN",
+   "UNKNOWN_LEGACY"
+  ],
+  "origin_group": {
+   "USER_MANUAL": "USER",
+   "DEV_SMOKE": "TEST",
+   "DEPLOY_SMOKE": "TEST",
+   "SIZING_TEST": "TEST",
+   "PNL_TEST": "TEST",
+   "RESET_TEST": "TEST",
+   "LIQUIDATION_TEST": "TEST",
+   "ACCOUNTING_TEST": "TEST",
+   "TEST_UNSPECIFIED": "TEST",
+   "RESEARCH_TEST": "RESEARCH",
+   "AUTO_PAPER": "AUTO",
+   "UNKNOWN": "UNKNOWN",
+   "UNKNOWN_LEGACY": "UNKNOWN"
+  },
+  "closed": true,
+  "extension_rule": "a new origin requires a contract version bump; existing origins never change meaning"
+ },
+ "defaults": {
+  "unstated_origin_on_live_call": "UNKNOWN",
+  "missing_origin_on_stored_event": "UNKNOWN_LEGACY",
+  "never_default": [
+   "USER_MANUAL",
+   "AUTO_PAPER"
+  ],
+  "rule": "USER_MANUAL is assigned only on the UI order path, explicitly",
+  "legacy_reason_attribution": {
+   "MANUAL": "USER_MANUAL",
+   "OPERATOR": "USER_MANUAL",
+   "AUTO": "AUTO_PAPER",
+   "EMERGENCY": null,
+   "LIQUIDATION": null
+  }
+ },
+ "propagation": {
+  "assigned_at": "order intent, before the engine sees it",
+  "carried_through": [
+   "OrderRequest",
+   "session command",
+   "tape COMMAND record",
+   "engine.submit_order",
+   "ledger event payload",
+   "analytics Trade"
+  ],
+  "origin_bearing_events": [
+   "ORDER_SUBMITTED",
+   "ORDER_REJECTED",
+   "FILL",
+   "FEE",
+   "POSITION_OPEN",
+   "POSITION_INCREASE",
+   "POSITION_REDUCE",
+   "POSITION_CLOSE",
+   "FUNDING",
+   "LIQUIDATION"
+  ],
+  "funding_rule": "FUNDING inherits the origin of the position it accrues against",
+  "liquidation_rule": "LIQUIDATION inherits the origin of the position it closes; being liquidated does not change who opened it",
+  "tape_rule": "the COMMAND record carries origin so replay restores it; storing it only in the ledger loses it on rebuild"
+ },
+ "backward_compatibility": {
+  "rewrite_history": false,
+  "existing_events": "UNKNOWN_LEGACY",
+  "replay_must_be_byte_identical_for_existing_tapes": true,
+  "schema_version_bump_required": false,
+  "reason": "ledger.append accepts arbitrary payload keys, so adding one is additive"
+ },
+ "analytics_separation": {
+  "manual_view": {
+   "filter": "origin_group == USER"
+  },
+  "auto_view": {
+   "filter": "origin == AUTO_PAPER"
+  },
+  "test_view": {
+   "filter": "origin_group == TEST",
+   "default_hidden": true
+  },
+  "unknown": {
+   "included_in_any_performance_view": false
+  },
+  "never_combine": [
+   "manual_view",
+   "auto_view"
+  ],
+  "equity_curve_rule": "drawdown and equity are computed after the origin filter, not before"
+ },
+ "test_policy": {
+  "preferred": "isolated instance on a separate port and run directory",
+  "if_production_unavoidable": "an explicit TEST origin is mandatory",
+  "forbidden_while_user_position_open": [
+   "order",
+   "ACCOUNT_RESET",
+   "EMERGENCY"
+  ],
+  "symmetry_rule": "do not assume an existing trade is a developer test, and do not assume it is a user trade either"
+ },
+ "known_violation": {
+  "file": "backend/app/crypto/terminal/api.py",
+  "symbol": "order request model",
+  "current": "reason: str = \"MANUAL\"",
+  "violates": "defaults.never_default",
+  "fixed_in_this_step": false,
+  "note": "reported for approval; production code was not modified"
+ }
+}

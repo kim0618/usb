@@ -1,0 +1,110 @@
+{
+ "record": "MANUAL_R2_HUMAN_DECISION_SCHEMA_V1",
+ "status": "DESIGN_ONLY",
+ "ui_implemented": false,
+ "collection_started": false,
+ "storage": {
+  "file": "decisions.jsonl",
+  "location": "the run directory, beside the ledger but not inside it",
+  "format": "append-only JSONL",
+  "linked_to_order_by": "decision_id <-> request_id",
+  "survives_account_reset": true,
+  "why_not_in_ledger": "the ledger is replayed byte-for-byte for accounting integrity; decision records allow revisions and will change shape more often, and mixing them would let a label change break replay"
+ },
+ "fields": {
+  "required": [
+   "decision_id",
+   "decided_at_ms",
+   "server_received_ms",
+   "side",
+   "reason_code",
+   "conviction"
+  ],
+  "optional": [
+   "expected_direction_bp",
+   "expected_horizon_minutes",
+   "invalidation_price",
+   "free_note"
+  ],
+  "auto_attached": [
+   "mark_at_decision",
+   "spread_at_decision",
+   "basis_at_decision",
+   "tape_snapshot_ts_ms",
+   "ui_context",
+   "origin"
+  ]
+ },
+ "reason_codes": {
+  "values": [
+   "TREND_CONTINUATION",
+   "REVERSAL_EXHAUSTION",
+   "RANGE_EDGE",
+   "BREAKOUT",
+   "PULLBACK_ENTRY",
+   "LIQUIDATION_CASCADE",
+   "FUNDING_SKEW",
+   "NEWS_EVENT",
+   "GUT",
+   "OTHER"
+  ],
+  "closed": true,
+  "no_default_selection": true,
+  "gut_is_valid": true,
+  "gut_rationale": "removing the honest option makes an operator pick a plausible one, which corrupts every label rather than just that one",
+  "other_requires_free_note": true
+ },
+ "conviction": {
+  "type": "int",
+  "min": 1,
+  "max": 5
+ },
+ "point_in_time": {
+  "recorded_before_order": true,
+  "post_order_entry_allowed": false,
+  "edits": "append-only revision records; research uses the first record only",
+  "attached_context_rule": "market context is read from a snapshot at or before decided_at_ms"
+ },
+ "missing_data": {
+  "labels": [
+   "PRESENT",
+   "MISSING",
+   "RETROSPECTIVE"
+  ],
+  "usable_for_label_analysis": [
+   "PRESENT"
+  ],
+  "imputation_allowed": false,
+  "imputation_rationale": "inferring a reason_code from price action records the analyst's hypothesis, not the operator's reason",
+  "missing_trades_still_count_in_performance": true
+ },
+ "sample_size": {
+  "decided_now": false,
+  "rule": "MANUAL-R2 collects only; the pass/fail criteria are preregistered before collection starts, in MANUAL-R3",
+  "forbidden": "deriving a rule from interim results while collection is running"
+ },
+ "implementation_options": [
+  {
+   "option": "A",
+   "form": "label input inside the order modal",
+   "coverage": "complete",
+   "pit": "strong",
+   "cost": "UI work, friction at order time"
+  },
+  {
+   "option": "B",
+   "form": "separate note screen",
+   "coverage": "partial",
+   "pit": "weak",
+   "cost": "low"
+  },
+  {
+   "option": "C",
+   "form": "no capture; accumulate trades only",
+   "coverage": "none",
+   "pit": "n/a",
+   "cost": "H2 stays unanswerable; sample size grows without resolving direction"
+  }
+ ],
+ "option_choice": "OPERATOR_DECISION_PENDING"
+}
