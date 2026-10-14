@@ -8,6 +8,15 @@ what happened in a past stage, the result document wins.
 Last verified: 2026-10-14 16:00 KST (NO-AI repair, local), before that 2026-10-14 14:50 KST, after the autonomous pipeline production deployment
 (`H_V2_AUTONOMOUS_PIPELINE_PRODUCTION_V1.md`), against the production host.
 
+**2026-10-14 D3/D4 deterministic production contract V2 (local, NOT DEPLOYED, not pushed;
+`H_V2_D3D4_DETERMINISTIC_PRODUCTION_CONTRACT_V2.md`, freeze `8b55439`, impl `cce15b3`, class-D fix `c904426`).**
+Verdict NEEDS REVISION. R3.1 V2 (Item 1 fallback, fail-neutral NOT_READY) removes the collection-artifact
+REJECT (DORM back to WATCH; Part III 10-K/A issuers abstain). Guidance transcription is deterministic but
+found 0 directional items on real filings (tables / heading periods are outside its grammar). APPROVE stays
+unreachable without AI: priced-in conjunct, catalyst materiality/timing and invalidation have no frozen code
+rule. Real data: FG WATCH, VRRM WATCH, ADI admitted WATCH, AI 0. SCAN uses a lean companyfacts reader
+(identical output).
+
 **2026-10-14 D3/D4 deterministic production contract V1 (local, NOT DEPLOYED;
 `H_V2_D3D4_DETERMINISTIC_PRODUCTION_CONTRACT_V1.md`, contract `docs/operations/h_d3d4_deterministic_v1.json`
 frozen before replay).** Production H reaches real D6 decisions with no AI: FG WATCH->WATCH, VRRM
