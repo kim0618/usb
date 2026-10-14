@@ -47,6 +47,12 @@ There was no canonical crypto status document before this one. `docs/ai/CURRENT_
   definition as LIVE's abs(positionRisk.notional)), so it follows partial closes and add-ons and is
   never divided by leverage; KRW at the paper run's fixed rate `state.fx.krw_per_usdt`. No backend,
   order, sizing, leverage, margin, liquidation or auto-close change. Needs a frontend rebuild.
+* **2026-10-14: PAPER position size in production.** Frontend BUILD_ID `Rh0hJ2skzuYNTyehDWSI-`
+  (built from the running base `3e2a8ad` plus `5093f6c`, `1c6c900`, `04428f1`, `2b1285d`; not `88ceb58`,
+  so `/liquidity-preview` is unchanged). Headless check on production: PAPER BTCUSDT SHORT 0.064 BTC shows
+  포지션 규모 7,163,721원 / 5,342.07 USDT (= 0.064 x mark 83,470.0), desktop and mobile. LIVE not rendered
+  (no signed reads from QA). Rollback `.next-build.pre-hauto-20261014-1354`. Record:
+  `docs/backtest/strategy_h_v2/H_V2_AUTONOMOUS_PIPELINE_PRODUCTION_V1.md` §9.
 
 ## Signal / Research
 

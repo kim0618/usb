@@ -5,8 +5,17 @@ records a stage result as of its own date and is never edited after the fact. Wh
 and a result document disagree about the present, this document wins. When they disagree about
 what happened in a past stage, the result document wins.
 
-Last verified: 2026-10-14 KST (H-V2 AUTONOMOUS PIPELINE V1, local), against the repository and a
-read-only look at the production host. Production state in §L is unchanged by that work.
+Last verified: 2026-10-14 14:50 KST, after the autonomous pipeline production deployment
+(`H_V2_AUTONOMOUS_PIPELINE_PRODUCTION_V1.md`), against the production host.
+
+**2026-10-14 production (DEGRADED).** The autonomous pipeline code, H's pinned data, the H UI and the
+futures paper position size are deployed (backend files from `1719b2c`, frontend BUILD_ID
+`Rh0hJ2skzuYNTyehDWSI-`). The 01:10 ET update ran on the new code: GATE READY, prices 2026-10-13, queue
+FG/VRRM QUEUED, AEYE EVIDENCE_ALREADY_IN_THESIS, paper NAV OK, no future-date 403. The first
+`usb-h-research` run (scan only, no authorization) drove the 961 MB host into swap thrash (backend
+20-26 s, crypto terminal unresponsive) and was stopped; `usb-h-research.timer` is DISABLED. The server
+Claude CLI login is invalid (401), so no authorization exists and no model was called. FG and VRRM are
+not researched. Decisions 0/6/2; paper $10,000, 0 positions, 0 trades.
 
 **2026-10-14 update.** The refresh executor, unified research queue, evidence dedup, code-enforced
 budget, new-candidate intake (gated) and the research unit are implemented and tested locally, not
@@ -41,9 +50,12 @@ Forward observation      = ACTIVE (prices and outcomes validated, 1D/5D matured)
 Production operations    = HEALTHY (repair 81f06c8 deployed, timer ENABLED, 2026-10-10)
 Paper execution          = ACTIVE in production (backend, 2026-10-13 16:12 KST; H_PAPER_V1_LAUNCH
                            2026-10-13T07:09:00Z; $10,000, 0 positions, 0 trades). Frontend build DEFERRED
-Refresh executor         = IMPLEMENTED locally (H-V2 AUTONOMOUS PIPELINE V1), NOT DEPLOYED
-New-candidate intake     = WIRED locally behind a freshness gate; NEW_CANDIDATE_SCAN = DATA_NOT_READY
-Autonomous research      = NOT AUTHORIZED (no authorization.json); live model calls so far = 0
+Paper/H UI               = DEPLOYED (frontend Rh0hJ2skzuYNTyehDWSI-, 2026-10-14)
+Refresh executor         = DEPLOYED (1719b2c), not run: research unit DISABLED
+New-candidate intake     = GATE ACTIVE in the 01:10 ET update (READY 2026-10-14); SCAN not affordable on
+                           trader-j RAM (first run stopped, host thrash)
+Autonomous research      = NOT AUTHORIZED (no authorization.json; server Claude CLI login invalid);
+                           live model calls so far = 0
 ```
 
 No further research is planned. A return to research is allowed only for a structural bug. It is
@@ -67,6 +79,7 @@ not allowed because APPROVE has not appeared or because of forward results.
 | Paper execution production | ACTIVE (backend), frontend DEFERRED | `H_V2_PAPER_EXECUTION_PRODUCTION_V1.md` |
 | Refresh batch R1 | PREREGISTERED, executor NOT READY | `H_V2_REFRESH_BATCH_R1_PREREGISTRATION_V1.md` |
 | Autonomous pipeline V1 | READY locally, NOT DEPLOYED | `H_V2_AUTONOMOUS_PIPELINE_CONTRACT_V1.md` |
+| Autonomous pipeline production | DEGRADED (deployed; research unit DISABLED, not authorized) | `H_V2_AUTONOMOUS_PIPELINE_PRODUCTION_V1.md` |
 
 ## D. Frozen contracts in force
 
@@ -216,6 +229,12 @@ stale SEC cache can no longer overwrite the research queue. It was deployed the 
 (`H_V2_D7_PRODUCTION_ACTIVATION_V1.md`).
 
 ## M. Next operational actions
+
+2026-10-14 (supersedes items 4 below where they overlap): the open operator decisions are (a) RAM for
+the research scan on trader-j (2 GB upgrade or a smaller daily scan, a code change), (b) Claude CLI
+login on trader-j, then a probe and `auto-authorize --cap 24 --by user-approved-2026-10-14`, (c)
+re-enabling `usb-h-research.timer` under watch for FG then VRRM. Until then the 01:10 ET update keeps
+prices, SEC refresh, the queue and paper NAV running.
 
 Observation only. No research unless a structural bug is found:
 
