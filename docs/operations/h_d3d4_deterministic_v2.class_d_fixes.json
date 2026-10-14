@@ -1,0 +1,19 @@
+{
+ "contract_id": "H_D3D4_DETERMINISTIC_PRODUCTION_V2",
+ "freeze_commit": "8b55439",
+ "fixes": [
+  {
+   "id": "D-1",
+   "found_in": "historical replay, IDCC EX-99.1 0001405495-26-000065 (2026-07-30)",
+   "defect": "T1 label absorbed the connector: 'raised the full year 2026 guidance to between $775 million and $845 million' was transcribed with metric 'guidance to'. The frozen T1 grammar has 'to' / 'between' as connectors, never as part of <label>.",
+   "fix": "a label ending in a template connector (to, of, at, be, between, from, in, is, are, range) is not a label; the sentence names no metric, so nothing is transcribed",
+   "class": "D (implementation bug); no rule, grammar or threshold changed",
+   "effect": "IDCC: 2 one-sided UNKNOWN transcriptions removed; no D4 or D6 change in any replay case",
+   "file": "backend/app/strategies/h_auto/guidance_parser.py",
+   "sha256_before": "d40c2e2dcffa077707d9fa07e2b322f13755055a995be92db3f68363ee74eae9",
+   "sha256_after": "6dc8cacfbfff348df00d1355a20d2c5da0ea6d390c3f387a1301ce2dac3a0270",
+   "regression_test": "test_h_d3d4_deterministic_v2.py::test_class_d_fix_a_connector_is_never_part_of_the_metric_label"
+  }
+ ],
+ "not_fixed_contract_limits": "grammar misses found in the replay (outlook tables / bullets with '|', a period stated in the preceding sentence or heading, a period after the range, list continuations, an unnamed metric) are the V2 grammar as frozen; widening it after seeing results would be a V3 contract"
+}

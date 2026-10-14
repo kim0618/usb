@@ -394,3 +394,11 @@ def test_v2_generators_make_no_model_call():
         d3 = _v2(_strip_business_label())
         V2.d4_from_bundle(N._bundle(), d3, package=_strip_business_label(), analysis_id="A")
     assert guard.blocked == []
+
+
+def test_class_d_fix_a_connector_is_never_part_of_the_metric_label():
+    """IDCC 2026-07-30 EX-99.1 (replay): the metric is not named in the sentence, so nothing is transcribed
+    instead of a metric called 'guidance to'."""
+    text = ("we have raised the full year 2026 guidance to between $775 million and $845 million, an increase of "
+            "$85 million at the midpoint.")
+    assert GP.guidance_evidence(_gpkg([("SEC:1:A-1", AUG, "8-K", text)]))["transcriptions"] == []

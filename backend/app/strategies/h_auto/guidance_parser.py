@@ -102,6 +102,9 @@ _DETERMINERS = re.compile(r"^(?:(?:its|our|the|their)\s+)+", re.I)
 _TRAILING = re.compile(r"\s+(?:guidance|outlook)$", re.I)
 _PER_SHARE = re.compile(r"\b(?:eps|per\s+(?:diluted\s+|basic\s+)?share|earnings\s+per)\b", re.I)
 _LABEL_REJECT = re.compile(rf"\b{_VERB}\b|^(?:to|that|which|and|or|we|it|they|company)\b|[.;:]\s", re.I)
+#: A label never ends in a template connector (class-D fix 2026-10-14: "raised the full year 2026 guidance to
+#: between $775 million and $845 million" was transcribed with the metric "guidance to").
+_LABEL_CONNECTOR_END = re.compile(r"\b(?:to|of|at|be|between|from|in|is|are|range)$", re.I)
 
 
 @dataclass(frozen=True)
@@ -283,7 +286,8 @@ def transcribe_sentence(sentence: str, *, meta: dict[str, Any]) -> list[Transcri
                 continue
             label = label.strip(" ,")
             words = label.split()
-            if not words or len(words) > 10 or _LABEL_REJECT.search(label) or not re.search(r"[A-Za-z]", label):
+            if (not words or len(words) > 10 or _LABEL_REJECT.search(label) or _LABEL_CONNECTOR_END.search(label)
+                    or not re.search(r"[A-Za-z]", label)):
                 continue
             key = metric_key(label)
             if not key or not re.search(r"[a-z]", key):
