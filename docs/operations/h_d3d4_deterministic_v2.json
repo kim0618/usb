@@ -1,0 +1,117 @@
+{
+  "declaration": {
+    "contract_id": "H_D3D4_DETERMINISTIC_PRODUCTION_V2",
+    "declared_at_kst": "2026-10-14",
+    "status": "FROZEN_BEFORE_HISTORICAL_REPLAY_AND_BEFORE_ANY_REAL_DATA_RUN",
+    "supersedes": {"contract_id": "H_D3D4_DETERMINISTIC_PRODUCTION_V1", "file": "docs/operations/h_d3d4_deterministic_v1.json", "sha256": "576c32e107ea25c3c8471eb58b5b34618e84375bb278d15f6e8855e970ffa81e", "freeze_commit": "9f31eb7", "note": "V1 file, checksum, code (deterministic.py) and results stay unchanged and immutable; V2 is a separate generator"},
+    "checksum_recipe": "sha256 of json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False)",
+    "purpose": "Repair the two class-E defects V1 measured, exactly as the operator decided before V2 (A: R3.1 business evidence with a deterministic Item 1 fallback and fail-neutral NOT_READY; B: deterministic guidance transcription; C: no large re-rating threshold). Everything else is V1 verbatim.",
+    "operator_decisions_frozen_before_v2": {
+      "A_R3_1": "explicit BUSINESS evidence, else deterministic 10-K Item 1 fallback, else BUSINESS_EVIDENCE_NOT_READY; extraction failure is never 'business unsupported' and never a D6 REJECT",
+      "B_guidance": "IMPLEMENT deterministic transcription of metric / range / period / unit from the disclosure; no AI",
+      "C_large_rerating": "DO NOT CREATE; LARGE_RERATING_NEGATIVE = DEFERRED"
+    },
+    "authority_order": ["frozen contract / preregistration", "authoritative result documents", "current implementation", "historical model output (never an answer key)"],
+    "new_numeric_thresholds": 0,
+    "revision_rule": "a rule change after the replay is a new contract version (V3), never an edit of V2"
+  },
+  "unchanged_from_v1": {
+    "d6_binding_projection": "V1 section d6_binding_projection, verbatim (D6 code unchanged)",
+    "d3_rules": ["R3.2", "R3.3", "R3.4", "R3.5", "R3.6", "R3.7", "R3.8", "R3.9", "R3.11", "R3.12"],
+    "d3_rule_r3_10": "V1 R3.10 verbatim; with R3.1 V2 a final output always carries a business citation, so 'business_model' is never added",
+    "d4_inputs_and_c_rules": "V1 d4.inputs_code_owned, confidence (C4/C5), priced_in UNKNOWN, conflicts [], d6_approve_precondition",
+    "difference_classes": "V1 A-E verbatim",
+    "verdict_rule": "class E on a D6-binding path is NEEDS REVISION unless this contract lists it as an operator-decided deferral"
+  },
+  "d3": {
+    "generator": "H_D3_DETERMINISTIC_V2",
+    "construction": "the V1 generator's record (final_output, or attempted_output when V1 refused) with R3.1 replaced by R3.1_V2, unknown_fields / sources / research_completeness recomputed by the V1 rules, then validated again by the same h_research_interpretation_v2 schema and cross-check",
+    "R3.1_V2_business_evidence": {
+      "source_priority": [
+        "P1 EXPLICIT_BUSINESS_CHUNK: the first chunk with section BUSINESS of the package's LATEST_10K source (V1's citation, unchanged)",
+        "P2 ITEM1_FALLBACK: deterministic Item 1 extraction from the same LATEST_10K source's text in the package",
+        "P3 OTHER_FROZEN_EQUIVALENT: none exists in any frozen H-V2 contract (audited 2026-10-14); never used",
+        "P4 BUSINESS_EVIDENCE_NOT_READY"
+      ],
+      "never_business_evidence": ["Item 1A Risk Factors", "financial statements", "MD&A", "any 10-Q / 8-K / exhibit", "any filing outside the D2.1 package"],
+      "fallback_text": "the LATEST_10K source's package chunks joined with '\\n' in chunk_index order (D2.1 chunks the whole extracted document; offsets refer to this text)",
+      "line_normalisation": "NBSP and runs of whitespace -> one space, stripped; a line containing '|' is a table cell (tables of contents) and is never a heading",
+      "heading_grammar": [
+        "one line: ^items?\\s*1(?:\\s*and\\s*2)?\\s*[.:\\-\\u2013\\u2014]?\\s*(?:description\\s+of\\s+(?:the\\s+)?)?business(?:\\s+and\\s+properties)?\\s*\\.?$ (case-insensitive)",
+        "two lines: ^item\\s*1\\s*[.:\\-\\u2013\\u2014]?$ followed by the next non-empty line ^(?:description\\s+of\\s+(?:the\\s+)?)?business(?:\\s+and\\s+properties)?\\s*\\.?$"
+      ],
+      "terminator": "the first later non-table line matching ^item\\s*(?:1a|1b|1c|2)\\b (Item 1A Risk Factors ends Item 1; 1B/1C/2 only when 1A is absent)",
+      "qualifying_heading": "the first heading, in document order, that has a terminator AND at least one non-heading, non-table line containing a letter between them; a heading without a terminator is malformed",
+      "citation": "the chunk containing the first body line after the heading (a chunk of the package, so the D3 schema's evidence-id check still applies)",
+      "provenance_recorded": ["source_priority", "accession", "form", "filing_date", "source_id", "start_offset", "end_offset", "evidence_ids_spanned", "cited_evidence_id", "extraction_method H_ITEM1_FALLBACK_V1", "sha256 of the extracted span"],
+      "amendment_policy": "the LATEST_10K the frozen D2 selection chose (10-K or 10-K/A, PIT) is the only source; a 10-K/A without Item 1 (Part III amendments) gives BUSINESS_EVIDENCE_NOT_READY with reason AMENDMENT_WITHOUT_ITEM_1; no other filing is fetched or substituted",
+      "fail_neutral": "BUSINESS_EVIDENCE_NOT_READY never writes an empty revenue_drivers: the D3 record is refused (no final_output, refusal R3.1_BUSINESS_EVIDENCE_NOT_READY), which D6 reads as D3_REFUSED_NO_FINAL_OUTPUT -> NOT_DECISION_ELIGIBLE: the existing decision stands, a new candidate is not admitted. thesis_unsupported can no longer fire through the business leg.",
+      "claim_text_p2": "Issuer business description disclosed in the latest 10-K (Item 1, deterministic fallback extraction).",
+      "basis": "operator decision A; D0 §N3 'thesis unsupported by the evidence bundle' is about evidence, not about a D2.1 section label"
+    }
+  },
+  "guidance_parser": {
+    "parser": "H_GUIDANCE_TRANSCRIPTION_V1",
+    "role": "transcription only: metric label, period, currency, unit, low, high, single value, source text, source_id, evidence_id, accession, form, filing date. No economic reading.",
+    "sources": "the D2.1 package chunks D4 already reads (LATEST_10K, RECENT_10Q, material 8-K bodies and their EX-99 exhibits incl. 2.02 earnings releases, IR presentations); PIT-eligible only; no new source class",
+    "location": "sentences that match the frozen GUIDANCE_TERMS (guidance_arithmetic.py, unchanged)",
+    "tables": "lines containing '|' are not transcribed (recorded as table_lines_with_guidance_terms); a table needs a column reading this contract does not freeze",
+    "metric_vocabulary": "no frozen guidance-metric vocabulary exists in the repository (audited: D4 schema metric is free text; stored Opus outputs use 40+ free labels). The metric is the label exactly as the source writes it; comparison key = that label lower-cased, whitespace-collapsed, with only determiners/possessives (its, our, the, their), period expressions and a trailing 'guidance'/'outlook' removed. No synonym, no mapping, no ontology.",
+    "templates": {
+      "T1_verb_object": "<guidance verb> [its|our|the] <label> [guidance|outlook] (to be|of|at|in the range of|within a range of|to range from|to|from <prev> to|between) <range>",
+      "T2_subject_passive": "<label> [guidance] (is|are) [now] (expected|anticipated|projected|forecast|forecasted|estimated) to [be|range from|total|grow by|increase by|decrease by|decline by] [approximately|about|in the range of|between] <range>",
+      "T3_guidance_noun": "(guidance|outlook) for <label> (of|to be|is|at|to) <range>  |  <label> (guidance|outlook) (of|is|at|range of|to a range of|to) <range>",
+      "previous_in_sentence": "after the current range: [, ] [up|down] (from|compared to|compared with|versus|vs.) [the|its|our] (prior|previous|earlier) (guidance|outlook|range|expectation)[s] [range] [of] <range>; or the T1 'from <prev> to <cur>' form"
+    },
+    "range_grammar": {
+      "number": "[(] [$|€|£] digits with optional thousands commas and decimals [)]; parentheses = negative as accounting text writes it",
+      "scale": "thousand|million|billion|mn|bn|K|M|B directly after a number; a scale stated only on the second number of a range applies to the first only when the first has none",
+      "percent": "% | percent | per cent -> PERCENT; basis points | bps -> BPS (kept as its own unit family; normalised value = raw / 100 percentage points)",
+      "range": "between A and B | A to B | A - B (hyphen, en dash, em dash) | from A to B",
+      "single_value": "approximately|about|around|roughly A, or 'of' / 'to be' / 'at' A with no second number: low = high = A, single_value = true",
+      "incomplete_bound": "at least|up to|more than|less than|in excess of|exceeding|below|above A -> INCOMPLETE_BOUND (recorded, never compared)",
+      "malformed": "high < low as written -> MALFORMED_RANGE (recorded, never reordered)"
+    },
+    "unit": "currency symbol $ -> USD; USD with a label containing EPS / per share / earnings per -> USD_PER_SHARE; PERCENT; BPS; no currency and no percent -> OTHER with the next word as raw_unit (e.g. tonnes); comparable only within the same (unit, raw_unit, currency) family",
+    "normalisation": "normalised = raw x scale (thousand 1e3, million/mn/M 1e6, billion/bn/B 1e9); bps /100; raw text, raw numbers, scale word and normalised values are all kept; raw values are never changed",
+    "period": {
+      "FY": "(full year|full-year|fiscal|fiscal year|FY) [']YYYY or YYYY (full year|fiscal year) -> FY<YYYY>; YY -> 20YY",
+      "Q": "(first|second|third|fourth) quarter [of] [fiscal [year]] YYYY | Q[1-4] [FY|fiscal] [']YYYY|YY | YYYY (first..fourth) quarter -> Q<n>-<YYYY>",
+      "bare_year": "YYYY with no FY/Q marker -> YEAR<YYYY> (compatible only with YEAR<YYYY>)",
+      "binding": "a period inside the label first; else the single distinct period in the sentence; otherwise GUIDANCE_PERIOD_UNKNOWN (recorded, never compared). Relative periods (next quarter, full year without a year) are GUIDANCE_PERIOD_UNKNOWN.",
+      "compatible": "identical period keys only"
+    },
+    "current_vs_previous": {
+      "group": "(metric key, period key, unit family)",
+      "current": "the transcriptions of the latest published_at in the group",
+      "previous": "the in-sentence previous range of a current transcription when stated; otherwise the transcriptions of the latest earlier published_at in the group",
+      "comparable": "both sides present, same group, complete bounds (no INCOMPLETE_BOUND, no MALFORMED_RANGE)",
+      "one_sided": "UNKNOWN (current only or previous only); INITIATED and WITHDRAWN are statements about an absence and are never produced (guidance_arithmetic MOVEMENT_TO_STATE note)",
+      "conflict": "two different values on the same side at the same published_at (or two different in-sentence previous ranges) -> GUIDANCE_CONFLICT -> UNKNOWN",
+      "amendment": "no amendment / supersede contract exists for guidance in the repository; a later-published source (an 8-K/A included) is simply the later side by publication time; no tie-break is invented"
+    },
+    "direction": "guidance_arithmetic.classify_range_movement on the normalised bounds, mapped by MOVEMENT_TO_STATE (RAISED, LOWERED, MAINTAINED, MIXED_BOUNDS -> MIXED); NOT_COMPARABLE -> UNKNOWN",
+    "result_vs_guidance": "not produced (needs a reported-actual transcription that operator decision B does not cover)"
+  },
+  "d4": {
+    "generator": "H_D4_DETERMINISTIC_V2",
+    "code_owned_non_price_items": "count of guidance assessments in {RAISED, LOWERED, MAINTAINED, MIXED} = validate._non_price_expectation_items' guidance rule; C1 is now evaluable by code",
+    "rules": {
+      "G1_V2_POSITIVE": {"rule": "not produced", "basis": "D0 §L POSITIVE = (evidenced improvement or real future-business evidence) AND 'at least low-to-medium confidence that the market has not fully priced it'. C1 is now satisfiable, but the second conjunct is the priced-in inference and the confidence level, which D4 §N/§Q assign to AI with no frozen code reading; a guidance direction is the company's expectation, not evidence that the market is behind (D4 §L asymmetry). Reading 'guidance raised' as 'not priced' would be a new economic hypothesis.", "class": "E_CORE_APPROVE_PATH"},
+      "G1_V2_WIDE_POSITIVE": {"rule": "not produced", "basis": "C2 needs a future-business item above STORY (R3.4: none) plus the POSITIVE conjuncts; the D0 valuation conjunct stays deferred as V1/D4 recorded it; D5 is not used to extend it"},
+      "G2_V2_NEGATIVE": {"rule": "not produced", "large_rerating": "LARGE_RERATING_NEGATIVE = DEFERRED (operator decision C, no threshold)", "not_yet_reflected": "D0 §L 'deterioration ... not yet reflected in price/guidance' has no frozen code reading; a LOWERED guidance is itself the deterioration being reflected in guidance", "class": "DEFERRED (operator) + E_CORE", "d6": "existing D6 REJECT clauses unchanged"},
+      "G3_V2_NEUTRAL": {"rule": "not produced", "basis": "'reasonable reflection' has no frozen test; D6-equivalent to UNKNOWN", "class": "E_NON_BINDING"},
+      "G4_V2_UNKNOWN": {"rule": "the state in every case; reason codes state which conjunct is missing; C6 when the bundle has no price reaction and no code-owned non-price item"},
+      "confidence": "UNKNOWN (C5)"
+    },
+    "record": "final_output.code_owned_expectation_evidence.guidance = every transcription, assessment, conflict and limitation of the parser"
+  },
+  "expected_effect_on_d6_declared_before_running": {
+    "REJECT": "no longer reachable through a missing BUSINESS label; still reachable through D5 fully priced, R3.2 empty, or no catalyst within the horizon (V1, unchanged)",
+    "NOT_DECISION_ELIGIBLE": "R3.1_V2 NOT_READY (e.g. a Part III 10-K/A), R3.5 underivable, R3.12 validation, or D5 abstention",
+    "WATCH": "every other decision-eligible issuer",
+    "APPROVE": "NOT reachable from the deterministic pipeline. Independent blockers on D0 §N1, none of them in operator decisions A-C: (1) G1_V2 priced-in conjunct and confidence (E_CORE), (2) catalyst materiality and timing confidence, R3.5 (E_APPROVE_PATH), with future-business R3.4 as the only alternative (E_APPROVE_PATH), (3) invalidation condition, R3.7 (E_APPROVE_PATH). The D6 APPROVE path itself is exercised with synthetic D3/D4 records that carry those fields, through the unchanged D6 and paper engine.",
+    "fixtures": {"clear_positive": "expected UNKNOWN (no frozen POSITIVE reading; constructing a POSITIVE would need a new condition)", "clear_neutral": "expected UNKNOWN (no frozen NEUTRAL test)", "clear_unknown": "expected UNKNOWN", "negative": "no fixture: the only deterministic candidate path (large re-rating) is DEFERRED"},
+    "historical_replay": "DORM: V1 REJECT (thesis_unsupported via R3.1) -> V2 business evidence from the Item 1 fallback, thesis_unsupported no longer fires; D6 decision otherwise by the unchanged clauses"
+  }
+}
