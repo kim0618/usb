@@ -10,7 +10,8 @@ Sources, all read-only except the executor's own work directory:
 
 * **prices** - one closes-and-volume panel from, in order, the frozen mirror (or, on a host without
   it, the pinned cohort extraction ``auto/price_base``), Strategy A's grouped-daily store (same
-  Massive grouped payload, written daily in production) and H's own D7 session store. Two sources
+  Massive grouped payload, written daily in production; the only history a candidate admitted after
+  launch has) and H's own D7 session store. Two sources
   that both hold a session must agree on the close exactly, or the panel is refused
   (``PRICE_SOURCE_CONFLICT``). The decision session's close must exist.
 * **SEC** - submissions (back to 2022) and companyfacts are fetched once per ET day into
@@ -30,7 +31,7 @@ import gzip
 import hashlib
 import json
 from dataclasses import dataclass, field
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable, Iterator, Mapping, Sequence
 
@@ -114,6 +115,99 @@ def _read_grouped(panel: Panel, directory: Path, wanted: set[str], until: date, 
                        float(row["v"]) if isinstance(row.get("v"), (int, float)) else None, source)
 
 
+# -------------------------------------------------------------------------------------------------
+# H's pinned market-wide history (sessions before the production grouped store begins)
+# -------------------------------------------------------------------------------------------------
+
+PRICE_HISTORY = "price_history"
+HISTORY_FORMAT = "h-price-history-v1"
+HISTORY_MANIFEST = "MANIFEST.json"
+
+
+def history_dir() -> Path:
+    """``<H store>/auto/price_history``: one slim file per session (ticker, close, volume) extracted
+    from Strategy A's grouped-daily files where they go back further than the production store.
+
+    trader-j's ``strategy_c/raw/grouped`` starts 2026-08-11 (44 sessions on 2026-10-14) while E1 and
+    D5 need 252. The local tree holds the same Massive grouped payloads back to 2024-09-16. Copying
+    them into A's directory would write A's store; this is H's own, pinned by a manifest of sha256s,
+    and A's live files win for any session both hold.
+    """
+    return AS.root() / PRICE_HISTORY
+
+
+def history_files(until: date = date.max, *, directory: Path | None = None) -> Iterator[tuple[date, Path]]:
+    folder = directory if directory is not None else history_dir()
+    if not folder.is_dir():
+        return
+    for path in sorted(folder.glob("*.json.gz")):
+        try:
+            day = date.fromisoformat(path.name[:10])
+        except ValueError:
+            continue
+        if day <= until:
+            yield day, path
+
+
+def read_session_rows(path: Path) -> Iterator[tuple[str, float, float | None]]:
+    """(ticker, close, volume) from either an A grouped file or an H history file."""
+    doc = json.loads(gzip.decompress(path.read_bytes()))
+    if doc.get("format") == HISTORY_FORMAT:
+        for ticker, close, volume in doc.get("rows") or []:
+            yield ticker, float(close), (float(volume) if volume is not None else None)
+        return
+    for row in (doc.get("body") or {}).get("results") or []:
+        ticker, close = row.get("T"), row.get("c")
+        if isinstance(ticker, str) and isinstance(close, (int, float)):
+            volume = row.get("v")
+            yield ticker, float(close), float(volume) if isinstance(volume, (int, float)) else None
+
+
+def build_price_history(source: Path, *, before: date) -> dict[str, Any]:
+    """Extract every A grouped session strictly before ``before`` into H's history (run where they exist)."""
+    target = history_dir()
+    target.mkdir(parents=True, exist_ok=True)
+    manifest: dict[str, str] = {}
+    for day, path in _grouped_files(source, before - timedelta(days=1)):
+        doc = json.loads(gzip.decompress(path.read_bytes()))
+        if doc.get("session") != day.isoformat():
+            continue
+        rows = [[r["T"], r["c"], r.get("v") if isinstance(r.get("v"), (int, float)) else None]
+                for r in (doc.get("body") or {}).get("results") or []
+                if isinstance(r.get("T"), str) and isinstance(r.get("c"), (int, float))]
+        body = {"format": HISTORY_FORMAT, "session": day.isoformat(),
+                "source": "strategy_c/raw/grouped (Massive grouped daily, unadjusted)",
+                "source_sha256": hashlib.sha256(path.read_bytes()).hexdigest(), "rows": rows}
+        raw = gzip.compress(json.dumps(body, separators=(",", ":")).encode(), mtime=0)
+        (target / f"{day.isoformat()}.json.gz").write_bytes(raw)
+        manifest[day.isoformat()] = hashlib.sha256(raw).hexdigest()
+    (target / HISTORY_MANIFEST).write_text(json.dumps({"format": HISTORY_FORMAT, "before": before.isoformat(),
+                                                       "files": manifest}, indent=0, sort_keys=True), encoding="utf-8")
+    days = sorted(manifest)
+    return {"dir": str(target), "sessions": len(days), "first": days[0] if days else None,
+            "last": days[-1] if days else None,
+            "bytes": sum(p.stat().st_size for p in target.glob("*.json.gz")),
+            "manifest_sha256": hashlib.sha256((target / HISTORY_MANIFEST).read_bytes()).hexdigest()}
+
+
+def verify_price_history() -> dict[str, Any]:
+    """Every history file matches the manifest; extra or missing files are reported."""
+    folder = history_dir()
+    if not (folder / HISTORY_MANIFEST).is_file():
+        return {"state": "ABSENT", "problems": []}
+    manifest = json.loads((folder / HISTORY_MANIFEST).read_text(encoding="utf-8"))["files"]
+    problems = []
+    present = {p.name[:10]: p for p in folder.glob("*.json.gz")}
+    for day, sha in manifest.items():
+        path = present.get(day)
+        if path is None:
+            problems.append(f"MISSING:{day}")
+        elif hashlib.sha256(path.read_bytes()).hexdigest() != sha:
+            problems.append(f"CHECKSUM:{day}")
+    problems += [f"UNLISTED:{d}" for d in sorted(set(present) - set(manifest))]
+    return {"state": "OK" if not problems else "CORRUPT", "sessions": len(manifest), "problems": problems}
+
+
 def price_base_path() -> Path:
     return AS.root() / PRICE_BASE
 
@@ -145,10 +239,12 @@ def _read_price_base(panel: Panel, wanted: set[str], until: date) -> bool:
     if not pinned.is_file() or hashlib.sha256(raw).hexdigest() != pinned.read_text().strip():
         raise InputsNotReady("PRICE_BASE_CHECKSUM_MISMATCH", str(target))
     body = json.loads(raw)
+    # The base pins the launch cohort's mirror history. A ticker it lacks (a candidate admitted after
+    # launch) is priced from A's grouped store below; ``check_panel`` still demands the full lookback.
     missing = wanted - set(body.get("tickers") or [])
     if missing:
-        raise InputsNotReady("PRICE_BASE_LACKS_TICKER", ",".join(sorted(missing)))
-    for ticker in wanted:
+        panel.sources["price_base_lacks"] = len(missing)
+    for ticker in wanted - missing:
         for day_text, (close, volume) in (body["bars"].get(ticker) or {}).items():
             day = date.fromisoformat(day_text)
             if day <= until:
@@ -157,15 +253,20 @@ def _read_price_base(panel: Panel, wanted: set[str], until: date) -> bool:
 
 
 def load_panel(tickers: Sequence[str], until: date, *, mirror: Path = MIRROR_DIR,
-               grouped: Path = GROUPED_DIR, use_d7: bool = True) -> Panel:
+               grouped: Path = GROUPED_DIR, use_d7: bool = True, history: bool = True) -> Panel:
     """Closes and volumes for ``tickers`` + SPY through ``until``, from every source that holds them."""
     wanted = set(tickers) | {BENCHMARK}
     panel = Panel(bars={}, until=until)
     if mirror.is_dir():
         _read_grouped(panel, mirror, wanted, until, "mirror")
     elif not _read_price_base(panel, wanted, until):
-        raise InputsNotReady("PRICE_HISTORY_UNAVAILABLE", "neither the HIST-V1 mirror nor auto/price_base exists")
+        panel.sources["no_mirror_no_price_base"] = 1       # production: A's grouped store is the history
     _read_grouped(panel, grouped, wanted, until, "a_grouped")
+    if history:
+        for day, path in history_files(until):
+            for ticker, close, volume in read_session_rows(path):
+                if ticker in wanted:
+                    _merge(panel, ticker, day, close, volume, "h_history")
     if use_d7:
         for session in PR.stored_sessions():
             day = date.fromisoformat(session)
@@ -424,6 +525,43 @@ def build_package(stub_result, sec: SecInputs, *, run_id: str, cutoff: datetime,
 # D5 binding
 # -------------------------------------------------------------------------------------------------
 
+REFERENCE_HISTORY = "reference_history"
+
+
+def reference_history_dir() -> Path:
+    """``<H store>/auto/reference_history``: the dated CS snapshots D5's share-class step needs for
+    sessions before H's own daily reference fetches began (copied from A's quarterly series; never
+    pruned). trader-j holds only ``CS_2026-10-01`` in A's directory, and ``load_reference_snapshot``
+    refuses a snapshot older than 186 days, so without these every panel session before 2026-10-01
+    would be MARKET_CAP_UNAVAILABLE on the server."""
+    return AS.root() / REFERENCE_HISTORY
+
+
+def d5_reference_dirs() -> tuple[Path, ...]:
+    """share_class's own directories (anchored at the repository, not the cwd), then H's daily
+    references, then H's pinned history. Newest ``as_of <= session`` wins; on a tie the first wins."""
+    from app.backtest.strategy_h_v2.valuation import share_class as SC
+    return tuple(REPO_ROOT / d for d in SC.REFERENCE_SNAPSHOT_DIRS) + (AS.root() / "reference", reference_history_dir())
+
+
+def build_reference_history(source: Path, *, before: date) -> dict[str, Any]:
+    target = reference_history_dir()
+    target.mkdir(parents=True, exist_ok=True)
+    copied = {}
+    for path in sorted(source.glob("CS_*.json.gz")):
+        try:
+            as_of = date.fromisoformat(path.name[3:13])
+        except ValueError:
+            continue
+        if as_of < before:
+            raw = path.read_bytes()
+            (target / path.name).write_bytes(raw)
+            copied[path.name] = hashlib.sha256(raw).hexdigest()
+    (target / "MANIFEST.json").write_text(json.dumps({"before": before.isoformat(), "files": copied},
+                                                     indent=0, sort_keys=True), encoding="utf-8")
+    return {"dir": str(target), "files": copied}
+
+
 @contextlib.contextmanager
 def d5_binding(*, packages_dir: Path, panel: Panel, sec: SecInputs | None = None,
                facts_roots: Sequence[Path] | None = None, submission_roots: Sequence[Path] | None = None,
@@ -433,25 +571,34 @@ def d5_binding(*, packages_dir: Path, panel: Panel, sec: SecInputs | None = None
     ``audit_strategy_h_v2_d5_p1.load_issuer`` reads the issuer's CIK from a D2.1 package and its
     companyfacts and submissions from fixed roots; ``_market_opens`` lists regular-session opens from
     the mirror's file names, which end on 2026-09-16. The binding replaces exactly those four names
-    (and the opens cache) in that one module. The valuation arithmetic is not touched.
+    (and the opens cache) in that one module, and points D5-D2's ``load_reference_snapshot`` at
+    ``d5_reference_dirs()`` (share_class's directories plus H's references). The valuation arithmetic
+    is not touched.
     """
     from app.dev import audit_strategy_h_v2_d5_p1 as P1
+    from app.dev import run_strategy_h_v2_d5_d2 as D52
+    from app.backtest.strategy_h_v2.valuation.share_class import load_reference_snapshot
     cal = calendar or MarketCalendar()
     days = sorted(panel.bars.get(BENCHMARK, {}))
     sessions = _sessions(cal, days[0], days[-1]) if days else []
     names = ("D2_1_PACKAGES", "FACTS_ROOTS", "SUBMISSION_ROOTS", "_SESSIONS", "_OPENS_CACHE")
     saved = {n: getattr(P1, n) for n in names}
+    saved_reference = D52.load_reference_snapshot
+    dirs = d5_reference_dirs()
     try:
+        D52.load_reference_snapshot = lambda on_or_before: load_reference_snapshot(on_or_before, dirs)
         P1.D2_1_PACKAGES = packages_dir
         P1.FACTS_ROOTS = tuple(facts_roots) if facts_roots is not None else (sec.root,)
         P1.SUBMISSION_ROOTS = (tuple(submission_roots) if submission_roots is not None
                                else (sec.root / "submissions",))
         P1._SESSIONS = sessions
         P1._OPENS_CACHE = {}
-        yield {"bound": list(names), "sessions": len(sessions)}
+        yield {"bound": list(names) + ["run_strategy_h_v2_d5_d2.load_reference_snapshot"], "sessions": len(sessions),
+               "reference_dirs": [str(d) for d in dirs]}
     finally:
         for n, v in saved.items():
             setattr(P1, n, v)
+        D52.load_reference_snapshot = saved_reference
 
 
 def sha(body: Any) -> str:

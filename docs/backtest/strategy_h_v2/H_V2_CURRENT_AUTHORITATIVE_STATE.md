@@ -16,6 +16,15 @@ now adds each missing trigger with D2.1's own extractor. FG = P0, VRRM = P1, AEY
 EVIDENCE_ALREADY_IN_THESIS. The nightly 403 on the not-yet-opened session is fixed in code (request
 bound = previous XNYS session in ET), not yet deployed. Decisions are unchanged: 0/6/2.
 
+**2026-10-14 completion (local, not deployed).** New-candidate intake now reads production
+sources: Strategy A's `strategy_c/raw/{tickers,grouped,splits}` (read-only), H's own daily CS reference
+fetched with A's fetcher, H's pinned price history (sessions before trader-j's 44-session grouped store)
+and reference history (for D5's share-class step), and SEC per CIK on demand. A code-owned
+MethodJudgement (D5-D0 section 17, P/B withheld, fail-closed) covers issuers outside the frozen tables
+and screens candidates before they enter the queue. A production-shaped dry run with fake D3/D4 took
+FG and VRRM (refresh) and CRGY (new candidate) through D2..D6, the ledger and paper with 0 live model
+calls and no DATA_NOT_READY from H wiring. Details: `H_V2_AUTONOMOUS_PIPELINE_CONTRACT_V1.md` §9, §13.
+
 ## A. Purpose
 
 H is a fundamental, issuer-level strategy. It decides whether the market already prices what an
@@ -166,10 +175,11 @@ usb-h-forward.service  →  run_h_v2_d7 update
   contract still says NOT_DEFINED for the shadow itself, which holds no position.
 * **Frontend:** the H paper screens (card money, `/trading-h` positions and fills) are not yet in the
   production build. The API serves them already.
-* **New-candidate intake (D1/E1/E2/E3)**: wired locally behind a freshness gate (2026-10-14). It is
-  DATA_NOT_READY on both hosts (reference CS_2026-10-01 is 12 days old; trader-j has no companyfacts
-  store and 44 grouped sessions; local grouped and companyfacts are stale). A candidate also needs a
-  declared D5 MethodJudgement, which no stage produces automatically.
+* **New-candidate intake (D1/E1/E2/E3)**: wired to production sources and tested on
+  production-shaped data (2026-10-14, local). 1,892 P1/P2 candidates on 2026-10-12; 10 open at a time.
+  About 37-42% of candidates get a code-owned MethodJudgement; the rest are METHOD_JUDGEMENT_NOT_READY
+  (no cover-page share count, no section-17 primary, financial SIC) and are not queued. 1,150 reference
+  rows lack a FIGI and are REFERENCE_NOT_READY under the frozen E1 rule.
 * **Refresh executor**: implemented locally (2026-10-14), not deployed. Before that date no path
   re-ran D2→D6 for one ticker.
 * 21D/63D are PENDING until their own maturity sessions.
@@ -218,7 +228,8 @@ Observation only. No research unless a structural bug is found:
    * build the H frontend files into the next coordinated frontend build;
    * approve building the refresh executor, then batch R1 (FG and VRRM, hard cap $24.00, `claude-opus-5-5`);
    * whether to include AEYE despite EVIDENCE_ALREADY_IN_THESIS;
-   * whether to wire new-candidate intake.
+   * new-candidate intake is wired (2026-10-14); deploying it needs the files and pinned data in
+     `H_V2_AUTONOMOUS_PIPELINE_CONTRACT_V1.md` §13 and the `usb-h-research` unit.
 
 ## N. Authoritative commits
 

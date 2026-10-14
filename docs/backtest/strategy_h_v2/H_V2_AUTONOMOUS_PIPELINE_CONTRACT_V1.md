@@ -40,9 +40,12 @@ forward ledger integrity, the autonomy contract checksum, the queue's own integr
 | `queue.py` | persistent unified queue, fold of append-only events |
 | `budget.py` | reservation ledger, daily cap, per-day count, operator cap |
 | `providers.py` | metered model call: canonical model per call, no fallback, cost metering, reservation ceiling |
-| `inputs.py` | prices, SEC, D1 stub, D2 bundle, D2.1 package, trigger inclusion, D5 binding |
+| `inputs.py` | prices (incl. H's pinned `price_history`), SEC, D1 stub, D2 bundle, D2.1 package, trigger inclusion, D5 binding (incl. reference snapshots) |
 | `executor.py` | one queue item through D2 to D6 and the ledger write |
-| `intake.py` | freshness gate and E1/E2/E3 scan (no model call) |
+| `intake.py` | GATE (reference refresh + freshness) and SCAN (SEC slice, E1/E2/E3, MethodJudgement screen); no model call |
+| `sources.py` | production sources: A's reference/grouped/splits read-only, H's daily reference, market tier, readiness reports (2026-10-14) |
+| `facts_cache.py` | rolling per-CIK SEC cache `auto/sec/<day>`: plan, refresh, prune, compact (2026-10-14) |
+| `method_judgement.py` | code-owned MethodJudgement from D5-D0 section 17 for issuers outside the frozen tables (2026-10-14) |
 | `orchestrator.py` | queue step, research step, runtime timestamps |
 
 Changed existing files: `h_forward/research_queue.py` (dedup through `h_auto.dedup`, P0 to P3),
@@ -156,23 +159,155 @@ appended by `transitions.admit` (record ADMISSION, cohort NEW_FORWARD_CANDIDATE)
 REJECT alike. Thesis invalidation stays the existing explicit `THESIS_INVALIDATED` path; no new
 invalidation rule is added.
 
-## 9. New-candidate intake
+## 9. New-candidate intake (completed 2026-10-14)
 
-Pipeline reused: reference universe -> `pipeline.assemble_candidate` (E1, E2, E3), no model call.
-Freshness gate before any scan:
+### 9.1 What was wrong
 
-| Check | Local (2026-10-14) | trader-j |
-|---|---|---|
-| reference snapshot <= 7 days, active CS with CIK | CS_2026-10-01, 12 days: STALE | same file: STALE |
-| grouped file for the publishable session | latest 2026-10-02: STALE | 2026-10-12: OK |
-| price history >= 252 sessions | mirror: OK | 44 files: INSUFFICIENT |
-| companyfacts store fetched <= 7 days | 2026-09-28: STALE | absent: MISSING |
+The first wiring gated the scan on H's **research** inputs: the newest `CS_*` file across three
+directories (one of them the 2024 research universe), the HIST-V1 mirror for history, and the
+2026-09-28 full-universe companyfacts store (`strategy_h_v2/d1_1`). On trader-j the mirror and the
+companyfacts store do not exist and the grouped store holds 44 files, so the gate could never open.
+**H was reading research-frozen sources in production: YES.** Per input:
 
-So **NEW_CANDIDATE_SCAN = DATA_NOT_READY** in both places; nothing else in the daily job is affected.
-Two further gates sit before money even when the data is fresh: a candidate without a declared D5
-`MethodJudgement` is `DATA_NOT_READY:D5_METHOD_JUDGEMENT_REQUIRED` (D5 values only issuers with one,
-and producing one is a model-owned judgement no stage automates), and at most 10 new-candidate items
-are open at once.
+| Input | Old H source | Class | Production source now |
+|---|---|---|---|
+| universe | newest `CS_*` in strategy_c / RU v2 / RU u1 | STALE (A's manual 2026-10-01, never refreshed) | newest CS snapshot on or before the session: A's `strategy_c/raw/tickers` (read) or H's own `auto/reference/CS_<as_of>` refreshed daily with A's fetcher |
+| ticker -> CIK | same rows | STALE | `cik` of that row (`cik_map` rule) |
+| price history | HIST-V1 mirror | RESEARCH_FROZEN / MISSING on trader-j | A's `strategy_c/raw/grouped` (server: 2026-08-11.., local 2024-09-16..) |
+| companyfacts | `strategy_h_v2/d1_1` full store | RESEARCH_FROZEN / MISSING on trader-j | per CIK on demand, `auto/sec/<day>` |
+| submissions | same store | RESEARCH_FROZEN | per CIK on demand (same fetch) |
+
+### 9.2 Strategy A / E / C audit (read-only, 2026-10-14)
+
+| Component | A | E | C / shared | Latest | H reuses? |
+|---|---|---|---|---|---|
+| universe / reference | `strategy_c/raw/tickers/CS_2026-10-01` (manual, ages) | frozen `base_slice.npz` + E0 daily eligibility, no CIK | same tickers dir; `cik_map` rule | 2026-10-01 | YES (identity rules); H refreshes its own copy daily with A's `raw_fetch.fetch_tickers` into `auto/reference/` |
+| grouped daily | `strategy_c/raw/grouped`, `usb-grouped-daily` 00:40 ET | own 20-session forward store under `/root/usb_runtime/workspace` | same as A | 2026-10-12 (server) | YES, read-only |
+| splits | `strategy_c/raw/splits`, `usb-splits-refresh` 00:55 ET | `splits_asof` in its workspace | same as A | window to 2026-10-27 | YES, read-only (dilution check) |
+| calendar | `MarketCalendar` | same | same | - | YES |
+| SEC | none | none | `sec_store`, `xbrl_store` | - | YES (client reused, no new HTTP client) |
+| adjustment | unadjusted | unadjusted | unadjusted | - | unadjusted, as D1 |
+
+E carries no CIK and only 20 sessions, so it cannot be H's identity or history source.
+
+### 9.3 Flow
+
+* **GATE** (`update`, usb-h-forward 01:10 ET): refresh `auto/reference/CS_<publishable>` (about 6
+  Massive calls), then the gate: reference <= 7 days with active CS rows carrying a CIK, A's grouped
+  store holds the publishable session, at least 252 sessions. No SEC call.
+* **SCAN** (start of `auto-research`, usb-h-research 01:40 ET): identity (frozen `build_universe`), E1's
+  market tier from one streaming pass over A's store (>= 60 sessions, close >= $1, 21-session ADV >=
+  $1M; a row failing it is INELIGIBLE or DATA_NOT_READY regardless of fundamentals, so no SEC request
+  is made for it), SEC for at most 700 CIKs per run (missing first, then stale oldest, by CIK), then
+  the frozen `assemble_candidate` (E1, E2, E3 unchanged) in batches of 20 issuers, an
+  `auto/intake_index.json` of every scanned row, and `new_candidates.json` in the contract order
+  (P1 before P2, evidence recency, ticker), capped at 10 open items, after the MethodJudgement screen
+  (only AUTO_READY candidates are written; at most 40 new verdicts per run; a ticker already queued is
+  never written again). Afterwards every SEC body not in
+  `new_candidates.json` is deleted and its request ledger kept.
+* Per-row readiness, never a silent skip: READY, REFERENCE_NOT_READY, IDENTITY_INELIGIBLE,
+  PRICE_NOT_READY, MARKET_INELIGIBLE, FUNDAMENTALS_FETCH_REQUIRED, SEC_NOT_READY,
+  COHORT_REFRESHED_NOT_ADMITTED.
+
+### 9.4 Measured on production-shaped data (2026-10-14)
+
+Run on the local tree with trader-j's exact A store (its 44 grouped files, `CS_2026-10-01` and 13
+split files, byte-compared by sha256), no HIST-V1 mirror, no research universes, H's pinned history
+(476 sessions 2024-09-16..2026-08-10, 58 MB) and H's own reference fetched by GATE. Four SCAN runs
+covered the whole market-pass universe (SEC 600 + 700 + 700 + 410 CIKs).
+
+| Measure | Value |
+|---|---|
+| reference snapshot | CS_2026-10-12 (H), 5,320 rows, 5,310 active CS with CIK, age 0 days |
+| price sessions | 520 (A 44 + H history 476), latest 2026-10-12 = publishable |
+| identified (CS, supported exchange, CIK and FIGI) | 4,154; unique CIKs with SEC cached 3,110 |
+| REFERENCE_NOT_READY (no FIGI in the Massive row, frozen E1 rule) | 1,150 |
+| market pass / MARKET_INELIGIBLE / PRICE_NOT_READY / IDENTITY_INELIGIBLE / cohort | 3,130 / 952 / 72 / 8 / 8 |
+| E1 over the 3,130 | ELIGIBLE 2,615, INELIGIBLE 337, DATA_NOT_READY 178 |
+| E3 | P1_HIGH 233, P2_MEDIUM 1,659, P3_LOW 698, HOLD 25 |
+| P1/P2 candidates / written (open-item cap 10) | 1,892 / 10, all AUTO_READY |
+| MethodJudgement screen to fill 10 | 25 judged: 10 AUTO_READY, 15 NOT_READY |
+| SEC per run | 700 CIKs, 1,406 requests, about 10 min, 0 not found |
+| peak RSS | 307 MB (SCAN incl. screen), 200 MB (E2E); first version OOM-killed, now streamed |
+| SEC cache after compaction | 4 MB bodies plus ledgers |
+| wall time | SCAN 14-19 min (SEC 8-10, screen 10) |
+
+A full cycle of 3,130 market-pass CIKs takes 5 weekday runs, which matches the 7-day freshness bound.
+
+Two production gaps were found on the way and fixed:
+
+* **Price history.** trader-j's grouped store holds 44 sessions; E1, the executor and D5 need 252.
+  H now keeps its own pinned slim extract of the same Massive grouped files (`auto/price_history`,
+  manifest of sha256s), merged under A's store (A wins on a shared session, a disagreeing close is
+  PRICE_SOURCE_CONFLICT). A's directory is not written.
+* **D5 reference snapshots.** D5's share-class step needs a CS snapshot within 186 days before every
+  panel session; trader-j has only `CS_2026-10-01`, so D5 would have refused every session before
+  October for every issuer, cohort refreshes included. `d5_binding` now points D5-D2's
+  `load_reference_snapshot` at share_class's directories plus `auto/reference` and a pinned
+  `auto/reference_history` (8 quarterly snapshots). FG and VRRM still reproduce their launch rows
+  byte for byte.
+
+### 9.5 MethodJudgement
+
+Where it came from: `run_strategy_h_v2_d6.METHOD_JUDGEMENTS` (13 issuers) and
+`run_strategy_h_v2_d5_d2.METHOD_JUDGEMENTS` (7), hand-written per ticker; no classifier and no
+business-type table exist. `multiples.method_suitability` (D5-D0 section 17) is the only deterministic
+suitability rule, and it marks `NOT_SUITABLE` as AI-owned.
+
+`h_auto.method_judgement` (H_METHOD_JUDGEMENT_AUTO_V1) is used only for an issuer outside those
+tables: primary = section-17 ECONOMICALLY_REASONABLE methods, secondary = SECONDARY_ONLY, both in
+METHOD_ORDER; P/B withheld; `unsuitable` empty. METHOD_JUDGEMENT_NOT_READY (DATA_NOT_READY before
+any model call) for SIC 6000-6799, unresolved SIC, no computable multiple, or no
+ECONOMICALLY_REASONABLE method. A cohort issuer always uses the frozen table.
+
+Coverage on the 20 issuers with frozen packages (2026-09-16 session, frozen inputs):
+
+| | count |
+|---|---|
+| AUTO_READY | 8 |
+| NOT_READY: no ECONOMICALLY_REASONABLE method | 9 |
+| NOT_READY: no computable multiple (BSY, GOOG, market cap unavailable) | 2 |
+| NOT_READY: financial SIC (FG, GNW insurers; IDCC SIC 6794 patent licensor) | 3 |
+| human table has a primary | 14; both have one 8; same first method 5 |
+| code primary the human table asserted unsuitable | 1 (VRRM P/FCF; VRRM is cohort, so the frozen table is used) |
+
+So about 40% of issuers get a code-owned judgement and the rest fail closed. That is the price of
+adding no new threshold. IDCC shows the SIC rule is coarse: SIC 6794 is a licensor, not a lender.
+
+On current candidates (2026-10-12 session, production data): 11 of 30 AUTO_READY (10 written + 20
+drawn every k-th from the P1/P2 list). NOT_READY reasons: 11 no section-17 primary, 8 no computable
+multiple (mostly no cover-page share count in companyfacts, e.g. ANIP's last `dei` share fact is from
+2013), 3 financial SIC. Written unscreened, these would have held the 10 open new-candidate slots for
+good, so the intake now screens before writing (§9.3) and records each verdict in the index; a
+verdict is reused until the issuer's SEC facts are refetched.
+
+### 9.6 End-to-end dry run (fake D3/D4, everything else real, 0 live model calls)
+
+Store: copies of production's forward ledger, launch snapshot, refresh queue and SEC submissions
+cache (sha256 equal to trader-j's), the production-shaped A store above, a fresh paper book. D3 and
+D4 are the test fakes (D4 says POSITIVE/MEDIUM for everyone); D2, D2.1 with trigger supplement, the
+MethodJudgement, D5 (D5_D2R_V1), D6, the ledger writer and the paper engine are the real code.
+
+NEW candidate selection, fixed before any stage ran: the first candidate in the screened intake order
+that is neither in H's ledger nor a D3/D4/D5 validation ticker. That was **CRGY** (P1_HIGH, SIC 1311).
+An earlier unscreened run picked ANIP, which the executor refused as METHOD_JUDGEMENT_NOT_READY before
+any model call; that run is what showed the open-slot problem.
+
+| Item | Result |
+|---|---|
+| FLOW A FG (P0) | trigger 8-K `0001934850-26-000095` chunked (role REFRESH_TRIGGER); D5 frozen table; WATCH -> WATCH |
+| FLOW A VRRM (P1) | trigger 8-K `0001193125-26-412497` chunked although the 8-K/A holds the CORE slot; WATCH -> APPROVE (synthetic D4) |
+| AEYE | EVIDENCE_ALREADY_IN_THESIS, no item run |
+| FLOW B CRGY day 1 | BUDGET_DEFERRED (MAX_RESEARCH_CANDIDATES_PER_DAY: FG and VRRM used both starts) |
+| FLOW B CRGY day 2 | D2.1 FULL (365 chunks, 8 documents); MethodJudgement AUTO_READY, primary EV/EBIT then EV/EBITDA, secondary EV/Sales; D5_D2R_V1 valued (TP1 46.78, TP2 95.51, Bear 13.85); D6 WATCH; admitted NONE -> WATCH as NEW_FORWARD_CANDIDATE |
+| price sources (CRGY) | h_history 475 + a_grouped 62 sessions; cohort price_base 1,002 + a_grouped 36 |
+| paper | VRRM APPROVE -> PENDING_ENTRY for 2026-10-14; FG and CRGY WATCH -> SIGNAL_NO_ACTION; paper verify PASS, cash 10,000 |
+| ledger | 8 -> 11 rows, verify PASS |
+| model | 6 fake calls, 0 live; budget day 1 $5.20 of $24, 2 of 2 starts |
+| DATA_NOT_READY from stale or wrong H wiring | 0 |
+
+Evidence: `/home/tjd618/h_auto_completion/` (`e2e_evidence.json`, `e2e_preregistration.json`,
+`scan_prodlike.json`, `candidate_readiness.json`, `mj_coverage_20.json`, logs).
 
 ## 10. Massive future-date noise
 
@@ -191,44 +326,60 @@ trade count (open positions added to its detail); decisions and 1D/5D/21D/63D ar
 
 ## 12. Tests
 
-`backend/tests/strategy_h_v2/forward/test_h_autonomous_pipeline.py` (30) and
-`test_h_auto_d5_reproduction.py` (4): REFRESH_DUE -> D2..D6, already-seen filing dedup, FG queue
-P0, VRRM queue P1, AEYE excluded, NEW candidate queue, stale universe fail-closed, budget hard cap,
-BUDGET_DEFERRED, operator cap, priority ordering, retry cap, schema failure terminal, canonical model
-validation, WATCH no entry, REJECT no entry, APPROVE pending entry, next-session fill, TP1 then TP2,
-downgrade exit, new-candidate admission APPROVE -> entry -> exits, AI failure does not stop prices or
-exits, queue integrity hard failure, A/E isolation, scheduler order, Massive bound, D5 reproduction,
-price base on a host without the mirror. `strategy_h_v2/` total: 1846 passed + new (repo-root cwd).
+`backend/tests/strategy_h_v2/forward/test_h_autonomous_pipeline.py` (30),
+`test_h_auto_d5_reproduction.py` (4) and, for the completion, `test_h_production_intake.py` (35):
+reference in force and H precedence, frozen `build_universe` identity, A-fetcher reference refresh
+that never writes A's store, duplicate-ticker rejection, market tier equal to the frozen
+`market_snapshot`, price coverage sample, gate refusals (stale reference, stale prices, short
+history), GATE makes no SEC call, SCAN DATA_NOT_READY leaves the intake file, SEC plan order and
+cap, root pruning, body compaction keeps ledgers, NOT_FOUND and transport failure, code-owned
+judgement order and P/B withheld, determinism and frozen table untouched, five fail-closed cases,
+pre-profit EV/Sales, SCAN end to end on fakes (only market-passing CIKs fetched, A store
+byte-identical, rescan skipped when facts unchanged, queue order after refreshes), fetch cap,
+SEC_NOT_READY, executor NOT_READY before any call, AUTO_READY new candidate -> D5_D2R_V1 -> D6 ->
+admission -> paper entry, cohort ticker never takes a code-owned judgement, price base lacking a
+candidate, the screen (only AUTO_READY written, verdict reuse, verdict budget, not-ready candidates
+cannot fill the slots), H history under a 44-session A store, D5 reference binding restored, contract
+values, no A/E runtime imports.
 
 ## 13. Production plan (not executed)
 
 Prerequisites, all operator decisions:
 
-1. **RAM.** trader-j has 961 MB and about 200 MB available; the Claude CLI (node) has never run there
-   under load. `usb-h-research` caps itself at 650M so an overrun kills only itself, but the first
-   authorized run must be watched (journal, `memory.peak`). The host-resource audit's 2 GB upgrade
-   recommendation applies.
-2. **Claude CLI login on trader-j** (`/usr/bin/claude` exists; login not verified, no call made).
-3. **Authorization**: `python -m app.dev.run_h_v2_d7 auto-authorize --cap 24 --by <name>` (scope
-   REFRESH_ONLY). Until then the research unit runs and calls nothing.
+1. **RAM.** trader-j has 961 MB. Measured locally: the intake SCAN peaks at 307 MB RSS (SEC slice of
+   700 CIKs, E1->E3 streamed in batches of 20, MethodJudgement screen). `usb-h-research` is capped at
+   650M, so an overrun kills only itself; the first run must be watched (journal, `memory.peak`).
+   The Claude CLI (node) has never run there under load. The 2 GB upgrade recommendation applies.
+2. **Disk.** About 1.9 GB free. H adds: price history 58 MB, reference history about 1 MB, daily
+   references about 0.12 MB each (30 kept), SEC cache after compaction about 30 MB plus ledgers.
+3. **SEC traffic.** About 1,400 requests per weekday run at sec_store's 5/s, about 10 minutes.
+4. **Claude CLI login on trader-j** (`/usr/bin/claude` exists; login not verified, no call made).
+5. **Authorization**: `auto-authorize --cap 24 --by <name>` (scope REFRESH_ONLY first; the first batch
+   is FG then VRRM). Without it the research unit scans and queues but calls no model.
 
-Deployment (file copy over the server tree, same method as 5093f6c; the four edited files on the
-server are byte-identical to this work's base: research_queue `86c88ccc`, transitions `3080b277`,
-run_h_v2_d7 `c78a6206`, api/strategies `21451e8f`):
+Deployment (file copy over the server tree, as with 5093f6c; take a hash of each target first):
 
-* backend: `app/strategies/h_auto/*.py` (11), `h_forward/research_queue.py`, `h_forward/transitions.py`,
+* backend: `app/strategies/h_auto/*.py` (14: the 11 of 2b1285d plus `sources.py`, `facts_cache.py`,
+  `method_judgement.py`), `h_forward/research_queue.py`, `h_forward/transitions.py`,
   `dev/run_h_v2_d7.py`, `api/strategies.py`; docs `h_autonomous_pipeline_v1.json` + `.sha256`.
-* data: `d7/auto/price_base/H_PRICE_BASE_V1.json.gz` + `.sha256` (built where the mirror is).
+* data built locally, then copied into `/root/usb/data/runtime/strategy_h_v2/d7/auto/`:
+  `price_base/` (cohort mirror extract, sha `1451d76a…`), `price_history/` (476 sessions
+  2024-09-16..2026-08-10 + MANIFEST, built with `H_PRICE_HISTORY_BEFORE=2026-08-11 build-price-history`),
+  `reference_history/` (8 quarterly CS snapshots before 2026-10-01 + MANIFEST, `build-reference-history`).
+  Verify on the server with `verify-price-history`.
 * units: install `usb-h-research.service` + `.timer`; `usb-h-forward` unchanged.
 * `usb-backend` restart once (the API module changed). The forward/research units need no restart.
-* frontend: rebuild needed; see §14.
-* smoke: `auto-status`, `research-queue`, `auto-research` without authorization (expect
-  RESEARCH_NOT_AUTHORIZED, 0 calls), `verify`, `paper-verify`.
+* A, E, C files and units: none touched. H reads `strategy_c/raw/{grouped,tickers,splits}` only.
+* smoke: `intake-gate` (expect READY: reference fetched for the publishable session), `intake-readiness`,
+  `auto-research` without authorization (expect the SCAN to run, RESEARCH_NOT_AUTHORIZED, 0 model
+  calls), `auto-status`, `verify`, `paper-verify`.
 
-Rollback: restore the backed-up files, `systemctl disable --now usb-h-research.timer`, restart
-`usb-backend`; `d7/auto/` can stay (nothing else reads it) and the forward ledger is append-only.
+Rollback: `systemctl disable --now usb-h-research.timer`, restore the backed-up files, restart
+`usb-backend`. `d7/auto/` can stay (nothing else reads it); the forward ledger is append-only.
+Remove `d7/auto/authorization.json` to stop all model calls at once.
 
-Expected first autonomous batch after authorization: FG, then VRRM; hard cap $24.00.
+First live batch after authorization: FG (P0), then VRRM (P1), then new candidates by priority and
+budget (at most 2 starts and $24 a day).
 
 ## 14. Frontend coordination
 

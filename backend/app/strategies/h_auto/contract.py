@@ -76,6 +76,11 @@ def reference_max_age_days() -> int:
     return int(contract()["new_candidate_intake"]["freshness_gate"]["reference_snapshot_max_age_days"])
 
 
+def intake_fetch_cap() -> int:
+    """SEC CIKs the intake scan may (re)fetch per run (submissions + companyfacts each)."""
+    return int(contract()["new_candidate_intake"]["sec_on_demand"]["fetch_cap_per_run"])
+
+
 def state() -> dict[str, Any]:
     body = contract()
     return {"contract_id": contract_id(), "contract_sha256": sha256(),

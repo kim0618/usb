@@ -34,7 +34,7 @@ FIELDS = ("queue_id", "ticker", "cik", "reason", "priority_class", "priority_ran
           "cost_usd", "d2_version", "d3_version", "d4_version", "d5_version", "d6_version",
           "previous_decision", "final_decision", "decision_transition", "thesis_version",
           "previous_thesis_version", "e3_priority", "intake_order", "last_error", "run_id",
-          "started_at", "completed_at", "artifacts", "ledger_written")
+          "started_at", "completed_at", "artifacts", "ledger_written", "method_judgement")
 
 
 class QueueIntegrityError(RuntimeError):

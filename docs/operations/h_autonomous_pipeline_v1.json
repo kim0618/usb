@@ -6,7 +6,12 @@
     "checksum_recipe": "sha256 of json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False)",
     "purpose": "Run Strategy H's frozen D2->D6 research on new material evidence and on new candidates without a manual step, inside a code-enforced cost and safety contract, and hand the decision to the existing H paper book.",
     "research_build": "CLOSED (this contract re-runs frozen modules; it adds no rule, threshold or model step)",
-    "live_model_calls_before_operator_authorization": 0
+    "live_model_calls_before_operator_authorization": 0,
+    "revision": {
+      "revised_at_kst": "2026-10-14",
+      "what": "new-candidate intake wired to production sources (A's reference/grouped/splits stores read-only, H's own reference refresh, SEC on demand), code-owned MethodJudgement for issuers outside the frozen tables; budget, priority, retry, model and D5 contract unchanged",
+      "live_model_calls_before_revision": 0
+    }
   },
   "stages": {
     "d1": "app.backtest.strategy_h_v2.pipeline.assemble_candidate (h_v2_pipeline_v1), unchanged",
@@ -141,28 +146,58 @@
     "stale_running": "an item left RUNNING by a crashed run is closed as FAILED:INTERRUPTED with its spent cost and becomes retryable under the infra rule"
   },
   "new_candidate_intake": {
-    "pipeline": "reference universe -> E1 eligibility -> E2 change detection -> E3 priority (assemble_candidate), no model call",
+    "pipeline": "production reference universe -> E1 eligibility -> E2 change detection -> E3 priority (assemble_candidate, unchanged), no model call; the scan runs in usb-h-research (SCAN) after the gate in usb-h-forward (GATE)",
     "freshness_gate": {
       "reference_snapshot_max_age_days": 7,
       "requires": [
-        "active US common-stock reference rows with CIK",
-        "latest price session = previous XNYS session of now",
-        "price history of at least 252 sessions per candidate",
-        "companyfacts store fetched within 7 days"
+        "reference snapshot in force for the publishable session no older than reference_snapshot_max_age_days, with active US common-stock rows carrying a CIK",
+        "A's grouped store holds the publishable session (previous XNYS session of now)",
+        "A's grouped store holds at least 252 sessions",
+        "fundamentals are not gated here: each issuer's SEC facts are fetched on demand and must be at most sec_on_demand.max_age_days old when it is scanned"
       ],
-      "fail_action": "NEW_CANDIDATE_SCAN = DATA_NOT_READY; existing cohort refresh, prices, outcomes, paper NAV and exits keep running"
+      "fail_action": "NEW_CANDIDATE_SCAN = DATA_NOT_READY with reasons; new_candidates.json untouched; existing cohort refresh, prices, outcomes, paper NAV and exits keep running"
     },
-    "d5_method_judgement": "D5 values only issuers with a declared MethodJudgement; a candidate without one is DATA_NOT_READY:D5_METHOD_JUDGEMENT_REQUIRED before any model call",
+    "d5_method_judgement": "a cohort issuer is valued through the frozen tables (run_strategy_h_v2_d6.METHOD_JUDGEMENTS); any other issuer gets H_METHOD_JUDGEMENT_AUTO_V1 (h_auto.method_judgement): primary = ECONOMICALLY_REASONABLE methods and secondary = SECONDARY_ONLY methods of multiples.method_suitability (D5-D0 section 17, MIN_MARGIN_FOR_PRIMARY 2%, MATERIAL_NET_DEBT_SHARE_OF_EV 10%) on the decision session's IssuerSession, in METHOD_ORDER; P/B withheld (its applicability must be argued per issuer); unsuitable empty (NOT_SUITABLE is AI-owned); a financial issuer (SIC 6000-6799), an unresolved SIC, no computable multiple or no ECONOMICALLY_REASONABLE method is DATA_NOT_READY:METHOD_JUDGEMENT_NOT_READY before any model call",
     "admission": "a decision-eligible D6 result is appended with cohort_tag NEW_FORWARD_CANDIDATE (APPROVE, WATCH and REJECT alike); NOT_DECISION_ELIGIBLE is not admitted",
     "max_open_new_candidate_items": 10,
     "intake_order": "E3 P1_HIGH before P2_MEDIUM, then fewest days since the latest SEC filing (evidence recency, not price), then ticker; candidates beyond the open-item cap wait for the next scan",
-    "excluded": "any ticker already in H's forward ledger (it is refreshed, not admitted)"
+    "excluded": "any ticker already in H's forward ledger (it is refreshed, not admitted)",
+    "production_sources": {
+      "active_universe": "newest CS reference snapshot on or before the publishable session: Strategy A's data/runtime/strategy_c/raw/tickers (read-only) or H's own auto/reference/CS_<as_of>.json.gz fetched daily with strategy_c_selection.raw_fetch.fetch_tickers (A's fetcher, A's format, H's directory)",
+      "ticker_cik": "the cik field of that snapshot row (strategy_c_e0.cik_map rule: newest as_of <= session); ticker text is never the join key",
+      "daily_prices": "Strategy A's data/runtime/strategy_c/raw/grouped/<session>.json.gz (Massive grouped daily, unadjusted, usb-grouped-daily 00:40 ET), read-only",
+      "historical_lookback": "every session in A's grouped store; at least 252 sessions required (E1 MIN_TRAILING_SESSIONS 60, price_context 252, executor check_panel 252, D5 RECENT_12M 252)",
+      "market_calendar": "app.market.calendar.MarketCalendar",
+      "split_adjustment": "none (unadjusted store); A's data/runtime/strategy_c/raw/splits execution dates feed the frozen D1 dilution check",
+      "fundamentals": "SEC submissions (from 2022) and companyfacts per CIK on demand through sec_store/xbrl_store into auto/sec/<ET day>/ (h_auto.facts_cache); the research-frozen full-universe store (strategy_h_v2/d1_1) is not a production source",
+      "not_production": "research_universe_u1 CS_2024-10-25, strategy_b_e0 HIST-V1 mirror (ends 2026-09-16), strategy_h_v2/d1_1 companyfacts (fetched 2026-09-28)"
+    },
+    "sec_on_demand": {
+      "fetch_cap_per_run": 700,
+      "max_age_days": 7,
+      "dated_roots_kept": 6,
+      "order": "market-passing CIKs with no cached copy first (by CIK), then stale copies oldest first (by CIK); never by a price or a return",
+      "market_tier_first": "E1's market tier (>= 60 stored sessions, latest close >= $1, 21-session ADV >= $1M) is read from A's grouped store before any SEC call; a row that fails it is INELIGIBLE or DATA_NOT_READY whatever its fundamentals say, so no SEC request is made for it",
+      "scan": "E1->E3 runs on the rows whose facts were (re)fetched; results are folded into auto/intake_index.json and new_candidates.json lists index rows with fresh facts, E3 P1/P2, within max_age_days of their scan",
+      "readiness_states": [
+        "READY",
+        "REFERENCE_NOT_READY",
+        "IDENTITY_INELIGIBLE",
+        "PRICE_NOT_READY",
+        "MARKET_INELIGIBLE",
+        "FUNDAMENTALS_FETCH_REQUIRED",
+        "SEC_NOT_READY"
+      ],
+      "measured_basis": "measured 2026-10-14 on the local tree against SEC with production reference/prices: 700 CIKs (submissions + companyfacts, 1,406 requests) in about 10 minutes, scan peak RSS 286 MB; 3,130 market-passing CIKs at 700 per weekday run are each refreshed every 5 runs (7 calendar days), the freshness bound; keeping every P1/P2 body measured 337 MB for 2,000 CIKs, so only written candidates keep bodies",
+      "after_scan": "compact: bodies of every CIK not in new_candidates.json are deleted, request ledgers kept (freshness unchanged; a missing body is refetched when next planned; the executor fetches its own copy)"
+    },
+    "method_judgement_screen": "before new_candidates.json is written, the intake walks the contract order and keeps the first (10 - open items) candidates whose H_METHOD_JUDGEMENT_AUTO_V1 verdict on the publishable session's D5 panel is AUTO_READY; a ticker that already has a NEW_CANDIDATE queue item is never written again; verdicts are stored in auto/intake_index.json and reused while the issuer's SEC facts day is unchanged; at most 40 new verdicts per run. Reason (measured 2026-10-14): 19 of 30 current candidates are METHOD_JUDGEMENT_NOT_READY and, written unscreened, would have held the 10 open slots indefinitely"
   },
   "daily_order": [
     "1 prices and forward outcomes",
     "2 SEC submissions refresh",
     "3 material scan",
-    "4 new candidate scan",
+    "4 new candidate intake: GATE (reference snapshot refresh + freshness gate) in usb-h-forward; SCAN (SEC on demand + E1->E3) at the start of usb-h-research",
     "5 unified research queue update",
     "6 budgeted research",
     "7 decision transitions (written by research, read here)",

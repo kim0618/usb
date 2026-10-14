@@ -6,8 +6,11 @@ Order of operations, and why:
    bundle and the D2.1 package are built before any model call (``h_auto.inputs``). A data gap here
    is ``DATA_NOT_READY`` and costs nothing. A package that did not chunk any of the filings that
    triggered the refresh would re-research the old thesis, so it is refused the same way.
-2. **D5 before D3.** A candidate without a declared ``MethodJudgement`` cannot be valued, so it is
-   refused before the model is called rather than after paying for D3 and D4.
+2. **D5 before D3.** A candidate without a ``MethodJudgement`` cannot be valued. A cohort issuer has
+   one in the frozen tables; any other issuer gets a code-owned one derived from the frozen
+   section-17 suitability rules (``h_auto.method_judgement``) or is refused as
+   METHOD_JUDGEMENT_NOT_READY - in both cases before the model is called, never after paying for D3
+   and D4.
 3. **Budget.** ``h_auto.budget.check`` then ``reserve``; a refusal is ``BUDGET_DEFERRED``.
 4. **D3, D4** through the runners' own functions (``research_one_v3``, ``analyze_one_v2``) with the
    metered, canonical-model-checked ``call_fn``. Their bounded repair loops are theirs; this module
@@ -101,12 +104,41 @@ def identity_of(item: Mapping[str, Any]) -> IN.Identity:
                        exchange=snap.get("exchange"), snapshot_date=snap.get("snapshot_date"))
 
 
+def derive_judgement(prep: Mapping[str, Any], deps: Deps, *, work: Path) -> dict[str, Any]:
+    """A code-owned MethodJudgement for an issuer outside the frozen tables, before any model call.
+
+    The frozen D5 panel is built once here on the same inputs ``_d5_d6`` will use (deterministic, so
+    the later build is identical) and ``h_auto.method_judgement.derive`` reads the decision session's
+    row. NOT_READY is ``DATA_NOT_READY:METHOD_JUDGEMENT_NOT_READY``: nothing is spent and the reasons
+    are written to ``work/method_judgement.json``.
+    """
+    from app.dev.run_strategy_h_v2_d5_d2 import build_panel
+    from app.strategies.h_auto import method_judgement as MJ
+    ticker, session, panel = prep["identity"].ticker, prep["session"], prep["panel"]
+    with IN.d5_binding(packages_dir=prep["package_path"].parent, panel=panel, sec=prep["sec"]):
+        _observed, decision_row, coverage = build_panel(ticker, panel.closes(ticker), session)
+    if decision_row is None:
+        raise IN.InputsNotReady("D5_NO_DECISION_ROW", json.dumps(coverage)[:300])
+    doc = prep["sec"].submissions_doc or {}
+    derived = MJ.derive(ticker, decision_row, sic=doc.get("sic"), sic_description=doc.get("sicDescription"))
+    report = derived.report() | {"panel_coverage": coverage}
+    (work / "method_judgement.json").write_text(json.dumps(report, indent=1, sort_keys=True, default=str),
+                                                encoding="utf-8")
+    if derived.state != MJ.AUTO_READY:
+        raise IN.InputsNotReady(MJ.NOT_READY, f"{ticker}: " + "; ".join(derived.reasons))
+    return {"judgement": derived.judgement, "report": report}
+
+
 def prepare(item: Mapping[str, Any], deps: Deps, *, work: Path, run_id: str) -> dict[str, Any]:
-    """Every input up to the D2.1 package. No model call. Raises InputsNotReady / SecUnavailable."""
+    """Every input up to the D2.1 package. No model call. Raises InputsNotReady / SecUnavailable.
+
+    A cohort issuer is valued through the frozen judgement tables; an issuer outside them gets a
+    code-owned judgement (``derive_judgement``) or is refused as METHOD_JUDGEMENT_NOT_READY. Either
+    way the judgement exists before the first model call.
+    """
     now = deps.now()
     ticker = item["ticker"]
-    if ticker not in _judgements(deps):
-        raise IN.InputsNotReady("D5_METHOD_JUDGEMENT_REQUIRED", ticker)
+    frozen = ticker in _judgements(deps)
     ident = identity_of(item)
     session = IN.decision_session(now)
     try:
@@ -130,9 +162,18 @@ def prepare(item: Mapping[str, Any], deps: Deps, *, work: Path, run_id: str) -> 
     triggers = set(item.get("source_accessions") or [])
     if item.get("reason") == "REFRESH_DUE" and triggers and not (triggers & chunked):
         raise IN.InputsNotReady("NEW_EVIDENCE_NOT_MATERIALIZED", ",".join(sorted(triggers)))
-    return {"identity": ident, "session": session, "panel": panel, "coverage": coverage, "sec": sec,
+    prep = {"identity": ident, "session": session, "panel": panel, "coverage": coverage, "sec": sec,
             "stub": stub, "package": package, "package_meta": meta, "package_path": package_path,
-            "cutoff": now, "triggers_chunked": sorted(triggers & chunked)}
+            "cutoff": now, "triggers_chunked": sorted(triggers & chunked),
+            "judgements": _judgements(deps), "method_judgement": {"source": "FROZEN_TABLE", "ticker": ticker}}
+    if not frozen:
+        derived = derive_judgement(prep, deps, work=work)
+        prep["judgements"] = dict(_judgements(deps)) | {ticker: derived["judgement"]}
+        prep["method_judgement"] = {"source": "CODE_OWNED_V1", "ticker": ticker,
+                                    "version": derived["report"]["version"], "state": derived["report"]["state"],
+                                    "primary_preference": derived["report"]["judgement"]["primary_preference"],
+                                    "secondary_preference": derived["report"]["judgement"]["secondary_preference"]}
+    return prep
 
 
 def _d3(prep: Mapping[str, Any], model: PV.MeteredModel, *, run_id: str, work: Path) -> dict[str, Any]:
@@ -172,7 +213,7 @@ def _d5_d6(prep: Mapping[str, Any], d3: Mapping[str, Any], d4: Mapping[str, Any]
         observed, decision_row, coverage = build_panel(ticker, panel.closes(ticker), session)
         if decision_row is None:
             raise IN.InputsNotReady("D5_NO_DECISION_ROW", json.dumps(coverage)[:300])
-        row = value_issuer(ticker, observed, decision_row, judgements=_judgements(deps),
+        row = value_issuer(ticker, observed, decision_row, judgements=prep.get("judgements") or _judgements(deps),
                            window_contract=WindowSelectionContract.D5_D2R_V1)
     record = decide(project_d3(ticker, dict(d3)), project_d4(ticker, dict(d4)), project_d5(row))
     return row, record
@@ -202,11 +243,13 @@ def _write(item: Mapping[str, Any], prep: Mapping[str, Any], d3: Mapping[str, An
            "decision_transition": None, "ledger_written": False,
            "d6": {"eligibility": record.eligibility.eligibility.value, "approve_blockers": list(record.approve_blockers),
                   "reject_fired": list(record.reject_fired), "watch_matched": list(record.watch_matched)},
-           "valuation": _valuation(row)}
+           "valuation": _valuation(row),
+           "method_judgement": dict(prep.get("method_judgement") or {"source": "FROZEN_TABLE"})}
     evidence = {"queue_id": item["queue_id"], "source_accessions": list(item.get("source_accessions") or []),
                 "triggers_chunked": prep["triggers_chunked"], "package": str(prep["package_path"]),
                 "package_sha256": prep["package_meta"]["package_sha256"], "data_cutoff": _iso(prep["cutoff"]),
                 "decision_session": prep["session"].isoformat(), "price_sources": prep["coverage"]["sources"],
+                "method_judgement": dict(prep.get("method_judgement") or {"source": "FROZEN_TABLE"}),
                 "autonomy_contract": AC.contract_id(), "autonomy_contract_sha256": AC.sha256()}
     decision_time = _iso(deps.now())
     if record.eligibility.eligibility is Eligibility.DECISION_ELIGIBLE and decision is not None:

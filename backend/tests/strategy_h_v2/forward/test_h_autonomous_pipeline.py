@@ -406,17 +406,18 @@ def test_new_candidate_without_method_judgement_is_data_not_ready_without_a_call
 # == freshness =====================================================================================
 
 def test_stale_universe_fails_closed_and_leaves_intake_untouched(store, tmp_path):
+    from app.strategies.h_auto import sources as SRC
     ref = tmp_path / "ref"
     ref.mkdir()
     import gzip
     (ref / "CS_2024-10-25.json.gz").write_bytes(gzip.compress(json.dumps({"results": [
-        {"ticker": "A", "type": "CS", "active": True, "cik": "1"}]}).encode()))
+        {"ticker": "A", "type": "CS", "market": "stocks", "locale": "us", "active": True, "cik": "1"}]}).encode()))
     SR.atomic_write_json(ST.path(INT.NEW_CANDIDATES), {"candidates": [], "marker": "before"})
-    gate = INT.freshness(RUN_AT, reference_dirs=[ref], grouped=tmp_path / "none", mirror=tmp_path / "none",
-                         facts_store=tmp_path / "none")
+    snapshots = SRC.reference_snapshots(a_dir=ref, h_dir=tmp_path / "none")
+    gate = INT.freshness(RUN_AT, snapshots=snapshots, grouped=tmp_path / "none")
     assert gate["state"] == INT.DATA_NOT_READY
     assert any(r.startswith("REFERENCE_SNAPSHOT_STALE") for r in gate["reasons"])
-    assert "COMPANYFACTS_STORE_MISSING" in gate["reasons"]
+    assert any(r.startswith("LATEST_PRICE_SESSION_STALE") for r in gate["reasons"])
     assert any(r.startswith("PRICE_HISTORY_INSUFFICIENT") for r in gate["reasons"])
     assert SR.read_json(ST.path(INT.NEW_CANDIDATES))["marker"] == "before"
 
@@ -553,6 +554,7 @@ def daily(store, monkeypatch):
     monkeypatch.setattr(D7, "collect_prices", lambda **_: {"latest_session": PR.latest_session()})
     monkeypatch.setattr(D7, "_material_refresh", lambda: {"refresh_run": "OK", "research_refresh_due": ["FG"],
                                                           "cache_as_of": "2026-10-13"})
+    monkeypatch.setattr(INT, "default_massive_client", lambda: (_ for _ in ()).throw(RuntimeError("no Massive in tests")))
     monkeypatch.setattr(INT, "freshness", lambda now=None, **_: {"state": INT.DATA_NOT_READY,
                                                                   "reasons": ["REFERENCE_SNAPSHOT_STALE"], "checks": {}})
     store_bars("2026-10-13", {"FG": (10, 10, 10, 10), "VRRM": (10, 10, 10, 10), "SPY": (700, 700, 700, 700)})
@@ -578,7 +580,8 @@ def test_daily_order_and_ai_failure_isolation(daily, planner, monkeypatch):
         raise RuntimeError("model provider down")
     monkeypatch.setattr(ORC, "research_step", boom)
     research = D7.auto_research()
-    assert list(research["steps"]) == ["queue", "research", "paper"]
+    assert list(research["steps"]) == ["intake", "queue", "research", "paper"]
+    assert research["intake"]["new_candidate_scan"] == INT.DATA_NOT_READY      # SCAN mode, gate refused
     assert research["research"]["state"] == "ERROR" and research["paper"]["paper_run"] == "OK"
     assert D7.main(["auto-research"]) == 0
     status = AS.read_json(AS.RUN_STATUS)

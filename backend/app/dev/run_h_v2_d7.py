@@ -45,6 +45,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import sys
 from datetime import date, datetime, timezone
 from pathlib import Path
@@ -659,7 +660,10 @@ def _autonomy_steps(*, forward_integrity: str) -> dict[str, Any]:
         out["hard_failure"] = f"AUTONOMY_CONTRACT:{type(exc).__name__}: {exc}"
         return out
     try:
-        out["intake"] = INT.intake_step(open_new_items=INT.open_new_candidate_items(AQ.fold().values()))
+        # GATE: refresh H's own reference snapshot (A's fetcher, H's directory) and record the
+        # freshness gate. The SEC slice and the E1->E3 scan run in usb-h-research (SCAN mode).
+        out["intake"] = INT.intake_step(mode=INT.GATE, open_new_items=INT.open_new_candidate_items(AQ.fold().values()),
+                                        massive_client_factory=INT.default_massive_client)
     except AQ.QueueIntegrityError as exc:
         out["hard_failure"] = f"QUEUE_INTEGRITY: {exc}"
         return out
@@ -681,13 +685,29 @@ def _autonomy_steps(*, forward_integrity: str) -> dict[str, Any]:
 
 
 def _research_steps(*, forward_integrity: str) -> dict[str, Any]:
-    """Steps 5-6 for ``auto-research``. Never raises; a queue integrity error is a hard failure."""
+    """Steps 4 (SCAN), 5 and 6 for ``auto-research``. Never raises; a queue integrity error is a hard failure."""
     from app.strategies.h_auto import contract as AC
+    from app.strategies.h_auto import intake as INT
     from app.strategies.h_auto import orchestrator as ORC
     from app.strategies.h_auto import queue as AQ
-    out: dict[str, Any] = {"queue": None, "research": None, "hard_failure": None, "steps": {}}
+    out: dict[str, Any] = {"intake": None, "queue": None, "research": None, "hard_failure": None, "steps": {}}
     try:
         AC.contract()
+        # SCAN: SEC on demand for at most the contract's cap of CIKs, then the frozen E1->E3 on the
+        # rows whose facts are fresh, then new_candidates.json. No model call. Runs here because it
+        # needs minutes and more memory than the forward unit's envelope.
+        out["intake"] = INT.intake_step(mode=INT.SCAN, open_new_items=INT.open_new_candidate_items(AQ.fold().values()),
+                                        log=lambda m: print(m, file=sys.stderr))
+    except AQ.QueueIntegrityError as exc:
+        out["hard_failure"] = f"QUEUE_INTEGRITY: {exc}"
+        return out
+    except Exception as exc:
+        if type(exc).__name__ == "AutonomyContractError":
+            out["hard_failure"] = f"AUTONOMY_CONTRACT: {exc}"
+            return out
+        out["intake"] = {"new_candidate_scan": "ERROR", "error": f"{type(exc).__name__}: {exc}"}
+    out["steps"]["intake"] = {"ran_at": _now(), "state": (out["intake"] or {}).get("new_candidate_scan")}
+    try:
         out["queue"] = ORC.queue_step()
     except AQ.QueueIntegrityError as exc:
         out["hard_failure"] = f"QUEUE_INTEGRITY: {exc}"
@@ -822,16 +842,63 @@ def auto_research() -> dict[str, Any]:
         ORC.record_run_status(steps, started_at=started, finished_at=_now(), kind="research")
     except Exception as exc:
         steps["run_status_write"] = f"{type(exc).__name__}: {exc}"
-    return {"integrity": integrity["verdict"], "research_queue": auto["queue"], "research": auto["research"],
-            "autonomy_hard_failure": auto["hard_failure"], "paper": paper, "steps": steps,
+    return {"integrity": integrity["verdict"], "intake": auto["intake"], "research_queue": auto["queue"],
+            "research": auto["research"], "autonomy_hard_failure": auto["hard_failure"], "paper": paper,
+            "steps": steps,
             "decisions_changed": sum(1 for r in (auto["research"] or {}).get("results") or []
                                      if r.get("ledger_written"))}
 
 
 def intake_scan() -> dict[str, Any]:
+    """SCAN mode by hand (SEC on demand within the contract's cap, then E1->E3). No model call."""
     from app.strategies.h_auto import intake as INT
     from app.strategies.h_auto import queue as AQ
-    return INT.intake_step(open_new_items=INT.open_new_candidate_items(AQ.fold().values()))
+    return INT.intake_step(mode=INT.SCAN, open_new_items=INT.open_new_candidate_items(AQ.fold().values()),
+                           log=lambda m: print(m, file=sys.stderr))
+
+
+def intake_gate() -> dict[str, Any]:
+    """GATE mode by hand: refresh H's reference snapshot and report the freshness gate."""
+    from app.strategies.h_auto import intake as INT
+    from app.strategies.h_auto import queue as AQ
+    return INT.intake_step(mode=INT.GATE, open_new_items=INT.open_new_candidate_items(AQ.fold().values()),
+                           massive_client_factory=INT.default_massive_client)
+
+
+def intake_readiness() -> dict[str, Any]:
+    """Production universe and price-history readiness (sections 5-6 of the completion brief). Pure read."""
+    from app.strategies.h_auto import intake as INT
+    from app.strategies.h_auto import sources as SRC
+    now = datetime.now(timezone.utc)
+    universe = SRC.universe_readiness(now)
+    sample: list[str] = []
+    snap = SRC.reference_in_force(date.fromisoformat(universe["session"])) if "session" in universe else None
+    if snap is not None:
+        rows = [r["ticker"] for r in SRC.active_cs_rows(SRC.reference_rows(snap.path)) if str(r.get("cik") or "").strip()]
+        sample = SRC.deterministic_sample(rows, 20)
+    return {"gate": INT.freshness(now), "universe": universe, "prices": SRC.price_readiness(now, sample),
+            "intake_status": INT.SR.read_json(ST.path(INT.INTAKE_STATUS)),
+            "index_rows": len(INT.read_index())}
+
+
+def build_price_history() -> dict[str, Any]:
+    """Pin H's market-wide history from this tree's A grouped files, for sessions before ``--before``
+    (default 2026-08-11, the first session in trader-j's grouped store). Run where the files exist."""
+    from app.strategies.h_auto import inputs as IN
+    before = date.fromisoformat(os.environ.get("H_PRICE_HISTORY_BEFORE", "2026-08-11"))
+    return IN.build_price_history(IN.GROUPED_DIR, before=before)
+
+
+def build_reference_history() -> dict[str, Any]:
+    """Pin the quarterly CS snapshots before ``H_REFERENCE_HISTORY_BEFORE`` (default 2026-10-01) for D5."""
+    from app.strategies.h_auto import inputs as IN
+    before = date.fromisoformat(os.environ.get("H_REFERENCE_HISTORY_BEFORE", "2026-10-01"))
+    return IN.build_reference_history(IN.REPO_ROOT / "data/runtime/strategy_c/raw/tickers", before=before)
+
+
+def verify_price_history() -> dict[str, Any]:
+    from app.strategies.h_auto import inputs as IN
+    return IN.verify_price_history()
 
 
 def build_price_base() -> dict[str, Any]:
@@ -846,7 +913,10 @@ COMMANDS = {"preflight": preflight, "launch": launch, "collect-prices": collect_
             "paper-launch": HP.launch, "paper-run": HP.run, "paper-verify": HP.verify,
             "paper-status": paper_status, "research-queue": research_queue,
             "auto-status": auto_status, "auto-queue": auto_queue, "auto-research": auto_research,
-            "intake-scan": intake_scan, "build-price-base": build_price_base}
+            "intake-scan": intake_scan, "intake-gate": intake_gate, "intake-readiness": intake_readiness,
+            "build-price-base": build_price_base, "build-price-history": build_price_history,
+            "verify-price-history": verify_price_history,
+            "build-reference-history": build_reference_history}
 
 #: ``update`` exits non-zero only for the forward shadow's own integrity. A degraded SEC refresh is
 #: success for the unit (prices were collected) but is never silent: it is printed to stderr, kept in

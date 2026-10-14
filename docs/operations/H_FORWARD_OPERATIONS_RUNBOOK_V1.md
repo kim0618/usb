@@ -193,18 +193,34 @@ refresh queue are not touched by the paper book, so they need no restore.
 Contract: `docs/operations/h_autonomous_pipeline_v1.json`; write-up
 `docs/backtest/strategy_h_v2/H_V2_AUTONOMOUS_PIPELINE_CONTRACT_V1.md`. Once deployed:
 
-* `update` (usb-h-forward, 01:10 ET) runs prices/outcomes, SEC refresh, material scan, intake gate,
-  the unified queue, then paper/NAV. Its price requests stop at the previous XNYS session in ET, so
+* `update` (usb-h-forward, 01:10 ET) runs prices/outcomes, SEC refresh, material scan, intake GATE
+  (refreshes `d7/auto/reference/CS_<publishable session>` with Strategy A's reference fetcher, about
+  6 Massive calls, then checks reference age <= 7 days, A's grouped store holds the publishable
+  session and >= 252 sessions), the unified queue, then paper/NAV. Its price requests stop at the previous XNYS session in ET, so
   the nightly 403 on today's unopened session no longer appears. A 403 on an earlier session is a
   real failure.
-* `auto-research` (usb-h-research, 01:40 ET, same flock) rebuilds the queue, runs budgeted research,
-  then paper/NAV again. Exit 0 even when research fails (stderr `H_RESEARCH_DEGRADED`); exit 3 paper
+* `auto-research` (usb-h-research, 01:40 ET, same flock) first runs the intake SCAN (SEC on demand
+  for at most 700 market-passing CIKs, about 10 minutes and 1,400 SEC requests at 5/s; then the
+  frozen E1/E2/E3 in batches of 20 issuers, measured peak 286 MB; writes `auto/intake_index.json`
+  and `new_candidates.json`; deletes SEC bodies of every non-candidate CIK), then rebuilds the queue,
+  runs budgeted research, then paper/NAV again. Exit 0 even when research fails (stderr `H_RESEARCH_DEGRADED`); exit 3 paper
   accounting; exit 4 queue or autonomy-contract integrity.
 * Turn research on: `.venv/bin/python -m app.dev.run_h_v2_d7 auto-authorize --cap 24 --by <name>`
   (`--scope REFRESH_AND_NEW_CANDIDATE` to include new candidates). Turn it off: delete
   `data/runtime/strategy_h_v2/d7/auto/authorization.json`. Nothing else is needed.
 * Look: `auto-status` (queue counts, items, budget, runtime timestamps), `research-queue` (planner),
-  `intake-scan` (freshness gate), `journalctl -u usb-h-research`.
+  `intake-readiness` (gate, universe counts, 20-ticker price coverage sample; pure read),
+  `intake-gate` (reference refresh + gate), `intake-scan` (SEC slice + E1->E3 by hand),
+  `cat d7/intake_status.json` (per-row readiness counts), `journalctl -u usb-h-research`.
+* Intake failure states (recorded, never skipped): REFERENCE_SNAPSHOT_STALE / LATEST_PRICE_SESSION_STALE
+  / PRICE_HISTORY_INSUFFICIENT (gate: the whole scan waits, new_candidates.json untouched);
+  per row REFERENCE_NOT_READY (no CIK or FIGI), IDENTITY_INELIGIBLE, PRICE_NOT_READY, MARKET_INELIGIBLE,
+  FUNDAMENTALS_FETCH_REQUIRED (not yet in the rolling SEC slice), SEC_NOT_READY (SEC 404).
+  A SEC transport failure ends the slice for the day (`sec.degraded`), the rest waits.
+* Executor failure states for a new candidate, before any model call: METHOD_JUDGEMENT_NOT_READY
+  (financial SIC 6000-6799, unknown SIC, no computable multiple - e.g. no cover-page share count -
+  or no section-17 ECONOMICALLY_REASONABLE method; reasons in `research/<run>/<item>/method_judgement.json`),
+  PRICE_HISTORY_INSUFFICIENT, DECISION_SESSION_UNPRICED, PRICE_SOURCE_CONFLICT.
 * A FAILED item is not retried by hand for its result. An infra failure retries once on the next
   day by itself. A new filing for the same issuer creates a new item.
 * Rollback: `systemctl disable --now usb-h-research.timer`, restore the backed-up backend files,
