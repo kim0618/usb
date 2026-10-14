@@ -1,0 +1,109 @@
+{
+  "declaration": {
+    "contract_id": "H_D3D4_DETERMINISTIC_PRODUCTION_V1",
+    "declared_at_kst": "2026-10-14",
+    "status": "FROZEN_BEFORE_HISTORICAL_REPLAY_AND_BEFORE_ANY_REAL_DATA_RUN",
+    "checksum_recipe": "sha256 of json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False)",
+    "purpose": "Generate the D3 and D4 records D6 reads, in production, from code-owned evidence only. Every rule below is a direct reading of a frozen H-V2 contract line (cited) or a statutory fact; a field the frozen contracts leave to AI judgement with no code-decidable reading is not produced (abstention), and is listed with its effect on D6.",
+    "authority_order": ["frozen contract / preregistration", "authoritative result documents", "current implementation", "historical model output (never an answer key)"],
+    "new_numeric_thresholds": 0,
+    "revision_rule": "a rule change after the replay is a new contract version (V2), never an edit of V1"
+  },
+  "d6_binding_projection": {
+    "source": "app.dev.run_strategy_h_v2_d6.project_d3 / project_d4 / project_d5 and decision.d6_contract (unchanged)",
+    "d3_binding": {
+      "business_model.revenue_drivers non-empty": "APPROVE business_understood; REJECT thesis_unsupported_by_the_evidence_bundle when empty",
+      "fundamental_change count and source_id": "APPROVE fundamental_change_anchored; REJECT thesis_unsupported when count 0",
+      "future_business stages and the five flags": "APPROVE future_business_or_catalyst_meaningful; REJECT story_only (only when the list is non-empty)",
+      "catalyst_candidates count, materiality_candidate, timing_confidence": "APPROVE (material AND timed); REJECT no_catalyst_identifiable_in_the_thesis_horizon when count 0",
+      "risks count and invalidation_candidates count": "APPROVE risks_with_an_invalidation_condition",
+      "unknown_fields tokens business_model / fundamental_change / expectation_gap": "APPROVE no_approve_blocking_unknown_field",
+      "final_output present": "D3_VALID vs D3_REFUSED_NO_FINAL_OUTPUT (eligibility)"
+    },
+    "d3_not_binding": ["growth_durability.state (basis text only; the deterioration trigger is NOT_EVALUATED in D6)", "competitive_position (count only)", "evidence_conflicts (count only)", "research_completeness (basis text only)", "management_execution", "why_now_candidate", "open_questions"],
+    "d4_binding": {
+      "expectation_gap in {POSITIVE, WIDE_POSITIVE} AND confidence in {HIGH, MEDIUM}": "APPROVE (D0 §L)",
+      "expectation_gap in {NEGATIVE, WIDE_NEGATIVE}": "REJECT adverse_expectation_gap",
+      "anything else (NEUTRAL, UNKNOWN, positive at LOW/UNKNOWN)": "neither: WATCH unless another clause decides"
+    },
+    "d4_not_binding": ["priced_in_assessment", "conflicts (count only)", "confidence_ceiling (record)", "d6_approve_precondition (cross-check only)", "why_now", "management_signal_changes", "guidance_assessments"],
+    "consequence": "NEUTRAL versus UNKNOWN never changes a D6 decision; only the positive-at-MEDIUM path and the negative path do"
+  },
+  "d3": {
+    "generator": "H_D3_DETERMINISTIC_V1",
+    "output_schema": "h_research_interpretation_v2, validated with the package's own valid_source_ids / valid_evidence_ids and cross_check_fundamental_change_states; a record that fails validation has no final_output (D3_REFUSED_NO_FINAL_OUTPUT)",
+    "rules": {
+      "R3.1_business_model": {
+        "rule": "revenue_drivers = one FACT claim citing the first chunk with section BUSINESS of the package's LATEST_10K source; empty when the package has no such chunk",
+        "basis": "D0 §N3 'thesis unsupported by the evidence bundle': the deterministic thesis is the set of code-owned states, and the bundle supports it when the issuer's own business disclosure is in it. D0 §V keeps the interpretation of that text with AI, so code cites, never reads.",
+        "claim_text": "Issuer business description disclosed in the latest 10-K (section BUSINESS).",
+        "claim_confidence": "HIGH (a disclosure is present or it is not)"
+      },
+      "R3.2_fundamental_change": {
+        "rule": "one entry per bundle.fundamental_changes metric whose code-owned state is not UNKNOWN and whose latest point's accession is a package source with at least one chunk; code_owned_state = that state; explanation = one FACT claim stating the metric and state, citing that source's first chunk in RESULTS_OF_OPERATIONS, else MD_AND_A, else its first chunk; durability_relevant = false (schema-required, unread by D6)",
+        "basis": "D0 §V 'fundamental-change detection (trend/acceleration flags) = code'; D1/E2 change_detection is the frozen detector; D3 §I 'why it changed' stays AI-owned and is not produced"
+      },
+      "R3.3_growth_durability": {"rule": "state UNKNOWN, checklist all null, rationale empty", "basis": "no frozen rule or validator maps evidence to a durability state (audit 2026-10-14)", "class": "E_NON_BINDING"},
+      "R3.4_future_business": {"rule": "empty list", "basis": "D0 §J needs a named future-business line; no code-owned evidence identifies one, and the floor table maps stage to a minimum count of model-written flags, not evidence to stage", "class": "E_APPROVE_PATH"},
+      "R3.5_catalyst": {
+        "rule": "one catalyst of type 'earnings' = the issuer's next periodic report, included when its statutory filing deadline is on or before the decision session + 3 calendar months",
+        "next_report": "periodic reports = 10-K and 10-Q in the SEC submissions (amendments excluded), ordered by reportDate; with at least four, the next report has the form of the 4th latest and the period end of the 4th latest's reportDate + 1 calendar year (the issuer's own cadence, 52/53-week years included); with fewer than four the catalyst is underivable",
+        "deadline": "period end + statutory days (Form 10-K General Instruction A, Form 10-Q General Instruction A): 10-K 60 / 75 / 90 days for large accelerated / accelerated / other filers; 10-Q 40 / 40 / 45 days; filer category from submissions.category, unknown -> other; a Saturday/Sunday deadline rolls to Monday",
+        "expected_time": "the deadline (an upper bound)",
+        "timing_confidence": "UNKNOWN",
+        "materiality_candidate": "UNKNOWN",
+        "sources": "the latest periodic report's source id when it is in the package, else the latest 10-K source",
+        "basis": "D0 §K lists earnings as a catalyst type, horizon 'weeks to 3 months' (§R); materiality and timing confidence are AI-owned (D0 §V) and no frozen rule sets them",
+        "underivable": "fewer than four periodic reports, no reportDate, or no citable source: the record is refused (no final_output) instead of written with zero catalysts, because zero would fire D6's no-catalyst REJECT on missing data",
+        "class_of_materiality": "E_APPROVE_PATH"
+      },
+      "R3.6_risks": {
+        "rule": "EVIDENCE_GAP for each of revenue, operating_income, eps_diluted, free_cash_flow, operating_margin whose code-owned state is UNKNOWN (source: the LATEST_10K source); DILUTION when shares_outstanding state is INCREASING (source: that point's filing)",
+        "basis": "RiskCategory EVIDENCE_GAP and DILUTION are the enum members whose meaning equals a code-owned fact; every other category needs a reading of filing text"
+      },
+      "R3.7_invalidation": {"rule": "empty list", "basis": "no frozen deterministic invalidation condition exists", "class": "E_APPROVE_PATH"},
+      "R3.8_ai_owned_lists": {"rule": "competitive_position, management_execution, evidence_conflicts, open_questions empty", "basis": "AI-owned interpretation; unread or count-only in D6"},
+      "R3.9_why_now": {"rule": "summary 'Deterministic re-evaluation on code-owned evidence.', reasons empty", "basis": "why_research_now only; unread by D6"},
+      "R3.10_unknown_fields": {"rule": "always growth_durability, future_business, catalyst_materiality, invalidation_candidates, competitive_position, management_execution; plus business_model when R3.1 is empty and fundamental_change when R3.2 is empty"},
+      "R3.11_completeness": {"rule": "INSUFFICIENT_EVIDENCE when R3.1 and R3.2 are both empty, else PARTIAL"},
+      "R3.12_metadata": {"rule": "model 'NONE (deterministic)', model_version null, prompt_version 'H_D3_DETERMINISTIC_V1', research_id 'D3D-<ticker>-<run>'"}
+    }
+  },
+  "d4": {
+    "generator": "H_D4_DETERMINISTIC_V1",
+    "inputs_code_owned": {
+      "event price reaction": "price_engine: 1d/3d raw and benchmark-adjusted returns per official event, alignment flag (fraction)",
+      "pre-event run-up": "5/20-session returns before the event (fraction)",
+      "relative strength, returns, drawdown, volatility": "code_facts (fraction)",
+      "guidance / management passages": "located by frozen term lists; their reading is AI-owned (D4 §Q)",
+      "guidance direction arithmetic": "classify_range_movement / result_vs_range exist but need ranges transcribed from text, which is AI-owned (D4 §Q)",
+      "consensus, estimate revisions": "always SOURCE_NOT_AVAILABLE",
+      "fundamental states": "D1/E2 via the D2 bundle and R3.2",
+      "future-business state": "R3.4 (none)"
+    },
+    "rules": {
+      "G1_POSITIVE_WIDE_POSITIVE": {"rule": "inadmissible while the count of code-owned non-price expectation items is 0", "basis": "C1 (D4 §L): a POSITIVE needs a guidance assessment, a result-vs-guidance comparison or a sourced management signal; all three need a transcription D4 §Q gives to AI; C2 additionally needs a future-business item above STORY", "class": "E_CORE"},
+      "G2_NEGATIVE_WIDE_NEGATIVE": {"rule": "not produced", "basis": "D0 §L 'deterioration ... that does not yet appear reflected in price/guidance'; D4 §L 'a large completed re-rating is direct evidence that expectations moved': neither the size of a re-rating nor the reaction that counts as 'reflected' is frozen anywhere", "class": "E_CORE"},
+      "G3_NEUTRAL": {"rule": "not produced", "basis": "D0 §L 'market's current pricing is a reasonable reflection': no frozen test; D6-equivalent to UNKNOWN", "class": "E_NON_BINDING"},
+      "G4_UNKNOWN": {"rule": "the state whenever G1-G3 do not apply; C6 recorded when the bundle has no price reaction", "basis": "D0 §L UNKNOWN 'a pricing-in assessment cannot be made responsibly'; D4 §P 'producing many UNKNOWNs is the engine working'"},
+      "confidence": "C5: UNKNOWN with UNKNOWN; ceiling from C4 (gap_contract.confidence_ceiling); C3 input not evaluated (conflicts are model-declared)",
+      "priced_in": "UNKNOWN (C7 and D4 §Q: AI-owned inference)",
+      "conflicts": "[] (model-declared in D3/D4)",
+      "d6_approve_precondition": "gap_contract.d6_approve_precondition on the produced state"
+    }
+  },
+  "expected_effect_on_d6_declared_before_running": {
+    "APPROVE": "unreachable: G1 (C1) and R3.4/R3.5 materiality/R3.7 each block it",
+    "REJECT": "reachable through D5 fully priced, through R3.1/R3.2 empty, or through a next report whose deadline is beyond the horizon; never through the gap",
+    "WATCH": "every other decision-eligible issuer",
+    "NOT_DECISION_ELIGIBLE": "only when R3.12 validation fails or R3.5 is underivable, or D5 abstains"
+  },
+  "difference_classes": {
+    "A": "model discretionary interpretation",
+    "B": "deterministic contract intentionally abstains",
+    "C": "historical model violated or overstated the contract",
+    "D": "deterministic implementation bug (the only class that allows a code fix)",
+    "E": "contract truly underspecified"
+  },
+  "verdict_rule": "class E on a D6-binding path is NEEDS REVISION for this stage, recorded, never patched inside this version"
+}
