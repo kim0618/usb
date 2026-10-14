@@ -8,6 +8,14 @@ what happened in a past stage, the result document wins.
 Last verified: 2026-10-14 16:00 KST (NO-AI repair, local), before that 2026-10-14 14:50 KST, after the autonomous pipeline production deployment
 (`H_V2_AUTONOMOUS_PIPELINE_PRODUCTION_V1.md`), against the production host.
 
+**2026-10-14 D3/D4 deterministic production contract V1 (local, NOT DEPLOYED;
+`H_V2_D3D4_DETERMINISTIC_PRODUCTION_CONTRACT_V1.md`, contract `docs/operations/h_d3d4_deterministic_v1.json`
+frozen before replay).** Production H reaches real D6 decisions with no AI: FG WATCH->WATCH, VRRM
+WATCH->WATCH, new candidate ADI admitted WATCH (production-copy data). Verdict NEEDS REVISION: R3.1
+reads a D2.1 package without a labelled 10-K BUSINESS chunk as "unsupported" (REJECT on a collection
+artifact; DORM in the replay), and the frozen contracts decide no non-UNKNOWN expectation gap, so APPROVE
+is unreachable. V2 items are listed in §5 of that document.
+
 **2026-10-14 NO-AI runtime repair (local, NOT DEPLOYED; `H_V2_PRODUCTION_NO_AI_RUNTIME_REPAIR_V1.md`).**
 Research-time AI = historical only. Production-time AI = NONE. Production evaluation = deterministic
 (`H_V2_AUTONOMOUS_PIPELINE_V2_NO_AI`; Claude CLI, OAuth, API key, `authorization.json` and the AI budget

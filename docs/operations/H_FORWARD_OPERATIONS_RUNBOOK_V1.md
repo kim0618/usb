@@ -200,9 +200,11 @@ This section supersedes the model, budget and authorization parts of §10. Write
   runs SCAN, the candidate evaluation queue, the code-owned D3/D4, D5_D2R_V1, D6, then paper/NAV.
   Every item runs inside `no_ai_guard`; an attempt to reach a model fails the item
   (`PRODUCTION_AI_CALL_BLOCKED`) and writes no ledger row.
-* Expected result today: `final_decision = NOT_DECISION_ELIGIBLE` for every item (the frozen D3/D4
-  judgements have no code generator). The forward ledger and the paper book are unchanged by it; the
-  queue item keeps the D5 values and the D6 blockers.
+* D3/D4 run under the frozen `H_D3D4_DETERMINISTIC_PRODUCTION_V1` (`docs/operations/h_d3d4_deterministic_v1.json`,
+  checksum-verified on load). Expected results: WATCH or REJECT written to the ledger as usual (WATCH and
+  REJECT enter nothing); APPROVE is unreachable under V1; NOT_DECISION_ELIGIBLE only when the next
+  periodic report cannot be derived (fewer than 4 periodic reports) or D5 abstains. The queue item keeps
+  the D5 values and the D6 blockers. `METHOD_NOT_READY` = no code-owned MethodJudgement; retried next run.
 * `usb-h-research` is removed. Install `usb-h-evaluation` disabled; enable only after the RAM decision
   (measured peak about 280 MB, trader-j had 150-200 MB available on 2026-10-14).
 * Look: `auto-status` (mode DETERMINISTIC_NO_AI, ai_calls 0, latest_evaluation, timestamps incl.
