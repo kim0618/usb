@@ -5,8 +5,16 @@ records a stage result as of its own date and is never edited after the fact. Wh
 and a result document disagree about the present, this document wins. When they disagree about
 what happened in a past stage, the result document wins.
 
-Last verified: 2026-10-13 KST (H-V2 PAPER EXECUTION V1, local), against the repository and a
-read-only look at the production host. Production state below §L is unchanged since 2026-10-10.
+Last verified: 2026-10-14 KST (H-V2 AUTONOMOUS PIPELINE V1, local), against the repository and a
+read-only look at the production host. Production state in §L is unchanged by that work.
+
+**2026-10-14 update.** The refresh executor, unified research queue, evidence dedup, code-enforced
+budget, new-candidate intake (gated) and the research unit are implemented and tested locally, not
+deployed (`H_V2_AUTONOMOUS_PIPELINE_CONTRACT_V1.md`). A real-data preflight with no model call found
+that the frozen D2.1 policy left both FG's and VRRM's trigger 8-Ks out of the package; the executor
+now adds each missing trigger with D2.1's own extractor. FG = P0, VRRM = P1, AEYE =
+EVIDENCE_ALREADY_IN_THESIS. The nightly 403 on the not-yet-opened session is fixed in code (request
+bound = previous XNYS session in ET), not yet deployed. Decisions are unchanged: 0/6/2.
 
 ## A. Purpose
 
@@ -24,8 +32,9 @@ Forward observation      = ACTIVE (prices and outcomes validated, 1D/5D matured)
 Production operations    = HEALTHY (repair 81f06c8 deployed, timer ENABLED, 2026-10-10)
 Paper execution          = ACTIVE in production (backend, 2026-10-13 16:12 KST; H_PAPER_V1_LAUNCH
                            2026-10-13T07:09:00Z; $10,000, 0 positions, 0 trades). Frontend build DEFERRED
-Refresh executor         = NOT IMPLEMENTED
-New-candidate intake     = NOT_WIRED
+Refresh executor         = IMPLEMENTED locally (H-V2 AUTONOMOUS PIPELINE V1), NOT DEPLOYED
+New-candidate intake     = WIRED locally behind a freshness gate; NEW_CANDIDATE_SCAN = DATA_NOT_READY
+Autonomous research      = NOT AUTHORIZED (no authorization.json); live model calls so far = 0
 ```
 
 No further research is planned. A return to research is allowed only for a structural bug. It is
@@ -48,6 +57,7 @@ not allowed because APPROVE has not appeared or because of forward results.
 | Paper execution V1 | READY (local) | `H_V2_PAPER_EXECUTION_CONTRACT_V1.md` |
 | Paper execution production | ACTIVE (backend), frontend DEFERRED | `H_V2_PAPER_EXECUTION_PRODUCTION_V1.md` |
 | Refresh batch R1 | PREREGISTERED, executor NOT READY | `H_V2_REFRESH_BATCH_R1_PREREGISTRATION_V1.md` |
+| Autonomous pipeline V1 | READY locally, NOT DEPLOYED | `H_V2_AUTONOMOUS_PIPELINE_CONTRACT_V1.md` |
 
 ## D. Frozen contracts in force
 
@@ -61,6 +71,7 @@ not allowed because APPROVE has not appeared or because of forward results.
 | Refresh triggers | 10-Q, 10-K, 8-K, EARNINGS_RELEASE, GUIDANCE, MATERIAL_CORPORATE_EVENT; `daily_full_rerun = false` |
 | Paper execution contract | `docs/operations/h_paper_execution_v1.json`, sha256 `89f7beed…6c696c9b` (3 equal slots of 1/3 NAV, $10,000, next-session open via SimBroker `execution_v0`, TP1 half / TP2 rest / downgrade / explicit invalidation / Bear where it exists) |
 | Thesis evidence index | `docs/operations/h_thesis_evidence_v1.json` (chunked accessions of each T1 package) |
+| Autonomous pipeline contract | `docs/operations/h_autonomous_pipeline_v1.json` + `.sha256` (daily $24, reservation $12, max 2/day, `claude-opus-5-5` canonical, no fallback, P0..P3, dedup, retry 2) |
 
 ## E. Initial cohort (decision session 2026-09-16)
 
@@ -155,12 +166,12 @@ usb-h-forward.service  →  run_h_v2_d7 update
   contract still says NOT_DEFINED for the shadow itself, which holds no position.
 * **Frontend:** the H paper screens (card money, `/trading-h` positions and fills) are not yet in the
   production build. The API serves them already.
-* **New-candidate intake (D1/E1/E2/E3) = NOT_WIRED.** It is a manual dev script on a stale universe
-  snapshot (CS_2024-10-25) and the mirror, which ends 2026-09-16. H tracks only its eight launch
-  issuers.
-* **Refresh executor = NOT READY.** No path re-runs D2→D6 for one ticker at a new decision session
-  (evidence fetch, fixed package dirs, price panel ends 2026-09-16, hardcoded D6 legs). The ledger
-  writer (`h_forward.transitions`) exists.
+* **New-candidate intake (D1/E1/E2/E3)**: wired locally behind a freshness gate (2026-10-14). It is
+  DATA_NOT_READY on both hosts (reference CS_2026-10-01 is 12 days old; trader-j has no companyfacts
+  store and 44 grouped sessions; local grouped and companyfacts are stale). A candidate also needs a
+  declared D5 MethodJudgement, which no stage produces automatically.
+* **Refresh executor**: implemented locally (2026-10-14), not deployed. Before that date no path
+  re-ran D2→D6 for one ticker.
 * 21D/63D are PENDING until their own maturity sessions.
 * A/E/H UI integration (`/dashboard`, `/strategy-h`, `/strategy-compare`) is implemented. Once paper
   is launched, H's card shows its own paper account and `/trading-h` shows positions and fills. H
@@ -201,7 +212,9 @@ Observation only. No research unless a structural bug is found:
 1. Check the first timer run's journal (Mon 2026-10-12 01:10 ET): `refresh_run=OK`, integrity PASS.
 2. Watch daily forward outcomes, new material filings, WATCH/REJECT transitions and a future APPROVE.
 3. Watch 21D (2026-11-02) and 63D (2027-01-04) maturation.
-4. Operator decisions still open:
+4. Operator decisions still open (2026-10-14: the autonomous pipeline's deployment plan, RAM risk and
+   authorization step are in `H_V2_AUTONOMOUS_PIPELINE_CONTRACT_V1.md` §13; the frontend build plan
+   is its §14):
    * build the H frontend files into the next coordinated frontend build;
    * approve building the refresh executor, then batch R1 (FG and VRRM, hard cap $24.00, `claude-opus-5-5`);
    * whether to include AEYE despite EVIDENCE_ALREADY_IN_THESIS;

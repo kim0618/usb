@@ -183,8 +183,32 @@ refresh queue are not touched by the paper book, so they need no restore.
 * Each filing is checked against the accessions the thesis read
   (`docs/operations/h_thesis_evidence_v1.json`). A filing the thesis already read is
   `EVIDENCE_ALREADY_IN_THESIS`.
-* New-candidate intake (D1/E1/E2/E3) is **NOT_WIRED**. It is a manual dev script that runs on the
+* (Until §10 is deployed.) New-candidate intake (D1/E1/E2/E3) is **NOT_WIRED**. It is a manual dev script that runs on the
   stale universe snapshot `CS_2024-10-25` and the HIST mirror, which ends on 2026-09-16.
 * No model call is scheduled automatically, and the production daily budget is NOT_APPROVED. A batch
   runs only under its own preregistration (`H_V2_REFRESH_BATCH_R1_PREREGISTRATION_V1.md`).
+
+## 10. Autonomous pipeline (H_V2_AUTONOMOUS_PIPELINE_V1, local as of 2026-10-14, NOT DEPLOYED)
+
+Contract: `docs/operations/h_autonomous_pipeline_v1.json`; write-up
+`docs/backtest/strategy_h_v2/H_V2_AUTONOMOUS_PIPELINE_CONTRACT_V1.md`. Once deployed:
+
+* `update` (usb-h-forward, 01:10 ET) runs prices/outcomes, SEC refresh, material scan, intake gate,
+  the unified queue, then paper/NAV. Its price requests stop at the previous XNYS session in ET, so
+  the nightly 403 on today's unopened session no longer appears. A 403 on an earlier session is a
+  real failure.
+* `auto-research` (usb-h-research, 01:40 ET, same flock) rebuilds the queue, runs budgeted research,
+  then paper/NAV again. Exit 0 even when research fails (stderr `H_RESEARCH_DEGRADED`); exit 3 paper
+  accounting; exit 4 queue or autonomy-contract integrity.
+* Turn research on: `.venv/bin/python -m app.dev.run_h_v2_d7 auto-authorize --cap 24 --by <name>`
+  (`--scope REFRESH_AND_NEW_CANDIDATE` to include new candidates). Turn it off: delete
+  `data/runtime/strategy_h_v2/d7/auto/authorization.json`. Nothing else is needed.
+* Look: `auto-status` (queue counts, items, budget, runtime timestamps), `research-queue` (planner),
+  `intake-scan` (freshness gate), `journalctl -u usb-h-research`.
+* A FAILED item is not retried by hand for its result. An infra failure retries once on the next
+  day by itself. A new filing for the same issuer creates a new item.
+* Rollback: `systemctl disable --now usb-h-research.timer`, restore the backed-up backend files,
+  restart `usb-backend`. `d7/auto/` and the append-only forward ledger stay.
+* Note: the `usb-h-forward.service` comment still describes the old "today's session reported as
+  no_result" behaviour; the unit itself is not changed by this work.
 

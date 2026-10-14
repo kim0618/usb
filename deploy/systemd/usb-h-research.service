@@ -1,0 +1,34 @@
+[Unit]
+Description=USB Strategy H-V2 autonomous research (budgeted D2->D6 on the research queue, then paper/NAV)
+After=network-online.target usb-h-forward.service
+Wants=network-online.target
+# A once-a-day job must not crash-loop between timers.
+StartLimitIntervalSec=1800
+StartLimitBurst=3
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/root/usb
+EnvironmentFile=/root/usb/.env
+EnvironmentFile=/root/usb/.env.massive
+Environment=PYTHONPATH=/root/usb/backend
+Environment=PYTHONUNBUFFERED=1
+# The D3/D4 runners call the Claude Code CLI only through CLAUDE_CODE_EXECPATH. HOME is where its
+# login lives. Without data/runtime/strategy_h_v2/d7/auto/authorization.json no model call is made.
+Environment=CLAUDE_CODE_EXECPATH=/usr/bin/claude
+Environment=HOME=/root
+# Same lock as usb-h-forward: the research run and the daily update never write H's files at the
+# same time, and research always sees the queue the update just rebuilt.
+ExecStart=/usr/bin/flock -w 1800 /run/usb-h-forward.lock \
+  /root/usb/.venv/bin/python -m app.dev.run_h_v2_d7 auto-research
+# Worst case under h_autonomous_pipeline_v1: 2 candidates x (3 D3 calls x 300s + 3 D4 calls x 600s)
+# = 90 min of model time, plus SEC fetches, D5 and the lock wait.
+TimeoutStartSec=150min
+# The CLI (node) runs inside this cgroup next to Python. Not measured on trader-j yet: the first
+# authorized run must be watched (journal + memory.peak). On a 1 GB host the cap is what keeps an
+# overrun from reaching the trading services; an OOM here fails this unit only.
+MemoryMax=650M
+Nice=10
+# Exit codes: 0 ok (a research failure is reported, not fatal), 3 paper accounting, 4 queue or
+# autonomy contract integrity.

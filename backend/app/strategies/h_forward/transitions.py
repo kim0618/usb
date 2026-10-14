@@ -91,3 +91,45 @@ def record(ticker: str, *, decision: str, cause: str, thesis_version: str, decis
     }
     ST.append_ledger([row])
     return row
+
+
+ADMISSION = "NEW_CANDIDATE_ADMISSION"
+
+
+def admit(ticker: str, *, cik: str, decision: str, thesis_version: str, decision_time: str,
+          effective_session: str, d5_contract: str, valuation: Mapping[str, Any],
+          checksums: Mapping[str, str], evidence: Mapping[str, Any],
+          key_binding_clause: str | None = None) -> dict[str, Any]:
+    """Append the first row of an issuer admitted after launch (cohort tag NEW_FORWARD_CANDIDATE).
+
+    The D7 contract names this cohort ("admitted after launch through the frozen D1->D6
+    pipeline"). Every decision-eligible result is admitted - APPROVE, WATCH and REJECT alike - so a
+    rejection stays falsifiable. An issuer already in the ledger is refused: it is refreshed through
+    ``record``, never admitted twice.
+    """
+    if ticker in ST.latest_per_ticker():
+        raise TransitionRefused(f"{ticker} is already in H's forward ledger")
+    if d5_contract != C.required_d5_contract():
+        raise TransitionRefused(f"D5 contract {d5_contract!r} is refused; {C.required_d5_contract()} is required")
+    if decision not in C.DECISION_STATES:
+        raise TransitionRefused(f"decision {decision!r} is not a decision state")
+    if not cik:
+        raise TransitionRefused("an admitted issuer must carry its CIK")
+    _parse(decision_time)
+    row = {
+        "strategy_id": C.STRATEGY_H, "ticker": ticker, "cik": cik, "thesis_version": thesis_version,
+        "decision_time": decision_time, "record": "ADMISSION", "cohort_tag": C.NEW_CANDIDATE,
+        "decision": decision, "previous_decision": None, "transition": f"NONE->{decision}",
+        "cause": ADMISSION, "effective_session": effective_session, "decision_session": effective_session,
+        "tp1": valuation.get("tp1"), "tp2": valuation.get("tp2"), "bear": valuation.get("bear"),
+        "bear_refusal": valuation.get("bear_refusal"),
+        "valuation_confidence": valuation.get("confidence"),
+        "valuation_method": valuation.get("primary_method"),
+        "valuation_window": valuation.get("contract_window"),
+        "key_binding_clause": key_binding_clause,
+        "d3_checksum": checksums.get("d3_output"), "d4_checksum": checksums.get("d4_output"),
+        "d5_checksum": checksums.get("d5_row"), "d6_checksum": checksums.get("d6_decision"),
+        "d5_contract": d5_contract, "evidence": dict(evidence), "invalidation": None, "position": None,
+    }
+    ST.append_ledger([row])
+    return row

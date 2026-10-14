@@ -109,14 +109,27 @@ def collect_prices(*, upto: str | None = None, start: str | None = None) -> dict
     from app.integrations.massive.client import build_massive_client
 
     begin = start or C.decision_session()
-    end = upto or date.today().isoformat()
+    end = upto or publishable_session()
     missing = PR.gaps(begin, end)
     if not missing:
         return {"written": [], "already_stored": [], "no_result": [], "failed": {},
-                "requested": [], "latest_session": PR.latest_session()}
+                "requested": [], "latest_session": PR.latest_session(), "request_upper_bound": end}
     client = build_massive_client(get_settings())
     report = PR.collect(missing, cohort_symbols(), client=client, fetched_at=_now())
-    return report | {"requested": missing, "latest_session": PR.latest_session()}
+    return report | {"requested": missing, "latest_session": PR.latest_session(), "request_upper_bound": end}
+
+
+def publishable_session(now: datetime | None = None) -> str:
+    """The newest session Massive can have published: the XNYS session before today in ET.
+
+    The 01:10 ET run used to ask for today's session too (``date.today()``), which has not opened
+    yet; Massive answers that with HTTP 403 and the report showed a failure every night. The bound is
+    the same publishing rule Strategy A's grouped-daily collector uses
+    (``collector.range.previous_trading_day``). A 403 on a session at or before the bound is still
+    reported as a failure - only the request for a session that cannot exist yet is no longer made.
+    """
+    from app.backtest.collector.range import previous_trading_day
+    return previous_trading_day(MarketCalendar(), now or datetime.now(timezone.utc)).isoformat()
 
 
 # -------------------------------------------------------------------------------------------------
@@ -376,10 +389,23 @@ def ledger_rows_for(snapshot: Sequence[Mapping[str, Any]], *, launched_at: str,
 # Material-event refresh queue (§13): what would need re-evaluating, from H's own SEC cache only
 # -------------------------------------------------------------------------------------------------
 
+def refresh_cohort() -> list[dict[str, Any]]:
+    """The issuers the SEC refresh and the material scan watch: the launch cohort, plus any issuer
+    admitted later (ledger ``ADMISSION`` rows carry ticker, CIK and decision session). With no
+    admission this is exactly ``ST.launch_rows()``."""
+    rows = list(ST.launch_rows())
+    seen = {r["ticker"] for r in rows}
+    for row in ST.ledger():
+        if row.get("record") == "ADMISSION" and row.get("ticker") not in seen:
+            rows.append(row)
+            seen.add(row["ticker"])
+    return rows
+
+
 def _scan_issuers(caches: Mapping[str, SR.Cache], today: str) -> tuple[list[dict[str, Any]], list[str]]:
     forms = set(C.material_events()) | {"10-Q", "10-K", "8-K"}
     out: list[dict[str, Any]] = []
-    for snap in ST.launch_rows():
+    for snap in refresh_cohort():
         cik = snap.get("cik")
         thesis_cutoff = (snap.get("d3") or {}).get("research_id") or ""
         cache = caches.get(snap["ticker"])
@@ -430,7 +456,7 @@ def refresh_scan(*, dry_run: bool = False, ready: Mapping[str, Any] | None = Non
     target = ST.path(REFRESH_QUEUE)
     previous = SR.read_json(target)
     sha_before = SR.file_sha(target)
-    launch = ST.launch_rows()
+    launch = refresh_cohort()
     ready = ready if ready is not None else SR.readiness(launch, today=today)
     kept = {"replaced": False, "queue_sha256_before": sha_before, "queue_sha256_after": sha_before,
             "refresh_due": list((previous or {}).get("refresh_due") or []),
@@ -462,7 +488,7 @@ def refresh_scan(*, dry_run: bool = False, ready: Mapping[str, Any] | None = Non
 
 def sec_refresh() -> dict[str, Any]:
     """Fetch today's submissions for the launch cohort's CIKs (and nothing else) into H's cache."""
-    return SR.fetch(ST.launch_rows(), required_from=C.decision_session())
+    return SR.fetch(refresh_cohort(), required_from=C.decision_session())
 
 
 def _material_refresh() -> dict[str, Any]:
@@ -483,7 +509,7 @@ def _material_refresh() -> dict[str, Any]:
             # Today's fetch is incomplete: do not rescan an older root as if it were today's news.
             target = ST.path(REFRESH_QUEUE)
             sha = SR.file_sha(target)
-            ready = SR.readiness(ST.launch_rows())
+            ready = SR.readiness(refresh_cohort())
             scan = {"replaced": False, "scan_performed": False, "queue_sha256_before": sha,
                     "queue_sha256_after": sha,
                     "refresh_due": list((SR.read_json(target) or {}).get("refresh_due") or []),
@@ -573,35 +599,122 @@ def launch() -> dict[str, Any]:
 
 
 def update() -> dict[str, Any]:
-    """The daily job, in two failure domains.
+    """The daily job, in the order and failure domains of ``h_autonomous_pipeline_v1``.
 
     1. prices and outcomes - the forward shadow itself. A failure here is the run's failure.
-    2. SEC submissions refresh, then the material scan - only after step 1 has been written, and
-       unable to undo it. A failure here is reported as ``REFRESH_DEGRADED`` (stderr and
-       ``refresh_status.json``) and leaves the refresh queue byte-identical.
+    2-3. SEC submissions refresh, then the material scan - after step 1, unable to undo it. A failure
+       is ``REFRESH_DEGRADED`` (stderr and ``refresh_status.json``), the refresh queue unchanged.
+    4. new-candidate intake - a freshness gate; stale data is ``DATA_NOT_READY`` and nothing else.
+    5. the unified research queue (planner + persistent queue).
+    6-7. budgeted research and its decision transitions run in ``auto-research`` (usb-h-research,
+       same lock, after this unit), which ends with steps 8-9 again.
+    8-9. paper entries/exits and NAV - always run, reading the ledger and prices the steps above wrote.
 
-    No decision moves here. A transition requires a D3->D4->D5->D6 re-evaluation on new material
-    evidence, which this command can only queue, never perform.
+    Steps 4-6 can fail without stopping 1-3 or 8-9. Hard failures: forward integrity (exit 2), paper
+    accounting (exit 3), the autonomy contract checksum or the queue's own integrity (exit 4).
+    A price never moves a decision.
     """
+    started = _now()
     price_report = collect_prices()
     body = VW.forward()
     integrity = verify()
+    steps: dict[str, Any] = {"prices": {"ran_at": _now(), "latest_session": price_report.get("latest_session"),
+                                        "integrity": integrity["verdict"]}}
     refresh = _material_refresh() if ST.launched() else {"refresh_run": "NOT_LAUNCHED",
                                                          "research_refresh_due": []}
+    steps["sec_refresh"] = {"ran_at": _now(), "state": refresh.get("refresh_run"),
+                            "cache_as_of": refresh.get("cache_as_of")}
+    auto = _autonomy_steps(forward_integrity=integrity["verdict"])
+    steps.update(auto["steps"])
     paper = _paper_step()
-    queue = _research_queue_step()
+    steps["paper"] = {"ran_at": _now(), "state": paper.get("paper_run")}
+    try:
+        from app.strategies.h_auto import orchestrator as ORC
+        ORC.record_run_status(steps, started_at=started, finished_at=_now())
+    except Exception as exc:                                   # a status file never fails the run
+        steps["run_status_write"] = f"{type(exc).__name__}: {exc}"
     return {"prices": price_report, "decision_counts": body["decision_counts"],
             "maturity": body["maturity"], "evaluation": body["evaluation"],
             "integrity": integrity["verdict"], "integrity_problems": integrity["problems"],
             "refresh": refresh,
             "refresh_due": refresh["research_refresh_due"],
-            "paper": paper, "research_queue": queue,
-            "decisions_changed": 0,
-            "note": "가격 갱신은 결정을 바꾸지 않는다 (D7 계약 §transitions)"}
+            "intake": auto["intake"], "research_queue": auto["queue"], "research": auto["research"],
+            "autonomy_hard_failure": auto["hard_failure"],
+            "paper": paper, "steps": steps,
+            "decisions_changed": sum(1 for r in (auto["research"] or {}).get("results") or []
+                                     if r.get("ledger_written")),
+            "note": "가격 갱신은 결정을 바꾸지 않는다. 결정은 D3->D6 재평가로만 바뀐다 (D7 계약 §transitions)"}
+
+
+def _autonomy_steps(*, forward_integrity: str) -> dict[str, Any]:
+    """Steps 4-6, each in its own try. Never raises into the price or paper steps."""
+    from app.strategies.h_auto import contract as AC
+    from app.strategies.h_auto import intake as INT
+    from app.strategies.h_auto import orchestrator as ORC
+    from app.strategies.h_auto import queue as AQ
+    out: dict[str, Any] = {"intake": None, "queue": None, "research": None, "hard_failure": None, "steps": {}}
+    try:
+        AC.contract()
+    except Exception as exc:
+        out["hard_failure"] = f"AUTONOMY_CONTRACT:{type(exc).__name__}: {exc}"
+        return out
+    try:
+        out["intake"] = INT.intake_step(open_new_items=INT.open_new_candidate_items(AQ.fold().values()))
+    except AQ.QueueIntegrityError as exc:
+        out["hard_failure"] = f"QUEUE_INTEGRITY: {exc}"
+        return out
+    except Exception as exc:
+        out["intake"] = {"new_candidate_scan": "ERROR", "error": f"{type(exc).__name__}: {exc}"}
+    out["steps"]["intake"] = {"ran_at": _now(), "state": (out["intake"] or {}).get("new_candidate_scan")}
+    try:
+        out["queue"] = ORC.queue_step()
+    except AQ.QueueIntegrityError as exc:
+        out["hard_failure"] = f"QUEUE_INTEGRITY: {exc}"
+        return out
+    except Exception as exc:
+        out["queue"] = {"state": "ERROR", "error": f"{type(exc).__name__}: {exc}"}
+    out["steps"]["queue"] = {"ran_at": _now(), "state": out["queue"].get("state")}
+    # Step 6 runs in its own unit (usb-h-research, same lock, after this one): a model call needs
+    # minutes and a node process this unit's 300M/20min envelope was never sized for.
+    out["research"] = {"state": "SEPARATE_UNIT", "unit": "usb-h-research.service"}
+    return out
+
+
+def _research_steps(*, forward_integrity: str) -> dict[str, Any]:
+    """Steps 5-6 for ``auto-research``. Never raises; a queue integrity error is a hard failure."""
+    from app.strategies.h_auto import contract as AC
+    from app.strategies.h_auto import orchestrator as ORC
+    from app.strategies.h_auto import queue as AQ
+    out: dict[str, Any] = {"queue": None, "research": None, "hard_failure": None, "steps": {}}
+    try:
+        AC.contract()
+        out["queue"] = ORC.queue_step()
+    except AQ.QueueIntegrityError as exc:
+        out["hard_failure"] = f"QUEUE_INTEGRITY: {exc}"
+        return out
+    except Exception as exc:
+        if type(exc).__name__ == "AutonomyContractError":
+            out["hard_failure"] = f"AUTONOMY_CONTRACT: {exc}"
+            return out
+        out["queue"] = {"state": "ERROR", "error": f"{type(exc).__name__}: {exc}"}
+    out["steps"]["queue"] = {"ran_at": _now(), "state": out["queue"].get("state")}
+    if forward_integrity != "PASS":
+        out["research"] = {"state": "SKIPPED_FORWARD_INTEGRITY_FAILURE"}
+    elif out["queue"].get("state") != "OK":
+        out["research"] = {"state": "SKIPPED_QUEUE_ERROR"}
+    else:
+        try:
+            out["research"] = ORC.research_step()
+        except AQ.QueueIntegrityError as exc:
+            out["hard_failure"] = f"QUEUE_INTEGRITY: {exc}"
+        except Exception as exc:
+            out["research"] = {"state": "ERROR", "error": f"{type(exc).__name__}: {exc}"}
+    out["steps"]["research"] = {"ran_at": _now(), "state": (out["research"] or {}).get("state")}
+    return out
 
 
 def _paper_step() -> dict[str, Any]:
-    """Step 4: H paper execution. Never raises into the forward steps; failure is reported."""
+    """Steps 8-9: H paper execution and NAV. Never raises into the forward steps; failure is reported."""
     try:
         return HP.run()
     except Exception as exc:                                   # never into the price step
@@ -609,7 +722,7 @@ def _paper_step() -> dict[str, Any]:
 
 
 def _research_queue_step() -> dict[str, Any]:
-    """Step 5: rebuild the research queue (a plan; no model call is made here)."""
+    """The planner alone (kept for the ``research-queue`` view). No model call is made here."""
     try:
         body = RQ.build()
         sha = RQ.write(body)
@@ -683,25 +796,81 @@ def status() -> dict[str, Any]:
                      for r in body["rows"]]}
 
 
+def auto_status() -> dict[str, Any]:
+    from app.strategies.h_auto import orchestrator as ORC
+    return ORC.status()
+
+
+def auto_queue() -> dict[str, Any]:
+    from app.strategies.h_auto import orchestrator as ORC
+    return ORC.queue_step()
+
+
+def auto_research() -> dict[str, Any]:
+    """The research unit: steps 5-6, then 8-9 again so a new APPROVE is a pending entry tonight.
+
+    Runs after ``update`` under the same lock. Without ``auto/authorization.json`` it makes no model
+    call. A research failure never stops the paper step.
+    """
+    from app.strategies.h_auto import orchestrator as ORC
+    started = _now()
+    integrity = verify()
+    auto = _research_steps(forward_integrity=integrity["verdict"])
+    paper = _paper_step()
+    steps = dict(auto["steps"]) | {"paper": {"ran_at": _now(), "state": paper.get("paper_run")}}
+    try:
+        ORC.record_run_status(steps, started_at=started, finished_at=_now(), kind="research")
+    except Exception as exc:
+        steps["run_status_write"] = f"{type(exc).__name__}: {exc}"
+    return {"integrity": integrity["verdict"], "research_queue": auto["queue"], "research": auto["research"],
+            "autonomy_hard_failure": auto["hard_failure"], "paper": paper, "steps": steps,
+            "decisions_changed": sum(1 for r in (auto["research"] or {}).get("results") or []
+                                     if r.get("ledger_written"))}
+
+
+def intake_scan() -> dict[str, Any]:
+    from app.strategies.h_auto import intake as INT
+    from app.strategies.h_auto import queue as AQ
+    return INT.intake_step(open_new_items=INT.open_new_candidate_items(AQ.fold().values()))
+
+
+def build_price_base() -> dict[str, Any]:
+    """Pin the cohort's HIST-V1 history for a host without the mirror (run where the mirror is)."""
+    from app.strategies.h_auto import inputs as IN
+    return IN.build_price_base(sorted({r["ticker"] for r in ST.launch_rows()}))
+
+
 COMMANDS = {"preflight": preflight, "launch": launch, "collect-prices": collect_prices,
             "update": update, "sec-refresh": sec_refresh, "refresh-scan": refresh_scan,
             "status": status, "verify": verify,
             "paper-launch": HP.launch, "paper-run": HP.run, "paper-verify": HP.verify,
-            "paper-status": paper_status, "research-queue": research_queue}
+            "paper-status": paper_status, "research-queue": research_queue,
+            "auto-status": auto_status, "auto-queue": auto_queue, "auto-research": auto_research,
+            "intake-scan": intake_scan, "build-price-base": build_price_base}
 
 #: ``update`` exits non-zero only for the forward shadow's own integrity. A degraded SEC refresh is
 #: success for the unit (prices were collected) but is never silent: it is printed to stderr, kept in
 #: ``refresh_status.json`` and present in the JSON on stdout.
 EXIT_INTEGRITY_FAILURE = 2
 EXIT_PAPER_INTEGRITY_FAILURE = 3
+EXIT_AUTONOMY_INTEGRITY_FAILURE = 4
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("command", choices=sorted(COMMANDS))
+    parser.add_argument("command", choices=sorted(COMMANDS) + ["auto-authorize"])
     parser.add_argument("--no-collect", action="store_true", help="preflight without fetching prices")
     parser.add_argument("--dry-run", action="store_true", help="refresh-scan without replacing the queue")
+    parser.add_argument("--cap", type=float, help="auto-authorize: operator cumulative cap in USD")
+    parser.add_argument("--scope", default="REFRESH_ONLY", help="auto-authorize: REFRESH_ONLY or REFRESH_AND_NEW_CANDIDATE")
+    parser.add_argument("--by", help="auto-authorize: who authorized")
     args = parser.parse_args(argv)
+    if args.command == "auto-authorize":
+        from app.strategies.h_auto import budget as BU
+        if args.cap is None or not args.by:
+            parser.error("auto-authorize needs --cap and --by")
+        print(json.dumps(BU.authorize(by=args.by, cumulative_cap_usd=args.cap, scope=args.scope), indent=1))
+        return 0
     if args.command == "preflight":
         body = preflight(collect=not args.no_collect)
     elif args.command == "refresh-scan":
@@ -709,6 +878,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     else:
         body = COMMANDS[args.command]()
     print(json.dumps(body, indent=1, ensure_ascii=False, default=str))
+    if args.command == "auto-research":
+        if (body.get("research") or {}).get("state") not in ("OK", "RESEARCH_NOT_AUTHORIZED"):
+            print(f"H_RESEARCH_DEGRADED: {body.get('research')}", file=sys.stderr)
+        if (body.get("paper") or {}).get("paper_run") not in ("OK", "NOT_LAUNCHED"):
+            return EXIT_PAPER_INTEGRITY_FAILURE
+        if body.get("autonomy_hard_failure"):
+            print(f"H_AUTONOMY_INTEGRITY_FAILURE: {body['autonomy_hard_failure']}", file=sys.stderr)
+            return EXIT_AUTONOMY_INTEGRITY_FAILURE
     if args.command == "update":
         refresh = body.get("refresh") or {}
         if refresh.get("refresh_run") == SR.RUN_DEGRADED:
@@ -717,11 +894,16 @@ def main(argv: Sequence[str] | None = None) -> int:
         if body.get("integrity") != "PASS":
             print(f"H_FORWARD_INTEGRITY_FAILURE: {body.get('integrity_problems')}", file=sys.stderr)
             return EXIT_INTEGRITY_FAILURE
+        if body.get("autonomy_hard_failure"):
+            print(f"H_AUTONOMY_INTEGRITY_FAILURE: {body['autonomy_hard_failure']} "
+                  f"(prices, SEC refresh and paper ran; research did not)", file=sys.stderr)
         paper = body.get("paper") or {}
         if paper.get("paper_run") not in ("OK", "NOT_LAUNCHED"):
             print(f"H_PAPER_FAILURE: {paper.get('paper_run')}: {paper.get('problems')} "
                   f"(forward shadow updated; paper events left unchanged)", file=sys.stderr)
             return EXIT_PAPER_INTEGRITY_FAILURE
+        if body.get("autonomy_hard_failure"):
+            return EXIT_AUTONOMY_INTEGRITY_FAILURE
     if args.command == "paper-verify" and body.get("verdict") != "PASS":
         return EXIT_PAPER_INTEGRITY_FAILURE
     return 0

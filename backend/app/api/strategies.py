@@ -713,6 +713,11 @@ async def strategy_paper(strategy_id: str) -> dict[str, Any]:
     if strategy_id != REG.STRATEGY_H_V2:
         return {"strategy_id": strategy_id, "available": False, "state": "NOT_AN_H_PAPER_BOOK"}
     from app.strategies.h_forward import research_queue as HRQ
+    try:
+        from app.strategies.h_auto import orchestrator as HAO
+        autonomy = HAO.status()
+    except Exception as exc:                 # the screen degrades; the paper book still answers
+        autonomy = {"error": f"{type(exc).__name__}: {exc}"}
     return {"available": True, "strategy_id": strategy_id, "paper": HV.paper_state(),
             "account": HV.account(), "positions": HV.positions(), "trades": HV.trades(),
-            "fills": HV.fills()[:50], "research_queue": HRQ.build()}
+            "fills": HV.fills()[:50], "research_queue": HRQ.build(), "autonomy": autonomy}

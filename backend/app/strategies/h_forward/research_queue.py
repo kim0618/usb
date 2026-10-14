@@ -101,13 +101,25 @@ def _rank(form: str | None, items: str | None) -> int:
     return 2
 
 
+#: The autonomous pipeline's priority classes (``h_autonomous_pipeline_v1`` §priority). Rank 1 above
+#: (earnings: 10-Q, 10-K, 8-K item 2.02) is P0, every other material refresh is P1; a new candidate is
+#: P2 for E3 P1_HIGH and P3 for P2_MEDIUM. Item 7.01 alone stays P1: no code reads its text first.
+PRIORITY_CLASS = {1: "P0", 2: "P1"}
+NEW_CANDIDATE_CLASS = {"P1_HIGH": "P2", "P2_MEDIUM": "P3"}
+CLASS_ORDER = {"P0": 0, "P1": 1, "P2": 2, "P3": 3}
+
+
 def build(*, caches: Mapping[str, SR.Cache] | None = None, index: Mapping[str, Any] | None = None) -> dict[str, Any]:
     """The research queue from the refresh queue and any new-candidate intake. Pure read."""
     refresh = SR.read_json(ST.path("refresh_queue.json")) or {}
     index = index if index is not None else evidence_index()
     if caches is None:
-        ready = SR.readiness(ST.launch_rows())
+        cohort = list(ST.launch_rows())
+        cohort += [r for r in ST.ledger() if r.get("record") == "ADMISSION"
+                   and r.get("ticker") not in {c["ticker"] for c in cohort}]
+        ready = SR.readiness(cohort)
         caches = ready.get("caches") or {}
+    from app.strategies.h_auto import dedup as DD
     consumed = index.get("issuers") or {}
     rows: list[dict[str, Any]] = []
     for issuer in refresh.get("issuers") or []:
@@ -115,15 +127,19 @@ def build(*, caches: Mapping[str, SR.Cache] | None = None, index: Mapping[str, A
             continue
         ticker = issuer["ticker"]
         known = consumed.get(ticker) or {}
-        accessions = set(known.get("chunked_accessions") or [])
+        # The frozen T1 index entry plus what every later re-evaluation recorded (h_auto.dedup).
+        thesis = DD.thesis_of(ticker, frozen_entry=known)
         filings = []
         for f in issuer.get("new_material_filings") or []:
             items = _items_of(ticker, f.get("accession"), caches)
-            in_thesis = None if not known.get("chunked_accessions") else f.get("accession") in accessions
+            verdict = DD.classify(ticker, f, thesis=thesis) if thesis else {"state": DD.UNKNOWN, "rule": None}
+            in_thesis = None if verdict["state"] == DD.UNKNOWN else verdict["state"] == DD.IN_THESIS
             filings.append(f | {"items": items, "in_thesis_evidence": in_thesis,
+                                "dedup_rule": verdict.get("rule"),
+                                "source_id": DD.source_id(issuer.get("cik"), f.get("accession")),
                                 "rank": _rank(f.get("form"), items)})
         new = [f for f in filings if f["in_thesis_evidence"] is not True]
-        if not known.get("chunked_accessions"):
+        if thesis is None:
             status = EVIDENCE_CHECK_UNAVAILABLE
         elif not new:
             status = EVIDENCE_ALREADY_IN_THESIS
@@ -133,20 +149,27 @@ def build(*, caches: Mapping[str, SR.Cache] | None = None, index: Mapping[str, A
         rank = min((f["rank"] for f in new), default=9)
         rows.append({"ticker": ticker, "cik": issuer.get("cik"), "reason": REFRESH_DUE,
                      "source_event": new or filings, "priority_rank": rank,
+                     "priority_class": PRIORITY_CLASS.get(rank, "P1"),
                      "first_new_filing": min((f["filingDate"] for f in new), default=None),
                      "queued_at": refresh.get("generated_at"), "research_status": status,
                      "thesis_version": known.get("thesis_version"),
                      "thesis_data_cutoff": known.get("data_cutoff"),
                      "d3_needed": needs, "d4_needed": needs, "d5_needed": needs, "d6_needed": needs})
     intake = SR.read_json(ST.path(NEW_CANDIDATES))
+    ledgered = set(ST.latest_per_ticker())
     for cand in (intake or {}).get("candidates") or []:
+        if cand["ticker"] in ledgered:
+            continue                      # already in H's cohort: it is refreshed, not admitted again
+        cls = NEW_CANDIDATE_CLASS.get(str(cand.get("e3_priority")), "P3")
         rows.append({"ticker": cand["ticker"], "cik": cand.get("cik"), "reason": NEW_CANDIDATE,
-                     "source_event": cand.get("source_event"), "priority_rank": int(cand.get("priority_rank", 5)),
+                     "source_event": cand.get("source_event"), "priority_rank": 3 + CLASS_ORDER[cls] - 2,
+                     "priority_class": cls, "e3_priority": cand.get("e3_priority"),
+                     "intake_order": cand.get("intake_order"),
                      "first_new_filing": None, "queued_at": (intake or {}).get("generated_at"),
                      "research_status": QUEUED, "thesis_version": None, "thesis_data_cutoff": None,
                      "d3_needed": True, "d4_needed": True, "d5_needed": True, "d6_needed": True})
-    rows.sort(key=lambda r: (r["research_status"] != QUEUED, r["priority_rank"],
-                             r["first_new_filing"] or "9999", r["ticker"]))
+    rows.sort(key=lambda r: (r["research_status"] != QUEUED, CLASS_ORDER[r["priority_class"]],
+                             r["first_new_filing"] or "9999", r.get("intake_order") or 0, r["ticker"]))
     for position, row in enumerate(rows, 1):
         row["priority"] = position
     return {"generated_at": _now(), "schema": "h_research_queue_v1",

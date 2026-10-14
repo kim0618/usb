@@ -1,0 +1,191 @@
+{
+  "declaration": {
+    "contract_id": "H_V2_AUTONOMOUS_PIPELINE_V1",
+    "declared_at_kst": "2026-10-13",
+    "status": "FROZEN_BEFORE_FIRST_AUTONOMOUS_CALL",
+    "checksum_recipe": "sha256 of json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False)",
+    "purpose": "Run Strategy H's frozen D2->D6 research on new material evidence and on new candidates without a manual step, inside a code-enforced cost and safety contract, and hand the decision to the existing H paper book.",
+    "research_build": "CLOSED (this contract re-runs frozen modules; it adds no rule, threshold or model step)",
+    "live_model_calls_before_operator_authorization": 0
+  },
+  "stages": {
+    "d1": "app.backtest.strategy_h_v2.pipeline.assemble_candidate (h_v2_pipeline_v1), unchanged",
+    "d2": "app.backtest.strategy_h_v2.evidence.collector.assemble_evidence_bundle_v2 + evidence.materialize.materialize_candidate (D2.1 depth policy), unchanged",
+    "d3": "app.dev.run_strategy_h_v2_d3_3.research_one_v3 (prompt v2, schema_v2, h_v2_d3_2_validation_contract_v2), unchanged",
+    "d4": "app.dev.run_strategy_h_v2_d4_2.analyze_one_v2 (d4_2 contract, repair provenance lock), unchanged",
+    "d5": "app.dev.run_strategy_h_v2_d5_d2.build_panel + value_issuer(judgements=run_strategy_h_v2_d6.METHOD_JUDGEMENTS, window_contract=D5_D2R_V1)",
+    "d5_contract": "D5_D2R_V1",
+    "d6": "app.backtest.strategy_h_v2.decision.d6_contract.decide (h_v2_d6_integrated_decision_v1), unchanged",
+    "ledger_writer": "app.strategies.h_forward.transitions (record for cohort members, admit for new candidates)",
+    "d2_refresh_trigger_inclusion": "after the frozen materialize_candidate, every REFRESH_DUE trigger accession the package did not chunk is materialised from its primary document with materialize._materialize_source (role REFRESH_TRIGGER) and appended; a trigger that still has no chunk makes the item DATA_NOT_READY:NEW_EVIDENCE_NOT_MATERIALIZED before any model call. Found 2026-10-13: FG 8-K 0001934850-26-000095 has no EX-99 (text in the primary document) and VRRM 8-K 0001193125-26-412497 lost its CORE 8-K slot to the 8-K/A 0001193125-26-413031"
+  },
+  "model": {
+    "requested_model": "claude-opus-5-5",
+    "canonical_model_required": "claude-opus-5-5",
+    "fallback_model": "FORBIDDEN",
+    "mismatch_action": "FAILED:MODEL_CONTRACT_VIOLATION, nothing written to the forward ledger, no queue retry",
+    "per_call_max_budget_usd": 2.0,
+    "repair_rounds_max": {
+      "d3": 2,
+      "d4": 2
+    }
+  },
+  "budget": {
+    "daily_hard_budget_usd": 24.0,
+    "per_candidate_reservation_usd": 12.0,
+    "max_research_candidates_per_day": 2,
+    "reservation_basis": "contract worst case: D3 3 calls x $2.00 + D4 3 calls x $2.00 (per-call --max-budget-usd cap, initial + 2 repairs each)",
+    "admission_rule": "a candidate starts only while (daily hard budget - spent today - open reservations) >= reservation AND (operator cumulative cap - spent since authorization) >= reservation AND candidates started today < max_research_candidates_per_day",
+    "over_budget_status": "BUDGET_DEFERRED (kept in the queue, never dropped)",
+    "day_boundary": "America/New_York calendar date of the run",
+    "observed_cost_basis": {
+      "source": "every stored D3 attempt (data/runtime/strategy_h_v2/d3_3/attempts) and D4 analysis (d4_1, d4_2, d4_b, d4_br_c)",
+      "d3_attempts": 18,
+      "d3_candidate_median_usd": 1.328,
+      "d3_candidate_max_usd": 1.54,
+      "d3_repairs_used": {
+        "0": 18
+      },
+      "d3_final_status": {
+        "OK": 12,
+        "MODEL_CALL_FAILED": 6
+      },
+      "d4_analyses": 29,
+      "d4_candidate_median_usd": 1.416,
+      "d4_candidate_max_usd": 2.434,
+      "d4_call_median_usd": 0.96,
+      "d4_call_max_usd": 1.535,
+      "d4_repairs_used": {
+        "0": 14,
+        "1": 9,
+        "2": 6
+      },
+      "d4_final_status": {
+        "OK": 25,
+        "SCHEMA_VALIDATION_FAILED": 4
+      },
+      "canonical_model_mismatches": 0,
+      "why_reservation_is_not_the_median": "the reservation is the contract-bounded worst case, so a candidate admitted under it cannot overrun the daily cap; the medians only predict spend (about $3 per candidate)"
+    },
+    "first_batch": {
+      "tickers": [
+        "FG",
+        "VRRM"
+      ],
+      "operator_cumulative_cap_usd": 24.0,
+      "source": "H_V2_REFRESH_BATCH_R1_PREREGISTRATION_V1.md"
+    }
+  },
+  "authorization": {
+    "file": "<H forward store>/auto/authorization.json",
+    "absent_means": "RESEARCH_NOT_AUTHORIZED: the queue is built and kept, no model call is made",
+    "fields": [
+      "authorized_at",
+      "authorized_by",
+      "cumulative_cap_usd",
+      "scope"
+    ],
+    "scope_values": [
+      "REFRESH_ONLY",
+      "REFRESH_AND_NEW_CANDIDATE"
+    ]
+  },
+  "priority": {
+    "P0": "REFRESH_DUE whose new filing is earnings or guidance: 10-Q, 10-K, or an 8-K carrying item 2.02",
+    "P1": "any other material REFRESH_DUE (8-K without 2.02, e.g. 5.02, 7.01, 1.01)",
+    "P2": "NEW_CANDIDATE with E3 P1_HIGH",
+    "P3": "NEW_CANDIDATE with E3 P2_MEDIUM",
+    "item_7_01_alone": "P1: Reg FD material may or may not be guidance and no code reads its text before research, so it is not promoted",
+    "tie_break": "earliest new filing date (refresh) or intake order (new candidate), then ticker; never a return, a price or a forward outcome"
+  },
+  "evidence_dedup": {
+    "keys": [
+      "accession",
+      "filing_date",
+      "source_id (SEC:<cik>:<accession>)"
+    ],
+    "frozen_thesis_index": "docs/operations/h_thesis_evidence_v1.json (chunked accessions of each T1 package)",
+    "runtime_thesis_index": "<H forward store>/auto/thesis_evidence.jsonl (append-only, one row per completed re-evaluation)",
+    "in_thesis_when": "the accession was chunked into the package the thesis read, OR it is listed in that thesis bundle's filings, OR (runtime theses only) its filing date is on or before the date the thesis bundle's submissions were current",
+    "action": "EVIDENCE_ALREADY_IN_THESIS: not queued for research, no model call; historical states and documents are not rewritten"
+  },
+  "retry": {
+    "infra_transient": [
+      "SEC_FETCH_ERROR",
+      "MODEL_PROCESS_ERROR",
+      "MODEL_CALL_FAILED",
+      "PRICE_STORE_IO_ERROR"
+    ],
+    "max_queue_attempts": 2,
+    "retry_not_before": "the next daily run (never in the same run)",
+    "model_schema": "the stage's own bounded repair loop only; SCHEMA_VALIDATION_FAILED is terminal FAILED",
+    "terminal": [
+      "SCHEMA_VALIDATION_FAILED",
+      "MODEL_CONTRACT_VIOLATION",
+      "TRANSITION_REFUSED",
+      "QUEUE_ATTEMPTS_EXHAUSTED"
+    ],
+    "forbidden": "re-running a completed item because its decision is unwelcome"
+  },
+  "queue": {
+    "statuses": [
+      "QUEUED",
+      "RUNNING",
+      "COMPLETE",
+      "FAILED",
+      "BUDGET_DEFERRED",
+      "DATA_NOT_READY",
+      "EVIDENCE_ALREADY_IN_THESIS"
+    ],
+    "store": "<H forward store>/auto/queue_events.jsonl (append-only; the current queue is the fold of its events)",
+    "stale_running": "an item left RUNNING by a crashed run is closed as FAILED:INTERRUPTED with its spent cost and becomes retryable under the infra rule"
+  },
+  "new_candidate_intake": {
+    "pipeline": "reference universe -> E1 eligibility -> E2 change detection -> E3 priority (assemble_candidate), no model call",
+    "freshness_gate": {
+      "reference_snapshot_max_age_days": 7,
+      "requires": [
+        "active US common-stock reference rows with CIK",
+        "latest price session = previous XNYS session of now",
+        "price history of at least 252 sessions per candidate",
+        "companyfacts store fetched within 7 days"
+      ],
+      "fail_action": "NEW_CANDIDATE_SCAN = DATA_NOT_READY; existing cohort refresh, prices, outcomes, paper NAV and exits keep running"
+    },
+    "d5_method_judgement": "D5 values only issuers with a declared MethodJudgement; a candidate without one is DATA_NOT_READY:D5_METHOD_JUDGEMENT_REQUIRED before any model call",
+    "admission": "a decision-eligible D6 result is appended with cohort_tag NEW_FORWARD_CANDIDATE (APPROVE, WATCH and REJECT alike); NOT_DECISION_ELIGIBLE is not admitted",
+    "max_open_new_candidate_items": 10,
+    "intake_order": "E3 P1_HIGH before P2_MEDIUM, then fewest days since the latest SEC filing (evidence recency, not price), then ticker; candidates beyond the open-item cap wait for the next scan",
+    "excluded": "any ticker already in H's forward ledger (it is refreshed, not admitted)"
+  },
+  "daily_order": [
+    "1 prices and forward outcomes",
+    "2 SEC submissions refresh",
+    "3 material scan",
+    "4 new candidate scan",
+    "5 unified research queue update",
+    "6 budgeted research",
+    "7 decision transitions (written by research, read here)",
+    "8 paper entries and exits",
+    "9 NAV"
+  ],
+  "failure_domains": {
+    "soft": "steps 2-6 fail into their own status; steps 1, 8 and 9 still run",
+    "hard": [
+      "forward ledger integrity",
+      "contract checksum mismatch",
+      "paper accounting corruption"
+    ]
+  },
+  "prohibitions": [
+    "no threshold retuning",
+    "no WATCH or REJECT entry",
+    "no historical return fitting",
+    "no future data",
+    "no real-money order",
+    "no A or E change",
+    "no fallback model",
+    "no full-universe research",
+    "no unlimited calls"
+  ]
+}

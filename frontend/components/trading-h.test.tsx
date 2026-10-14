@@ -122,11 +122,16 @@ describe("Trading H paper book", () => {
     trades: [],
     fills: [{ event_id: "e2", ticker: "AAA", session: "2026-10-16", trade_action: "SELL_TP1", quantity: "166", fill_price: "11.982", raw_price: "12" },
             { event_id: "e1", ticker: "AAA", session: "2026-10-15", trade_action: "BUY", quantity: "332", fill_price: "10.015", raw_price: "10" }],
+    autonomy: { counts: { QUEUED: 2, RUNNING: 0, BUDGET_DEFERRED: 1, FAILED: 0, COMPLETE: 0 }, authorized: false,
+                timestamps: { last_auto_run_at: "2026-10-14T05:12:51+00:00", latest_price_session: "2026-10-13",
+                              sec_refresh_at: "2026-10-14T05:12:40+00:00", research_queue_last_run_at: "2026-10-14T05:12:50+00:00",
+                              research_last_run_at: "2026-10-14T05:12:51+00:00", next_auto_run_at: "2026-10-15T05:10:00+00:00" } },
   };
   beforeEach(() => {
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo) => {
       const path = String(input).replace(/^https?:\/\/[^/]+/, "");
-      const body = path.endsWith("/forward") ? view : path.endsWith("/paper") ? paper : {};
+      const body = path.endsWith("/forward") ? view : path.endsWith("/paper") ? paper : path.endsWith("/strategies")
+        ? [{ strategy_id: STRATEGY_H, display_name: "Strategy H", variant_label: "Paper + Forward Shadow", version: "", enabled: true, mode: "FORWARD_SHADOW" }] : {};
       return { ok: true, status: 200, json: async () => body } as Response;
     }));
   });
@@ -139,6 +144,21 @@ describe("Trading H paper book", () => {
                          "보유 포지션", "최근 체결", "TP1 50% 매도", "평가 안 함", "Paper 조치", "관찰만"]) expect(text).toContain(label);
     expect(text).toContain("$10,120.50");
     expect(text).not.toContain("$0.00 Bear");
+  });
+
+  it("shows when H last ran by itself, from runtime timestamps, and what the research queue holds", async () => {
+    const fetchMock = vi.mocked(fetch);
+    const { container } = render(<TradingHPage/>);
+    await screen.findByText("자동 운영");
+    const text = container.textContent!;
+    for (const label of ["마지막 자동 실행", "최신 가격 세션", "SEC 갱신", "리서치 큐 실행", "다음 자동 실행"]) expect(text).toContain(label);
+    expect(text).toContain("2026-10-13");
+    expect(container.querySelector("[data-h-auto-last]")!.textContent).not.toBe("-");
+    expect(container.querySelector("[data-h-auto-next]")!.textContent).not.toBe("-");
+    expect(container.querySelector("[data-h-auto-queue]")!.textContent).toContain("대기 2 · 실행 중 0 · 예산 이월 1 · 실패 0");
+    expect(text).toContain("자동 리서치 승인 전");
+    expect(text).toContain("보유 0종목");
+    for (const call of fetchMock.mock.calls) expect(String(call[0])).toContain("/api/v1/strategies");
   });
 });
 
