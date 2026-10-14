@@ -1,0 +1,66 @@
+US-B CRYPTO / PRODUCTION MINIMALIZATION & CLEANUP AUDIT V1
+CRYPTO_CLEANUP_DELETE_MANIFEST_BEFORE  (작성 2026-10-14 10:00 KST, 서버 trader-j, 로컬 HEAD 8b86bcb)
+
+기준선 (삭제 전, 2026-10-14 09:45~09:55 KST)
+  usb-crypto-paper 1997371 NRestarts 0 | usb-crypto-context 1582777 0 | usb-crypto-q123-forward 1684303 0
+  usb-btc-context-ui 1826565 0 | usb-crypto-liqfwd 3250885 0 | usb-frontend 1997816 0 | usb-backend 2003339 0
+  disk / 7,664,860K used / 2,010,324K avail (80%)
+  staging/tmp 경로를 참조하는 unit·timer·drop-in·env: 0건 (grep /etc/systemd/system/usb-* + /root/usb_runtime/*/config/*.env)
+  crypto PID 5개의 open fd 중 staging/.tmp//tmp/usb 경로: 0건
+
+================================================================
+SECTION 1. 즉시 삭제 (5중 증명 충족, 재시작 불필요, 이번 작업에서 실행)
+================================================================
+#  path/unit                                                                   size    classification     reason
+1  /root/usb_runtime/crypto_paper/releases/staging-hot-v1-20261011-130451      1,460K  REMOVE (staging)   10/11 HOT V1 배포용 스테이징(x/app 전개본 + next-build-fa67437.tgz + backend-hot-v1-20files.tgz + deploy_files.sha). 배포 완료 후 잔재.
+2  /root/usb_runtime/crypto_paper/releases/staging-subdollar-20261011-134500   972K    REMOVE (staging)   10/11 sub-dollar 수정 스테이징(sizing.py + next-build-c5fb88b.tgz). 배포 완료 후 잔재.
+3  /root/usb_runtime/crypto_paper/releases/staging-tfrange-20261011-140835     952K    REMOVE (staging)   10/11 timeframe range 수정 스테이징(next-build-37c1c49.tgz). 배포 완료 후 잔재.
+4  /root/usb_runtime/crypto_context/staging-retention-3744627                  68K     REMOVE (staging)   10/11 retention v1.1 반영 스테이징(compare.py/synth.py/backend/docs). 반영 완료, 백업은 releases/before-active-session-retention-fix-20261011/.
+5  /root/usb_runtime/btc_context_ui/flow/flow_horizons.json.p_1n2mek.tmp       1K      REMOVE (orphan)    flow_horizon.py mkstemp 임시파일. 10/13 09:44:28 타임아웃 kill로 os.replace 전에 남음. 현재 flow_horizons.json은 09:46 갱신.
+6  /root/usb_runtime/btc_context_ui/state/.structure_snapshot.json.l4vn8um1.tmp 1K     REMOVE (orphan)    structure_state.py mkstemp 임시파일. 10/13 14:07:03 타임아웃 kill 잔재. 현재 structure_snapshot.json은 09:46 갱신.
+7  /tmp/usb-crypto-paper-c1.conf                                               66B     REMOVE (copy)      /etc/systemd/system/usb-crypto-paper.service.d/c1-signal.conf 와 바이트 동일 내용의 10/02 작업 사본. 실제 drop-in은 그대로 둠.
+
+dependency proof (1~7 공통):
+  - active process 미참조: 5 PID fd 스캔 0건, 파일은 정적 산출물(코드 import 대상 아님)
+  - rollback 정본 아님: 롤백은 before-* 디렉터리(before-hot-v1, before-subdollar, before-polling-v1 ...)와 .next-build.pre-* 에 별도 존재. staging의 tgz는 "배포한 내용"이지 "배포 전 상태"가 아님. 같은 내용은 git(fa67437, c5fb88b, 37c1c49)에 있음
+  - systemd/env 미참조: 0건
+  - 최근 운영 build 아님: 현재 frontend BUILD_ID w3LLcmPdetY4iarG7TXCX(10/13 15:15), paper src는 polling-v1 이후 상태
+  - 연구 evidence 정본 아님: HOT 증거는 repo docs/crypto/hot_symbol_v1/EVIDENCE_MANIFEST.md, retention 증거는 docs/crypto/context_collector_v1/
+rollback path: 1~3은 git 커밋에서 재생성(fa67437/c5fb88b/37c1c49), 4는 repo 3744627, 5~7은 복구 불필요(다음 분 재생성 / drop-in 원본 존재)
+예상 효과: 디스크 약 3.4MB, 메모리/IO 0
+
+================================================================
+SECTION 2. 승인 후 삭제/중단 (고위험 또는 운영 트리 안, 사용자 결정)
+================================================================
+#  path/unit                                                                   size/mem      classification        reason / 증명 상태
+A1 /root/usb_runtime/crypto_paper/src/backend/app/crypto/research/            2,020K        REMOVE_CANDIDATE P2   운영 paper 런타임 트리 안의 연구 패키지(btc_p1/p2/vol, d5_4/d5_5/d6/d6c, expert_execution ...). import 참조 0 (terminal/paper/live/c1/hot_coins 전수 grep). 재시작 불필요(로드된 적 없음). 효과는 디스크 2MB뿐.
+A2 /root/usb_runtime/crypto_paper/src/backend/app/crypto/{realtime.py,quality.py} 20K        REMOVE_CANDIDATE P2   9/23 rsync 잔재(nbpmon 소유, 로컬에도 untracked). import 참조 0. historical.py/storage.py/rest.py는 c1/sources.py가 import하므로 KEEP.
+A3 /root/usb_runtime/crypto_paper/releases/staging-polling-v1-20261013        1,120K        REMOVE_CANDIDATE P2   현재 운영 build(w3LLcmPd)의 tgz 사본 + 적용 파일. 다음 frontend 배포 전까지 보존 권고(현 build 유일 tgz 사본).
+A4 /root/usb/frontend/.next-build.pre-flow-20261012-143915                    4,716K        ARCHIVE_CANDIDATE P2  3세대 전 롤백본(fsRtGYt 이전). 현재 롤백은 .next-build.pre-polling-20261013-151541.
+A5 /root/usb/frontend/.next-build.pre-ui-20261013-122519, .pre-exfix-20261013-133453  9,716K ARCHIVE_CANDIDATE P2  10/13 A 전략 UI 배포(ui_deploy_20261013)의 롤백본. frontend는 공유 자산이라 A 담당 결정 필요(이번 작업 범위 밖, 목록만).
+A6 /root/usb_runtime/crypto_paper/releases/before-seed-fix-20261010, before-segment-compression-20261010  132K  ARCHIVE_CANDIDATE P2  4~5세대 전 백엔드 롤백본. git에 동일 내용. 삭제 효과 미미.
+A7 usb-crypto-feedlog.timer/.service (1분 oneshot, /api/crypto/state GET)      피크 <10MB     DISABLE_CANDIDATE P2  소비자 0(feed.log를 읽는 unit/코드 없음, 148K). 단 10/13 감사에서 호스트 정체를 기록한 유일한 센서. 끄면 탐지력 손실. 사용자 결정.
+A8 usb-crypto-liqfwd.service + liqfwd-daily.timer                             PSS 20.8MB swap 28.9MB CPU 0.0%  FORWARD_RESEARCH_KEEP (중단은 사용자 결정) D5.3 청산 forward 수집(9/27~). 사용자 10/02 결정 게이트 "하락 이벤트 30회". 터미널·Q123·Wall/Flow와 의존성 0. 중단 시 RAM 약 20MB+swap 29MB 회수, 데이터 16.7MB는 보존.
+A9 C1 운영 요소 (drop-in c1-signal.conf CRYPTO_C1_SIGNAL=on, c1_routes 6 route, 20s tick 33일 재수집, 프런트 15s 폴링 c1/state+markers, PAPER C1 AUTO)  paper RSS 일부(추정 수십MB, 미분리)  REMOVE_CANDIDATE P0 **BLOCKED**  C1 AUTO가 enabled=true·has_position=true(PAPER BTC, 10/02 진입). 제거/OFF는 paper 재시작 + AUTO 변경 = 이번 작업 금지 항목. 사용자가 AUTO 해제·PAPER 포지션 처리 결정 후 별도 배포.
+
+================================================================
+SECTION 3. LOCAL PREP (로컬 작업트리 삭제, 운영 무변경, frontend 재빌드·재시작 전까지 운영 효과 0)
+================================================================
+dead preview 라우트 3개와 전용 컴포넌트/라이브러리/테스트/픽스처:
+  frontend/app/liquidity-preview/page.tsx, components/liquidity-map-preview.tsx(+.test.tsx), lib/liquidity-map.ts
+  frontend/app/crypto-terminal-preview/page.tsx, components/crypto-terminal-preview.tsx
+  frontend/app/market-context-preview/page.tsx, components/market-context-preview.tsx
+  frontend/components/market-context-panel.tsx(+.test.tsx), lib/market-context.ts, components/__fixtures__/market-context-{btc,eth,sol}.json
+  frontend/components/entry-analysis-preview.tsx(+.test.tsx) + crypto-terminal.tsx import/JSX 2줄
+  frontend/components/crypto-terminal-integration.test.tsx: 패널 배치 테스트 제거, 운영 라우트 고정 테스트 유지
+dependency proof: importer 전수 grep(위 집합 밖 importer 0), nav 링크 0, nginx 11일 로그 hit 0, NEXT_PUBLIC_LIQUIDITY_MAP_BASE_URL/MARKET_CONTEXT/ENTRY_ANALYSIS_PREVIEW 운영 env 미설정, 8011/8012 리스너 0
+rollback: git checkout -- <paths> (커밋 전) / 커밋 후 revert
+
+================================================================
+AFTER (2026-10-14 09:57 KST 실행 결과)
+================================================================
+SECTION 1 7건 전부 삭제 완료. 삭제 직전 재확인: 7건 모두 존재, /tmp/usb-crypto-paper-c1.conf는 drop-in과 cmp 동일, .tmp 고아 2건 age 87,209s / 71,454s.
+전후 PID·NRestarts: paper 1997371/0, context 1582777/0, q123 1684303/0, btc-context-ui 1826565/0, liqfwd 3250885/0, frontend 1997816/0, backend 2003339/0 (불변)
+disk used 7,667,488K → 7,664,036K (+3.4MB avail)
+releases 잔존: before-hot-v1, before-polling-v1, before-seed-fix, before-segment-compression, before-subdollar, capability-20261004, staging-polling-v1-20261013(보류), smoke_d35.log, unit/nginx 백업 2
+SECTION 2 미실행(승인 대기). SECTION 3 로컬 PREP 완료: 삭제 17 + 수정 1(crypto-terminal.tsx), tsc 소스 exit 0, vitest 66파일 1,054 통과.
