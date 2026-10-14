@@ -40,6 +40,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from ..context_collector_v1 import api as CTX
+from ..context_collector_v1 import archive as CA
 from ..market_context_v1 import contract as MC
 from ..market_context_v1 import derivatives as DRV
 from . import entry_context as EC
@@ -184,8 +185,11 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET"],
 @app.get("/health")
 async def health() -> Any:
     root = CTX.context_root()
+    # Display only (RETENTION_CTX_V1_2 section 9): a WARNING or CRITICAL disk never changes `ok`,
+    # never deletes anything and never loosens a retention gate.
     return {"ok": True, "symbol": V.SYMBOL, "collector_root_set": root is not None,
-            "server_time_ms": int(time.time() * 1000)}
+            "server_time_ms": int(time.time() * 1000),
+            "disk": CA.disk_health(root if root is not None else Path("/"))}
 
 
 @app.get("/snapshot")

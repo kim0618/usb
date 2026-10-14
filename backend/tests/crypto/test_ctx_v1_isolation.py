@@ -132,10 +132,16 @@ def test_the_only_environment_variables_read_are_the_root_and_the_cache():
                     keys.add(ast.unparse(node.args[0]))
             if isinstance(node, ast.Subscript) and ast.unparse(node.value) == "os.environ":
                 keys.add(ast.unparse(node.slice))
-    assert keys == {"ROOT_ENV", "STATE_CACHE_ENV"}
-    from app.crypto.context_collector_v1 import api, collector, contract
+    # Retention V1.2 (RETENTION_CTX_V1_2.md) reads its own settings; read only by `retain`.
+    retention_keys = {"ARCHIVE_ENV", "Q123_RUNTIME_ENV", "Q123_STORE_ENV", "HOT_HOURS_ENV",
+                      "TELEMETRY_HOT_HOURS_ENV", "PRUNE_ENABLED_ENV"}
+    assert keys == {"ROOT_ENV", "STATE_CACHE_ENV"} | retention_keys
+    from app.crypto.context_collector_v1 import api, collector, contract, retention
     assert api.ROOT_ENV == collector.ROOT_ENV == "CTX_V1_ROOT"
     assert contract.STATE_CACHE_ENV == "CTX_V1_STATE_CACHE"
+    assert {getattr(retention, k) for k in retention_keys} == {
+        "CTX_V1_ARCHIVE_DIR", "CTX_V1_Q123_RUNTIME", "CTX_V1_Q123_STORE", "CTX_V1_HOT_HOURS",
+        "CTX_V1_TELEMETRY_HOT_HOURS", "CTX_V1_PRUNE_ENABLED"}
 
 
 #: Module path segments that name a way to change an account or place an order.

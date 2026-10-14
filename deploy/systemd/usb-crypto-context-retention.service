@@ -1,0 +1,29 @@
+[Unit]
+Description=US-B CRYPTO context collector retention V1.2 (HOT / archive manifests / receipt-verified prune)
+Documentation=file:/root/usb_runtime/crypto_context/src/docs/crypto/context_collector_v1/RETENTION_CTX_V1_2.md
+# Nothing depends on this unit and it depends on nothing. A failure leaves files on disk and marks
+# this unit failed; the collector, Q123, its API and every trading service are untouched.
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/root/usb_runtime/crypto_context
+EnvironmentFile=/root/usb_runtime/crypto_context/config/context.env
+Environment=PYTHONPATH=/root/usb_runtime/crypto_context/src/backend
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+# Every setting comes from context.env (CTX_V1_ROOT, CTX_V1_ARCHIVE_DIR, CTX_V1_Q123_RUNTIME,
+# CTX_V1_Q123_STORE, CTX_V1_HOT_HOURS, CTX_V1_TELEMETRY_HOT_HOURS, CTX_V1_PRUNE_ENABLED).
+# --apply is always passed. Raw kinds (context, wall_r0, wall_v2) are deleted only when
+# CTX_V1_PRUNE_ENABLED=true as well, so raw deletion is switched in context.env alone; while it is
+# false the raw half is a dry run that still writes archive manifests. telemetry/storage_stats keep
+# the V1.1 contract on every run: deleted once seven days old on both clocks, whatever the switch.
+# flock -n: a hand-run retain and the timer never overlap; the lock lives in /run.
+ExecStart=/usr/bin/flock -n /run/usb-crypto-context-retention.lock \
+  /root/usb/.venv/bin/python -m app.crypto.context_collector_v1 retain --apply
+StandardOutput=append:/root/usb_runtime/crypto_context/logs/retention.log
+StandardError=append:/root/usb_runtime/crypto_context/logs/retention.log
+TimeoutStartSec=20min
+MemoryMax=100M
+Nice=19
+IOSchedulingClass=idle
