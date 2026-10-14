@@ -1,0 +1,5 @@
+/home/tjd618/usb/backend/app/crypto/research/d6c/signals.py:57: RuntimeWarning: invalid value encountered in subtract
+  return F._clean(ln_oi - F._lag(ln_oi, window_bars))
+/home/tjd618/usb/backend/app/crypto/research/d6/features.py:70: RuntimeWarning: invalid value encountered in subtract
+  return _clean(ln_oi - _lag(ln_oi, 60))
+binance_cut_binance_fee {'verdict': 'FAIL', 'failed': ['G1', 'G2', 'G3', 'G5', 'G7', 'G8', 'G9', 'G10'], 'not_evaluable': ['G6'], 'd6d_authorization': 'NOT AUTHORIZED'} -6.091023289722559 1476 589.4

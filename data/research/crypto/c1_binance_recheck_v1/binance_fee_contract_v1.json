@@ -1,0 +1,9 @@
+{
+ "adopted": {
+  "taker_rate": "0.0005",
+  "maker_rate": "0.0002",
+  "vip_level": "ACCOUNT_MEASURED",
+  "product": "Binance USDS-M BTCUSDT"
+ },
+ "source": "docs/crypto/binance_live/CRYPTO_BINANCE_LIVE_READ_ONLY_VALIDATION_V2.md line 68, /fapi/v1/commissionRate"
+}

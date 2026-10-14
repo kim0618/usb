@@ -1,0 +1,480 @@
+{
+ "arm": "binance_cut_binance_fee",
+ "bootstrap_ci": {
+  "hi": 2.1332962414461374,
+  "lo": -14.015131966731625,
+  "mean": -6.091023289722559,
+  "se": 4.184090865791452
+ },
+ "engine_verification": {
+  "bars_checked": 136425,
+  "disagreements": 0,
+  "eligible_checked": 134425
+ },
+ "gates": [
+  {
+   "detail": {
+    "ci95_high": 2.1332962414461374,
+    "ci95_low": -14.015131966731625,
+    "net_bp_mean": -6.091023289722559
+   },
+   "id": "G1",
+   "rule": "OOS VIP0_BASE net mean > 0 and 95% CI lower bound > 0",
+   "status": "FAIL"
+  },
+  {
+   "detail": {
+    "edge_to_cost_ratio": 0.40824798370921433,
+    "gross_bp_mean": 4.202179136358306,
+    "net_bp_mean": -6.091023289722559
+   },
+   "id": "G2",
+   "rule": "edge_to_cost_ratio >= 1.2",
+   "status": "FAIL"
+  },
+  {
+   "detail": {
+    "gross_positive": 5,
+    "gross_required": 0.6666666666666666,
+    "judgeable_folds": 9,
+    "net_positive": 3,
+    "net_required": 0.5
+   },
+   "id": "G3",
+   "rule": "judgeable folds: gross>0 in >= 2/3, net>0 in >= 1/2",
+   "status": "FAIL"
+  },
+  {
+   "detail": {
+    "folds_required": 6,
+    "judgeable_folds": 9,
+    "trades": 1476,
+    "trades_required": 200
+   },
+   "id": "G4",
+   "rule": "OOS trades >= 200 and judgeable folds >= 6 (fold trades >= 20 and days >= 20)",
+   "status": "PASS"
+  },
+  {
+   "detail": {
+    "all_positive": false,
+    "leave_one_year_out_net_bp": {
+     "2022": -2.0071828908367046,
+     "2023": -10.057471431982371,
+     "2024": -7.506809895343958,
+     "2025": -4.895238805852652,
+     "2026": -4.84100769090985
+    },
+    "share_limit": 0.4,
+    "top_year": 2023,
+    "top_year_share": "NOT_MEANINGFUL"
+   },
+   "id": "G5",
+   "rule": "leave-one-year-out net > 0 and no single year > 40% of total net sum",
+   "status": "FAIL"
+  },
+  {
+   "detail": {
+    "limit": 0.1,
+    "top_1_trade_share": "NOT_MEANINGFUL",
+    "top_1_trade_usdt": 75.43019245,
+    "total_net_usdt": -946.8498729160381
+   },
+   "id": "G6",
+   "rule": "no single trade > 10% of total net sum",
+   "status": "NOT_EVALUABLE"
+  },
+  {
+   "detail": {
+    "TAKER_PLUS_20PCT_bp": -8.291481312483928,
+    "VIP0_STRESS_bp": -8.616341448696613
+   },
+   "id": "G7",
+   "rule": "VIP0_STRESS net > 0 and net > 0 at taker +20%",
+   "status": "FAIL"
+  },
+  {
+   "detail": {
+    "arm_net_bp": {
+     "A-SENS-1": -9.260341436526256,
+     "A-SENS-2": -6.336589904225107,
+     "A-SENS-3": -4.121167728598867,
+     "A-SENS-4": -6.51879781745103,
+     "A-SENS-5": -3.6110982774516516,
+     "A-SENS-6": -4.985715328129526
+    },
+    "arms_required": 6
+   },
+   "id": "G8",
+   "rule": "net > 0 in all six sensitivity arms",
+   "status": "FAIL"
+  },
+  {
+   "detail": {
+    "requires": "trend 2/3, volatility HIGH and MID both, session 3/4",
+    "session_net_bp": {
+     "00-06": -8.409827188721565,
+     "06-12": 6.654983403199436,
+     "12-18": -14.274259456262577,
+     "18-24": -5.50295300810644
+    },
+    "trend_net_bp": {
+     "BEAR": -5.792161587211327,
+     "BULL": 5.569231898257619,
+     "SIDEWAYS": -12.701934109680208
+    },
+    "volatility_net_bp": {
+     "HIGH": 1.8009797879907992,
+     "MID": -9.847616754714116
+    }
+   },
+   "id": "G9",
+   "rule": "trend 2/3 labels net>0, BOTH volatility labels (HIGH, MID) net>0, sessions 3/4 net>0",
+   "status": "FAIL"
+  },
+  {
+   "detail": {
+    "mdd": 0.1338412814827797,
+    "mdd_limit": 0.15,
+    "pf_required": 1.3,
+    "profit_factor": 0.8761461905933738
+   },
+   "id": "G10",
+   "rule": "profit factor > 1.3 and max drawdown < 15%",
+   "status": "FAIL"
+  },
+  {
+   "detail": {
+    "nostop_net_bp_mean": -6.488360886247057,
+    "nostop_trades": 1435,
+    "note": "sanity check only; carries no authority over the verdict",
+    "research_reference": "D5.2 C1-EVENT-240m-LONG net +19.28bp (WEAK, N_eff 77)"
+   },
+   "id": "G11",
+   "rule": "NO_STOP arm sign consistent with research estimate (sanity check, not a pass condition)",
+   "status": "NOT_EVALUABLE"
+  }
+ ],
+ "grid_last_utc": "2026-08-31T23:59:00.000",
+ "grid_rows": 2934720,
+ "main": {
+  "average_hold_min": 234.87872628726288,
+  "average_trade_bp": -6.091023289722559,
+  "edge_to_cost_ratio": 0.40824798370921433,
+  "expectancy_bp": -6.091023289722559,
+  "fees_usdt": 1319.824248,
+  "funding_usdt": 34.53782491603786,
+  "gross_bp_mean": 4.202179136358306,
+  "gross_pnl_usdt": 407.51220000000006,
+  "losses": 734,
+  "mdd": 0.1338412814827797,
+  "median_trade_bp": 0.6355394962007395,
+  "net_pnl_usdt": -946.8498729160378,
+  "payoff_ratio": 0.8666998704791596,
+  "profit_factor": 0.8761461905933738,
+  "return_pct": -12.725662291991558,
+  "stop_exits": 59,
+  "time_exits": 1417,
+  "trades": 1476,
+  "win_rate": 0.502710027100271,
+  "wins": 742
+ },
+ "nan_counts": {
+  "close": 0,
+  "index_close": 18727,
+  "mark_close": 12962,
+  "mark_low": 12962
+ },
+ "nostop": {
+  "average_hold_min": 240.0,
+  "average_trade_bp": -6.488360886247057,
+  "edge_to_cost_ratio": 0.3698702626545553,
+  "expectancy_bp": -6.488360886247057,
+  "fees_usdt": 1280.31913655,
+  "funding_usdt": 34.88750631131349,
+  "gross_bp_mean": 3.80850419042851,
+  "gross_pnl_usdt": 351.3511,
+  "losses": 722,
+  "mdd": 0.13312530802018038,
+  "median_trade_bp": -0.5347742528479507,
+  "net_pnl_usdt": -963.8555428613134,
+  "payoff_ratio": 0.8816368002345891,
+  "profit_factor": 0.8706468678216925,
+  "return_pct": -12.954218496056058,
+  "stop_exits": 0,
+  "time_exits": 1435,
+  "trades": 1435,
+  "win_rate": 0.4968641114982578,
+  "wins": 713
+ },
+ "runtime_sec": 589.4,
+ "sensitivity": {
+  "A-SENS-1": {
+   "average_hold_min": 235.86805555555554,
+   "average_trade_bp": -9.260341436526256,
+   "edge_to_cost_ratio": 0.10315457413884933,
+   "expectancy_bp": -9.260341436526256,
+   "fees_usdt": 1484.3838607,
+   "funding_usdt": 42.59126690558741,
+   "gross_bp_mean": 1.065118413630731,
+   "gross_pnl_usdt": 74.62679999999999,
+   "losses": 911,
+   "mdd": 0.20586406627794474,
+   "median_trade_bp": -8.029568670186737,
+   "net_pnl_usdt": -1452.3483276055874,
+   "payoff_ratio": 0.9251143716655787,
+   "profit_factor": 0.8296580040074399,
+   "return_pct": -19.519561523019103,
+   "stop_exits": 63,
+   "time_exits": 1665,
+   "trades": 1728,
+   "win_rate": 0.47280092592592593,
+   "wins": 817
+  },
+  "A-SENS-2": {
+   "average_hold_min": 234.64830841856806,
+   "average_trade_bp": -6.336589904225107,
+   "edge_to_cost_ratio": 0.38461739324142213,
+   "expectancy_bp": -6.336589904225107,
+   "fees_usdt": 1167.772457,
+   "funding_usdt": 31.170453856444563,
+   "gross_bp_mean": 3.9604022997014963,
+   "gross_pnl_usdt": 443.2278,
+   "losses": 644,
+   "mdd": 0.1276124933999132,
+   "median_trade_bp": -2.1558075064099933,
+   "net_pnl_usdt": -755.7151108564445,
+   "payoff_ratio": 0.9175016939379496,
+   "profit_factor": 0.893281928725302,
+   "return_pct": -10.156811089910622,
+   "stop_exits": 59,
+   "time_exits": 1212,
+   "trades": 1271,
+   "win_rate": 0.49331235247836347,
+   "wins": 627
+  },
+  "A-SENS-3": {
+   "average_hold_min": 231.44097693351424,
+   "average_trade_bp": -4.121167728598867,
+   "edge_to_cost_ratio": 0.5994313368092555,
+   "expectancy_bp": -4.121167728598867,
+   "fees_usdt": 1654.27050655,
+   "funding_usdt": 42.478377952642425,
+   "gross_bp_mean": 6.1671251592460115,
+   "gross_pnl_usdt": 732.4353,
+   "losses": 744,
+   "mdd": 0.13312685381102324,
+   "median_trade_bp": -1.0485576037881268,
+   "net_pnl_usdt": -964.3135845026425,
+   "payoff_ratio": 0.915299361428326,
+   "profit_factor": 0.8980759863476856,
+   "return_pct": -12.960374575715516,
+   "stop_exits": 111,
+   "time_exits": 1363,
+   "trades": 1474,
+   "win_rate": 0.49525101763907736,
+   "wins": 730
+  },
+  "A-SENS-4": {
+   "average_hold_min": 236.8208132322536,
+   "average_trade_bp": -6.51879781745103,
+   "edge_to_cost_ratio": 0.367259494396652,
+   "expectancy_bp": -6.51879781745103,
+   "fees_usdt": 1089.93642625,
+   "funding_usdt": 29.277573079364142,
+   "gross_bp_mean": 3.7836844161386276,
+   "gross_pnl_usdt": 288.6617,
+   "losses": 720,
+   "mdd": 0.11657658807671399,
+   "median_trade_bp": 1.6312396226233998,
+   "net_pnl_usdt": -830.552299329364,
+   "payoff_ratio": 0.8561389015069997,
+   "profit_factor": 0.8692188013911344,
+   "return_pct": -11.162622902986651,
+   "stop_exits": 40,
+   "time_exits": 1411,
+   "trades": 1451,
+   "win_rate": 0.503790489317712,
+   "wins": 731
+  },
+  "A-SENS-5": {
+   "average_hold_min": 235.096,
+   "average_trade_bp": -3.6110982774516516,
+   "edge_to_cost_ratio": 0.6495048203946024,
+   "expectancy_bp": -3.6110982774516516,
+   "fees_usdt": 1371.68672965,
+   "funding_usdt": 36.971267736495186,
+   "gross_bp_mean": 6.69174891581697,
+   "gross_pnl_usdt": 738.9741,
+   "losses": 746,
+   "mdd": 0.10584233350041972,
+   "median_trade_bp": 0.9714550082287927,
+   "net_pnl_usdt": -669.6838973864951,
+   "payoff_ratio": 0.9031540759848473,
+   "profit_factor": 0.9128393743868295,
+   "return_pct": -9.000551580874493,
+   "stop_exits": 61,
+   "time_exits": 1439,
+   "trades": 1500,
+   "win_rate": 0.5026666666666667,
+   "wins": 754
+  },
+  "A-SENS-6": {
+   "average_hold_min": 235.1078431372549,
+   "average_trade_bp": -4.985715328129526,
+   "edge_to_cost_ratio": 0.5159546493790476,
+   "expectancy_bp": -4.985715328129526,
+   "fees_usdt": 1300.57732475,
+   "funding_usdt": 35.040521728374436,
+   "gross_bp_mean": 5.314384283887517,
+   "gross_pnl_usdt": 618.9817,
+   "losses": 702,
+   "mdd": 0.10995877793178192,
+   "median_trade_bp": 1.5572288282148805,
+   "net_pnl_usdt": -716.6361464783744,
+   "payoff_ratio": 0.8720223114324589,
+   "profit_factor": 0.9018350400284404,
+   "return_pct": -9.63158980866936,
+   "stop_exits": 55,
+   "time_exits": 1373,
+   "trades": 1428,
+   "win_rate": 0.5084033613445378,
+   "wins": 726
+  }
+ },
+ "trades": 1476,
+ "verdict": {
+  "d6d_authorization": "NOT AUTHORIZED",
+  "failed": [
+   "G1",
+   "G2",
+   "G3",
+   "G5",
+   "G7",
+   "G8",
+   "G9",
+   "G10"
+  ],
+  "not_evaluable": [
+   "G6"
+  ],
+  "verdict": "FAIL"
+ },
+ "years": [
+  {
+   "average_hold_min": 235.97283531409167,
+   "average_trade_bp": -12.241051190930966,
+   "edge_to_cost_ratio": -0.2000810900577905,
+   "expectancy_bp": -12.241051190930966,
+   "fees_usdt": 516.79432005,
+   "funding_usdt": 8.9730895179339,
+   "gross_bp_mean": -2.0408644765969437,
+   "gross_pnl_usdt": -150.68129999999996,
+   "losses": 291,
+   "mdd": 0.09937402532856285,
+   "median_trade_bp": 1.6312396226234003,
+   "net_pnl_usdt": -676.4487095679339,
+   "payoff_ratio": 0.7761179531724217,
+   "profit_factor": 0.794787457200624,
+   "return_pct": -9.091470656593037,
+   "stop_exits": 23,
+   "time_exits": 566,
+   "trades": 589,
+   "win_rate": 0.5059422750424448,
+   "wins": 298,
+   "year": 2022
+  },
+  {
+   "average_hold_min": 233.34730538922156,
+   "average_trade_bp": 24.999279813379797,
+   "edge_to_cost_ratio": 3.407772778127136,
+   "expectancy_bp": 24.999279813379797,
+   "fees_usdt": 154.32019775,
+   "funding_usdt": 4.625462523223335,
+   "gross_bp_mean": 35.38202026151513,
+   "gross_pnl_usdt": 540.5391,
+   "losses": 77,
+   "mdd": 0.09087590860561032,
+   "median_trade_bp": 6.9513257796042565,
+   "net_pnl_usdt": 381.5934397267767,
+   "payoff_ratio": 1.4034918442769015,
+   "profit_factor": 1.6404450127911827,
+   "return_pct": -3.962854826665163,
+   "stop_exits": 5,
+   "time_exits": 162,
+   "trades": 167,
+   "win_rate": 0.5389221556886228,
+   "wins": 90,
+   "year": 2023
+  },
+  {
+   "average_hold_min": 233.89772727272728,
+   "average_trade_bp": -1.57015924222695,
+   "edge_to_cost_ratio": 0.8512745456360846,
+   "expectancy_bp": -1.57015924222695,
+   "fees_usdt": 323.16410415,
+   "funding_usdt": 16.67092341628731,
+   "gross_bp_mean": 8.987275253047393,
+   "gross_pnl_usdt": 223.89350000000002,
+   "losses": 167,
+   "mdd": 0.059316060924827885,
+   "median_trade_bp": 5.9829860574263565,
+   "net_pnl_usdt": -115.94152756628728,
+   "payoff_ratio": 0.8456739787095793,
+   "profit_factor": 0.9368244674327675,
+   "return_pct": -5.521108957156051,
+   "stop_exits": 18,
+   "time_exits": 334,
+   "trades": 352,
+   "win_rate": 0.5255681818181818,
+   "wins": 185,
+   "year": 2024
+  },
+  {
+   "average_hold_min": 232.72549019607843,
+   "average_trade_bp": -13.547091247970203,
+   "edge_to_cost_ratio": -0.32592174675700036,
+   "expectancy_bp": -13.547091247970203,
+   "fees_usdt": 182.87727865,
+   "funding_usdt": 3.6102918404851687,
+   "gross_bp_mean": -3.329979053299368,
+   "gross_pnl_usdt": -62.8397,
+   "losses": 109,
+   "mdd": 0.0991543304011544,
+   "median_trade_bp": -6.3058273299705245,
+   "net_pnl_usdt": -249.32727049048518,
+   "payoff_ratio": 0.8830477438987417,
+   "profit_factor": 0.7696287676181693,
+   "return_pct": -8.872067472548185,
+   "stop_exits": 9,
+   "time_exits": 195,
+   "trades": 204,
+   "win_rate": 0.46568627450980393,
+   "wins": 95,
+   "year": 2025
+  },
+  {
+   "average_hold_min": 237.29268292682926,
+   "average_trade_bp": -16.091148080224237,
+   "edge_to_cost_ratio": -0.598944622024474,
+   "expectancy_bp": -16.091148080224237,
+   "fees_usdt": 142.6683474,
+   "funding_usdt": 0.6580576181081482,
+   "gross_bp_mean": -6.02754246275718,
+   "gross_pnl_usdt": -143.39939999999999,
+   "losses": 90,
+   "mdd": 0.12823553665994206,
+   "median_trade_bp": -17.460681926763712,
+   "net_pnl_usdt": -286.72580501810813,
+   "payoff_ratio": 0.798700968363488,
+   "profit_factor": 0.6567096850988678,
+   "return_pct": -12.725662291991558,
+   "stop_exits": 4,
+   "time_exits": 160,
+   "trades": 164,
+   "win_rate": 0.45121951219512196,
+   "wins": 74,
+   "year": 2026
+  }
+ ]
+}
