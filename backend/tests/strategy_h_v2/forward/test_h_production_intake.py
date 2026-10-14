@@ -460,30 +460,26 @@ def real_prepare_shape(item, deps, *, work, run_id):
     return prep
 
 
-def test_new_candidate_not_ready_judgement_is_data_not_ready_before_any_call(store, monkeypatch):
+def test_new_candidate_not_ready_judgement_is_data_not_ready_before_d3(store, monkeypatch):
     T.seed({"FG": "WATCH"})
     new_candidate_queue("AMBIG", "0000000444")
-    T.authorize()
-    calls = []
-
     def not_ready(prep, deps, *, work):
         (work / "method_judgement.json").write_text(json.dumps({"state": MJ.NOT_READY}))
         raise IN.InputsNotReady(MJ.NOT_READY, "AMBIG: FINANCIAL_SECTOR:SIC_6311")
 
     monkeypatch.setattr(EX, "derive_judgement", not_ready)
-    d = T.deps(call=lambda s, u: calls.append(1) or dict(T.OK_MODEL), judgements=("FG", "VRRM", "AEYE"))
+    d = T.deps(judgements=("FG", "VRRM", "AEYE"))
     d.prepare_fn = real_prepare_shape
-    ORC.research_step(now=RUN_AT, deps=d)
+    out = ORC.evaluation_step(now=RUN_AT, deps=d)
     item = Q.fold()["NEW_CANDIDATE:AMBIG:1"]
     assert item["status"] == Q.DATA_NOT_READY and item["status_reason"] == MJ.NOT_READY
-    assert "FINANCIAL_SECTOR" in item["last_error"] and calls == [] and ST.latest_per_ticker().keys() == {"FG"}
+    assert "FINANCIAL_SECTOR" in item["last_error"] and out["ai_calls"] == 0 and ST.latest_per_ticker().keys() == {"FG"}
 
 
 def test_new_candidate_auto_ready_runs_d5_d2r_d6_admits_and_enters_paper(store, monkeypatch):
     T.seed({"FG": "WATCH"})
     HP.launch(at=T.PAPER_AT)
     new_candidate_queue("NEWCO", "0000000777")
-    T.authorize()
     judged = MJ.derive("NEWCO", issuer_session(results=ALL), sic="3714", sic_description="Motor Vehicle Parts")
     monkeypatch.setattr(EX, "derive_judgement", lambda prep, deps, *, work: {"judgement": judged.judgement,
                                                                                "report": judged.report()})
@@ -495,7 +491,7 @@ def test_new_candidate_auto_ready_runs_d5_d2r_d6_admits_and_enters_paper(store, 
 
     d = T.deps(gap="WIDE_POSITIVE", judgements=("FG", "VRRM", "AEYE"))
     d.prepare_fn, d.d5d6_fn = real_prepare_shape, d5d6
-    out = ORC.research_step(now=RUN_AT, deps=d)
+    out = ORC.evaluation_step(now=RUN_AT, deps=d)
     result = out["results"][0]
     assert result["status"] == Q.COMPLETE and result["ledger_written"] and result["final_decision"] == "APPROVE"
     assert seen["judgements"]["NEWCO"] is judged.judgement and "FG" in seen["judgements"]
@@ -515,11 +511,10 @@ def test_cohort_ticker_never_takes_a_code_owned_judgement(store, monkeypatch):
     T.seed({"FG": "WATCH"})
     T.refresh_queue({"FG": [{"form": "8-K", "filingDate": "2026-10-05", "accession": T.FG_8K}]})
     T.sync(RQ.build(caches=T.CACHES, index=T.INDEX))
-    T.authorize()
     monkeypatch.setattr(EX, "derive_judgement", lambda *a, **k: pytest.fail("a cohort issuer uses the frozen table"))
     d = T.deps(gap="NEUTRAL")
     d.prepare_fn = real_prepare_shape
-    out = ORC.research_step(now=RUN_AT, deps=d)
+    out = ORC.evaluation_step(now=RUN_AT, deps=d)
     assert out["results"][0]["status"] == Q.COMPLETE
     assert Q.fold()["REFRESH_DUE:FG:1"]["method_judgement"] == {"source": "FROZEN_TABLE"}
 
@@ -553,10 +548,9 @@ def test_price_base_lacking_a_ticker_falls_back_to_the_grouped_store(store, a_st
 
 # == contract and isolation ========================================================================
 
-def test_contract_revision_keeps_budget_and_adds_production_sources():
+def test_contract_v2_keeps_production_sources_and_has_no_budget():
     body = AC.contract()
-    state = AC.state()
-    assert (state["daily_hard_budget_usd"], state["per_candidate_reservation_usd"], state["max_research_candidates_per_day"]) == (24.0, 12.0, 2)
+    assert "budget" not in body and AC.state()["production_ai_calls"] == 0
     assert AC.intake_fetch_cap() == 700 and AC.reference_max_age_days() == 7
     sources = body["new_candidate_intake"]["production_sources"]
     assert "strategy_c/raw/tickers" in sources["active_universe"] and "strategy_c/raw/grouped" in sources["daily_prices"]

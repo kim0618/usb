@@ -318,15 +318,18 @@ export type HPaperFill = {
   fill_price: string; raw_price: string; exit_reason?: string;
 };
 
-/** H's autonomous pipeline (H_V2_AUTONOMOUS_PIPELINE_V1): queue, budget and the runtime clock.
- *  Every timestamp comes from runtime files on the server, never from the frontend build. */
+/** H's automatic evaluation (H_V2_AUTONOMOUS_PIPELINE_V2_NO_AI): candidate queue, last result and the
+ *  runtime clock. Evaluation is code only; there is no model, authorization or budget. Every timestamp
+ *  comes from runtime files on the server, never from the frontend build. */
 export type HAutonomyView = {
+  mode?: string;
   counts?: Record<string, number>;
-  authorized?: boolean;
-  budget?: { day: string; committed_today_usd: number; daily_hard_budget_usd: number; started_today: number; max_per_day: number };
+  latest_evaluation?: { ticker: string; status: string; final_decision?: string | null;
+    previous_decision?: string | null; decision_transition?: string | null; updated_at?: string | null } | null;
   timestamps?: {
     last_auto_run_at: string | null; latest_price_session: string | null; sec_refresh_at: string | null;
-    sec_refresh_state?: string | null; research_queue_last_run_at: string | null; research_last_run_at: string | null;
+    sec_refresh_state?: string | null; research_queue_last_run_at: string | null;
+    evaluation_last_run_at?: string | null; latest_universe?: { as_of: string; owner: string } | null;
     next_auto_run_at: string | null;
   };
   error?: string;

@@ -76,28 +76,36 @@ function PaperAccount({ view }: { view: HPaperView }) {
 
 const stamp = (value: string | null | undefined) => value ? kstTime(value) : "-";
 const QUEUE_LABEL: ReadonlyArray<[string, string]> = [
-  ["QUEUED", "대기"], ["RUNNING", "실행 중"], ["BUDGET_DEFERRED", "예산 이월"], ["FAILED", "실패"],
+  ["QUEUED", "대기"], ["RUNNING", "평가 중"], ["DATA_NOT_READY", "데이터 대기"], ["FAILED", "실패"],
 ];
+const EVAL_LABEL: Record<string, string> = {
+  APPROVE: "APPROVE", WATCH: "WATCH", REJECT: "REJECT", NOT_DECISION_ELIGIBLE: "판정 불가(기존 결정 유지)",
+};
 
-/** When H last ran by itself and what its research queue holds. Read from the server's runtime
- *  files (the timer's own run), so "H가 안 돈 것 같다" can be checked on screen. */
+/** When H last evaluated by itself and what its candidate queue holds. Read from the server's runtime
+ *  files (the timers' own runs), so "H가 안 돈 것 같다" can be checked on screen. Evaluation is code
+ *  only (no AI model), so there is no model, authorization or budget to show. */
 function AutoOps({ auto }: { auto: HAutonomyView }) {
   const t = auto.timestamps;
   const counts = auto.counts ?? {};
+  const last = auto.latest_evaluation;
+  const lastResult = last ? `${last.ticker} ${EVAL_LABEL[last.final_decision ?? ""] ?? last.status}` : "-";
   return <section aria-labelledby="h-auto-title" className="mb-7" data-h-auto="">
-    <h2 id="h-auto-title" className="mb-3 font-semibold">자동 운영</h2>
+    <h2 id="h-auto-title" className="mb-3 font-semibold">자동 평가</h2>
     <div className="panel p-5">
       {auto.error ? <p className="text-sm text-foreground-secondary">상태 조회 실패: {auto.error}</p> : <>
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-5">
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-4">
         <div><dt className="label">마지막 자동 실행</dt><dd className="mt-1 text-sm font-semibold tabular-nums text-foreground" data-h-auto-last="">{stamp(t?.last_auto_run_at)}</dd></div>
+        <div><dt className="label">마지막 자동 평가</dt><dd className="mt-1 text-sm font-semibold tabular-nums text-foreground">{stamp(t?.evaluation_last_run_at)}</dd></div>
+        <div><dt className="label">평가 결과</dt><dd className="mt-1 text-sm font-semibold text-foreground" data-h-auto-result="">{lastResult}</dd></div>
+        <div><dt className="label">최신 유니버스</dt><dd className="mt-1 text-sm font-semibold tabular-nums text-foreground">{t?.latest_universe?.as_of ?? "-"}</dd></div>
         <div><dt className="label">최신 가격 세션</dt><dd className="mt-1 text-sm font-semibold tabular-nums text-foreground">{t?.latest_price_session ?? "-"}</dd></div>
         <div><dt className="label">SEC 갱신</dt><dd className="mt-1 text-sm font-semibold tabular-nums text-foreground">{stamp(t?.sec_refresh_at)}</dd></div>
-        <div><dt className="label">리서치 큐 실행</dt><dd className="mt-1 text-sm font-semibold tabular-nums text-foreground">{stamp(t?.research_queue_last_run_at)}</dd></div>
+        <div><dt className="label">후보 큐 갱신</dt><dd className="mt-1 text-sm font-semibold tabular-nums text-foreground">{stamp(t?.research_queue_last_run_at)}</dd></div>
         <div><dt className="label">다음 자동 실행</dt><dd className="mt-1 text-sm font-semibold tabular-nums text-foreground" data-h-auto-next="">{stamp(t?.next_auto_run_at)}</dd></div>
       </dl>
       <p className="mt-4 text-sm text-foreground-secondary" data-h-auto-queue="">
-        리서치 큐 {QUEUE_LABEL.map(([k, label]) => `${label} ${counts[k] ?? 0}`).join(" · ")}
-        {auto.authorized === false ? " · 자동 리서치 승인 전 (모델 호출 없음)" : ""}
+        후보 큐 {QUEUE_LABEL.map(([k, label]) => `${label} ${counts[k] ?? 0}`).join(" · ")}
       </p></>}
     </div>
   </section>;

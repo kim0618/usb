@@ -5,8 +5,19 @@ records a stage result as of its own date and is never edited after the fact. Wh
 and a result document disagree about the present, this document wins. When they disagree about
 what happened in a past stage, the result document wins.
 
-Last verified: 2026-10-14 14:50 KST, after the autonomous pipeline production deployment
+Last verified: 2026-10-14 16:00 KST (NO-AI repair, local), before that 2026-10-14 14:50 KST, after the autonomous pipeline production deployment
 (`H_V2_AUTONOMOUS_PIPELINE_PRODUCTION_V1.md`), against the production host.
+
+**2026-10-14 NO-AI runtime repair (local, NOT DEPLOYED; `H_V2_PRODUCTION_NO_AI_RUNTIME_REPAIR_V1.md`).**
+Research-time AI = historical only. Production-time AI = NONE. Production evaluation = deterministic
+(`H_V2_AUTONOMOUS_PIPELINE_V2_NO_AI`; Claude CLI, OAuth, API key, `authorization.json` and the AI budget
+are gone from the production path and blocked at runtime). The V1 wiring of the research-time Opus
+runners into production is recorded as an incident. Finding: the frozen contract (D0 §V, §L) makes
+the D3 interpretation and the D4 gap state AI judgements with no code generator, so the code-owned
+D3/D4 produce evidence and UNKNOWN only and every evaluation ends NOT_DECISION_ELIGIBLE: decisions stay
+0/6/2, no new candidate can be admitted. Verdict NEEDS REVISION; the way forward is an operator
+decision (§9 of that document). `usb-h-research` is to be removed, `usb-h-evaluation` installed
+disabled until the RAM decision (evaluation peak about 280 MB).
 
 **2026-10-14 production (DEGRADED).** The autonomous pipeline code, H's pinned data, the H UI and the
 futures paper position size are deployed (backend files from `1719b2c`, frontend BUILD_ID
@@ -55,7 +66,8 @@ Refresh executor         = DEPLOYED (1719b2c), not run: research unit DISABLED
 New-candidate intake     = GATE ACTIVE in the 01:10 ET update (READY 2026-10-14); SCAN not affordable on
                            trader-j RAM (first run stopped, host thrash)
 Autonomous research      = NOT AUTHORIZED (no authorization.json; server Claude CLI login invalid);
-                           live model calls so far = 0
+                           live model calls so far = 0. Superseded locally by the NO-AI repair:
+                           production AI = NONE, evaluation deterministic, NOT DEPLOYED
 ```
 
 No further research is planned. A return to research is allowed only for a structural bug. It is

@@ -122,10 +122,13 @@ describe("Trading H paper book", () => {
     trades: [],
     fills: [{ event_id: "e2", ticker: "AAA", session: "2026-10-16", trade_action: "SELL_TP1", quantity: "166", fill_price: "11.982", raw_price: "12" },
             { event_id: "e1", ticker: "AAA", session: "2026-10-15", trade_action: "BUY", quantity: "332", fill_price: "10.015", raw_price: "10" }],
-    autonomy: { counts: { QUEUED: 2, RUNNING: 0, BUDGET_DEFERRED: 1, FAILED: 0, COMPLETE: 0 }, authorized: false,
+    autonomy: { mode: "DETERMINISTIC_NO_AI", counts: { QUEUED: 2, RUNNING: 0, DATA_NOT_READY: 1, FAILED: 0, COMPLETE: 1 },
+                latest_evaluation: { ticker: "FG", status: "COMPLETE", final_decision: "NOT_DECISION_ELIGIBLE",
+                                     previous_decision: "WATCH", decision_transition: "WATCH->NOT_DECISION_ELIGIBLE" },
                 timestamps: { last_auto_run_at: "2026-10-14T05:12:51+00:00", latest_price_session: "2026-10-13",
                               sec_refresh_at: "2026-10-14T05:12:40+00:00", research_queue_last_run_at: "2026-10-14T05:12:50+00:00",
-                              research_last_run_at: "2026-10-14T05:12:51+00:00", next_auto_run_at: "2026-10-15T05:10:00+00:00" } },
+                              evaluation_last_run_at: "2026-10-14T05:52:51+00:00",
+                              latest_universe: { as_of: "2026-10-13", owner: "H" }, next_auto_run_at: "2026-10-15T05:10:00+00:00" } },
   };
   beforeEach(() => {
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo) => {
@@ -146,17 +149,20 @@ describe("Trading H paper book", () => {
     expect(text).not.toContain("$0.00 Bear");
   });
 
-  it("shows when H last ran by itself, from runtime timestamps, and what the research queue holds", async () => {
+  it("shows when H last evaluated by itself, from runtime timestamps, and what the candidate queue holds", async () => {
     const fetchMock = vi.mocked(fetch);
     const { container } = render(<TradingHPage/>);
-    await screen.findByText("자동 운영");
+    await screen.findByText("자동 평가");
     const text = container.textContent!;
-    for (const label of ["마지막 자동 실행", "최신 가격 세션", "SEC 갱신", "리서치 큐 실행", "다음 자동 실행"]) expect(text).toContain(label);
+    for (const label of ["마지막 자동 실행", "마지막 자동 평가", "평가 결과", "최신 유니버스", "최신 가격 세션", "SEC 갱신",
+                         "후보 큐 갱신", "다음 자동 실행"]) expect(text).toContain(label);
     expect(text).toContain("2026-10-13");
     expect(container.querySelector("[data-h-auto-last]")!.textContent).not.toBe("-");
     expect(container.querySelector("[data-h-auto-next]")!.textContent).not.toBe("-");
-    expect(container.querySelector("[data-h-auto-queue]")!.textContent).toContain("대기 2 · 실행 중 0 · 예산 이월 1 · 실패 0");
-    expect(text).toContain("자동 리서치 승인 전");
+    expect(container.querySelector("[data-h-auto-result]")!.textContent).toBe("FG 판정 불가(기존 결정 유지)");
+    expect(container.querySelector("[data-h-auto-queue]")!.textContent).toContain("대기 2 · 평가 중 0 · 데이터 대기 1 · 실패 0");
+    const auto = container.querySelector("[data-h-auto]")!.textContent!;
+    for (const word of ["리서치", "승인", "예산", "모델", "Claude", "Opus"]) expect(auto).not.toContain(word);
     expect(text).toContain("보유 0종목");
     for (const call of fetchMock.mock.calls) expect(String(call[0])).toContain("/api/v1/strategies");
   });

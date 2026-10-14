@@ -35,6 +35,7 @@ calls, zero research cost. Commands::
     python -m app.dev.run_h_v2_d7 paper-verify   # paper invariants and prefix reproduction
     python -m app.dev.run_h_v2_d7 paper-status   # account, positions, pending entries
     python -m app.dev.run_h_v2_d7 research-queue # REFRESH_DUE + new candidates, evidence-checked (no model call)
+    python -m app.dev.run_h_v2_d7 auto-evaluate  # SCAN + code-owned D3/D4 -> D5 -> D6 -> paper (no AI, ever)
 
 ``update`` runs the paper step last, in its own failure domain (H_V2_PAPER_EXECUTION_V1): it reads
 the prices and the ledger the earlier steps wrote and never writes either.
@@ -607,8 +608,8 @@ def update() -> dict[str, Any]:
        is ``REFRESH_DEGRADED`` (stderr and ``refresh_status.json``), the refresh queue unchanged.
     4. new-candidate intake - a freshness gate; stale data is ``DATA_NOT_READY`` and nothing else.
     5. the unified research queue (planner + persistent queue).
-    6-7. budgeted research and its decision transitions run in ``auto-research`` (usb-h-research,
-       same lock, after this unit), which ends with steps 8-9 again.
+    6-7. deterministic (NO-AI) evaluation and its decision transitions run in ``auto-evaluate``
+       (usb-h-evaluation, same lock, after this unit), which ends with steps 8-9 again.
     8-9. paper entries/exits and NAV - always run, reading the ledger and prices the steps above wrote.
 
     Steps 4-6 can fail without stopping 1-3 or 8-9. Hard failures: forward integrity (exit 2), paper
@@ -639,11 +640,10 @@ def update() -> dict[str, Any]:
             "integrity": integrity["verdict"], "integrity_problems": integrity["problems"],
             "refresh": refresh,
             "refresh_due": refresh["research_refresh_due"],
-            "intake": auto["intake"], "research_queue": auto["queue"], "research": auto["research"],
+            "intake": auto["intake"], "research_queue": auto["queue"], "evaluation": auto["evaluation"],
             "autonomy_hard_failure": auto["hard_failure"],
             "paper": paper, "steps": steps,
-            "decisions_changed": sum(1 for r in (auto["research"] or {}).get("results") or []
-                                     if r.get("ledger_written")),
+            "decisions_changed": 0,
             "note": "가격 갱신은 결정을 바꾸지 않는다. 결정은 D3->D6 재평가로만 바뀐다 (D7 계약 §transitions)"}
 
 
@@ -653,7 +653,7 @@ def _autonomy_steps(*, forward_integrity: str) -> dict[str, Any]:
     from app.strategies.h_auto import intake as INT
     from app.strategies.h_auto import orchestrator as ORC
     from app.strategies.h_auto import queue as AQ
-    out: dict[str, Any] = {"intake": None, "queue": None, "research": None, "hard_failure": None, "steps": {}}
+    out: dict[str, Any] = {"intake": None, "queue": None, "evaluation": None, "hard_failure": None, "steps": {}}
     try:
         AC.contract()
     except Exception as exc:
@@ -661,7 +661,7 @@ def _autonomy_steps(*, forward_integrity: str) -> dict[str, Any]:
         return out
     try:
         # GATE: refresh H's own reference snapshot (A's fetcher, H's directory) and record the
-        # freshness gate. The SEC slice and the E1->E3 scan run in usb-h-research (SCAN mode).
+        # freshness gate. The SEC slice and the E1->E3 scan run in usb-h-evaluation (SCAN mode).
         out["intake"] = INT.intake_step(mode=INT.GATE, open_new_items=INT.open_new_candidate_items(AQ.fold().values()),
                                         massive_client_factory=INT.default_massive_client)
     except AQ.QueueIntegrityError as exc:
@@ -678,24 +678,24 @@ def _autonomy_steps(*, forward_integrity: str) -> dict[str, Any]:
     except Exception as exc:
         out["queue"] = {"state": "ERROR", "error": f"{type(exc).__name__}: {exc}"}
     out["steps"]["queue"] = {"ran_at": _now(), "state": out["queue"].get("state")}
-    # Step 6 runs in its own unit (usb-h-research, same lock, after this one): a model call needs
-    # minutes and a node process this unit's 300M/20min envelope was never sized for.
-    out["research"] = {"state": "SEPARATE_UNIT", "unit": "usb-h-research.service"}
+    # Steps 4 (SCAN) and 6 run in their own unit (usb-h-evaluation, same lock, after this one): the
+    # SEC scan needs minutes and more memory than this unit's 300M/20min envelope. No AI anywhere.
+    out["evaluation"] = {"state": "SEPARATE_UNIT", "unit": "usb-h-evaluation.service"}
     return out
 
 
-def _research_steps(*, forward_integrity: str) -> dict[str, Any]:
-    """Steps 4 (SCAN), 5 and 6 for ``auto-research``. Never raises; a queue integrity error is a hard failure."""
+def _evaluation_steps(*, forward_integrity: str) -> dict[str, Any]:
+    """Steps 4 (SCAN), 5 and 6 for ``auto-evaluate``. Never raises; a queue integrity error is a hard failure."""
     from app.strategies.h_auto import contract as AC
     from app.strategies.h_auto import intake as INT
     from app.strategies.h_auto import orchestrator as ORC
     from app.strategies.h_auto import queue as AQ
-    out: dict[str, Any] = {"intake": None, "queue": None, "research": None, "hard_failure": None, "steps": {}}
+    out: dict[str, Any] = {"intake": None, "queue": None, "evaluation": None, "hard_failure": None, "steps": {}}
     try:
         AC.contract()
         # SCAN: SEC on demand for at most the contract's cap of CIKs, then the frozen E1->E3 on the
-        # rows whose facts are fresh, then new_candidates.json. No model call. Runs here because it
-        # needs minutes and more memory than the forward unit's envelope.
+        # rows whose facts are fresh, then new_candidates.json. No AI. Runs here because it needs
+        # minutes and more memory than the forward unit's envelope.
         out["intake"] = INT.intake_step(mode=INT.SCAN, open_new_items=INT.open_new_candidate_items(AQ.fold().values()),
                                         log=lambda m: print(m, file=sys.stderr))
     except AQ.QueueIntegrityError as exc:
@@ -719,17 +719,17 @@ def _research_steps(*, forward_integrity: str) -> dict[str, Any]:
         out["queue"] = {"state": "ERROR", "error": f"{type(exc).__name__}: {exc}"}
     out["steps"]["queue"] = {"ran_at": _now(), "state": out["queue"].get("state")}
     if forward_integrity != "PASS":
-        out["research"] = {"state": "SKIPPED_FORWARD_INTEGRITY_FAILURE"}
+        out["evaluation"] = {"state": "SKIPPED_FORWARD_INTEGRITY_FAILURE"}
     elif out["queue"].get("state") != "OK":
-        out["research"] = {"state": "SKIPPED_QUEUE_ERROR"}
+        out["evaluation"] = {"state": "SKIPPED_QUEUE_ERROR"}
     else:
         try:
-            out["research"] = ORC.research_step()
+            out["evaluation"] = ORC.evaluation_step()
         except AQ.QueueIntegrityError as exc:
             out["hard_failure"] = f"QUEUE_INTEGRITY: {exc}"
         except Exception as exc:
-            out["research"] = {"state": "ERROR", "error": f"{type(exc).__name__}: {exc}"}
-    out["steps"]["research"] = {"ran_at": _now(), "state": (out["research"] or {}).get("state")}
+            out["evaluation"] = {"state": "ERROR", "error": f"{type(exc).__name__}: {exc}"}
+    out["steps"]["evaluation"] = {"ran_at": _now(), "state": (out["evaluation"] or {}).get("state")}
     return out
 
 
@@ -826,26 +826,25 @@ def auto_queue() -> dict[str, Any]:
     return ORC.queue_step()
 
 
-def auto_research() -> dict[str, Any]:
-    """The research unit: steps 5-6, then 8-9 again so a new APPROVE is a pending entry tonight.
-
-    Runs after ``update`` under the same lock. Without ``auto/authorization.json`` it makes no model
-    call. A research failure never stops the paper step.
+def auto_evaluate() -> dict[str, Any]:
+    """The evaluation unit: SCAN, queue, deterministic evaluation (no AI), then 8-9 again so a new
+    APPROVE is a pending entry tonight. Runs after ``update`` under the same lock. An evaluation
+    failure never stops the paper step.
     """
     from app.strategies.h_auto import orchestrator as ORC
     started = _now()
     integrity = verify()
-    auto = _research_steps(forward_integrity=integrity["verdict"])
+    auto = _evaluation_steps(forward_integrity=integrity["verdict"])
     paper = _paper_step()
     steps = dict(auto["steps"]) | {"paper": {"ran_at": _now(), "state": paper.get("paper_run")}}
     try:
-        ORC.record_run_status(steps, started_at=started, finished_at=_now(), kind="research")
+        ORC.record_run_status(steps, started_at=started, finished_at=_now(), kind="evaluation")
     except Exception as exc:
         steps["run_status_write"] = f"{type(exc).__name__}: {exc}"
-    return {"integrity": integrity["verdict"], "intake": auto["intake"], "research_queue": auto["queue"],
-            "research": auto["research"], "autonomy_hard_failure": auto["hard_failure"], "paper": paper,
-            "steps": steps,
-            "decisions_changed": sum(1 for r in (auto["research"] or {}).get("results") or []
+    return {"integrity": integrity["verdict"], "intake": auto["intake"], "evaluation_queue": auto["queue"],
+            "evaluation": auto["evaluation"], "autonomy_hard_failure": auto["hard_failure"], "paper": paper,
+            "steps": steps, "ai_calls": 0,
+            "decisions_changed": sum(1 for r in (auto["evaluation"] or {}).get("results") or []
                                      if r.get("ledger_written"))}
 
 
@@ -912,7 +911,9 @@ COMMANDS = {"preflight": preflight, "launch": launch, "collect-prices": collect_
             "status": status, "verify": verify,
             "paper-launch": HP.launch, "paper-run": HP.run, "paper-verify": HP.verify,
             "paper-status": paper_status, "research-queue": research_queue,
-            "auto-status": auto_status, "auto-queue": auto_queue, "auto-research": auto_research,
+            "auto-status": auto_status, "auto-queue": auto_queue, "auto-evaluate": auto_evaluate,
+            # V1 name of the same step, kept so a stale unit file runs the NO-AI evaluator, never a model.
+            "auto-research": auto_evaluate,
             "intake-scan": intake_scan, "intake-gate": intake_gate, "intake-readiness": intake_readiness,
             "build-price-base": build_price_base, "build-price-history": build_price_history,
             "verify-price-history": verify_price_history,
@@ -928,19 +929,10 @@ EXIT_AUTONOMY_INTEGRITY_FAILURE = 4
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("command", choices=sorted(COMMANDS) + ["auto-authorize"])
+    parser.add_argument("command", choices=sorted(COMMANDS))
     parser.add_argument("--no-collect", action="store_true", help="preflight without fetching prices")
     parser.add_argument("--dry-run", action="store_true", help="refresh-scan without replacing the queue")
-    parser.add_argument("--cap", type=float, help="auto-authorize: operator cumulative cap in USD")
-    parser.add_argument("--scope", default="REFRESH_ONLY", help="auto-authorize: REFRESH_ONLY or REFRESH_AND_NEW_CANDIDATE")
-    parser.add_argument("--by", help="auto-authorize: who authorized")
     args = parser.parse_args(argv)
-    if args.command == "auto-authorize":
-        from app.strategies.h_auto import budget as BU
-        if args.cap is None or not args.by:
-            parser.error("auto-authorize needs --cap and --by")
-        print(json.dumps(BU.authorize(by=args.by, cumulative_cap_usd=args.cap, scope=args.scope), indent=1))
-        return 0
     if args.command == "preflight":
         body = preflight(collect=not args.no_collect)
     elif args.command == "refresh-scan":
@@ -948,9 +940,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     else:
         body = COMMANDS[args.command]()
     print(json.dumps(body, indent=1, ensure_ascii=False, default=str))
-    if args.command == "auto-research":
-        if (body.get("research") or {}).get("state") not in ("OK", "RESEARCH_NOT_AUTHORIZED"):
-            print(f"H_RESEARCH_DEGRADED: {body.get('research')}", file=sys.stderr)
+    if args.command in ("auto-evaluate", "auto-research"):
+        if (body.get("evaluation") or {}).get("state") != "OK":
+            print(f"H_EVALUATION_DEGRADED: {body.get('evaluation')}", file=sys.stderr)
         if (body.get("paper") or {}).get("paper_run") not in ("OK", "NOT_LAUNCHED"):
             return EXIT_PAPER_INTEGRITY_FAILURE
         if body.get("autonomy_hard_failure"):
@@ -966,7 +958,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             return EXIT_INTEGRITY_FAILURE
         if body.get("autonomy_hard_failure"):
             print(f"H_AUTONOMY_INTEGRITY_FAILURE: {body['autonomy_hard_failure']} "
-                  f"(prices, SEC refresh and paper ran; research did not)", file=sys.stderr)
+                  f"(prices, SEC refresh and paper ran; evaluation did not)", file=sys.stderr)
         paper = body.get("paper") or {}
         if paper.get("paper_run") not in ("OK", "NOT_LAUNCHED"):
             print(f"H_PAPER_FAILURE: {paper.get('paper_run')}: {paper.get('problems')} "

@@ -1,0 +1,32 @@
+[Unit]
+Description=USB Strategy H-V2 candidate evaluation (SEC scan, code-only D2->D6 on the evaluation queue, then paper/NAV)
+After=network-online.target usb-h-forward.service
+Wants=network-online.target
+# Replaces usb-h-research (H_V2_AUTONOMOUS_PIPELINE_V1), which ran the research-time model runners.
+# This unit runs no model of any kind (H_V2_AUTONOMOUS_PIPELINE_V2_NO_AI): no model CLI, no API key,
+# no login under HOME. The evaluator also blocks any such attempt at runtime (h_auto.no_ai_guard).
+StartLimitIntervalSec=1800
+StartLimitBurst=3
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/root/usb
+EnvironmentFile=/root/usb/.env
+EnvironmentFile=/root/usb/.env.massive
+Environment=PYTHONPATH=/root/usb/backend
+Environment=PYTHONUNBUFFERED=1
+# Same lock as usb-h-forward: the evaluation and the daily update never write H's files at the same
+# time, and the evaluation always sees the queue the update just rebuilt.
+ExecStart=/usr/bin/flock -w 1800 /run/usb-h-forward.lock \
+  /root/usb/.venv/bin/python -m app.dev.run_h_v2_d7 auto-evaluate
+# Measured locally (H_V2_PRODUCTION_NO_AI_RUNTIME_REPAIR_V1.md §12): SCAN with 700 CIKs about 14-19 min,
+# each queue item well under a minute. The cap leaves room for the lock wait.
+TimeoutStartSec=60min
+# See the repair document §12 for the measured peaks per stage. On a 961 MB host the cap keeps an
+# overrun inside this cgroup; it does not make memory that the host lacks appear.
+MemoryMax=400M
+Nice=10
+IOSchedulingClass=idle
+# Exit codes: 0 ok (an evaluation failure is reported, not fatal), 3 paper accounting, 4 queue or
+# autonomy contract integrity.

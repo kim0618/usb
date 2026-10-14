@@ -1,7 +1,8 @@
 """H autonomous pipeline files, under the H forward store (``<store>/auto/``).
 
-Everything here is H's own and append-only except the two small JSON views (``run_status.json``,
-``authorization.json``), which are replaced atomically. Nothing here touches A, E or the forward
+Everything here is H's own and append-only except the small JSON view ``run_status.json``, which is
+replaced atomically. V1's ``spend.jsonl`` and ``authorization.json`` (AI budget) are no longer read or
+written; an existing copy is left in place as history. Nothing here touches A, E or the forward
 ledger directly: the ledger is written only through ``h_forward.transitions``.
 """
 
@@ -16,10 +17,8 @@ from app.strategies.h_forward import store as ST
 
 AUTO = "auto"
 QUEUE_EVENTS = "queue_events.jsonl"
-SPEND = "spend.jsonl"
 THESIS_EVIDENCE = "thesis_evidence.jsonl"
 RUN_STATUS = "run_status.json"
-AUTHORIZATION = "authorization.json"
 NEW_CANDIDATES = "new_candidates.json"
 
 

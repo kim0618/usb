@@ -1,4 +1,5 @@
-"""H's unified research queue: one persistent list for REFRESH_DUE and NEW_CANDIDATE items.
+"""H's candidate evaluation queue (V1's unified research queue, same data structure): one persistent
+list for REFRESH_DUE and NEW_CANDIDATE items, evaluated with code only since V2 (NO-AI).
 
 ``h_forward.research_queue.build`` is the planner: it reads the refresh scan and the intake file and
 says, with the evidence check applied, what deserves research today. This module is the queue's
@@ -24,6 +25,8 @@ from app.strategies.h_forward import research_queue as RQ
 QUEUED, RUNNING, COMPLETE, FAILED = "QUEUED", "RUNNING", "COMPLETE", "FAILED"
 BUDGET_DEFERRED, DATA_NOT_READY = "BUDGET_DEFERRED", "DATA_NOT_READY"
 EVIDENCE_ALREADY_IN_THESIS = RQ.EVIDENCE_ALREADY_IN_THESIS
+#: ``BUDGET_DEFERRED`` is V1 legacy (AI budget): kept so V1 events still fold and a deferred item is
+#: still runnable, never produced by V2.
 STATUSES = (QUEUED, RUNNING, COMPLETE, FAILED, BUDGET_DEFERRED, DATA_NOT_READY, EVIDENCE_ALREADY_IN_THESIS)
 TERMINAL = frozenset({COMPLETE, FAILED, EVIDENCE_ALREADY_IN_THESIS})
 RUNNABLE = frozenset({QUEUED, BUDGET_DEFERRED})
@@ -34,7 +37,8 @@ FIELDS = ("queue_id", "ticker", "cik", "reason", "priority_class", "priority_ran
           "cost_usd", "d2_version", "d3_version", "d4_version", "d5_version", "d6_version",
           "previous_decision", "final_decision", "decision_transition", "thesis_version",
           "previous_thesis_version", "e3_priority", "intake_order", "last_error", "run_id",
-          "started_at", "completed_at", "artifacts", "ledger_written", "method_judgement")
+          "started_at", "completed_at", "artifacts", "ledger_written", "method_judgement",
+          "valuation", "d6", "generators", "ai_calls_blocked")
 
 
 class QueueIntegrityError(RuntimeError):
@@ -164,12 +168,12 @@ def ordered(items: Mapping[str, Mapping[str, Any]] | None = None, *, now: str | 
 
 
 def recover_interrupted(*, reason: str = "INTERRUPTED") -> list[str]:
-    """Close items a crashed run left RUNNING. Their reservations stay counted (``budget``)."""
+    """Close items a crashed run left RUNNING (retryable until the attempt cap)."""
     out = []
     for item in fold().values():
         if item["status"] == RUNNING:
             transition(item, "INTERRUPTED", FAILED if item.get("attempt_count", 0) >= _max_attempts() else QUEUED,
-                       status_reason=f"{reason}:MODEL_PROCESS_ERROR", last_error=reason)
+                       status_reason=f"{reason}:RUN_INTERRUPTED", last_error=reason)
             out.append(item["queue_id"])
     return out
 

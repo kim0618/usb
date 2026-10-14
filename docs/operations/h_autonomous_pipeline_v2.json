@@ -1,0 +1,161 @@
+{
+  "declaration": {
+    "contract_id": "H_V2_AUTONOMOUS_PIPELINE_V2_NO_AI",
+    "declared_at_kst": "2026-10-14",
+    "supersedes": "H_V2_AUTONOMOUS_PIPELINE_V1 (kept unchanged as history: docs/operations/h_autonomous_pipeline_v1.json)",
+    "status": "PRODUCTION_NO_AI_RUNTIME_REPAIR",
+    "checksum_recipe": "sha256 of json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False)",
+    "purpose": "Re-evaluate H's cohort on new material evidence and evaluate new candidates with code only: D1/D2/D2.1, the code-owned D3 and D4 evidence layers, D5_D2R_V1 and D6, then the unchanged H paper book. No model, no API key, no CLI login, no AI budget.",
+    "research_build": "CLOSED (no rule, threshold or decision step is added; AI-owned D3/D4 judgements that have no frozen code generator are not produced)",
+    "production_ai_calls": 0,
+    "repair_of": "V1 wired the frozen research-time D3/D4 model runners (research_one_v3, analyze_one_v2 via the Claude CLI) into production. See H_V2_PRODUCTION_NO_AI_RUNTIME_REPAIR_V1.md."
+  },
+  "stages": {
+    "d1": "app.backtest.strategy_h_v2.pipeline.assemble_candidate (h_v2_pipeline_v1), unchanged",
+    "d2": "app.backtest.strategy_h_v2.evidence.collector.assemble_evidence_bundle_v2 + evidence.materialize.materialize_candidate (D2.1 depth policy), unchanged",
+    "d3": "app.strategies.h_auto.deterministic.d3_code_owned (H_D3_CODE_OWNED_V1): code-owned evidence only (D1/E2 fundamental-change states with SEC source ids, trigger chunks). D0 §V assigns business-model, future-business stage, catalyst materiality, risk and invalidation interpretation to AI and no frozen code generator exists for them, so they are not produced: the record has no final_output and D6 projects it as D3_REFUSED_NO_FINAL_OUTPUT (NOT_DECISION_ELIGIBLE). An absent interpretation is never turned into an empty one (that would fire D6's thesis_unsupported REJECT trigger on missing evidence).",
+    "d4": "app.strategies.h_auto.deterministic.d4_code_owned (H_D4_CODE_OWNED_V1): the frozen code expectation-evidence bundle (build_bundle_for), gap_contract.confidence_ceiling (C4), gap_contract.d6_approve_precondition. No frozen function maps evidence to a gap state (D0 §L: judged by AI, checked by code; C1-C7 only reject), C1 forbids POSITIVE without a non-price expectation item and every such item is AI-written, so the state is UNKNOWN with UNKNOWN confidence (D0 §L UNKNOWN: a pricing-in assessment cannot be made responsibly) and reason codes.",
+    "d5": "app.dev.run_strategy_h_v2_d5_d2.build_panel + value_issuer(judgements=run_strategy_h_v2_d6.METHOD_JUDGEMENTS, window_contract=D5_D2R_V1)",
+    "d5_contract": "D5_D2R_V1",
+    "d6": "app.backtest.strategy_h_v2.decision.d6_contract.decide (h_v2_d6_integrated_decision_v1), unchanged",
+    "ledger_writer": "app.strategies.h_forward.transitions (record for cohort members, admit for new candidates)",
+    "d2_refresh_trigger_inclusion": "after the frozen materialize_candidate, every REFRESH_DUE trigger accession the package did not chunk is materialised from its primary document with materialize._materialize_source (role REFRESH_TRIGGER) and appended; a trigger that still has no chunk makes the item DATA_NOT_READY:NEW_EVIDENCE_NOT_MATERIALIZED before any model call. Found 2026-10-13: FG 8-K 0001934850-26-000095 has no EX-99 (text in the primary document) and VRRM 8-K 0001193125-26-412497 lost its CORE 8-K slot to the 8-K/A 0001193125-26-413031",
+    "production_ai": "NONE: no Claude CLI subprocess, no CLAUDE_CODE_EXECPATH, no Anthropic/OpenAI client, no LLM network call; enforced at runtime by app.strategies.h_auto.no_ai_guard around every evaluation and by tests"
+  },
+  "model": {
+    "production_model": "NONE",
+    "research_time_model_history": "claude-opus-5-5 (D3/D4 research stages only; historical artifacts kept)"
+  },
+  "priority": {
+    "P0": "REFRESH_DUE whose new filing is earnings or guidance: 10-Q, 10-K, or an 8-K carrying item 2.02",
+    "P1": "any other material REFRESH_DUE (8-K without 2.02, e.g. 5.02, 7.01, 1.01)",
+    "P2": "NEW_CANDIDATE with E3 P1_HIGH",
+    "P3": "NEW_CANDIDATE with E3 P2_MEDIUM",
+    "item_7_01_alone": "P1: Reg FD material may or may not be guidance and no code reads its text before research, so it is not promoted",
+    "tie_break": "earliest new filing date (refresh) or intake order (new candidate), then ticker; never a return, a price or a forward outcome"
+  },
+  "evidence_dedup": {
+    "keys": [
+      "accession",
+      "filing_date",
+      "source_id (SEC:<cik>:<accession>)"
+    ],
+    "frozen_thesis_index": "docs/operations/h_thesis_evidence_v1.json (chunked accessions of each T1 package)",
+    "runtime_thesis_index": "<H forward store>/auto/thesis_evidence.jsonl (append-only, one row per completed re-evaluation)",
+    "in_thesis_when": "the accession was chunked into the package the thesis read, OR it is listed in that thesis bundle's filings, OR (runtime theses only) its filing date is on or before the date the thesis bundle's submissions were current",
+    "action": "EVIDENCE_ALREADY_IN_THESIS: not queued for research, no model call; historical states and documents are not rewritten"
+  },
+  "retry": {
+    "infra_transient": [
+      "SEC_FETCH_ERROR",
+      "PRICE_STORE_IO_ERROR"
+    ],
+    "max_queue_attempts": 2,
+    "retry_not_before": "the next daily run (never in the same run)",
+    "model_schema": "not applicable: no model stage",
+    "terminal": [
+      "TRANSITION_REFUSED",
+      "QUEUE_ATTEMPTS_EXHAUSTED",
+      "EXECUTOR_ERROR"
+    ],
+    "forbidden": "re-running a completed item because its decision is unwelcome"
+  },
+  "queue": {
+    "statuses": [
+      "QUEUED",
+      "RUNNING",
+      "COMPLETE",
+      "FAILED",
+      "BUDGET_DEFERRED",
+      "DATA_NOT_READY",
+      "EVIDENCE_ALREADY_IN_THESIS"
+    ],
+    "store": "<H forward store>/auto/queue_events.jsonl (append-only; the current queue is the fold of its events)",
+    "stale_running": "an item left RUNNING by a crashed run is closed as QUEUED (retryable once more) or FAILED:INTERRUPTED",
+    "meaning": "Candidate Evaluation Queue (data structure of V1 reused). BUDGET_DEFERRED is legacy: kept so V1 events still fold, never produced by V2. A COMPLETE item with final_decision NOT_DECISION_ELIGIBLE leaves the forward ledger decision unchanged."
+  },
+  "new_candidate_intake": {
+    "pipeline": "production reference universe -> E1 eligibility -> E2 change detection -> E3 priority (assemble_candidate, unchanged), no model call; the scan runs in usb-h-evaluation (SCAN) after the gate in usb-h-forward (GATE)",
+    "freshness_gate": {
+      "reference_snapshot_max_age_days": 7,
+      "requires": [
+        "reference snapshot in force for the publishable session no older than reference_snapshot_max_age_days, with active US common-stock rows carrying a CIK",
+        "A's grouped store holds the publishable session (previous XNYS session of now)",
+        "A's grouped store holds at least 252 sessions",
+        "fundamentals are not gated here: each issuer's SEC facts are fetched on demand and must be at most sec_on_demand.max_age_days old when it is scanned"
+      ],
+      "fail_action": "NEW_CANDIDATE_SCAN = DATA_NOT_READY with reasons; new_candidates.json untouched; existing cohort refresh, prices, outcomes, paper NAV and exits keep running"
+    },
+    "d5_method_judgement": "a cohort issuer is valued through the frozen tables (run_strategy_h_v2_d6.METHOD_JUDGEMENTS); any other issuer gets H_METHOD_JUDGEMENT_AUTO_V1 (h_auto.method_judgement): primary = ECONOMICALLY_REASONABLE methods and secondary = SECONDARY_ONLY methods of multiples.method_suitability (D5-D0 section 17, MIN_MARGIN_FOR_PRIMARY 2%, MATERIAL_NET_DEBT_SHARE_OF_EV 10%) on the decision session's IssuerSession, in METHOD_ORDER; P/B withheld (its applicability must be argued per issuer); unsuitable empty (NOT_SUITABLE is AI-owned); a financial issuer (SIC 6000-6799), an unresolved SIC, no computable multiple or no ECONOMICALLY_REASONABLE method is DATA_NOT_READY:METHOD_JUDGEMENT_NOT_READY before D3/D4",
+    "admission": "a decision-eligible D6 result is appended with cohort_tag NEW_FORWARD_CANDIDATE (APPROVE, WATCH and REJECT alike); NOT_DECISION_ELIGIBLE is not admitted",
+    "max_open_new_candidate_items": 10,
+    "intake_order": "E3 P1_HIGH before P2_MEDIUM, then fewest days since the latest SEC filing (evidence recency, not price), then ticker; candidates beyond the open-item cap wait for the next scan",
+    "excluded": "any ticker already in H's forward ledger (it is refreshed, not admitted)",
+    "production_sources": {
+      "active_universe": "newest CS reference snapshot on or before the publishable session: Strategy A's data/runtime/strategy_c/raw/tickers (read-only) or H's own auto/reference/CS_<as_of>.json.gz fetched daily with strategy_c_selection.raw_fetch.fetch_tickers (A's fetcher, A's format, H's directory)",
+      "ticker_cik": "the cik field of that snapshot row (strategy_c_e0.cik_map rule: newest as_of <= session); ticker text is never the join key",
+      "daily_prices": "Strategy A's data/runtime/strategy_c/raw/grouped/<session>.json.gz (Massive grouped daily, unadjusted, usb-grouped-daily 00:40 ET), read-only",
+      "historical_lookback": "every session in A's grouped store; at least 252 sessions required (E1 MIN_TRAILING_SESSIONS 60, price_context 252, executor check_panel 252, D5 RECENT_12M 252)",
+      "market_calendar": "app.market.calendar.MarketCalendar",
+      "split_adjustment": "none (unadjusted store); A's data/runtime/strategy_c/raw/splits execution dates feed the frozen D1 dilution check",
+      "fundamentals": "SEC submissions (from 2022) and companyfacts per CIK on demand through sec_store/xbrl_store into auto/sec/<ET day>/ (h_auto.facts_cache); the research-frozen full-universe store (strategy_h_v2/d1_1) is not a production source",
+      "not_production": "research_universe_u1 CS_2024-10-25, strategy_b_e0 HIST-V1 mirror (ends 2026-09-16), strategy_h_v2/d1_1 companyfacts (fetched 2026-09-28)"
+    },
+    "sec_on_demand": {
+      "fetch_cap_per_run": 700,
+      "max_age_days": 7,
+      "dated_roots_kept": 6,
+      "order": "market-passing CIKs with no cached copy first (by CIK), then stale copies oldest first (by CIK); never by a price or a return",
+      "market_tier_first": "E1's market tier (>= 60 stored sessions, latest close >= $1, 21-session ADV >= $1M) is read from A's grouped store before any SEC call; a row that fails it is INELIGIBLE or DATA_NOT_READY whatever its fundamentals say, so no SEC request is made for it",
+      "scan": "E1->E3 runs on the rows whose facts were (re)fetched; results are folded into auto/intake_index.json and new_candidates.json lists index rows with fresh facts, E3 P1/P2, within max_age_days of their scan",
+      "readiness_states": [
+        "READY",
+        "REFERENCE_NOT_READY",
+        "IDENTITY_INELIGIBLE",
+        "PRICE_NOT_READY",
+        "MARKET_INELIGIBLE",
+        "FUNDAMENTALS_FETCH_REQUIRED",
+        "SEC_NOT_READY"
+      ],
+      "measured_basis": "measured 2026-10-14 on the local tree against SEC with production reference/prices: 700 CIKs (submissions + companyfacts, 1,406 requests) in about 10 minutes, scan peak RSS 286 MB; 3,130 market-passing CIKs at 700 per weekday run are each refreshed every 5 runs (7 calendar days), the freshness bound; keeping every P1/P2 body measured 337 MB for 2,000 CIKs, so only written candidates keep bodies",
+      "after_scan": "compact: bodies of every CIK not in new_candidates.json are deleted, request ledgers kept (freshness unchanged; a missing body is refetched when next planned; the executor fetches its own copy)"
+    },
+    "method_judgement_screen": "before new_candidates.json is written, the intake walks the contract order and keeps the first (10 - open items) candidates whose H_METHOD_JUDGEMENT_AUTO_V1 verdict on the publishable session's D5 panel is AUTO_READY; a ticker that already has a NEW_CANDIDATE queue item is never written again; verdicts are stored in auto/intake_index.json and reused while the issuer's SEC facts day is unchanged; at most 40 new verdicts per run. Reason (measured 2026-10-14): 19 of 30 current candidates are METHOD_JUDGEMENT_NOT_READY and, written unscreened, would have held the 10 open slots indefinitely"
+  },
+  "daily_order": [
+    "1 prices and forward outcomes",
+    "2 SEC submissions refresh",
+    "3 material scan",
+    "4 new candidate intake: GATE (reference snapshot refresh + freshness gate) in usb-h-forward; SCAN (SEC on demand + E1->E3) at the start of usb-h-evaluation",
+    "5 unified research queue update",
+    "6 deterministic evaluation (no AI)",
+    "7 decision transitions (written by research, read here)",
+    "8 paper entries and exits",
+    "9 NAV"
+  ],
+  "failure_domains": {
+    "soft": "steps 2-6 fail into their own status; steps 1, 8 and 9 still run",
+    "hard": [
+      "forward ledger integrity",
+      "contract checksum mismatch",
+      "paper accounting corruption"
+    ]
+  },
+  "prohibitions": [
+    "no threshold retuning",
+    "no WATCH or REJECT entry",
+    "no historical return fitting",
+    "no future data",
+    "no real-money order",
+    "no A or E change",
+    "no full-universe research",
+    "no AI model call of any kind in production",
+    "no new D3/D4 rule, threshold or ontology"
+  ],
+  "ai_runtime_cost_usd": 0.0,
+  "systemd": {
+    "usb-h-forward": "unchanged (01:10 ET update: prices, outcomes, SEC refresh, GATE, queue, paper)",
+    "usb-h-evaluation": "replaces usb-h-research (01:40 ET, same flock): SCAN + deterministic evaluation + paper; no CLAUDE_CODE_EXECPATH, no HOME login",
+    "usb-h-research": "REMOVE (Claude CLI worker)"
+  }
+}

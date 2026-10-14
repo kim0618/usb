@@ -188,6 +188,26 @@ refresh queue are not touched by the paper book, so they need no restore.
 * No model call is scheduled automatically, and the production daily budget is NOT_APPROVED. A batch
   runs only under its own preregistration (`H_V2_REFRESH_BATCH_R1_PREREGISTRATION_V1.md`).
 
+## 10A. Production evaluation is NO-AI (H_V2_AUTONOMOUS_PIPELINE_V2_NO_AI, local 2026-10-14, NOT DEPLOYED)
+
+This section supersedes the model, budget and authorization parts of §10. Write-up:
+`docs/backtest/strategy_h_v2/H_V2_PRODUCTION_NO_AI_RUNTIME_REPAIR_V1.md`.
+
+* Research-time AI = historical only. Production-time AI = NONE. There is no Claude CLI, OAuth login,
+  API key, `authorization.json` or AI budget to maintain. Do not log in, do not create an
+  authorization file; `auto-authorize` no longer exists.
+* `auto-evaluate` (unit `usb-h-evaluation`, 01:40 ET, same flock; `auto-research` is the same command)
+  runs SCAN, the candidate evaluation queue, the code-owned D3/D4, D5_D2R_V1, D6, then paper/NAV.
+  Every item runs inside `no_ai_guard`; an attempt to reach a model fails the item
+  (`PRODUCTION_AI_CALL_BLOCKED`) and writes no ledger row.
+* Expected result today: `final_decision = NOT_DECISION_ELIGIBLE` for every item (the frozen D3/D4
+  judgements have no code generator). The forward ledger and the paper book are unchanged by it; the
+  queue item keeps the D5 values and the D6 blockers.
+* `usb-h-research` is removed. Install `usb-h-evaluation` disabled; enable only after the RAM decision
+  (measured peak about 280 MB, trader-j had 150-200 MB available on 2026-10-14).
+* Look: `auto-status` (mode DETERMINISTIC_NO_AI, ai_calls 0, latest_evaluation, timestamps incl.
+  latest universe), `journalctl -u usb-h-evaluation`. Stderr `H_EVALUATION_DEGRADED` when the step fails.
+
 ## 10. Autonomous pipeline (H_V2_AUTONOMOUS_PIPELINE_V1, local as of 2026-10-14, NOT DEPLOYED)
 
 Contract: `docs/operations/h_autonomous_pipeline_v1.json`; write-up

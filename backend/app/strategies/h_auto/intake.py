@@ -339,7 +339,7 @@ def scan_production(now: datetime, *, gate: Mapping[str, Any], sec_client_factor
                     calendar: MarketCalendar | None = None, log: Callable[[str], None] = lambda _m: None) -> dict[str, Any]:
     """The SCAN mode body. Raises nothing it can report; the caller records exceptions."""
     from app.backtest.collector.range import previous_trading_day
-    from app.strategies.h_auto import budget as BU
+    from app.strategies.h_auto import clock as CK
     publishable = previous_trading_day(calendar or MarketCalendar(), now)
     today = now.astimezone(ET).date()
     snap = SRC.reference_in_force(publishable)
@@ -366,7 +366,7 @@ def scan_production(now: datetime, *, gate: Mapping[str, Any], sec_client_factor
     entries = FC.index()
     needed = sorted({row.cik for row in market_pass})
     planned = FC.plan(needed, today, cap=fetch_cap, entries=entries)
-    sec_report = FC.refresh(planned, day=BU.et_day(now), client_factory=sec_client_factory, log=log)
+    sec_report = FC.refresh(planned, day=CK.et_day(now), client_factory=sec_client_factory, log=log)
     entries = FC.index()
     not_found = {n["cik"] for n in sec_report["not_found"]}
     index = read_index()

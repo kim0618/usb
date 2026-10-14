@@ -1,0 +1,14 @@
+[Unit]
+Description=Run Strategy H candidate evaluation after the H daily update
+
+[Timer]
+# 30 minutes after usb-h-forward (01:10 ET), same lock. 01:40 ET is 2h05m ahead of the 03:45 ET
+# paper start that attaches Strategy A; the evaluation calls nothing A or E owns.
+OnCalendar=Mon..Fri 01:40 America/New_York
+Persistent=true
+AccuracySec=1m
+RandomizedDelaySec=0
+Unit=usb-h-evaluation.service
+
+[Install]
+WantedBy=timers.target
