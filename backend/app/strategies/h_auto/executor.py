@@ -7,14 +7,15 @@ Order of operations, and why:
    any of the filings that triggered the refresh is refused the same way.
 2. **MethodJudgement.** A cohort issuer has one in the frozen tables; any other issuer gets a
    code-owned one (``h_auto.method_judgement``) or is refused as METHOD_JUDGEMENT_NOT_READY.
-3. **D3, D4** are the deterministic generators of ``h_auto.deterministic`` under the frozen
-   ``H_D3D4_DETERMINISTIC_PRODUCTION_V1`` (``docs/operations/h_d3d4_deterministic_v1.json``). **No model is called.** The whole item runs
+3. **D3, D4** are the deterministic generators of ``h_auto.deterministic_v2`` under the frozen
+   ``H_D3D4_DETERMINISTIC_PRODUCTION_V2`` (``docs/operations/h_d3d4_deterministic_v2.json``; V1 is
+   history). **No model is called.** The whole item runs
    inside ``no_ai_guard.forbid_ai()``; an attempt to reach a model fails the item.
 4. **D5** (``build_panel`` + ``value_issuer`` under ``D5_D2R_V1``, the D6 judgement table) inside
    ``inputs.d5_binding``; **D6** ``decide`` on the projections D6 itself uses, unchanged.
 5. **Write.** A decision-eligible D6 result goes through ``transitions.record`` (cohort) or
    ``transitions.admit`` (new candidate) and the runtime thesis evidence. A NOT_DECISION_ELIGIBLE
-   result (a refused D3, e.g. the next periodic report is underivable) writes nothing to the
+   result (a refused D3: business evidence NOT_READY, or the next periodic report is underivable) writes nothing to the
    ledger: the existing decision stands and the filing is not marked as read by a thesis.
 
 V1 (``H_V2_AUTONOMOUS_PIPELINE_V1``) ran the research-time Opus runners here under a budget. That
@@ -37,7 +38,7 @@ from typing import Any, Callable, Mapping
 from app.strategies.h_auto import clock as CK
 from app.strategies.h_auto import contract as AC
 from app.strategies.h_auto import dedup as DD
-from app.strategies.h_auto import deterministic as DT
+from app.strategies.h_auto import deterministic_v2 as DT
 from app.strategies.h_auto import inputs as IN
 from app.strategies.h_auto import no_ai_guard as NG
 from app.strategies.h_auto import queue as Q
@@ -48,8 +49,8 @@ from app.strategies.h_forward import transitions as TR
 
 VERSIONS = {
     "d2_version": "h_v2_d2_collector+d2_1_materialize (depth policy unchanged)",
-    "d3_version": "H_D3_DETERMINISTIC_V1 (H_D3D4_DETERMINISTIC_PRODUCTION_V1, no model)",
-    "d4_version": "H_D4_DETERMINISTIC_V1 (H_D3D4_DETERMINISTIC_PRODUCTION_V1, no model)",
+    "d3_version": "H_D3_DETERMINISTIC_V2 (H_D3D4_DETERMINISTIC_PRODUCTION_V2, no model)",
+    "d4_version": "H_D4_DETERMINISTIC_V2 (H_D3D4_DETERMINISTIC_PRODUCTION_V2, no model)",
     "d5_version": "D5_D2R_V1",
     "d6_version": "h_v2_d6_integrated_decision_v1",
 }
