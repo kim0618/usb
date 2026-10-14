@@ -74,8 +74,9 @@ SCAN now reads companyfacts with `facts_cache.read_facts_lean` (only the canonic
 member-by-member decode, never the whole DOM). Equivalence: 2,816/2,816 stored documents give identical
 `extract_companyfacts` output; SCAN intake 707/707 rows identical. Largest stored document: +48 MB -> +18 MB.
 Combined scan+evaluation process max RSS 322 MB (V1) -> 314 MB. Per-stage SCAN re-measurement
-(200-CIK cap, same harness as V1) was still running at the time of writing: see
-`/home/tjd618/h_d3d4_v2/mem_scan3.json`. 1 GB host: **NEEDS OPTIMIZATION** (process stays above the
+(200-CIK cap, same harness and store as V1, `mem_scan3.json`): companyfacts load 257 -> 215 MB, E1-E3 batch
+244 -> 226 MB, MethodJudgement screen 229 -> 212 MB, SEC fetch 195 -> 198 MB; **SCAN process max RSS
+278 -> 246 MB**; same 10 candidates written. 1 GB host: **NEEDS OPTIMIZATION** (process stays above the
 150-200 MB the host had available on 2026-10-14; RAM or scan partitioning remains a deployment condition).
 
 ## 6. Operations
