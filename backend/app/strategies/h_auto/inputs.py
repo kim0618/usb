@@ -352,6 +352,27 @@ class SecInputs:
     facts_document: dict[str, Any] | None
 
 
+def fetch_sec_files(cik: str, day: str, *, client) -> str:
+    """Download (or find cached) submissions and companyfacts for one CIK under ``auto/sec/<day>``,
+    without reading them back. The bytes and ledgers written are exactly ``fetch_sec``'s (same two
+    store calls); only the parse of the documents, which the intake's refresh step never used, is
+    skipped. Returns the companyfacts status. Raises SecUnavailable / InputsNotReady like ``fetch_sec``.
+    """
+    from app.backtest.strategy_c_e0 import sec_store
+    from app.backtest.strategy_eqm_v0 import xbrl_store
+
+    cik = sec_store.cik10(cik)
+    root = sec_root(day)
+    try:
+        result = sec_store.fetch_cik(client, root, cik, required_from=SUBMISSIONS_REQUIRED_FROM)
+        facts_status = xbrl_store.fetch_cik(client, root, cik)
+    except sec_store.SecFetchError as exc:
+        raise SecUnavailable(f"SEC_FETCH_ERROR:{exc.code}") from exc
+    if result.status == "NOT_FOUND":
+        raise InputsNotReady("SEC_SUBMISSIONS_NOT_FOUND", cik)
+    return facts_status
+
+
 def fetch_sec(cik: str, day: str, *, client) -> SecInputs:
     """Submissions back to 2022 and companyfacts for one CIK, cached under ``auto/sec/<day>``."""
     from app.backtest.strategy_c_e0 import sec_store

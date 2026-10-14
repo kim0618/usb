@@ -76,7 +76,8 @@ function PaperAccount({ view }: { view: HPaperView }) {
 
 const stamp = (value: string | null | undefined) => value ? kstTime(value) : "-";
 const QUEUE_LABEL: ReadonlyArray<[string, string]> = [
-  ["QUEUED", "대기"], ["RUNNING", "평가 중"], ["DATA_NOT_READY", "데이터 대기"], ["FAILED", "실패"],
+  ["QUEUED", "대기"], ["RUNNING", "평가 중"], ["DATA_NOT_READY", "데이터 대기"], ["METHOD_NOT_READY", "평가법 대기"],
+  ["FAILED", "실패"],
 ];
 const EVAL_LABEL: Record<string, string> = {
   APPROVE: "APPROVE", WATCH: "WATCH", REJECT: "REJECT", NOT_DECISION_ELIGIBLE: "판정 불가(기존 결정 유지)",

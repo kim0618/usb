@@ -56,7 +56,7 @@ def evaluation_step(*, now: datetime | None = None, deps: EX.Deps | None = None,
         outcome = EX.execute(item, deps, run_id=run_id)
         status, reason = outcome.status, outcome.reason
         fields = dict(outcome.fields)
-        if outcome.retryable or status in (Q.QUEUED, Q.DATA_NOT_READY):
+        if outcome.retryable or status in (Q.QUEUED, Q.DATA_NOT_READY, Q.METHOD_NOT_READY):
             fields["eligible_after"] = next_run_floor(now)
             if outcome.retryable and attempts >= AC.max_queue_attempts():
                 status, reason = Q.FAILED, f"QUEUE_ATTEMPTS_EXHAUSTED:{reason}"
@@ -121,7 +121,7 @@ def runtime_timestamps() -> dict[str, Any]:
 def latest_evaluation(items: Mapping[str, Mapping[str, Any]] | None = None) -> dict[str, Any] | None:
     """The most recently finished queue item: what the last automatic evaluation concluded."""
     done = [i for i in (Q.fold() if items is None else items).values()
-            if i.get("status") in (Q.COMPLETE, Q.FAILED, Q.DATA_NOT_READY) and i.get("run_id")]
+            if i.get("status") in (Q.COMPLETE, Q.FAILED, Q.DATA_NOT_READY, Q.METHOD_NOT_READY) and i.get("run_id")]
     if not done:
         return None
     last = max(done, key=lambda i: str(i.get("updated_at") or ""))

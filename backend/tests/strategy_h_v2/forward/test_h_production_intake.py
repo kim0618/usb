@@ -248,13 +248,33 @@ def test_facts_cache_refresh_records_not_found_and_stops_on_transport_failure(st
             raise IN.InputsNotReady("SEC_SUBMISSIONS_NOT_FOUND", cik)
         if cik == "4":
             raise IN.SecUnavailable("SEC_FETCH_ERROR:503")
-        return SimpleNamespace(cik=cik)
+        return "FETCHED"
 
-    monkeypatch.setattr(IN, "fetch_sec", fake_fetch)
+    monkeypatch.setattr(IN, "fetch_sec_files", fake_fetch)
+    monkeypatch.setattr(IN, "fetch_sec", lambda *a, **k: pytest.fail("refresh must not parse the documents"))
     closed = []
     report = FC.refresh(["1", "2", "3", "4", "5"], day="2026-10-13", client_factory=lambda: SimpleNamespace(close=lambda: closed.append(1)))
     assert report["fetched"] == ["1", "3"] and report["not_found"] == [{"cik": "2", "why": "SEC_SUBMISSIONS_NOT_FOUND"}]
     assert report["degraded"]["cik"] == "4" and calls == ["1", "2", "3", "4"] and closed == [1]
+
+
+def test_fetch_sec_files_makes_exactly_fetch_secs_store_calls(store, monkeypatch):
+    """Memory repair: the refresh step downloads without parsing; the store calls (and so the bytes and
+    ledgers written) are the same two calls ``fetch_sec`` makes."""
+    from app.backtest.strategy_c_e0 import sec_store
+    from app.backtest.strategy_eqm_v0 import xbrl_store
+    seen = {"files": [], "full": []}
+    bucket = ["files"]
+    monkeypatch.setattr(sec_store, "fetch_cik", lambda client, root, cik, required_from: seen[bucket[0]].append(
+        ("sub", str(root), cik, required_from)) or SimpleNamespace(status="OK", pages=()))
+    monkeypatch.setattr(xbrl_store, "fetch_cik", lambda client, root, cik: seen[bucket[0]].append(
+        ("facts", str(root), cik)) or "FETCHED")
+    assert IN.fetch_sec_files("123", "2026-10-13", client=object()) == "FETCHED"
+    bucket[0] = "full"
+    monkeypatch.setattr(sec_store, "read_gz_json", lambda path: (_ for _ in ()).throw(StopIteration("parse begins")))
+    with pytest.raises(StopIteration):
+        IN.fetch_sec("123", "2026-10-13", client=object())
+    assert seen["files"] == seen["full"] and len(seen["files"]) == 2
 
 
 # == method judgement ==============================================================================
@@ -472,7 +492,7 @@ def test_new_candidate_not_ready_judgement_is_data_not_ready_before_d3(store, mo
     d.prepare_fn = real_prepare_shape
     out = ORC.evaluation_step(now=RUN_AT, deps=d)
     item = Q.fold()["NEW_CANDIDATE:AMBIG:1"]
-    assert item["status"] == Q.DATA_NOT_READY and item["status_reason"] == MJ.NOT_READY
+    assert item["status"] == Q.METHOD_NOT_READY and item["status_reason"] == MJ.NOT_READY
     assert "FINANCIAL_SECTOR" in item["last_error"] and out["ai_calls"] == 0 and ST.latest_per_ticker().keys() == {"FG"}
 
 
@@ -621,6 +641,7 @@ def screen_fixture(monkeypatch, verdicts: dict[str, str], *, stub_series: bool =
         return SimpleNamespace(cik=cik)
 
     monkeypatch.setattr(IN, "fetch_sec", fake_fetch)
+    monkeypatch.setattr(IN, "fetch_sec_files", fake_fetch)
     monkeypatch.setattr(D52, "build_panel", lambda t, closes, until: calls["panel"].append(t) or ({}, SimpleNamespace(t=t), {}))
     monkeypatch.setattr(MJ, "derive", lambda t, row, sic=None, sic_description=None: MJ.Derived(
         t, verdicts[t], () if verdicts[t] == MJ.AUTO_READY else ("NO_COMPUTABLE_METHOD: x",), object()))

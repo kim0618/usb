@@ -7,16 +7,15 @@ Order of operations, and why:
    any of the filings that triggered the refresh is refused the same way.
 2. **MethodJudgement.** A cohort issuer has one in the frozen tables; any other issuer gets a
    code-owned one (``h_auto.method_judgement``) or is refused as METHOD_JUDGEMENT_NOT_READY.
-3. **D3, D4** are the code-owned generators of ``h_auto.deterministic``: they produce what the frozen
-   contracts let code produce and nothing AI-owned. **No model is called.** The whole item runs
+3. **D3, D4** are the deterministic generators of ``h_auto.deterministic`` under the frozen
+   ``H_D3D4_DETERMINISTIC_PRODUCTION_V1`` (``docs/operations/h_d3d4_deterministic_v1.json``). **No model is called.** The whole item runs
    inside ``no_ai_guard.forbid_ai()``; an attempt to reach a model fails the item.
 4. **D5** (``build_panel`` + ``value_issuer`` under ``D5_D2R_V1``, the D6 judgement table) inside
    ``inputs.d5_binding``; **D6** ``decide`` on the projections D6 itself uses, unchanged.
 5. **Write.** A decision-eligible D6 result goes through ``transitions.record`` (cohort) or
    ``transitions.admit`` (new candidate) and the runtime thesis evidence. A NOT_DECISION_ELIGIBLE
-   result (the code-owned D3 has no interpretation) writes nothing to the ledger: the existing
-   decision stands, and the filing is not marked as read by a thesis, so a later evaluator that can
-   interpret it is not told it was already read.
+   result (a refused D3, e.g. the next periodic report is underivable) writes nothing to the
+   ledger: the existing decision stands and the filing is not marked as read by a thesis.
 
 V1 (``H_V2_AUTONOMOUS_PIPELINE_V1``) ran the research-time Opus runners here under a budget. That
 wiring was the incident this version repairs; its artifacts are history.
@@ -49,8 +48,8 @@ from app.strategies.h_forward import transitions as TR
 
 VERSIONS = {
     "d2_version": "h_v2_d2_collector+d2_1_materialize (depth policy unchanged)",
-    "d3_version": "H_D3_CODE_OWNED_V1 (no model)",
-    "d4_version": "H_D4_CODE_OWNED_V1 (frozen bundle + C4/C5/C6 + d6_approve_precondition, no model)",
+    "d3_version": "H_D3_DETERMINISTIC_V1 (H_D3D4_DETERMINISTIC_PRODUCTION_V1, no model)",
+    "d4_version": "H_D4_DETERMINISTIC_V1 (H_D3D4_DETERMINISTIC_PRODUCTION_V1, no model)",
     "d5_version": "D5_D2R_V1",
     "d6_version": "h_v2_d6_integrated_decision_v1",
 }
@@ -177,11 +176,11 @@ def prepare(item: Mapping[str, Any], deps: Deps, *, work: Path, run_id: str) -> 
 
 
 def _d3(prep: Mapping[str, Any], *, run_id: str, work: Path) -> dict[str, Any]:
-    return DT.d3_code_owned(prep, run_id=run_id, work=work)
+    return DT.d3_deterministic(prep, run_id=run_id, work=work)
 
 
 def _d4(prep: Mapping[str, Any], d3: Mapping[str, Any], *, run_id: str, work: Path) -> dict[str, Any]:
-    return DT.d4_code_owned(prep, d3, run_id=run_id, work=work)
+    return DT.d4_deterministic(prep, d3, run_id=run_id, work=work)
 
 
 def _d5_d6(prep: Mapping[str, Any], d3: Mapping[str, Any], d4: Mapping[str, Any], deps: Deps) -> tuple[dict, Any]:
@@ -288,7 +287,9 @@ def _evaluate(item: Mapping[str, Any], deps: Deps, *, run_id: str, work: Path) -
     try:
         prep = (deps.prepare_fn or prepare)(item, deps, work=work, run_id=run_id)
     except IN.InputsNotReady as exc:
-        return Outcome(Q.DATA_NOT_READY, exc.code, {"last_error": str(exc)})
+        from app.strategies.h_auto import method_judgement as MJ
+        status = Q.METHOD_NOT_READY if exc.code == MJ.NOT_READY else Q.DATA_NOT_READY
+        return Outcome(status, exc.code, {"last_error": str(exc)})
     except IN.SecUnavailable as exc:
         return Outcome(Q.QUEUED, str(exc), {"last_error": str(exc)}, retryable=True)
     try:

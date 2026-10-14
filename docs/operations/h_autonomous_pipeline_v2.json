@@ -8,19 +8,29 @@
     "purpose": "Re-evaluate H's cohort on new material evidence and evaluate new candidates with code only: D1/D2/D2.1, the code-owned D3 and D4 evidence layers, D5_D2R_V1 and D6, then the unchanged H paper book. No model, no API key, no CLI login, no AI budget.",
     "research_build": "CLOSED (no rule, threshold or decision step is added; AI-owned D3/D4 judgements that have no frozen code generator are not produced)",
     "production_ai_calls": 0,
-    "repair_of": "V1 wired the frozen research-time D3/D4 model runners (research_one_v3, analyze_one_v2 via the Claude CLI) into production. See H_V2_PRODUCTION_NO_AI_RUNTIME_REPAIR_V1.md."
+    "repair_of": "V1 wired the frozen research-time D3/D4 model runners (research_one_v3, analyze_one_v2 via the Claude CLI) into production. See H_V2_PRODUCTION_NO_AI_RUNTIME_REPAIR_V1.md.",
+    "revision": {
+      "revised_at_kst": "2026-10-14",
+      "what": "D3/D4 stages point to the frozen deterministic contract V1; queue status METHOD_NOT_READY",
+      "production_ai_calls": 0
+    }
   },
   "stages": {
     "d1": "app.backtest.strategy_h_v2.pipeline.assemble_candidate (h_v2_pipeline_v1), unchanged",
     "d2": "app.backtest.strategy_h_v2.evidence.collector.assemble_evidence_bundle_v2 + evidence.materialize.materialize_candidate (D2.1 depth policy), unchanged",
-    "d3": "app.strategies.h_auto.deterministic.d3_code_owned (H_D3_CODE_OWNED_V1): code-owned evidence only (D1/E2 fundamental-change states with SEC source ids, trigger chunks). D0 §V assigns business-model, future-business stage, catalyst materiality, risk and invalidation interpretation to AI and no frozen code generator exists for them, so they are not produced: the record has no final_output and D6 projects it as D3_REFUSED_NO_FINAL_OUTPUT (NOT_DECISION_ELIGIBLE). An absent interpretation is never turned into an empty one (that would fire D6's thesis_unsupported REJECT trigger on missing evidence).",
-    "d4": "app.strategies.h_auto.deterministic.d4_code_owned (H_D4_CODE_OWNED_V1): the frozen code expectation-evidence bundle (build_bundle_for), gap_contract.confidence_ceiling (C4), gap_contract.d6_approve_precondition. No frozen function maps evidence to a gap state (D0 §L: judged by AI, checked by code; C1-C7 only reject), C1 forbids POSITIVE without a non-price expectation item and every such item is AI-written, so the state is UNKNOWN with UNKNOWN confidence (D0 §L UNKNOWN: a pricing-in assessment cannot be made responsibly) and reason codes.",
+    "d3": "app.strategies.h_auto.deterministic.d3_deterministic (H_D3_DETERMINISTIC_V1 under the frozen H_D3D4_DETERMINISTIC_PRODUCTION_V1, docs/operations/h_d3d4_deterministic_v1.json): schema-valid h_research_interpretation_v2 from code-owned evidence only; abstains where the contract leaves the reading to AI; no final_output when the next periodic report is underivable or the schema rejects the record",
+    "d4": "app.strategies.h_auto.deterministic.d4_deterministic (H_D4_DETERMINISTIC_V1): the frozen code expectation bundle, C4 ceiling, C5, C6 and d6_approve_precondition; gap UNKNOWN/UNKNOWN (G1-G3 of the frozen contract)",
     "d5": "app.dev.run_strategy_h_v2_d5_d2.build_panel + value_issuer(judgements=run_strategy_h_v2_d6.METHOD_JUDGEMENTS, window_contract=D5_D2R_V1)",
     "d5_contract": "D5_D2R_V1",
     "d6": "app.backtest.strategy_h_v2.decision.d6_contract.decide (h_v2_d6_integrated_decision_v1), unchanged",
     "ledger_writer": "app.strategies.h_forward.transitions (record for cohort members, admit for new candidates)",
     "d2_refresh_trigger_inclusion": "after the frozen materialize_candidate, every REFRESH_DUE trigger accession the package did not chunk is materialised from its primary document with materialize._materialize_source (role REFRESH_TRIGGER) and appended; a trigger that still has no chunk makes the item DATA_NOT_READY:NEW_EVIDENCE_NOT_MATERIALIZED before any model call. Found 2026-10-13: FG 8-K 0001934850-26-000095 has no EX-99 (text in the primary document) and VRRM 8-K 0001193125-26-412497 lost its CORE 8-K slot to the 8-K/A 0001193125-26-413031",
-    "production_ai": "NONE: no Claude CLI subprocess, no CLAUDE_CODE_EXECPATH, no Anthropic/OpenAI client, no LLM network call; enforced at runtime by app.strategies.h_auto.no_ai_guard around every evaluation and by tests"
+    "production_ai": "NONE: no Claude CLI subprocess, no CLAUDE_CODE_EXECPATH, no Anthropic/OpenAI client, no LLM network call; enforced at runtime by app.strategies.h_auto.no_ai_guard around every evaluation and by tests",
+    "d3d4_contract": {
+      "id": "H_D3D4_DETERMINISTIC_PRODUCTION_V1",
+      "file": "docs/operations/h_d3d4_deterministic_v1.json",
+      "sha256": "576c32e107ea25c3c8471eb58b5b34618e84375bb278d15f6e8855e970ffa81e"
+    }
   },
   "model": {
     "production_model": "NONE",
@@ -68,11 +78,13 @@
       "FAILED",
       "BUDGET_DEFERRED",
       "DATA_NOT_READY",
+      "METHOD_NOT_READY",
       "EVIDENCE_ALREADY_IN_THESIS"
     ],
     "store": "<H forward store>/auto/queue_events.jsonl (append-only; the current queue is the fold of its events)",
     "stale_running": "an item left RUNNING by a crashed run is closed as QUEUED (retryable once more) or FAILED:INTERRUPTED",
-    "meaning": "Candidate Evaluation Queue (data structure of V1 reused). BUDGET_DEFERRED is legacy: kept so V1 events still fold, never produced by V2. A COMPLETE item with final_decision NOT_DECISION_ELIGIBLE leaves the forward ledger decision unchanged."
+    "meaning": "Candidate Evaluation Queue (data structure of V1 reused). BUDGET_DEFERRED is legacy: kept so V1 events still fold, never produced by V2. A COMPLETE item with final_decision NOT_DECISION_ELIGIBLE leaves the forward ledger decision unchanged.",
+    "method_not_ready": "METHOD_JUDGEMENT_NOT_READY from the executor; not terminal, retried at the next run like DATA_NOT_READY"
   },
   "new_candidate_intake": {
     "pipeline": "production reference universe -> E1 eligibility -> E2 change detection -> E3 priority (assemble_candidate, unchanged), no model call; the scan runs in usb-h-evaluation (SCAN) after the gate in usb-h-forward (GATE)",

@@ -24,10 +24,12 @@ from app.strategies.h_forward import research_queue as RQ
 
 QUEUED, RUNNING, COMPLETE, FAILED = "QUEUED", "RUNNING", "COMPLETE", "FAILED"
 BUDGET_DEFERRED, DATA_NOT_READY = "BUDGET_DEFERRED", "DATA_NOT_READY"
+METHOD_NOT_READY = "METHOD_NOT_READY"
 EVIDENCE_ALREADY_IN_THESIS = RQ.EVIDENCE_ALREADY_IN_THESIS
 #: ``BUDGET_DEFERRED`` is V1 legacy (AI budget): kept so V1 events still fold and a deferred item is
 #: still runnable, never produced by V2.
-STATUSES = (QUEUED, RUNNING, COMPLETE, FAILED, BUDGET_DEFERRED, DATA_NOT_READY, EVIDENCE_ALREADY_IN_THESIS)
+STATUSES = (QUEUED, RUNNING, COMPLETE, FAILED, BUDGET_DEFERRED, DATA_NOT_READY, METHOD_NOT_READY,
+            EVIDENCE_ALREADY_IN_THESIS)
 TERMINAL = frozenset({COMPLETE, FAILED, EVIDENCE_ALREADY_IN_THESIS})
 RUNNABLE = frozenset({QUEUED, BUDGET_DEFERRED})
 
@@ -123,7 +125,7 @@ def sync(plan: Mapping[str, Any], *, now: str | None = None) -> dict[str, Any]:
             if set(accessions) - set(item.get("source_accessions") or []):
                 changed["source_accessions"] = sorted(set(accessions) | set(item.get("source_accessions") or []))
                 changed["source_event"] = row.get("source_event")
-            if item["status"] == DATA_NOT_READY and status == QUEUED:
+            if item["status"] in (DATA_NOT_READY, METHOD_NOT_READY) and status == QUEUED:
                 changed["status"] = QUEUED
             if changed:
                 updated.append(transition(item, "UPDATED", changed.pop("status", item["status"]),

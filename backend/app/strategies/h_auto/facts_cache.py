@@ -125,7 +125,9 @@ def refresh(ciks: Sequence[str], *, day: str, client_factory: Callable[[], Any],
     try:
         for n, cik in enumerate(ciks, 1):
             try:
-                IN.fetch_sec(cik, day, client=client)
+                # files only: parsing every companyfacts document here (and dropping it) was the
+                # scan's 253 MB peak (2026-10-14); E1-E3 loads each issuer later, 20 at a time.
+                IN.fetch_sec_files(cik, day, client=client)
                 report["fetched"].append(cik)
             except IN.InputsNotReady as exc:
                 report["not_found"].append({"cik": cik, "why": exc.code})

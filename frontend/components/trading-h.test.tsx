@@ -160,7 +160,7 @@ describe("Trading H paper book", () => {
     expect(container.querySelector("[data-h-auto-last]")!.textContent).not.toBe("-");
     expect(container.querySelector("[data-h-auto-next]")!.textContent).not.toBe("-");
     expect(container.querySelector("[data-h-auto-result]")!.textContent).toBe("FG 판정 불가(기존 결정 유지)");
-    expect(container.querySelector("[data-h-auto-queue]")!.textContent).toContain("대기 2 · 평가 중 0 · 데이터 대기 1 · 실패 0");
+    expect(container.querySelector("[data-h-auto-queue]")!.textContent).toContain("대기 2 · 평가 중 0 · 데이터 대기 1 · 평가법 대기 0 · 실패 0");
     const auto = container.querySelector("[data-h-auto]")!.textContent!;
     for (const word of ["리서치", "승인", "예산", "모델", "Claude", "Opus"]) expect(auto).not.toContain(word);
     expect(text).toContain("보유 0종목");
