@@ -22,7 +22,9 @@ A SEC transport failure ends the slice (``SEC_DEGRADED``) and the rest waits for
 
 from __future__ import annotations
 
+import gzip
 import json
+import re
 import shutil
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
@@ -147,9 +149,71 @@ def refresh(ciks: Sequence[str], *, day: str, client_factory: Callable[[], Any],
     return report
 
 
-def load(cik: str, entry: CacheEntry) -> IN.SecInputs:
-    """Read a cached CIK back through the same path the executor uses (``client=None`` = cache only)."""
-    return IN.fetch_sec(cik, entry.day, client=None)
+_WS = re.compile(r"[ \t\n\r]*")
+
+
+def _object(text: str, i: int, decoder: json.JSONDecoder, keep) -> tuple[dict[str, Any], int]:
+    """Decode the JSON object opening at ``text[i]`` member by member. ``keep(key)`` returns False (drop),
+    True (keep whole) or a callable (descend with it). A dropped member is decoded alone and released, so
+    the peak is the document text plus the largest single member, never the whole DOM."""
+    out: dict[str, Any] = {}
+    i = _WS.match(text, i + 1).end()
+    if text[i] == "}":
+        return out, i + 1
+    while True:
+        key, i = decoder.raw_decode(text, i)
+        i = _WS.match(text, i).end()
+        if text[i] != ":":
+            raise ValueError(f"companyfacts: ':' expected at {i}")
+        i = _WS.match(text, i + 1).end()
+        rule = keep(key)
+        if callable(rule) and text[i] == "{":
+            value, i = _object(text, i, decoder, rule)
+        else:
+            value, i = decoder.raw_decode(text, i)
+        if rule:
+            out[key] = value
+        del value
+        i = _WS.match(text, i).end()
+        if text[i] == "}":
+            return out, i + 1
+        if text[i] != ",":
+            raise ValueError(f"companyfacts: ',' expected at {i}")
+        i = _WS.match(text, i + 1).end()
+
+
+def read_facts_lean(root: Path, cik: str, tags: Iterable[str]) -> dict[str, Any] | None:
+    """``xbrl_store.read_facts`` restricted to ``facts[<taxonomy>][<tag>]`` for ``tags`` (every other
+    top-level member kept). ``extract_companyfacts`` reads nothing else, so its output is identical; the
+    process no longer holds the largest issuer's whole companyfacts DOM (the SCAN peak, 2026-10-14)."""
+    from app.backtest.strategy_eqm_v0 import xbrl_store
+    path = xbrl_store.facts_path(root, cik)
+    if not path.exists() or not xbrl_store.ledger_path(path).exists():
+        return None
+    raw = gzip.decompress(path.read_bytes())
+    text = raw.decode("utf-8")
+    del raw
+    wanted = frozenset(tags)
+    decoder = json.JSONDecoder()
+    start = _WS.match(text, 0).end()
+    concept = lambda tag: tag in wanted                                     # noqa: E731
+    doc, _ = _object(text, start, decoder, lambda key: (lambda _tax: concept) if key == "facts" else True)
+    return doc
+
+
+def load(cik: str, entry: CacheEntry, *, lean: bool = False) -> IN.SecInputs:
+    """Read a cached CIK back through the same path the executor uses (``client=None`` = cache only).
+
+    ``lean`` (the SCAN): companyfacts is read with ``read_facts_lean`` over the canonical ``FIELD_SPECS``
+    tags, the only ones ``extract_companyfacts`` reads there, and the raw document is not kept."""
+    if not lean:
+        return IN.fetch_sec(cik, entry.day, client=None)
+    from app.backtest.strategy_h0.facts import FIELD_SPECS
+    tags = {tag for spec in FIELD_SPECS.values() for tag in spec.tags}
+    sec = IN.fetch_sec(cik, entry.day, client=None,
+                       facts_reader=lambda root, c: read_facts_lean(root, c, tags))
+    sec.facts_document = None
+    return sec
 
 
 def prune(keep: int = KEEP_DATED_ROOTS) -> list[str]:

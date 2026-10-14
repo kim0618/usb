@@ -373,8 +373,10 @@ def fetch_sec_files(cik: str, day: str, *, client) -> str:
     return facts_status
 
 
-def fetch_sec(cik: str, day: str, *, client) -> SecInputs:
-    """Submissions back to 2022 and companyfacts for one CIK, cached under ``auto/sec/<day>``."""
+def fetch_sec(cik: str, day: str, *, client, facts_reader=None) -> SecInputs:
+    """Submissions back to 2022 and companyfacts for one CIK, cached under ``auto/sec/<day>``.
+
+    ``facts_reader(root, cik)`` replaces ``xbrl_store.read_facts`` (``facts_cache.load(lean=True)``)."""
     from app.backtest.strategy_c_e0 import sec_store
     from app.backtest.strategy_eqm_v0 import xbrl_store
     from app.backtest.strategy_h0.facts import extract_companyfacts
@@ -396,7 +398,7 @@ def fetch_sec(cik: str, day: str, *, client) -> SecInputs:
         rows.extend(sec_store.rows_of(sec_store.read_gz_json(sec_store.submissions_path(root, cik, page))))
     ledger = json.loads(sec_store.ledger_path(primary).read_text(encoding="utf-8"))
     fetched_at = datetime.fromisoformat(str(ledger["fetched_at"]).replace("Z", "+00:00"))
-    facts_doc = xbrl_store.read_facts(root, cik) if facts_status != "MISSING" else None
+    facts_doc = (facts_reader or xbrl_store.read_facts)(root, cik) if facts_status != "MISSING" else None
     facts = extract_companyfacts(facts_doc, acceptance_index(doc)) if facts_doc else []
     return SecInputs(cik=cik, root=root, submissions_rows=rows, submissions_doc=doc,
                      submissions_checksum=ledger.get("file_sha256") or ledger.get("raw_sha256"),

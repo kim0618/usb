@@ -397,8 +397,7 @@ def scan_production(now: datetime, *, gate: Mapping[str, Any], sec_client_factor
         sec_by_cik: dict[str, IN.SecInputs] = {}
         for row in batch:
             if row.cik not in sec_by_cik:
-                sec = FC.load(row.cik, entries[row.cik])
-                sec.facts_document = None                  # parsed facts are kept, the raw document is not
+                sec = FC.load(row.cik, entries[row.cik], lean=True)   # canonical tags only, no raw document
                 sec.submissions_rows = []
                 sec_by_cik[row.cik] = sec
         _, batch_records = scan(production_inputs(batch, series=series, sec_by_cik=sec_by_cik, splits=splits),
