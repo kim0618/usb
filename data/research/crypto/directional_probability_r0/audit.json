@@ -1,0 +1,60 @@
+{
+  "feature_names": [
+    "ret_z_5m",
+    "ret_z_30m",
+    "ret_z_60m",
+    "ret_z_240m",
+    "range_position_4h",
+    "log_rv_1h",
+    "log_rv_24h",
+    "rv_ratio",
+    "oi_1h",
+    "oi_4h",
+    "oi_24h",
+    "funding_bp",
+    "basis_bp",
+    "basis_chg_1h",
+    "perp_spot_bp",
+    "perp_spot_chg_1h",
+    "bybit_binance_ret_z_1h",
+    "spot_perp_ret_z_1h",
+    "hour_sin",
+    "hour_cos"
+  ],
+  "candidates": 584337,
+  "excluded": 1915,
+  "stale_excluded": 1915,
+  "grid_rows": 582389,
+  "c1_parity": {
+    "c1_oos_bars_d52_mask": 18498,
+    "expected": 18498,
+    "vol_cutoffs": [
+      0.0007592730942805516,
+      0.0010924950359531157
+    ],
+    "pass": true
+  },
+  "external_coverage": {
+    "um": {
+      "rows": 2966400,
+      "stale_over_5m": 0,
+      "max_age_minutes": 0
+    },
+    "spot": {
+      "rows": 2966400,
+      "stale_over_5m": 1038,
+      "max_age_minutes": 284
+    }
+  },
+  "evidence": "MODEL_OOS_NOT_UNTOUCHED_HOLDOUT",
+  "freeze": {
+    "sha256": "bc4e332e078a0f1cbc2e8c1b2422b83c5a7aacf80d6189fb2522d4bbdede0cdb",
+    "frozen_at": "2026-10-03T12:04:14.264134+00:00",
+    "before_model_fit": true
+  },
+  "feature_truncation_pass": [
+    true,
+    true,
+    true
+  ]
+}

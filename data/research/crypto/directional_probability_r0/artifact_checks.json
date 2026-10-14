@@ -1,0 +1,8 @@
+{
+  "probability_bounds": true,
+  "quantile_order": true,
+  "cdf_order": true,
+  "unique_decisions_per_horizon": true,
+  "mutually_exclusive_labels": true,
+  "all_four_horizons_same_grid": true
+}

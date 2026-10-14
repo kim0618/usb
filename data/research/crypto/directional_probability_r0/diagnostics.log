@@ -1,0 +1,106 @@
+{
+  "30": {
+    "conditional_direction_auc": 0.5207886482764864,
+    "conditional_n": 340336,
+    "chosen_direction_net_bp": -10.50168514509862,
+    "chosen_net_ci": {
+      "clusters": 254,
+      "n": 496354,
+      "effective_resampling_clusters": 245,
+      "ci_status": "ESTIMABLE",
+      "chosen_net_bp": {
+        "mean": -10.50168514509862,
+        "ci95": [
+          -10.67659073784853,
+          -10.33259454830402
+        ],
+        "ci9875": [
+          -10.723423501253928,
+          -10.299060250652989
+        ]
+      }
+    },
+    "marginal_probability_correlation": 0.7619633402122227,
+    "sum_above_one_fraction": 0.009946530097470757,
+    "max_probability_sum": 1.2967866097002139,
+    "signed_excursion_rank_correlation": 0.026490407537866942
+  },
+  "60": {
+    "conditional_direction_auc": 0.5152041844178517,
+    "conditional_n": 383621,
+    "chosen_direction_net_bp": -10.377628339199754,
+    "chosen_net_ci": {
+      "clusters": 254,
+      "n": 496354,
+      "effective_resampling_clusters": 245,
+      "ci_status": "ESTIMABLE",
+      "chosen_net_bp": {
+        "mean": -10.377628339199754,
+        "ci95": [
+          -10.729409211431154,
+          -10.055199863108655
+        ],
+        "ci9875": [
+          -10.811243500254198,
+          -9.966669900163303
+        ]
+      }
+    },
+    "marginal_probability_correlation": 0.5655626746554473,
+    "sum_above_one_fraction": 0.009612091370272023,
+    "max_probability_sum": 1.2231955363627514,
+    "signed_excursion_rank_correlation": 0.02270101227820841
+  },
+  "120": {
+    "conditional_direction_auc": 0.5116269150392199,
+    "conditional_n": 416745,
+    "chosen_direction_net_bp": -10.15025238352929,
+    "chosen_net_ci": {
+      "clusters": 254,
+      "n": 496354,
+      "effective_resampling_clusters": 245,
+      "ci_status": "ESTIMABLE",
+      "chosen_net_bp": {
+        "mean": -10.15025238352929,
+        "ci95": [
+          -10.840555109706788,
+          -9.47825111331461
+        ],
+        "ci9875": [
+          -11.042118372414052,
+          -9.307659236476866
+        ]
+      }
+    },
+    "marginal_probability_correlation": 0.1563893903352337,
+    "sum_above_one_fraction": 0.007905647985107404,
+    "max_probability_sum": 1.1433935070711243,
+    "signed_excursion_rank_correlation": 0.01942207306135713
+  },
+  "240": {
+    "conditional_direction_auc": 0.5072013768287188,
+    "conditional_n": 440573,
+    "chosen_direction_net_bp": -11.120502646970134,
+    "chosen_net_ci": {
+      "clusters": 254,
+      "n": 496354,
+      "effective_resampling_clusters": 245,
+      "ci_status": "ESTIMABLE",
+      "chosen_net_bp": {
+        "mean": -11.120502646970134,
+        "ci95": [
+          -12.684454907876075,
+          -9.660986652179526
+        ],
+        "ci9875": [
+          -13.017113193968871,
+          -9.118072259118902
+        ]
+      }
+    },
+    "marginal_probability_correlation": -0.3679175576844751,
+    "sum_above_one_fraction": 0.006972845992980816,
+    "max_probability_sum": 1.1555544414565808,
+    "signed_excursion_rank_correlation": 0.012545255775734392
+  }
+}

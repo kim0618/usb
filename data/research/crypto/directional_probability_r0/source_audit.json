@@ -1,0 +1,45 @@
+{
+  "open_interest_5m": {
+    "mismatches": 0,
+    "known_at_max_le_decision": true
+  },
+  "funding": {
+    "mismatches": 0,
+    "known_at_max_le_decision": true
+  },
+  "ohlc_invalid": 0,
+  "sha256": {
+    "data/runtime/crypto/d5/grid_v1.npz": "a77d15714477957a2154e2bf98274cafb3fec24e97b7458432787ba157706e19",
+    "data/runtime/crypto/btc_p2/external_grid_v1.npz": "1a6249baa8cc611bc424aa442a77bf2bef7463b5095a0794f40578695e2e37a5",
+    "data/research/crypto/d6/d6c_contract_v1.json": "8730a325db85c80a239a962d7db99c3882dee2db95efd5c25bcca9caa87414ad",
+    "data/research/crypto/directional_probability_r0/run.py": "db555c31ea42acd4ad174389f9f2f450cc954362519330e36a504cd0ef193548",
+    "data/research/crypto/directional_probability_r0/test_r0.py": "b533947b3a02efe6ecf50c25263c7f8c905169f3ea9325c7aa0a66039efed808"
+  },
+  "source_manifest": [
+    {
+      "dataset": "kline_1m",
+      "file": "data/runtime/crypto/BTCUSDT/historical/kline_1m/1585132560000_1790127239999.jsonl",
+      "d2_manifest_checksum": "994beac8a84bc770c51b8644567a1807ca1625e9696b1a40874f372f3f1dc628"
+    },
+    {
+      "dataset": "mark_1m",
+      "file": "data/runtime/crypto/BTCUSDT/historical/mark_1m/1585125660000_1790127239999.jsonl",
+      "d2_manifest_checksum": "c930e017bcf4700e158d34a503557855253a4f229ad12b09b78fce173fcf0104"
+    },
+    {
+      "dataset": "index_1m",
+      "file": "data/runtime/crypto/BTCUSDT/historical/index_1m/1585123020000_1790127239999.jsonl",
+      "d2_manifest_checksum": "b9750cd436c2a5d82f2ca3b9da8bada82be712fe4cc9f31b84ff07941ea2734e"
+    },
+    {
+      "dataset": "open_interest_5m",
+      "file": "data/runtime/crypto/BTCUSDT/historical/open_interest_5m/1596527400000_1790127239999.jsonl",
+      "d2_manifest_checksum": "1409f63c5a8769e0e4e987af49ec3cd72b0963f36d02fbdf306ef73a8f29d403"
+    },
+    {
+      "dataset": "funding",
+      "file": "data/runtime/crypto/BTCUSDT/historical/funding/1585152000000_1790127239999.jsonl",
+      "d2_manifest_checksum": "6a6c56f0000ec671dd21e5a3afa8ad5981b14ea84f3e9e9b186112d0f7f3c508"
+    }
+  ]
+}

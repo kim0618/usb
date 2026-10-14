@@ -1,0 +1,277 @@
+{
+  "branch": "main",
+  "head": "848a033026803fcd56beb3ca726d809d6763a58d",
+  "tests": "74 passed",
+  "existing_worktree_status_preserved": true,
+  "commit_push": false,
+  "files": {
+    "data/research/crypto/directional_probability_r0/artifact_checks.json": {
+      "bytes": 195,
+      "sha256": "36598451965256e1949c46fd6b00eef55a1ab89007ffe0cb4cb736f7f5827805"
+    },
+    "data/research/crypto/directional_probability_r0/audit.json": {
+      "bytes": 1195,
+      "sha256": "e1ec0fee44af52c8ef9dd7cabb60f0c9a656f8d6d6ada191389a17a8aae58d48"
+    },
+    "data/research/crypto/directional_probability_r0/c1_episode_predictions.parquet": {
+      "bytes": 1607551,
+      "sha256": "206971e6af2a3660e516945712fb85a2f84b4182192f6e09ed2d706f6ed803d6"
+    },
+    "data/research/crypto/directional_probability_r0/c1_fold_metrics.csv": {
+      "bytes": 3069,
+      "sha256": "fa9774f73bb9ad7fd5d2f1c11a92642350ce2d18b36925860574893899abf3b6"
+    },
+    "data/research/crypto/directional_probability_r0/diagnostics.log": {
+      "bytes": 3068,
+      "sha256": "8ec4b4811fb6fa14d5b65cd12ef4470cfeb6986265115adce8a5a2ef3adaf518"
+    },
+    "data/research/crypto/directional_probability_r0/diagnostics.py": {
+      "bytes": 3945,
+      "sha256": "224d67fdce66d32c7ac8ccf766d8356c7b514c1e6f5c39965380872af0f94a6e"
+    },
+    "data/research/crypto/directional_probability_r0/direction_contrast.json": {
+      "bytes": 3067,
+      "sha256": "c34b51db959b22d161675aacc16f5608436602a695bb996cb2b740efecd644a4"
+    },
+    "data/research/crypto/directional_probability_r0/direction_contrast_buckets.csv": {
+      "bytes": 2904,
+      "sha256": "eecc1232433c2f1e1ab72c55fb4944c2aa36bb79c84d48bd2fba6e3a4046a8b8"
+    },
+    "data/research/crypto/directional_probability_r0/fold_metrics.csv": {
+      "bytes": 16465,
+      "sha256": "9260a395ee3c7a40b6909fbd5532c4acdb5ce6c1204e19136e2b97711b880ba1"
+    },
+    "data/research/crypto/directional_probability_r0/freeze.json": {
+      "bytes": 161,
+      "sha256": "40d7c289cff8cbace99e2732ece583961f63773b6fd22d38245a34ef76bf8d59"
+    },
+    "data/research/crypto/directional_probability_r0/plot.py": {
+      "bytes": 3861,
+      "sha256": "0a80f81f39a841ee43d8c1442efeb4ea1a2cc2c8595079d070de997e5b2fd623"
+    },
+    "data/research/crypto/directional_probability_r0/predictions_fold1_h120.parquet": {
+      "bytes": 13078026,
+      "sha256": "0b548c0d60b399f42aa823faf55570db0fa5cdd60a1124633fbe92d72cb27535"
+    },
+    "data/research/crypto/directional_probability_r0/predictions_fold1_h240.parquet": {
+      "bytes": 13015799,
+      "sha256": "cc03d41d5914ff8807c949028e01d2b66a82c2365c9646f81ab6317da1942806"
+    },
+    "data/research/crypto/directional_probability_r0/predictions_fold1_h30.parquet": {
+      "bytes": 13045768,
+      "sha256": "f209c7bae74846cbf128c5aff4afc93cae8ab62ef4d4de5a297461692bc9405b"
+    },
+    "data/research/crypto/directional_probability_r0/predictions_fold1_h60.parquet": {
+      "bytes": 13088914,
+      "sha256": "55b21dc59f0dbecc5fff1dfd508688b76334acf8c07452e7068bf54b2fb43adb"
+    },
+    "data/research/crypto/directional_probability_r0/predictions_fold2_h120.parquet": {
+      "bytes": 13092592,
+      "sha256": "b9e45255e8653ec73e07538739156dd9eead7b2fa64e938c45e1078c92461a9a"
+    },
+    "data/research/crypto/directional_probability_r0/predictions_fold2_h240.parquet": {
+      "bytes": 13071612,
+      "sha256": "26e472b05a28776a2dfb31fd47fe4de45f6e01cb31abc4125d208e9efa6e9d61"
+    },
+    "data/research/crypto/directional_probability_r0/predictions_fold2_h30.parquet": {
+      "bytes": 13026759,
+      "sha256": "c19cef62d85101f90ccc6c10cb3650309db8603f19f0062f33754238f69bf684"
+    },
+    "data/research/crypto/directional_probability_r0/predictions_fold2_h60.parquet": {
+      "bytes": 13084966,
+      "sha256": "0bbc41ad01a88557793bc457a46bbb2e8648e018232070019e2c5afe851e1828"
+    },
+    "data/research/crypto/directional_probability_r0/predictions_fold3_h120.parquet": {
+      "bytes": 13106838,
+      "sha256": "885d9a343cb1481d3579e8ef9f6192204392ce69e78cdd355a81ddd4f8a9de9c"
+    },
+    "data/research/crypto/directional_probability_r0/predictions_fold3_h240.parquet": {
+      "bytes": 13136331,
+      "sha256": "f85873aafcc42b7a190b4aa9e3218d0bebefc7c9aae42ca7405b5506709bfd06"
+    },
+    "data/research/crypto/directional_probability_r0/predictions_fold3_h30.parquet": {
+      "bytes": 12965233,
+      "sha256": "16b2b163ea5c0bf85b1bbe25c5afaeee60aa7473dc3677725e7772660ed60474"
+    },
+    "data/research/crypto/directional_probability_r0/predictions_fold3_h60.parquet": {
+      "bytes": 13058359,
+      "sha256": "1a9dedad2926b63532cf7562270c0b23a2cac03634a4b8081f53ba1fa93f8c61"
+    },
+    "data/research/crypto/directional_probability_r0/predictions_fold4_h120.parquet": {
+      "bytes": 13485035,
+      "sha256": "efdbe4fe50cdc14fdcf6d9cc438721f56332bbcd3dbe0edebefc256b1cb20aca"
+    },
+    "data/research/crypto/directional_probability_r0/predictions_fold4_h240.parquet": {
+      "bytes": 13545636,
+      "sha256": "1be5b63adb093483877518ba4b81a3f592596c5084422bf9f2c87a14c011cbfc"
+    },
+    "data/research/crypto/directional_probability_r0/predictions_fold4_h30.parquet": {
+      "bytes": 13318031,
+      "sha256": "9d573e7b5d910e2dc0cb278e942d4837781cbfbbdcb19da8f2382a5094c024de"
+    },
+    "data/research/crypto/directional_probability_r0/predictions_fold4_h60.parquet": {
+      "bytes": 13424337,
+      "sha256": "5aa05af1bc73ce473de8789838e8a03e5281a74846efb955c95f37f41b38564e"
+    },
+    "data/research/crypto/directional_probability_r0/predictions_fold5_h120.parquet": {
+      "bytes": 13451390,
+      "sha256": "9b29705223938573967c3ade1f42a462a1148000564e68387eec4b3a71b6aa8e"
+    },
+    "data/research/crypto/directional_probability_r0/predictions_fold5_h240.parquet": {
+      "bytes": 13457500,
+      "sha256": "0a4221b4d1237bb50d39c61ec85fce53ec64f9709a3f564c9e6cb70debc576d1"
+    },
+    "data/research/crypto/directional_probability_r0/predictions_fold5_h30.parquet": {
+      "bytes": 13326777,
+      "sha256": "83e867a3f564f5419911467cd56d868854c9f52ac8930c6f59c54118e879c5e2"
+    },
+    "data/research/crypto/directional_probability_r0/predictions_fold5_h60.parquet": {
+      "bytes": 13405500,
+      "sha256": "dc164904911c5391b4c79052ceb81cc4a2e907aba430fcf887ff81d68e12c50a"
+    },
+    "data/research/crypto/directional_probability_r0/predictions_fold6_h120.parquet": {
+      "bytes": 13646627,
+      "sha256": "36ebb55ae1ff499079028e6090824c767919acd4a51743e46e0008e8561500a1"
+    },
+    "data/research/crypto/directional_probability_r0/predictions_fold6_h240.parquet": {
+      "bytes": 13636777,
+      "sha256": "69e495f438bdf9d2eccf54b51d6d459301380d50918fc65bfb0c2be17676dad6"
+    },
+    "data/research/crypto/directional_probability_r0/predictions_fold6_h30.parquet": {
+      "bytes": 13540048,
+      "sha256": "d8dcd67617087219bf6033920bc68d4d3d21895cc5d692bb6405def280a8e47e"
+    },
+    "data/research/crypto/directional_probability_r0/predictions_fold6_h60.parquet": {
+      "bytes": 13613314,
+      "sha256": "361e5a5c4e1fe710125959f00b75f22fde0e7e4b424ef696a003db686c59e44c"
+    },
+    "data/research/crypto/directional_probability_r0/predictions_fold7_h120.parquet": {
+      "bytes": 13396469,
+      "sha256": "3bf81313d216a56ea6bbb779a56cb00526e6c26aa078c2f34a1e98fd7e416dad"
+    },
+    "data/research/crypto/directional_probability_r0/predictions_fold7_h240.parquet": {
+      "bytes": 13398428,
+      "sha256": "4b1c6c98ed86fc41af2663d270ee735158498c84e25cfe2c5888ad92a2d58d59"
+    },
+    "data/research/crypto/directional_probability_r0/predictions_fold7_h30.parquet": {
+      "bytes": 13284411,
+      "sha256": "93d7c641b9a414ccc81a5b58824637a79509070b45083bc32c32c9c68fe96706"
+    },
+    "data/research/crypto/directional_probability_r0/predictions_fold7_h60.parquet": {
+      "bytes": 13365158,
+      "sha256": "748ab652c6957f5dd4e7b6eaa9d0bea379c1ed28924f2d69230a7085abba69b8"
+    },
+    "data/research/crypto/directional_probability_r0/predictions_fold8_h120.parquet": {
+      "bytes": 13613171,
+      "sha256": "65199fde65cd3c8e09d304b50731214c07a7b1733a22b5ba418a6fed94d6aa55"
+    },
+    "data/research/crypto/directional_probability_r0/predictions_fold8_h240.parquet": {
+      "bytes": 13642710,
+      "sha256": "aa58e91957b67401e6a7367f3edf5331c28935b10b0b2f9149830542f6c3a2fa"
+    },
+    "data/research/crypto/directional_probability_r0/predictions_fold8_h30.parquet": {
+      "bytes": 13447712,
+      "sha256": "5f82d8ceb43d441344c84d92c5211fbf5a33bed3d8d9e5852898b6d9acf855af"
+    },
+    "data/research/crypto/directional_probability_r0/predictions_fold8_h60.parquet": {
+      "bytes": 13549839,
+      "sha256": "88b10098e2226227311fd4dfdd7fae8fa1d8daa1dd89c5cb1385295e4c361fcd"
+    },
+    "data/research/crypto/directional_probability_r0/predictions_fold9_h120.parquet": {
+      "bytes": 19582099,
+      "sha256": "811080ffe4d8c6f64b6a3320fa9ae808a913950d0f621b3931369000a7d0a336"
+    },
+    "data/research/crypto/directional_probability_r0/predictions_fold9_h240.parquet": {
+      "bytes": 19598121,
+      "sha256": "0a512c69d1e4c7a8298d18ae7a1352a16e80d13eba27a479dd226e33f5444078"
+    },
+    "data/research/crypto/directional_probability_r0/predictions_fold9_h30.parquet": {
+      "bytes": 19433710,
+      "sha256": "9a2d9563d3e0755b1457fe5dd1fcf0b12a382bb28538435b53868b3aac739fbf"
+    },
+    "data/research/crypto/directional_probability_r0/predictions_fold9_h60.parquet": {
+      "bytes": 19538093,
+      "sha256": "5c2174fb031190a5c622f6451c14b2e47671c3058fd6d9c837009ab2d555f3b0"
+    },
+    "data/research/crypto/directional_probability_r0/probability_buckets.csv": {
+      "bytes": 15801,
+      "sha256": "b84071e3140fe51a04b715954240b2e021008f5e17c63970ca1ca8eb4bfeb9d6"
+    },
+    "data/research/crypto/directional_probability_r0/report.py": {
+      "bytes": 19484,
+      "sha256": "b255a0f888591a5bbcebf8446428c0b9088e0ae12b6e6ea041e32b28493c1f6e"
+    },
+    "data/research/crypto/directional_probability_r0/results.json": {
+      "bytes": 165721,
+      "sha256": "d85a4910f6a20122b4e414e20b81592b5f243c81dc00e4bf1c780cdd5627feff"
+    },
+    "data/research/crypto/directional_probability_r0/run.log": {
+      "bytes": 1542,
+      "sha256": "98ead445b49b3b15f7bf3c9917dfa40efacc9d3056a8782e534168e7f4fb1947"
+    },
+    "data/research/crypto/directional_probability_r0/run.py": {
+      "bytes": 21829,
+      "sha256": "c2911d076242968dd4bef6a8b7428131888c96bc283ab369d7179c7ceacd6ec3"
+    },
+    "data/research/crypto/directional_probability_r0/source_audit.json": {
+      "bytes": 2052,
+      "sha256": "f25bd628eeaaf5183d803c65d2d92488b0be3fbcbf8ae3920d8658b75e728b53"
+    },
+    "data/research/crypto/directional_probability_r0/splits.json": {
+      "bytes": 2242,
+      "sha256": "56ad565a72b29276dd08d9bcc6611ec0f2d18ec798d59dc6228d14b14fb65e90"
+    },
+    "data/research/crypto/directional_probability_r0/target_ranges.csv": {
+      "bytes": 6621,
+      "sha256": "b6832901f2ee18bc36f9a8299afd5744f845c9b6647521f2d9b05a575c3fecf1"
+    },
+    "data/research/crypto/directional_probability_r0/target_year_metrics.csv": {
+      "bytes": 5288,
+      "sha256": "e302faf580678686bd656b8b09c73566e4613c773ec09830aaa7e299226da768"
+    },
+    "data/research/crypto/directional_probability_r0/test_r0.py": {
+      "bytes": 3840,
+      "sha256": "2fd7226e1b5a36c35dea4402f880bba0f383a80d299fca4b7f0acb99c97091f1"
+    },
+    "data/research/crypto/directional_probability_r0/tests.log": {
+      "bytes": 179,
+      "sha256": "d548b582104b24b89a9a425b97d372ef3a08dfa68a3ff3661905c11ed2489a14"
+    },
+    "data/research/crypto/directional_probability_r0/year_metrics.csv": {
+      "bytes": 7842,
+      "sha256": "023194a6df6d10cb8b68b054417fd339fc0c31e84928c1e5a2c3614f6a9b0c67"
+    },
+    "docs/crypto/directional_probability_r0/AUDIT_NOTES.md": {
+      "bytes": 2747,
+      "sha256": "b1f89832e9f1216accaba5d4816c7bff5e05d82e93671958c1735c2dc45001d0"
+    },
+    "docs/crypto/directional_probability_r0/CONTRACT.md": {
+      "bytes": 5610,
+      "sha256": "bc4e332e078a0f1cbc2e8c1b2422b83c5a7aacf80d6189fb2522d4bbdede0cdb"
+    },
+    "docs/crypto/directional_probability_r0/REPORT.md": {
+      "bytes": 27288,
+      "sha256": "c72d4b8dc27eaa79f88d52ecb9537b6c789857f9840d46044425cdfe757bb90a"
+    },
+    "docs/crypto/directional_probability_r0/direction_calibration.pdf": {
+      "bytes": 26565,
+      "sha256": "5543363e8a2547a3356a49f1663af6dbd0404aff7ab44bf5135d754f509d1ffb"
+    },
+    "docs/crypto/directional_probability_r0/direction_calibration.png": {
+      "bytes": 219155,
+      "sha256": "773f038080ecffb394e329626149131a38ba164d4d53857f7f72508da135a5a0"
+    },
+    "docs/crypto/directional_probability_r0/quantile_coverage.png": {
+      "bytes": 63393,
+      "sha256": "74f8891257ae5fec41d0fe83801e582d907ab4217dba5565527df30ec30af42b"
+    },
+    "docs/crypto/directional_probability_r0/target_calibration.pdf": {
+      "bytes": 31623,
+      "sha256": "81009cfc00334231ca577f74e24672b8a2357226edefba80fcf963edd32192e1"
+    },
+    "docs/crypto/directional_probability_r0/target_calibration.png": {
+      "bytes": 248340,
+      "sha256": "d8ce47e91f7180eef2f1e7b327f5b59b0455c45cce071740064401cdd5ed915e"
+    }
+  }
+}
