@@ -8,7 +8,7 @@ Report files carry a FINAL STATUS note, so their hash is of the noted version.
 
 | path | size | sha256 | why |
 |---|---|---|---|
-| `hot_coin_finder_r0/evidence/raw_snapshots_and_klines.tgz` | 22,079,570 | `e4f47eeeda10935f54c6a291f32461c7eb4e0ac39dbcbe89d0c0f8dd24413ba3` | raw public Binance snapshots and 5m klines (12 entries) used by the R0 analysis. A 22 MB market dump does not belong in Git; the analysis scripts, logs and derived reports are committed and the archive stays in `~/usb-hot-coin-finder-r0` |
+| `hot_coin_finder_r0/evidence/raw_snapshots_and_klines.tgz` | 22,079,570 | `e4f47eeeda10935f54c6a291f32461c7eb4e0ac39dbcbe89d0c0f8dd24413ba3` | raw public Binance snapshots and 5m klines (12 entries) used by the R0 analysis. A 22 MB market dump does not belong in Git; the analysis scripts, logs and derived reports are committed and the archive is kept outside the repo at `~/usb_archive/2026-10/crypto/hot_coin_finder_r0/raw_snapshots_and_klines.tgz` (moved 2026-10-14; the original clone `~/usb-hot-coin-finder-r0` was deleted) |
 
 ## Committed
 
