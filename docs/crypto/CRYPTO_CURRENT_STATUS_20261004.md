@@ -40,6 +40,13 @@ There was no canonical crypto status document before this one. `docs/ai/CURRENT_
 * **Market Structure = BTC-only.** The collector requests `symbol: "BTCUSDT"` and there is no
   symbol parameter anywhere in `market_structure_v0`.
 * **AUTO unchanged.** No AUTO strategy file was extended for multi-symbol.
+* **2026-10-14: PAPER position size parity (`04428f1`, frontend only, not yet in the production
+  build).** The PAPER position card (mobile `MobilePositionCard`, desktop `PositionStrip`) now shows
+  포지션 규모 in the block LIVE uses (`PositionExposure`, extracted from `LiveExposure`), at the same
+  place and format. Value = the paper engine's `account.mark_notional` (abs(qty) x mark, the same
+  definition as LIVE's abs(positionRisk.notional)), so it follows partial closes and add-ons and is
+  never divided by leverage; KRW at the paper run's fixed rate `state.fx.krw_per_usdt`. No backend,
+  order, sizing, leverage, margin, liquidation or auto-close change. Needs a frontend rebuild.
 
 ## Signal / Research
 
