@@ -5,11 +5,10 @@ records a stage result as of its own date and is never edited after the fact. Wh
 and a result document disagree about the present, this document wins. When they disagree about
 what happened in a past stage, the result document wins.
 
-Last verified: 2026-10-15 KST (V3 checkpoint; production host read-only: forward ledger 8 rows, decisions
-0/6/2, prices through 2026-10-13, `usb-h-forward.timer` enabled, `usb-h-research.timer` disabled,
-`usb-backend` active). Entries dated before 2026-10-15 below are the change log; section 0 is the present.
+Last verified: 2026-10-15 15:30 KST, after the V3 production deploy and manual acceptance run
+(`H_V2_DETERMINISTIC_V3_PRODUCTION_ACTIVATION_V1.md`). The change log below section 0 is history.
 
-## 0. Current state (2026-10-15 checkpoint)
+## 0. Current state (2026-10-15, V3 deployed)
 
 **What H is.** Strategy H is a US-equity, medium-horizon strategy that looks for issuers whose actual
 fundamentals or business are improving, whose price does not yet fully reflect that change, and whose
@@ -32,9 +31,10 @@ Forward shadow                              = ACTIVE (production)
 Paper execution                             = ACTIVE (production backend, launch 2026-10-13T07:09:00Z, $10,000, 0 positions)
 H UI                                        = ACTIVE (production frontend Rh0hJ2skzuYNTyehDWSI-)
 Futures paper position size                 = ACTIVE / PASS
-usb-h-research                              = DEPRECATED, to be REMOVED from production (unit files still on the host, timer disabled)
-usb-h-evaluation                            = deterministic successor, READY in the repo, NOT installed, timer NOT ENABLED
-V3 code                                     = LOCAL / COMMITTED (63db022), V3 production runtime = NOT DEPLOYED (deployment PENDING)
+usb-h-research                              = REMOVED from production (2026-10-15)
+usb-h-evaluation                            = INSTALLED, manual run PASS, timer DISABLED (1 GB host pressure; see below)
+V3 production runtime                       = DEPLOYED 2026-10-15 (files over db41f04, backend restarted once) = DEGRADED:
+                                              runs by hand only until the resource condition is met
 ```
 
 The AI budget ($24/day, $12 reservation), `claude-opus-5-5` canonical model, `authorization.json` and the
@@ -45,9 +45,10 @@ deterministic contract.
 **Decisions.**
 
 ```text
-production forward ledger (authoritative)   APPROVE 0 / WATCH 6 / REJECT 2   (FG WATCH, VRRM WATCH, T1)
-V3 deterministic re-evaluation, AI 0         FG WATCH, VRRM WATCH, ADI WATCH (new candidate)
-   (local run on a read-only production copy, 2026-10-15; not written to the production ledger)
+launch cohort (8, status)                    APPROVE 0 / WATCH 6 / REJECT 2
+production V3 run 2026-10-15 (AI 0)          FG WATCH->WATCH, VRRM WATCH->WATCH; new candidates admitted:
+                                             ADI, CRUS, EQT, LCII, PG, UVV, BKTI, NSSC = WATCH; MTN, DAL = REJECT
+forward ledger                               20 rows, verify PASS; paper: 0 positions, 0 pending, $10,000
 actual APPROVE so far                        0
 synthetic clear positive                     D4 POSITIVE -> D6 APPROVE -> paper PENDING_ENTRY = PASS
 21D = PENDING (maturity 2026-11-02)          63D = PENDING (maturity 2027-01-04)
@@ -80,12 +81,17 @@ as two processes (`7ccdd0c`). trader-j has about 1 GB RAM and historically 150-2
 path: upgrade to 2 GB or more, then manual acceptance; optimising further on 1 GB first is the operator's
 alternative. RAM is not a strategy dependency.
 
-**Next action (one).** Deploy the V3 deterministic runtime to production, run `usb-h-evaluation` once by
-hand, confirm memory, latency, A/E/C isolation, paper and forward integrity, then enable its timer
-(procedure: `docs/operations/H_FORWARD_OPERATIONS_RUNBOOK_V1.md` §V3). Strategy research is not a next
-action.
+**Next action (one).** Resolve the host resource condition (RAM/instance upgrade recommended, or an
+agreed evaluation window that does not overlap manual crypto trading), rerun `usb-h-evaluation` once by
+hand with the same monitor, and enable its timer only if crypto/backend latency and memory pressure stay
+normal (runbook §V3). Until then evaluations run by hand. Strategy research is not a next action.
 
-**Evidence.** V3 result `H_V2_D3D4_DETERMINISTIC_PRODUCTION_CONTRACT_V3.md`; V2 `…_V2.md`; V1 `…_V1.md`;
+**Production activation (2026-10-15).** Manual run 65 min (SCAN 37, evaluation 28), 12 items COMPLETE, no
+OOM, integrity PASS; host MemAvailable min 179 MB, memory PSI full max 49.6 %, swap-out about 100 MB, unit
+cgroup 397/400 MB, crypto terminal stalls up to 12.7 s (idle median 0.001 s). Decision: timer disabled,
+1 GB readiness NEEDS OPTIMIZATION. Evidence `H_V2_DETERMINISTIC_V3_PRODUCTION_ACTIVATION_V1.md`.
+
+**Evidence.** Production activation `H_V2_DETERMINISTIC_V3_PRODUCTION_ACTIVATION_V1.md`; V3 result `H_V2_D3D4_DETERMINISTIC_PRODUCTION_CONTRACT_V3.md`; V2 `…_V2.md`; V1 `…_V1.md`;
 NO-AI repair `H_V2_PRODUCTION_NO_AI_RUNTIME_REPAIR_V1.md`.
 
 ## Change log (dated entries; history, not the present)
@@ -170,10 +176,9 @@ Production operations    = usb-h-forward ENABLED (Mon..Fri 01:10 ET)
 Paper execution          = ACTIVE in production (backend 2026-10-13; H_PAPER_V1_LAUNCH 2026-10-13T07:09:00Z;
                            $10,000, 0 positions, 0 trades)
 Paper/H UI               = DEPLOYED (frontend Rh0hJ2skzuYNTyehDWSI-, 2026-10-14)
-Refresh executor         = DEPLOYED (1719b2c) but unused in production; its V3 deterministic successor
-                           (usb-h-evaluation) is NOT DEPLOYED
-New-candidate intake     = GATE ACTIVE in the 01:10 ET update; SCAN runs only in usb-h-evaluation (not deployed)
-Production evaluation    = deterministic V3 (no AI), DEPLOYMENT PENDING. The AI research path
+Refresh executor         = V3 deterministic evaluator DEPLOYED 2026-10-15 (usb-h-evaluation, run by hand)
+New-candidate intake     = GATE ACTIVE in the 01:10 ET update; SCAN runs in usb-h-evaluation (first run 2026-10-15)
+Production evaluation    = deterministic V3 (no AI), DEPLOYED, timer DISABLED (DEGRADED). The AI research path
                            (usb-h-research, authorization, budget) is retired; live model calls ever made = 0
 ```
 

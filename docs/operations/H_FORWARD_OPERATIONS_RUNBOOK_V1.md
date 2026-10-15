@@ -191,8 +191,12 @@ refresh queue are not touched by the paper book, so they need no restore.
 
 ## V3. Deterministic evaluation (H_D3D4_DETERMINISTIC_PRODUCTION_V3) and production acceptance
 
-Status 2026-10-15: contract V3 = PASS and FROZEN (`docs/operations/h_d3d4_deterministic_v3.json`); code
-local and committed (63db022); **production runtime NOT DEPLOYED**; `usb-h-evaluation` timer NOT ENABLED.
+Status 2026-10-15 15:30 KST: contract V3 = PASS and FROZEN; **runtime DEPLOYED** (steps 1-7 done,
+`H_V2_DETERMINISTIC_V3_PRODUCTION_ACTIVATION_V1.md`); `usb-h-research` removed; `usb-h-evaluation` installed,
+manual run PASS; **step 8 NOT done: timer DISABLED** because the run pushed the 1 GB host to memory PSI
+about 50 % and crypto terminal stalls up to 12.7 s. Until the resource condition is met, run by hand:
+`systemctl start usb-h-evaluation.service` (after the 01:10 ET update; about 65 minutes on trader-j) with
+`/root/h_v3_deploy_20261015/monitor.sh` running alongside.
 Result: `docs/backtest/strategy_h_v2/H_V2_D3D4_DETERMINISTIC_PRODUCTION_CONTRACT_V3.md`.
 
 Production H no longer uses any of: Claude CLI, Claude OAuth, Anthropic/OpenAI runtime, AI authorization
@@ -209,7 +213,7 @@ Units (target):
 
 ```text
 usb-h-forward     existing daily update (01:10 ET), unchanged
-usb-h-research    REMOVE (deprecated AI unit; files still on the host, timer disabled)
+usb-h-research    REMOVED 2026-10-15 (unit files kept in /root/h_v3_deploy_20261015/removed/)
 usb-h-evaluation  deterministic evaluator: ExecStart 1 = intake-scan, ExecStart 2 = auto-evaluate --skip-scan,
                   both under /run/usb-h-forward.lock, 01:40 ET; timer NOT ENABLED until step 8 below
 ```
