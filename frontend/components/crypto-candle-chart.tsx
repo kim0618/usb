@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import {
-  CandlestickSeries, CrosshairMode, HistogramSeries, createChart,
+  CandlestickSeries, CrosshairMode, HistogramSeries, createChart, createSeriesMarkers,
 } from "lightweight-charts";
 import type {
-  AutoscaleInfo, IChartApi, IPriceLine, ISeriesApi,
+  AutoscaleInfo, IChartApi, IPriceLine, ISeriesApi, ISeriesMarkersPluginApi, Time,
 } from "lightweight-charts";
 import type { ChartOverlay, ChartPoint } from "@/lib/crypto-paper";
+import type { ChartMarker } from "@/lib/crypto-executions";
 import { CONTEXT_KINDS } from "@/lib/crypto-paper";
 import { isTailUpdate, isWhitespace, visible15sBars } from "@/lib/crypto-paper";
 
@@ -113,6 +114,8 @@ export function wallShade(kind: ChartOverlay["kind"], order: 1 | 2 | 3 | undefin
            tag: `rgba(${WALL_RGB[kind]},${WALL_TAG_ALPHA[step]})` };
 }
 
+const NO_MARKERS: ChartMarker[] = [];
+
 /** Vertical room one price-axis label needs, in CSS px. Two labels closer than this overprint. */
 export const LABEL_GAP_PX = 16;
 
@@ -206,10 +209,12 @@ const TAG_COLOR: Partial<Record<ChartOverlay["kind"], string>> = {
  *  zooming survive the 1 Hz refresh. A chart that reset its viewport every second would be
  *  unusable for exactly the person this screen is for.
  */
-export function CandleChart({ candles, overlays, className = "h-[300px]",
+export function CandleChart({ candles, overlays, markers = NO_MARKERS, className = "h-[300px]",
   seriesKey = "default", seconds = false, onPriceRange, onNeedMoreHistory,
   priceFormat = { precision: 1, minMove: 0.1 } }: {
   candles: ChartPoint[];
+  /** One marker per execution of the account on screen, already snapped to a candle. */
+  markers?: ChartMarker[];
   /** The instrument's price grid. BTC's tick is 0.10; a HOT symbol's can be 0.000001, and the
    *  default one decimal would draw every candle and label at 0.0. */
   priceFormat?: { precision: number; minMove: number };
@@ -231,6 +236,7 @@ export function CandleChart({ candles, overlays, className = "h-[300px]",
   const chart = useRef<IChartApi | null>(null);
   const priceSeries = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const volumeSeries = useRef<ISeriesApi<"Histogram"> | null>(null);
+  const markerLayer = useRef<ISeriesMarkersPluginApi<Time> | null>(null);
   const lines = useRef<Map<string, IPriceLine>>(new Map());
   // What each line was asked to be, and whether its label is currently suppressed, so the
   // label pass can toggle labels without rebuilding the line.
@@ -388,6 +394,7 @@ export function CandleChart({ candles, overlays, className = "h-[300px]",
 
       chart.current = created;
       priceSeries.current = price;
+      markerLayer.current = createSeriesMarkers(price, []);
       volumeSeries.current = volume;
       created.timeScale().subscribeVisibleLogicalRangeChange(() => report());
     })();
@@ -399,6 +406,7 @@ export function CandleChart({ candles, overlays, className = "h-[300px]",
       hidden.clear();
       chart.current?.remove();
       chart.current = null;
+      markerLayer.current = null;
       priceSeries.current = null;
       volumeSeries.current = null;
       fitted.current = false;
@@ -462,6 +470,20 @@ export function CandleChart({ candles, overlays, className = "h-[300px]",
     report();
     drawn.current = { key: seriesKey, times };
   }, [candles, seriesKey, seconds, report]);
+
+  // Markers are replaced as a set on every change: the caller owns which executions belong to
+  // this chart (mode, symbol, account), and a partial update could leave another account's
+  // marker behind after a switch. Re-applied after the candles too, because a full `setData`
+  // can drop markers whose bar the new series does not contain.
+  useEffect(() => {
+    const layer = markerLayer.current;
+    if (!layer) return;
+    layer.setMarkers(markers.map(marker => ({
+      time: marker.time as Time, position: marker.position, shape: marker.shape,
+      color: marker.color, text: marker.text, id: marker.id,
+    })));
+    if (box.current) box.current.dataset.markers = String(markers.length);
+  }, [markers, candles]);
 
   useEffect(() => {
     const price = priceSeries.current;

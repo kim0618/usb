@@ -5,6 +5,7 @@
  *  pinned once at run start and travels in the run config. */
 
 import { withSymbol } from "@/lib/crypto-symbols";
+import type { ExecutionsAnswer } from "@/lib/crypto-executions";
 
 export const CRYPTO_API_BASE = (process.env.NEXT_PUBLIC_CRYPTO_API_BASE || "http://127.0.0.1:8100").replace(/\/$/, "");
 
@@ -48,6 +49,9 @@ export type CryptoState = {
   instrument?: { symbol: string; qty_step: string; min_order_qty: string;
                  max_mkt_order_qty: string; min_notional_value: string; tick_size: string;
                  max_leverage: string; source: string };
+  /** The PAPER run's own leverage ceiling: never below 100x, never read from a Binance account.
+   *  Absent on a server that predates it, when the instrument's ceiling applies. */
+  paper_max_leverage?: string;
   run_id: string; engine_version: string; leverage: string; server_time_ms: number;
   started_at_ms: number | null; ledger_event_count: number; input_record_count: number;
   liquidation_count: number; funding_grid_mismatches: number; starting_capital_krw: string;
@@ -292,6 +296,9 @@ export const cryptoApi = {
   trades: (symbol: string, limit = 50, signal?: AbortSignal) =>
     request<{ total: number; trades: TradeRow[] }>(
       withSymbol(`/api/crypto/trades?limit=${limit}`, symbol), { signal }),
+  /** This run's fills on this symbol, each classified against the position before it. */
+  executions: (symbol: string, signal?: AbortSignal) =>
+    request<ExecutionsAnswer>(withSymbol("/api/crypto/executions", symbol), { signal }),
   order: (symbol: string,
           body: { side: "LONG" | "SHORT"; intent: "OPEN" | "CLOSE"; qty?: string; notional_usdt?: string }) =>
     request<{ state: CryptoState }>("/api/crypto/order",
@@ -710,7 +717,7 @@ export function positionOverlays(state: Pick<CryptoState, "account" | "quote">):
   if (mark != null) overlays.push({ id: "mark", price: mark, label: "Mark", kind: "MARK" });
   if (!account || account.position_side === null) return overlays;
   const entry = num(account.avg_entry);
-  if (entry != null) overlays.push({ id: "entry", price: entry, label: "진입", kind: "ENTRY" });
+  if (entry != null) overlays.push({ id: "entry", price: entry, label: "평균진입", kind: "ENTRY" });
   const liquidation = num(account.liquidation_price);
   if (liquidation != null && liquidation > 0) {
     overlays.push({ id: "liquidation", price: liquidation, label: "청산", kind: "LIQUIDATION" });

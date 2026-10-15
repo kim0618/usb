@@ -2,17 +2,14 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ErrorState, LoadingState } from "@/components/ui";
+import { OrderTicket, useCryptoTerminal, useLivePnl } from "@/components/crypto-paper-terminal";
 import {
-  LedgerTable, OrderTicket, PerformancePanel, RunFooter, SourceBanner, TradeHistory,
-  useCryptoTerminal, useLivePnl,
-} from "@/components/crypto-paper-terminal";
-import {
-  AutoNote, ChartSection, Disclosure, MarketHeader, MobilePositionCard, PositionStrip,
+  ChartSection, Disclosure, MarketHeader, MobilePositionCard, PositionStrip,
 } from "@/components/crypto-terminal-layout";
 import {
   AccountSourceSwitch, LiveAccountCards, LiveActivateDialog, LiveAuthorityNote, LiveBlockedPanel,
   LiveAutoExit, LiveBookStrip, LiveLeverageNotes, LiveLeveragePanel, LiveMarketHeader, LiveOrderTicket,
-  LivePerformanceSummary, LivePositionCard, LivePositionPanel, LiveTradeBar, useBinanceLive,
+  LivePositionCard, LivePositionPanel, LiveTradeBar, useBinanceLive,
 } from "@/components/crypto-live-terminal";
 import { HotCoinFinder, useHotSlot } from "@/components/crypto-hot-coins";
 import {
@@ -21,7 +18,6 @@ import {
 import { DEFAULT_SYMBOL } from "@/lib/crypto-symbols";
 import type { ChartTimeframe } from "@/lib/crypto-paper";
 import { positionOpenedMs } from "@/lib/crypto-paper";
-import { contextChartLines, useBtcContext, useStructureDisplay, useWallSelection } from "@/lib/btc-context";
 import type { ContextView } from "@/lib/btc-context";
 import { ARM_NOTE, LIVE_CHART_SOURCE_NOTE, LIVE_LOCK_NOTE, liveOverlays, liveTradeGate }
   from "@/lib/crypto-live";
@@ -54,7 +50,7 @@ function useIsWide() {
   return wide;
 }
 
-export function CryptoTerminal({ marketContext, contextBase }: {
+export function CryptoTerminal({ marketContext }: {
   /** Rendered under the chart on a wide screen and under the order ticket on a phone.
    *
    *  A function of the on-screen symbol rather than a ready-made node, because the one failure
@@ -63,8 +59,8 @@ export function CryptoTerminal({ marketContext, contextBase }: {
    *  panel to an ETH tab, and `key` on the result means switching tabs remounts rather than
    *  carrying the previous symbol's reading across. */
   marketContext?: (symbol: string, view?: ContextView) => ReactNode;
-  /** The BTC context API, for the lines drawn on the BTC chart (resistance, support, nearest
-   *  walls). Omitted - as in every build without one configured - draws none and asks nothing. */
+  /** Accepted and ignored: the wall and level lines it used to draw on the BTC chart are gone
+   *  from the chart. The Wall/Flow reading stays beside the chart in `marketContext`. */
   contextBase?: string;
 } = {}) {
   /** PAPER unless the operator switches, and the switch is only offered when the backend says a
@@ -112,16 +108,6 @@ export function CryptoTerminal({ marketContext, contextBase }: {
    *  because the LIVE chart is still drawn from the paper feed. */
   const terminal = useCryptoTerminal(symbol, { paper: source === "PAPER" });
   const [timeframe, setTimeframe] = useState<ChartTimeframe>("1m");
-  /** BTC context lines on the chart. BTC only: on any other tab the hook
-   *  is disabled, which is no request at all rather than a hidden line. It shares one poll loop
-   *  with the line under the chart. */
-  const contextOn = Boolean(contextBase) && symbol === DEFAULT_SYMBOL;
-  const context = useBtcContext(contextBase ?? "", contextOn);
-  const wallSelection = useWallSelection();
-  const structureDisplay = useStructureDisplay();
-  const contextLines = useMemo(() => (contextOn
-    ? contextChartLines(context, { timeframe, selection: wallSelection, structure: structureDisplay }) : []),
-  [contextOn, context, timeframe, wallSelection, structureDisplay]);
   const wide = useIsWide();
   const live = useLivePnl(source === "PAPER" && terminal.state?.account?.position_side != null, symbol);
   const binance = useBinanceLive(source === "BINANCE_LIVE", symbol);
@@ -166,7 +152,7 @@ export function CryptoTerminal({ marketContext, contextBase }: {
           busy={source === "BINANCE_LIVE" ? binance.busy : terminal.busy}
           volatility={volatility.rows} hotSlot={{ symbol: hot.symbol }} />
       </div>
-      <HotCoinFinder hot={hot}
+      <HotCoinFinder hot={hot} onSelect={selectSymbol}
         busy={source === "BINANCE_LIVE" ? binance.busy : terminal.busy} />
     </div>
   );
@@ -200,7 +186,6 @@ export function CryptoTerminal({ marketContext, contextBase }: {
         ) : (
           <div className="space-y-3">
             <LiveMarketHeader account={account} />
-            <LivePerformanceSummary performance={binance.performance} />
             {/* Phone: the held position comes before the chart with its own CLOSE, exactly
                 where the paper screen puts it. The wide layout keeps the full panel below the
                 chart, so nothing moves on a desktop. */}
@@ -226,7 +211,7 @@ export function CryptoTerminal({ marketContext, contextBase }: {
                 {terminal.state && (
                   <ChartSection state={terminal.state} bars={terminal.bars} timeframe={timeframe}
                     onTimeframe={setTimeframe} overlays={liveOverlays(account)}
-                    note={LIVE_CHART_SOURCE_NOTE} contextLines={contextLines} />
+                    note={LIVE_CHART_SOURCE_NOTE} executions={binance.executions} />
                 )}
                 {/* Manual Market Context, read-only, directly under the chart.
 
@@ -342,7 +327,7 @@ export function CryptoTerminal({ marketContext, contextBase }: {
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
         <div className="space-y-3">
           <ChartSection state={state} bars={terminal.bars} timeframe={timeframe}
-            onTimeframe={setTimeframe} contextLines={contextLines} />
+            onTimeframe={setTimeframe} executions={terminal.executions} />
           {/* Manual Market Context, read-only, directly under the chart.
 
               In the left column on purpose: the right column is the order ticket's 360px and
@@ -379,22 +364,9 @@ export function CryptoTerminal({ marketContext, contextBase }: {
           costs the phone nothing until it is scrolled to. */}
       {!wide && marketContext ? <div className="mt-3">{marketContext(symbol, contextView)}</div> : null}
 
-      <div className="mt-4 sm:mt-6">
-        <Disclosure title="이 세션의 성과" testId="disclosure-performance">
-          <PerformancePanel performance={terminal.performance} />
-        </Disclosure>
-        <Disclosure title="거래 기록" testId="disclosure-trades">
-          <TradeHistory trades={terminal.trades} breakdowns={terminal.breakdown?.trades} />
-        </Disclosure>
-        <Disclosure title="주문·체결 원장" testId="disclosure-ledger">
-          <LedgerTable events={terminal.events} />
-        </Disclosure>
-        <Disclosure title="런 설정 근거" testId="disclosure-run">
-          <SourceBanner state={state} />
-          <div className="mt-3"><RunFooter state={state} /></div>
-          <div className="mt-3"><AutoNote reason={state.state.auto_unavailable_reason} /></div>
-        </Disclosure>
-      </div>
+      {/* Trading terminal only. The session performance, trade history, order/fill ledger and
+          run rationale panels are off this screen; the ledger, the trade list and the run config
+          they were read from are kept on the server for later analysis. */}
     </div>
   );
 }

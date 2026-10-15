@@ -450,7 +450,8 @@ describe("the terminal's polls do not survive a symbol change", () => {
         .mockImplementation(async symbol => ({ symbol, bars: [] })),
       ledger: vi.spyOn(cryptoApi, "ledger").mockResolvedValue({ total: 0, events: [] }),
       performance: vi.spyOn(cryptoApi, "performance").mockResolvedValue({} as never),
-      trades: vi.spyOn(cryptoApi, "trades").mockResolvedValue({ total: 0, trades: [] }),
+      executions: vi.spyOn(cryptoApi, "executions").mockImplementation(async (symbol: string) =>
+        ({ mode: "PAPER", symbol, account: "run", executions: [] }) as never),
       sizing: vi.spyOn(cryptoApi, "sizing").mockResolvedValue({} as never),
       breakdown: vi.spyOn(cryptoApi, "pnlBreakdown").mockResolvedValue({} as never),
     };

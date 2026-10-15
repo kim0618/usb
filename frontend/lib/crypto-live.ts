@@ -10,6 +10,7 @@
  */
 import { CRYPTO_API_BASE, CryptoApiError, OrderSide, num } from "@/lib/crypto-paper";
 import type { ChartOverlay } from "@/lib/crypto-paper";
+import type { ExecutionsAnswer } from "@/lib/crypto-executions";
 import { DEFAULT_SYMBOL, withSymbol } from "@/lib/crypto-symbols";
 
 export type AccountSource = "PAPER" | "BINANCE_LIVE";
@@ -234,12 +235,11 @@ export type LiveSizing = {
 export const LIVE_PRESET_LABELS = ["25%", "HALF", "75%", "MAX"] as const;
 export type LivePresetLabel = (typeof LIVE_PRESET_LABELS)[number];
 
-/** Which sides an OPEN may be sent on right now, given what Binance reports is held.
+/** Which sides an OPEN *adds to or opens* right now, given what Binance reports is held.
  *
- *  The rule is the order router's, restated here so the buttons agree with it instead of
- *  discovering it from a refusal: flat allows both, a held position allows the side it is
- *  already on, and the other side is never turned into a reduce, a reverse or a flip. Closing
- *  and reopening is two decisions and the operator makes both.
+ *  Flat allows both; a held position allows the side it is already on. The other side is not
+ *  disabled (Manual UX Final V1): the router sends it reduceOnly, up to the held size, and
+ *  refuses anything past it, because a flip is never sent as one LIVE order.
  */
 export type LiveSideAllowance = {
   /** The side a position is held on, or null when flat. */
@@ -447,6 +447,11 @@ export const liveApi = {
   funding: (symbol: string, limit = 20) =>
     request<{ total: number; funding: LiveFunding[]; authority: string }>(
       withSymbol(`/api/crypto/binance/funding?limit=${limit}`, symbol)),
+  /** This account's fills on this symbol from the LIVE audit mirror (the orders this terminal
+   *  sent and Binance answered), each classified against the position at plan time. A local file
+   *  read on the server: no signed Binance request is made for it. */
+  executions: (symbol: string, signal?: AbortSignal) =>
+    request<ExecutionsAnswer>(withSymbol("/api/crypto/binance/executions", symbol), { signal }),
   events: (symbol: string, limit = 50) =>
     request<{ total: number; events: LiveEventRow[]; role?: string }>(
       withSymbol(`/api/crypto/binance/events?limit=${limit}`, symbol)),
@@ -537,7 +542,7 @@ export function liveTradeGate(account: LiveAccount | null, arm: LiveArmState | n
     reasons.push({ code: "LIVE_TRADING_DISABLED",
                    message: `이 서버는 ${account?.gates.env_flag_name || "BINANCE_LIVE_TRADING_ENABLED"}=false 입니다. 서버 설정을 바꿔야 열립니다.` });
   } else if (!armed) {
-    reasons.push({ code: "NOT_ARMED", message: "거래 활성화 후 제한 시간 동안만 주문이 나갑니다." });
+    reasons.push({ code: "NOT_ARMED", message: "거래 활성화 후 직접 해제할 때까지 주문이 나갑니다." });
   }
   if (!symbolOrders) {
     reasons.push({ code: HOT_LIVE_ORDERS_DISABLED,
@@ -604,8 +609,9 @@ export const LIVE_LOCK_NOTE =
 /** Shown next to the arm control. States the three ways the window closes, because an operator
  *  who believes it stays open is the one who leaves an armed account unattended. */
 export const ARM_NOTE =
-  "거래 활성화는 이 서버 프로세스의 메모리에만 있습니다. 제한 시간이 지나거나, 해제하거나, 서버가 " +
-  "재시작하면 자동으로 거래불가로 돌아갑니다. AUTO는 활성화 여부와 무관하게 실계좌 주문을 낼 수 없습니다.";
+  "거래 활성화는 이 서버 프로세스의 메모리에만 있습니다. 직접 해제하거나 서버가 재시작하면 " +
+  "거래불가로 돌아가고, 시간이 지났다고 저절로 풀리지는 않습니다. AUTO는 활성화 여부와 무관하게 " +
+  "실계좌 주문을 낼 수 없습니다.";
 
 /** The one line the confirmation dialog has to say. Everything the operator needs in order to
  *  decide is in it: this is the real account, and orders from this screen reach it. */
@@ -665,7 +671,7 @@ export function liveOverlays(account: LiveAccount | null | undefined): ChartOver
   if (!position || position.is_flat) return overlays;
   const entry = num(position.entry_price);
   if (entry != null && entry > 0) {
-    overlays.push({ id: "entry", price: entry, label: "진입", kind: "ENTRY" });
+    overlays.push({ id: "entry", price: entry, label: "평균진입", kind: "ENTRY" });
   }
   const liquidation = num(position.liquidation_price);
   if (liquidation != null && liquidation > 0) {

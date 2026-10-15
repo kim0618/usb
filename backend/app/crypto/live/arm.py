@@ -17,8 +17,13 @@ move it. The intent lives here, in a process-memory session that:
 * starts **disarmed**, always, because there is nowhere for it to be persisted from;
 * is raised only by an explicit request carrying the confirmation phrase, so no page load, no
   prefetch and no retried GET can arm an account;
-* expires on its own after `ttl_s`, so walking away from the screen disarms it;
+* stays armed until the operator disarms it - there is no timer (the 15-minute window it used
+  to have was removed in Manual UX Final V1: re-arming mid-session was the operator's cost and
+  bought nothing a manual DISARM does not);
 * dies with the process, so a restart - crash, deploy, reboot - is a disarm.
+
+A window can still be asked for explicitly (`ttl_s` on the arm request); without one the session
+has no deadline.
 
 `BINANCE_LIVE_CLIENT_ARMED` is still honoured and still means what it meant: a machine that sets
 it is armed from boot without a session. That is the local validation path and it is deliberately
@@ -35,10 +40,10 @@ import time
 from dataclasses import dataclass, field
 from typing import Any
 
-#: Long enough for a session of manual trading, short enough that an abandoned screen is not
-#: left armed. The operator re-arms with one click; the cost of it being too short is an extra
-#: click, and the cost of it being too long is an account nobody is watching.
-DEFAULT_TTL_S = 900
+#: No deadline by default: an armed session lasts until a manual disarm or a process restart.
+DEFAULT_TTL_S: int | None = None
+#: The longest explicit window an arm request may ask for (one day).
+MAX_TTL_S = 86_400
 
 #: Required verbatim in the arm request. A typed phrase rather than a boolean because the whole
 #: point of this call is that it cannot be arrived at by accident.
@@ -76,7 +81,7 @@ class ArmSession:
     #: True when `BINANCE_LIVE_CLIENT_ARMED` is set. Then this deployment is armed from boot and
     #: the session neither adds nor removes anything - it reports `ENV` and stays out of the way.
     env_armed: bool = False
-    ttl_s: int = DEFAULT_TTL_S
+    ttl_s: int | None = DEFAULT_TTL_S
     armed_at_ms: int | None = None
     expires_at_ms: int | None = None
     arm_count: int = 0
@@ -116,14 +121,14 @@ class ArmSession:
 
     def _write_through(self) -> None:
         """The session's state *is* the client's flag. Nothing else may set it."""
-        self.client.trading_enabled = self.env_armed or self.expires_at_ms is not None
+        self.client.trading_enabled = self.env_armed or self.armed_at_ms is not None
 
     # ------------------------------------------------------------------ state
 
     @property
     def armed(self) -> bool:
         self._sync()
-        return bool(self.env_armed or self.expires_at_ms is not None)
+        return bool(self.env_armed or self.armed_at_ms is not None)
 
     @property
     def armed_by(self) -> str | None:
@@ -150,12 +155,13 @@ class ArmSession:
             raise ArmRefused("CONFIRMATION_REQUIRED",
                              f"확인 문구가 정확히 일치해야 합니다: {CONFIRMATION!r}")
         window = self.ttl_s if ttl_s is None else int(ttl_s)
-        if not 0 < window <= self.ttl_s:
+        ceiling = self.ttl_s if self.ttl_s is not None else MAX_TTL_S
+        if window is not None and not 0 < window <= ceiling:
             raise ArmRefused("TTL_OUT_OF_RANGE",
-                             f"무장 시간은 1초 이상 {self.ttl_s}초 이하여야 합니다.")
+                             f"무장 시간은 1초 이상 {ceiling}초 이하여야 합니다.")
         now = self._now_ms()
         self.armed_at_ms = now
-        self.expires_at_ms = now + window * 1000
+        self.expires_at_ms = None if window is None else now + window * 1000
         self.operator_note = (note or None)
         self.arm_count += 1
         self._history.append({"at_ms": now, "action": "ARM", "ttl_s": window, "note": note})
@@ -186,9 +192,10 @@ class ArmSession:
             "confirmation_phrase": CONFIRMATION,
             "env_armed": self.env_armed,
             "role": ("MANUAL_ONLY: 서버 부팅은 항상 해제 상태이고, 무장은 사용자가 명시적으로 "
-                     "요청할 때만 제한 시간 동안 열린다. AUTO는 이 경로에 접근할 수 없다."),
+                     "요청할 때 열려 직접 해제하거나 프로세스가 재시작할 때까지 유지된다. "
+                     "AUTO는 이 경로에 접근할 수 없다."),
         }
 
 
-__all__ = ["ArmSession", "ArmRefused", "CONFIRMATION", "DEFAULT_TTL_S", "ARMED_BY_ENV",
+__all__ = ["ArmSession", "ArmRefused", "CONFIRMATION", "DEFAULT_TTL_S", "MAX_TTL_S", "ARMED_BY_ENV",
            "ARMED_BY_SESSION", "DISARM_EXPIRED", "DISARM_MANUAL", "DISARM_BOOT"]

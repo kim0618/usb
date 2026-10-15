@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import {
-  AccountPanel, BookPanel, LedgerTable, OrderTicket, PerformancePanel, PositionPanel, PriceChart,
+  AccountPanel, BookPanel, LedgerTable, OrderTicket, PerformancePanel, PositionPanel, PresetReadout, PriceChart,
   PriceHeadline, RunFooter, SourceBanner, TradeHistory, describe as describeEvent,
 } from "@/components/crypto-paper-terminal";
 import {
@@ -508,12 +508,20 @@ describe("quick position size", () => {
     expect(screen.getByRole("button", { name: "명목 (USDT)" })).toBeInTheDocument();
   });
 
-  it("shows the engine's quantity, notional, margin and liquidation price once a preset is picked", () => {
+  it("shows the picked preset's quantity and its KRW notional on the ticket", () => {
     render(<OrderTicket state={baseState()} sizing={baseSizing()} onAction={noop} busy={false}
       error={null} />);
     fireEvent.click(screen.getByTestId("preset-HALF"));
-    // The size table now sits under the preview's [상세], closed by default on a phone.
-    fireEvent.click(screen.getByTestId("order-preview-detail-toggle"));
+    expect(screen.getByTestId("paper-order-amount-qty")).toHaveTextContent("0.004 BTC");
+    // qty x mark x the run's fixed rate, in won; no USDT, margin or fee on the ticket.
+    expect(screen.getByTestId("paper-order-amount-notional"))
+      .toHaveTextContent(`₩${Math.round(0.004 * 86000.05 * 1344).toLocaleString("ko-KR")}`);
+    const ticket = screen.getByTestId("order-ticket");
+    for (const word of ["필요 마진", "수수료", "USDT 약"]) expect(ticket).not.toHaveTextContent(word);
+  });
+
+  it("still prices the engine's quantity, notional, margin and liquidation price (kept off screen)", () => {
+    render(<PresetReadout sizing={baseSizing()} preset="HALF" leverage="10" />);
     const readout = screen.getByTestId("preset-readout");
     expect(within(readout).getByText("수량 (BTC)")).toBeInTheDocument();
     expect(within(readout).getByText("명목 (USDT)")).toBeInTheDocument();
@@ -562,13 +570,14 @@ describe("quick position size", () => {
     expect(screen.getByTestId("short-button")).toHaveTextContent("0.004");
   });
 
-  it("keeps the armed leverage and preset visible at all times", () => {
+  it("keeps the selected quantity visible at all times, typed or preset", () => {
     render(<OrderTicket state={baseState()} sizing={baseSizing()} onAction={noop} busy={false}
       error={null} />);
-    expect(screen.getByTestId("order-arming")).toHaveTextContent("10x");
-    expect(screen.getByTestId("order-arming")).toHaveTextContent("직접 입력");
+    expect(screen.getByTestId("paper-leverage-10")).toHaveAttribute("aria-pressed", "true");
+    fireEvent.change(screen.getByLabelText("주문 크기"), { target: { value: "0.002" } });
+    expect(screen.getByTestId("paper-order-amount-qty")).toHaveTextContent("0.002 BTC");
     fireEvent.click(screen.getByTestId("preset-75%"));
-    expect(screen.getByTestId("order-arming")).toHaveTextContent("75%");
+    expect(screen.getByTestId("paper-order-amount-qty")).toHaveTextContent("0.006 BTC");
   });
 
   it("disables a preset the engine refused and says why", () => {
@@ -595,23 +604,15 @@ describe("quick position size", () => {
     fireEvent.click(screen.getByTestId("preset-MAX"));
     expect(screen.getByTestId("short-button")).toBeDisabled();
     expect(screen.getByTestId("long-button")).toBeEnabled();
-    fireEvent.click(screen.getByTestId("order-preview-detail-toggle"));
+    cleanup();
+    render(<PresetReadout sizing={held} preset="MAX" leverage="10" />);
     expect(screen.getByTestId("preset-reject-SHORT")).toHaveTextContent("반대 포지션 보유 중");
   });
 
-  it("marks MAX at high leverage as HIGH RISK", () => {
-    const { rerender } = render(<OrderTicket state={baseState({ leverage: "20" })}
-      sizing={baseSizing()} onAction={noop} busy={false} error={null} />);
-    fireEvent.click(screen.getByTestId("preset-MAX"));
-    expect(screen.getByTestId("high-risk-badge")).toBeInTheDocument();
-
-    // 75% at the same leverage is not the warning case, and neither is MAX at 10x.
-    fireEvent.click(screen.getByTestId("preset-75%"));
-    expect(screen.queryByTestId("high-risk-badge")).not.toBeInTheDocument();
-    rerender(<OrderTicket state={baseState({ leverage: "10" })} sizing={baseSizing()}
-      onAction={noop} busy={false} error={null} />);
-    fireEvent.click(screen.getByTestId("preset-MAX"));
-    expect(screen.queryByTestId("high-risk-badge")).not.toBeInTheDocument();
+  it("still classifies MAX at high leverage as HIGH RISK (the badge is off the ticket)", () => {
+    expect(isHighRisk("20", "MAX")).toBe(true);
+    expect(isHighRisk("20", "75%")).toBe(false);
+    expect(isHighRisk("10", "MAX")).toBe(false);
   });
 
   it("can be cleared back to direct entry", () => {

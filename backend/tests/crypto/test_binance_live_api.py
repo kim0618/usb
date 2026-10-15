@@ -189,12 +189,29 @@ def test_an_order_is_refused_with_the_plan_attached_and_nothing_is_sent(live) ->
 
 def test_a_reverse_is_refused_before_the_trading_gate_is_even_reached(live) -> None:
     client, adapter, fake, _ = live
-    fake.position_rows = POSITION_RISK_LONG
+    fake.position_rows = POSITION_RISK_LONG  # LONG 0.015
     adapter.resync()
     response = client.post("/api/crypto/binance/order",
-                           json={"side": "SHORT", "intent": "OPEN", "qty": "0.002"})
+                           json={"side": "SHORT", "intent": "OPEN", "qty": "0.020"})
     assert response.status_code == 409
     assert response.json()["error"]["code"] == "REVERSE_NOT_ALLOWED"
+    assert fake.count("/fapi/v1/order") == 0
+
+
+def test_an_opposite_open_within_the_position_is_a_reduce_that_still_meets_the_gate(live) -> None:
+    client, adapter, fake, _ = live
+    fake.position_rows = POSITION_RISK_LONG  # LONG 0.015
+    adapter.resync()
+    response = client.post("/api/crypto/binance/order",
+                           json={"side": "SHORT", "intent": "OPEN", "qty": "0.005"})
+    # Classified as a reduce and planned reduceOnly; the trading gate (not armed here) is
+    # still the thing that stops it.
+    assert response.status_code == 409
+    assert response.json()["error"]["code"] == "LIVE_TRADING_DISABLED"
+    assert fake.count("/fapi/v1/order") == 0
+    intents = [row for row in client.get("/api/crypto/binance/events?limit=50").json()["events"]
+               if row.get("event_type") == "LIVE_ORDER_INTENT" and row.get("stage") == "SUBMIT"]
+    assert intents and intents[0]["reduce_only"] is True and intents[0]["side"] == "LONG"
 
 
 def test_a_leverage_change_is_refused_by_the_same_flag(live) -> None:

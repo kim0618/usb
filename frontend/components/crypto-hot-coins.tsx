@@ -4,10 +4,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { CryptoApiError } from "@/lib/crypto-paper";
 import { visiblePoll } from "@/lib/visible-poll";
 import {
-  HOT_POLL_MS, HOT_SCAN_TIMEOUT_MS, HotRefused, fetchHotState, hotBps, hotLabel, hotPct, hotPrice,
-  hotSignedPct, hotTime, hotVolume, postHotScan, readStoredSlot, shouldReplaceSlot, storeSlot,
+  HOT_POLL_MS, HOT_SCAN_TIMEOUT_MS, HotRefused, fetchHotState, postHotScan, readStoredSlot,
+  shouldReplaceSlot, storeSlot,
 } from "@/lib/crypto-hot-coins";
-import type { HotCoin, HotSlotView, HotState } from "@/lib/crypto-hot-coins";
+import type { HotSlotView, HotState } from "@/lib/crypto-hot-coins";
 
 export type HotSlotController = ReturnType<typeof useHotSlot>;
 
@@ -81,8 +81,10 @@ export function useHotSlot(pollMs = HOT_POLL_MS, timeoutMs = HOT_SCAN_TIMEOUT_MS
     };
   }, [applyState, pollMs, source]);
 
-  const scan = useCallback(async () => {
-    if (inFlight.current) return;
+  /** Scan and return the symbol the server put in the slot (its #1), or null when the scan was
+   *  refused or failed. The caller makes that symbol the global selection. */
+  const scan = useCallback(async (): Promise<string | null> => {
+    if (inFlight.current) return null;
     inFlight.current = true;
     setScanning(true);
     setError(null);
@@ -91,13 +93,15 @@ export function useHotSlot(pollMs = HOT_POLL_MS, timeoutMs = HOT_SCAN_TIMEOUT_MS
     const timer = window.setTimeout(() => controller.abort(), timeoutMs);
     try {
       const body = await postHotScan(controller.signal);
-      if (!alive.current) return;
+      if (!alive.current) return null;
       applyState(body);
       setNote(body.paper_note);
+      return body.hot?.symbol ?? null;
     } catch (exception) {
-      if (!alive.current) return;
+      if (!alive.current) return null;
       if (exception instanceof HotRefused && exception.state) applyState(exception.state);
       setError(exception instanceof CryptoApiError ? exception.message : "탐색에 실패했습니다.");
+      return null;
     } finally {
       window.clearTimeout(timer);
       inFlight.current = false;
@@ -130,137 +134,38 @@ export function scanBlocker(hot: Pick<HotSlotController, "loaded" | "scanning" |
   return null;
 }
 
-/** [코인탐색] and its panel.
+/** [HOT]: one press, one result.
  *
- *  The panel floats over the page instead of taking a row, so opening it moves neither the tabs
- *  nor the order ticket. The TOP5 rows are text: the HOT tab carries #1, and choosing to trade it
- *  is pressing that tab, never a row here.
+ *  The scan runs on the server, which ranks the market and keeps its #1 in the HOT slot. That
+ *  slot is one for the whole terminal, so `onSelect` makes the same symbol the selection on the
+ *  PAPER and the LIVE screen alike. No ranking is shown: rank 2 and below are the server's
+ *  business. Selecting a symbol changes what is on screen and where the next order goes; it
+ *  closes, converts or moves no position on any symbol.
  */
-export function HotCoinFinder({ hot, busy = false }: { hot: HotSlotController; busy?: boolean }) {
-  const [open, setOpen] = useState(false);
-  const root = useRef<HTMLDivElement>(null);
+export function HotCoinFinder({ hot, busy = false, onSelect }: {
+  hot: HotSlotController;
+  busy?: boolean;
+  /** Called with the scan's #1 once the server has put it in the slot. */
+  onSelect?: (symbol: string) => void;
+}) {
   const blocker = scanBlocker(hot, busy);
-
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") setOpen(false); };
-    const onPointer = (event: PointerEvent) => {
-      if (root.current && !root.current.contains(event.target as Node)) setOpen(false);
-    };
-    document.addEventListener("keydown", onKey);
-    document.addEventListener("pointerdown", onPointer);
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.removeEventListener("pointerdown", onPointer);
-    };
-  }, [open]);
-
+  const message = hot.error ?? (hot.note || (hot.paper && !hot.paper.available ? hot.paper.reason : null));
   return (
-    <div ref={root} className="relative mb-2 flex shrink-0 items-start gap-1" data-testid="hot-finder">
+    <div className="relative mb-2 flex shrink-0 flex-col items-end gap-0.5" data-testid="hot-finder">
       <button type="button" data-testid="hot-scan-button" disabled={blocker !== null}
-        aria-busy={hot.scanning} aria-expanded={open} aria-controls="hot-coins-panel"
-        title={blocker ?? "Binance 선물 전체에서 HOT 1위를 찾아 HOT 탭에 둡니다."}
-        onClick={() => { setOpen(true); void hot.scan(); }}
+        aria-busy={hot.scanning}
+        title={blocker ?? "Binance 선물 전체에서 HOT 1위를 찾아 지금 심볼로 바꿉니다."}
+        onClick={() => { void hot.scan().then(symbol => { if (symbol) onSelect?.(symbol); }); }}
         className={`rounded-md border px-2.5 py-1 text-xs font-bold tracking-wide transition-colors ${
           hot.scanning ? "cursor-wait border-line text-muted"
             : blocker ? "cursor-not-allowed border-line text-muted opacity-60"
               : "border-warning text-warning hover:bg-warning-soft"}`}>
-        {hot.scanning ? "탐색 중…" : "코인탐색"}
+        {hot.scanning ? "탐색 중…" : "HOT"}
       </button>
-      <button type="button" data-testid="hot-show-button" onClick={() => setOpen(value => !value)}
-        aria-label="HOT 탐색 결과 보기" aria-expanded={open}
-        className="rounded-md border border-line px-1.5 text-xs text-muted hover:text-foreground">
-        ▾
-      </button>
-      {open && <HotCoinsPanel hot={hot} blocker={blocker} onClose={() => setOpen(false)} />}
-    </div>
-  );
-}
-
-export function HotCoinsPanel({ hot, blocker, onClose }: {
-  hot: Pick<HotSlotController, "slot" | "scanning" | "error" | "note" | "lock" | "paper">;
-  blocker: string | null;
-  onClose: () => void;
-}) {
-  const slot = hot.slot;
-  const status = hot.error
-    ? { tone: "tone-danger", text: `${hot.error}${slot ? " · 현재 HOT을 유지합니다" : ""}` }
-    : hot.scanning
-      ? { tone: "tone-info", text: slot ? "탐색 중 · 아래는 현재 HOT 기준입니다" : "Binance 선물 전체를 탐색하는 중입니다" }
-      : blocker && hot.lock?.state === "BLOCKED"
-        ? { tone: "tone-warning", text: `${hot.lock.message} 포지션·미체결이 정리되면 다시 탐색할 수 있습니다.` }
-        : { tone: "tone-neutral", text: "탐색 1위가 HOT 탭에 들어갑니다. BTC 포지션과는 무관합니다." };
-  return (
-    <section id="hot-coins-panel" role="dialog" aria-label="HOT 코인 탐색 결과" data-testid="hot-coins-panel"
-      className="absolute right-0 top-full z-40 mt-1 w-[min(26rem,calc(100vw-2rem))] rounded-lg
-        border border-line bg-surface p-3 shadow-panel">
-      <header className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <h2 className="text-xs font-bold tracking-wider text-foreground">HOT COINS</h2>
-          <p className="text-[11px] text-muted" data-testid="hot-scanned-at">
-            {slot ? `${hotTime(slot.scanned_at_ms)} KST 탐색 · HOT ${hotLabel(slot.symbol)} (${hotTime(slot.selected_at_ms)} 선정)`
-              : "아직 HOT이 없습니다"}
-          </p>
-        </div>
-        <button type="button" onClick={onClose} aria-label="닫기" data-testid="hot-close"
-          className="rounded-md border border-line px-2 text-xs text-muted hover:text-foreground">✕</button>
-      </header>
-      <p aria-live="polite" data-testid="hot-status"
-        className={`mt-2 rounded-md border px-2 py-1 text-[11px] ${status.tone}`}>{status.text}</p>
-      {(hot.note || (hot.paper && !hot.paper.available)) && (
-        <p className="mt-1 rounded-md border px-2 py-1 text-[11px] tone-warning" data-testid="hot-paper-note">
-          {hot.note ?? hot.paper?.reason} · 차트·호가는 정상이며 PAPER 주문만 막힙니다.
-        </p>
+      {message && (
+        <p className={`max-w-[14rem] text-right text-[10px] leading-snug ${hot.error ? "text-danger" : "text-warning"}`}
+          data-testid="hot-message" role="status">{message}</p>
       )}
-      {slot && (
-        <ol className={`mt-2 space-y-1.5 ${hot.scanning ? "opacity-60" : ""}`} data-testid="hot-list">
-          {slot.top.map(coin => <HotCoinRow key={coin.symbol} coin={coin} current={coin.symbol === slot.symbol} />)}
-        </ol>
-      )}
-      <p className="mt-2 text-[10px] leading-snug text-muted">
-        24h 거래대금 20M·1h 0.5M 이상, 스프레드 10bp·$1,000 왕복 20bp 이하 중 최근 1시간 변동폭 순. BTC 제외.
-      </p>
-    </section>
-  );
-}
-
-function HotCoinRow({ coin, current }: { coin: HotCoin; current: boolean }) {
-  const tone = coin.direction === "UP" ? "tone-text-success"
-    : coin.direction === "DOWN" ? "tone-text-danger" : "text-muted";
-  return (
-    <li className={`rounded-md border px-2 py-1.5 ${current ? "border-warning" : "border-line"}`}
-      data-testid={`hot-row-${coin.rank}`} data-symbol={coin.symbol}>
-      <div className="flex items-baseline justify-between gap-2">
-        <span className="min-w-0 truncate text-sm font-bold text-foreground">
-          <span className="mr-1 text-muted tabular-nums">{coin.rank}.</span>
-          {current && <span aria-label="HOT">🔥</span>}{hotLabel(coin.symbol)}
-          <span className="ml-1 text-[10px] font-normal text-muted">{hotPrice(coin.last_price)}</span>
-        </span>
-        {/* The range is a size with no sign, so it stays neutral; only the change is coloured. */}
-        <span className="shrink-0 text-xs font-bold tabular-nums text-foreground">
-          1H {hotPct(coin.one_hour_range_pct)}
-          <span className={`ml-1 font-semibold ${tone}`}>
-            <span aria-hidden="true">{coin.direction === "UP" ? "▲" : coin.direction === "DOWN" ? "▼" : "·"}</span>
-            {hotSignedPct(coin.one_hour_change_pct)}
-          </span>
-        </span>
-      </div>
-      <dl className="mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px] tabular-nums sm:grid-cols-3">
-        <Metric label="24H 범위" value={hotPct(coin.twenty_four_hour_range_pct)} />
-        <Metric label="1H 거래대금" value={hotVolume(coin.one_hour_quote_volume)} />
-        <Metric label="24H 거래대금" value={hotVolume(coin.twenty_four_hour_quote_volume)} />
-        <Metric label="스프레드" value={hotBps(coin.spread_bps)} />
-        <Metric label="$1,000 왕복" value={hotBps(coin.estimated_round_trip_slippage_bps_1000)} />
-      </dl>
-    </li>
-  );
-}
-
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex min-w-0 justify-between gap-1">
-      <dt className="truncate text-muted">{label}</dt>
-      <dd className="font-semibold text-foreground-secondary">{value}</dd>
     </div>
   );
 }

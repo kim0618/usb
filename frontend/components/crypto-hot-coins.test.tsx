@@ -95,7 +95,7 @@ describe("HOT selection", () => {
     expect(calls.every(call => call.method === "GET")).toBe(true);   // no scan without a click
   });
 
-  it("a scan puts #1 in the slot and shows the TOP5", async () => {
+  it("a scan puts #1 in the slot and shows no ranking", async () => {
     let current: string | null = null;
     hotServer({ get: () => state(current), scan: [state("LUMIAUSDT")] });
     render(<Harness />);
@@ -103,9 +103,23 @@ describe("HOT selection", () => {
     current = "LUMIAUSDT";
     fireEvent.click(button());
     await waitFor(() => expect(screen.getByTestId("hot-symbol").textContent).toBe("LUMIAUSDT"));
-    expect(screen.getAllByTestId(/^hot-row-/)).toHaveLength(5);
-    expect(screen.getByTestId("hot-row-1").textContent).toContain("🔥");
-    expect(screen.getByTestId("hot-scanned-at").textContent).toContain("HOT LUMIA");
+    // Manual UX Final V1: rank 2 and below are the server's business; nothing lists them.
+    expect(screen.queryAllByTestId(/^hot-row-/)).toHaveLength(0);
+    expect(screen.queryByTestId("hot-list")).toBeNull();
+    expect(screen.queryByTestId("hot-coins-panel")).toBeNull();
+  });
+
+  it("a scan hands its #1 to the caller so it becomes the selection", async () => {
+    hotServer({ get: () => state(null), scan: [state("ARCUSDT")] });
+    const picked: string[] = [];
+    function Picking() {
+      const hot = useHotSlot(60_000);
+      return <HotCoinFinder hot={hot} onSelect={symbol => picked.push(symbol)} />;
+    }
+    render(<Picking />);
+    await waitFor(() => expect(button()).not.toBeDisabled());
+    fireEvent.click(button());
+    await waitFor(() => expect(picked).toEqual(["ARCUSDT"]));
   });
 
   it("a double click is one scan, and the button is off while it runs", async () => {
@@ -128,7 +142,7 @@ describe("HOT selection", () => {
     render(<Harness />);
     await waitFor(() => expect(screen.getByTestId("hot-symbol").textContent).toBe("LUMIAUSDT"));
     fireEvent.click(button());
-    await waitFor(() => expect(screen.getByTestId("hot-status").textContent).toContain("현재 HOT을 유지합니다"));
+    await waitFor(() => expect(screen.getByTestId("hot-message").textContent).toContain("Binance 시장 데이터를 읽지 못했습니다"));
     expect(screen.getByTestId("hot-symbol").textContent).toBe("LUMIAUSDT");
   });
 
@@ -164,8 +178,6 @@ describe("HOT selection", () => {
     hotServer({ get: () => state("龙虾USDT") });
     render(<Harness />);
     await waitFor(() => expect(screen.getByTestId("hot-symbol").textContent).toBe("龙虾USDT"));
-    fireEvent.click(screen.getByTestId("hot-show-button"));
-    expect(screen.getByTestId("hot-scanned-at").textContent).toContain("HOT 龙虾");
   });
 });
 
@@ -298,7 +310,7 @@ const scanTo = async (server: ReturnType<typeof terminalServer>, symbol: string)
 };
 
 describe.each([390, 1440, 1600])("in the terminal at %ipx", width => {
-  it("BTC is fixed, ETH/SOL tabs are gone, and the HOT tab is the only way to the HOT symbol", async () => {
+  it("BTC is fixed, ETH/SOL tabs are gone, and HOT makes the #1 the selected symbol", async () => {
     stubViewport(width);
     const server = terminalServer();
     render(<CryptoTerminal />);
@@ -311,13 +323,7 @@ describe.each([390, 1440, 1600])("in the terminal at %ipx", width => {
     await scanTo(server, "LUMIAUSDT");
     expect(hotTab().textContent).toContain("🔥");
     expect(hotTab().textContent).toContain("LUMIA");
-    // The slot is not the selection.
-    expect(screen.getByTestId("symbol-tab-BTCUSDT").getAttribute("aria-selected")).toBe("true");
-    const before = server.calls.length;
-    await new Promise(resolve => setTimeout(resolve, 1_200));
-    expect(server.calls.slice(before).some(call => /\/api\/crypto\/(state|order|ledger)\?symbol=LUMIAUSDT/.test(call.url))).toBe(false);
-
-    fireEvent.click(hotTab());
+    // Manual UX Final V1: the scan's #1 is the selection, with no second press.
     await waitFor(() => expect(hotTab().getAttribute("aria-selected")).toBe("true"));
     await waitFor(() => expect(server.calls.some(call => call.url.includes("/api/crypto/state?symbol=LUMIAUSDT"))).toBe(true));
     expect(window.localStorage.getItem("usb.crypto.symbol")).toBe("LUMIAUSDT");
@@ -327,7 +333,7 @@ describe.each([390, 1440, 1600])("in the terminal at %ipx", width => {
 });
 
 describe("selection and replacement", () => {
-  it("on the HOT tab, a replacement follows the slot; on BTC it does not move", async () => {
+  it("every HOT press moves the selection to the new #1, from the HOT tab or from BTC", async () => {
     stubViewport(1440);
     const server = terminalServer();
     render(<CryptoTerminal />);
@@ -340,8 +346,10 @@ describe("selection and replacement", () => {
     await waitFor(() => expect(server.calls.some(call => call.url.includes("/api/crypto/state?symbol=KAIAUSDT"))).toBe(true));
 
     fireEvent.click(screen.getByTestId("symbol-tab-BTCUSDT"));
+    await waitFor(() => expect(screen.getByTestId("symbol-tab-BTCUSDT").getAttribute("aria-selected")).toBe("true"));
     await scanTo(server, "LUMIAUSDT");
-    expect(screen.getByTestId("symbol-tab-BTCUSDT").getAttribute("aria-selected")).toBe("true");
+    await waitFor(() => expect(hotTab().getAttribute("aria-selected")).toBe("true"));
+    expect(screen.getByTestId("symbol-tab-BTCUSDT").getAttribute("aria-selected")).toBe("false");
   });
 
   it("a reload on the HOT tab comes back to it", async () => {
@@ -466,12 +474,13 @@ describe("read-only where it must be", () => {
     expect(lib).toContain('"/api/crypto/hot/scan", { method: "POST"');
   });
 
-  it("the TOP5 rows are text, never a control", async () => {
+  it("there is no ranking list and no second control to open one", async () => {
     hotServer({ get: () => state("LUMIAUSDT") });
     render(<Harness />);
     await waitFor(() => expect(screen.getByTestId("hot-symbol").textContent).toBe("LUMIAUSDT"));
-    fireEvent.click(screen.getByTestId("hot-show-button"));
-    expect(within(screen.getByTestId("hot-list")).queryAllByRole("button")).toHaveLength(0);
+    expect(screen.queryByTestId("hot-show-button")).toBeNull();
+    expect(screen.queryByTestId("hot-list")).toBeNull();
+    expect(within(screen.getByTestId("hot-finder")).getAllByRole("button")).toHaveLength(1);
   });
 });
 

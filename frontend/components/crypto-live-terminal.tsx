@@ -18,7 +18,7 @@ import { CryptoApiError, costUsdt, holdingDuration, krw, num, price, qty as qtyF
 import type { OrderSide } from "@/lib/crypto-paper";
 import {
   ACTIVATE_CONFIRM_NOTE, ARM_CONFIRMATION, ARM_NOTE, AccountSource, LIVE_AUTHORITY_NOTE,
-  LIVE_LOCK_NOTE, LIVE_PRESET_LABELS, OPPOSITE_SIDE_NOTE,
+  LIVE_LOCK_NOTE, LIVE_PRESET_LABELS,
   LiveAccount, LiveArmState, LiveBlocker, LiveExitGuard, LivePerformance, LiveLeverageOptions, LivePositionCard as LivePositionCardData,
   LivePreview, LiveSizing, LiveStatus, LiveTradeGate, MARGIN_MODE_LABELS,
   MARGIN_MODE_READONLY_NOTE, leverageRestriction, liveApi, liveBlockerLabel, livePresetQty,
@@ -27,6 +27,9 @@ import {
 } from "@/lib/crypto-live";
 import { DEFAULT_SYMBOL, baseAsset as baseAssetOf } from "@/lib/crypto-symbols";
 import { visiblePoll } from "@/lib/visible-poll";
+import { executionsFor } from "@/lib/crypto-executions";
+import type { Execution } from "@/lib/crypto-executions";
+import { OrderAmountSummary } from "@/components/crypto-order-amount";
 
 /** The unit a quantity on screen is in: Binance's own `baseAsset` when the filters were read,
  *  and the symbol minus "USDT" when they were not.
@@ -219,7 +222,7 @@ export function LiveActivateDialog({ open, onCancel, onConfirm, busy, ttlS }: {
         <p className="mt-1 text-[11px] text-muted" data-testid="live-activate-ttl">
           {minutes
             ? `활성화 후 ${minutes}분이 지나거나 서버가 재시작하면 자동으로 거래불가로 돌아갑니다.`
-            : "제한 시간이 지나거나 서버가 재시작하면 자동으로 거래불가로 돌아갑니다."}
+            : "직접 해제할 때까지 거래가능 상태가 유지됩니다. 서버가 재시작하면 자동으로 거래불가로 돌아갑니다."}
         </p>
         <div className="mt-4 flex justify-end gap-2">
           <button type="button" data-testid="live-activate-cancel" onClick={onCancel}
@@ -865,7 +868,12 @@ export function LiveOrderTicket({ account, onOrder, busy, error, preview, onPrev
    *  `REVERSE_NOT_ALLOWED` after re-reading `positionRisk` - so this disables a button rather
    *  than being the only thing standing between a click and a reverse. */
   const allowance = liveSideAllowance(position);
-  const canOpen = (side: OrderSide) => allowance.allowed.includes(side);
+  /** The held side adds; the other side reduces the held position by the typed size, sent
+   *  reduceOnly by the server. A reduce larger than the position would be a flip, which the LIVE
+   *  route refuses, so the button says so instead of sending it. */
+  const reducing = (side: OrderSide) => hasPosition && !allowance.allowed.includes(side);
+  const heldQty = Number(position?.qty ?? 0);
+  const reduceTooLarge = (side: OrderSide) => reducing(side) && !(Number(size) > 0 && Number(size) <= heldQty);
 
   useEffect(() => { onPreview?.(size); }, [size, onPreview]);
 
@@ -876,7 +884,8 @@ export function LiveOrderTicket({ account, onOrder, busy, error, preview, onPrev
   };
 
   return (
-    <div className="panel p-4" data-testid="live-order-ticket">
+    <div className="panel p-4" data-testid="live-order-ticket"
+      data-preview-fetched-at={preview?.fetched_at_ms ?? undefined}>
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-sm font-semibold sm:text-base">수동 주문</h2>
         <span className="text-[11px] font-bold tracking-wide text-danger">실계좌</span>
@@ -891,7 +900,7 @@ export function LiveOrderTicket({ account, onOrder, busy, error, preview, onPrev
         </p>
       )}
       <LiveQuickSize unit={unit} sizing={sizing ?? null} busy={busy} stale={account.stale}
-        sides={allowance.allowed} onPick={next => setSize(next)} />
+        sides={allowance.allowed} onPick={next => { touched.current = true; setSize(next); }} />
       <label className="block text-[11px] text-muted" htmlFor="live-qty">
         {hasPosition ? `추가 수량 (${unit})` : `수량 (${unit})`}
       </label>
@@ -900,57 +909,37 @@ export function LiveOrderTicket({ account, onOrder, busy, error, preview, onPrev
       <input id="live-qty" data-testid="live-qty-input" value={size} inputMode="decimal"
         onChange={event => { touched.current = true; setSize(event.target.value); }}
         className="mt-1 w-full rounded-md border border-line bg-surface px-3 py-2 text-sm tabular-nums" />
-      {preview?.sides && (
-        <dl className={`mt-3 grid gap-2 text-[11px] ${hasPosition ? "grid-cols-1" : "grid-cols-2"}`}
-          data-testid="live-preview">
-          {/* Only the openable sides. The cost of a side the router would refuse is a number
-              about an order that cannot be placed. */}
-          {allowance.allowed.map(side => {
-            const row = preview.sides[side];
-            if (!row) return null;
-            return (
-              <div key={side} className="rounded-md border border-line p-2">
-                <dt className="font-semibold text-foreground">
-                  {side}{hasPosition ? " 추가" : ""}
-                </dt>
-                {row.feasible ? (
-                  <dd className="mt-1 space-y-0.5 tabular-nums text-muted">
-                    <p>예상 진입 {price(row.entry_fill_price)}</p>
-                    {/* The entered quantity's own commission and slippage, from the same
-                        backend preview the flat case uses. Not the held position's cost. */}
-                    <p>{hasPosition ? "추가분 예상 진입 비용" : "예상 진입 비용"}{" "}
-                      <span data-testid={`live-preview-cost-${side}`}>
-                        {usdt(row.expected_entry_total_cost, 4)}</span></p>
-                    <p>손익분기 {price(row.breakeven_mark_price)}</p>
-                  </dd>
-                ) : (
-                  <dd className="mt-1 text-danger">{row.reject_message || row.reject_code}</dd>
-                )}
-              </div>
-            );
-          })}
-        </dl>
-      )}
-      <div className="mt-3 grid grid-cols-2 gap-2">
+      {/* The pre-trade preview (fees, entry cost, break-even) is still requested on every size
+          change and kept on the ticket's data attribute; the panel shows size and KRW notional only. */}
+      <div className="mt-3">
+        <OrderAmountSummary qty={size}
+          price={account.position?.mark_price ?? account.mark?.mark_price ?? null}
+          leverage={account.symbol_config?.leverage != null ? String(account.symbol_config.leverage) : null}
+          takerRate={account.commission?.taker ?? null} krwPerUsdt={account.krw_per_usdt}
+          unit={unit} testId="live-order-amount" />
+      </div>
+      <div className="grid grid-cols-2 gap-2">
         {(["LONG", "SHORT"] as OrderSide[]).map(side => {
-          const opposite = !canOpen(side);
+          const reduce = reducing(side);
+          const tooLarge = reduceTooLarge(side);
           const long = side === "LONG";
           return (
             <button key={side} type="button" data-testid={`live-${side.toLowerCase()}`}
-              disabled={busy || !tradable || opposite}
-              title={opposite ? OPPOSITE_SIDE_NOTE
+              disabled={busy || !tradable || tooLarge}
+              title={tooLarge ? `감소 수량은 보유 ${qtyFmt(position?.qty)} ${unit} 이하여야 합니다.`
                 : tradable ? undefined : "거래불가 상태입니다. 먼저 거래를 활성화하세요."}
               onClick={() => setPending({ side, intent: "OPEN" })}
               className={`rounded-md px-3 py-2 text-sm font-bold disabled:opacity-40
                 ${long ? "bg-success-soft text-success" : "bg-danger-soft text-danger"}`}>
-              {side}{hasPosition && !opposite ? " 추가" : ""}
+              {side}{reduce ? " · 감소" : hasPosition ? " 추가" : ""}
             </button>
           );
         })}
       </div>
       {allowance.blocked && (
         <p className="mt-1.5 text-[11px] text-muted" data-testid="live-opposite-blocked">
-          {allowance.blocked} 진입은 반대 방향입니다. {OPPOSITE_SIDE_NOTE}
+          {allowance.blocked}은 보유 {allowance.holding} 포지션을 입력 수량만큼 줄입니다(reduceOnly).
+          보유량보다 큰 반대 주문(전환)은 LIVE에서 보내지 않습니다.
         </p>
       )}
       {/* CLOSE keeps working off Binance's reported position, and the backend still re-reads the
@@ -981,6 +970,8 @@ export function LiveOrderTicket({ account, onOrder, busy, error, preview, onPrev
           <p className="mt-1 text-sm font-semibold text-foreground">
             {pending.intent === "CLOSE"
               ? `${pending.side} 전량 청산 (${qtyFmt(position?.qty)} ${unit})`
+              : reducing(pending.side as OrderSide)
+                ? `${allowance.holding} ${Number(size) >= heldQty ? "전량" : "부분"} 청산 ${size} ${unit} (보유 ${qtyFmt(position?.qty)} ${unit})`
               : hasPosition
                 ? `${pending.side} 추가 진입 ${size} ${unit} (보유 ${qtyFmt(position?.qty)} ${unit})`
                 : `${pending.side} ${size} ${unit}`}
@@ -1125,6 +1116,7 @@ export function useBinanceLive(enabled: boolean, symbol: string = DEFAULT_SYMBOL
   const [positionCard, setPositionCard] = useState<LivePositionCardData | null>(null);
   const [exitGuard, setExitGuard] = useState<LiveExitGuard | null>(null);
   const [performance, setPerformance] = useState<LivePerformance | null>(null);
+  const [executions, setExecutions] = useState<Execution[]>([]);
   const [exitGuardError, setExitGuardError] = useState<string | null>(null);
   const [arm, setArm] = useState<LiveArmState | null>(null);
   const [leverage, setLeverage] = useState<LiveLeverageOptions | null>(null);
@@ -1153,6 +1145,7 @@ export function useBinanceLive(enabled: boolean, symbol: string = DEFAULT_SYMBOL
     setPositionCard(null);
     setExitGuard(null);
     setPerformance(null);
+    setExecutions([]);
     setLeverage(null);
     setError(null);
     setActionError(null);
@@ -1268,6 +1261,22 @@ export function useBinanceLive(enabled: boolean, symbol: string = DEFAULT_SYMBOL
     return visiblePoll(() => Promise.all([refreshSizing(), refreshPositionCard()]), SIZING_POLL_MS);
   }, [enabled, refreshSizing, refreshPositionCard, symbol]);
 
+  /** This account's fills on this symbol, for the chart's markers. Read from the server's audit
+   *  mirror (a local file), never from a signed Binance call, and only when something can have
+   *  changed: entering LIVE, a symbol change, the position changing, an order. No poll. */
+  const refreshExecutions = useCallback(async () => {
+    const asked = current.current;
+    try {
+      const next = await liveApi.executions(asked);
+      if (mine(next.symbol) && asked === current.current) {
+        setExecutions(executionsFor(next.executions, { mode: "LIVE", symbol: asked, account: next.account }));
+      }
+    } catch { /* markers are display only; the position lines still come from Binance */ }
+  }, [mine]);
+  const positionKey = `${account?.symbol ?? ""}:${account?.position?.side ?? "FLAT"}:${account?.position?.qty ?? "0"}`;
+  useEffect(() => { if (enabled) void refreshExecutions(); },
+    [enabled, refreshExecutions, symbol, positionKey]);
+
   const requestPreview = useCallback((size: string) => {
     if (!enabled || !size) return;
     const asked = current.current;
@@ -1288,6 +1297,7 @@ export function useBinanceLive(enabled: boolean, symbol: string = DEFAULT_SYMBOL
       await liveApi.order(current.current, body);
       await refresh();
       await refreshPositionCard();
+      await refreshExecutions();
     } catch (exc) {
       // The expected V1 path: the backend refuses. The message is the operator's evidence that
       // the lock is real, so it is shown rather than swallowed.
@@ -1296,7 +1306,7 @@ export function useBinanceLive(enabled: boolean, symbol: string = DEFAULT_SYMBOL
     } finally {
       setBusy(false);
     }
-  }, [refresh, refreshPositionCard]);
+  }, [refresh, refreshPositionCard, refreshExecutions]);
 
   /** The confirmation phrase is supplied here, not typed by the operator.
    *
@@ -1365,6 +1375,7 @@ export function useBinanceLive(enabled: boolean, symbol: string = DEFAULT_SYMBOL
   }, []);
 
   return { symbol, status, account, preview, arm, leverage, sizing, positionCard, exitGuard, performance,
+           executions,
            error, actionError, armError, leverageError, exitGuardError, busy, refresh, order,
            requestPreview, armLive, disarmLive, changeLeverage, refreshSizing, refreshPositionCard,
            saveExitGuard, disableExitGuard,

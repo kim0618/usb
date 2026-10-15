@@ -120,7 +120,12 @@ const stripLoaded = () => waitFor(() => expect(
 const chartOverlays = () => screen.getAllByTestId("candle-chart-stub")
   .map(node => node.getAttribute("data-overlays") ?? "").join("|");
 
-const linesDrawn = () => waitFor(() => expect(chartOverlays()).toContain("ctx-ask-wall"));
+/** Manual UX Final V1: the walls and levels are no longer drawn on the chart; the reading
+ *  stays beside it. Waits a beat so a late context answer would have had time to draw. */
+const noContextLines = async () => {
+  await new Promise(resolve => setTimeout(resolve, 30));
+  expect(chartOverlays()).not.toContain("ctx-");
+};
 
 // --------------------------------------------------------------------------- chart lines
 
@@ -334,20 +339,17 @@ describe("BTC context line", () => {
 // --------------------------------------------------------------------------- inside the terminal
 
 describe("BTC context inside the terminal", () => {
-  it.each(WIDE)("draws the lines on the BTC chart and the line under it at %ipx", async width => {
+  it.each(WIDE)("keeps the wall lines off the BTC chart and puts the line under it at %ipx", async width => {
     stubViewport(width);
     fakeBackends();
     render(<CryptoTerminal marketContext={slot} contextBase={BASE} />);
     await terminalReady();
     await stripLoaded();
-    await linesDrawn();
+    await noContextLines();
     const drawn = chartOverlays();
-    // resistance and support are hidden by default (V3): only the walls are drawn
-    expect(drawn).not.toContain("ctx-resistance");
-    expect(drawn).not.toContain("ctx-support");
-    expect(drawn).toContain("ctx-ask-wall@83050.4=상1");
-    expect(drawn).toContain("ctx-bid-wall@82996.5=하1");
-    // The account's own lines are still there, first.
+    expect(drawn).not.toContain("ctx-ask-wall");
+    expect(drawn).not.toContain("ctx-bid-wall");
+    // The account's own lines are still there.
     expect(drawn.split("|")[0]).toMatch(/^mark@/);
     const strip = screen.getByTestId("btc-context-strip");
     const chart = screen.getAllByTestId("candle-chart-stub")[0];
@@ -384,13 +386,13 @@ describe("BTC context inside the terminal", () => {
     expect(after).toBe(before);
   });
 
-  it("puts the line after the order ticket at 390px and still draws on the chart", async () => {
+  it("puts the line after the order ticket at 390px and draws no wall on the chart", async () => {
     stubViewport(PHONE_WIDTH);
     fakeBackends();
     render(<CryptoTerminal marketContext={slot} contextBase={BASE} />);
     await terminalReady();
     await stripLoaded();
-    await linesDrawn();
+    await noContextLines();
     const strip = screen.getByTestId("btc-context-strip");
     const ticket = screen.getAllByTestId("order-ticket")[0];
     expect(ticket.compareDocumentPosition(strip) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -403,7 +405,7 @@ describe("BTC context inside the terminal", () => {
     render(<CryptoTerminal marketContext={slot} contextBase={BASE} />);
     await terminalReady();
     await stripLoaded();
-    await linesDrawn();
+    await noContextLines();
     await waitFor(() => expect(
       screen.getByTestId("symbol-tab-hot").getAttribute("data-symbol")).toBe("ETHUSDT"));
     await waitFor(() => expect(screen.getByTestId("symbol-tab-hot")).toBeEnabled());
@@ -417,7 +419,7 @@ describe("BTC context inside the terminal", () => {
     expect(tally.stripPolls).toBe(pollsOnHot);
     fireEvent.click(screen.getByTestId("symbol-tab-BTCUSDT"));
     await stripLoaded();
-    await linesDrawn();
+    await noContextLines();
   });
 
   it("draws no context line on the BTC chart without a configured backend", async () => {
@@ -436,7 +438,7 @@ describe("BTC context inside the terminal", () => {
     render(<CryptoTerminal marketContext={slot} contextBase={BASE} />);
     await terminalReady();
     await stripLoaded();
-    await linesDrawn();
+    await noContextLines();
     await new Promise(resolve => setTimeout(resolve, 50));
     expect(tally.all.filter(r => r.method !== "GET" && r.method !== "HEAD")).toEqual([]);
     expect(tally.all.filter(r => r.url.endsWith("/snapshot")).every(r => r.method === "GET"))
@@ -450,7 +452,7 @@ describe("BTC context inside the terminal", () => {
       const tally = fakeBackends();
       render(withContext ? <CryptoTerminal marketContext={slot} contextBase={BASE} /> : <CryptoTerminal />);
       await terminalReady();
-      if (withContext) { await stripLoaded(); await linesDrawn(); }
+      if (withContext) { await stripLoaded(); await noContextLines(); }
       const longButton = screen.getAllByTestId("long-button")[0];
       expect(longButton).toBeEnabled();
       fireEvent.click(longButton);

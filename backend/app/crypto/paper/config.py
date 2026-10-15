@@ -125,6 +125,13 @@ class FxFixing:
 # run already on disk must keep rebuilding byte for byte when its tape is replayed.
 DEFAULT_STARTING_CAPITAL_KRW = Decimal("10000000")
 
+#: PAPER's own leverage ceiling never sits below this. The measured instrument ceiling (Bybit's
+#: table, or for a HOT symbol not listed there the Binance account's bracket) is a property of a
+#: venue or of an account, and PAPER is neither: 5x to 100x is always offered and always means
+#: what it says in the margin, sizing and liquidation arithmetic. A ceiling measured *above* this
+#: (BTCUSDT's 150x) still applies as measured.
+PAPER_LEVERAGE_CEILING_FLOOR = Decimal("100")
+
 
 @dataclass(frozen=True)
 class PaperRunConfig:
@@ -157,12 +164,17 @@ class PaperRunConfig:
             raise ValueError("D3 fixes the liquidation fill basis at MARK_AT_TRIGGER")
         self.validate_leverage(self.leverage)
 
+    @property
+    def max_leverage(self) -> Decimal:
+        """The PAPER run's leverage ceiling: the instrument's, raised to at least 100x."""
+        return max(self.instrument.max_leverage, PAPER_LEVERAGE_CEILING_FLOOR)
+
     def validate_leverage(self, leverage: Decimal) -> None:
         spec = self.instrument
         if not isinstance(leverage, Decimal):
             raise TypeError("leverage must be Decimal")
-        if leverage < spec.min_leverage or leverage > spec.max_leverage:
-            raise ValueError(f"leverage {leverage} outside [{spec.min_leverage}, {spec.max_leverage}]")
+        if leverage < spec.min_leverage or leverage > self.max_leverage:
+            raise ValueError(f"leverage {leverage} outside [{spec.min_leverage}, {self.max_leverage}]")
         if (leverage / spec.leverage_step) % 1 != 0:
             raise ValueError(f"leverage {leverage} is not on the {spec.leverage_step} step grid")
 

@@ -103,7 +103,8 @@ function paperSpies(position: "LONG" | null = null) {
   }) as never);
   const ledger = vi.spyOn(cryptoApi, "ledger").mockResolvedValue({ events: [] } as never);
   const performance = vi.spyOn(cryptoApi, "performance").mockResolvedValue({} as never);
-  const trades = vi.spyOn(cryptoApi, "trades").mockResolvedValue({ trades: [] } as never);
+  const trades = vi.spyOn(cryptoApi, "executions").mockResolvedValue(
+    { mode: "PAPER", symbol: "BTCUSDT", account: "run", executions: [] } as never);
   const sizing = vi.spyOn(cryptoApi, "sizing").mockResolvedValue({ sides: {} } as never);
   const breakdown = vi.spyOn(cryptoApi, "pnlBreakdown").mockResolvedValue({} as never);
   const chart = vi.spyOn(cryptoApi, "chart").mockResolvedValue({ bars: [] } as never);

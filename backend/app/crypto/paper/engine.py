@@ -18,7 +18,7 @@ from typing import Any
 from . import LEDGER_SCHEMA_VERSION, PAPER_ENGINE_VERSION
 from .account import Account, Position, SIDE_LONG, SIDE_SHORT
 from .book import BookSide, NoLiquidity, Quote, walk_book
-from .config import PaperRunConfig
+from .config import PAPER_LEVERAGE_CEILING_FLOOR, PaperRunConfig
 from .instrument import RiskTierTable
 from .ledger import EventType, InputKind, InputTape, Ledger
 from .state import (
@@ -314,7 +314,10 @@ class PaperEngine:
             raise OrderRejected("RISK_LIMIT_EXCEEDED",
                                 f"notional {notional} exceeds the highest risk limit {highest}")
         tier = self.tiers.tier_for_notional(notional)
-        if self.leverage > tier.max_leverage:
+        # The tier's maximum is raised to PAPER's own floor, the same way the run's ceiling is
+        # (`PaperRunConfig.max_leverage`): a 100x PAPER position is margined at 100x, and the
+        # tier still supplies its maintenance rate for the liquidation price.
+        if self.leverage > max(tier.max_leverage, PAPER_LEVERAGE_CEILING_FLOOR):
             raise OrderRejected(
                 "LEVERAGE_ABOVE_TIER",
                 f"leverage {self.leverage} exceeds tier {tier.risk_id} maximum {tier.max_leverage}")

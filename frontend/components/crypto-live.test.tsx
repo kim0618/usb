@@ -228,15 +228,19 @@ describe("the LIVE order ticket", () => {
     expect(screen.getByTestId("live-order-error")).toHaveTextContent("실주문 잠금");
   });
 
-  it("shows the expected entry cost priced by the backend", () => {
+  it("keeps the backend preview off the ticket and shows the KRW notional instead", () => {
     render(<LiveOrderTicket account={live()} gate={liveTradeGate(live(), null)} onOrder={vi.fn()} preview={{
       source: "BINANCE_LIVE", symbol: "BTCUSDT", krw_per_usdt: null, mark_price: "83500.00",
       fetched_at_ms: 1, sides: { LONG: { side: "LONG", feasible: true,
         entry_fill_price: "83500.10", expected_entry_total_cost: "0.0700",
         breakeven_mark_price: "83533.50" } },
     }} />);
-    expect(screen.getByTestId("live-preview")).toHaveTextContent("83,500.1");
-    expect(screen.getByTestId("live-preview")).toHaveTextContent("0.0700 USDT");
+    // Order panel simplification: the preview is still received (fetched_at on the ticket) but
+    // its entry price, cost and break-even are not shown.
+    expect(screen.queryByTestId("live-preview")).toBeNull();
+    expect(screen.getByTestId("live-order-ticket")).toHaveAttribute("data-preview-fetched-at", "1");
+    expect(screen.getByTestId("live-order-ticket")).not.toHaveTextContent("0.0700 USDT");
+    expect(screen.getByTestId("live-order-amount-notional")).toBeInTheDocument();
   });
 });
 

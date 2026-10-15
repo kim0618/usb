@@ -26,6 +26,7 @@ from ..paper.engine import OrderRejected
 from ..hot_coins import market as hot_market
 from ..symbols import DEFAULT_SYMBOL, SymbolNotSupported, is_dynamic, resolve as resolve_symbol
 from .api import app, error, jsonable, paper_feed, paper_session, runtime
+from .executions import paper_executions
 from .trade_candles import TradeCandleFeed
 
 SIDES = ("LONG", "SHORT")
@@ -216,6 +217,22 @@ async def order_preview(long_qty: str | None = None, short_qty: str | None = Non
                      "feed_last_message_ms": feed.telemetry.last_message_ms,
                      "quote_ts_ms": engine.quote.ts_ms if engine.quote is not None else None,
                      "krw_per_usdt": rate, "sides": sides})
+
+
+@app.get("/api/crypto/executions")
+async def executions(symbol: str | None = None) -> Any:
+    """This PAPER run's fills on one symbol, each classified by what it did to the position.
+
+    Folded out of the session's own ledger, so it names this run and this symbol only. Display
+    only: the chart's markers. Nothing is recorded."""
+    session, failure = paper_session(symbol)
+    if failure is not None:
+        return failure
+    instrument = session.config.instrument.symbol
+    rows = paper_executions(session.engine.ledger.events, symbol=instrument,
+                            account=session.config.run_id)
+    return jsonable({"mode": "PAPER", "symbol": instrument, "account": session.config.run_id,
+                     "executions": rows})
 
 
 LIVE_FIELDS = (

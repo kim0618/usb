@@ -18,6 +18,10 @@ import { PnlBreakdown, PnlHeadline, PositionCardShell, PositionExposure, type Br
 import type { Candle, Candle15sStatus, ChartBar, ChartOverlay, ChartPoint, CryptoAccount,
   HistoryTimeframe,
   LivePnl, OpenPositionPnl, PositionPnlPreview } from "@/lib/crypto-paper";
+import { executionMarkers } from "@/lib/crypto-executions";
+import type { Execution } from "@/lib/crypto-executions";
+
+const NO_EXECUTIONS: Execution[] = [];
 
 /** One sentence naming the other symbols that are holding part of the wallet, or undefined on
  *  a run whose symbols each own their cash.
@@ -401,7 +405,7 @@ export function QuoteStrip({ state }: { state: CryptoState }) {
 }
 
 export function ChartSection({ state, bars, timeframe, onTimeframe, overlays: given, note,
-  contextLines = [] }: {
+  executions = NO_EXECUTIONS }: {
   state: CryptoState;
   bars: ChartBar[];
   timeframe: ChartTimeframe;
@@ -414,9 +418,9 @@ export function ChartSection({ state, bars, timeframe, onTimeframe, overlays: gi
   /** One line above the chart, for a caller whose candles and position come from different
    *  places and who has to say so. */
   note?: string;
-  /** Read-only BTC market context drawn as price lines: nearest resistance and support, nearest
-   *  ask and bid wall. Dropped on any chart that is not BTC's, whatever the caller passes. */
-  contextLines?: ChartOverlay[];
+  /** The account on screen's own fills on this symbol, already filtered to its mode and account
+   *  by the caller. Drawn one marker per fill; the average entry stays the account's line. */
+  executions?: Execution[];
 }) {
   // The instrument being charted, taken from the snapshot this section is rendering.
   //
@@ -434,8 +438,11 @@ export function ChartSection({ state, bars, timeframe, onTimeframe, overlays: gi
   const fallback = timeframe === "1m" ? aggregateCandles(bars, 1) : [];
   const candles: ChartPoint[] = timeframe === "15s" ? fast.candles
     : (history.candles.length > 0 ? history.candles : fallback);
-  const own = given ?? positionOverlays(state);
-  const overlays = symbol === DEFAULT_SYMBOL && contextLines.length > 0 ? [...own, ...contextLines] : own;
+  // The account's own lines only. The wall and level lines that used to be merged in here are
+  // gone from the chart; that context is read beside it, not drawn over it.
+  const overlays = given ?? positionOverlays(state);
+  const markers = useMemo(() => executionMarkers(executions,
+    candles.filter(point => !isWhitespace(point)).map(point => point.time)), [executions, candles]);
   const real = candles.filter(point => !isWhitespace(point)).length;
   const secondsNote = timeframe === "15s" ? candles15sNote(fast.status, real, fast.coverageFrom) : null;
   // The chart scales to the candles in view; an entry or liquidation line far from them is off
@@ -481,7 +488,7 @@ export function ChartSection({ state, bars, timeframe, onTimeframe, overlays: gi
       )}
       {/* Shorter on a phone so the order panel arrives sooner; taller where there is room. On a
           desktop the order panel fills the right column and a short chart would waste it. */}
-      <CandleChart candles={candles} overlays={overlays}
+      <CandleChart candles={candles} overlays={overlays} markers={markers}
         priceFormat={chartFormat}
         // The symbol is part of the series identity. With the timeframe alone, switching
         // instruments on the same timeframe kept the same series and the chart *amended* it

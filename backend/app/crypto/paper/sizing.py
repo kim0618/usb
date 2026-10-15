@@ -111,6 +111,11 @@ def _clone(engine: PaperEngine) -> PaperEngine:
     return clone
 
 
+def clone_engine(engine: PaperEngine) -> PaperEngine:
+    """A throwaway copy of the engine for a rehearsal (see `_clone`); nothing it does is kept."""
+    return _clone(engine)
+
+
 def floor_to_step(qty: Decimal, step: Decimal) -> Decimal:
     if step <= 0:
         raise ValueError("qty step must be positive")

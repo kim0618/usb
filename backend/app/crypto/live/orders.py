@@ -24,7 +24,7 @@ Three behaviours are deliberate and are not conveniences:
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from decimal import Decimal
 from typing import Any
 
@@ -91,6 +91,9 @@ class OrderPlan:
     position_side: str = BOTH
     #: The position the plan was built against, so a CLOSE can be shown as "close 0.012 LONG".
     position_qty_at_plan: Decimal | None = None
+    #: The symbol's Binance leverage when the plan was made. Recorded for the audit trail and the
+    #: chart's execution markers; never sent and never used to size anything.
+    leverage: Decimal | None = None
 
     def params(self, *, recv_window_ms: int) -> dict[str, Any]:
         """Exactly what would go on the wire. `newOrderRespType=RESULT` so the response carries
@@ -112,7 +115,8 @@ class OrderPlan:
                 "order_side": self.order_side, "qty": self.qty, "reduce_only": self.reduce_only,
                 "reference_price": self.reference_price, "notional": self.notional,
                 "client_order_id": self.client_order_id,
-                "position_qty_at_plan": self.position_qty_at_plan, "type": MARKET}
+                "position_qty_at_plan": self.position_qty_at_plan, "leverage": self.leverage,
+                "type": MARKET}
 
 
 def client_order_id(intent: str, ts_ms: int | None = None) -> str:
@@ -257,15 +261,21 @@ class LiveOrderRouter:
         self._agree_on_symbol(symbol, state, position)
 
         if intent == CLOSE:
-            return self._close_plan(filters, book)
-        return self._open_plan(side, qty, notional_usdt, filters, book, position)
+            plan = self._close_plan(filters, book)
+        else:
+            plan = self._open_plan(side, qty, notional_usdt, filters, book, position)
+        config = getattr(state, "symbol_config", None)
+        leverage = getattr(config, "leverage", None)
+        return replace(plan, leverage=Decimal(str(leverage))) if leverage is not None else plan
 
     def _open_plan(self, side: str, qty: Any, notional_usdt: Any, filters: SymbolFilters,
                    book: Any, position: LivePosition) -> OrderPlan:
         if not position.is_flat and position.side != side:
-            raise OrderRefused(
-                REVERSE_NOT_ALLOWED,
-                f"{position.side} 포지션 {position.qty}이 열려 있습니다. 먼저 청산한 뒤 진입하세요.")
+            # The other side of a held position is a reduction, classified by what it does to
+            # the position rather than by the button's name: up to the held size it is sent
+            # reduceOnly (partial or full close). Past it, it would be a flip, which LIVE does
+            # not send as one order.
+            return self._reduce_plan(qty, notional_usdt, filters, book)
         reference = book.reference(side)
         if reference <= 0:
             raise OrderRefused(NO_QUOTE, "Binance 호가를 읽지 못했습니다.")
@@ -283,6 +293,46 @@ class LiveOrderRouter:
                          order_side=BUY if side == LONG else SELL, qty=size, reduce_only=False,
                          reference_price=reference, notional=size * reference,
                          client_order_id=client_order_id(OPEN),
+                         position_qty_at_plan=position.qty)
+
+    def _reduce_plan(self, qty: Any, notional_usdt: Any, filters: SymbolFilters,
+                     book: Any) -> OrderPlan:
+        """A reduceOnly market order for part (or all) of the held position.
+
+        Sized against a fresh position read, like a CLOSE, so a position that shrank since the
+        screen rendered cannot be over-reduced into a flip."""
+        position = self.reader.position()
+        if position.symbol != filters.symbol:
+            self._record(LiveEvent.ORDER_REFUSED, stage="SYMBOL", code=SYMBOL_MISMATCH,
+                         message="reduce re-read symbol disagreement",
+                         symbols={"filters": filters.symbol, "position": position.symbol})
+            raise OrderRefused(SYMBOL_MISMATCH,
+                               "감소 직전 포지션 재조회의 심볼이 달라 주문을 중단했습니다.")
+        if position.is_flat:
+            raise OrderRefused(NO_POSITION_TO_CLOSE, "줄일 포지션이 없습니다.")
+        held_side = position.side or LONG
+        reference = book.reference(SHORT if held_side == LONG else LONG)
+        if qty not in (None, ""):
+            size = Decimal(str(qty))
+        elif notional_usdt not in (None, ""):
+            size = filters.qty_from_notional(Decimal(str(notional_usdt)), reference_price=reference)
+        else:
+            raise OrderRefused(QTY_REQUIRED, "qty 또는 notional_usdt 중 하나가 필요합니다.")
+        if size <= 0:
+            raise OrderRefused(QTY_REQUIRED, "수량은 0보다 커야 합니다.")
+        if size > position.qty:
+            raise OrderRefused(
+                REVERSE_NOT_ALLOWED,
+                f"{held_side} 포지션 {position.qty}보다 큰 반대 주문({size})은 전환입니다. "
+                "LIVE는 전환을 한 주문으로 보내지 않습니다. 보유량 이하로 줄이거나 먼저 청산하세요.")
+        try:
+            filters.validate_market_qty(size, reference_price=reference)
+        except QuantityRejected as exc:
+            raise OrderRefused(exc.code, exc.message) from None
+        return OrderPlan(symbol=filters.symbol, intent=CLOSE, side=held_side,
+                         order_side=SELL if held_side == LONG else BUY, qty=size, reduce_only=True,
+                         reference_price=reference, notional=size * reference,
+                         client_order_id=client_order_id(CLOSE),
                          position_qty_at_plan=position.qty)
 
     def _close_plan(self, filters: SymbolFilters, book: Any) -> OrderPlan:

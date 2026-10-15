@@ -34,6 +34,7 @@ from fastapi.responses import JSONResponse
 
 from ..live.account import AccountReader
 from ..live.adapter import BinanceLiveAdapter
+from .executions import live_executions_from_file
 from ..live.arm import ArmRefused, ArmSession
 from ..live.credentials import LiveConfig, client_armed, load_config, load_credentials
 from ..live.credentials import CredentialsMissing
@@ -743,6 +744,27 @@ async def binance_funding(limit: int = 50, symbol: str | None = None) -> Any:
                      "authority": "binance GET /fapi/v1/income?incomeType=FUNDING_FEE"})
 
 
+@app.get("/api/crypto/binance/executions")
+async def binance_executions(symbol: str | None = None) -> Any:
+    """This account's filled orders on one symbol, from the audit mirror, for the chart.
+
+    The orders this terminal sent and Binance answered (plus the exit guard's closes), each
+    classified against the position at plan time. A local file read: no signed request. Orders
+    placed outside this terminal are not in the mirror and so not here; the position lines on
+    the chart are still Binance's own."""
+    entry, failure = _entry(symbol)
+    if failure is not None:
+        return failure
+    assert entry is not None
+    adapter = entry.adapter
+    mirror = adapter.mirror
+    account = mirror.account_fingerprint if mirror is not None else None
+    rows = ([] if mirror is None else
+            live_executions_from_file(mirror.path, symbol=entry.symbol, account=account))
+    return jsonable({"mode": "LIVE", "symbol": entry.symbol, "account": account,
+                     "executions": rows})
+
+
 @app.get("/api/crypto/binance/events")
 async def binance_events(limit: int = 100, symbol: str | None = None) -> Any:
     """The LIVE audit mirror's tail. Never a source for the screen's figures.
@@ -797,7 +819,12 @@ async def binance_order(request: LiveOrderRequest) -> Any:
             preflight = adapter.preflight_open(side, request.qty, request.notional_usdt)
         except BinanceError as exc:
             return error(502, "BINANCE_ERROR", exc.message)
-        if not preflight.get("feasible"):
+        if preflight.get("reject_code") == "REVERSE_NOT_ALLOWED":
+            # The other side of a held position: not an entry, so the entry capacity check does
+            # not apply. The router turns it into a reduceOnly order of at most the held size,
+            # against a fresh position read, or refuses it (a flip).
+            preflight = None
+        elif not preflight.get("feasible"):
             reject_code = str(preflight.get("reject_code") or "UNSAFE_SIZE")
             capacity_changed = reject_code in {
                 "INSUFFICIENT_MARGIN", "NO_LIQUIDITY", "NOTIONAL_ABOVE_MAXIMUM",

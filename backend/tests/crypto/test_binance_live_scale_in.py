@@ -161,10 +161,23 @@ def test_the_router_refuses_the_opposite_side_rather_than_reversing() -> None:
              "notional": "-6684.00", "initialMargin": "334.20"}]
     subject, fake = plan_router(rows)
 
+    # Past the held 0.080 the order would flip the position: refused.
     with pytest.raises(OrderRefused) as caught:
-        subject.plan(side="LONG", intent=OPEN, qty="0.005")
+        subject.plan(side="LONG", intent=OPEN, qty="0.100")
 
     assert caught.value.code == REVERSE_NOT_ALLOWED
+    assert fake.count("/fapi/v1/order") == 0
+
+
+def test_the_opposite_side_within_the_position_reduces_it_reduce_only() -> None:
+    rows = [{**POSITION_RISK_FLAT[0], "positionAmt": "-0.080", "entryPrice": "83938.05",
+             "notional": "-6684.00", "initialMargin": "334.20"}]
+    subject, fake = plan_router(rows)
+
+    plan = subject.plan(side="LONG", intent=OPEN, qty="0.005")
+
+    assert plan.side == "SHORT" and plan.order_side == "BUY" and plan.reduce_only is True
+    assert plan.qty == Decimal("0.005")
     assert fake.count("/fapi/v1/order") == 0
 
 

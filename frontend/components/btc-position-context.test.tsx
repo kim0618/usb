@@ -520,15 +520,16 @@ describe("V3 inside the terminal", () => {
     expect(screen.getByTestId("btc-context-strip").getAttribute("data-mode")).toBe("MARKET");
   });
 
-  it("thins the wall lines when the timeframe changes and keeps them on 1m", async () => {
+  it("draws no wall line on the chart on any timeframe (Manual UX Final V1)", async () => {
     stubViewport(1440);
     fakeBackends({ strip: () => withThirdBid(LIVE) });
     render(<CryptoTerminal marketContext={slot} contextBase={BASE} />);
     await terminalReady();
-    await waitFor(() => expect(wallLines()).toBe(6));
-    for (const [tf, n] of [["1h", 2], ["4h", 0], ["15s", 6], ["1m", 6]] as const) {
+    await waitFor(() => expect(rowsOf("btc-context-path-up")).toHaveLength(3));
+    expect(wallLines()).toBe(0);
+    for (const tf of ["1h", "4h", "15s", "1m"]) {
       fireEvent.click(screen.getAllByRole("button", { name: tf })[0]);
-      await waitFor(() => expect(wallLines()).toBe(n));
+      expect(wallLines()).toBe(0);
     }
   });
 
@@ -552,15 +553,15 @@ describe("V3 inside the terminal", () => {
     }
   });
 
-  it("moves the chart lines with the panel's selection", async () => {
+  it("keeps the panel's wall selection off the chart", async () => {
     stubViewport(1440);
     fakeBackends({ strip: () => LIVE });
     render(<CryptoTerminal marketContext={slot} contextBase={BASE} />);
     await terminalReady();
-    await waitFor(() => expect(wallLines()).toBeGreaterThan(0));
+    await waitFor(() => expect(rowsOf("btc-context-path-up")).toHaveLength(3));
     fireEvent.click(within(screen.getByTestId("btc-context-selection")).getByText("큰 순"));
-    const size = pickWalls(LIVE.walls!.ask, "SIZE").map(w => w.price);
-    await waitFor(() => expect(chartOverlays()).toContain(`ctx-ask-wall-1@${Number(size[0])}`));
+    await new Promise(resolve => setTimeout(resolve, 30));
+    expect(chartOverlays()).not.toContain("ctx-");
     act(() => setWallSelection("NEAR"));
   });
 
@@ -569,7 +570,8 @@ describe("V3 inside the terminal", () => {
     const tally = fakeBackends({ strip: () => LIVE });
     render(<CryptoTerminal marketContext={slot} contextBase={BASE} />);
     await terminalReady();
-    await waitFor(() => expect(wallLines()).toBeGreaterThan(0));
+    await waitFor(() => expect(rowsOf("btc-context-path-up")).toHaveLength(3));
+    expect(wallLines()).toBe(0);
     await waitFor(() => expect(screen.getByTestId("symbol-tab-hot")).toBeEnabled());
     fireEvent.click(screen.getByTestId("symbol-tab-hot"));
     await waitFor(() => expect(chartOverlays()).not.toContain("ctx-"));
@@ -592,7 +594,7 @@ describe("V3 inside the terminal", () => {
     up = true;
     await vi.advanceTimersByTimeAsync(6_000);
     await waitFor(() => expect(rowsOf("btc-context-path-up")).toHaveLength(3));
-    await waitFor(() => expect(wallLines()).toBeGreaterThan(0));
+    expect(wallLines()).toBe(0);
   });
 
   it("issues no non-GET and sends the same order with and without the V3 context", async () => {

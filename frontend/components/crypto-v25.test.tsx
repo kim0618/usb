@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, renderHook, screen } from "@testing-library/react";
-import { OrderTicket, TradeHistory, useLivePnl, LIVE_POLL_MS } from "@/components/crypto-paper-terminal";
+import { useState } from "react";
+import { OrderPreviewPanel, OrderTicket, TradeHistory, useLivePnl, LIVE_POLL_MS } from "@/components/crypto-paper-terminal";
 import { LivePnlHeadline } from "@/components/crypto-terminal-layout";
-import { costKrw, costUsdt, cryptoApi, krw, signedKrw, signedUsdt, usdt } from "@/lib/crypto-paper";
+import { costKrw, costUsdt, cryptoApi, isHighRisk, krw, signedKrw, signedUsdt, usdt } from "@/lib/crypto-paper";
 import type { CryptoState, LivePnl, OrderPreview, OrderPreviewSide, TradeRow } from "@/lib/crypto-paper";
 
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.useRealTimers(); });
@@ -52,9 +53,19 @@ const preview = (overrides: Partial<OrderPreview> = {}): OrderPreview => ({
 
 const noop = () => {};
 
+/** The preview panel on its own. Manual UX Final (order panel simplification) took it off the
+ *  order ticket; the component and the backend preview it renders are kept, and these tests keep
+ *  holding its arithmetic and its refusals to account. */
+function Panel({ p, s = state(), open = false, highRisk = false }: {
+  p: OrderPreview | null; s?: CryptoState; open?: boolean; highRisk?: boolean }) {
+  const [detail, setDetail] = useState(open);
+  return <OrderPreviewPanel preview={p} state={s} highRisk={highRisk} leverage={s.leverage} armed="MAX"
+    detailOpen={detail} onToggle={() => setDetail(value => !value)} />;
+}
+
 describe("pre-trade order preview", () => {
   it("shows the compact cost rows for both sides, won and breakeven, from the backend", () => {
-    render(<OrderTicket state={state()} onAction={noop} busy={false} error={null} previewOverride={preview()} />);
+    render(<Panel p={preview()} />);
     const panel = screen.getByTestId("order-preview");
     ["예상 진입 수수료", "예상 청산 수수료", "왕복 총비용", "손익분기"].forEach(label =>
       expect(panel).toHaveTextContent(label));
@@ -67,7 +78,7 @@ describe("pre-trade order preview", () => {
   });
 
   it("opens the detail with fills, execution cost, breakeven price and the immediate net", () => {
-    render(<OrderTicket state={state()} onAction={noop} busy={false} error={null} previewOverride={preview()} />);
+    render(<Panel p={preview()} />);
     fireEvent.click(screen.getByTestId("order-preview-detail-toggle"));
     expect(screen.getByTestId("preview-detail-LONG-예상 진입 체결가")).toHaveTextContent("84,000.1");
     expect(screen.getByTestId("preview-detail-LONG-예상 청산 체결가")).toHaveTextContent("84,000.0");
@@ -76,21 +87,23 @@ describe("pre-trade order preview", () => {
     expect(screen.getByTestId("preview-detail-SHORT-즉시 청산 시 예상 순손익")).toHaveTextContent("-124,043원");
   });
 
-  it("starts with the detail open on the wide layout", () => {
-    render(<OrderTicket state={state()} onAction={noop} busy={false} error={null} wide previewOverride={preview()} />);
+  it("starts with the detail open when asked to", () => {
+    render(<Panel p={preview()} open />);
     expect(screen.getByTestId("order-preview-detail")).toBeInTheDocument();
   });
 
-  it("keeps LONG/SHORT directly under the preview", () => {
+  it("is off the order ticket: no preview card, no fee, round-trip or break-even rows", () => {
     render(<OrderTicket state={state()} onAction={noop} busy={false} error={null} previewOverride={preview()} />);
-    const panel = screen.getByTestId("order-preview");
-    const long = screen.getByTestId("long-button");
-    // Document order: preview before the buttons, nothing large in between.
-    expect(panel.compareDocumentPosition(long) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.queryByTestId("order-preview")).toBeNull();
+    const ticket = screen.getByTestId("order-ticket");
+    for (const word of ["예상 진입 수수료", "예상 청산 수수료", "왕복 총비용", "손익분기", "상세"]) {
+      expect(ticket).not.toHaveTextContent(word);
+    }
+    expect(screen.getByTestId("long-button")).toBeInTheDocument();
   });
 
   it("refuses to show numbers for a side the engine refused, with the safe size", () => {
-    render(<OrderTicket state={state()} onAction={noop} busy={false} error={null} previewOverride={preview({
+    render(<Panel p={preview({
       sides: { LONG: side("LONG"), SHORT: { side: "SHORT", feasible: false, reject_stage: "EXIT",
         reject_code: "NO_LIQUIDITY", reject_message: "visible depth", safe_max_qty: "0.268" } } })} />);
     expect(screen.getByTestId("preview-SHORT-왕복 총비용")).toHaveTextContent("-");
@@ -100,36 +113,22 @@ describe("pre-trade order preview", () => {
 
   it("judges age by the server's own receive time, not the exchange clock", () => {
     // The exchange timestamp is ahead of the server clock here; that must not read as fresh or stale.
-    render(<OrderTicket state={state()} onAction={noop} busy={false} error={null}
-      previewOverride={preview({ quote_ts_ms: 1_000_500 + 3_000 })} />);
+    render(<Panel p={preview({ quote_ts_ms: 1_000_500 + 3_000 })} />);
     expect(screen.queryByTestId("order-preview-unavailable")).not.toBeInTheDocument();
     expect(screen.getByTestId("order-preview-age")).toHaveTextContent("0초 전");
   });
 
   it("withholds the preview on a stale book (5 s contract) and on a disconnected feed", () => {
-    const { rerender } = render(<OrderTicket state={state()} onAction={noop} busy={false} error={null}
-      previewOverride={preview({ feed_last_message_ms: 1_000_500 - 6_000 })} />);
+    const { rerender } = render(<Panel p={preview({ feed_last_message_ms: 1_000_500 - 6_000 })} />);
     expect(screen.getByTestId("order-preview-unavailable")).toHaveTextContent("STALE");
-    rerender(<OrderTicket state={state({ feed: { ...state().feed, connected: false } })} onAction={noop}
-      busy={false} error={null} previewOverride={preview()} />);
+    rerender(<Panel s={state({ feed: { ...state().feed, connected: false } })} p={preview()} />);
     expect(screen.getByTestId("order-preview-unavailable")).toHaveTextContent("DISCONNECTED");
   });
 
   it("keeps HIGH RISK visible without opening the detail", () => {
-    render(<OrderTicket state={state({ leverage: "50" })} sizing={{
-      run_id: "p", leverage: "50", quote_ts_ms: 1, mark_price: "1", available_balance: "1",
-      sides: { LONG: { side: "LONG", leverage: "50", max_qty: "1", max_feasible: true, reject_code: null,
-        reject_message: null, instrument: { qty_step: "0.001", min_order_qty: "0.001", min_notional_value: "5", max_mkt_order_qty: "100" },
-        presets: ["25%", "HALF", "75%", "MAX"].map(label => ({ label, fraction: "1", qty: "1.000", feasible: true,
-          fill_price: "1", notional: "1", fee: "1", reserved_margin: "1", required_total: "1", liquidation_price: "1",
-          margin_ratio: "1", risk_tier: 1, resulting_qty: "1", resulting_avg_entry: "1", available_after: "1",
-          reject_code: null, reject_message: null, entry_feasible: true, exit_feasible: true, exit_fill_price: "1",
-          exit_reject_code: null, exit_reject_message: null, quote_ts_ms: 1, best_bid: "1", best_ask: "1",
-          mark_price: "1", bid_depth: "1", ask_depth: "1" })) } } }}
-      onAction={noop} busy={false} error={null} previewOverride={preview()} />);
-    fireEvent.click(screen.getByTestId("preset-MAX"));
+    expect(isHighRisk("50", "MAX")).toBe(true);
+    render(<Panel p={preview()} s={state({ leverage: "50" })} highRisk />);
     expect(screen.getByTestId("high-risk-badge")).toBeInTheDocument();
-    expect(screen.getByTestId("long-button")).toBeEnabled(); // warned, not blocked
   });
 
   it("re-prices when the size, the mode or the leverage changes", async () => {

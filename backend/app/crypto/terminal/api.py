@@ -830,6 +830,9 @@ def create_app() -> FastAPI:
             "min_order_qty": spec.min_order_qty, "max_mkt_order_qty": spec.max_mkt_order_qty,
             "min_notional_value": spec.min_notional_value, "tick_size": spec.tick_size,
             "max_leverage": spec.max_leverage, "source": spec.source}
+        # PAPER's own ceiling (at least 100x), which is what the leverage buttons obey. The
+        # instrument's measured figure above stays as measured.
+        snapshot["paper_max_leverage"] = session.config.max_leverage
         snapshot["feed"] = feed.view()
         snapshot["server_time_ms"] = int(time.time() * 1000)
         snapshot["engine_version"] = PAPER_ENGINE_VERSION
@@ -955,7 +958,39 @@ def create_app() -> FastAPI:
         # preview through is how an operator ends up holding a position the engine will refuse
         # to close. `quote=None` below because the observation has already happened here.
         session.observe(quote, force=True)
-        if request.intent == "OPEN":
+        # An OPEN against the held side is not an entry: it is classified by what it does to
+        # the position, the way a one-way Binance account treats it. Up to the held size it
+        # reduces (partial or full close); past it, it closes in full and opens the remainder
+        # on the other side. The engine's one-order reverse policy is untouched: a flip is sent
+        # as two commands, both on the tape, so a replay rebuilds it exactly.
+        legs = [(request.side, request.intent, qty, request.intent.lower())]
+        position = session.engine.account.position
+        opposite = (request.intent == "OPEN" and not position.is_flat
+                    and position.side != request.side)
+        if opposite:
+            held = position.abs_qty
+            if qty <= held:
+                legs = [(position.side, "CLOSE", qty, "reduce")]
+            else:
+                remainder = qty - held
+                # Priced before anything is sent, on a clone that has already closed: either
+                # both legs can go or neither does.
+                rehearsal = sizing.clone_engine(session.engine)
+                try:
+                    rehearsal.submit_order(ts_ms=quote.ts_ms, side=position.side, qty=held,
+                                           intent="CLOSE", request_id=f"probe-flip-{quote.ts_ms}",
+                                           reason=sizing.PROBE_REASON)
+                except Exception as exc:  # noqa: BLE001 - reported, nothing was sent
+                    return error(409, "FLIP_CLOSE_REFUSED", f"전환 전 청산을 할 수 없습니다: {exc}")
+                guard = sizing.probe(rehearsal, request.side, remainder, require_exit=True)
+                if not guard.feasible:
+                    safe = sizing.max_entry(rehearsal, request.side)
+                    return error(409, guard.reject_code or "UNSAFE_SIZE",
+                                 f"{guard.reject_message} (전환 후 신규 {remainder}; "
+                                 f"현재 호가 기준 안전 최대 {safe.qty if safe.feasible else 0})")
+                legs = [(position.side, "CLOSE", held, "flip-close"),
+                        (request.side, "OPEN", remainder, "flip-open")]
+        elif request.intent == "OPEN":
             guard = sizing.probe(session.engine, request.side, qty, require_exit=True)
             if not guard.feasible:
                 safe = sizing.max_entry(session.engine, request.side)
@@ -963,10 +998,6 @@ def create_app() -> FastAPI:
                              f"{guard.reject_message} "
                              f"(현재 호가 기준 안전 최대 {safe.qty if safe.feasible else 0})")
 
-        payload = {"command": "ORDER", "ts_ms": quote.ts_ms, "side": request.side,
-                   "qty": str(qty), "intent": request.intent,
-                   "request_id": f"{request.intent.lower()}-{quote.ts_ms}-{len(session.tape)}",
-                   "reason": request.reason}
         instrument = session.config.instrument.symbol
         # Registered in flight *before* the HOT replacement flag is read, which is the order the
         # HOT slot relies on: either the scan's re-check sees this order, or this order sees
@@ -974,12 +1005,20 @@ def create_app() -> FastAPI:
         with hot_slot.paper_in_flight.sending(instrument, unknown_on_error=False):
             if hot_slot.replacing == instrument:
                 return error(409, "HOT_REPLACING", "HOT 심볼 교체가 진행 중이라 주문을 보내지 않았습니다.")
-            result = session.command(payload, quote=None)
-        if result["rejection"] is not None:
-            rejection = result["rejection"]
-            return error(409, str(rejection["code"]), str(rejection["message"]))
+            events: list[Any] = []
+            for index, (leg_side, leg_intent, leg_qty, label) in enumerate(legs):
+                payload = {"command": "ORDER", "ts_ms": quote.ts_ms, "side": leg_side,
+                           "qty": str(leg_qty), "intent": leg_intent,
+                           "request_id": f"{label}-{quote.ts_ms}-{len(session.tape)}",
+                           "reason": request.reason}
+                result = session.command(payload, quote=None)
+                events.extend(result["events"])
+                if result["rejection"] is not None:
+                    rejection = result["rejection"]
+                    done = " (전환의 청산은 체결됨)" if index > 0 else ""
+                    return error(409, str(rejection["code"]), f"{rejection['message']}{done}")
         return jsonable({"symbol": session.config.instrument.symbol,
-                         "events": result["events"], "state": session.snapshot()})
+                         "events": events, "state": session.snapshot()})
 
     @app.post("/api/crypto/leverage")
     async def leverage(request: LeverageRequest) -> Any:

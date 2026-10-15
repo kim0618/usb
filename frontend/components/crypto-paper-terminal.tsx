@@ -7,13 +7,18 @@ import {
   CHART_HEIGHT, CHART_WIDTH, ChartBar, CryptoApiError, CryptoSizing, CryptoState, EVENT_LABELS,
   LedgerEvent, MODE_LABELS, OrderPreview, OrderPreviewParams, OrderPreviewSide, OrderSide,
   PRESET_LABELS, Performance, PnlBreakdown, PresetLabel, SizePreset, TradeBreakdown, TradeRow,
-  FEED_STATUS_LABELS, LivePnl, chartGeometry, costKrw, costUsdt, tickAgeSeconds, tickFreshness, clockKst, cryptoApi, duration, feedAgeSeconds, isHighRisk,
+  FEED_STATUS_LABELS, LivePnl, chartGeometry, costKrw, costUsdt, tickAgeSeconds, tickFreshness, clockKst, cryptoApi, duration, feedAgeSeconds,
   canEnter, describeReset, feedStatus, krw, num, percent, price, qty, rateBps, rejectLabel, signedKrw,
   signedUsdt, toneClass, usdt,
 } from "@/lib/crypto-paper";
 import { visiblePoll } from "@/lib/visible-poll";
+import { executionsFor, qtyFromNotional } from "@/lib/crypto-executions";
+import type { Execution } from "@/lib/crypto-executions";
+import { OrderAmountSummary } from "@/components/crypto-order-amount";
 
-const LEVERAGE_PRESETS = ["1", "3", "5", "10", "20", "50"];
+/** PAPER leverage choices. The ceiling is the PAPER run's own (`paper_max_leverage`, at least
+ *  100x), never the Binance account's: a 50x or 100x press here sets 50x or 100x in the engine. */
+const LEVERAGE_PRESETS = ["1", "5", "10", "20", "50", "100"];
 const STALE_SECONDS = 5;
 
 /** The mark price and nothing else. Liquidation and valuation are mark based, so showing the
@@ -383,14 +388,14 @@ export function OrderPreviewPanel({ preview, state, highRisk, leverage, armed, d
   );
 }
 
-export function OrderTicket({ state, sizing, onAction, busy, error, wide = false,
+export function OrderTicket({ state, sizing, onAction, busy, error,
   previewEnabled = true, previewOverride }: {
   state: CryptoState;
   sizing?: CryptoSizing | null;
   onAction: (run: () => Promise<unknown>) => void;
   busy: boolean;
   error: string | null;
-  /** Wide layout: the preview detail starts open. */
+  /** Accepted for callers that still pass it; the preview detail it opened is off screen. */
   wide?: boolean;
   /** False for the twin that is hidden at the current breakpoint, so only one fetches. */
   previewEnabled?: boolean;
@@ -423,8 +428,14 @@ export function OrderTicket({ state, sizing, onAction, busy, error, wide = false
   const blocked = !state.state.can_open_new_position || !canEnter(status);
 
   const sideSizing = (side: OrderSide) => sizing?.sides?.[side];
+  /** The side a position is held on, or null when flat. While a position is held both buttons
+   *  stay live: the held side adds to it, the other side reduces it (and past zero, flips it). */
+  const held: OrderSide | null = flat ? null : account!.position_side as OrderSide;
+  /** A preset is the PAPER account's own Safe MAX ladder. While a position is held the ladder
+   *  that means anything is the held side's (add-on capacity); the opposite side's answer is
+   *  about an entry that would first have to close the position, so it is not consulted. */
   const presetFor = (side: OrderSide) =>
-    preset == null ? undefined : sideSizing(side)?.presets.find(row => row.label === preset);
+    preset == null ? undefined : sideSizing(held ?? side)?.presets.find(row => row.label === preset);
 
   /** A preset is held as a label, not as a number of coins, and is resolved against the side
    *  actually being ordered. LONG walks the ask and SHORT walks the bid, so one preset is two
@@ -437,12 +448,19 @@ export function OrderTicket({ state, sizing, onAction, busy, error, wide = false
   };
 
   const presetUsable = (side: OrderSide) => presetFor(side)?.feasible !== false;
-  const highRisk = isHighRisk(state.leverage, preset);
+  /** The one quantity the amount summary is about: what the held side (or LONG, when flat)
+   *  would send right now. Notional mode is converted at the mark on the run's own grid. */
+  const shownSide: OrderSide = held ?? "LONG";
+  const shownQty = presetFor(shownSide)?.feasible
+    ? presetFor(shownSide)!.qty
+    : preset ? null
+    : sizeMode === "QTY" ? size
+    : qtyFromNotional(size, state.quote?.mark_price, state.instrument?.qty_step);
+  const reduces = (side: OrderSide) => held != null && side !== held;
 
   // Pre-trade preview: re-priced when the leverage, the preset, the typed size, the size mode or
   // the quote changes. One request for both sides; the previous one is aborted, so a slow answer
   // can never overwrite a newer one. The hidden twin (phone vs wide layout) does not fetch.
-  const [detailOpen, setDetailOpen] = useState(wide);
   const [fetched, setFetched] = useState<OrderPreview | null>(null);
   const previewParams: OrderPreviewParams | null = !flat ? null : preset
     ? { long_qty: presetFor("LONG")?.feasible ? presetFor("LONG")!.qty : undefined,
@@ -483,10 +501,10 @@ export function OrderTicket({ state, sizing, onAction, busy, error, wide = false
     return () => { controller.abort(); window.clearTimeout(timer); };
   }, [previewKey, quoteTs, previewEnabled, previewOverride, symbol]);
   const orderPreview = previewOverride !== undefined ? previewOverride : fetched;
-  const armedLabel = preset ? preset : `직접 ${size || "-"} ${sizeMode === "QTY" ? unit : "USDT"}`;
 
   return (
-    <div className="panel p-3 sm:p-5" data-testid="order-ticket">
+    <div className="panel p-3 sm:p-5" data-testid="order-ticket"
+      data-preview-quote-ts={orderPreview?.quote_ts_ms ?? undefined}>
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-sm font-semibold sm:text-base">수동 주문</h2>
         <StatusBadge value={state.state.mode} label={`${MODE_LABELS[state.state.mode]} 모드`} />
@@ -497,7 +515,7 @@ export function OrderTicket({ state, sizing, onAction, busy, error, wide = false
         {LEVERAGE_PRESETS.map(value => {
           // The instrument's own ceiling, from its measured margin table. A HOT symbol's can be
           // 20x or 5x; offering 50x there would only be refused by the engine.
-          const ceiling = num(state.instrument?.max_leverage);
+          const ceiling = num(state.paper_max_leverage ?? state.instrument?.max_leverage);
           const aboveCeiling = ceiling != null && Number(value) > ceiling;
           return (
             <button key={value} type="button" disabled={busy || !flat || aboveCeiling}
@@ -524,7 +542,7 @@ export function OrderTicket({ state, sizing, onAction, busy, error, wide = false
       </div>
       <div className="mb-2 grid grid-cols-4 gap-1.5 sm:mb-3" role="group" aria-label="빠른 수량">
         {PRESET_LABELS.map(label => {
-          const row = sizing?.sides?.LONG?.presets.find(item => item.label === label);
+          const row = sizing?.sides?.[held ?? "LONG"]?.presets.find(item => item.label === label);
           const unavailable = sizing != null && row?.feasible === false;
           const active = preset === label;
           const strong = label === "MAX";
@@ -557,24 +575,12 @@ export function OrderTicket({ state, sizing, onAction, busy, error, wide = false
           placeholder={sizeMode === "QTY" ? "0.001" : "100"} />
       </>}
 
-      {flat && (
-        <OrderPreviewPanel preview={orderPreview} state={state} highRisk={highRisk}
-          leverage={state.leverage} armed={armedLabel} detailOpen={detailOpen}
-          onToggle={() => setDetailOpen(open => !open)}>
-          {preset && <PresetReadout sizing={sizing} preset={preset} leverage={state.leverage} />}
-        </OrderPreviewPanel>
-      )}
-
-      {/* The leverage and the size actually armed, always on screen: the two numbers that decide
-          what a single click is about to do. */}
-      <p className="mb-3 rounded-lg bg-surface-alt px-3 py-2 text-[11px] text-foreground-secondary"
-        data-testid="order-arming">
-        <span className="font-semibold">{num(state.leverage)?.toString() ?? "-"}x</span>
-        {" · "}
-        {preset
-          ? <>빠른 수량 <span className="font-semibold">{preset}</span></>
-          : <>직접 입력 <span className="font-semibold">{size || "-"}</span> {sizeMode === "QTY" ? unit : "USDT"}</>}
-      </p>
+      {/* The order panel shows the size and what it is worth in KRW, nothing else. The pre-trade
+          preview (fees, round trip, break-even) is still fetched and kept on the ticket's data
+          attribute for the record; it is just not on screen. */}
+      <OrderAmountSummary qty={shownQty} price={state.quote?.mark_price} leverage={state.leverage}
+        takerRate={state.fees?.taker_rate} krwPerUsdt={state.fx?.krw_per_usdt} unit={unit}
+        testId="paper-order-amount" />
 
       {status !== "LIVE" && <p className="mb-3 rounded-lg bg-warning-soft px-3 py-2 text-[11px] text-warning"
         role="status" data-testid="stale-entry-block">
@@ -593,14 +599,14 @@ export function OrderTicket({ state, sizing, onAction, busy, error, wide = false
           disabled={busy || blocked || noQuote || !presetUsable("LONG")}
           data-testid="long-button"
           onClick={() => onAction(() => cryptoApi.order(symbol, { side: "LONG", intent: "OPEN", ...body("LONG") }))}>
-          LONG{presetFor("LONG")?.feasible && <span className="ml-1.5 text-[11px] font-normal tabular-nums opacity-80">
+          LONG{reduces("LONG") ? " · 감소" : held ? " · 추가" : ""}{presetFor("LONG")?.feasible && <span className="ml-1.5 text-[11px] font-normal tabular-nums opacity-80">
             {qty(presetFor("LONG")!.qty)}</span>}
         </button>
         <button type="button" className="btn-danger-soft h-14 text-base font-bold sm:h-12"
           disabled={busy || blocked || noQuote || !presetUsable("SHORT")}
           data-testid="short-button"
           onClick={() => onAction(() => cryptoApi.order(symbol, { side: "SHORT", intent: "OPEN", ...body("SHORT") }))}>
-          SHORT{presetFor("SHORT")?.feasible && <span className="ml-1.5 text-[11px] font-normal tabular-nums opacity-80">
+          SHORT{reduces("SHORT") ? " · 감소" : held ? " · 추가" : ""}{presetFor("SHORT")?.feasible && <span className="ml-1.5 text-[11px] font-normal tabular-nums opacity-80">
             {qty(presetFor("SHORT")!.qty)}</span>}
         </button>
       </div>
@@ -1077,7 +1083,7 @@ export function useCryptoTerminal(symbol: string = DEFAULT_SYMBOL,
   const [bars, setBars] = useState<ChartBar[]>([]);
   const [events, setEvents] = useState<LedgerEvent[]>([]);
   const [performance, setPerformance] = useState<Performance | null>(null);
-  const [trades, setTrades] = useState<TradeRow[]>([]);
+  const [executions, setExecutions] = useState<Execution[]>([]);
   const [sizing, setSizing] = useState<CryptoSizing | null>(null);
   const [breakdown, setBreakdown] = useState<PnlBreakdown | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -1100,7 +1106,7 @@ export function useCryptoTerminal(symbol: string = DEFAULT_SYMBOL,
     setBars([]);
     setEvents([]);
     setPerformance(null);
-    setTrades([]);
+    setExecutions([]);
     setSizing(null);
     setBreakdown(null);
     setError(null);
@@ -1131,14 +1137,20 @@ export function useCryptoTerminal(symbol: string = DEFAULT_SYMBOL,
   const readHistory = useCallback(async (asked: string, signal: AbortSignal) => {
     const still = () => !signal.aborted && asked === current.current;
     try {
-      const [ledger, summary, history] = await Promise.all([
+      // The executions replace the trade list this read used to fetch: the trade and ledger
+      // panels are off the screen, and the chart's markers are what the fills are read for now.
+      // Read on the same 10 s cadence and after every order, so no new poll is started for it.
+      // A server without the route costs the markers only, never the rest of the screen.
+      const [ledger, summary, fills] = await Promise.all([
         cryptoApi.ledger(asked, 60, signal), cryptoApi.performance(asked, signal),
-        cryptoApi.trades(asked, 50, signal),
+        cryptoApi.executions(asked, signal).catch(() => null),
       ]);
       if (!still()) return;
       setEvents(ledger.events);
       setPerformance(summary);
-      setTrades(history.trades);
+      if (fills && (fills.symbol == null || fills.symbol === asked)) {
+        setExecutions(executionsFor(fills.executions, { mode: "PAPER", symbol: asked, account: fills.account }));
+      }
     } catch (exception) {
       if (still()) setError(exception instanceof CryptoApiError ? exception.message : "상태 조회 실패");
     }
@@ -1234,6 +1246,6 @@ export function useCryptoTerminal(symbol: string = DEFAULT_SYMBOL,
     };
   }, [readState, readChart, readHistory, readSizing, readBreakdown, paper, symbol]);
 
-  return { state, bars, events, performance, trades, sizing, breakdown, error, actionError, busy,
+  return { state, bars, events, performance, executions, sizing, breakdown, error, actionError, busy,
            act, refresh: refreshNow };
 }

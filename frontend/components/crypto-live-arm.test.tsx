@@ -187,11 +187,12 @@ describe("the trade state bar", () => {
     expect(screen.queryByTestId("live-disarm")).not.toBeInTheDocument();
   });
 
-  it("still states the three ways the window closes, one click away", () => {
+  it("still states how the window closes (manual disarm or restart, no timer), one click away", () => {
     bar();
     fireEvent.click(screen.getByTestId("live-trade-state"));
     const note = screen.getByTestId("live-arm-note");
-    expect(note).toHaveTextContent("제한 시간");
+    expect(note).toHaveTextContent("직접 해제");
+    expect(note).toHaveTextContent("저절로 풀리지는 않습니다");
     expect(note).toHaveTextContent("재시작");
     expect(note).toHaveTextContent("AUTO");
   });

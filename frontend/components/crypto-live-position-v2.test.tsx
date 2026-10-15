@@ -169,7 +169,7 @@ describe("the LIVE chart's price lines", () => {
     const entry = lines.find(line => line.id === "entry");
 
     expect(entry?.price).toBe(Number(LIVE_ENTRY));
-    expect(entry?.label).toBe("진입");
+    expect(entry?.label).toBe("평균진입");
     expect(entry?.kind).toBe("ENTRY");
   });
 
@@ -312,12 +312,18 @@ describe("adding to a position already held", () => {
     expect(screen.getByTestId("live-ticket-holding")).toHaveTextContent("0.080 BTC");
   });
 
-  it("enables the held side's order button and disables the opposite one", () => {
+  it("enables the held side to add and the opposite side to reduce, never past the position", () => {
     render(<LiveOrderTicket account={account()} onOrder={vi.fn()} sizing={holdingSizing()} />);
     expect(screen.getByTestId("live-short")).toBeEnabled();
+    expect(screen.getByTestId("live-short")).toHaveTextContent("SHORT 추가");
+    // Manual UX Final V1: a held position does not disable the other side; it reduces.
+    expect(screen.getByTestId("live-long")).toBeEnabled();
+    expect(screen.getByTestId("live-long")).toHaveTextContent("LONG · 감소");
+    expect(screen.getByTestId("live-opposite-blocked")).toHaveTextContent("reduceOnly");
+    // A reduce larger than the held 0.080 would be a flip: that button turns off.
+    fireEvent.change(screen.getByTestId("live-qty-input"), { target: { value: "0.200" } });
     expect(screen.getByTestId("live-long")).toBeDisabled();
-    expect(screen.getByTestId("live-opposite-blocked"))
-      .toHaveTextContent("현재 포지션을 먼저 청산하세요");
+    expect(screen.getByTestId("live-short")).toBeEnabled();
   });
 
   it("enables both sides while flat", () => {
@@ -327,13 +333,13 @@ describe("adding to a position already held", () => {
     expect(screen.queryByTestId("live-opposite-blocked")).toBeNull();
   });
 
-  it("shows the entered quantity's own entry cost, for the openable side only", () => {
+  it("does not print the add-on's entry cost on the ticket (preview kept, not shown)", () => {
     render(<LiveOrderTicket account={account()} onOrder={vi.fn()} sizing={holdingSizing()}
       preview={preview()} />);
 
-    expect(screen.getByTestId("live-preview-cost-SHORT")).toHaveTextContent("2.1200");
-    expect(screen.queryByTestId("live-preview-cost-LONG")).toBeNull();
-    expect(screen.getByTestId("live-preview")).toHaveTextContent("추가분 예상 진입 비용");
+    expect(screen.queryByTestId("live-preview-cost-SHORT")).toBeNull();
+    expect(screen.queryByTestId("live-preview")).toBeNull();
+    expect(screen.getByTestId("live-order-ticket")).not.toHaveTextContent("추가분 예상 진입 비용");
   });
 
   it("names the add-on in the confirmation rather than implying a fresh position", () => {

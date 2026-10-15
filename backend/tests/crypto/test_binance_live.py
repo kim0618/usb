@@ -499,10 +499,20 @@ def test_an_open_sizes_from_a_notional_with_binances_own_step() -> None:
     assert plan.reference_price == D("83500.10")  # the ask, because a LONG lifts it
 
 
-def test_an_open_against_an_existing_opposite_position_is_refused_not_reversed() -> None:
-    route, _, _ = router()  # fixture holds a LONG
+def test_an_open_against_a_held_position_up_to_its_size_is_a_reduce_only_close() -> None:
+    # Manual UX Final V1: the other side of a held position is classified by what it does to
+    # the position. Up to the held size it is a reduceOnly close of that size.
+    route, _, _ = router()  # fixture holds a LONG 0.015
+    plan = route.plan(side="SHORT", intent="OPEN", qty="0.005")
+    assert plan.intent == orders.CLOSE and plan.side == "LONG"
+    assert plan.order_side == "SELL" and plan.reduce_only is True
+    assert plan.qty == D("0.005") and plan.position_qty_at_plan == D("0.015")
+
+
+def test_an_open_against_a_held_position_past_its_size_is_refused_not_reversed() -> None:
+    route, _, _ = router()  # fixture holds a LONG 0.015
     with pytest.raises(OrderRefused) as caught:
-        route.plan(side="SHORT", intent="OPEN", qty="0.001")
+        route.plan(side="SHORT", intent="OPEN", qty="0.020")
     assert caught.value.code == orders.REVERSE_NOT_ALLOWED
 
 
