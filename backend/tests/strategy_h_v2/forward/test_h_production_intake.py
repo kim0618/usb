@@ -366,7 +366,7 @@ def wire_fakes(monkeypatch, *, fetched: list[str], scan_result):
         return {"day": day, "requested": len(ciks), "fetched": list(ciks), "not_found": [], "degraded": None}
 
     monkeypatch.setattr(FC, "refresh", fake_refresh)
-    monkeypatch.setattr(FC, "load", lambda cik, entry: fake_sec(cik))
+    monkeypatch.setattr(FC, "load", lambda cik, entry, **_: fake_sec(cik))
     monkeypatch.setattr(INT, "scan", scan_result)
 
     def screen_all_ready(ordered, *, index, now, publishable, room, exclude, sec_client_factory, limit=40, log=None):

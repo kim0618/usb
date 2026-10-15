@@ -84,3 +84,16 @@ Combined scan+evaluation process max RSS 322 MB (V1) -> 314 MB. Per-stage SCAN r
 Server (read-only check): LLM keys in `/root/usb/.env*` 0; `usb-h-evaluation` not installed;
 `usb-h-research` unit files still present on the server (timer disabled) - removal is a deployment step.
 Nothing deployed, nothing pushed.
+
+## 7. Regression (repo root, 2026-10-15)
+
+* `backend/tests/strategy_h_v2`: 1,936 passed, 1 skipped, 5 failed on the first run. 4 were the intake
+  tests' `FC.load` fake not accepting the new `lean` keyword (test fake fixed, file passes 55/56). The 5th,
+  `test_d7_refresh_independence::test_a_partial_sec_failure_preserves_the_queue_and_scans_nothing_older`,
+  is a pre-existing time-of-day defect unrelated to V2 (its "yesterday" is a UTC day while the refresh uses
+  the ET day; between 00:00 and about 04:00 UTC both are the same ET day; run at 00:16 UTC, code untouched
+  since 39740f4).
+* `strategy_h0` 63, A/E (`strategy_a_mover_live`, `strategy_e_trading`, `strategy_e1_forward`) 558,
+  `strategy_c` 55, `strategy_eqm_v0` 14, crypto paper sizing 40: all passed. V2 tests 35, lean reader 2.
+* Frontend: `trading-h.test.tsx` + `crypto-paper-position-size.test.tsx` 18 passed (no local 8100 listener).
+* Running pytest from `backend/` breaks repo-relative fixture paths (31 false failures); run from the repo root.
