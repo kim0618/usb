@@ -1,0 +1,31 @@
+{
+ "contract_id": "H_D3D4_DETERMINISTIC_PRODUCTION_V3",
+ "contract_sha256": "82f8319f0c2ad1dd95afb4b626e97da7812294f5ad023bc05f79c7942d0cea9f",
+ "contract_sha256_recomputed": "82f8319f0c2ad1dd95afb4b626e97da7812294f5ad023bc05f79c7942d0cea9f",
+ "rule_table_sha256": "629cf7a9a5f2e8b98cedf8b517da16592aab3b5b6cf0f4298f0c0fda709efc7f",
+ "source_files_sha256": {
+  "backend/app/strategies/h_auto/guidance_parser_v2.py": "134babe6d42dc9f656a70b8513b4a19014de3a30b2548f742a0a312805dd9211",
+  "backend/app/strategies/h_auto/deterministic_v2.py": "22864e4a1bc38bc53a36b4be5bf9321b03313f1d2f4d1b9a0b696809bbfa7bd4",
+  "backend/app/strategies/h_auto/executor.py": "eeba72bd5d24070f92bf61ac59623601c50518ec6b908e9ae8bc58d2048321b8",
+  "backend/app/strategies/h_auto/business_evidence.py": "717c7c3d8fb4c79be5d70521458e2fed20870b805c14d406ac8b9b724af039ff",
+  "backend/app/strategies/h_auto/guidance_parser.py": "6dc8cacfbfff348df00d1355a20d2c5da0ea6d390c3f387a1301ce2dac3a0270",
+  "backend/app/strategies/h_auto/deterministic_v3.py": "43b4e027d430536303aebab52be7b7433e70fe34f70f3e6ecde96bccb0e977aa",
+  "backend/app/strategies/h_auto/deterministic.py": "5e721f9280276f2e42a419e549b9de57864e2b0760af5823b768090a878af874",
+  "backend/app/backtest/strategy_h_v2/expectation/guidance_arithmetic.py": "8d37030137c88a3a7295237a10036e8b4031fdbe9ff5d8ed83607d861e215d4e",
+  "backend/app/backtest/strategy_h_v2/expectation/gap_contract.py": "a6311ea24909216a1570a6c7ef59b9fc6f5b91b182c64863bf9b52f8335590fa",
+  "backend/app/backtest/strategy_h_v2/decision/d6_contract.py": "753c5f6752ff8607368c3bdae9ac018485b69463f463ffa9c7afdcdb5160c92a",
+  "backend/app/dev/run_strategy_h_v2_d6.py": "e56a3ddbba6cbcf448b3603f2cbc48d90b428fa83f0c531489b7765b0052767a",
+  "docs/operations/h_d3d4_deterministic_v1.json": "353976eb097bfde53561124e7f72038b17545c797b0bd6782ebaa35e8ec8029c",
+  "docs/operations/h_d3d4_deterministic_v2.json": "0964fcca541f64f58f97361c9cdcf293b61bde035f92cbdd14bd23088cfd00af",
+  "backend/app/backtest/strategy_h_v2/valuation/fair_value.py": "3e1b2f88e2e5d88ef0bce26da1c8feb79a82062dcc04bf86f1b222d5f0ade64b",
+  "backend/app/strategies/h_paper/service.py": "e1c6f5a7f36e2a933f4c37825a16e9416cc4f2c98e43405289886ef9d3cdd2e6"
+ },
+ "test_fixtures_sha256": {
+  "backend/tests/strategy_h_v2/forward/test_h_d3d4_deterministic_v3.py": "bb43f81ade354dfc44fb47a180a2b492cfc53b410922880ebdac577afa0a4150",
+  "data/runtime/strategy_h_v2/d2_1/D2_1-20260928T072430Z/packages/FG.json": "c67d14b6d929f7f87424efaa04ee4f42c16f463414a5617d89543112f4cfa504"
+ },
+ "base_commit": "69651ea",
+ "recorded_at": "2026-10-15T00:58:18.079836+00:00",
+ "state": "FROZEN_BEFORE_HISTORICAL_REPLAY_AND_BEFORE_ANY_REAL_DATA_RUN",
+ "rule": "after this manifest, a change to any listed source file or rule is a new contract version; only a class-D implementation bug fix is allowed, recorded with its own hash"
+}

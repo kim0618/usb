@@ -1,0 +1,96 @@
+{
+  "declaration": {
+    "contract_id": "H_D3D4_DETERMINISTIC_PRODUCTION_V3",
+    "declared_at_kst": "2026-10-15",
+    "status": "FROZEN_BEFORE_HISTORICAL_REPLAY_AND_BEFORE_ANY_REAL_DATA_RUN",
+    "supersedes": {"contract_id": "H_D3D4_DETERMINISTIC_PRODUCTION_V2", "file": "docs/operations/h_d3d4_deterministic_v2.json", "sha256": "65c631cada055594c344270e8b8e4990e0cf31235cedf2240137e0028fc4738a", "freeze_commit": "8b55439", "note": "V1 and V2 contracts, generators and results stay unchanged; V3 is a separate generator built on V2"},
+    "checksum_recipe": "sha256 of json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False)",
+    "purpose": "Close the APPROVE-path gaps V2 measured, exactly as the operator decided before V3: A guidance structured parsing IMPLEMENT, B priced-in IMPLEMENT, C catalyst minimal code-owned state IMPLEMENT, D invalidation minimal code-owned state IMPLEMENT, E large re-rating NEGATIVE DEFERRED.",
+    "new_numeric_thresholds": 0,
+    "numbers_reused": {"3-month thesis horizon": "D0 §K/§R via V1 R3.5", "statutory filing deadlines": "SEC Form 10-K/10-Q General Instruction A via V1 R3.5", "price vs TP1 > 0 and price vs TP2 <= 0": "D6 base_case_supports_upside / fully_priced, unchanged", "C4 confidence ceiling MEDIUM": "gap_contract"},
+    "revision_rule": "a rule change after the replay is a new contract version (V4); only a class-D implementation bug fix is allowed, recorded with before/after hashes"
+  },
+  "unchanged_from_v2": ["R3.1_V2 business evidence", "R3.2", "R3.3", "R3.4 (future_business empty)", "R3.5 next periodic report and horizon", "R3.8", "R3.9", "R3.11", "R3.12", "D6 binding projection", "difference classes A-E"],
+  "guidance_parser_v2": {
+    "parser": "H_GUIDANCE_TRANSCRIPTION_V2 (backend/app/strategies/h_auto/guidance_parser_v2.py)",
+    "sources": "D2.1 package chunks, PIT-eligible, per source in chunk order; no new source class",
+    "lines": "NBSP folded; a table row is a line with '|' split into non-empty cells; a bullet is a line (or a first table cell) that is one glyph of {•, ●, ·, ▪, ■, ◦, ‣, –, —, -, *, o} followed by text, or a glyph-only line followed by its text line",
+    "heading_like": "a non-table, non-bullet line with a letter, not ending in '.', ';' or ',', and with no digit outside period expressions",
+    "scope": {
+      "opens": "a heading-like line or a table header row (no digits outside periods) that the frozen GUIDANCE_TERMS locate",
+      "period": "the single period that heading states; two or more, or a quarter named without a year next to a non-quarter period ('Third Quarter and Full Year 2026 Outlook'), -> none (ambiguous); a later heading-like line inside the scope that states one period replaces it (subheading)",
+      "ends": "the next guidance heading (new scope), a prose line that the term list does not locate and that yields no transcription, or the end of the source; no inheritance from outside the enclosing scope"
+    },
+    "structures": {
+      "S1_prose": "V1 templates T1-T3 on located sentences (and on every sentence inside a scope); plus T5: a period phrase right after a range ('for|in [the] <period>') binds that range; coordinated ranges and list continuations ', [and] [<label> (of|in the range of|to be|at)] <range>' in the same sentence; the scope period when the sentence states none",
+      "S2_bullet": "inside a scope: prose templates first, else '<label> [:|—|–|-|of|in the range of|to be|at|is|are] <range> [for <period>]' followed by end, ',', ';', '(' or '.'",
+      "S3_table_row": "inside a scope: first cell = label, the other cells' ranges; one range -> the label's period, else the header's single period, else the scope period; n ranges -> the header row's n period columns in order; a header ending in 'Low | High' pairs two singles into a range; anything else -> GUIDANCE_PERIOD_UNKNOWN (AMBIGUOUS_COLUMN)",
+      "S4_label_value": "inside a scope: a heading-like label line immediately followed by a line that is only a range"
+    },
+    "values": "structural values (S2-S4) need a currency, percent or basis-point marker; V1 range grammar, scale, units and raw/normalised values unchanged; no estimate, interpolation, annualisation or midpoint is created",
+    "metric_key": "V1 key plus lexical normalisation only: footnote markers removed, 'Adj.' -> 'adjusted', 'revenues' -> 'revenue', '&' -> 'and', punctuation removed; different economic metrics are never merged",
+    "period_normalisation": "YEAR<Y> (bare year) -> FY<Y> only when the issuer's SEC submissions fiscalYearEnd is 1231; otherwise kept apart",
+    "pairing_and_direction": "V1 assess unchanged: same (metric key, period, unit family), latest publication = current, in-sentence or latest earlier publication = previous, complete bounds, classify_range_movement via MOVEMENT_TO_STATE; one-sided, conflict, incomplete -> UNKNOWN",
+    "overall_state": "the single definite per-metric state; two or more different definite states -> MIXED (the D4 schema's MarketExpectationEvidenceV1 rule); none -> UNKNOWN"
+  },
+  "priced_in_v1": {
+    "basis": "D0 §M lists 'valuation vs the company's own historical range' as market expectation evidence; D5_D2R_V1 is that range for each issuer (TP1 = Base percentile value, TP2 = Bull percentile value), read on the two boundaries D6 already uses",
+    "inputs": ["D5 row status", "target_prices.upside_to_TP1", "target_prices.upside_to_TP2", "D5 confidence"],
+    "inputs_audited_not_used": {"event / benchmark-adjusted returns, pre-event run-up, relative strength, drawdown, volatility": "numbers only in the repository: no frozen state or threshold turns them into 'priced'", "D5 TrendClass": "documented 'diagnostic, never a gate' (fair_value.py)"},
+    "states": "gap_contract.PricedInAssessment members",
+    "table": [
+      "D5 status != VALUED, a target missing, or D5 confidence not LOW/MEDIUM/HIGH -> UNKNOWN",
+      "upside_to_TP2 <= 0 -> LIKELY_PRICED",
+      "upside_to_TP1 <= 0 < upside_to_TP2 -> PARTIALLY_PRICED",
+      "upside_to_TP1 > 0 -> LIKELY_NOT_PRICED"
+    ],
+    "not_produced": "OVER_PRICED_EXPECTATION",
+    "confidence": "the D5 confidence the reading rests on",
+    "c7": "evidence id CODE:D5:<ticker>:<window>:<method> and the stated limitation (no PIT consensus)"
+  },
+  "catalyst_v1": {
+    "taxonomy": "H forward contract material_events (10-Q, 10-K, 8-K, EARNINGS_RELEASE, GUIDANCE, MATERIAL_CORPORATE_EVENT) and research_queue rank 1 (10-K, 10-Q, 8-K 2.02 = earnings)",
+    "upcoming_event": "only the next periodic report of R3.5 is a code-derivable future event",
+    "state": "MATERIAL when that report is a 10-Q or 10-K inside the horizon; STANDARD for any other derived form; UNKNOWN when underivable or beyond the horizon (V1 rules then apply unchanged)",
+    "timing": "BOUNDED_STATUTORY_DEADLINE (date = the statutory deadline, an upper bound) when derived inside the horizon, else UNKNOWN",
+    "d3_fields": {"materiality_candidate": "MATERIAL -> HIGH, STANDARD -> LOW, UNKNOWN -> UNKNOWN", "timing_confidence": "BOUNDED_STATUTORY_DEADLINE -> MEDIUM (date bounded, exact day not known), UNKNOWN -> UNKNOWN"},
+    "no_score": true
+  },
+  "invalidation_v1": {
+    "supporting_states": ["IMPROVING", "ACCELERATING", "INFLECTION_POSITIVE", "LOSS_TO_PROFIT"],
+    "adverse_states": ["DETERIORATING", "INFLECTION_NEGATIVE", "PROFIT_TO_LOSS"],
+    "conditions": ["INV:FUNDAMENTAL:<core metric> for each core metric (revenue, operating_income, eps_diluted, free_cash_flow, operating_margin) whose R3.2 state is supporting: trigger = that metric's code-owned state becomes adverse", "INV:GUIDANCE:<key> for each code-owned guidance assessment RAISED: trigger = the same key LOWERED by classify_range_movement"],
+    "status": "ACTIVE for conditions on the current thesis; TRIGGERED for an ACTIVE condition of the issuer's previous V3 thesis (latest earlier evaluation artifact) whose trigger now holds, with reason code and evidence id; state = TRIGGERED if any, else ACTIVE if any condition, else UNKNOWN",
+    "d3_fields": "invalidation_candidates = ACTIVE conditions (code-templated descriptions, the condition's SEC source); risks += BUSINESS for each adverse core state, each ACTIVE condition ('thesis-supporting state may reverse') and each TRIGGERED condition",
+    "unknown_fields": "'catalyst_materiality' dropped when the catalyst state is not UNKNOWN; 'invalidation_candidates' dropped when at least one condition is written",
+    "ai_text": 0
+  },
+  "d4_gap_v3": {
+    "basis": "D0 §L POSITIVE: evidenced improvement and/or real future-business evidence, with at least low-to-medium confidence that the market has not fully priced it; C1 non-price evidence; C3/C4 ceilings; C5; C6; C7",
+    "table_in_order": [
+      "U1 D3 has no final output -> UNKNOWN",
+      "U2 no code-owned guidance assessment in {RAISED, LOWERED, MAINTAINED, MIXED} (C1/C6) -> UNKNOWN",
+      "U3 overall guidance MIXED or any GUIDANCE_CONFLICT -> UNKNOWN",
+      "U4 priced-in UNKNOWN -> UNKNOWN",
+      "P overall guidance RAISED AND >= 1 core metric in IMPROVING_STATES AND priced-in in {LIKELY_NOT_PRICED, PARTIALLY_PRICED} -> POSITIVE",
+      "N otherwise -> NEUTRAL (the evidence is sufficient and the positive conjunction does not hold)"
+    ],
+    "confidence": "UNKNOWN for UNKNOWN (C5); else min(C4/C3 ceiling, priced-in confidence)",
+    "negative": "not produced: LARGE_RERATING_NEGATIVE DEFERRED (operator decision E); 'not yet reflected in price/guidance' has no frozen reading; LOWERED guidance is reflected in guidance -> NEUTRAL",
+    "wide_positive": "not produced: C2 needs a future-business item above STORY (R3.4 none) and the D0 valuation conjunct stays deferred",
+    "d6_approve_precondition": "gap_contract.d6_approve_precondition (unchanged)"
+  },
+  "executor": "D5_D2R_V1 row computed once before D4 by the unchanged value_issuer call and reused by D6 (checked by sha); previous thesis read from the latest earlier evaluation artifact of the same ticker",
+  "fixtures_declared_before_running": {
+    "A_positive": "guidance RAISED (structured), improving core state, D5 upside_to_TP1 > 0, D5 MEDIUM -> POSITIVE / MEDIUM",
+    "B_neutral": "same evidence, upside_to_TP2 <= 0 -> NEUTRAL",
+    "C_unknown": "no comparable guidance pair -> UNKNOWN",
+    "D_lowered": "guidance LOWERED -> NEUTRAL (no frozen NEGATIVE path)",
+    "D6": "fixture A + D5 MEDIUM upside + catalyst MATERIAL/BOUNDED + ACTIVE invalidation -> D6 APPROVE -> paper PENDING_ENTRY, D6 and paper unchanged"
+  },
+  "expected_effect_declared_before_running": {
+    "APPROVE": "reachable from the deterministic pipeline when: business evidence, an anchored code-owned change, a derivable next report inside the horizon, >= 1 supporting core state, a structured guidance RAISED pair, price below the D5 Base value with D5 confidence MEDIUM or higher",
+    "E_class_on_approve_path": "none by construction; large re-rating NEGATIVE DEFERRED (not on the APPROVE path)",
+    "pass_requires_real_direction_count": "> 0 on the stored corpus and real runs; not tuned after freeze"
+  }
+}
