@@ -66,8 +66,9 @@ systemctl list-timers usb-h-forward.timer --no-pager
 
 ## 5. AEYE / any REFRESH_DUE
 
-The queue only queues. Clearing a REFRESH_DUE needs a D3→D4→D5→D6 re-evaluation, which costs model
-calls and needs operator approval. A scan that would clear it, or drop a known filing, is refused
+The queue only queues. Clearing a REFRESH_DUE needs a D3→D4→D5→D6 re-evaluation. In production that is
+the deterministic evaluator `usb-h-evaluation` (§V3: no model, no cost, no approval step); until it is
+deployed the decisions stand. A scan that would clear a REFRESH_DUE, or drop a known filing, is refused
 (`REFRESH_DUE_CLEARED_BY_SCAN`, `KNOWN_FILING_LOST`).
 
 ## 6. Sizing
@@ -183,12 +184,63 @@ refresh queue are not touched by the paper book, so they need no restore.
 * Each filing is checked against the accessions the thesis read
   (`docs/operations/h_thesis_evidence_v1.json`). A filing the thesis already read is
   `EVIDENCE_ALREADY_IN_THESIS`.
-* (Until §10 is deployed.) New-candidate intake (D1/E1/E2/E3) is **NOT_WIRED**. It is a manual dev script that runs on the
-  stale universe snapshot `CS_2024-10-25` and the HIST mirror, which ends on 2026-09-16.
-* No model call is scheduled automatically, and the production daily budget is NOT_APPROVED. A batch
-  runs only under its own preregistration (`H_V2_REFRESH_BATCH_R1_PREREGISTRATION_V1.md`).
+* New-candidate intake (D1/E1/E2/E3): GATE runs in `update`; SCAN runs only in `usb-h-evaluation`
+  (§V3, not yet deployed).
+* No model call exists in production. There is no AI budget and no preregistered AI batch to run; the
+  R1 preregistration is historical.
 
-## 10A. Production evaluation is NO-AI (H_V2_AUTONOMOUS_PIPELINE_V2_NO_AI, local 2026-10-14, NOT DEPLOYED)
+## V3. Deterministic evaluation (H_D3D4_DETERMINISTIC_PRODUCTION_V3) and production acceptance
+
+Status 2026-10-15: contract V3 = PASS and FROZEN (`docs/operations/h_d3d4_deterministic_v3.json`); code
+local and committed (63db022); **production runtime NOT DEPLOYED**; `usb-h-evaluation` timer NOT ENABLED.
+Result: `docs/backtest/strategy_h_v2/H_V2_D3D4_DETERMINISTIC_PRODUCTION_CONTRACT_V3.md`.
+
+Production H no longer uses any of: Claude CLI, Claude OAuth, Anthropic/OpenAI runtime, AI authorization
+(`authorization.json`, `auto-authorize`), daily AI budget, per-candidate AI reservation, model repair loop.
+
+Deterministic evaluation flow (one queue item, inside `no_ai_guard`):
+
+```text
+Universe -> E1/E2/E3 -> SEC / fundamentals / price -> D3 deterministic (V3) -> D4 deterministic (V3)
+         -> D5_D2R_V1 -> D6 -> decision transition (forward ledger) -> Paper
+```
+
+Units (target):
+
+```text
+usb-h-forward     existing daily update (01:10 ET), unchanged
+usb-h-research    REMOVE (deprecated AI unit; files still on the host, timer disabled)
+usb-h-evaluation  deterministic evaluator: ExecStart 1 = intake-scan, ExecStart 2 = auto-evaluate --skip-scan,
+                  both under /run/usb-h-forward.lock, 01:40 ET; timer NOT ENABLED until step 8 below
+```
+
+Memory (measured locally on production-copy data): SCAN about 246 MB, evaluation-only about 218 MB, the old
+single process about 314 MB. trader-j has about 1 GB RAM and historically 150-200 MB free, so 1 GB
+operational readiness = NEEDS OPTIMIZATION / RESOURCE UPGRADE (recommended: 2 GB or more, then step 5). This
+is separate from the strategy verdict.
+
+Acceptance procedure (in order; stop at the first failure and roll back):
+
+1. Back up the V3-touched backend files and `data/runtime/strategy_h_v2/d7` (tar under `/root`).
+2. Deploy the deterministic files (`h_auto/{business_evidence, guidance_parser, guidance_parser_v2,
+   deterministic_v2, deterministic_v3, executor, contract, facts_cache, inputs, intake}.py`,
+   `dev/run_h_v2_d7.py`, `docs/operations/h_d3d4_deterministic_v{1,2,3}.*`,
+   `h_autonomous_pipeline_v2.{json,sha256}`); check the contract checksums load.
+3. Delete the old unit: `systemctl disable --now usb-h-research.timer`, remove
+   `/etc/systemd/system/usb-h-research.{service,timer}`, `systemctl daemon-reload`.
+4. Install `usb-h-evaluation.{service,timer}` with the timer **disabled**.
+5. Manual evaluation once: `systemctl start usb-h-evaluation.service` (after the 01:10 ET update).
+6. Observe memory and latency during the run (host PSI / available memory, backend and crypto terminal
+   response times); any thrash -> stop the unit, keep the timer disabled.
+7. Integrity: `verify` PASS, `paper-verify` PASS, forward ledger append-only, A/E/C files and API
+   byte-identical before/after, `auto-status` ai_calls 0.
+8. Only then: `systemctl enable --now usb-h-evaluation.timer`.
+
+Rollback: disable/remove `usb-h-evaluation`, restore the step-1 backup; the append-only forward ledger and
+`d7/auto/` stay. Strategy rules are frozen (state document §0): only bug, data, parser-correctness,
+performance, infrastructure, scheduler, UI and observability changes are allowed.
+
+## 10A. Production evaluation is NO-AI (H_V2_AUTONOMOUS_PIPELINE_V2_NO_AI, 2026-10-14) - superseded by §V3 for D3/D4, memory and units
 
 This section supersedes the model, budget and authorization parts of §10. Write-up:
 `docs/backtest/strategy_h_v2/H_V2_PRODUCTION_NO_AI_RUNTIME_REPAIR_V1.md`.
@@ -210,7 +262,7 @@ This section supersedes the model, budget and authorization parts of §10. Write
 * Look: `auto-status` (mode DETERMINISTIC_NO_AI, ai_calls 0, latest_evaluation, timestamps incl.
   latest universe), `journalctl -u usb-h-evaluation`. Stderr `H_EVALUATION_DEGRADED` when the step fails.
 
-## 10. Autonomous pipeline (H_V2_AUTONOMOUS_PIPELINE_V1, local as of 2026-10-14, NOT DEPLOYED)
+## 10. Autonomous pipeline (H_V2_AUTONOMOUS_PIPELINE_V1) - HISTORICAL, AI path retired; kept for the intake/GATE details
 
 Contract: `docs/operations/h_autonomous_pipeline_v1.json`; write-up
 `docs/backtest/strategy_h_v2/H_V2_AUTONOMOUS_PIPELINE_CONTRACT_V1.md`. Once deployed:

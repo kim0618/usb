@@ -5,8 +5,90 @@ records a stage result as of its own date and is never edited after the fact. Wh
 and a result document disagree about the present, this document wins. When they disagree about
 what happened in a past stage, the result document wins.
 
-Last verified: 2026-10-14 16:00 KST (NO-AI repair, local), before that 2026-10-14 14:50 KST, after the autonomous pipeline production deployment
-(`H_V2_AUTONOMOUS_PIPELINE_PRODUCTION_V1.md`), against the production host.
+Last verified: 2026-10-15 KST (V3 checkpoint; production host read-only: forward ledger 8 rows, decisions
+0/6/2, prices through 2026-10-13, `usb-h-forward.timer` enabled, `usb-h-research.timer` disabled,
+`usb-backend` active). Entries dated before 2026-10-15 below are the change log; section 0 is the present.
+
+## 0. Current state (2026-10-15 checkpoint)
+
+**What H is.** Strategy H is a US-equity, medium-horizon strategy that looks for issuers whose actual
+fundamentals or business are improving, whose price does not yet fully reflect that change, and whose
+valuation still leaves upside, and aims to capture the re-rating over several weeks to a few months.
+Structure: Fundamental Change + Expectation Gap + Valuation -> Decision. Forward horizons 1D / 5D / 21D /
+63D; 21D and 63D are the ones that judge it.
+
+```text
+Strategy H research                         = CLOSED
+H-V2 D3/D4 deterministic production V3      = PASS (H_V2_D3D4_DETERMINISTIC_PRODUCTION_CONTRACT_V3.md)
+H deterministic strategy contract           = FROZEN (docs/operations/h_d3d4_deterministic_v3.json, sha256 82f8319f…cea9f)
+Production AI / Claude / LLM API dependency = NONE        AI runtime cost = $0
+D1 / E1 / E2 / E3                           = COMPLETE / FROZEN
+D2 (D2.1 depth policy)                      = COMPLETE / FROZEN
+D3 production                               = DETERMINISTIC (H_D3_DETERMINISTIC_V3)
+D4 production                               = DETERMINISTIC (H_D4_DETERMINISTIC_V3)
+D5                                          = D5_D2R_V1 / FROZEN
+D6                                          = h_v2_d6_integrated_decision_v1 / FROZEN
+Forward shadow                              = ACTIVE (production)
+Paper execution                             = ACTIVE (production backend, launch 2026-10-13T07:09:00Z, $10,000, 0 positions)
+H UI                                        = ACTIVE (production frontend Rh0hJ2skzuYNTyehDWSI-)
+Futures paper position size                 = ACTIVE / PASS
+usb-h-research                              = DEPRECATED, to be REMOVED from production (unit files still on the host, timer disabled)
+usb-h-evaluation                            = deterministic successor, READY in the repo, NOT installed, timer NOT ENABLED
+V3 code                                     = LOCAL / COMMITTED (63db022), V3 production runtime = NOT DEPLOYED (deployment PENDING)
+```
+
+The AI budget ($24/day, $12 reservation), `claude-opus-5-5` canonical model, `authorization.json` and the
+model repair loop of `H_V2_AUTONOMOUS_PIPELINE_V1` are **historical only**; the production contract is
+`H_V2_AUTONOMOUS_PIPELINE_V2_NO_AI` (`docs/operations/h_autonomous_pipeline_v2.json`) pointing to the V3
+deterministic contract.
+
+**Decisions.**
+
+```text
+production forward ledger (authoritative)   APPROVE 0 / WATCH 6 / REJECT 2   (FG WATCH, VRRM WATCH, T1)
+V3 deterministic re-evaluation, AI 0         FG WATCH, VRRM WATCH, ADI WATCH (new candidate)
+   (local run on a read-only production copy, 2026-10-15; not written to the production ledger)
+actual APPROVE so far                        0
+synthetic clear positive                     D4 POSITIVE -> D6 APPROVE -> paper PENDING_ENTRY = PASS
+21D = PENDING (maturity 2026-11-02)          63D = PENDING (maturity 2027-01-04)
+strategy edge / profitability                NOT YET PROVEN
+```
+
+**Known limitations** (stated as they are, neither defects nor hidden):
+
+1. Actual APPROVE count is 0.
+2. FG, VRRM and ADI all have D4 = UNKNOWN: the D2.1 package rarely holds the same guidance metric in two
+   publications, so the comparable guidance pair is usually one-sided.
+3. Guidance direction on the historical corpus: 4 (all GD, verified against the filings).
+4. Comparable pairs can appear as real filings accumulate (each new 10-Q / earnings 8-K is a new side).
+5. Large re-rating NEGATIVE = DEFERRED (operator decision; not on the APPROVE path).
+6. Catalyst and risk use minimal code-owned semantics (the next 10-Q/10-K is MATERIAL; reversal risks).
+7. The actual strategy edge is not yet proven.
+8. 21D and 63D results are still the evaluation that matters.
+
+**Freeze policy (after V3 PASS).** Allowed: obvious implementation bugs, data-collection bugs, parser
+correctness bugs (class D, recorded with before/after hashes), memory/performance optimisation,
+infrastructure, scheduler, API/UI, logging/observability. Prohibited: changing D4's economic meaning, the
+guidance direction conditions, the priced-in rule, catalyst or invalidation semantics, D5 methods or
+thresholds, D6 decision rules, paper entry/exit rules, or any threshold tuned on past or forward returns.
+A performance problem is judged by paper evidence, not fixed by a rule change.
+
+**Operational resources (separate from the strategy verdict).** V3 strategy contract = PASS; 1 GB
+production resource readiness = NOT YET PASS (NEEDS OPTIMIZATION / RESOURCE UPGRADE). Measured: SCAN peak
+about 246 MB, evaluation-only about 218 MB, old combined same-process about 314 MB; the unit now runs them
+as two processes (`7ccdd0c`). trader-j has about 1 GB RAM and historically 150-200 MB free. Recommended
+path: upgrade to 2 GB or more, then manual acceptance; optimising further on 1 GB first is the operator's
+alternative. RAM is not a strategy dependency.
+
+**Next action (one).** Deploy the V3 deterministic runtime to production, run `usb-h-evaluation` once by
+hand, confirm memory, latency, A/E/C isolation, paper and forward integrity, then enable its timer
+(procedure: `docs/operations/H_FORWARD_OPERATIONS_RUNBOOK_V1.md` §V3). Strategy research is not a next
+action.
+
+**Evidence.** V3 result `H_V2_D3D4_DETERMINISTIC_PRODUCTION_CONTRACT_V3.md`; V2 `…_V2.md`; V1 `…_V1.md`;
+NO-AI repair `H_V2_PRODUCTION_NO_AI_RUNTIME_REPAIR_V1.md`.
+
+## Change log (dated entries; history, not the present)
 
 **2026-10-15 D3/D4 deterministic production contract V3 = PASS (local, NOT DEPLOYED, not pushed;
 `H_V2_D3D4_DETERMINISTIC_PRODUCTION_CONTRACT_V3.md`, freeze `181794a`, impl `5302fb9`, class-D fix `2bddbaa`,
@@ -74,29 +156,28 @@ calls and no DATA_NOT_READY from H wiring. Details: `H_V2_AUTONOMOUS_PIPELINE_CO
 ## A. Purpose
 
 H is a fundamental, issuer-level strategy. It decides whether the market already prices what an
-issuer's business is about to show, using official SEC evidence, AI research under a frozen
-contract, an expectation-gap judgement, a valuation range and an integrated decision. It is not an
+issuer's business is about to show, using official SEC evidence, code-owned (deterministic) research and
+expectation-gap rules under frozen contracts (AI was used at research time only), a valuation range and an
+integrated decision. It is not an
 intraday strategy and it never shares a book with A or E.
 
 ## B. Lifecycle
 
 ```text
-Research build (D1-D6)   = COMPLETE, CLOSED unless a structural bug is found
-D7 forward shadow        = LAUNCHED 2026-10-04T08:34:30Z (baseline session 2026-10-02)
-Forward observation      = ACTIVE (prices and outcomes validated, 1D/5D matured)
-Production operations    = HEALTHY (repair 81f06c8 deployed, timer ENABLED, 2026-10-10)
-Paper execution          = ACTIVE in production (backend, 2026-10-13 16:12 KST; H_PAPER_V1_LAUNCH
-                           2026-10-13T07:09:00Z; $10,000, 0 positions, 0 trades). Frontend build DEFERRED
+Research build (D1-D6)   = COMPLETE, CLOSED (deterministic contract V3 PASS 2026-10-15)
+D7 forward shadow        = LAUNCHED 2026-10-04T08:34:30Z (baseline session 2026-10-02), ACTIVE
+Production operations    = usb-h-forward ENABLED (Mon..Fri 01:10 ET)
+Paper execution          = ACTIVE in production (backend 2026-10-13; H_PAPER_V1_LAUNCH 2026-10-13T07:09:00Z;
+                           $10,000, 0 positions, 0 trades)
 Paper/H UI               = DEPLOYED (frontend Rh0hJ2skzuYNTyehDWSI-, 2026-10-14)
-Refresh executor         = DEPLOYED (1719b2c), not run: research unit DISABLED
-New-candidate intake     = GATE ACTIVE in the 01:10 ET update (READY 2026-10-14); SCAN not affordable on
-                           trader-j RAM (first run stopped, host thrash)
-Autonomous research      = NOT AUTHORIZED (no authorization.json; server Claude CLI login invalid);
-                           live model calls so far = 0. Superseded locally by the NO-AI repair:
-                           production AI = NONE, evaluation deterministic, NOT DEPLOYED
+Refresh executor         = DEPLOYED (1719b2c) but unused in production; its V3 deterministic successor
+                           (usb-h-evaluation) is NOT DEPLOYED
+New-candidate intake     = GATE ACTIVE in the 01:10 ET update; SCAN runs only in usb-h-evaluation (not deployed)
+Production evaluation    = deterministic V3 (no AI), DEPLOYMENT PENDING. The AI research path
+                           (usb-h-research, authorization, budget) is retired; live model calls ever made = 0
 ```
 
-No further research is planned. A return to research is allowed only for a structural bug. It is
+No further research is planned. Changes follow the freeze policy in section 0. A return to research is
 not allowed because APPROVE has not appeared or because of forward results.
 
 ## C. D1-D7 status
@@ -105,8 +186,8 @@ not allowed because APPROVE has not appeared or because of forward results.
 |---|---|---|
 | D1 candidate / eligibility | COMPLETE | `H_V2_D1_UNIVERSE_CHANGE_ENGINE_V1.md`, `H_V2_D1_1_UNIVERSE_DATA_COVERAGE_V1.md` |
 | D2 evidence | COMPLETE | `H_V2_D2_EVIDENCE_COLLECTOR_V1.md`, `H_V2_D2_1_OFFICIAL_EVIDENCE_MATERIALIZATION_V1.md` |
-| D3 AI research | COMPLETE | `H_V2_D3_*` (final: `H_V2_D3_3_LIVE_CONFIRMATION_RESULT_V1.md`) |
-| D4 expectation gap | COMPLETE | `H_V2_D4_*` (final tier A: `H_V2_D4_4A_FINAL_TIER_A_V3_MECHANICAL_RESULT_V1.md`) |
+| D3 research (AI, research-time) | COMPLETE - production D3 is deterministic V3 | `H_V2_D3_*` (final: `H_V2_D3_3_LIVE_CONFIRMATION_RESULT_V1.md`) |
+| D4 expectation gap (AI, research-time) | COMPLETE - production D4 is deterministic V3 | `H_V2_D4_*` (final tier A: `H_V2_D4_4A_FINAL_TIER_A_V3_MECHANICAL_RESULT_V1.md`) |
 | D5 valuation | COMPLETE | `H_V2_D5_*` (in force: `H_V2_D5_D2R_RECENT_REGIME_WINDOW_REPAIR_V1.md`) |
 | D6 integrated decision | COMPLETE | `H_V2_D6_INTEGRATED_DECISION_ENGINE_PILOT_V1.md` |
 | D7 forward shadow | LAUNCHED | `H_V2_D7_FORWARD_SHADOW_PAPER_INTEGRATION_V1.md` |
@@ -115,9 +196,13 @@ not allowed because APPROVE has not appeared or because of forward results.
 | D7 production activation | HEALTHY | `H_V2_D7_PRODUCTION_ACTIVATION_V1.md` |
 | Paper execution V1 | READY (local) | `H_V2_PAPER_EXECUTION_CONTRACT_V1.md` |
 | Paper execution production | ACTIVE (backend), frontend DEFERRED | `H_V2_PAPER_EXECUTION_PRODUCTION_V1.md` |
-| Refresh batch R1 | PREREGISTERED, executor NOT READY | `H_V2_REFRESH_BATCH_R1_PREREGISTRATION_V1.md` |
-| Autonomous pipeline V1 | READY locally, NOT DEPLOYED | `H_V2_AUTONOMOUS_PIPELINE_CONTRACT_V1.md` |
-| Autonomous pipeline production | DEGRADED (deployed; research unit DISABLED, not authorized) | `H_V2_AUTONOMOUS_PIPELINE_PRODUCTION_V1.md` |
+| Refresh batch R1 | PREREGISTERED (AI batch, superseded by the deterministic evaluator) - historical | `H_V2_REFRESH_BATCH_R1_PREREGISTRATION_V1.md` |
+| Autonomous pipeline V1 | superseded by V2_NO_AI - historical | `H_V2_AUTONOMOUS_PIPELINE_CONTRACT_V1.md` |
+| Autonomous pipeline production | DEGRADED (deployed; research unit DISABLED, not authorized) - historical | `H_V2_AUTONOMOUS_PIPELINE_PRODUCTION_V1.md` |
+| NO-AI runtime repair | NEEDS REVISION (local) - historical | `H_V2_PRODUCTION_NO_AI_RUNTIME_REPAIR_V1.md` |
+| Deterministic D3/D4 contract V1 | NEEDS REVISION - historical | `H_V2_D3D4_DETERMINISTIC_PRODUCTION_CONTRACT_V1.md` |
+| Deterministic D3/D4 contract V2 | NEEDS REVISION - historical | `H_V2_D3D4_DETERMINISTIC_PRODUCTION_CONTRACT_V2.md` |
+| **Deterministic D3/D4 contract V3** | **PASS, FROZEN (local, production deployment pending)** | `H_V2_D3D4_DETERMINISTIC_PRODUCTION_CONTRACT_V3.md` |
 
 ## D. Frozen contracts in force
 
@@ -131,7 +216,9 @@ not allowed because APPROVE has not appeared or because of forward results.
 | Refresh triggers | 10-Q, 10-K, 8-K, EARNINGS_RELEASE, GUIDANCE, MATERIAL_CORPORATE_EVENT; `daily_full_rerun = false` |
 | Paper execution contract | `docs/operations/h_paper_execution_v1.json`, sha256 `89f7beed…6c696c9b` (3 equal slots of 1/3 NAV, $10,000, next-session open via SimBroker `execution_v0`, TP1 half / TP2 rest / downgrade / explicit invalidation / Bear where it exists) |
 | Thesis evidence index | `docs/operations/h_thesis_evidence_v1.json` (chunked accessions of each T1 package) |
-| Autonomous pipeline contract | `docs/operations/h_autonomous_pipeline_v1.json` + `.sha256` (daily $24, reservation $12, max 2/day, `claude-opus-5-5` canonical, no fallback, P0..P3, dedup, retry 2) |
+| Autonomous pipeline contract (in force) | `docs/operations/h_autonomous_pipeline_v2.json` + `.sha256` (`H_V2_AUTONOMOUS_PIPELINE_V2_NO_AI`, production model NONE, P0..P3, dedup, retry 2; D3/D4 = V3) |
+| Deterministic D3/D4 contract (in force) | `docs/operations/h_d3d4_deterministic_v3.json`, sha256 `82f8319f…cea9f`, freeze `181794a` (+ `h_d3d4_deterministic_v3.freeze.json`, class-D record `…class_d_fixes.json`) |
+| Autonomous pipeline V1 (historical, not in force) | `docs/operations/h_autonomous_pipeline_v1.json` (daily $24, reservation $12, `claude-opus-5-5`): research-time only |
 
 ## E. Initial cohort (decision session 2026-09-16)
 
@@ -178,6 +265,9 @@ moves a decision.
 
 ## I. D7 outcome state (production runtime)
 
+Snapshot as of 2026-10-10; on 2026-10-15 the production price store reaches 2026-10-13 and 21D/63D are
+still PENDING.
+
 ```text
 price store         = 17 session files, 2026-09-17 .. 2026-10-09
 forward sessions    = baseline 2026-10-02 + 2026-10-05..09 (6 observed)
@@ -216,8 +306,9 @@ usb-h-forward.service  →  run_h_v2_d7 update
   * FG: 8-K 2026-10-05 `0001934850-26-000095` (2.02 results of operations, 7.01).
   * VRRM: 8-K 2026-10-02 `0001193125-26-412497` (5.02 officer/director change, 7.01, 9.01).
 
-  A D3→D6 re-evaluation needs operator approval because it costs model calls. Until then the
-  decisions stand (AEYE REJECT, FG/VRRM WATCH).
+  Production has not re-evaluated them yet: the deterministic evaluator (usb-h-evaluation) is not
+  deployed, so the decisions stand (AEYE REJECT, FG/VRRM WATCH). The local V3 re-evaluation on a
+  production copy gives FG WATCH and VRRM WATCH at no model cost.
 * **AEYE REFRESH_DUE is a scan artefact (2026-10-13).** Its 2026-09-18 8-K is chunked into the T1
   package that D3 read (cutoff 2026-09-28). The scan compares against the decision session, not the
   evidence cutoff. The research queue marks AEYE `EVIDENCE_ALREADY_IN_THESIS`. FG and VRRM are genuine.
@@ -231,8 +322,8 @@ usb-h-forward.service  →  run_h_v2_d7 update
   About 37-42% of candidates get a code-owned MethodJudgement; the rest are METHOD_JUDGEMENT_NOT_READY
   (no cover-page share count, no section-17 primary, financial SIC) and are not queued. 1,150 reference
   rows lack a FIGI and are REFERENCE_NOT_READY under the frozen E1 rule.
-* **Refresh executor**: implemented locally (2026-10-14), not deployed. Before that date no path
-  re-ran D2→D6 for one ticker.
+* **Refresh executor**: deployed with 1719b2c but its evaluation unit is not; the deterministic V3
+  executor runs D2->D6 for one ticker with no AI (local, deployment pending).
 * 21D/63D are PENDING until their own maturity sessions.
 * A/E/H UI integration (`/dashboard`, `/strategy-h`, `/strategy-compare`) is implemented. Once paper
   is launched, H's card shows its own paper account and `/trading-h` shows positions and fills. H
@@ -268,25 +359,12 @@ stale SEC cache can no longer overwrite the research queue. It was deployed the 
 
 ## M. Next operational actions
 
-2026-10-14 (supersedes items 4 below where they overlap): the open operator decisions are (a) RAM for
-the research scan on trader-j (2 GB upgrade or a smaller daily scan, a code change), (b) Claude CLI
-login on trader-j, then a probe and `auto-authorize --cap 24 --by user-approved-2026-10-14`, (c)
-re-enabling `usb-h-research.timer` under watch for FG then VRRM. Until then the 01:10 ET update keeps
-prices, SEC refresh, the queue and paper NAV running.
-
-Observation only. No research unless a structural bug is found:
-
-1. Check the first timer run's journal (Mon 2026-10-12 01:10 ET): `refresh_run=OK`, integrity PASS.
-2. Watch daily forward outcomes, new material filings, WATCH/REJECT transitions and a future APPROVE.
-3. Watch 21D (2026-11-02) and 63D (2027-01-04) maturation.
-4. Operator decisions still open (2026-10-14: the autonomous pipeline's deployment plan, RAM risk and
-   authorization step are in `H_V2_AUTONOMOUS_PIPELINE_CONTRACT_V1.md` §13; the frontend build plan
-   is its §14):
-   * build the H frontend files into the next coordinated frontend build;
-   * approve building the refresh executor, then batch R1 (FG and VRRM, hard cap $24.00, `claude-opus-5-5`);
-   * whether to include AEYE despite EVIDENCE_ALREADY_IN_THESIS;
-   * new-candidate intake is wired (2026-10-14); deploying it needs the files and pinned data in
-     `H_V2_AUTONOMOUS_PIPELINE_CONTRACT_V1.md` §13 and the `usb-h-research` unit.
+The single next action is in section 0: deploy the V3 deterministic runtime, run `usb-h-evaluation`
+once by hand, check memory, latency, A/E/C isolation, paper and forward integrity, then enable its timer.
+Procedure: `docs/operations/H_FORWARD_OPERATIONS_RUNBOOK_V1.md` §V3. Meanwhile the 01:10 ET update keeps
+prices, SEC refresh, the queue and paper NAV running, and observation continues (daily outcomes, material
+filings, 21D on 2026-11-02, 63D on 2027-01-04). The 2026-10-14 operator items (Claude CLI login,
+`auto-authorize`, re-enabling `usb-h-research`) are retired with the AI path.
 
 ## N. Authoritative commits
 
@@ -300,7 +378,19 @@ Observation only. No research unless a structural bug is found:
 | 2479ea2 | D5-D2R (window contract in force) | yes |
 | d646586 | D7 integration / launch | yes |
 | 75c42c0 | D7 operations scheduler units | yes |
-| 49502bc | failed activation result | no (local) |
-| 81f06c8 | D7 operations repair (runtime source) | no (local) |
-| c44dc79 | pre-production authoritative sync (docs) | no (local) |
-| e64c08f | production activation result (docs) | no (local) |
+| 49502bc | failed activation result | yes |
+| 81f06c8 | D7 operations repair (runtime source) | yes |
+| c44dc79 | pre-production authoritative sync (docs) | yes |
+| e64c08f | production activation result (docs) | yes |
+| 5093f6c | paper execution V1 | yes |
+| 2b1285d / 1719b2c / 050107b | autonomous pipeline V1, intake wiring, production record (historical AI path) | yes |
+| c61c495 | NO-AI runtime repair | yes |
+| 9f31eb7 / 523ef09 / 39740f4 | deterministic contract V1 freeze / implementation / result | yes |
+| 8b55439 / cce15b3 / c904426 / d101325 | deterministic contract V2 freeze / implementation / class-D fix / result | yes |
+| fc24cc3 | lean companyfacts reader (SCAN memory) | yes |
+| 516279b / 69651ea | V2 memory record / intake test fake + regression | no (local) |
+| **181794a** | **V3 contract freeze** | no (local) |
+| **5302fb9** | **V3 deterministic implementation** | no (local) |
+| **2bddbaa** | **V3 class-D fix (a bare year is never a guidance value)** | no (local) |
+| **7ccdd0c** | **SCAN / evaluation process separation** | no (local) |
+| **63db022** | **V3 result and state** | no (local) |
