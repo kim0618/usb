@@ -8,6 +8,15 @@ what happened in a past stage, the result document wins.
 Last verified: 2026-10-14 16:00 KST (NO-AI repair, local), before that 2026-10-14 14:50 KST, after the autonomous pipeline production deployment
 (`H_V2_AUTONOMOUS_PIPELINE_PRODUCTION_V1.md`), against the production host.
 
+**2026-10-15 D3/D4 deterministic production contract V3 = PASS (local, NOT DEPLOYED, not pushed;
+`H_V2_D3D4_DETERMINISTIC_PRODUCTION_CONTRACT_V3.md`, freeze `181794a`, impl `5302fb9`, class-D fix `2bddbaa`,
+process split `7ccdd0c`).** Production H evaluates with no AI and can APPROVE: structured guidance parsing,
+priced-in from the issuer's own D5 range, catalyst/invalidation states and the V3 gap table; a clear
+synthetic positive reaches D6 APPROVE and paper PENDING_ENTRY through the unchanged D6/paper. Real data:
+FG WATCH, VRRM WATCH, ADI admitted WATCH (all D4 UNKNOWN: no comparable guidance pair in the D2.1 package).
+H contract design is closed; next is paper observation with no further tuning. Deployment waits on the
+1 GB memory condition (unit peak 246 MB with SCAN and evaluation as separate processes).
+
 **2026-10-14 D3/D4 deterministic production contract V2 (local, NOT DEPLOYED, not pushed;
 `H_V2_D3D4_DETERMINISTIC_PRODUCTION_CONTRACT_V2.md`, freeze `8b55439`, impl `cce15b3`, class-D fix `c904426`).**
 Verdict NEEDS REVISION. R3.1 V2 (Item 1 fallback, fail-neutral NOT_READY) removes the collection-artifact
