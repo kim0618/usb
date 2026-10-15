@@ -18,8 +18,13 @@ Environment=PYTHONPATH=/root/usb/backend
 Environment=PYTHONUNBUFFERED=1
 # Same lock as usb-h-forward: the evaluation and the daily update never write H's files at the same
 # time, and the evaluation always sees the queue the update just rebuilt.
+# Two processes in order, each under the lock: the SCAN, then the evaluation without the SCAN. A Python
+# process keeps its peak, so one process for both measured 314 MB; separate lifetimes keep each step to
+# its own peak (H_V2_D3D4_DETERMINISTIC_PRODUCTION_CONTRACT_V3.md, memory).
 ExecStart=/usr/bin/flock -w 1800 /run/usb-h-forward.lock \
-  /root/usb/.venv/bin/python -m app.dev.run_h_v2_d7 auto-evaluate
+  /root/usb/.venv/bin/python -m app.dev.run_h_v2_d7 intake-scan
+ExecStart=/usr/bin/flock -w 1800 /run/usb-h-forward.lock \
+  /root/usb/.venv/bin/python -m app.dev.run_h_v2_d7 auto-evaluate --skip-scan
 # Measured locally (H_V2_PRODUCTION_NO_AI_RUNTIME_REPAIR_V1.md §12): SCAN with 700 CIKs about 14-19 min,
 # each queue item well under a minute. The cap leaves room for the lock wait.
 TimeoutStartSec=60min

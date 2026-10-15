@@ -563,3 +563,18 @@ def test_price_requests_stop_at_the_last_publishable_session(store, monkeypatch)
     monkeypatch.setattr(D7, "publishable_session", lambda now=None: "2026-10-12")
     report = D7.collect_prices(start="2026-10-08")
     assert asked == ["2026-10-09", "2026-10-12"] and report["request_upper_bound"] == "2026-10-12"
+
+
+def test_auto_evaluate_skip_scan_leaves_the_scan_to_its_own_process(daily, planner, monkeypatch):
+    """The unit runs ``intake-scan`` and then ``auto-evaluate --skip-scan`` as two processes (memory)."""
+    D7 = daily
+    D7.update()
+    calls = []
+    original = INT.intake_step
+    monkeypatch.setattr(INT, "intake_step", lambda **kw: calls.append(kw["mode"]) or original(**kw))
+    body = D7.auto_evaluate(skip_scan=True)
+    assert INT.SCAN not in calls and body["intake"]["new_candidate_scan"] == "SEPARATE_PROCESS"
+    assert body["evaluation_queue"]["state"] == "OK" and body["paper"]["paper_run"] == "OK"
+    assert D7.main(["auto-evaluate", "--skip-scan"]) == 0
+    unit = (Path(__file__).resolve().parents[4] / "deploy/systemd/usb-h-evaluation.service").read_text()
+    assert unit.index("run_h_v2_d7 intake-scan") < unit.index("run_h_v2_d7 auto-evaluate --skip-scan")

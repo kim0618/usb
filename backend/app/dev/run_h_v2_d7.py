@@ -684,8 +684,15 @@ def _autonomy_steps(*, forward_integrity: str) -> dict[str, Any]:
     return out
 
 
-def _evaluation_steps(*, forward_integrity: str) -> dict[str, Any]:
-    """Steps 4 (SCAN), 5 and 6 for ``auto-evaluate``. Never raises; a queue integrity error is a hard failure."""
+class _ScanSkipped(Exception):
+    pass
+
+
+def _evaluation_steps(*, forward_integrity: str, scan: bool = True) -> dict[str, Any]:
+    """Steps 4 (SCAN), 5 and 6 for ``auto-evaluate``. Never raises; a queue integrity error is a hard failure.
+
+    ``scan=False`` (``auto-evaluate --skip-scan``) leaves step 4 to a separate ``intake-scan`` process run
+    just before, so the two memory peaks never share one process (a Python process keeps its peak)."""
     from app.strategies.h_auto import contract as AC
     from app.strategies.h_auto import intake as INT
     from app.strategies.h_auto import orchestrator as ORC
@@ -693,11 +700,15 @@ def _evaluation_steps(*, forward_integrity: str) -> dict[str, Any]:
     out: dict[str, Any] = {"intake": None, "queue": None, "evaluation": None, "hard_failure": None, "steps": {}}
     try:
         AC.contract()
+        if not scan:
+            raise _ScanSkipped
         # SCAN: SEC on demand for at most the contract's cap of CIKs, then the frozen E1->E3 on the
         # rows whose facts are fresh, then new_candidates.json. No AI. Runs here because it needs
         # minutes and more memory than the forward unit's envelope.
         out["intake"] = INT.intake_step(mode=INT.SCAN, open_new_items=INT.open_new_candidate_items(AQ.fold().values()),
                                         log=lambda m: print(m, file=sys.stderr))
+    except _ScanSkipped:
+        out["intake"] = {"new_candidate_scan": "SEPARATE_PROCESS"}
     except AQ.QueueIntegrityError as exc:
         out["hard_failure"] = f"QUEUE_INTEGRITY: {exc}"
         return out
@@ -826,7 +837,7 @@ def auto_queue() -> dict[str, Any]:
     return ORC.queue_step()
 
 
-def auto_evaluate() -> dict[str, Any]:
+def auto_evaluate(*, skip_scan: bool = False) -> dict[str, Any]:
     """The evaluation unit: SCAN, queue, deterministic evaluation (no AI), then 8-9 again so a new
     APPROVE is a pending entry tonight. Runs after ``update`` under the same lock. An evaluation
     failure never stops the paper step.
@@ -834,7 +845,7 @@ def auto_evaluate() -> dict[str, Any]:
     from app.strategies.h_auto import orchestrator as ORC
     started = _now()
     integrity = verify()
-    auto = _evaluation_steps(forward_integrity=integrity["verdict"])
+    auto = _evaluation_steps(forward_integrity=integrity["verdict"], scan=not skip_scan)
     paper = _paper_step()
     steps = dict(auto["steps"]) | {"paper": {"ran_at": _now(), "state": paper.get("paper_run")}}
     try:
@@ -932,11 +943,15 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("command", choices=sorted(COMMANDS))
     parser.add_argument("--no-collect", action="store_true", help="preflight without fetching prices")
     parser.add_argument("--dry-run", action="store_true", help="refresh-scan without replacing the queue")
+    parser.add_argument("--skip-scan", action="store_true",
+                        help="auto-evaluate without step 4 (the unit runs intake-scan as its own process first)")
     args = parser.parse_args(argv)
     if args.command == "preflight":
         body = preflight(collect=not args.no_collect)
     elif args.command == "refresh-scan":
         body = refresh_scan(dry_run=args.dry_run)
+    elif args.command == "auto-evaluate":
+        body = auto_evaluate(skip_scan=args.skip_scan)
     else:
         body = COMMANDS[args.command]()
     print(json.dumps(body, indent=1, ensure_ascii=False, default=str))
