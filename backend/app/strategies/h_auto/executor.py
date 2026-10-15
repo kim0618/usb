@@ -7,9 +7,11 @@ Order of operations, and why:
    any of the filings that triggered the refresh is refused the same way.
 2. **MethodJudgement.** A cohort issuer has one in the frozen tables; any other issuer gets a
    code-owned one (``h_auto.method_judgement``) or is refused as METHOD_JUDGEMENT_NOT_READY.
-3. **D3, D4** are the deterministic generators of ``h_auto.deterministic_v2`` under the frozen
-   ``H_D3D4_DETERMINISTIC_PRODUCTION_V2`` (``docs/operations/h_d3d4_deterministic_v2.json``; V1 is
-   history). **No model is called.** The whole item runs
+3. **D3, D4** are the deterministic generators of ``h_auto.deterministic_v3`` under the frozen
+   ``H_D3D4_DETERMINISTIC_PRODUCTION_V3`` (``docs/operations/h_d3d4_deterministic_v3.json``; V1/V2 are
+   history). D4's priced-in reading needs the issuer's D5_D2R_V1 row, so the row is computed once
+   before D4 (the same ``value_issuer`` call as before) and D6 decides on that same row.
+   **No model is called.** The whole item runs
    inside ``no_ai_guard.forbid_ai()``; an attempt to reach a model fails the item.
 4. **D5** (``build_panel`` + ``value_issuer`` under ``D5_D2R_V1``, the D6 judgement table) inside
    ``inputs.d5_binding``; **D6** ``decide`` on the projections D6 itself uses, unchanged.
@@ -38,7 +40,7 @@ from typing import Any, Callable, Mapping
 from app.strategies.h_auto import clock as CK
 from app.strategies.h_auto import contract as AC
 from app.strategies.h_auto import dedup as DD
-from app.strategies.h_auto import deterministic_v2 as DT
+from app.strategies.h_auto import deterministic_v3 as DT
 from app.strategies.h_auto import inputs as IN
 from app.strategies.h_auto import no_ai_guard as NG
 from app.strategies.h_auto import queue as Q
@@ -49,8 +51,8 @@ from app.strategies.h_forward import transitions as TR
 
 VERSIONS = {
     "d2_version": "h_v2_d2_collector+d2_1_materialize (depth policy unchanged)",
-    "d3_version": "H_D3_DETERMINISTIC_V2 (H_D3D4_DETERMINISTIC_PRODUCTION_V2, no model)",
-    "d4_version": "H_D4_DETERMINISTIC_V2 (H_D3D4_DETERMINISTIC_PRODUCTION_V2, no model)",
+    "d3_version": "H_D3_DETERMINISTIC_V3 (H_D3D4_DETERMINISTIC_PRODUCTION_V3, no model)",
+    "d4_version": "H_D4_DETERMINISTIC_V3 (H_D3D4_DETERMINISTIC_PRODUCTION_V3, no model)",
     "d5_version": "D5_D2R_V1",
     "d6_version": "h_v2_d6_integrated_decision_v1",
 }
@@ -177,18 +179,17 @@ def prepare(item: Mapping[str, Any], deps: Deps, *, work: Path, run_id: str) -> 
 
 
 def _d3(prep: Mapping[str, Any], *, run_id: str, work: Path) -> dict[str, Any]:
+    if isinstance(prep, dict) and "previous_thesis" not in prep:
+        prep["previous_thesis"] = DT.previous_thesis(AS.root() / "evaluation", prep["identity"].ticker, exclude=work)
     return DT.d3_deterministic(prep, run_id=run_id, work=work)
 
 
-def _d4(prep: Mapping[str, Any], d3: Mapping[str, Any], *, run_id: str, work: Path) -> dict[str, Any]:
-    return DT.d4_deterministic(prep, d3, run_id=run_id, work=work)
-
-
-def _d5_d6(prep: Mapping[str, Any], d3: Mapping[str, Any], d4: Mapping[str, Any], deps: Deps) -> tuple[dict, Any]:
-    from app.backtest.strategy_h_v2.decision.d6_contract import decide
+def _d5_row(prep: Mapping[str, Any], deps: Deps) -> dict:
+    """D5_D2R_V1 for the issuer (unchanged call), computed once per item and kept on ``prep``."""
+    if isinstance(prep, dict) and "_d5_row" in prep:
+        return prep["_d5_row"]
     from app.backtest.strategy_h_v2.valuation.fair_value import WindowSelectionContract
     from app.dev.run_strategy_h_v2_d5_d2 import build_panel, value_issuer
-    from app.dev.run_strategy_h_v2_d6 import project_d3, project_d4, project_d5
 
     ticker, session, panel = prep["identity"].ticker, prep["session"], prep["panel"]
     FC.require_d5_contract(WindowSelectionContract.D5_D2R_V1.value)
@@ -198,6 +199,23 @@ def _d5_d6(prep: Mapping[str, Any], d3: Mapping[str, Any], d4: Mapping[str, Any]
             raise IN.InputsNotReady("D5_NO_DECISION_ROW", json.dumps(coverage)[:300])
         row = value_issuer(ticker, observed, decision_row, judgements=prep.get("judgements") or _judgements(deps),
                            window_contract=WindowSelectionContract.D5_D2R_V1)
+    if isinstance(prep, dict):
+        prep["_d5_row"] = row
+    return row
+
+
+def _d4(prep: Mapping[str, Any], d3: Mapping[str, Any], *, run_id: str, work: Path, deps: Deps | None = None) -> dict[str, Any]:
+    return DT.d4_deterministic(prep, d3, row=_d5_row(prep, deps or Deps()), run_id=run_id, work=work)
+
+
+def _d5_d6(prep: Mapping[str, Any], d3: Mapping[str, Any], d4: Mapping[str, Any], deps: Deps) -> tuple[dict, Any]:
+    from app.backtest.strategy_h_v2.decision.d6_contract import decide
+    from app.dev.run_strategy_h_v2_d6 import project_d3, project_d4, project_d5
+
+    ticker = prep["identity"].ticker
+    row = _d5_row(prep, deps)
+    if d4.get("d5_row_sha256") not in (None, DT.V1.sha(row)):
+        raise IN.InputsNotReady("D5_ROW_CHANGED_BETWEEN_D4_AND_D6", ticker)
     record = decide(project_d3(ticker, dict(d3)), project_d4(ticker, dict(d4)), project_d5(row))
     return row, record
 
@@ -295,7 +313,7 @@ def _evaluate(item: Mapping[str, Any], deps: Deps, *, run_id: str, work: Path) -
         return Outcome(Q.QUEUED, str(exc), {"last_error": str(exc)}, retryable=True)
     try:
         d3 = (deps.d3_fn or _d3)(prep, run_id=run_id, work=work)
-        d4 = (deps.d4_fn or _d4)(prep, d3, run_id=run_id, work=work)
+        d4 = deps.d4_fn(prep, d3, run_id=run_id, work=work) if deps.d4_fn else _d4(prep, d3, run_id=run_id, work=work, deps=deps)
         if d4.get("final_status") != "OK":
             return Outcome(Q.FAILED, f"D4_{d4.get('final_status')}", {"last_error": d4.get("final_status")})
         row, record = (deps.d5d6_fn or _d5_d6)(prep, d3, d4, deps)

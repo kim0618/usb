@@ -71,6 +71,6 @@ def state() -> dict[str, Any]:
     return {"contract_id": contract_id(), "contract_sha256": sha256(),
             "production_model": body["model"]["production_model"], "production_ai_calls": 0,
             "ai_runtime_cost_usd": 0.0, "d5_contract": D5_CONTRACT,
-            "d3_generator": "H_D3_DETERMINISTIC_V2", "d4_generator": "H_D4_DETERMINISTIC_V2",
-            "d3d4_contract": "H_D3D4_DETERMINISTIC_PRODUCTION_V2",
+            "d3_generator": "H_D3_DETERMINISTIC_V3", "d4_generator": "H_D4_DETERMINISTIC_V3",
+            "d3d4_contract": "H_D3D4_DETERMINISTIC_PRODUCTION_V3",
             "max_queue_attempts": max_queue_attempts()}
