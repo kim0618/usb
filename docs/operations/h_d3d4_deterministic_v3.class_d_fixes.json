@@ -1,0 +1,18 @@
+{
+ "contract_id": "H_D3D4_DETERMINISTIC_PRODUCTION_V3",
+ "freeze_commit": "181794a",
+ "fixes": [
+  {
+   "id": "D-2",
+   "found_in": "historical replay, WEN 10-Q 2026-05-08 and 2026-08-07",
+   "defect": "the V1 prose template read 'we anticipate continued labor and commodity inflation throughout the remainder of 2026' as a guidance value of 2026 (unit OTHER) and paired it MAINTAINED. A year is a period expression in the frozen grammar, never a value.",
+   "fix": "guidance_parser_v2 drops a prose transcription whose value is a bare four-digit year with no currency, percent, bps or scale (V1/V2 parser files unchanged)",
+   "class": "D (implementation bug); no rule, grammar or threshold changed",
+   "effect": "WEN: one false MAINTAINED removed (not a D4/D6 replay case); real directional count 5 -> 4 (all GD, verified against the 10-K 2026-01-30 and 10-Q 2026-07-29 text)",
+   "file": "backend/app/strategies/h_auto/guidance_parser_v2.py",
+   "sha256_before": "134babe6d42dc9f656a70b8513b4a19014de3a30b2548f742a0a312805dd9211",
+   "sha256_after": "376e488047a30e9724fdedb2aa73502bb806de36863f33da5e6010ab8c9d0b43",
+   "regression_test": "test_h_d3d4_deterministic_v3.py::test_class_d_fix_d2_a_year_is_never_a_guidance_value"
+  }
+ ]
+}

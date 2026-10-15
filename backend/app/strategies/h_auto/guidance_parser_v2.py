@@ -85,6 +85,17 @@ def _heading_period(text: str) -> str | None:
     return period
 
 
+_YEAR_VALUE = re.compile(r"(?:19|20)\d{2}")
+
+
+def _is_year_value(t: Transcription) -> bool:
+    """Class-D fix D-2 (2026-10-15 replay, WEN 10-Q: '... throughout the remainder of 2026' was transcribed
+    as a guidance value of 2026): a bare four-digit year with no currency, percent, bps or scale is a period
+    expression, never a value."""
+    return t.low is not None and t.currency is None and t.low.unit_word is None and t.low.scale_word is None \
+        and bool(_YEAR_VALUE.fullmatch(t.low.raw.strip()))
+
+
 def _value_text_ok(text: str) -> bool:
     return bool(_MARKED.search(text))
 
@@ -114,6 +125,8 @@ def transcribe_prose(sentence: str, *, meta: Mapping[str, Any], scope_period: st
     """V1 templates, then the V2 sentence extensions (trailing period, coordination, scope period)."""
     out: list[Transcription] = []
     for t in V1.transcribe_sentence(sentence, meta=dict(meta)):
+        if _is_year_value(t):
+            continue
         start = sentence.find(t.low.raw) if t.low else -1
         tail_from = sentence.find(t.high.raw, start) + len(t.high.raw) if t.high and start >= 0 else -1
         period = t.period

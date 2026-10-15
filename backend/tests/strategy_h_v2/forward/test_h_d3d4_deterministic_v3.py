@@ -287,3 +287,11 @@ def test_v3_generators_make_no_model_call():
     with NG.forbid_ai() as guard:
         _d4(pkg, _d3(pkg), _row(0.2, 0.5))
     assert guard.blocked == []
+
+
+def test_class_d_fix_d2_a_year_is_never_a_guidance_value():
+    """WEN 10-Q 2026-05-08 / 2026-08-07 (replay): 'we anticipate continued labor and commodity inflation
+    throughout the remainder of 2026' is not a guidance value of 2026."""
+    text = ("Inflationary pressures directly impacted our results, and we anticipate continued labor and commodity "
+            "inflation throughout the remainder of 2026.")
+    assert _rows(text) == []
