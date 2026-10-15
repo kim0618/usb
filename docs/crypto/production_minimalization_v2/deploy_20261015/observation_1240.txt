@@ -1,0 +1,17 @@
+12:40:17 paper pid=2142723 NRestarts=0 rss=77616k pss=66612k swap=0k cpu60s=5.2% threads=16 memcur=85580k max 0  tcp_estab=5
+MemAvailable: 321448 kB SwapFree: 1734036 kB 
+mem some avg10=0.00 avg60=0.96 avg300=1.07 total=50373377379
+mem full avg10=0.00 avg60=0.10 avg300=0.10 total=41077752819
+io  some avg10=6.41 avg60=8.44 avg300=12.56 total=168379925456
+io  full avg10=0.50 avg60=3.96 avg300=7.24 total=136158971060
+usb-crypto-context 1582777 0 active 
+usb-crypto-q123-forward 1684303 0 active 
+usb-btc-context-ui 2063894 0 active 
+usb-frontend 2143134 0 active 
+ls: cannot access '/root/usb_runtime/crypto_paper/data/runtime/crypto/c1': No such file or directory
+0
+q123 RUNNING lag_ms 12232 samples_read 399163 store {'approaches.jsonl': 696, 'events.jsonl': 494, 'outcomes.jsonl': 1124, 'quality.jsonl': 111}
+flow age_s 7 {'10m': 'COMPLETE', '1h': 'COMPLETE', '4h': 'COMPLETE', '1d': 'COMPLETE'}
+0
+Oct 15 12:39:21 trader-j systemd[1]: Finished usb-crypto-manual-research.service - US-B CRYPTO manual trade sn
+{"status": "OK", "written": {"events": 0, "snapshots": 0, "episodes": 0}, "deferred_snapshots": 0, "events": 47, "episodes": 20, "open_episode": "ep-11564160875

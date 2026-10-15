@@ -18,8 +18,9 @@ C1_PACKAGE = APP / "crypto" / "c1"
 #: Modules the signal engine must not be able to reach: anything that can move money or state on
 #: an account, on either venue.
 FORBIDDEN = ("live", "orders", "arm", "leverage", "exit_guard", "sizing", "engine_orders")
-#: The one module outside the package that may import it.
-ALLOWED_IMPORTERS = {APP / "crypto" / "terminal" / "c1_routes.py"}
+#: Modules outside the package that may import it. None since the operating C1 layer was removed
+#: (CRYPTO MINIMAL RUNTIME CLEANUP V2): the package stays for research replay only.
+ALLOWED_IMPORTERS: set[Path] = set()
 
 
 def _files(root: Path) -> list[Path]:
@@ -58,7 +59,7 @@ def test_the_signal_package_does_not_import_the_paper_engine_or_its_ledger() -> 
     assert offenders == []
 
 
-def test_only_the_c1_routes_module_imports_the_package_from_outside_it() -> None:
+def test_nothing_in_the_app_imports_the_package_from_outside_it() -> None:
     offenders = []
     for path in _files(APP):
         if C1_PACKAGE in path.parents or path in ALLOWED_IMPORTERS:

@@ -1595,22 +1595,6 @@
     "used_margin": "0",
     "wallet_balance": "744.0476190476190476190476190"
    },
-   "c1_auto": {
-    "active_benchmark_at": null,
-    "active_signal_id": null,
-    "active_trade_id": null,
-    "benchmark_at": null,
-    "disabled_at": null,
-    "enabled": false,
-    "enabled_at": null,
-    "entry_at": null,
-    "has_position": false,
-    "last_seen_signal_at": null,
-    "last_seen_signal_id": null,
-    "leverage": "10",
-    "source": "PAPER_C1_AUTO"
-   },
-   "c1_available": true,
    "engine_version": "d4.1",
    "feed": {
     "book_gaps": 0,
@@ -3334,8 +3318,6 @@
     "used_margin": "0",
     "wallet_balance": "744.0476190476190476190476190"
    },
-   "c1_auto": null,
-   "c1_available": false,
    "engine_version": "d4.1",
    "feed": {
     "book_gaps": 0,
@@ -5059,8 +5041,6 @@
     "used_margin": "0",
     "wallet_balance": "744.0476190476190476190476190"
    },
-   "c1_auto": null,
-   "c1_available": false,
    "engine_version": "d4.1",
    "feed": {
     "book_gaps": 0,

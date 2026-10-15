@@ -32,7 +32,6 @@ from ..paper.persistence import RecoveryRefused
 from ..paper.wallet_recovery import WalletMember, recover_wallet, wallet_event_times
 from ..paper.instrument import InstrumentSpec, RiskTierTable
 from ..paper.state import TransitionRejected
-from ..paper.c1_auto import (C1AutoController, MANUAL_CLOSE_DURING_AUTO, MANUAL_SOURCE)
 from ..symbols import (DEFAULT_SYMBOL, SUPPORTED_SYMBOLS, SymbolNotSupported, admit_dynamic,
                             is_dynamic, permitted_symbols, resolve as resolve_symbol)
 from ..hot_coins import market as hot_market
@@ -257,7 +256,7 @@ class Runtime:
     """Holds one feed and one session per symbol, and drives the 1 Hz observation loop.
 
     `self.feed` and `self.session` keep their names and keep meaning the *default* symbol's, so
-    every existing caller - the C1 controller, the LIVE routes borrowing the FX rate, the tests
+    every existing caller - the LIVE routes borrowing the FX rate, the tests
     that reach straight into `runtime.session` - is unchanged.
 
     One feed per symbol rather than one feed tracking three: the local order book's continuity
@@ -292,7 +291,6 @@ class Runtime:
         self.retired: dict[str, PaperSession] = {}
         self.feed = BybitPublicFeed()
         self.session: PaperSession | None = None
-        self.c1_auto: C1AutoController | None = None
         self.error: str | None = None
         self.base_config: PaperRunConfig | None = None
         self.named_symbols: dict[str, Any] = {}
@@ -325,9 +323,6 @@ class Runtime:
         self.sessions[symbol] = self.session
         self.feeds[symbol] = self.feed
         self.feed.symbol = symbol
-        # AUTO is out of scope for the multi-symbol step, so the C1 controller stays bound to
-        # the one session it has always been bound to.
-        self.c1_auto = C1AutoController(session=self.session)
         # After recovery, so the capital base the purse inherits is the replayed one rather
         # than the configured one. A run that has been reset three times holds the figure those
         # resets left, and that is the balance the other symbols must draw from.
@@ -662,12 +657,6 @@ class Runtime:
                     if not session.is_started:
                         session.start(quote.ts_ms)
                     session.observe(quote)
-                    # AUTO reconciles on the default session only, unchanged.
-                    controller = self.c1_auto
-                    if controller is not None and session is self.session:
-                        from . import c1_routes
-                        c1 = c1_routes.c1_runtime
-                        controller.reconcile(quote, c1.signals.values() if c1 is not None else ())
                 except Exception as exc:  # a bad tick must not kill the loop silently
                     self.error = f"{symbol} {type(exc).__name__}: {exc}"
 
@@ -709,7 +698,7 @@ class OrderRequest(BaseModel):
     intent: str = "OPEN"
     qty: str | None = None
     notional_usdt: str | None = None
-    reason: str = MANUAL_SOURCE
+    reason: str = "PAPER_MANUAL"
     symbol: str | None = None
 
 
@@ -723,10 +712,6 @@ class ModeRequest(BaseModel):
     confirmed: bool = False
     symbol: str | None = None
 
-
-class AutoRequest(BaseModel):
-    enabled: bool
-    symbol: str | None = None
 
 
 def _decimal(value: str, name: str) -> Decimal:
@@ -854,53 +839,8 @@ def create_app() -> FastAPI:
             snapshot["krw"] = {key: account[key] * rate for key in
                                ("equity", "available_balance", "realized_pnl", "unrealized_pnl",
                                 "used_margin", "wallet_balance")}
-        default = session is runtime.session
-        snapshot["paper_source"] = ("PAPER_C1_AUTO" if default and runtime.c1_auto
-                                    and runtime.c1_auto.state.enabled else "PAPER_MANUAL")
-        # AUTO is the default symbol's only, so it is reported as absent on the others rather
-        # than reported as the default symbol's state under their tab.
-        snapshot["c1_auto"] = (runtime.c1_auto.view() if default and runtime.c1_auto else None)
-        snapshot["c1_available"] = default
+        snapshot["paper_source"] = "PAPER_MANUAL"
         return jsonable(snapshot)
-
-    @app.get("/api/crypto/paper/c1-auto")
-    async def c1_auto_state(symbol: str | None = None) -> Any:
-        """C1 AUTO, on the default symbol only.
-
-        C1 is a BTCUSDT research result. Reporting its state under an ETH or SOL tab would be
-        presenting a BTC signal as that instrument's, which is the contamination this step is
-        required to prevent, so the route refuses instead of answering.
-        """
-        session, failure = paper_session(symbol)
-        if failure is not None:
-            return failure
-        if session is not runtime.session:
-            return error(409, "C1_SINGLE_SYMBOL",
-                         f"C1은 {DEFAULT_SYMBOL} 연구 결과이므로 "
-                         f"{session.config.instrument.symbol}에는 제공되지 않습니다.")
-        if runtime.c1_auto is None:
-            return error(503, "RUN_NOT_CONFIGURED", "C1 AUTO is not configured")
-        return jsonable({**runtime.c1_auto.view(), "symbol": DEFAULT_SYMBOL})
-
-    @app.post("/api/crypto/paper/c1-auto")
-    async def c1_auto_toggle(request: AutoRequest) -> Any:
-        if request.symbol not in (None, "") and resolve_symbol(request.symbol) != DEFAULT_SYMBOL:
-            return error(409, "C1_SINGLE_SYMBOL",
-                         f"C1 AUTO는 {DEFAULT_SYMBOL} 전용입니다.")
-        if runtime.c1_auto is None:
-            return error(503, "RUN_NOT_CONFIGURED", "C1 AUTO is not configured")
-        quote = runtime.feed.quote()
-        if quote is None:
-            return error(409, "NO_QUOTE", "C1 AUTO 전환에 필요한 현재 호가가 없습니다.")
-        if request.enabled:
-            from . import c1_routes
-            if c1_routes.c1_runtime is None:
-                return error(409, "C1_SIGNAL_UNAVAILABLE", "C1 신호 레이어가 준비되지 않았습니다.")
-            return jsonable(runtime.c1_auto.enable(quote))
-        success, body = runtime.c1_auto.disable(quote)
-        if not success:
-            return error(409, "AUTO_CLOSE_FAILED", "AUTO 포지션 청산에 실패해 AUTO를 유지합니다.")
-        return jsonable(body)
 
     @app.get("/api/crypto/chart")
     async def chart(limit: int = 120, symbol: str | None = None) -> Any:
@@ -952,9 +892,7 @@ def create_app() -> FastAPI:
             account_realized=account.realized_pnl, account_fees=account.cumulative_fees,
             account_funding=account.cumulative_funding_paid)
         summary["source"] = "LIVE_PAPER"
-        summary["paper_source"] = ("PAPER_C1_AUTO" if session is runtime.session
-                                   and runtime.c1_auto and runtime.c1_auto.state.enabled
-                                   else "PAPER_MANUAL")
+        summary["paper_source"] = "PAPER_MANUAL"
         summary["run_id"] = session.config.run_id
         summary["symbol"] = session.config.instrument.symbol
         return jsonable(summary)
@@ -1012,14 +950,6 @@ def create_app() -> FastAPI:
                 return error(400, "QTY_REQUIRED", "pass either qty or notional_usdt")
         except ValueError as exc:
             return error(400, "INVALID_REQUEST", str(exc))
-        if (session is runtime.session and runtime.c1_auto is not None
-                and runtime.c1_auto.state.enabled):
-            if request.intent == "OPEN":
-                return error(409, "AUTO_MANAGED", "C1 AUTO 중에는 자동 진입만 허용됩니다.")
-            if runtime.c1_auto.owns_position():
-                if not runtime.c1_auto.close(quote, MANUAL_CLOSE_DURING_AUTO):
-                    return error(409, "AUTO_CLOSE_FAILED", "AUTO 포지션 청산에 실패했습니다.")
-                return jsonable({"events": [], "state": session.snapshot()})
         # Put the engine on the tick this order is about to be judged against, then re-check
         # the size on it. A preset was priced seconds ago and the book moves; letting a stale
         # preview through is how an operator ends up holding a position the engine will refuse
@@ -1056,9 +986,6 @@ def create_app() -> FastAPI:
         session, failure = paper_session(request.symbol)
         if failure is not None:
             return failure
-        if (session is runtime.session and runtime.c1_auto is not None
-                and runtime.c1_auto.state.enabled):
-            return error(409, "AUTO_LEVERAGE_FIXED", "C1 AUTO 레버리지는 10x로 고정됩니다.")
         try:
             value = _decimal(request.leverage, "leverage")
             session.config.validate_leverage(value)

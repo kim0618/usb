@@ -37,8 +37,7 @@ const blocked = (input: RequestInfo | URL, init?: RequestInit): Promise<Response
 };
 
 /** jsdom has no `matchMedia`, and lightweight-charts reaches for it through `fancy-canvas` to
- *  watch the device pixel ratio. Chart tests have been installing this one at a time ever since
- *  (`crypto-c1-signal.test.tsx` carries the same shim with the same explanation); the chart now
+ *  watch the device pixel ratio. Chart tests used to install this one at a time; the chart now
  *  reliably reaches `createChart` in tests, so it belongs here once instead.
  *
  *  `matches: false` is chosen because it is what the application already assumes: both viewport

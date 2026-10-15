@@ -329,7 +329,7 @@ def paper(monkeypatch, tmp_path):
     for name, value in {"base_config": config, "root": tmp_path, "session": btc,
                         "sessions": {"BTCUSDT": btc}, "feeds": feeds, "cash": cash,
                         "retired": {}, "symbol_errors": {}, "named_symbols": {},
-                        "_seeded": set(), "_seeds": {}, "c1_auto": None, "error": None}.items():
+                        "_seeded": set(), "_seeds": {}, "error": None}.items():
         monkeypatch.setattr(runtime, name, value)
     monkeypatch.setattr(server, "trade_feeds", {"BTCUSDT": server.trade_feed})
 

@@ -88,9 +88,6 @@ async def reset_account(request: ResetRequest) -> Any:
     session, failure = paper_session(request.symbol)
     if failure is not None:
         return failure
-    if (session is runtime.session and runtime.c1_auto is not None
-            and runtime.c1_auto.state.enabled):
-        return error(409, "AUTO_MANAGED", "C1 AUTO 중에는 계좌 초기화를 할 수 없습니다.")
 
     try:
         target = (Decimal(request.target_krw) if request.target_krw is not None
@@ -354,16 +351,6 @@ async def candles_15s(since_ms: int | None = None, symbol: str | None = None) ->
 # Binance key is present in the environment, and orders stay refused until
 # `BINANCE_LIVE_TRADING_ENABLED` is turned on, which V1 does not do.
 from . import live_routes  # noqa: E402,F401
-
-# --------------------------------------------------------------------- C1 signal routes
-#
-# Same arrangement, same reason: a separate module registers `/api/crypto/c1/*` and wraps the
-# lifespan once more. The signal layer is a strategy *observation* - a chart marker and its own
-# shadow ledger - and holds no order path at all.
-#
-# It is off unless `CRYPTO_C1_SIGNAL=on`. Importing it therefore does not change a running
-# terminal: no venue is polled and every route answers 503 until the environment says otherwise.
-from . import c1_routes  # noqa: E402,F401
 
 # --------------------------------------------------------------------- HOT Coin Finder (read-only)
 #

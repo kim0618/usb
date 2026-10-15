@@ -8,14 +8,12 @@ import {
 } from "@/components/crypto-paper-terminal";
 import {
   AutoNote, ChartSection, Disclosure, MarketHeader, MobilePositionCard, PositionStrip,
-  useC1Signals,
 } from "@/components/crypto-terminal-layout";
 import {
   AccountSourceSwitch, LiveAccountCards, LiveActivateDialog, LiveAuthorityNote, LiveBlockedPanel,
   LiveAutoExit, LiveBookStrip, LiveLeverageNotes, LiveLeveragePanel, LiveMarketHeader, LiveOrderTicket,
   LivePerformanceSummary, LivePositionCard, LivePositionPanel, LiveTradeBar, useBinanceLive,
 } from "@/components/crypto-live-terminal";
-import { C1AutoControl } from "@/components/crypto-c1-auto-control";
 import { HotCoinFinder, useHotSlot } from "@/components/crypto-hot-coins";
 import {
   OpenPositionsStrip, SymbolTabs, useOpenPositions, useSelectedSymbol, useSymbolVolatility,
@@ -114,15 +112,7 @@ export function CryptoTerminal({ marketContext, contextBase }: {
    *  because the LIVE chart is still drawn from the paper feed. */
   const terminal = useCryptoTerminal(symbol, { paper: source === "PAPER" });
   const [timeframe, setTimeframe] = useState<ChartTimeframe>("1m");
-  /** C1 is a BTCUSDT research result and stays on BTCUSDT.
-   *
-   *  The engine is only polled on the default symbol, so an ETH or SOL screen draws no marker
-   *  and runs no signal poll - not a hidden marker, no request at all. Presenting a BTC signal
-   *  as another instrument's would be the research leaking into a screen it says nothing about.
-   */
-  const c1Enabled = symbol === DEFAULT_SYMBOL;
-  const signals = useC1Signals(c1Enabled);
-  /** BTC context lines on the chart. BTC only, by the same rule as C1: on any other tab the hook
+  /** BTC context lines on the chart. BTC only: on any other tab the hook
    *  is disabled, which is no request at all rather than a hidden line. It shares one poll loop
    *  with the line under the chart. */
   const contextOn = Boolean(contextBase) && symbol === DEFAULT_SYMBOL;
@@ -236,9 +226,7 @@ export function CryptoTerminal({ marketContext, contextBase }: {
                 {terminal.state && (
                   <ChartSection state={terminal.state} bars={terminal.bars} timeframe={timeframe}
                     onTimeframe={setTimeframe} overlays={liveOverlays(account)}
-                    note={LIVE_CHART_SOURCE_NOTE}
-                    c1={c1Enabled ? signals.state : null}
-                    c1Markers={c1Enabled ? signals.markers : []} contextLines={contextLines} />
+                    note={LIVE_CHART_SOURCE_NOTE} contextLines={contextLines} />
                 )}
                 {/* Manual Market Context, read-only, directly under the chart.
 
@@ -344,12 +332,6 @@ export function CryptoTerminal({ marketContext, contextBase }: {
 
       <MarketHeader state={state} performance={terminal.performance}
         onAction={terminal.act} busy={terminal.busy} />
-      {/* C1 AUTO is the default symbol's. Not rendered elsewhere, because the control would
-          otherwise arm a BTC strategy from a screen titled ETH. */}
-      {c1Enabled && state.c1_available !== false && (
-        <C1AutoControl state={state} markers={signals.markers} busy={terminal.busy}
-          onAction={terminal.act} />
-      )}
 
       {/* Phone: the held position comes before the chart, with its own CLOSE. */}
       <div className="xl:hidden">
@@ -360,9 +342,7 @@ export function CryptoTerminal({ marketContext, contextBase }: {
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
         <div className="space-y-3">
           <ChartSection state={state} bars={terminal.bars} timeframe={timeframe}
-            onTimeframe={setTimeframe}
-            c1={c1Enabled ? signals.state : null}
-            c1Markers={c1Enabled ? signals.markers : []} contextLines={contextLines} />
+            onTimeframe={setTimeframe} contextLines={contextLines} />
           {/* Manual Market Context, read-only, directly under the chart.
 
               In the left column on purpose: the right column is the order ticket's 360px and

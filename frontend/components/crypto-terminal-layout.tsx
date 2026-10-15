@@ -18,9 +18,6 @@ import { PnlBreakdown, PnlHeadline, PositionCardShell, PositionExposure, type Br
 import type { Candle, Candle15sStatus, ChartBar, ChartOverlay, ChartPoint, CryptoAccount,
   HistoryTimeframe,
   LivePnl, OpenPositionPnl, PositionPnlPreview } from "@/lib/crypto-paper";
-import { activeChip, c1Api, c1xNote, groupDetail, researchNote, toChartMarkers }
-  from "@/lib/crypto-c1";
-import type { C1Marker, C1State, MarkKind } from "@/lib/crypto-c1";
 
 /** One sentence naming the other symbols that are holding part of the wallet, or undefined on
  *  a run whose symbols each own their cash.
@@ -39,59 +36,9 @@ export function sharedWalletNote(account: CryptoAccount | null | undefined): str
   return `세 심볼이 지갑 하나를 함께 씁니다. 현재 증거금: ${held}`;
 }
 
-/** The signal engine decides once a minute on the backend; a faster poll than this would only
- *  re-fetch the same answer. */
-const C1_POLL_MS = 15_000;
-/** How many events to hold on the client. C1 produced about 460 a year over the research window,
- *  and the deepest chart history is 2,000 daily candles, so this covers more history than any
- *  timeframe can show. */
-const C1_MARKER_LIMIT = 2000;
-
 /** The charting library is ~190KB of canvas code that touches `window` on construction. Loading
  *  it dynamically with SSR off keeps it out of the server render and off the initial payload of
  *  every other screen in the dashboard. */
-/** The C1 signal layer, polled on its own cadence.
- *
- *  Separate from the terminal state poll: the signal engine runs on the backend on the contract's
- *  1m grid, so there is nothing a faster poll could show. 15 s is enough to pick up a new event
- *  within the minute it belongs to, and the whole layer is skipped when the backend says it is
- *  off, so a terminal without it pays nothing.
- */
-export function useC1Signals(enabled = true) {
-  const [state, setState] = useState<C1State | null>(null);
-  const [markers, setMarkers] = useState<C1Marker[]>([]);
-  useEffect(() => {
-    if (!enabled) return;
-    const controller = new AbortController();
-    let alive = true;
-    // The signal series only changes when a new event opens, which C1 does on 0.7% of bars. The
-    // state poll carries the count, so the series itself is re-fetched when that count moves and
-    // not four times a minute - which is what makes it affordable to ask for the whole history
-    // rather than a recent slice, and that in turn is what keeps markers on screen when the
-    // operator pans the chart back past the newest few hundred events.
-    let known = -1;
-    const poll = async () => {
-      try {
-        const next = await c1Api.state(controller.signal);
-        if (!alive) return;
-        setState(next);
-        if (next.enabled && next.signals_total !== known) {
-          const body = await c1Api.markers(null, null, C1_MARKER_LIMIT, controller.signal);
-          if (!alive) return;
-          setMarkers(body.markers ?? []);
-          known = next.signals_total;
-        }
-      } catch {
-        // A signal layer that is unreachable must not break the terminal it sits beside.
-      }
-    };
-    // Stops while the tab is hidden and reads at once when it comes back.
-    const stop = visiblePoll(poll, C1_POLL_MS);
-    return () => { alive = false; controller.abort(); stop(); };
-  }, [enabled]);
-  return { state, markers };
-}
-
 /** The chart, in one chunk with the library it draws with.
  *
  *  Measured on the deployed artifact at 150 ms / 5 Mbps, first candles landed at 3.34 s while the
@@ -453,63 +400,12 @@ export function QuoteStrip({ state }: { state: CryptoState }) {
   );
 }
 
-/** The signal strip above the chart.
- *
- *  Deliberately a line and not a card. With no active signal it is one muted phrase, because no
- *  signal is the normal state - C1 fires on 0.7% of bars - and a large empty panel would cost the
- *  phone layout more than the information is worth.
- */
-export function C1SignalStrip({ state, selected, selectedKind = "C1" }: {
-  state: C1State | null; selected: C1Marker[]; selectedKind?: MarkKind;
-}) {
-  const chip = activeChip(state);
-  if (!chip) return null;
-  const note = researchNote(state);
-  const active = (state?.active ?? []).length > 0;
-  // The diagnostic's tally only earns a line once it has something to report or the operator is
-  // looking at one; otherwise the quiet state stays a single phrase.
-  const diagnostic = (active || selected.length > 0) ? c1xNote(state?.c1x) : null;
-  return (
-    <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px]"
-      data-testid="c1-signal-strip">
-      <span className={active ? "font-semibold text-[#a855f7]" : "text-muted"}
-        data-testid="c1-active-chip">{chip.text}</span>
-      {chip.detail && <span className="text-muted" data-testid="c1-active-detail">{chip.detail}</span>}
-      {state?.mode === "FIXTURE" && (
-        <span className="rounded bg-warning-soft px-1 text-warning" data-testid="c1-fixture-badge">
-          미리보기 고정데이터
-        </span>
-      )}
-      {selected.length > 0 && (
-        <span className="text-foreground-secondary" data-testid="c1-marker-detail">
-          {groupDetail(selected, selectedKind)}
-        </span>
-      )}
-      {diagnostic && (
-        <span className="w-full text-muted" data-testid="c1x-note">{diagnostic}</span>
-      )}
-      {/* The verdict line only appears when there is something to qualify. With no signal the
-          strip is a single muted phrase, which is what the quiet state should cost on a phone -
-          C1 fires on 0.7% of bars, so quiet is almost always the state. */}
-      {note && (active || selected.length > 0) && (
-        <span className="w-full text-muted" data-testid="c1-research-note">{note}</span>
-      )}
-    </div>
-  );
-}
-
 export function ChartSection({ state, bars, timeframe, onTimeframe, overlays: given, note,
-  c1, c1Markers = [], contextLines = [] }: {
+  contextLines = [] }: {
   state: CryptoState;
   bars: ChartBar[];
   timeframe: ChartTimeframe;
   onTimeframe: (next: ChartTimeframe) => void;
-  /** The signal layer's state, for the strip above the chart. Omitted on a screen that does not
-   *  show signals. */
-  c1?: C1State | null;
-  /** The signal series. One series for every timeframe: this component folds it onto the
-   *  timeframe on screen and never asks the backend to recompute it per timeframe. */
-  c1Markers?: C1Marker[];
   /** The price lines to draw. Omitted on the paper screen, where the account on the state *is*
    *  the account being charted. The LIVE screen passes Binance's own lines, because the state
    *  handed in here is the paper terminal's - it supplies the candles and nothing else - and
@@ -555,18 +451,6 @@ export function ChartSection({ state, bars, timeframe, onTimeframe, overlays: gi
     });
   }, []);
   const offscreen = offscreenOverlays(overlays, priceRange);
-  // Signals folded onto the candles on screen. Recomputed when the timeframe changes, which
-  // re-buckets the same events; it never re-evaluates the condition at another timeframe.
-  const chartMarkers = useMemo(() => toChartMarkers(c1Markers, timeframe), [c1Markers, timeframe]);
-  // A click reports which mark was hit as well as which signals, because an entry mark and a
-  // diagnostic can sit on the same candle and they read differently.
-  const [picked, setPicked] = useState<{ ids: string[]; kind: MarkKind }>({ ids: [], kind: "C1" });
-  const onMarkerClick = useCallback(
-    (ids: string[], kind: MarkKind) => setPicked({ ids, kind }), []);
-  const selected = useMemo(
-    () => timeframe === "15s" ? []
-      : c1Markers.filter(marker => picked.ids.includes(marker.signal_id)),
-    [c1Markers, picked, timeframe]);
   return (
     <section aria-label="시세 차트" className="panel overflow-hidden p-2 sm:p-4">
       {timeframe !== "15s" && (history.loading || history.loadingEarlier || history.end) && (
@@ -597,15 +481,12 @@ export function ChartSection({ state, bars, timeframe, onTimeframe, overlays: gi
       )}
       {/* Shorter on a phone so the order panel arrives sooner; taller where there is room. On a
           desktop the order panel fills the right column and a short chart would waste it. */}
-      {c1 !== undefined && (
-        <C1SignalStrip state={c1} selected={selected} selectedKind={picked.kind} />
-      )}
-      <CandleChart candles={candles} overlays={overlays} markers={chartMarkers}
+      <CandleChart candles={candles} overlays={overlays}
         priceFormat={chartFormat}
         // The symbol is part of the series identity. With the timeframe alone, switching
         // instruments on the same timeframe kept the same series and the chart *amended* it
         // with the new prices instead of replacing them - two instruments in one line.
-        onMarkerClick={onMarkerClick} seriesKey={`${symbol}|${timeframe}`}
+        seriesKey={`${symbol}|${timeframe}`}
         seconds={timeframe === "15s"} onPriceRange={onPriceRange}
         onNeedMoreHistory={timeframe === "15s" ? undefined : history.loadEarlier} className="h-[200px] sm:h-[280px] xl:h-[520px]" />
     </section>

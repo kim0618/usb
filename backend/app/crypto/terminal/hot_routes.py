@@ -1,7 +1,7 @@
 """`GET /api/crypto/hot-coins`: the HOT Coin Finder, read-only.
 
 Registered from its own module and imported last by `server.py`, the arrangement `live_routes`
-and `c1_routes` use, so `api.py` stays untouched. One GET route and nothing else: no account,
+uses, so `api.py` stays untouched. One GET route and nothing else: no account,
 no key, no order, no leverage, no AUTO. The browser never calls Binance itself; every scan goes
 through here so the request budget, the single-flight guard and the symbol encoding live in one
 place, and so Phase 2's lock check has a server to run on.

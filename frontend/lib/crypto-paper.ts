@@ -43,8 +43,6 @@ export type CryptoState = {
    *  screen can discard a response that arrived after the operator changed tabs. */
   symbol?: string;
   symbols?: string[];
-  /** False on every symbol but the default: C1 is a BTCUSDT research result. */
-  c1_available?: boolean;
   /** This instrument's quantity grid, measured from Bybit. Every field differs per symbol:
    *  the step is 0.001 on BTC, 0.01 on ETH and 0.1 on SOL. */
   instrument?: { symbol: string; qty_step: string; min_order_qty: string;
@@ -74,13 +72,7 @@ export type CryptoState = {
     book_resyncs: number; malformed: number; messages: number; last_message_ms: number | null;
     last_error: string | null; book_ready: boolean;
   };
-  paper_source?: "PAPER_MANUAL" | "PAPER_C1_AUTO";
-  c1_auto?: {
-    enabled: boolean; active_signal_id: string | null; active_trade_id: string | null;
-    enabled_at: number | null; disabled_at: number | null; source: "PAPER_C1_AUTO";
-    leverage: "10"; has_position: boolean; entry_at: number | null;
-    benchmark_at: number | null;
-  } | null;
+  paper_source?: "PAPER_MANUAL";
 };
 
 export type LedgerEvent = { seq: number; ts_ms: number; event_type: string } & Record<string, unknown>;
@@ -332,8 +324,6 @@ export const cryptoApi = {
     request<{ state: CryptoState }>("/api/crypto/reset", {
       method: "POST",
       body: JSON.stringify({ ...(targetKrw ? { target_krw: targetKrw } : {}), symbol }) }),
-  c1Auto: (enabled: boolean) => request<CryptoState["c1_auto"]>("/api/crypto/paper/c1-auto", {
-    method: "POST", body: JSON.stringify({ enabled }) }),
 };
 
 /** Decimal strings arrive from the backend and stay strings until the moment they are shown. */

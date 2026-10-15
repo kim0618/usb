@@ -956,52 +956,6 @@ def test_each_symbols_public_feed_subscribes_to_its_own_topics_only() -> None:
 # ------------------------------------------------------------------ what stays single-symbol
 
 
-def test_c1_is_offered_on_the_default_symbol_only(monkeypatch) -> None:
-    """C1 is a BTCUSDT research result. Offering its state under another tab would present a
-    BTC signal as that instrument's, which is the contamination this step must prevent."""
-    from app.crypto.terminal import api as terminal_api
-    from app.crypto.terminal.server import app
-
-    class Session:
-        def __init__(self, symbol: str) -> None:
-            class Spec:
-                pass
-            spec = Spec()
-            spec.symbol = symbol
-            class Config:
-                pass
-            self.config = Config()
-            self.config.instrument = spec
-
-    default = Session(DEFAULT_SYMBOL)
-    others = {symbol: Session(symbol) for symbol in SUPPORTED_SYMBOLS}
-    others[DEFAULT_SYMBOL] = default
-
-    class Auto:
-        state = type("S", (), {"enabled": False})()
-
-        def view(self) -> dict[str, Any]:
-            return {"enabled": False, "state": "OFF"}
-
-    runtime = terminal_api.runtime
-    monkeypatch.setattr(runtime, "session", default)
-    monkeypatch.setattr(runtime, "c1_auto", Auto())
-    monkeypatch.setattr(runtime, "selected_session",
-                        lambda symbol=None: others[resolve(symbol)])
-    client = TestClient(app)
-
-    allowed = client.get("/api/crypto/paper/c1-auto", params={"symbol": DEFAULT_SYMBOL})
-    assert allowed.status_code == 200 and allowed.json()["symbol"] == DEFAULT_SYMBOL
-    for symbol in ("ETHUSDT", "SOLUSDT"):
-        refused = client.get("/api/crypto/paper/c1-auto", params={"symbol": symbol})
-        assert refused.status_code == 409
-        assert refused.json()["error"]["code"] == "C1_SINGLE_SYMBOL"
-        toggled = client.post("/api/crypto/paper/c1-auto",
-                              json={"enabled": True, "symbol": symbol})
-        assert toggled.status_code == 409
-        assert toggled.json()["error"]["code"] == "C1_SINGLE_SYMBOL"
-
-
 def test_the_manual_terminal_holds_no_market_structure_panel_at_all() -> None:
     """Requirement: never show BTC walls or flow on an ETH or SOL screen.
 

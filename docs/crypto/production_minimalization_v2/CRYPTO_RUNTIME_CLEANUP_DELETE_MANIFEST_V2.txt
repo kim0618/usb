@@ -1,0 +1,89 @@
+CRYPTO_RUNTIME_CLEANUP_DELETE_MANIFEST_V2
+작성 2026-10-15 KST. 서버 trader-j. 규칙: 실제 삭제 전에 이 파일에 먼저 적는다. UNKNOWN은 제거 금지.
+형식: path/unit | reason | consumer proof | memory/disk | rollback | classification | status
+
+== 1. PHASE 1 실행분 (재시작 없음, 파일 삭제 0) ==
+
+1-1 usb-crypto-liqfwd.service
+  reason      : D5.3 청산 forward 수집기. 계약 CRYPTO_D5_3_LIQUIDATION_FORWARD_CONTRACT_V1.md 10절에
+                등록된 forward 가설은 "C1 순간에 3사 LONG 청산이 늘어나는가" 하나뿐(C1 전용).
+                C1은 historical CLOSED, Binance 신호 REJECTED(C1_BINANCE_RECHECK_V1 = D).
+  consumer    : repo 전수 grep에서 liquidation_forward/crypto_liqfwd importer = 0
+                (테스트 5개는 "import 금지" 목록으로만 언급). Q123/Wall/Flow/Context UI/HOT/
+                Recorder/terminal/frontend/nginx/systemd 다른 유닛 참조 0.
+                각 crypto 서비스는 자기 src(PYTHONPATH 분리)를 쓰며 liqfwd data 경로를 읽지 않는다.
+  memory      : 11:14 KST 실측 PSS 20,357K + swap 32,960K (RSS 29,312K), CPU 0.0%
+  disk        : data 16,288K, logs 20K -> 그대로 보존(연구 증거, 삭제 0)
+  action      : systemctl disable --now (11:19:43 KST). 호스트 정체로 SIGTERM 타임아웃 -> 11:20:20
+                SIGKILL. 직후 raw gz 6개 gzip -t OK, runtime sessions/heartbeat jsonl 마지막 줄 OK.
+                reset-failed로 failed 표시 해제.
+  rollback    : systemctl enable --now usb-crypto-liqfwd.service usb-crypto-liqfwd-daily.timer
+                (src·releases 미변경. 11:20:20 이후 구간은 DOWN으로 남는다)
+  class       : REMOVE (disable, 파일 보존)
+  status      : DONE
+
+1-2 usb-crypto-liqfwd-daily.timer
+  reason      : 1-1의 일일 finalize. 수집기가 없으면 소비자 없음.
+  note        : 2026-10-15 UTC 부분일은 raw gz로만 남고 parquet/daily manifest 미생성.
+                필요하면 10/16 이후 `systemctl start usb-crypto-liqfwd-daily.service` 1회로 finalize 가능.
+  rollback    : 1-1과 같음
+  class       : REMOVE (disable)
+  status      : DONE
+
+1-3 PAPER C1 AUTO 플래그 (run/paper-server-001/c1_auto_state.json)
+  reason      : C1 신규 진입 경로 차단. 기존 API POST /api/crypto/paper/c1-auto {"enabled":false}.
+  consumer    : 계좌 포지션 BTC SHORT 0.064 @83612.90의 ledger reason = PAPER_MANUAL
+                (10/07 20:31:13 진입, AUTO enable 20:31:18보다 5초 앞). owns_position() = False ->
+                disable은 주문 없이 플래그만 바꾼다. 본 신호 0건(last_seen_signal_id null).
+  result      : enabled=false, disabled_at=1792030696830 (11:18:16 KST). 원장 sha 불변.
+  rollback    : POST /api/crypto/paper/c1-auto {"enabled":true}
+  class       : REMOVE (기능 OFF, 파일은 상태 기록으로 보존)
+  status      : DONE
+
+== 2. 재시작 필요 -> 2026-10-15 배포 완료 (C1_PRODUCTION_REMOVAL_DEPLOY_V1.md) ==
+
+2-1 /etc/systemd/system/usb-crypto-paper.service.d/c1-signal.conf
+  reason      : CRYPTO_C1_SIGNAL=on, C1_FIXTURE= (20s tick 활성 스위치)
+  consumer    : c1_routes.py 하나. 코드 제거 후엔 읽는 곳 0.
+  rollback    : 백업본 복원 + daemon-reload + paper 재시작
+  class       : REMOVE      status: DONE 2026-10-15 12:23 (C1_PRODUCTION_REMOVAL_DEPLOY_V1.md)
+
+2-2 runtime src app/crypto/terminal/c1_routes.py, app/crypto/paper/c1_auto.py
+  reason      : C1 20s 루프 lifespan, C1 API 6개, AUTO 컨트롤러
+  consumer    : api.py/server.py import뿐(교체본에서 0). frontend는 C1 제거본에서 호출 0.
+  rollback    : releases/before-c1-removal-<ts>/ 에서 복원
+  class       : REMOVE      status: DONE 2026-10-15 12:23 (C1_PRODUCTION_REMOVAL_DEPLOY_V1.md)
+
+2-3 runtime src app/crypto/terminal/api.py, app/crypto/terminal/server.py (교체)
+  note        : 서버본 sha == 로컬 HEAD(10/15 대조) -> 파일 단위 교체 안전.
+                같은 src의 HEAD 불일치 5파일(c1/runtime.py, c1/sources.py, hot_coins/market.py,
+                paper/segments.py, terminal/chart_history.py)은 이번 배포에서 건드리지 않는다.
+  class       : MODIFY      status: DONE 2026-10-15 12:23 (C1_PRODUCTION_REMOVAL_DEPLOY_V1.md)
+
+2-4 runtime src app/crypto/c1/ (13파일, 288K)
+  reason      : 2-2 제거 후 운영 importer 0
+  class       : REMOVE(운영 src에서 보관 후 제거) / repo는 RESEARCH_KEEP
+  status      : DONE 2026-10-15 12:23 (C1_PRODUCTION_REMOVAL_DEPLOY_V1.md) (재시작 뒤 import 0 확인하고 releases/ 아래로 mv)
+
+2-5 data/runtime/crypto/c1/state.json (202B)
+  reason      : C1 runtime 상태 스냅샷(bars 47520, signals 0). 연구 증거 아님.
+  class       : REMOVE(보관 후)   status: DONE 2026-10-15 12:23 (C1_PRODUCTION_REMOVAL_DEPLOY_V1.md)
+
+2-6 frontend C1 레이어 (lib/crypto-c1.ts, crypto-c1-auto-control.tsx, 차트 마커, 15s 폴링 2종)
+  reason      : 백엔드 C1 API 제거와 짝
+  rollback    : .next-build.pre-c1-removal-<ts> 로 되돌리고 usb-frontend 재시작
+  class       : REMOVE      status: DONE 2026-10-15 12:25 (BUILD_ID EbLTGbg4JLkd9-CIcf4f7)
+
+== 3. KEEP (이번 작업 무접촉) ==
+run/paper-server-001/* (원장·tape·c1_auto_state.json 포함), run/paper-server-001-c1-auto/* (과거 AUTO 런 기록),
+run/paper-server-001-<HOT 심볼>/*, data/runtime/crypto/live/* (mirror, manual_performance, exit_guard),
+crypto_liqfwd/data 전부, crypto_context/journal, q123_forward/store·runtime, manual_trade_research/store,
+btc_context_ui/state·flow, 모든 releases/before-* 와 .next-build.pre-*.
+app/crypto/paper/analytics.py 의 PAPER_C1_AUTO 라벨 해석 = SHARED_KEEP (과거 거래 출처 표시).
+
+== 4. 판정만, 실행 안 함 ==
+usb-crypto-manual-research.timer = Manual Recorder 자체(ExecStart app.crypto.manual_snapshot_v1.recorder).
+  별도 "연구 타이머"는 존재하지 않음 -> KEEP (끄면 Recorder가 멈춘다).
+paper runtime src app/crypto/research (2,020K): paper 프로세스 import 0, 다른 서비스는 자기 src 사용.
+  디스크만 2MB -> P2, 운영 위험 대비 이득 없어 보류.
+usb-crypto-feedlog.timer = KEEP (사용자 KEEP 목록, 호스트 정체 유일 센서).
