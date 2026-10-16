@@ -117,7 +117,8 @@ def derive_judgement(prep: Mapping[str, Any], deps: Deps, *, work: Path) -> dict
     from app.dev.run_strategy_h_v2_d5_d2 import build_panel
     from app.strategies.h_auto import method_judgement as MJ
     ticker, session, panel = prep["identity"].ticker, prep["session"], prep["panel"]
-    with IN.d5_binding(packages_dir=prep["package_path"].parent, panel=panel, sec=prep["sec"]):
+    with IN.d5_binding(packages_dir=prep["package_path"].parent, panel=panel, sec=prep["sec"],
+                       reference_ciks=[prep["identity"].cik]):
         _observed, decision_row, coverage = build_panel(ticker, panel.closes(ticker), session)
     if decision_row is None:
         raise IN.InputsNotReady("D5_NO_DECISION_ROW", json.dumps(coverage)[:300])
@@ -193,7 +194,8 @@ def _d5_row(prep: Mapping[str, Any], deps: Deps) -> dict:
 
     ticker, session, panel = prep["identity"].ticker, prep["session"], prep["panel"]
     FC.require_d5_contract(WindowSelectionContract.D5_D2R_V1.value)
-    with IN.d5_binding(packages_dir=prep["package_path"].parent, panel=panel, sec=prep["sec"]):
+    with IN.d5_binding(packages_dir=prep["package_path"].parent, panel=panel, sec=prep["sec"],
+                       reference_ciks=[prep["identity"].cik]):
         observed, decision_row, coverage = build_panel(ticker, panel.closes(ticker), session)
         if decision_row is None:
             raise IN.InputsNotReady("D5_NO_DECISION_ROW", json.dumps(coverage)[:300])

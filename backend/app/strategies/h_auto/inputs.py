@@ -33,7 +33,7 @@ import json
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Callable, Iterator, Mapping, Sequence
+from typing import Any, Callable, Iterable, Iterator, Mapping, Sequence
 
 from app.market.calendar import MarketCalendar
 from app.strategies.h_auto import store as AS
@@ -585,10 +585,91 @@ def build_reference_history(source: Path, *, before: date) -> dict[str, Any]:
     return {"dir": str(target), "files": copied}
 
 
+class ReferenceCacheMiss(RuntimeError):
+    """A share-class lookup for a CIK the cache was not built for: refused instead of answering ``()``,
+    which the frozen D5 would read as CIK_ABSENT_FROM_REFERENCE."""
+
+
+class _WantedOnly(Mapping):
+    """``ReferenceSnapshot.by_cik`` restricted to the CIKs a run needs; any other key is a defect."""
+
+    def __init__(self, data: Mapping[str, Any], wanted: frozenset[str]) -> None:
+        self._data, self._wanted = dict(data), wanted
+
+    def __getitem__(self, key: str) -> Any:
+        if key not in self._wanted:
+            raise ReferenceCacheMiss(key)
+        return self._data[key]
+
+    def get(self, key: str, default: Any = None) -> Any:
+        if key not in self._wanted:
+            raise ReferenceCacheMiss(key)
+        return self._data.get(key, default)
+
+    def __iter__(self):
+        return iter(self._data)
+
+    def __len__(self) -> int:
+        return len(self._data)
+
+
+class ReferenceSnapshotCache:
+    """Share-class reference snapshots for one SCAN or one evaluation, each file parsed once.
+
+    The frozen D5 asks ``load_reference_snapshot(session)`` for every session of every judged issuer's panel
+    (about 520 per issuer), and the loader re-reads and re-parses the chosen ``CS_<as_of>`` file every time:
+    measured 2026-10-16, 61 MB of the 63 MB one MethodJudgement verdict reads, and 1.24 of the SCAN's 1.82 GB.
+    This cache keeps the loader's own choice rule (newest ``as_of`` on or before the session, directories in
+    order, files sorted, first maximum wins), calls the original loader once per chosen file and checks it
+    chose the same file, and keeps only the CIKs the run asked for (``ciks``; None keeps all). Valuation
+    arithmetic is untouched.
+    """
+
+    def __init__(self, dirs: Sequence[Path], ciks: Iterable[str] | None = None) -> None:
+        self.dirs = tuple(Path(d) for d in dirs)
+        self.ciks = None if ciks is None else frozenset(str(c).strip().zfill(10) for c in ciks)
+        self.listing: list[tuple[date, Path]] = []
+        for directory in self.dirs:
+            if not directory.exists():
+                continue
+            for path in sorted(directory.glob("CS_*.json.gz")):
+                try:
+                    self.listing.append((date.fromisoformat(path.name[3:13]), path))
+                except ValueError:
+                    continue
+        self.parsed: dict[Path, Any] = {}
+        self.loads = 0
+
+    def _choose(self, on_or_before: date) -> Path | None:
+        best: tuple[date, Path] | None = None
+        for as_of, path in self.listing:
+            if as_of <= on_or_before and (best is None or as_of > best[0]):
+                best = (as_of, path)
+        return None if best is None else best[1]
+
+    def get(self, on_or_before: date) -> Any:
+        from app.backtest.strategy_h_v2.valuation import share_class as SC
+        path = self._choose(on_or_before)
+        if path is None:
+            return None
+        if path not in self.parsed:
+            snapshot = SC.load_reference_snapshot(on_or_before, self.dirs)
+            self.loads += 1
+            if snapshot is None or snapshot.path != path:
+                raise RuntimeError(f"reference cache chose {path}, loader chose {getattr(snapshot, 'path', None)}")
+            if self.ciks is not None:
+                snapshot = SC.ReferenceSnapshot(snapshot.as_of, snapshot.path,
+                                                _WantedOnly({c: snapshot.by_cik[c] for c in self.ciks if c in snapshot.by_cik},
+                                                            self.ciks), snapshot.rows)
+            self.parsed[path] = snapshot
+        return self.parsed[path]
+
+
 @contextlib.contextmanager
 def d5_binding(*, packages_dir: Path, panel: Panel, sec: SecInputs | None = None,
                facts_roots: Sequence[Path] | None = None, submission_roots: Sequence[Path] | None = None,
-               calendar: MarketCalendar | None = None) -> Iterator[dict[str, Any]]:
+               calendar: MarketCalendar | None = None, reference_cache: ReferenceSnapshotCache | None = None,
+               reference_ciks: Iterable[str] | None = None) -> Iterator[dict[str, Any]]:
     """Point the frozen D5 loaders at this re-evaluation's inputs, then restore them.
 
     ``audit_strategy_h_v2_d5_p1.load_issuer`` reads the issuer's CIK from a D2.1 package and its
@@ -600,7 +681,6 @@ def d5_binding(*, packages_dir: Path, panel: Panel, sec: SecInputs | None = None
     """
     from app.dev import audit_strategy_h_v2_d5_p1 as P1
     from app.dev import run_strategy_h_v2_d5_d2 as D52
-    from app.backtest.strategy_h_v2.valuation.share_class import load_reference_snapshot
     cal = calendar or MarketCalendar()
     days = sorted(panel.bars.get(BENCHMARK, {}))
     sessions = _sessions(cal, days[0], days[-1]) if days else []
@@ -608,8 +688,12 @@ def d5_binding(*, packages_dir: Path, panel: Panel, sec: SecInputs | None = None
     saved = {n: getattr(P1, n) for n in names}
     saved_reference = D52.load_reference_snapshot
     dirs = d5_reference_dirs()
+    if reference_cache is None:
+        reference_cache = ReferenceSnapshotCache(dirs, ciks=reference_ciks)
+    elif reference_cache.dirs != tuple(Path(d) for d in dirs):
+        raise RuntimeError("reference cache built for other directories")
     try:
-        D52.load_reference_snapshot = lambda on_or_before: load_reference_snapshot(on_or_before, dirs)
+        D52.load_reference_snapshot = reference_cache.get
         P1.D2_1_PACKAGES = packages_dir
         P1.FACTS_ROOTS = tuple(facts_roots) if facts_roots is not None else (sec.root,)
         P1.SUBMISSION_ROOTS = (tuple(submission_roots) if submission_roots is not None

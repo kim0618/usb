@@ -260,6 +260,9 @@ def screen_method_judgement(ordered: Sequence[Mapping[str, Any]], *, index: dict
     need = need[:limit]
     series = SRC.series_for((c["ticker"] for c in need), until=publishable) if need else {}
     need_set = {c["ticker"] for c in need}
+    # one share-class reference cache for the whole screen: each CS_<as_of> file parsed once, kept only
+    # for the CIKs judged here (2026-10-16: the per-session re-parse was 1.24 of the SCAN's 1.82 GB)
+    reference = IN.ReferenceSnapshotCache(IN.d5_reference_dirs(), ciks=[c["cik"] for c in need]) if need else None
     chosen, judged, counts = [], 0, {MJ.AUTO_READY: 0, MJ.NOT_READY: 0}
     client = None
     screen_dir = AS.root() / "intake_screen"
@@ -288,7 +291,7 @@ def screen_method_judgement(ordered: Sequence[Mapping[str, Any]], *, index: dict
                 panel = IN.Panel(bars={t: dict(series.get(t, {})) for t in (ticker, SRC.BENCHMARK)}, until=publishable)
                 try:
                     with IN.d5_binding(packages_dir=screen_dir, panel=panel, facts_roots=[root],
-                                       submission_roots=[root / "submissions"]):
+                                       submission_roots=[root / "submissions"], reference_cache=reference):
                         _obs, row, _cov = build_panel(ticker, panel.closes(ticker), publishable)
                     derived = (MJ.derive(ticker, row, sic=doc.get("sic"), sic_description=doc.get("sicDescription"))
                                if row is not None else MJ.Derived(ticker, MJ.NOT_READY, ("NO_DECISION_ROW",), None))
