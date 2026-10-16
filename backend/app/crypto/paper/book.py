@@ -12,6 +12,13 @@ from decimal import Decimal
 from typing import Sequence
 
 
+#: How many levels a side a PAPER quote carries for sizing and for the fill a command walks.
+#: Binance `depth20` delivers exactly this many and Bybit's `orderbook.50` more, so it costs no
+#: extra request. The 1 Hz tape keeps its own, shallower depth (`engine.TAPE_BOOK_DEPTH`): only
+#: the record a command is about to act on is written this deep.
+SIZING_BOOK_DEPTH = 20
+
+
 class NoLiquidity(RuntimeError):
     """The visible book cannot fill the requested size."""
 

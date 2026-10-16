@@ -31,13 +31,12 @@ from typing import Any, Callable, Mapping
 import httpx
 import websockets
 
-from ..paper.book import BookSide, Quote
+from ..paper.book import SIZING_BOOK_DEPTH, BookSide, Quote
 from ..paper.instrument import InstrumentSpec, RiskTierTable
 
 FAPI = "https://fapi.binance.com"
 WS_BASE = "wss://fstream.binance.com"
 BYBIT_REST = "https://api.bybit.com"
-BOOK_DEPTH = 5
 KLINE_KEEP = 600
 DEFAULT_FUNDING_MINUTES = 480
 
@@ -110,8 +109,8 @@ class BinancePublicFeed:
         mark = self.ticker.get("markPrice")
         if mark is None or not self.book.ready:
             return None
-        bids = [[str(p), str(q)] for p, q in sorted(self.book.bids.items(), reverse=True)[:BOOK_DEPTH]]
-        asks = [[str(p), str(q)] for p, q in sorted(self.book.asks.items())[:BOOK_DEPTH]]
+        bids = [[str(p), str(q)] for p, q in sorted(self.book.bids.items(), reverse=True)[:SIZING_BOOK_DEPTH]]
+        asks = [[str(p), str(q)] for p, q in sorted(self.book.asks.items())[:SIZING_BOOK_DEPTH]]
         return Quote(
             ts_ms=self.last_ticker_ms or int(time.time() * 1000),
             bids=BookSide.from_rows(bids, descending=True),

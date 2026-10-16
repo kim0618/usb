@@ -66,7 +66,13 @@ def quote_from_payload(payload: dict[str, Any]) -> Quote:
     )
 
 
-def quote_to_payload(quote: Quote, *, depth: int = 5) -> dict[str, Any]:
+#: Levels a side on the 1 Hz market record: the format every run has been recorded in. A record
+#: taken for a command carries `book.SIZING_BOOK_DEPTH` instead, so the fill a replay walks is
+#: the fill the live engine walked.
+TAPE_BOOK_DEPTH = 5
+
+
+def quote_to_payload(quote: Quote, *, depth: int = TAPE_BOOK_DEPTH) -> dict[str, Any]:
     return {
         "ts_ms": quote.ts_ms,
         "bids": [[str(price), str(qty)] for price, qty in quote.bids.levels[:depth]],

@@ -20,14 +20,13 @@ import httpx
 import websockets
 
 from ..orderbook import BookGap, LocalOrderBook
-from ..paper.book import BookSide, Quote
+from ..paper.book import SIZING_BOOK_DEPTH, BookSide, Quote
 
 WS_URL = "wss://stream.bybit.com/v5/public/linear"
 REST_URL = "https://api.bybit.com"
 SYMBOL = "BTCUSDT"
 BOOK_TOPIC = f"orderbook.50.{SYMBOL}"
 TOPICS = (BOOK_TOPIC, f"tickers.{SYMBOL}", f"kline.1.{SYMBOL}")
-BOOK_DEPTH = 5
 
 
 def book_topic(symbol: str) -> str:
@@ -88,8 +87,8 @@ class BybitPublicFeed:
         mark = self.ticker.get("markPrice")
         if mark is None:
             return None
-        bids = [[str(price), str(qty)] for price, qty in sorted(self.book.bids.items(), reverse=True)[:BOOK_DEPTH]]
-        asks = [[str(price), str(qty)] for price, qty in sorted(self.book.asks.items())[:BOOK_DEPTH]]
+        bids = [[str(price), str(qty)] for price, qty in sorted(self.book.bids.items(), reverse=True)[:SIZING_BOOK_DEPTH]]
+        asks = [[str(price), str(qty)] for price, qty in sorted(self.book.asks.items())[:SIZING_BOOK_DEPTH]]
         ts = self.last_ticker_ms or int(time.time() * 1000)
         return Quote(
             ts_ms=ts,

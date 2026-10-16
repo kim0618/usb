@@ -12,9 +12,9 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
-from ..paper.book import Quote
+from ..paper.book import SIZING_BOOK_DEPTH, Quote
 from ..paper.config import PaperRunConfig
-from ..paper.engine import PaperEngine, apply_tape_record, quote_to_payload
+from ..paper.engine import TAPE_BOOK_DEPTH, PaperEngine, apply_tape_record, quote_to_payload
 from ..paper.instrument import RiskTierTable
 from ..paper.ledger import EventType, InputKind, InputTape, Ledger
 from ..paper.persistence import RecoveryResult, recover
@@ -92,11 +92,17 @@ class PaperSession:
         self.started_at_ms = ts
 
     def observe(self, quote: Quote, *, force: bool = False) -> bool:
-        """Record at 1 Hz, or immediately when a command is about to read the quote."""
+        """Record at 1 Hz, or immediately when a command is about to read the quote.
+
+        The 1 Hz record keeps the tape's five levels a side. A forced record is the book a
+        command is about to fill against, so it keeps the sizing depth: the engine walks what
+        the tape holds, and a fill sized on twenty levels but recorded on five would be refused
+        live and rebuilt differently on replay.
+        """
         if not force and self._last_recorded_ms is not None:
             if quote.ts_ms - self._last_recorded_ms < MARKET_RECORD_INTERVAL_MS:
                 return False
-        payload = quote_to_payload(quote)
+        payload = quote_to_payload(quote, depth=SIZING_BOOK_DEPTH if force else TAPE_BOOK_DEPTH)
         self.tape.record(InputKind.MARKET, payload)
         apply_tape_record(self.engine, {"kind": InputKind.MARKET, "payload": payload})
         self._last_recorded_ms = quote.ts_ms

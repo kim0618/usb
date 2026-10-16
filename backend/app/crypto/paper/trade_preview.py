@@ -42,13 +42,18 @@ def _classify(exc: Exception) -> tuple[str, str]:
 def advanced(engine: PaperEngine, quote: Quote | None) -> PaperEngine:
     """A clone moved onto `quote` the way the real engine will be on its next observation.
 
-    An older or equal quote is not applied: the clone then simply mirrors the engine.
+    An older quote is not applied: the clone then simply mirrors the engine. An equal one is
+    the observation the engine already made, so only its book is taken: the 1 Hz record kept
+    five levels a side and the feed's quote carries the sizing depth, which is what a command
+    on this tick would be filled against. Funding and liquidation are not run a second time.
     """
     from .sizing import _clone
 
     clone = _clone(engine)
     if quote is not None and (engine.quote is None or quote.ts_ms > engine.quote.ts_ms):
         clone.apply_market(quote)
+    elif quote is not None and quote.ts_ms == engine.quote.ts_ms:
+        clone.quote = quote
     return clone
 
 
