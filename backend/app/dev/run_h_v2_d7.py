@@ -43,11 +43,20 @@ the prices and the ledger the earlier steps wrote and never writes either.
 
 from __future__ import annotations
 
+import sys
+
+if __name__ == "__main__":
+    # P2.1 (2026-10-16): pandas probes its optional pyarrow at import and loads it when installed (about
+    # 33 MB RSS, 149 MB of package files read cold on trader-j) - the H unit's start-up shock. Nothing an
+    # H process runs uses it: its only pandas user is MarketCalendar, whose answers were compared on every
+    # date 2019-2028 with and without it. A None entry is the import system's documented "not available",
+    # so pandas takes its own ImportError branch. Only when this module is the process entrypoint.
+    sys.modules.setdefault("pyarrow", None)
+
 import argparse
 import hashlib
 import json
 import os
-import sys
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Sequence
