@@ -1,0 +1,11 @@
+[Unit]
+Description=Resource guard for usb-h-evaluation (stops only that unit under sustained host trouble)
+# Started by usb-h-evaluation's ExecStartPre; exits by itself when the evaluation is no longer running.
+
+[Service]
+Type=simple
+User=root
+ExecStart=/root/usb/deploy/h_evaluation/guard.sh
+# The guard must keep sampling when the host is under pressure: higher CPU priority than the evaluation.
+Nice=-5
+OOMScoreAdjust=-500

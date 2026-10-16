@@ -21,6 +21,13 @@ Environment=PYTHONUNBUFFERED=1
 # Two processes in order, each under the lock: the SCAN, then the evaluation without the SCAN. A Python
 # process keeps its peak, so one process for both measured 314 MB; separate lifetimes keep each step to
 # its own peak (H_V2_D3D4_DETERMINISTIC_PRODUCTION_CONTRACT_V3.md, memory).
+# P2.1 activation (2026-10-16): run only after today's successful usb-h-forward, with no E/A batch
+# running, inside 01:30-02:45 ET, once per ET day (a skipped trigger is a condition result, not a failure);
+# the attempt is marked before the run, so a guard stop is not retried the same day. The guard runs as its
+# own unit beside this one and stops only this unit (deploy/h_evaluation/guard.sh).
+ExecCondition=/root/usb/deploy/h_evaluation/precondition.sh
+ExecStartPre=/bin/sh -c 'TZ=America/New_York date +%%F > /root/usb/data/runtime/strategy_h_v2/d7/auto/evaluation_attempt_day'
+ExecStartPre=/bin/systemctl start --no-block usb-h-evaluation-guard.service
 ExecStart=/usr/bin/flock -w 1800 /run/usb-h-forward.lock \
   /root/usb/.venv/bin/python -m app.dev.run_h_v2_d7 intake-scan
 ExecStart=/usr/bin/flock -w 1800 /run/usb-h-forward.lock \

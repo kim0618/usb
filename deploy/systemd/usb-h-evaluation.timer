@@ -4,7 +4,12 @@ Description=Run Strategy H candidate evaluation after the H daily update
 [Timer]
 # 30 minutes after usb-h-forward (01:10 ET), same lock. 01:40 ET is 2h05m ahead of the 03:45 ET
 # paper start that attaches Strategy A; the evaluation calls nothing A or E owns.
+# Two later tries (2026-10-16): usb-e-rvol-once (00:35 ET) can run past 01:40; the unit's ExecCondition
+# skips a try while an E/A batch runs and starts at most one evaluation per ET day. The guard stops a
+# run still going at 03:35 ET.
 OnCalendar=Mon..Fri 01:40 America/New_York
+OnCalendar=Mon..Fri 02:10 America/New_York
+OnCalendar=Mon..Fri 02:40 America/New_York
 Persistent=true
 AccuracySec=1m
 RandomizedDelaySec=0
