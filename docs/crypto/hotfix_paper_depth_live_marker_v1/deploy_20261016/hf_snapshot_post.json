@@ -1,0 +1,338 @@
+{
+ "flow": {
+  "age_s": 25,
+  "quality": {
+   "10m": "COMPLETE",
+   "1d": "COMPLETE",
+   "1h": "COMPLETE",
+   "4h": "COMPLETE"
+  }
+ },
+ "host": {
+  "MemAvailable": 348452,
+  "SwapFree": 1675120,
+  "SwapTotal": 2097148,
+  "load": "2.24 1.24 0.81 4/190 2264645",
+  "psi_io": [
+   "some avg10=55.00 avg60=77.00 avg300=37.64 total=178303663631",
+   "full avg10=22.31 avg60=44.17 avg300=22.91 total=142192035067"
+  ],
+  "psi_mem": [
+   "some avg10=0.32 avg60=2.41 avg300=1.09 total=52826270058",
+   "full avg10=0.18 avg60=1.63 avg300=0.73 total=42879993649"
+  ],
+  "swap_used_k": 422028
+ },
+ "live": {
+  "exit_guard": {
+   "configured_qty": "0.034",
+   "created_at_ms": 1791245366432,
+   "current_net_krw": "-9578.5463078096245200",
+   "current_net_usdt": "-7.14283840999972",
+   "enabled": false,
+   "last_error": "MONITOR: BinanceError",
+   "opened_at_ms": 1791176662484,
+   "position_qty": "0.034",
+   "side": "SHORT",
+   "state": "ERROR",
+   "stop_loss_krw": "50000",
+   "symbol": "BTCUSDT",
+   "take_profit_krw": "50000",
+   "updated_at_ms": 1791251030105
+  },
+  "exit_guard_sha256": "45c386ac0b1fe61ae16b150276f0e95682372eb26e1001ed3674d38831c458de",
+  "last_arm_event": {
+   "event_type": "LIVE_DISARM",
+   "reason": "BOOT",
+   "recorded_at": null,
+   "seq": 17383,
+   "ts": null
+  },
+  "last_reconcile_seq": 17381,
+  "leverage_capability_sha256": "1107b2a0850af79d1be0fab09abaa2f8f9429cb94dcfddbd51943ba7e34e6f52",
+  "mirror": "/root/usb_runtime/crypto_paper/data/runtime/crypto/live/487ea08e/binance_live_events.jsonl",
+  "mirror_bytes": 9724192,
+  "mirror_last_event": "LIVE_STREAM_STATE",
+  "mirror_last_seq": 17384,
+  "mirror_sha256": "8e74b1017f87a6d33169d7b1ba8d5b2329bd541a0def03ae0eaf07cc28aa61ae",
+  "order_events_in_tail": 6,
+  "position": {
+   "entry_price": null,
+   "is_flat": true,
+   "leverage": null,
+   "notional": null,
+   "qty": "0",
+   "side": null,
+   "symbol": "SIRENUSDT"
+  },
+  "positions": null,
+  "wallet_balance": "0.00587989"
+ },
+ "paper_runs": {
+  "paper-server-001": {
+   "events": 302,
+   "last_event": "FUNDING",
+   "last_seq": 302,
+   "ledger_sha256": "faf83d31d278bf5dc947657a4d01b31ee1504f7193e22d845809bdacf57fa144",
+   "order_like_lines": 126
+  },
+  "paper-server-001-1000RATSUSDT": {
+   "events": 1,
+   "last_event": "RUN_START",
+   "last_seq": 1,
+   "ledger_sha256": "e7b0ace977b05b6b756772cb4e29eb76b2dc298b452e0a6c86bb5f0a41e38879",
+   "order_like_lines": 0
+  },
+  "paper-server-001-ARCUSDT": {
+   "events": 17,
+   "last_event": "POSITION_CLOSE",
+   "last_seq": 17,
+   "ledger_sha256": "8c32bbf49d2a9fe6bf9b80312d1e314cc09b4fd8b39e046493a3ade3234d708b",
+   "order_like_lines": 8
+  },
+  "paper-server-001-ETHUSDT": {
+   "events": 1,
+   "last_event": "RUN_START",
+   "last_seq": 1,
+   "ledger_sha256": "928e8b8766b9bc440647ca584ad4f78e0f1ada2f65aaf5ae776c62dbb5732ef3",
+   "order_like_lines": 0
+  },
+  "paper-server-001-MAGICUSDT": {
+   "events": 8,
+   "last_event": "POSITION_CLOSE",
+   "last_seq": 8,
+   "ledger_sha256": "633351b5fdaa6b22205d887688539e30d93b52573be79031b8174705bd76dc0b",
+   "order_like_lines": 2
+  },
+  "paper-server-001-OGNUSDT": {
+   "events": 17,
+   "last_event": "POSITION_CLOSE",
+   "last_seq": 17,
+   "ledger_sha256": "6bb6629fb2a832fbd7e9fc0c37b133d66df143e3b05c22ff71df08d9b6b2b457",
+   "order_like_lines": 6
+  },
+  "paper-server-001-QNTUSDT": {
+   "events": 1,
+   "last_event": "RUN_START",
+   "last_seq": 1,
+   "ledger_sha256": "007922ab05c25b0bce319c5809a2bca6fc38a43304c48995f478c4921eb940a8",
+   "order_like_lines": 0
+  },
+  "paper-server-001-SIRENUSDT": {
+   "events": 2,
+   "last_event": "LEVERAGE_CHANGE",
+   "last_seq": 2,
+   "ledger_sha256": "dc56f8a4598240b1375769562430e5137bc03d4941163b6c7ba635df052c6fe2",
+   "order_like_lines": 0
+  },
+  "paper-server-001-SOLUSDT": {
+   "events": 1,
+   "last_event": "RUN_START",
+   "last_seq": 1,
+   "ledger_sha256": "b4a045a6087462c87aae8790c522e1e7c802bab78a246e86ec8a62eb22ee2b48",
+   "order_like_lines": 0
+  },
+  "paper-server-001-STRKUSDT": {
+   "events": 17,
+   "last_event": "POSITION_CLOSE",
+   "last_seq": 17,
+   "ledger_sha256": "198df897a12e53273479fdd9f3493b848f5d01edcdbae9a933701b477545ec7c",
+   "order_like_lines": 8
+  },
+  "paper-server-001-TRUTHUSDT": {
+   "events": 26,
+   "last_event": "LEVERAGE_CHANGE",
+   "last_seq": 26,
+   "ledger_sha256": "a2d418f2156a9d4abb4bc1a459f2ae7a3cd85467fe96ae1905ea1b3a39394675",
+   "order_like_lines": 14
+  },
+  "paper-server-001-ZEREBROUSDT": {
+   "events": 133,
+   "last_event": "POSITION_CLOSE",
+   "last_seq": 133,
+   "ledger_sha256": "141d8b9a1b43136fe0405fc4477df141d00ee17ba799cdf8cc464e534bc5fb6e",
+   "order_like_lines": 82
+  },
+  "paper-server-001-ZKUSDT": {
+   "events": 1,
+   "last_event": "RUN_START",
+   "last_seq": 1,
+   "ledger_sha256": "37058843ef02020ea2f766819298de703b51946b77a864a1f663466aa69767c3",
+   "order_like_lines": 0
+  },
+  "paper-server-001-c1-auto": {
+   "events": 1,
+   "last_event": "RUN_START",
+   "last_seq": 1,
+   "ledger_sha256": "e2bfbb9c25b2da539e4ba17a374549dfe4570df12cfc93592f273c7dbe326237",
+   "order_like_lines": 0
+  },
+  "paper-server-001-龙虾USDT": {
+   "events": 1,
+   "last_event": "RUN_START",
+   "last_seq": 1,
+   "ledger_sha256": "49e0c3cd779dbd274d5cb1f3a50a8c731603075b70e86f4f42061b4814c33a9c",
+   "order_like_lines": 0
+  }
+ },
+ "paper_state": {
+  "BTCUSDT": {
+   "account": {
+    "available_balance": "9603.66022178110839250678596",
+    "avg_entry": "83612.90",
+    "cumulative_fees": "1154.302590562000000000000000",
+    "equity": "10244.86598178110839250678596",
+    "leverage": "10",
+    "position_qty": "0.064",
+    "position_side": "SHORT",
+    "realized_pnl": "3113.508839999999999999999976",
+    "used_margin": "535.12256",
+    "wallet_balance": "10138.78278178110839250678596"
+   },
+   "has_c1_key": false,
+   "http": 200,
+   "ledger_event_count": 302,
+   "leverage": "10",
+   "symbol": "BTCUSDT"
+  },
+  "ETHUSDT": {
+   "account": {
+    "available_balance": "9603.66022178110839250678596",
+    "avg_entry": null,
+    "cumulative_fees": "0",
+    "equity": "10138.78278178110839250678596",
+    "leverage": null,
+    "position_qty": "0",
+    "position_side": null,
+    "realized_pnl": "0",
+    "used_margin": "0",
+    "wallet_balance": "10138.78278178110839250678596"
+   },
+   "has_c1_key": false,
+   "http": 200,
+   "ledger_event_count": 1,
+   "leverage": "10",
+   "symbol": "ETHUSDT"
+  },
+  "SOLUSDT": {
+   "account": {
+    "available_balance": "9603.66022178110839250678596",
+    "avg_entry": null,
+    "cumulative_fees": "0",
+    "equity": "10138.78278178110839250678596",
+    "leverage": null,
+    "position_qty": "0",
+    "position_side": null,
+    "realized_pnl": "0",
+    "used_margin": "0",
+    "wallet_balance": "10138.78278178110839250678596"
+   },
+   "has_c1_key": false,
+   "http": 200,
+   "ledger_event_count": 1,
+   "leverage": "10",
+   "symbol": "SOLUSDT"
+  },
+  "STRKUSDT": 400
+ },
+ "q123": {
+  "kline_error": null,
+  "lag_ms": 13547,
+  "samples_read": 487738,
+  "state": "RUNNING",
+  "store_counts": {
+   "approaches.jsonl": 796,
+   "events.jsonl": 552,
+   "outcomes.jsonl": 1224,
+   "quality.jsonl": 136
+  }
+ },
+ "recorder_tail": "{\"status\": \"OK\", \"written\": {\"events\": 0, \"snapshots\": 0, \"episodes\": 0}, \"deferred_snapshots\": 6, \"events\": 48, \"episodes\": 20, \"open_episode\": null, \"market_s",
+ "route/api/crypto/c1/state": 404,
+ "route/api/crypto/paper/c1-auto": 404,
+ "run_config_depth_keys": {},
+ "services": {
+  "usb-backend": {
+   "pss_k": 35070,
+   "rss_k": 47868,
+   "show": [
+    "2248392",
+    "0",
+    "active",
+    "enabled"
+   ],
+   "swap_k": 92540
+  },
+  "usb-btc-context-ui": {
+   "pss_k": 9829,
+   "rss_k": 19480,
+   "show": [
+    "2063894",
+    "0",
+    "active",
+    "enabled"
+   ],
+   "swap_k": 26872
+  },
+  "usb-crypto-context": {
+   "pss_k": 72322,
+   "rss_k": 81380,
+   "show": [
+    "1582777",
+    "0",
+    "active",
+    "enabled"
+   ],
+   "swap_k": 20384
+  },
+  "usb-crypto-liqfwd": {
+   "show": [
+    "0",
+    "0",
+    "inactive",
+    "disabled"
+   ]
+  },
+  "usb-crypto-liqfwd-daily.timer": {
+   "err": "[Errno 2] No such file or directory: '/proc/inactive/status'",
+   "show": [
+    "inactive",
+    "disabled"
+   ]
+  },
+  "usb-crypto-paper": {
+   "pss_k": 56078,
+   "rss_k": 68224,
+   "show": [
+    "2263918",
+    "0",
+    "active",
+    "enabled"
+   ],
+   "swap_k": 0
+  },
+  "usb-crypto-q123-forward": {
+   "pss_k": 64939,
+   "rss_k": 74312,
+   "show": [
+    "1684303",
+    "0",
+    "active",
+    "enabled"
+   ],
+   "swap_k": 46996
+  },
+  "usb-frontend": {
+   "pss_k": 9026,
+   "rss_k": 13040,
+   "show": [
+    "2254462",
+    "0",
+    "active",
+    "enabled"
+   ],
+   "swap_k": 1996
+  }
+ },
+ "taken_at": "2026-10-16T13:16:36+0900"
+}

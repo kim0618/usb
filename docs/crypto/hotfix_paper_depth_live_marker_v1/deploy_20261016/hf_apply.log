@@ -1,0 +1,9 @@
+13:14:18 io10=21.65
+13:14:28 io10=7.97
+base check PASS
+import PASS; c1 modules [] SIZING 20 TAPE 5
+backup PASS /root/usb_runtime/crypto_hotfix_pre_20261016-131326 (16 files)
+apply PASS
+restart usb-crypto-paper (pid 2252381) at 13:14:35
+health=1 after 82s pid 2252381 -> 2263918 NRestarts=0
+tracebacks: 0
