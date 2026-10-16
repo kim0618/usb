@@ -51,28 +51,27 @@ from tests.strategy_a_mover_live.fixtures import ET, SESSION
 
 #: The three symbols the controlled test needs: one APPROVE, one REJECT, one with no decision.
 SYMBOLS = ("AAA", "BBB", "CCC")
-#: ``SESSION`` (2026-09-15, Tuesday) is the session both scanners observed, so it is the
-#: analysis session; the entry session that consumes its approvals is the next XNYS one.
-ENTRY = MarketCalendar().next_trading_day(SESSION)                # 2026-09-16, Wednesday
-#: The regular close the entry session gaps from: the analysis session's own.
-PREVIOUS = SESSION
-#: Production's own completion order, in the analysis session's own wall clock.
+#: ``SESSION`` (2026-09-15, Tuesday) is the session both scanners observed. The live mover run
+#: is traded on that same session (09:15 ET cut of the trade session).
+ENTRY = SESSION
+#: The regular close the session gaps from: the previous session's.
+PREVIOUS = MarketCalendar().previous_trading_day(SESSION)        # 2026-09-14, Monday
+#: Production's own completion order, in the session's own wall clock.
 A_CUT_DONE = datetime(2026, 9, 15, 9, 27, tzinfo=ET)
 LEGACY_DONE = datetime(2026, 9, 15, 18, 1, tzinfo=ET)
-#: The Korean review day between them: 16:00 KST on 09-16 is 03:00 ET of the entry session.
-REVIEW_AT = datetime(2026, 9, 16, 3, 0, tzinfo=ET)
-OPEN = datetime(2026, 9, 16, 9, 30, tzinfo=ET)
-PREVIOUS_CLOSE_AT = datetime(2026, 9, 15, 15, 59, tzinfo=ET)
+#: The same-session review: after the cut, before the 10:30 ET entry deadline (22:40 KST).
+REVIEW_AT = datetime(2026, 9, 15, 9, 40, tzinfo=ET)
+OPEN = datetime(2026, 9, 15, 9, 30, tzinfo=ET)
+PREVIOUS_CLOSE_AT = datetime(2026, 9, 14, 15, 59, tzinfo=ET)
 CAPITAL = Decimal("10000")
 
 
 # --- the app, the database and the two runs -------------------------------------------------
 
 #: The configuration this file describes, and now the default once the scan is on: the live
-#: scan runs *and* entry resolves candidates from it. The run of session D is reviewed through
-#: the Korean day that follows the 09:27 ET cut and traded on ``next_trading_day(D)``, so this
-#: is the morning-review contract on the live source. The pre-live trade-value source under the
-#: same date contract is covered by ``tests/test_morning_approval_contract.py``.
+#: scan runs *and* entry resolves candidates from it. The run of session D is reviewed after the
+#: 09:27 ET cut and traded on D itself. The pre-live trade-value source (D -> next session) is
+#: covered by ``tests/test_morning_approval_contract.py``.
 LIVE_ENTRY_AUTHORITY = {CFG.ENV_FLAG: "true", CFG.ENV_ENTRY_AUTHORITY_FLAG: "true"}
 
 
@@ -324,22 +323,21 @@ async def test_research_current_and_adoption_resolve_the_live_chain(api, both_ru
 
 
 @pytest.mark.asyncio
-async def test_the_entry_board_names_both_sessions_and_is_ready_through_the_review_day(
+async def test_the_entry_board_names_d_as_both_sessions_and_is_ready_in_the_entry_window(
         api, both_runs):
     app, sessions = api
     live, _ = both_runs
     await approve_reject_and_abstain(app)
     served = (await request(app, "GET", "/api/v1/trading/entry-board")).json()
     assert served["scanner_run_id"] == live
-    # The run keeps the session it observed; the session that consumes it is the next one.
+    # The run keeps the session it observed, and that is the session that consumes it.
     assert served["analysis_session_date"] == SESSION.isoformat()
     assert served["entry_session_date"] == ENTRY.isoformat()
     # Served live, the fixture's session is long past, which the board states rather than
     # listing a candidate; the rows are read at a moment the entry session has not closed.
     assert served["status"] == "SCANNER_RUN_OUTDATED"
-    # 16:00 KST of the review day. This is the moment the old same-session mapping reported
-    # SCANNER_RUN_OUTDATED, because the entry session it named had already passed.
-    for as_of in (REVIEW_AT, OPEN + timedelta(minutes=1)):
+    # During the session itself: at the review and once the opening range is complete.
+    for as_of in (REVIEW_AT, OPEN + timedelta(minutes=16)):
         with sessions() as session:
             board = entry_board(session, calendar=MarketCalendar(), as_of=as_of,
                                 fill_delay_bars=ExecutionConfig().fill_delay_bars)
@@ -366,7 +364,7 @@ class Provider:
 
     def __init__(self, symbol: str = "AAA") -> None:
         self.minutes = [bar(symbol, PREVIOUS_CLOSE_AT, 100.0),
-                        bar(symbol, datetime(2026, 9, 16, 8, 0, tzinfo=ET), 105.0,
+                        bar(symbol, datetime(2026, 9, 15, 8, 0, tzinfo=ET), 105.0,
                             MarketSession.PREMARKET)]
         self.minutes += [bar(symbol, OPEN + timedelta(minutes=index), 100.0)
                          for index in range(15)]
@@ -381,7 +379,7 @@ class Provider:
                 and (session is None or item.session is session)]
 
     def get_daily_bars(self, symbols, start=None, end=None):
-        at = datetime(2026, 9, 15, 16, 0, tzinfo=ET)
+        at = datetime(2026, 9, 14, 16, 0, tzinfo=ET)
         return [DailyBar(symbol=symbol, trading_date=PREVIOUS, open=100, high=101, low=99,
                          close=100, volume=1_000_000, observed_at=at,
                          available_at=at + timedelta(minutes=1)) for symbol in symbols]
@@ -402,10 +400,10 @@ async def test_the_approved_candidate_is_evaluated_on_paper_and_the_others_are_n
     provider = Provider()
     candidates = lifecycle.approved_candidates_for_entry_session(ENTRY)
     assert [item.symbol for item in candidates] == ["AAA"]
-    for minute in (1, 16, 18):
+    for minute in (11, 16, 18):
         for candidate in candidates:
             lifecycle.evaluate(candidate, provider, as_of=OPEN + timedelta(minutes=minute))
-    lifecycle.finalize_session(ENTRY, now=datetime(2026, 9, 16, 16, 5, tzinfo=ET))
+    lifecycle.finalize_session(ENTRY, now=datetime(2026, 9, 15, 16, 5, tzinfo=ET))
     with sessions() as session:
         rows = session.scalars(select(PaperEntryEvaluation)).all()
         assert [row.symbol for row in rows] == ["AAA"]

@@ -1,3 +1,7 @@
+> **STALE CONTRACT POINTER (2026-10-16).** The contract named below
+> (`A_MOVER_NEXT_SESSION_AUTHORITY_V1.md`, D -> D+1) is superseded by the same-session contract in
+> `docs/backtest/mover_scanner_v1/A_MOVER_LIVE_V1.md`. The rest of this file is the 10-10 state.
+
 # Strategy A current status (2026-10-10)
 
 > **HANDOFF.** Read this first in any Strategy A session. Contract and rules:

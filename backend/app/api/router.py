@@ -136,9 +136,9 @@ def require_current_run_target(db: Session, raw_json: str) -> None:
 
     The check is symmetric, because the mismatch is: with the pre-live trade-value source
     bound to entry, an analysis imported against a live run would be just as unreadable as the
-    other way round, and in the same silence. It is a source check only - the date rule is now
-    the same for both sources, so a run of either kind is reviewed for
-    ``next_trading_day(trading_date)`` and the only way an import can miss is by source.
+    other way round, and in the same silence. It is a source check only: each source's entry
+    session follows from its run (``current_run.entry_session_for``), so the only way an import
+    can miss is by source.
 
     Only the source boundary is checked. A malformed payload, a missing run, a wrong
     trading_date and the Top-candidate match are ``GPTImportService``'s own refusals and are
@@ -190,9 +190,15 @@ async def research_current(db: DB) -> dict[str, Any]:
     """Current authority only: the latest COMPLETED run and that run's own active analysis."""
     authority = ResearchAuthorityService(db).current()
     run, analysis = authority.run, authority.analysis
+    # The session the run's approvals are traded on, from the one backend rule the entry board
+    # and the runtime use (same session for a live mover run, next session for legacy), so no
+    # screen derives an entry date of its own.
+    calendar = MarketCalendar(get_settings().market_timezone)
     return {"status": authority.status.value,
             "scanner_run_id": None if run is None else run.id,
             "trading_date": None if run is None else run.trading_date,
+            "analysis_session_date": None if run is None else run.trading_date,
+            "entry_session_date": None if run is None else CR.entry_session_for(run, calendar),
             "completed_at": None if run is None else run.completed_at,
             "active_analysis_id": None if analysis is None else analysis.id,
             "analysis_at": None if analysis is None else analysis.analysis_at,

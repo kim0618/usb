@@ -227,8 +227,8 @@ def test_production_runner_to_import_human_and_durable_paper(tmp_path, monkeypat
     runtime = SimulationRuntimeContext(SimBroker(Decimal("10000")), account_id, factory)
     # ``ON`` is the scan switch; binding entry to the live candidates is the second one.
     service = PA.lifecycle_for(runtime, environ=ON | {CFG.ENV_ENTRY_AUTHORITY_FLAG: "true"})
-    # ``SESSION`` is the session the scan observed, so its approvals are the next session's.
-    entry_session = service.calendar.next_trading_day(SESSION)
+    # ``SESSION`` is the session the scan observed, and a live run trades that same session.
+    entry_session = SESSION
     assert service.analysis_session_date(entry_session) == SESSION
     injected = service.approved_candidates_for_entry_session(entry_session)
     assert len(injected) == 1

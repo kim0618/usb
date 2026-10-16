@@ -35,10 +35,10 @@ a run whose approvals the runtime will never read. No run of the authoritative s
 current run, which the API reports as "no completed scanner run" - the same answer it gives on
 an empty database.
 
-Which *session* consumes a run is a separate question from which run is current, and it has
-one answer for both sources: :func:`entry_session_for`. A run observes session D and is
-consumed on ``next_trading_day(D)``, which is what leaves the Korean day between the two for
-the GPT research and the human APPROVE.
+Which *session* consumes a run is a separate question from which run is current, and it is
+answered by the run's source in :func:`entry_session_for`: a live mover run of D (09:15 ET
+premarket cut) is traded on D itself, and a trade-value run of D (ranked after D's close) on
+``next_trading_day(D)``. Each is the exact inverse of the date rule its entry lifecycle uses.
 
 Nothing here writes, and no stored row is reclassified. Every run stays reachable through an
 explicit ``score_version`` or ``scanner_run_id`` query, which is how the live rows, the
@@ -115,23 +115,20 @@ def current_run(session: Session, *, environ: dict[str, str] | None = None) -> S
 
 
 def entry_session_for(run: ScannerRun, calendar: MarketCalendar) -> date:
-    """The session this run's approvals are for: the XNYS session after the run's own.
+    """The session this run's approvals are for. Same session for a live run, next for legacy.
 
-    One rule, both sources, because the review between them is one workflow. A run's
-    ``trading_date`` is the session it *observed* - the morning trade-value scanner ranks
-    session D after D's close, the live mover scan ranks D's premarket at 09:15 ET of D - and
-    in both cases the ranking is handed to GPT, approved by a human and consumed on
-    ``next_trading_day(D)``. It is the exact inverse of the entry runtime's
-    ``analysis_session_date`` (``previous_trading_day`` of the entry session), and
-    ``previous_trading_day(next_trading_day(D)) == D`` holds for every XNYS session, so a
-    board built on this lists the session the runtime will actually evaluate, and the run the
-    runtime will actually read.
+    A live mover run's ``trading_date`` is the session whose premarket the 09:15 ET cut
+    observed, and that session is the one it trades: the mover research contract is "scan at
+    09:15 ET of the trade session, entry, risk and exit unchanged". It is the inverse of
+    ``MoverLiveEntryLifecycleService.analysis_session_date`` (the identity).
 
-    This is the correction of A-MOVER-LIVE-V1's original same-session reading. Returning
-    ``run.trading_date`` for a live run was arithmetically true of the 09:15 ET cut and
-    operationally false of the contract: it put the whole GPT-and-human review inside the
-    09:27-10:30 ET entry window (22:27-23:30 KST), which is not when the operator reviews. The
-    run's own date is not touched here - it still records the premarket it observed. Only the
-    session that *consumes* it moves.
+    A trade-value run ranks session D after its close, so it can only be traded on
+    ``next_trading_day(D)``, the inverse of the deployed ``previous_trading_day`` rule.
+
+    A-MOVER-NEXT-SESSION-AUTHORITY-V1 returned ``next_trading_day`` for both sources. That
+    traded a premarket mover on the session after its gap and is reverted here; the source
+    authority above it (one current run, of the runtime's own source) is kept.
     """
+    if is_live_run(run):
+        return run.trading_date
     return calendar.next_trading_day(run.trading_date)

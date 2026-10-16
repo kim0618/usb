@@ -1,6 +1,6 @@
 # Historical PIT Universe U1 - Build V1 (2026-09-21)
 
-> **RESEARCH HISTORY (pre-mover A).** Not the current A. Current contract: `docs/operations/A_MOVER_NEXT_SESSION_AUTHORITY_V1.md`.
+> **RESEARCH HISTORY (pre-mover A).** Not the current A. Current contract: `docs/backtest/mover_scanner_v1/A_MOVER_LIVE_V1.md (same session)`.
 
 판정: **BLOCKED**. 규칙 `ru2-pit-adv-sector-cap-dataeligible-v2`를 `USB-HIST-V1` 스냅샷에 그대로
 적용하면 U1 구간에서 데이터가 완전한 후보가 **21종목**뿐이다. 규칙의 `MIN_SIZE`는 25이므로 U1은

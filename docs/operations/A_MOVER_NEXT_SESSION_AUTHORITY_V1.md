@@ -1,6 +1,13 @@
+> **SUPERSEDED (2026-10-16). Do not use as the A contract.** Its date rule (mover run D -> entry
+> `next_trading_day(D)`) moved the strategy to the session after the premarket gap and was an
+> accidental strategy change; the same-session rule is restored. Current contract:
+> `docs/backtest/mover_scanner_v1/A_MOVER_LIVE_V1.md` ("Current contract (same session)").
+> Kept as the record of the 2026-10-10 change; its source-authority part (`current_run`,
+> import guard, `latest_run` source filter) is still in force.
+
 # Strategy A: the mover scan is reviewed in the Korean day and traded the next session
 
-> **CURRENT PRODUCTION CONTRACT for Strategy A.** This is the one document that states what A
+> **(Was, 2026-10-10..10-16) CURRENT PRODUCTION CONTRACT for Strategy A.** This is the one document that states what A
 > is. Every other A document is research history, a superseded stage record, or a reference
 > runbook, and says so in its first lines. Deployment state, dates and commit SHAs live in
 > `A_CURRENT_STATUS_20261010.md`, not here.

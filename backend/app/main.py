@@ -76,11 +76,11 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
                 logger.warning(
                     "A: %s=%r is neither a true nor a false word; entry authority is off",
                     mover_live_config.ENV_ENTRY_AUTHORITY_FLAG, unparsed)
-            logger.warning("A: entry candidate authority is %s; analysis D -> entry "
-                           "next_trading_day(D) either way",
-                           "A_MOVER_LIVE_V1 (09:15 ET premarket cut of D)"
+            logger.warning("A: entry candidate authority is %s",
+                           "A_MOVER_LIVE_V1 (09:15 ET premarket cut of D -> entry D, same session)"
                            if mover_live_config.entry_authority()
-                           else "PRE_LIVE_TRADE_VALUE (post-close ranking of D)")
+                           else "PRE_LIVE_TRADE_VALUE (post-close ranking of D -> entry "
+                                "next_trading_day(D))")
             mover_live_entry.start(runtime, provider_factory)
             start_position_management_runtime(runtime, provider_factory)
             # The closing review is a second cadence over the same broker, not a

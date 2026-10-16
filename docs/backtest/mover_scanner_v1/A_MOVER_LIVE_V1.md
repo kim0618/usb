@@ -1,6 +1,27 @@
 # A-MOVER-LIVE-V1
 
-> **REFERENCE.** Design and implementation record of the live mover pipeline. The current production contract (authority mapping, flags, timers, status) is `docs/operations/A_MOVER_NEXT_SESSION_AUTHORITY_V1.md`; where the two differ, that document wins.
+> **CURRENT CONTRACT for Strategy A (same session, restored 2026-10-16).** A mover run of
+> session D (09:15 ET premarket cut of D) is reviewed (GPT + human APPROVE) and traded on **D
+> itself**: premarket gate, OR15 and entry from 09:45 ET to the 10:30 ET deadline, Risk V0 /
+> Exit V0 unchanged. This is the mover research contract (`premarket.py`: the 09:15 ET cut sees
+> "nothing of the session it will trade"). `docs/operations/A_MOVER_NEXT_SESSION_AUTHORITY_V1.md`
+> (D -> next session) is **SUPERSEDED**: it moved the strategy to the session after the gap.
+> Its source authority (one current run, of the runtime's own source, for the UI, the import
+> and the board) is kept. Deployment state lives in the newest `A_CURRENT_STATUS_<date>.md`.
+
+## Current contract (same session)
+
+| step | when (ET, session D) | what |
+|---|---|---|
+| mover scan | 09:15 cut, run complete about 09:27 | `ScannerRun(trading_date=D, score_version=a_mover_live_v1)`, V1.2 P35 -> actionable -> up to TOP8 |
+| review | after the run, before 10:30 | the UI resolves the newest live run (`current_run`), the GPT import attaches to it (`require_current_run_target` refuses any other source), the human APPROVE/REJECT is recorded against that analysis |
+| entry | the same session D | `MoverLiveEntryLifecycleService.analysis_session_date` is the identity, so the runtime loads the APPROVEs of run D for entry session D every tick; Strategy V0 gate on D's premarket, OR15 (09:30-09:44), entry 09:45-10:30 |
+| reported dates | | `/research/current` and `/trading/entry-board` return `analysis_session_date = D` and `entry_session_date = D` (`current_run.entry_session_for`); the screens render those values and derive none |
+| legacy `quant_v0` | ranked after D's close | reachable only with `A_MOVER_LIVE_ENTRY_AUTHORITY=false`; keeps D -> `next_trading_day(D)` |
+
+APPROVE is not BUY. The review window (run complete about 09:27 ET -> 10:30 ET, 22:27-23:30 KST)
+is an operating question; it does not change the session the strategy trades.
+
 
 Strategy A's mover pipeline on the shared Kiwoom premarket collector. This document describes
 the implementation; deployment state lives in `docs/operations/A_CURRENT_STATUS_20261010.md`.
@@ -19,9 +40,9 @@ the implementation; deployment state lives in `docs/operations/A_CURRENT_STATUS_
 | `ScannerRun.score_version` | `a_mover_live_v1` |
 | `ScannerRun.provider` | `KIWOOM_AE_SHARED_PREMARKET` |
 | config flag | `A_MOVER_LIVE_ENABLED`, default **off** - runs the scan and records it |
-| entry authority flag | `A_MOVER_LIVE_ENTRY_AUTHORITY`, **defaults to the scan flag** - binds entry and the review UI to the live candidates. Declining is explicit (`false`), which leaves the pre-live trade-value source bound; see `docs/operations/A_MOVER_NEXT_SESSION_AUTHORITY_V1.md` |
+| entry authority flag | `A_MOVER_LIVE_ENTRY_AUTHORITY`, **defaults to the scan flag** - binds entry and the review UI to the live candidates. Declining is explicit (`false`), which leaves the pre-live trade-value source bound |
 | analysis session | the run's own `trading_date` = the session whose premarket the 09:15 ET cut observed |
-| entry session | `next_trading_day(trading_date)`, the same rule the trade-value scanner has. A run of session D is reviewed through the Korean day after the cut and traded on D+1 |
+| entry session | the run's own `trading_date` (same session). A run of session D is reviewed after the 09:27 ET completion and traded on D. The legacy trade-value scanner alone keeps `next_trading_day(trading_date)` |
 
 The research contract is preserved unchanged and keeps its own artifacts. Its checksum is
 recomputed before every live run and a live run refuses if it has moved. The live checksum is
@@ -289,11 +310,11 @@ stay distinguishable from a morning the scanner never ran — and renders no pro
 
 **Paper injection modifies no deployed file.** `EntryManagementRuntime` already takes its
 lifecycle service as a constructor argument, so `MoverLiveEntryLifecycleService` overrides
-exactly one member with behaviour, `approved_candidates` (source-filtered, no union, no
-fallback). It inherits `analysis_session_date = previous_trading_day(entry)`: a run of D is
-traded on `next_trading_day(D)`. (The original V1 override that made the run's own
-`trading_date` the entry session was removed on 2026-10-10 by `4b0e7ba`; see
-`docs/operations/A_MOVER_NEXT_SESSION_AUTHORITY_V1.md`.) `evaluate` is
+exactly two members with behaviour: `analysis_session_date` (the identity - the live run's
+`trading_date` *is* the entry session; the legacy predecessor rule belongs to the trade-value
+scanner that ranks after the close) and `approved_candidates` (source-filtered, no union, no
+fallback). (`4b0e7ba` removed the identity override on 2026-10-10 and traded a run of D on
+`next_trading_day(D)`; the override was restored on 2026-10-16.) `evaluate` is
 inherited verbatim, so every candidate travels `EntryLifecycleService.evaluate` ->
 `StrategyV0Engine` -> `RiskEngine` -> `StrategyLifecycleRunner` -> position and exit.
 

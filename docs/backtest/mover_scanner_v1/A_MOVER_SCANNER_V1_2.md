@@ -1,6 +1,6 @@
 # A-MOVER-SCANNER-V1.2 — Pool size finalization
 
-> **REFERENCE.** The frozen research parent of the live scanner (`a-mover-scanner-v1.2`, pool 35, TOP8). Do not change it without a new research stage. Current contract: `docs/operations/A_MOVER_NEXT_SESSION_AUTHORITY_V1.md`.
+> **REFERENCE.** The frozen research parent of the live scanner (`a-mover-scanner-v1.2`, pool 35, TOP8). Do not change it without a new research stage. Current contract: `docs/backtest/mover_scanner_v1/A_MOVER_LIVE_V1.md (same session)`.
 
 SELECTED POOL SIZE: **35**. P35 is the smallest authorized value meeting every required bar and the recommended 50% eight-output target. P25 fails output average, median and ≥5 rate; P50 passes but is not the smallest.
 

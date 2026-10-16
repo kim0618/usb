@@ -1,6 +1,6 @@
 # A / E Shared Premarket Collector + A Live Feature Parity V1
 
-> **RESEARCH HISTORY.** Led to A-MOVER-LIVE-V1 on the shared collector. Current contract: `docs/operations/A_MOVER_NEXT_SESSION_AUTHORITY_V1.md`.
+> **RESEARCH HISTORY.** Led to A-MOVER-LIVE-V1 on the shared collector. Current contract: `docs/backtest/mover_scanner_v1/A_MOVER_LIVE_V1.md (same session)`.
 
 | | |
 |---|---|

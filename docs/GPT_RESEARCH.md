@@ -1,6 +1,6 @@
 # USB GPT Research — Stage 4
 
-> **Note (2026-10-10).** The "latest COMPLETED ScannerRun" below is resolved by `app.research.current_run`: under the A mover authority it is the newest `a_mover_live_v1` run, and its approvals are traded on `next_trading_day(run.trading_date)`. The APPROVE count is no longer capped at two here; RiskConfig caps what is entered. Current A contract: `docs/operations/A_MOVER_NEXT_SESSION_AUTHORITY_V1.md`.
+> **Note (2026-10-10).** The "latest COMPLETED ScannerRun" below is resolved by `app.research.current_run`: under the A mover authority it is the newest `a_mover_live_v1` run, and its approvals are traded on the run's own session (`trading_date`, same session; restored 2026-10-16). The APPROVE count is no longer capped at two here; RiskConfig caps what is entered. Current A contract: `docs/backtest/mover_scanner_v1/A_MOVER_LIVE_V1.md (same session)`.
 
 ## Purpose and manual workflow
 

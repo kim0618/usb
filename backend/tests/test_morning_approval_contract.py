@@ -2,8 +2,8 @@
 
 This is Strategy A's pre-live operating contract and the one the production record is made of.
 It is now reachable only by declining the live candidate authority explicitly
-(``A_MOVER_LIVE_ENTRY_AUTHORITY=false``), which is what every test here runs under; the live
-source under the same date contract is ``tests/test_mover_next_session_authority.py``.
+(``A_MOVER_LIVE_ENTRY_AUTHORITY=false``), which is what every test here runs under. The live
+mover source trades its own session instead (``tests/test_mover_same_session_authority.py``).
 The trade-value scanner ranks after the close, so its ``trading_date`` is the session that has
 just finished: ``usb-morning-scan.timer`` fires at 07:00 Asia/Seoul, which is 18:01 ET of
 session D, and the run it writes is stamped D. The operator reads it through the Korean day,
@@ -83,8 +83,8 @@ CAPITAL = Decimal("10000")
 
 #: The **explicit opt-out**: the live scan runs and is recorded, and the operator has declined
 #: the live candidate authority, so entry stays on the pre-live trade-value source. Unset, the
-#: authority now follows the scan flag, and the live source is reviewed on the same morning
-#: schedule - ``tests/test_mover_next_session_authority.py`` is that branch. This file keeps
+#: authority follows the scan flag and the live source trades its own session -
+#: ``tests/test_mover_same_session_authority.py`` is that branch. This file keeps
 #: the pre-live branch honest: it must still work, and it must still be the source it names.
 MORNING_AUTHORITY = {CFG.ENV_FLAG: "true", CFG.ENV_ENTRY_AUTHORITY_FLAG: "false"}
 
@@ -207,19 +207,18 @@ def test_the_entry_session_is_the_next_xnys_session_over_weekends_and_holidays()
         assert analysis_session_date(calendar, entry) == analysis, entry
 
 
-def test_the_board_derives_the_same_entry_session_from_either_source(both_runs, api):
-    """One rule for both: a run of session D is consumed on ``next_trading_day(D)``.
+def test_the_board_derives_each_sources_own_entry_session(both_runs, api):
+    """The morning run of D (ranked after D's close) is consumed on ``next_trading_day(D)``;
+    the live mover run of D (09:15 ET cut of D) is consumed on D itself.
 
-    The live run used to be read as its own entry session, which is what put the review
-    inside the entry window. Both rows here carry ``trading_date = ANALYSIS`` and both are
-    reviewed for ``ENTRY``.
+    Both rows carry ``trading_date = ANALYSIS``; only the legacy one is reviewed for ``ENTRY``.
     """
     _, sessions = api
     live, morning = both_runs
     calendar = MarketCalendar()
     with sessions() as session:
         assert CR.entry_session_for(session.get(ScannerRun, morning), calendar) == ENTRY
-        assert CR.entry_session_for(session.get(ScannerRun, live), calendar) == ENTRY
+        assert CR.entry_session_for(session.get(ScannerRun, live), calendar) == ANALYSIS
 
 
 # --- 2. which run the morning review is pointed at -------------------------------------------

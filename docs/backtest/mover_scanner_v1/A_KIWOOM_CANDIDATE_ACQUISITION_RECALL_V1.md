@@ -1,6 +1,6 @@
 # A <- Kiwoom Candidate Acquisition Recall Audit V1
 
-> **RESEARCH HISTORY.** Closed audit; no Kiwoom ranking prefilter is used. Current contract: `docs/operations/A_MOVER_NEXT_SESSION_AUTHORITY_V1.md`.
+> **RESEARCH HISTORY.** Closed audit; no Kiwoom ranking prefilter is used. Current contract: `docs/backtest/mover_scanner_v1/A_MOVER_LIVE_V1.md (same session)`.
 
 | | |
 |---|---|

@@ -28,10 +28,11 @@ from tests.strategy_a_mover_live.fixtures import ET, SESSION
 
 NOW = datetime(2026, 9, 15, 13, 16, tzinfo=timezone.utc)
 CAPITAL = Decimal("10000")
-#: ``SESSION`` is the session the scan observed, so it is the *analysis* session; the entry
-#: session that consumes it is the next XNYS one. Keeping both names in the tests is the
-#: point: a run and the session that trades it are different dates.
-ENTRY = MarketCalendar().next_trading_day(SESSION)
+#: ``SESSION`` is the session the scan observed. A live run is traded on that same session (the
+#: mover contract: 09:15 ET cut of the trade session); a legacy trade-value run of the same date
+#: is traded on the next one. Both names are kept so each test says which rule it exercises.
+ENTRY = SESSION
+LEGACY_ENTRY = MarketCalendar().next_trading_day(SESSION)
 #: Both switches: the live scan runs *and* entry resolves candidates from it. Declining the
 #: authority explicitly keeps the pre-live source, which
 #: ``tests/test_morning_approval_contract.py`` covers.
@@ -103,12 +104,12 @@ def test_the_live_service_inherits_the_deployed_evaluation_path():
     assert PA.MoverLiveEntryLifecycleService.evaluate is EMR.EntryLifecycleService.evaluate
     overridden = {name for name in vars(PA.MoverLiveEntryLifecycleService)
                   if not name.startswith("__")}
-    assert overridden == {"candidate_source", "scanner_version",
-                          "approved_candidates", "session_metadata"}
+    assert overridden == {"candidate_source", "scanner_version", "ANALYSIS_SESSION_RULE",
+                          "analysis_session_date", "approved_candidates", "session_metadata"}
     assert issubclass(PA.MoverLiveEntryLifecycleService, EMR.EntryLifecycleService)
-    # The date rule is inherited, not overridden: that is the restored contract.
+    # The date rule is the live run's own session, not the legacy predecessor rule.
     assert (PA.MoverLiveEntryLifecycleService.analysis_session_date
-            is EMR.EntryLifecycleService.analysis_session_date)
+            is not EMR.EntryLifecycleService.analysis_session_date)
 
 
 def test_entry_management_runtime_is_not_modified_by_the_adapter(durable):
@@ -121,12 +122,12 @@ def test_entry_management_runtime_is_not_modified_by_the_adapter(durable):
 # -- flag off: A is unchanged (section S test 1) ---------------------------------------------
 
 @pytest.mark.parametrize("environ", [{}, OFF], ids=["nothing-set", "declined"])
-def test_with_the_authority_off_the_pre_live_lifecycle_and_the_same_date_rule_are_used(
+def test_with_the_authority_off_the_pre_live_lifecycle_and_its_predecessor_rule_are_used(
         durable, environ):
     runtime, _ = durable
     service = PA.lifecycle_for(runtime, environ=environ)
     assert type(service) is EMR.EntryLifecycleService
-    assert service.analysis_session_date(ENTRY) == SESSION
+    assert service.analysis_session_date(LEGACY_ENTRY) == SESSION
 
 
 @pytest.mark.parametrize("environ", [{}, OFF], ids=["nothing-set", "declined"])
@@ -144,7 +145,7 @@ def test_with_the_authority_off_a_legacy_run_wins_the_analysis_session(durable, 
                   provider="KIWOOM_REAL", completed_at=NOW + timedelta(hours=9))
     seed(factory, decisions={"AAA": "APPROVE"})
     service = PA.lifecycle_for(runtime, environ=environ)
-    approved = service.approved_candidates_for_entry_session(ENTRY)
+    approved = service.approved_candidates_for_entry_session(LEGACY_ENTRY)
     assert [item.symbol for item in approved] == ["LLL"]
     assert approved[0].scanner_run_id == legacy
 
@@ -172,15 +173,15 @@ def test_with_the_authority_off_a_lone_live_run_is_held_off_by_the_import_guard(
         # Without the directly-seeded activation there is nothing to resolve.
         run.active_gpt_analysis_id = None
         session.commit()
-    assert service.approved_candidates_for_entry_session(ENTRY) == ()
+    assert service.approved_candidates_for_entry_session(LEGACY_ENTRY) == ()
 
 
-def test_with_the_authority_on_the_analysis_session_is_the_entry_sessions_predecessor(durable):
+def test_with_the_authority_on_the_analysis_session_is_the_entry_session_itself(durable):
     runtime, _ = durable
     service = PA.lifecycle_for(runtime, environ=ON)
     assert isinstance(service, PA.MoverLiveEntryLifecycleService)
-    assert service.analysis_session_date(ENTRY) == SESSION
-    assert service.analysis_session_date(ENTRY) != ENTRY
+    assert service.analysis_session_date(SESSION) == SESSION
+    assert service.analysis_session_date(LEGACY_ENTRY) == LEGACY_ENTRY
 
 
 # -- APPROVE only (section S tests 17, 18, 19) -----------------------------------------------
@@ -254,15 +255,15 @@ def test_session_metadata_records_the_source_and_the_scanner_version(durable):
     assert body["candidate_source"] == "A_MOVER_LIVE_V1"
     assert body["scanner_version"] == "A-MOVER-LIVE-V1"
     assert body["scanner_checksum"] == LC.current().scanner_checksum
-    # Resolved through the predecessor rule: the run is stamped with the analysis session.
+    # Resolved through the same-session rule: the run is stamped with the session it trades.
     assert body["scanner_run_id"] == run_id
-    assert body["entry_session_date"] == ENTRY.isoformat()
+    assert body["entry_session_date"] == SESSION.isoformat()
     assert body["analysis_session_date"] == SESSION.isoformat()
-    assert body["analysis_session_rule"] == "previous_trading_day"
+    assert body["analysis_session_rule"] == "same_session"
 
 
-def test_session_metadata_reports_no_run_for_a_session_whose_predecessor_has_none(durable):
-    """The entry session after the one this run serves has no run of its own, and says so."""
+def test_session_metadata_reports_no_run_for_a_session_without_its_own_run(durable):
+    """The session after the one this run serves has no run of its own, and says so."""
     runtime, factory = durable
     seed(factory, decisions={"AAA": "APPROVE"})
     service = PA.lifecycle_for(runtime, environ=ON)
@@ -276,6 +277,6 @@ def test_the_evaluation_key_follows_the_live_analysis_session(durable):
     seed(factory, decisions={"AAA": "APPROVE"})
     service = PA.lifecycle_for(runtime, environ=ON)
     candidate = service.approved_candidates_for_entry_session(ENTRY)[0]
-    key = service.evaluation_key(candidate, ENTRY)
-    assert key.trading_date == ENTRY
+    key = service.evaluation_key(candidate, SESSION)
+    assert key.trading_date == SESSION
     assert key.analysis_trading_date == SESSION

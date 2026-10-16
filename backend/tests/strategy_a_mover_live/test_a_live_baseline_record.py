@@ -33,9 +33,9 @@ from app.strategy_a_mover_live import paper_adapter as PA
 from app.strategy_a_mover_live import scanner as SCAN
 from tests.strategy_a_mover_live.fixtures import SESSION
 
-#: ``SESSION`` is the session the scan observed; the entry session that consumes its approvals
-#: is the next XNYS one, so that is what ``session_metadata`` is asked about.
-ENTRY = MarketCalendar().next_trading_day(SESSION)
+#: ``SESSION`` is the session the scan observed, and a live run is traded on that same session,
+#: so that is what ``session_metadata`` is asked about.
+ENTRY = SESSION
 from tests.strategy_a_mover_live.test_a_live_scanner import baseline_for, panel_input
 
 CAL = MarketCalendar("America/New_York")

@@ -104,10 +104,10 @@ def entry_board(session: Session, *, calendar: MarketCalendar, as_of: datetime,
 
 def _approved(session: Session, run: ScannerRun):  # type: ignore[no-untyped-def]
     # The runtime's own loader, picked by this run's source, so the board can never list a
-    # symbol the runtime skips. Both are keyed the same way, by the analysis session, which is
-    # the run's own ``trading_date``; the entry session the board reports is
-    # ``next_trading_day`` of it for either source. The only difference between the two
-    # loaders is the source filter on the run.
+    # symbol the runtime skips. Both are keyed by the analysis session, which is the run's own
+    # ``trading_date``; the entry session the board reports is ``CR.entry_session_for`` (the
+    # same session for a live run, the next one for a legacy run). The only difference between
+    # the two loaders is the source filter on the run.
     loader = load_live_approved_candidates if CR.is_live_run(run) else load_approved_candidates
     return [candidate for candidate in loader(session, run.trading_date)
             if candidate.scanner_run_id == run.id]

@@ -1,6 +1,6 @@
 # A-MOVER-SCANNER-V1.1: the actionable GPT handoff
 
-> **RESEARCH HISTORY.** Its handoff mask is in force through V1.2; pool size superseded by V1.2. Current contract: `docs/operations/A_MOVER_NEXT_SESSION_AUTHORITY_V1.md`.
+> **RESEARCH HISTORY.** Its handoff mask is in force through V1.2; pool size superseded by V1.2. Current contract: `docs/backtest/mover_scanner_v1/A_MOVER_LIVE_V1.md (same session)`.
 
 | | |
 |---|---|

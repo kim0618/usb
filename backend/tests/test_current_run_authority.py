@@ -118,7 +118,10 @@ async def test_new_run_without_analysis_has_no_current_gpt_analysis(api) -> None
     assert (await get(app, "/api/v1/research/adoption")).status_code == 404
     authority = (await get(app, "/api/v1/research/current")).json()
     assert authority == {"status": "NO_ACTIVE_ANALYSIS", "scanner_run_id": current_id,
-                         "trading_date": "2026-09-14", "completed_at": authority["completed_at"],
+                         "trading_date": "2026-09-14", "analysis_session_date": "2026-09-14",
+                         # a legacy (trade-value) run: ranked after the close, traded next session
+                         "entry_session_date": "2026-09-15",
+                         "completed_at": authority["completed_at"],
                          "active_analysis_id": None, "analysis_at": None, "approved_count": 0}
     research = (await get(app, "/api/v1/dashboard")).json()["research"]
     assert (research["active_analysis_id"], research["scanner_run_id"], research["approved_count"]) == (None, None, 0)

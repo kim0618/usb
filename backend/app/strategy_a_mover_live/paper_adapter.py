@@ -2,22 +2,27 @@
 
 ``EntryManagementRuntime`` already takes its lifecycle service as a constructor argument, so
 the injection seam exists and needs no new one. This module supplies a subclass of
-``EntryLifecycleService`` that changes exactly one thing and overrides nothing else:
+``EntryLifecycleService`` that changes exactly two things and overrides nothing else:
 
+* ``analysis_session_date`` - the live scan is taken at 09:15 ET *of the session it will
+  trade*, so its ``trading_date`` **is** the entry session. The legacy predecessor rule
+  (``previous_trading_day``) applies to the trade-value scanner, which ranks after the close,
+  and must not be applied to a run stamped with the morning it was taken;
 * ``approved_candidates`` - the run is resolved with the live source filter, so an entry
   session consumes the live run and nothing else. There is no union and no fallback: an entry
   session served by two scanners would attribute one day's trades to both.
 
-What it deliberately does **not** change is the date rule. ``analysis_session_date`` stays the
-inherited ``previous_trading_day``, so the chain is
+The chain is therefore the mover research contract, unchanged:
 
     mover scan of session D (09:15 ET cut, ``trading_date = D``)
-        -> GPT research and human APPROVE through the Korean day
-            -> entry evaluation on ``next_trading_day(D)``
+        -> GPT research and human APPROVE before the entry deadline
+            -> premarket gate, OR15 and entry evaluation on the same session D
 
-for the live source exactly as it is for the morning trade-value scanner. The scan's own date
-is untouched - a live run still records the premarket session it observed - and only the
-session that consumes it is the next one.
+A-MOVER-NEXT-SESSION-AUTHORITY-V1 (4b0e7ba, 2026-10-10) removed the identity override so a run
+of D was traded on ``next_trading_day(D)``. That moved the strategy, not the workflow: the
+mover's gap is a property of D's premarket, and on D+1 it had already been spent (10-13..10-15:
+13 of 13 approvals rejected GAP_TOO_LOW). It is restored here. When the review happens is an
+operating question and does not change which session the strategy trades.
 
 ``evaluate`` is **not** overridden, which is the point. Every approved candidate still travels
 ``EntryLifecycleService.evaluate`` -> ``StrategyV0Engine`` -> ``RiskEngine`` ->
@@ -104,10 +109,8 @@ def live_run_for(session: Session, analysis_session_date: date) -> ScannerRun | 
     """The newest completed live run stamped with this *analysis* session. Source-filtered.
 
     ``analysis_session_date`` is the session the scan observed, which is the run's own
-    ``trading_date``, and is ``previous_trading_day`` of the session that consumes it. The
-    caller does that arithmetic once, in ``EntryLifecycleService.analysis_session_date``, so
-    that this query and the legacy ``load_approved_candidates`` are keyed identically and
-    cannot drift apart by a session.
+    ``trading_date``. For a live run that is also the session that consumes it: the caller
+    resolves it through ``MoverLiveEntryLifecycleService.analysis_session_date``, the identity.
     """
     return session.scalar(
         select(ScannerRun).where(
@@ -123,7 +126,7 @@ def load_live_approved_candidates(session: Session, analysis_session_date: date,
     """``load_approved_candidates`` with one difference: which run is resolved.
 
     The run selection is source-filtered; the date it is keyed by is the analysis session,
-    exactly as the deployed loader's is. Everything after the selection - the research
+    which for a live run is the entry session itself. Everything after the selection - the research
     authority resolution, the APPROVE join and the ordering - is the deployed query, kept
     identical on purpose so the two paths cannot diverge in what "approved" means.
     """
@@ -157,23 +160,21 @@ def load_live_approved_candidates(session: Session, analysis_session_date: date,
 class MoverLiveEntryLifecycleService(EMR.EntryLifecycleService):
     """The deployed entry lifecycle, resolving candidates from the live mover run.
 
-    ``analysis_session_date`` is **not** overridden, and that is the restored contract. The
-    inherited rule - the analysis an entry session consumes is the one stamped with its
-    ``previous_trading_day`` - is the rule for both scanners, because it is a property of the
-    workflow and not of the scanner: a ranking is produced, a human reviews it, and the next
-    session trades it.
-
-    A-MOVER-LIVE-V1 originally overrode it to the identity, reasoning that a cut taken at
-    09:15 ET of session D is "about" session D. The arithmetic was right and the contract was
-    wrong: with entry bound to the identity, the candidates of the session being traded do not
-    exist until 09:27 ET and the entry deadline is 10:30 ET, so the whole GPT research and
-    human APPROVE had to happen inside a 63-minute window at 22:27-23:30 KST. Under the
-    predecessor rule the same run is reviewed through the whole Korean day that follows it and
-    traded that night. The run keeps its own ``trading_date``; only the consumer moves.
+    ``analysis_session_date`` is the identity: a live run's ``trading_date`` is the session it
+    trades. The inherited ``previous_trading_day`` belongs to the trade-value scanner, which
+    ranks after the close; applied here it would trade a 09:15 ET premarket mover on the next
+    session, after its gap is gone.
     """
 
     candidate_source = str(LiveCandidateSource.A_MOVER_LIVE_V1)
     scanner_version = LC.LIVE_VERSION
+
+    #: Named in ``session_metadata`` so a record says which rule bound its candidates.
+    ANALYSIS_SESSION_RULE = "same_session"
+
+    def analysis_session_date(self, entry_session_date: date) -> date:
+        """The live scan's ``trading_date`` is the entry session itself; no predecessor shift."""
+        return entry_session_date
 
     def approved_candidates(self, analysis_session_date: date
                             ) -> tuple[EMR.ApprovedCandidate, ...]:
@@ -194,7 +195,7 @@ class MoverLiveEntryLifecycleService(EMR.EntryLifecycleService):
                 "run_provider": LC.RUN_PROVIDER,
                 "scanner_run_id": run.id if run else None,
                 "analysis_session_date": analysis_session.isoformat(),
-                "analysis_session_rule": "previous_trading_day",
+                "analysis_session_rule": self.ANALYSIS_SESSION_RULE,
                 "baseline_version": LC.BASELINE_VERSION,
                 "baseline_provider_contract": LC.BASELINE_PROVIDER_CONTRACT} | baseline
 

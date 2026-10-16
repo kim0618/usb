@@ -14,13 +14,12 @@ exists so that recording a scan is never the same decision as trading it:
     the live scan on, the live runs are the candidate authority, and an operator who wants the
     pre-live trade-value source instead has to say so.
 
-That default is a correction. The flag was introduced defaulting to OFF because binding entry
-to a live run meant binding it to the *same* session: a live run's TOP8 does not exist until
-09:27 ET and the entry deadline is 10:30 ET, so the GPT research and the human APPROVE were
-squeezed into 22:27-23:30 KST. ``paper_adapter`` no longer makes that mapping - a run of
-session D is consumed on ``next_trading_day(D)``, the same rule the trade-value scanner has
-always had - so live entry authority now costs the operator nothing, and defaulting it off
-would only mean that deploying the fix changes nothing until someone remembers an env var.
+Following the scan flag is what the pipeline did before this flag existed (the live lifecycle
+was selected by ``A_MOVER_LIVE_ENABLED`` alone), so the default changes nothing. The live
+entry session is the run's own session: a mover run of D (09:15 ET cut) is gated, ranged and
+entered on D, the mover research contract. That leaves the GPT research and the human APPROVE
+between the run's completion (about 09:27 ET) and the 10:30 ET entry deadline; that is an
+operating question, and it is answered without moving the strategy to another session.
 
 Declining is still possible and still explicit: ``false``/``0``/``no``/``off`` turns the
 authority off and leaves the pre-live source bound to entry. A value that is neither a true
@@ -130,8 +129,7 @@ def entry_authority(environ: dict[str, str] | None = None) -> bool:
     """Whether entry and the review UI resolve candidates from the live runs.
 
     Unset, this follows the scan flag: a recorded live scan whose candidates nothing consumes
-    is not a configuration anyone asks for on purpose, and the date rule that once made the
-    two decisions different no longer does.
+    is not a configuration anyone asks for on purpose.
 
     Requires the scan either way: a live entry authority with no live run would resolve no
     candidates at all, every session, and the honest reading of that configuration is that it
@@ -168,7 +166,7 @@ class LiveSwitch:
                 "entry_authority": self.entry_authority,
                 "scan_default": False,
                 "entry_authority_default": "follows " + self.flag,
-                "entry_session_rule": "next_trading_day(run.trading_date)",
+                "entry_session_rule": "run.trading_date (same session)",
                 "on_failure": "named refusal; no cross-source scanner fallback"}
 
 

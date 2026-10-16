@@ -1,6 +1,6 @@
 # USB Current State
 
-> **Note (2026-10-10): stale for Strategy A.** The `quant_v0` cycle described below is no longer A's entry authority. Current A contract: `docs/operations/A_MOVER_NEXT_SESSION_AUTHORITY_V1.md`; current A status: `docs/operations/A_CURRENT_STATUS_20261010.md`.
+> **Note (2026-10-10): stale for Strategy A.** The `quant_v0` cycle described below is no longer A's entry authority. Current A contract: `docs/backtest/mover_scanner_v1/A_MOVER_LIVE_V1.md (same session)`; current A status: `docs/operations/A_CURRENT_STATUS_20261010.md`.
 
 Audit date: 2026-09-04. Written by reading the repository (code, tests, config,
 runtime SQLite files, existing `docs/`). No application code, test, migration,
