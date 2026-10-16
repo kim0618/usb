@@ -1,0 +1,13 @@
+stop/swap/start at 11:48:57
+rollback build intact
+BUILD_ID now 07OdWY-ZZkVp2DU514MYg after 8s (rollback: .next-build.pre-crypto-manual-ux-20261016-113758)
+/crypto-paper 200
+/trading 200
+/adoption 200
+/trading-h 200
+/ 307
+-- service diff (only usb-frontend may change):
+1c1
+< usb-frontend pid=2253932 nr=0 active
+---
+> usb-frontend pid=2254462 nr=0 active

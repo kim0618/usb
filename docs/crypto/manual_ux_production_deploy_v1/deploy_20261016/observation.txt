@@ -1,0 +1,39 @@
+11:52:23 | crypto-paper pid=2252381 nr=0 rss=73M pss=61M swap=0M | frontend pid=2254462 nr=0 rss=50M pss=29M swap=0M | backend pid=2248392 nr=0 rss=56M pss=43M swap=81M | crypto-context pid=1582777 nr=0 rss=84M pss=76M swap=15M | crypto-q123-forward pid=1684303 nr=0 rss=79M pss=70M swap=38M
+   avail=274M swapused=342M mem[avg10=26.74 avg60=5.50 avg300=3.54] io[avg10=43.15 avg60=49.31 avg300=44.70] lat_crypto=33ms lat_backend=3290ms paper_memevents=high 0 max 0 oom_kill 0 
+   q123 RUNNING lag_ms 12443 samples 482684 store 2686 kline_err None | flow age 12 {'COMPLETE'}
+11:53:23 | crypto-paper pid=2252381 nr=0 rss=72M pss=60M swap=0M | frontend pid=2254462 nr=0 rss=50M pss=29M swap=0M | backend pid=2248392 nr=0 rss=56M pss=43M swap=81M | crypto-context pid=1582777 nr=0 rss=84M pss=76M swap=15M | crypto-q123-forward pid=1684303 nr=0 rss=79M pss=70M swap=38M
+   avail=279M swapused=342M mem[avg10=0.13 avg60=2.43 avg300=3.03] io[avg10=3.33 avg60=24.73 avg300=38.86] lat_crypto=150ms lat_backend=20ms paper_memevents=high 0 max 0 oom_kill 0 
+   q123 RUNNING lag_ms 12835 samples 482742 store 2686 kline_err None | flow age 13 {'COMPLETE'}
+11:54:23 | crypto-paper pid=2252381 nr=0 rss=72M pss=60M swap=0M | frontend pid=2254462 nr=0 rss=50M pss=29M swap=0M | backend pid=2248392 nr=0 rss=56M pss=43M swap=81M | crypto-context pid=1582777 nr=0 rss=84M pss=76M swap=15M | crypto-q123-forward pid=1684303 nr=0 rss=80M pss=71M swap=38M
+   avail=281M swapused=342M mem[avg10=0.00 avg60=0.90 avg300=2.46] io[avg10=26.42 avg60=17.97 avg300=33.89] lat_crypto=35ms lat_backend=35ms paper_memevents=high 0 max 0 oom_kill 0 
+   q123 RUNNING lag_ms 12635 samples 482801 store 2686 kline_err None | flow age 13 {'COMPLETE'}
+11:55:24 | crypto-paper pid=2252381 nr=0 rss=72M pss=60M swap=0M | frontend pid=2254462 nr=0 rss=50M pss=29M swap=0M | backend pid=2248392 nr=0 rss=56M pss=43M swap=81M | crypto-context pid=1582777 nr=0 rss=84M pss=76M swap=15M | crypto-q123-forward pid=1684303 nr=0 rss=78M pss=69M swap=38M
+   avail=281M swapused=342M mem[avg10=0.14 avg60=0.47 avg300=2.04] io[avg10=4.56 avg60=11.85 avg300=29.41] lat_crypto=33ms lat_backend=15ms paper_memevents=high 0 max 0 oom_kill 0 
+   q123 RUNNING lag_ms 12329 samples 482860 store 2686 kline_err None | flow age 13 {'COMPLETE'}
+11:56:24 | crypto-paper pid=2252381 nr=0 rss=72M pss=60M swap=0M | frontend pid=2254462 nr=0 rss=50M pss=29M swap=0M | backend pid=2248392 nr=0 rss=56M pss=43M swap=81M | crypto-context pid=1582777 nr=0 rss=84M pss=76M swap=15M | crypto-q123-forward pid=1684303 nr=0 rss=80M pss=71M swap=38M
+   avail=278M swapused=342M mem[avg10=0.00 avg60=0.16 avg300=1.65] io[avg10=2.28 avg60=6.95 avg300=24.71] lat_crypto=51ms lat_backend=14ms paper_memevents=high 0 max 0 oom_kill 0 
+   q123 RUNNING lag_ms 19335 samples 482920 store 2686 kline_err None | flow age 14 {'COMPLETE'}
+11:57:25 | crypto-paper pid=2252381 nr=0 rss=72M pss=60M swap=0M | frontend pid=2254462 nr=0 rss=50M pss=29M swap=0M | backend pid=2248392 nr=0 rss=55M pss=43M swap=81M | crypto-context pid=1582777 nr=0 rss=84M pss=75M swap=15M | crypto-q123-forward pid=1684303 nr=0 rss=79M pss=70M swap=39M
+   avail=275M swapused=342M mem[avg10=0.36 avg60=0.12 avg300=1.34] io[avg10=6.41 avg60=4.34 avg300=20.43] lat_crypto=393ms lat_backend=17ms paper_memevents=high 0 max 0 oom_kill 0 
+   q123 RUNNING lag_ms 18944 samples 482979 store 2686 kline_err None | flow age 14 {'COMPLETE'}
+11:58:25 | crypto-paper pid=2252381 nr=0 rss=72M pss=60M swap=0M | frontend pid=2254462 nr=0 rss=50M pss=29M swap=0M | backend pid=2248392 nr=0 rss=55M pss=43M swap=81M | crypto-context pid=1582777 nr=0 rss=84M pss=76M swap=15M | crypto-q123-forward pid=1684303 nr=0 rss=80M pss=70M swap=39M
+   avail=276M swapused=342M mem[avg10=0.69 avg60=1.03 avg300=1.37] io[avg10=7.93 avg60=8.98 avg300=18.76] lat_crypto=42ms lat_backend=21ms paper_memevents=high 0 max 0 oom_kill 0 
+   q123 RUNNING lag_ms 22131 samples 483035 store 2686 kline_err None | flow age 15 {'COMPLETE'}
+11:59:25 | crypto-paper pid=2252381 nr=0 rss=72M pss=60M swap=0M | frontend pid=2254462 nr=0 rss=50M pss=29M swap=0M | backend pid=2248392 nr=0 rss=55M pss=43M swap=81M | crypto-context pid=1582777 nr=0 rss=84M pss=76M swap=15M | crypto-q123-forward pid=1684303 nr=0 rss=78M pss=69M swap=39M
+   avail=277M swapused=342M mem[avg10=0.00 avg60=0.37 avg300=1.11] io[avg10=0.51 avg60=3.88 avg300=15.45] lat_crypto=38ms lat_backend=14ms paper_memevents=high 0 max 0 oom_kill 0 
+   q123 RUNNING lag_ms 12036 samples 483110 store 2686 kline_err None | flow age 15 {'COMPLETE'}
+12:00:25 | crypto-paper pid=2252381 nr=0 rss=72M pss=60M swap=0M | frontend pid=2254462 nr=0 rss=50M pss=29M swap=0M | backend pid=2248392 nr=0 rss=55M pss=43M swap=81M | crypto-context pid=1582777 nr=0 rss=84M pss=76M swap=15M | crypto-q123-forward pid=1684303 nr=0 rss=78M pss=69M swap=39M
+   avail=276M swapused=342M mem[avg10=0.00 avg60=0.13 avg300=0.90] io[avg10=1.78 avg60=3.09 avg300=13.07] lat_crypto=35ms lat_backend=15ms paper_memevents=high 0 max 0 oom_kill 0 
+   q123 RUNNING lag_ms 12844 samples 483168 store 2687 kline_err None | flow age 15 {'COMPLETE'}
+12:01:26 | crypto-paper pid=2252381 nr=0 rss=72M pss=60M swap=0M | frontend pid=2254462 nr=0 rss=50M pss=29M swap=0M | backend pid=2248392 nr=0 rss=55M pss=43M swap=81M | crypto-context pid=1582777 nr=0 rss=84M pss=76M swap=15M | crypto-q123-forward pid=1684303 nr=0 rss=78M pss=69M swap=39M
+   avail=308M swapused=342M mem[avg10=0.00 avg60=0.04 avg300=0.72] io[avg10=1.46 avg60=2.79 avg300=11.14] lat_crypto=32ms lat_backend=19ms paper_memevents=high 0 max 0 oom_kill 0 
+   q123 RUNNING lag_ms 12033 samples 483227 store 2687 kline_err None | flow age 16 {'COMPLETE'}
+== journal since 11:40
+kernel oom lines: 0
+paper tracebacks: 0
+flow|structure|feedlog|recorder failures: 0
+Oct 16 12:01:25 trader-j systemd[1]: Finished usb-crypto-manual-research.service - US-B CRYPTO manual trade snapshot rec
+Oct 16 12:01:05 trader-j systemd[1]: Finished usb-crypto-feedlog.service - US-B CRYPTO paper terminal feed-transition lo
+{"status": "OK", "written": {"events": 0, "snapshots": 0, "episodes": 0}, "deferred_snapshots": 6, "events": 48, "episodes": 20, "open_episode": null, "market_status": "DEFERRED_REQUEST_BUDGET", "mark
+{"absorption":{"ABSORPTION_CANDIDATE":2861,"NONE":739},"band01_bid_coverage":{"COMPLETE":3585,"PARTIAL":3,"UNKNOWN":12},"book_state":{"SYNCED":3588,"UNSYNCED":12},"collector_state":{"LIVE":3505,"PARTIAL":60,"SYNCING":34,"UNKNOWN":1},"first_ms":1792112400098,"flow60_coverage":{"COMPLETE":3539,"PARTIA
+{"absorption":{"ABSORPTION_CANDIDATE":3135,"NONE":465},"band01_bid_coverage":{"COMPLETE":3342,"PARTIAL":188,"UNKNOWN":70},"book_state":{"SYNCED":3530,"UNSYNCED":70},"collector_state":{"LIVE":3418,"SYNCING":182},"first_ms":1792116000097,"flow60_coverage":{"COMPLETE":3599,"UNKNOWN":1},"flow_state":{"L

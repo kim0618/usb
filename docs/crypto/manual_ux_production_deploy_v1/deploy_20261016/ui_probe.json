@@ -1,0 +1,183 @@
+{
+ "paper": {
+  "symbol_header": "BTCUSDT",
+  "hot_scan_button": 1,
+  "hot_list_text": {
+   "HOT 코인 탐색 결과": false,
+   "HOT 탐색 결과 보기": false,
+   "아직 HOT이 없습니다": false
+  },
+  "presets": [
+   [
+    "preset-25%",
+    true
+   ],
+   [
+    "preset-HALF",
+    true
+   ],
+   [
+    "preset-75%",
+    true
+   ],
+   [
+    "preset-MAX",
+    true
+   ],
+   [
+    "preset-25%",
+    true
+   ],
+   [
+    "preset-HALF",
+    true
+   ],
+   [
+    "preset-75%",
+    true
+   ],
+   [
+    "preset-MAX",
+    true
+   ]
+  ],
+  "long_short": [
+   [
+    "long-button",
+    true
+   ],
+   [
+    "short-button",
+    true
+   ],
+   [
+    "long-button",
+    true
+   ],
+   [
+    "short-button",
+    true
+   ]
+  ],
+  "amount_lines": {
+   "선택 수량": true,
+   "내가 거는 금액": true,
+   "이번 주문 규모": true
+  },
+  "fee_preview_detail": 0,
+  "fee_text": {
+   "예상 진입 비용": false,
+   "왕복 총비용": false,
+   "강제 청산가": false,
+   "비용 상세": false
+  },
+  "leverage_buttons": [
+   "paper-leverage-1",
+   "paper-leverage-5",
+   "paper-leverage-10",
+   "paper-leverage-20",
+   "paper-leverage-50",
+   "paper-leverage-100",
+   "paper-leverage-1",
+   "paper-leverage-5",
+   "paper-leverage-10",
+   "paper-leverage-20",
+   "paper-leverage-50",
+   "paper-leverage-100"
+  ],
+  "half_close": [
+   [
+    "mobile-half-close",
+    "HALF CLOSE0.032",
+    true
+   ],
+   [
+    "position-strip-half-close",
+    "HALF CLOSE\n0.032",
+    true
+   ]
+  ],
+  "close_buttons_group": [
+   "HALF CLOSE0.032FULL CLOSE",
+   "HALF CLOSE\n0.032\nFULL CLOSE"
+  ],
+  "half_in_order_ticket": 0,
+  "analytics": {
+   "performance-panel": 0,
+   "trade-history": 0,
+   "ledger-table": 0,
+   "run-footer": 0
+  },
+  "analytics_text": {
+   "이 세션 성과": false,
+   "거래내역": false,
+   "주문체결원장": false,
+   "런 설정 근거": false
+  },
+  "wall_text": {
+   "상단벽1": false,
+   "하단벽1": false
+  },
+  "c1": 0,
+  "avg_entry_text": true,
+  "position": [
+   true,
+   true,
+   true
+  ]
+ },
+ "live_button": true,
+ "live": {
+  "symbol_header": [
+   "BTCUSDT\n무기한 · Binance USDⓈ-M\n교차 (Cross) · 20x\n82,037.0\nMark "
+  ],
+  "trade_state": "거래불가",
+  "presets": [
+   [
+    "live-preset-25%",
+    false
+   ],
+   [
+    "live-preset-HALF",
+    false
+   ],
+   [
+    "live-preset-75%",
+    false
+   ],
+   [
+    "live-preset-MAX",
+    false
+   ]
+  ],
+  "leverage_options": "1x\n2x\n3x\n5x\n10x\n20x\n50x\n100x",
+  "amount_lines": {
+   "선택 수량": true,
+   "내가 거는 금액": true,
+   "이번 주문 규모": true
+  },
+  "ttl_text": {
+   "제한 시간": false,
+   "15분": false,
+   "직접 해제할 때까지": false
+  },
+  "account_cards": 1,
+  "paper_balance_leak": false,
+  "half_close": 0,
+  "wall_text": {
+   "상단벽1": false,
+   "하단벽1": false
+  },
+  "c1": 0,
+  "seconds_on_live": 6.5
+ },
+ "console_errors": [
+  "Failed to load resource: net::ERR_FAILED",
+  "Failed to load resource: net::ERR_FAILED"
+ ],
+ "blocked": [
+  "GET https://usb.jptcalc.kr/api/v1/dashboard",
+  "GET https://usb.jptcalc.kr/api/v1/dashboard"
+ ],
+ "blocked_n": 2
+}

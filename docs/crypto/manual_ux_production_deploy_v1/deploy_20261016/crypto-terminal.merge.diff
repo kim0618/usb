@@ -1,0 +1,10 @@
+14a15
+> import { EntryAnalysisPreview } from "@/components/entry-analysis-preview";
+53c54
+< export function CryptoTerminal({ marketContext }: {
+---
+> export function CryptoTerminal({ marketContext, contextBase }: {
+156a158,160
+>       {/* [진입분석]: a local preview only (NEXT_PUBLIC_ENTRY_ANALYSIS_PREVIEW). One GET of the
+>           research verdict per click, nothing else: no order, no callback, no recorder. */}
+>       <EntryAnalysisPreview base={contextBase} symbol={symbol} />

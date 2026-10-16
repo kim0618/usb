@@ -1,0 +1,9 @@
+f79df8ce74fcbf84a0d73d0de01c3b8eeb9c4d53189a8cbadf5ac9996a11e86d  ./backend/app/crypto/live/arm.py
+481d797e365f8ff90c542afc466cd98a62e10f0e3e42e776fbb3c8e6447842e6  ./backend/app/crypto/live/orders.py
+e60b9404e49b2d37fc6922c2ded2cefcfedbb7a2f1c9040e27f054620bc63f6d  ./backend/app/crypto/paper/config.py
+6f365178be50837338a149a3923b0ab2d62311eccd71762bef55e3478133b039  ./backend/app/crypto/paper/engine.py
+7acb9d83bac3b35fed2685bb5dc78c54bfa3d960be2fffd592c39b59bca8f81a  ./backend/app/crypto/paper/sizing.py
+7a82dbcbe90c8dd82bd4da7dcfa4d37a30a591ab568dc17878f9952f2ed50b28  ./backend/app/crypto/terminal/api.py
+2f5185ffd770bf9b2ad529a434a1aeb1caeeaaf4fb152d364d26d53642683b15  ./backend/app/crypto/terminal/executions.py
+cd0f58b0cb966833d009a1163bcc03e597799fc067ebb7b3fd9e54808b6c80af  ./backend/app/crypto/terminal/live_routes.py
+6f8d1b93100c15e63a354c97c8d5d96b02546e989eb1923ce6c9624e7470dfa2  ./backend/app/crypto/terminal/server.py

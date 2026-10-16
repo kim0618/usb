@@ -1,0 +1,8 @@
+base check PASS
+import PASS; modules with c1: []
+depth constants: {}
+backup PASS /root/usb_runtime/crypto_manual_ux_pre_20261016-113758 (8 files)
+apply PASS
+restart usb-crypto-paper (pid 2142723) at 11:40:31
+health=1 after 40s pid 2142723 -> 2252381 NRestarts=0
+journal traceback|error lines: 0
