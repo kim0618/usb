@@ -184,3 +184,37 @@ export function qtyFromNotional(notional: string, price: string | number | null 
   const decimals = (String(step).split(".")[1] ?? "").length;
   return (Math.floor(raw / s + 1e-9) * s).toFixed(decimals);
 }
+
+/** HALF CLOSE size: half the held quantity, floored to the instrument's step.
+ *
+ *  Held 0.107 on a 0.001 grid is 107 steps; half is 53 steps = 0.053, leaving 0.054. Counted in
+ *  whole steps so a binary float never rounds 0.0535 the wrong way. When the half falls below
+ *  the minimum quantity (or, where the venue applies it to a reduce, the minimum notional at
+ *  `price`) there is no HALF CLOSE: the reason is returned and nothing is turned into a full
+ *  close on the operator's behalf. */
+export function halfCloseQty({ qty, step, minQty, minNotional, price }: {
+  qty: string | number | null | undefined;
+  step: string | number | null | undefined;
+  minQty?: string | number | null;
+  minNotional?: string | number | null;
+  price?: string | number | null;
+}): { qty: string | null; reason: string | null } {
+  const held = Math.abs(Number(qty));
+  const grid = Number(step);
+  if (!Number.isFinite(held) || held <= 0) return { qty: null, reason: "보유 포지션이 없습니다." };
+  if (!Number.isFinite(grid) || grid <= 0) return { qty: null, reason: "수량 단위를 알 수 없습니다." };
+  const decimals = (String(step).split(".")[1] ?? "").replace(/0+$/, "").length;
+  const units = Math.floor(Math.round(held / grid) / 2);
+  const half = units * grid;
+  const text = half.toFixed(decimals);
+  const minimum = Number(minQty ?? 0);
+  if (units <= 0 || (Number.isFinite(minimum) && minimum > 0 && half + grid / 1e6 < minimum)) {
+    return { qty: null, reason: `절반 ${units <= 0 ? "0" : text}이 최소 주문 수량 ${minQty}보다 작습니다.` };
+  }
+  const floorNotional = Number(minNotional ?? 0);
+  const reference = Number(price ?? 0);
+  if (floorNotional > 0 && reference > 0 && half * reference < floorNotional) {
+    return { qty: null, reason: `절반 ${text}의 명목 ${(half * reference).toFixed(2)} USDT가 최소 ${floorNotional} USDT보다 작습니다.` };
+  }
+  return { qty: text, reason: null };
+}

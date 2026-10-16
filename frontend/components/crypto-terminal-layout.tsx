@@ -18,7 +18,8 @@ import { PnlBreakdown, PnlHeadline, PositionCardShell, PositionExposure, type Br
 import type { Candle, Candle15sStatus, ChartBar, ChartOverlay, ChartPoint, CryptoAccount,
   HistoryTimeframe,
   LivePnl, OpenPositionPnl, PositionPnlPreview } from "@/lib/crypto-paper";
-import { executionMarkers } from "@/lib/crypto-executions";
+import { executionMarkers, halfCloseQty } from "@/lib/crypto-executions";
+import { PositionCloseButtons } from "@/components/crypto-position-close";
 import type { Execution } from "@/lib/crypto-executions";
 
 const NO_EXECUTIONS: Execution[] = [];
@@ -608,13 +609,30 @@ export function MobilePositionCard({ state, openedMs, nowMs, preview, live, onAc
       facts={paperFacts(state, live)}
       fold={{ toggleTestId: "mobile-position-detail-toggle", detailTestId: "mobile-position-detail" }}
       breakdown={preview?.position_open ? <PositionPnlBreakdown preview={preview} state={state} /> : undefined}
-      footer={
-        <button type="button" className="btn-muted h-11 w-full text-sm font-bold" data-testid="mobile-close-button"
-          disabled={busy || state.quote === null}
-          onClick={() => onAction(() => cryptoApi.order(state.symbol ?? DEFAULT_SYMBOL,
-            { side: account.position_side!, intent: "CLOSE", qty: account.position_qty }))}>
-          CLOSE · 전량 청산
-        </button>} />
+      footer={<PaperCloseButtons state={state} onAction={onAction} busy={busy} testIdPrefix="mobile"
+        fullTestId="mobile-close-button" />} />
+  );
+}
+
+/** HALF CLOSE / FULL CLOSE for the PAPER position on screen. Both are engine CLOSE orders on the
+ *  held side, so neither can open the other side: HALF sends half the held quantity floored to the
+ *  instrument's step, FULL sends the whole of it. The engine applies no notional floor to a
+ *  reduce, so only the quantity minimum can turn HALF off. */
+function PaperCloseButtons({ state, onAction, busy, testIdPrefix, fullTestId }: {
+  state: CryptoState; onAction: (run: () => Promise<unknown>) => void; busy: boolean;
+  testIdPrefix: string; fullTestId?: string;
+}) {
+  const account = state.account;
+  if (!account || account.position_side === null) return null;
+  const symbol = state.symbol ?? DEFAULT_SYMBOL;
+  const side = account.position_side;
+  const half = halfCloseQty({ qty: account.position_qty, step: state.instrument?.qty_step ?? "0.001",
+                              minQty: state.instrument?.min_order_qty });
+  const close = (size: string) => onAction(() => cryptoApi.order(symbol, { side, intent: "CLOSE", qty: size }));
+  return (
+    <PositionCloseButtons half={half} unit={baseAssetOf(symbol)} busy={busy} disabled={state.quote === null}
+      onHalf={close} onFull={() => close(account.position_qty)} testIdPrefix={testIdPrefix}
+      fullTestId={fullTestId} />
   );
 }
 
@@ -648,9 +666,11 @@ function paperFacts(state: CryptoState, live?: LivePnl | null): Fact[] {
   ];
 }
 
-export function PositionStrip({ state, openedMs, nowMs, preview, live }: {
+export function PositionStrip({ state, openedMs, nowMs, preview, live, onAction, busy = false }: {
   state: CryptoState; openedMs: number | null; nowMs: number; preview?: PositionPnlPreview | null;
   live?: LivePnl | null;
+  /** With it, the strip carries HALF CLOSE / FULL CLOSE like the phone card. */
+  onAction?: (run: () => Promise<unknown>) => void; busy?: boolean;
 }) {
   const account = state.account;
   if (!account || account.position_side === null) {
@@ -665,7 +685,9 @@ export function PositionStrip({ state, openedMs, nowMs, preview, live }: {
       top={<PaperExposure state={state} testIdPrefix="position-strip" />}
       headline={<LivePnlHeadline state={state} live={live} preview={preview} />}
       facts={paperFacts(state, live)}
-      breakdown={preview?.position_open ? <PositionPnlBreakdown preview={preview} state={state} /> : undefined} />
+      breakdown={preview?.position_open ? <PositionPnlBreakdown preview={preview} state={state} /> : undefined}
+      footer={onAction ? <PaperCloseButtons state={state} onAction={onAction} busy={busy}
+        testIdPrefix="position-strip" /> : undefined} />
   );
 }
 

@@ -9,7 +9,7 @@ import {
 import {
   AccountSourceSwitch, LiveAccountCards, LiveActivateDialog, LiveAuthorityNote, LiveBlockedPanel,
   LiveAutoExit, LiveBookStrip, LiveLeverageNotes, LiveLeveragePanel, LiveMarketHeader, LiveOrderTicket,
-  LivePositionCard, LivePositionPanel, LiveTradeBar, useBinanceLive,
+  LivePositionCard, LivePositionPanel, LiveTradeBar, liveHalfClose, useBinanceLive,
 } from "@/components/crypto-live-terminal";
 import { HotCoinFinder, useHotSlot } from "@/components/crypto-hot-coins";
 import {
@@ -165,6 +165,13 @@ export function CryptoTerminal({ marketContext }: {
     // snapshot all put the screen back to 거래불가 on the next poll without any special case.
     const gate = liveTradeGate(account, binance.arm, binance.error);
     const activate = () => setActivating(true);
+    /** FULL CLOSE as before (server re-reads the size, reduceOnly); HALF CLOSE sends a sized
+     *  CLOSE, which the server plans reduceOnly against a fresh position read. Both answer to the
+     *  same trade gate: a lapsed or never-armed screen opens the activation dialog instead. */
+    const closeFull = () => (gate.tradable
+      ? binance.order({ side: account?.position?.side || "LONG", intent: "CLOSE" }) : activate());
+    const closeHalf = (qty: string) => (gate.tradable
+      ? binance.order({ side: account?.position?.side || "LONG", intent: "CLOSE", qty }) : activate());
     return (
       <div className="mx-auto max-w-[1600px]">
         {sourceSwitch}
@@ -192,9 +199,7 @@ export function CryptoTerminal({ marketContext }: {
             <div className="xl:hidden">
               <LivePositionCard card={binance.positionCard} nowMs={Date.now()}
                 busy={binance.busy} symbolConfig={account.symbol_config}
-                onClose={() => (gate.tradable
-                  ? binance.order({ side: account.position?.side || "LONG", intent: "CLOSE" })
-                  : activate())} />
+                onClose={closeFull} onHalfClose={closeHalf} half={liveHalfClose(account)} />
             </div>
             <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
               <div className="space-y-3">
@@ -224,7 +229,8 @@ export function CryptoTerminal({ marketContext }: {
                     both would print the same position twice. Same split the paper screen uses
                     between MobilePositionCard and PositionStrip. */}
                 <div className="hidden xl:block">
-                  <LivePositionPanel account={account} card={binance.positionCard} />
+                  <LivePositionPanel account={account} card={binance.positionCard}
+                    onClose={closeFull} onHalfClose={closeHalf} busy={binance.busy} />
                 </div>
               </div>
               {/* Size, leverage and the two order buttons in one column, in the order they are
@@ -345,7 +351,8 @@ export function CryptoTerminal({ marketContext }: {
           {/* Wide layout keeps the full position panel under the chart; a phone has the card above. */}
           <div className="hidden xl:block">
             <PositionStrip state={state} openedMs={openedMs} nowMs={state.server_time_ms}
-              preview={terminal.breakdown?.position} live={live} />
+              preview={terminal.breakdown?.position} live={live} onAction={terminal.act}
+              busy={terminal.busy} />
           </div>
         </div>
 

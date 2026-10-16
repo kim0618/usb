@@ -260,7 +260,12 @@ class LiveOrderRouter:
         # every figure that follows is about a different instrument than the operator clicked.
         self._agree_on_symbol(symbol, state, position)
 
-        if intent == CLOSE:
+        if intent == CLOSE and qty not in (None, ""):
+            # A sized CLOSE is a partial close (HALF CLOSE): reduceOnly, at most the held size,
+            # against a fresh position read. It can never open the other side; a size above the
+            # position is refused, never trimmed into a full close.
+            plan = self._reduce_plan(qty, None, filters, book)
+        elif intent == CLOSE:
             plan = self._close_plan(filters, book)
         else:
             plan = self._open_plan(side, qty, notional_usdt, filters, book, position)

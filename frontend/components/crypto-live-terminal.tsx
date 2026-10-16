@@ -27,7 +27,8 @@ import {
 } from "@/lib/crypto-live";
 import { DEFAULT_SYMBOL, baseAsset as baseAssetOf } from "@/lib/crypto-symbols";
 import { visiblePoll } from "@/lib/visible-poll";
-import { executionsFor } from "@/lib/crypto-executions";
+import { executionsFor, halfCloseQty } from "@/lib/crypto-executions";
+import { PositionCloseButtons } from "@/components/crypto-position-close";
 import type { Execution } from "@/lib/crypto-executions";
 import { OrderAmountSummary } from "@/components/crypto-order-amount";
 
@@ -373,11 +374,15 @@ export function LiveBookStrip({ account }: { account: LiveAccount }) {
  *  `GET /api/crypto/binance/position`, one `net_if_closed`, and the exit guard's
  *  `current_net_usdt` is that same field read by the guard's own tick.
  */
-export function LivePositionPanel({ account, card }: {
+export function LivePositionPanel({ account, card, onClose, onHalfClose, busy }: {
   account: LiveAccount;
   /** The server's position card. Absent means the panel falls back to the account snapshot for
    *  the position figures and simply has no net estimate to show. */
   card?: LivePositionCardData | null;
+  /** With both, the panel carries HALF CLOSE / FULL CLOSE like the phone card. */
+  onClose?: () => void;
+  onHalfClose?: (qty: string) => void;
+  busy?: boolean;
 }) {
   const position = account.position;
   if (!position || position.is_flat) return null;
@@ -398,8 +403,28 @@ export function LivePositionPanel({ account, card }: {
       held={open ? holdingDuration(open.opened_at_ms ?? null, Date.now()) : null}
       top={open ? <LiveExposure card={open} testIdPrefix="live-position" /> : undefined}
       headline={<PnlHeadline pnl={parts.pnl} net={parts.net}/>}
-      facts={parts.facts} breakdown={parts.breakdown} />
+      facts={parts.facts} breakdown={parts.breakdown}
+      footer={onClose && onHalfClose ? (
+        <PositionCloseButtons half={liveHalfClose(account)} unit={liveUnit(account)} busy={busy}
+          onHalf={onHalfClose} onFull={onClose} testIdPrefix="live-position" />
+      ) : undefined} />
   );
+}
+
+/** HALF CLOSE size for the LIVE position: half of Binance's reported quantity, floored to the
+ *  MARKET_LOT_SIZE step, and refused below the market minimum quantity or MIN_NOTIONAL at the
+ *  price the close would take (bid for a LONG, ask for a SHORT) - the same filters the server
+ *  validates the reduceOnly order against. */
+export function liveHalfClose(account: LiveAccount | null | undefined) {
+  const position = account?.position;
+  if (!account || !position || position.is_flat) return { qty: null, reason: "보유 포지션이 없습니다." };
+  const filters = account.filters ?? {};
+  const step = filters.market_qty_step ?? filters.qty_step ?? null;
+  const price = position.side === "SHORT" ? account.book?.best_ask : account.book?.best_bid;
+  return halfCloseQty({ qty: position.qty, step: step == null ? null : String(step),
+                        minQty: (filters.market_min_qty ?? filters.min_qty) as string | number | null,
+                        minNotional: filters.min_notional as string | number | null,
+                        price: price ?? position.mark_price ?? account.mark?.mark_price ?? null });
 }
 
 type LivePartsInput = {
@@ -520,10 +545,13 @@ export function LiveExposure({ card, testIdPrefix }: {
  *  `userTrades` says opened the position. When the server cannot establish one of them it says
  *  so, and the card shows "-" rather than a confident wrong number.
  */
-export function LivePositionCard({ card, nowMs, onClose, busy, symbolConfig }: {
+export function LivePositionCard({ card, nowMs, onClose, onHalfClose, half, busy, symbolConfig }: {
   card: LivePositionCardData | null;
   nowMs: number;
   onClose: () => void;
+  /** HALF CLOSE. Absent leaves the card with FULL CLOSE only. */
+  onHalfClose?: (qty: string) => void;
+  half?: { qty: string | null; reason: string | null };
   busy?: boolean;
   /** Only for the 마진 모드 line: the account's per-symbol setting, which the card does not carry. */
   symbolConfig?: LiveAccount["symbol_config"] | null;
@@ -542,11 +570,14 @@ export function LivePositionCard({ card, nowMs, onClose, busy, symbolConfig }: {
       headline={<PnlHeadline pnl={parts.pnl} net={parts.net}/>}
       facts={parts.facts} breakdown={parts.breakdown}
       fold={{ toggleTestId: "live-card-detail-toggle", detailTestId: "live-card-detail" }}
-      footer={
+      footer={onHalfClose && half ? (
+        <PositionCloseButtons half={half} unit={baseAssetOf(card.symbol || DEFAULT_SYMBOL)} busy={busy}
+          onHalf={onHalfClose} onFull={onClose} testIdPrefix="live-card" fullTestId="live-card-close" />
+      ) : (
         <button type="button" className="btn-muted h-11 w-full text-sm font-bold"
           data-testid="live-card-close" disabled={busy} onClick={onClose}>
           CLOSE · 전량 청산
-        </button>} />
+        </button>)} />
   );
 }
 
