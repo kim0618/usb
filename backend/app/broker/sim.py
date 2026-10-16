@@ -43,7 +43,16 @@ class SimBroker(Broker):
         self._trades: dict[str, TradeResult] = {}
         self._sequence = 0
 
-    def submit_order(self, intent: OrderIntent, market_bars: Sequence[MinuteBar]) -> SimOrder:
+    def submit_order(self, intent: OrderIntent, market_bars: Sequence[MinuteBar], *,
+                     price_field: str = "open") -> SimOrder:
+        """Fill on the first bar after ``intent.market_as_of`` (``fill_delay_bars``), at its open.
+
+        ``price_field="close"`` fills at that bar's close instead. Only Strategy E uses it: its
+        frozen exit is the exact 09:34 bar close (``market_as_of`` 09:33, so the 09:34 bar is the
+        fill bar). The default is unchanged for every other caller.
+        """
+        if price_field not in ("open", "close"):
+            raise ValueError(f"unsupported price_field {price_field!r}")
         order = self._new_order(intent)
         if intent.quantity <= 0:
             return self._reject(order, RejectionReason.INVALID_QUANTITY)
@@ -59,10 +68,11 @@ class SimBroker(Broker):
         if len(candidates) <= target_index:
             return self._reject(order, RejectionReason.NO_NEXT_BAR)
         bar = candidates[target_index]
-        if not isfinite(bar.open) or bar.open <= 0:
+        price = bar.open if price_field == "open" else bar.close
+        if not isfinite(price) or price <= 0:
             return self._reject(order, RejectionReason.INVALID_MARKET_DATA)
         quantity = intent.quantity * (self.config.partial_fill_ratio if self.config.partial_fill_enabled else Decimal("1"))
-        raw = decimal_from(bar.open)
+        raw = decimal_from(price)
         fill = self._make_fill(order, quantity, raw, bar)
         # A limit, not a policy: Risk set the ceiling, and a BUY that would execute above
         # it does not fill at all rather than fill and be resized afterwards.

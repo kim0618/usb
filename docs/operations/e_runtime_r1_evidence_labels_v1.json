@@ -1,0 +1,13 @@
+{
+ "artifact": "E_RUNTIME_R1_EVIDENCE_LABELS_V1",
+ "declared_at_kst": "2026-10-16",
+ "strategy_id": "STRATEGY_E_MAX_V1",
+ "rule": "evaluation labels only; no book, session file or trade row is edited or deleted. Sessions under these labels are never summed with the V2 official runtime.",
+ "source": "E-MAX V1 read-only audit 2026-10-16 (exit fill 09:35 open vs frozen 09:34 close; A-mover attach delayed the 09:25 finalization from 2026-10-05; RVOL store premature daily appends from 2026-09-24)",
+ "labels": [
+  {"from": "2026-09-28", "to": "2026-10-02", "accounting": "V1", "label": "LEGACY_RUNTIME_EXIT_PROXY",
+   "why": "complete universe and on-time decisions, but the exit filled at the 09:35 bar open instead of the frozen exact 09:34 close (5 of 15 trades in this period differ, 7 of 25 overall); RVOL denominators of some rows reached past sessions lost to premature appends"},
+  {"from": "2026-10-05", "to": "2026-10-16", "accounting": "V1", "label": "INVALID_RUNTIME_EVIDENCE",
+   "why": "E finalization started 09:27-09:52 ET behind the attached A cut: partial universe (17-100% STALE), decision seals after 09:30, RVOL denominators affected by premature appends; 2026-10-13..16 in the PROVISIONAL book"}
+ ]
+}

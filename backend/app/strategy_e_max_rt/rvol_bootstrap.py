@@ -9,7 +9,10 @@ Two rules keep the rows honest:
 
 * the oldest session on the walk is *incomplete* - the walk stopped inside it, so its premarket sum
   would be truncated. It is never written. A session is complete once a strictly older row is seen;
-* a session with no 09:30 bar is written but not staged, which is exactly the frozen staging rule.
+* a session with no 09:30 bar is written but not staged, which is exactly the frozen staging rule;
+* a session that has not closed (before its 09:35 ET) is never written. After ET midnight the chart
+  already carries overnight bars dated with the new session; writing that session then stored a
+  zero-premarket row the append-only store would keep forever (E-RUNTIME-R1).
 
 Nothing here computes a signal, an order or a performance number, and nothing writes Massive data.
 """
@@ -27,7 +30,7 @@ from app.core.exceptions import MarketDataError
 from app.integrations.kiwoom.timestamps import minute_timestamp
 from app.strategy_e_max_rt.finalizer import MINUTE_API, TICK_API, Lane, kiwoom_code  # noqa: F401
 from app.strategy_e_max_rt.rvol_store import (
-    RVOL_WINDOW, RvolStore, SessionRecord,
+    ET, PREMATURE_REJECTED, RVOL_WINDOW, RvolStore, SessionRecord, session_closed_at,
 )
 from app.backtest.strategy_e1_premarket.premarket import DECISION_LAST_BAR, OPEN_MIN, PREMARKET_START
 
@@ -55,15 +58,27 @@ class SymbolResult:
     oldest_session: str | None = None
     error: str | None = None
     lane: str = ""
+    conflicts: int = 0
+    premature_skipped: int = 0
 
     def to_json(self) -> dict[str, Any]:
         return self.__dict__ | {}
 
 
+def _now_et() -> datetime:
+    return datetime.now(ET)
+
+
 def collect_symbol(lane: Lane, symbol: str, code: str, exchange: str, *, store: RvolStore,
-                   before: date, target: int = RVOL_WINDOW, max_pages: int = MAX_PAGES) -> SymbolResult:
-    """Page one symbol's chart back to ``target`` staged sessions strictly before ``before``."""
+                   before: date, target: int = RVOL_WINDOW, max_pages: int = MAX_PAGES,
+                   now: Callable[[], datetime] = _now_et) -> SymbolResult:
+    """Page one symbol's chart back to ``target`` staged sessions strictly before ``before``.
+
+    Only sessions that have closed by ``now`` are counted or written: an open session is neither
+    complete nor final, whatever the chart already shows for its date.
+    """
     result = SymbolResult(symbol, lane=lane.api_id)
+    clock = now()
     acc: dict[date, _Acc] = {}
     page, started = None, time.monotonic()
     try:
@@ -82,7 +97,7 @@ def collect_symbol(lane: Lane, symbol: str, code: str, exchange: str, *, store: 
             for row in rows:
                 stamp = minute_timestamp(row)
                 session, minute = stamp.date(), stamp.hour * 60 + stamp.minute
-                if session >= before:
+                if session >= before or clock < session_closed_at(session):
                     continue
                 bucket = acc.setdefault(session, _Acc())
                 if PREMARKET_START <= minute <= DECISION_LAST_BAR:
@@ -104,11 +119,63 @@ def collect_symbol(lane: Lane, symbol: str, code: str, exchange: str, *, store: 
     for session in writable:
         bucket = acc[session]
         record = SessionRecord(symbol, session, bucket.pm_dollar, bucket.pm_bars, bucket.has_open)
-        if store.put(record) == "WRITTEN":
+        outcome = store.put(record)
+        if outcome == "WRITTEN":
             result.sessions_written += 1
             result.staged_written += int(record.staged)
+        elif outcome == "CONFLICT":
+            result.conflicts += 1
+        elif outcome == PREMATURE_REJECTED:
+            result.premature_skipped += 1
     result.oldest_session = writable[0].isoformat() if writable else None
     return result
+
+
+def walk_sessions(lane: Lane, code: str, exchange: str, *, older_than: date,
+                  now: Callable[[], datetime] = _now_et,
+                  max_pages: int = MAX_PAGES) -> tuple[dict[date, SessionRecord], int, bool, str | None]:
+    """Page back until a session strictly older than ``older_than`` is seen; nothing is written.
+
+    Returns every closed, complete session met on the way (``SessionRecord`` with the symbol left
+    as ``code``; the caller names it), the pages used, whether the chart ran out first, and an
+    error code. ``older_than`` itself is complete once an older session has been seen.
+    """
+    acc: dict[date, _Acc] = {}
+    page, pages, clock, exhausted, error = None, 0, now(), False, None
+    try:
+        while pages < max_pages:
+            for attempt in range(RATE_RETRIES + 1):
+                try:
+                    page = lane.page(code, exchange, continuation=page)
+                    break
+                except MarketDataError as exc:
+                    if getattr(exc, "code", "") != "RATE_LIMITED" or attempt == RATE_RETRIES:
+                        raise
+                    time.sleep(1.0 + attempt)
+            pages += 1
+            rows = page.body.get("result_list", [])
+            for row in rows:
+                stamp = minute_timestamp(row)
+                session, minute = stamp.date(), stamp.hour * 60 + stamp.minute
+                if clock < session_closed_at(session):
+                    continue
+                bucket = acc.setdefault(session, _Acc())
+                if PREMARKET_START <= minute <= DECISION_LAST_BAR:
+                    bucket.pm_dollar += float(row["cur_prc"]) * float(row["trde_qty"])
+                    bucket.pm_bars += 1
+                elif minute == OPEN_MIN:
+                    bucket.has_open = True
+            if acc and min(acc) < older_than:
+                break
+            if not rows or not page.continuation:
+                exhausted = True
+                break
+    except Exception as exc:                                   # a refusal ends this symbol, not the run
+        error = getattr(exc, "code", None) or type(exc).__name__
+    ordered = sorted(acc)
+    complete = ordered if exhausted else ordered[1:]           # the oldest seen is truncated
+    return ({d: SessionRecord(code, d, acc[d].pm_dollar, acc[d].pm_bars, acc[d].has_open) for d in complete},
+            pages, exhausted, error)
 
 
 def bootstrap(lanes: Sequence[Lane], work: Sequence[tuple[str, str, str]], *, store: RvolStore,

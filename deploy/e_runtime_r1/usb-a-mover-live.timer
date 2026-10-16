@@ -1,0 +1,11 @@
+[Unit]
+Description=Start A-MOVER-LIVE-V1's own worker before the 04:00 ET premarket (separate from E since E-RUNTIME-R1)
+
+[Timer]
+OnCalendar=Mon..Fri 03:45 America/New_York
+Persistent=false
+AccuracySec=30s
+Unit=usb-a-mover-live.service
+
+[Install]
+WantedBy=timers.target

@@ -170,6 +170,27 @@ def _e_books() -> dict[str, dict[str, Any] | None]:
     return {status: RB.book(status) for status in RB.BOOK_STATUSES}
 
 
+def _e_status_r1(mode: dict[str, Any], record: dict[str, Any] | None) -> tuple[str, str, str]:
+    """(runtime_status, operational_status, paper_status) under the E-RUNTIME-R1 operator state.
+
+    A paused or validating runtime never reads COMPLETE, and a blocked official session shows the
+    reason it was blocked instead of the engine's terminal phase."""
+    name = mode["mode"]
+    if name == RB.MODE_PAUSED:
+        return name, PAUSED, name
+    if name == RB.MODE_SHADOW:
+        return name, PAUSED, name
+    session = None if record is None else record.get("session")
+    gate = (record or {}).get("execution_gate") or {}
+    engine = RB.engine_session(RB.OFFICIAL, session, RB.V2) if session else None
+    phase = (engine or {}).get("phase")
+    if gate and not gate.get("authorized", True):
+        return gate.get("status") or "NO_DECISION", DATA_ERROR, RB.OFFICIAL
+    if phase in ("DECIDED", "POSITION_OPEN", "ERROR"):
+        return phase, _e_operational(phase), RB.OFFICIAL
+    return RB.MODE_OFFICIAL, WAITING_SIGNAL, RB.OFFICIAL
+
+
 def _e_status() -> dict[str, Any]:
     record = RB.session_record()
     session = None if record is None else record.get("session")
@@ -181,11 +202,18 @@ def _e_status() -> dict[str, Any]:
     runtime_status = (engine or {}).get("phase")
     if runtime_status is None:
         runtime_status = (record or {}).get("status") or "NO_SESSION_YET"
+    operational, paper_status = _e_operational(runtime_status), status or "NO_SESSION_YET"
+    mode = RB.runtime_mode()
+    gate = (record or {}).get("execution_gate")
+    if mode is not None:
+        runtime_status, operational, paper_status = _e_status_r1(mode, record)
+        status = RB.OFFICIAL if mode["mode"] == RB.MODE_OFFICIAL else mode["mode"]
     return {
         "runtime_status": runtime_status,
-        "operational_status": _e_operational(runtime_status),
-        "paper_status": status or "NO_SESSION_YET",
+        "operational_status": operational,
+        "paper_status": paper_status,
         "evidence_status": status,
+        "runtime_mode": mode,
         "mode": "SIMULATION_VIRTUAL_ONLY",
         "session": session,
         "last_decision": (record or {}).get("decision_digest"),
@@ -203,14 +231,70 @@ def _e_status() -> dict[str, Any]:
             "h5_false": (record or {}).get("h5_false"),
             "h5_unknown": (record or {}).get("h5_unknown"),
             "selected": (record or {}).get("selected"),
-            "no_decision_reason": (record or {}).get("reason"),
+            "no_decision_reason": ((gate or {}).get("status") if gate and not gate.get("authorized", True)
+                                   else (record or {}).get("reason")),
+            "execution_gate": gate,
+            "evidence_label": RB.evidence_label(session) if mode is not None and gate is None else None,
             "bootstrap": bootstrap,
             "universe": universe,
         },
     }
 
 
+def _book_row(body: dict[str, Any] | None, **extra: Any) -> dict[str, Any]:
+    return {"present": body is not None, "initial_equity": (body or {}).get("initial_equity"),
+            "equity": (body or {}).get("equity"), "realized_pnl": (body or {}).get("realized_pnl"),
+            "sessions": len((body or {}).get("sessions") or {}), **extra}
+
+
+def _e_account_r1(mode: dict[str, Any]) -> dict[str, Any]:
+    """Headline = the active official book only. Before V2 official exists that is nothing, so the
+    V1 official book is shown as what it is (legacy runtime evidence) - never the PROVISIONAL one."""
+    v2_official, v2_shadow = RB.book(RB.OFFICIAL, RB.V2), RB.book(RB.SHADOW, RB.V2)
+    v1_official, v1_provisional = RB.book(RB.OFFICIAL, RB.CURRENT), RB.book(RB.PROVISIONAL, RB.CURRENT)
+    active = mode["mode"] == RB.MODE_OFFICIAL and v2_official is not None
+    headline = v2_official if active else v1_official
+    record = RB.session_record()
+    session = None if record is None else record.get("session")
+    engine = RB.engine_session(RB.OFFICIAL, session, RB.V2) if (active and session) else None
+    summary = (engine or {}).get("summary") or {}
+    entries, exits = (engine or {}).get("entries") or {}, (engine or {}).get("exits") or {}
+    filled = [s for s, e in entries.items() if e.get("status") == "FILLED"]
+    labels = RB.evidence_labels()
+    return {
+        "currency": "USD",
+        "initial_equity": (headline or {}).get("initial_equity"),
+        "current_equity": (headline or {}).get("equity"),
+        "today_pnl": summary.get("sim_realized_pnl") if active else None,
+        "total_pnl": (headline or {}).get("realized_pnl"),
+        "open_positions": len([s for s in filled if s not in exits]),
+        "closed_trades_today": len(exits) if active else 0,
+        "source": "E_RUNTIME_FILES",
+        "evidence_status": RB.OFFICIAL if active else "LEGACY_RUNTIME_V1",
+        "runtime_mode": mode,
+        "headline_book": ("paper_state_v2/OFFICIAL_KIWOOM_PAPER" if active
+                          else "paper_state_v1/OFFICIAL_KIWOOM_PAPER (LEGACY / INVALIDATED runtime, not active)"),
+        "books": {
+            "V2_OFFICIAL_KIWOOM_PAPER": _book_row(v2_official, accounting_version="V2", label="ACTIVE_OFFICIAL"),
+            "V2_SHADOW_VALIDATION": _book_row(v2_shadow, accounting_version="V2", label="SHADOW_NOT_PERFORMANCE"),
+            "V1_OFFICIAL_KIWOOM_PAPER": _book_row(v1_official, accounting_version="V1",
+                                                  label="LEGACY_RUNTIME_EXIT_PROXY / INVALID_RUNTIME_EVIDENCE"),
+            "V1_PROVISIONAL_RVOL_BOOTSTRAP": _book_row(v1_provisional, accounting_version="V1",
+                                                       label="INVALID_RUNTIME_EVIDENCE"),
+        },
+        "evidence_labels": labels.get("labels", []),
+        "separate_books": "V2 공식 장부만 현재 성과다. V1·PROVISIONAL·V0은 과거 증거로만 남기고 합산하지 않는다",
+        "accounting_version": RB.V2 if active else RB.CURRENT,
+        "legacy_books": {name: _book_row(body, accounting_version=RB.LEGACY)
+                         for name, body in ((s, RB.book(s, RB.LEGACY)) for s in RB.BOOK_STATUSES)},
+        "empty_reason": None if (headline and headline.get("sessions")) else "V2 공식 장부 거래 없음",
+    }
+
+
 def _e_account() -> dict[str, Any]:
+    mode = RB.runtime_mode()
+    if mode is not None:
+        return _e_account_r1(mode)
     record = RB.session_record()
     status = RB.evidence_status(record) or RB.PROVISIONAL
     books = _e_books()
@@ -254,7 +338,12 @@ def _e_positions() -> list[dict[str, Any]]:
     record = RB.session_record()
     status = RB.evidence_status(record)
     session = None if record is None else record.get("session")
-    engine = RB.engine_session(status, session) if (status and session) else None
+    mode = RB.runtime_mode()
+    if mode is not None:                          # R1: only the active V2 official book holds positions
+        status = RB.OFFICIAL if mode["mode"] == RB.MODE_OFFICIAL else None
+        engine = RB.engine_session(RB.OFFICIAL, session, RB.V2) if (status and session) else None
+    else:
+        engine = RB.engine_session(status, session) if (status and session) else None
     if engine is None:
         return []
     exits = engine.get("exits") or {}
@@ -272,9 +361,15 @@ def _e_positions() -> list[dict[str, Any]]:
 
 def _e_trades(limit: int) -> list[dict[str, Any]]:
     """Every book (evidence grade x accounting root), each row tagged with its own; never merged."""
-    out = [trade | {"evidence_status": status, "source": "E_RUNTIME_FILES"}
+    out = [trade | {"evidence_status": status, "source": "E_RUNTIME_FILES",
+                    "evaluation_label": RB.evidence_label(session["session"], accounting)}
            for accounting in (RB.CURRENT, RB.LEGACY) for status in RB.BOOK_STATUSES
            for session in BK.e_session_trades(status, accounting) for trade in session["trades"]]
+    if RB.runtime_mode() is not None:
+        out += [trade | {"evidence_status": status, "source": "E_RUNTIME_FILES", "accounting_version": RB.V2,
+                         "evaluation_label": "E_RUNTIME_R1_V2" if status == RB.OFFICIAL else "SHADOW_VALIDATION"}
+                for status in (RB.OFFICIAL, RB.SHADOW)
+                for session in BK.e_session_trades(status, RB.V2) for trade in session["trades"]]
     out.sort(key=lambda r: (r["session"] or "", r["symbol"]), reverse=True)
     return out[:limit]
 
@@ -287,6 +382,13 @@ def _e_equity() -> dict[str, Any]:
                   for session, row in sorted((body.get("sessions") or {}).items())]
         series[status] = {"points": points, "baseline": body.get("initial_equity")}
     current = RB.evidence_status(RB.session_record()) or RB.PROVISIONAL
+    mode = RB.runtime_mode()
+    if mode is not None:
+        v2 = RB.book(RB.OFFICIAL, RB.V2) or {}
+        series["V2_" + RB.OFFICIAL] = {"points": [{"date": d, "equity": r.get("equity_after")}
+                                                 for d, r in sorted((v2.get("sessions") or {}).items())],
+                                      "baseline": v2.get("initial_equity")}
+        current = ("V2_" + RB.OFFICIAL) if (mode["mode"] == RB.MODE_OFFICIAL and v2) else RB.OFFICIAL
     return {"strategy_id": REG.STRATEGY_E_MAX_V1, "currency": "USD", "source": "E_RUNTIME_FILES",
             "current_book": current, "points": series[current]["points"],
             "baseline": series[current]["baseline"], "books": series,

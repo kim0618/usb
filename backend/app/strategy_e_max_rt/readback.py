@@ -30,7 +30,16 @@ H5_RULES = REPO_ROOT / "docs/backtest/strategy_e_candidate/e1_h5_confirmation_ru
 STRATEGY_ID = "STRATEGY_E_MAX_V1"
 PROVISIONAL = "PROVISIONAL_RVOL_BOOTSTRAP"
 OFFICIAL = "OFFICIAL_KIWOOM_PAPER"
+SHADOW = "SHADOW_VALIDATION"
 BOOK_STATUSES = (PROVISIONAL, OFFICIAL)
+#: E-RUNTIME-R1 operator state, written by the deployment steps (``runtime_mode.json`` in the run
+#: root). Without the file every accessor behaves exactly as before R1.
+RUNTIME_MODE_FILE = "runtime_mode.json"
+MODE_PAUSED = "RUNTIME_PAUSED_FOR_REPAIR"
+MODE_SHADOW = "RUNTIME_SHADOW_VALIDATION"
+MODE_OFFICIAL = "OFFICIAL_PAPER_RUNNING"
+RUNTIME_MODES = (MODE_PAUSED, MODE_SHADOW, MODE_OFFICIAL)
+EVIDENCE_LABELS = REPO_ROOT / "docs/operations/e_runtime_r1_evidence_labels_v1.json"
 
 
 def paper_run_dir() -> Path:
@@ -103,9 +112,35 @@ def evidence_status(record: dict[str, Any] | None) -> str | None:
 #: Book roots by accounting version. V0 is the tree the runner wrote before 2026-09-27 (A's 25 bp
 #: execution, costs charged twice); it is read as legacy and never written again. V1 is the E cost
 #: contract under ACCOUNTING_V1. The two are never merged.
-BOOK_ROOTS = {"V1": "paper_state_v1", "V0": "paper_state"}
+BOOK_ROOTS = {"V2": "paper_state_v2", "V1": "paper_state_v1", "V0": "paper_state"}
 CURRENT = "V1"
 LEGACY = "V0"
+V2 = "V2"
+
+
+def runtime_mode() -> dict[str, Any] | None:
+    """The operator's E-RUNTIME-R1 state, or None before R1 was deployed (pre-R1 behaviour)."""
+    body = _json(paper_run_dir() / RUNTIME_MODE_FILE)
+    if not body or body.get("mode") not in RUNTIME_MODES:
+        return None
+    return body
+
+
+def evidence_labels() -> dict[str, Any]:
+    """Per-session evaluation labels for the V1 runtime period; the books themselves are untouched."""
+    return _json(EVIDENCE_LABELS) or {}
+
+
+def evidence_label(session: str | None, accounting: str = CURRENT) -> str | None:
+    """LEGACY_RUNTIME_EXIT_PROXY / INVALID_RUNTIME_EVIDENCE for a V1-runtime session, else None."""
+    if not session or accounting == V2:
+        return None
+    for rule in evidence_labels().get("labels", []):
+        if rule.get("accounting") not in (None, accounting):
+            continue
+        if rule["from"] <= session <= (rule.get("to") or "9999-12-31"):
+            return rule["label"]
+    return None
 
 
 def book_dir(status: str, accounting: str = CURRENT) -> Path:
@@ -146,9 +181,17 @@ def bootstrap() -> dict[str, Any]:
         return {"available": False, "status": "UNKNOWN", "reason": "no coverage report and no store yet"}
     total = int(body.get("symbols") or 0)
     ready = int(body.get("fully_ready") or 0)
-    complete = (body.get("source") != "store" and total > 0
-                and ready >= total - int(body.get("history_exhausted") or 0))
-    return {"available": True, "status": "COMPLETE" if complete else "RUNNING",
+    exceptions = int(body.get("history_exhausted") or 0)
+    complete = (body.get("source") != "store" and total > 0 and ready >= total - exceptions)
+    if runtime_mode() is not None:
+        # R1: the collector is a once-a-day timer, not a loop that is "running"; a store short of
+        # the window is INCOMPLETE with a count, never an endless RUNNING percentage.
+        status = ("COMPLETE" if complete and ready >= total else
+                  "COMPLETE_WITH_EXCEPTIONS" if complete else "INCOMPLETE")
+    else:
+        status = "COMPLETE" if complete else "RUNNING"
+    return {"available": True, "status": status,
+            "pending": max(total - ready - exceptions, 0),
             "symbols": total, "ready": ready,
             "partial": int(body.get("partially_ready") or 0), "zero": int(body.get("zero_history") or 0),
             "history_exhausted": int(body.get("history_exhausted") or 0),

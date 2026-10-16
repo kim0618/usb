@@ -102,7 +102,10 @@ def test_integrity_failure_is_not_admitted(defect):
 
 
 def test_production_runner_to_import_human_and_durable_paper(tmp_path, monkeypatch):
-    """Controlled offline dependencies; no fabricated scan/approval in an operating DB."""
+    """Controlled offline dependencies; no fabricated scan/approval in an operating DB.
+
+    E-RUNTIME-R1: the production runner of A's cut is now A's own worker (``run_a_mover_live``),
+    not E's paper worker; everything downstream of the cut is the same path."""
     import gzip
     import json
     from datetime import datetime, time, timedelta
@@ -110,7 +113,8 @@ def test_production_runner_to_import_human_and_durable_paper(tmp_path, monkeypat
     from types import SimpleNamespace
     from sqlalchemy.orm import sessionmaker
     from app.core import database as DB, config as C
-    from app.dev import run_e_rt2_dryrun as worker
+    import os
+    from app.dev import run_a_mover_live as worker
     from app.integrations.kiwoom import auth
     from app.strategy_e_max_rt import finalizer as E, universe_build as UB
     from app.strategy_a_mover_live import integration as I, paper_adapter as PA
@@ -177,7 +181,6 @@ def test_production_runner_to_import_human_and_durable_paper(tmp_path, monkeypat
     monkeypatch.setattr(E, "ChartLaneClient", Client)
     monkeypatch.setattr(worker, "now", clock)
     monkeypatch.setattr(worker.time, "sleep", clock.tick)
-    monkeypatch.setattr(worker, "a_health", lambda: {"mode": "controlled-offline"})
     original = I.attach_isolated
     def attach(**kwargs):
         assert kwargs["session_factory"] is factory
@@ -195,9 +198,9 @@ def test_production_runner_to_import_human_and_durable_paper(tmp_path, monkeypat
     artifact["digest"] = UB.digest_of(artifact)
     path = tmp_path / "universe.json"
     path.write_text(json.dumps(artifact))
-    assert worker.run(path, tmp_path / "out", paper=False, rvol_store_path=tmp_path / "rvol.sqlite3") == 0
-    report = json.loads((tmp_path / "out" / str(SESSION) / "run.json").read_text())
-    assert report["status"] == "COMPLETE"
+    assert worker.run(tmp_path / "out", environ=dict(os.environ), repo=tmp_path) == 0
+    report = json.loads((tmp_path / "out" / str(SESSION) / "a_mover_live.json").read_text())
+    assert report["status"] == "COMPLETE" and report["worker"] == "A_MOVER_LIVE_STANDALONE"
     a = report["a_mover_live"]
     assert a["baseline_readiness"]["baseline_ready_count"] == 45
     assert a["baseline_readiness"]["baseline_insufficient_count"] == 2

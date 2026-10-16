@@ -1,0 +1,22 @@
+# E-RUNTIME-R1 release: repo path -> server tree. Every target file must hash to the git HEAD that
+# preceded this release before it is replaced (deploy_r1.sh preflight checks; new files must be absent).
+# tree EP  = /root/usb_runtime/strategy_e_paper/src   (E paper worker + A mover worker)
+# tree RV  = /root/usb_runtime/strategy_e_rvol/src    (RVOL collector timer)
+# tree USB = /root/usb                                (usb-backend API)
+EP  backend/app/dev/run_e_rt2_dryrun.py
+EP  backend/app/strategy_e_max_rt/engine.py
+EP  backend/app/strategy_e_max_rt/cost.py
+EP  backend/app/strategy_e_max_rt/rvol_store.py
+EP  backend/app/strategy_e_max_rt/rvol_bootstrap.py
+EP  backend/app/broker/sim.py
+EP  backend/app/integrations/kiwoom/lane_share.py        NEW
+EP  backend/app/dev/run_a_mover_live.py                  NEW
+EP  backend/app/dev/verify_e_runtime_session.py          NEW
+RV  backend/app/dev/run_e_rt3_rvol.py
+RV  backend/app/strategy_e_max_rt/rvol_store.py
+RV  backend/app/strategy_e_max_rt/rvol_bootstrap.py
+USB backend/app/strategy_e_max_rt/readback.py
+USB backend/app/api/strategies.py
+USB backend/app/strategies/books.py
+USB backend/app/strategies/ledger.py
+USB docs/operations/e_runtime_r1_evidence_labels_v1.json NEW

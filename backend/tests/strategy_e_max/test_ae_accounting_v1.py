@@ -135,7 +135,8 @@ def test_the_25bp_per_leg_config_is_not_on_es_official_path() -> None:
     assert (execution.default_spread_bps, execution.default_slippage_bps, execution.commission_bps) == (0, 0, 0)
     assert ENG.Engine.__dataclass_fields__["execution"].default_factory is COST.official_execution
     source = inspect.getsource(RUNNER._paper_stage)
-    assert "COST.official_execution()" in source and "execution=execution" in source
+    # R1: the runner opens V2 books under the same COST_10BP contract (exit at the exact 09:34 close)
+    assert "COST.official_execution(COST.EXECUTION_VERSION_V2)" in source and "execution=execution" in source
     assert "ExecutionConfig(" not in source
 
 
@@ -143,11 +144,12 @@ def test_the_25bp_per_leg_config_is_not_on_es_official_path() -> None:
 
 def test_e_v1_session_matches_the_contract_formula_and_reconciles(tmp_path) -> None:
     run_stage(tmp_path, ["AAA", "BBB"], status=PAPER.OFFICIAL)      # 2.0x, 100 -> 101 on both names
-    root = tmp_path / RUNNER.PAPER_STATE_V1 / PAPER.OFFICIAL / "STRATEGY_E_MAX_V1"
+    root = tmp_path / RUNNER.PAPER_STATE_V2 / RUNNER.BOOK_OFFICIAL / "STRATEGY_E_MAX_V1"
     book = json.loads((root / "book.json").read_text())
     state = json.loads((root / "sessions" / f"{D.isoformat()}.json").read_text())
-    assert book["accounting_version"] == "V1" and book["cost_contract_version"] == "STRATEGY_E_COST_V1:COST_10BP"
-    assert book["execution_version"] == COST.EXECUTION_VERSION
+    # E-RUNTIME-R1: same cost contract, V2 accounting label (exit at the exact 09:34 close)
+    assert book["accounting_version"] == "V2" and book["cost_contract_version"] == "STRATEGY_E_COST_V1:COST_10BP"
+    assert book["execution_version"] == COST.EXECUTION_VERSION_V2
     # exposure x (gross - cost) x equity = 2 x (0.01 - 0.001) x 10,000 = 180, to the cent
     assert Decimal(state["summary"]["sim_realized_pnl"]) == Decimal("180")
     assert Decimal(state["summary"]["sim_cost"]) == Decimal("20")
@@ -156,7 +158,7 @@ def test_e_v1_session_matches_the_contract_formula_and_reconciles(tmp_path) -> N
                             book=PAPER.OFFICIAL, book_session=book["sessions"][D.isoformat()])
     assert out["reconciliation"]["status"] == "RECONCILED" and out["reconciliation"]["accounting"] == L.ACCOUNTING_V1
     assert sum(Decimal(t["net_pnl"]) for t in out["trades"]) == Decimal("180")
-    assert {t["accounting_version"] for t in out["trades"]} == {"V1"}
+    assert {t["accounting_version"] for t in out["trades"]} == {"V2"}     # R1 label, V1 cash-charges method
     # the recorded 10 bp view and the paper figure agree, so E's gate divergence is 0 here
     assert Decimal(state["summary"]["fixed_bp_session_return_views"]["net_10bp"]) == Decimal("0.018")
 

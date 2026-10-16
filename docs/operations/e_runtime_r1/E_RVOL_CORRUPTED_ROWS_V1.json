@@ -1,0 +1,29 @@
+{
+ "artifact": "E_RVOL_CORRUPTED_ROWS_V1",
+ "generated_at": "2026-10-16T02:25:18.080424-04:00",
+ "store": "production store snapshot 2026-10-16 02:25 ET (read-only copy)",
+ "rule": "complete=1 AND collected_at < session 09:35 ET, XNYS sessions only",
+ "reason": "PREMATURE_DAILY_APPEND_V1",
+ "count": 6996,
+ "symbols": 1334,
+ "by_session": {
+  "2026-09-24": 558,
+  "2026-09-25": 490,
+  "2026-09-29": 444,
+  "2026-09-30": 469,
+  "2026-10-01": 530,
+  "2026-10-02": 460,
+  "2026-10-06": 443,
+  "2026-10-07": 459,
+  "2026-10-08": 447,
+  "2026-10-09": 421,
+  "2026-10-13": 633,
+  "2026-10-14": 470,
+  "2026-10-15": 647,
+  "2026-10-16": 525
+ },
+ "staged_true": 0,
+ "non_trading_dates_excluded": 0,
+ "rows_file": "E_RVOL_CORRUPTED_ROWS_V1.csv",
+ "note": "the repair input is regenerated on the server from the live store right before the staged repair (same rule); this file is the 10/16 snapshot"
+}

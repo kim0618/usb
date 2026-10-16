@@ -152,6 +152,11 @@ def _e_book(status: str, accounting: str, since: str | None,
 
 
 def e_books(open_positions: list[dict[str, Any]] | None = None) -> dict[str, Book]:
+    mode = RB.runtime_mode()
+    if mode is not None and mode["mode"] == RB.MODE_OFFICIAL and RB.book(RB.OFFICIAL, RB.V2) is not None:
+        # E-RUNTIME-R1: the V2 book is the only current official record; V1 is never summed into it
+        return {"official": _e_book(RB.OFFICIAL, RB.V2, None, open_positions),
+                "legacy": _e_book(RB.OFFICIAL, RB.LEGACY, None, None)}
     start = _start()
     official = (_e_book(RB.OFFICIAL, RB.CURRENT, start, open_positions) if start is not None
                 else Book(REG.STRATEGY_E_MAX_V1, None, [], [], []))

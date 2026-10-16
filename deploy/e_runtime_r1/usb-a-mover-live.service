@@ -1,0 +1,23 @@
+[Unit]
+Description=USB Strategy A-MOVER-LIVE-V1 own worker (09:15 cut, scan, handoff; Kiwoom read-only, own share of the key)
+After=network-online.target usb-backend.service
+# a once-a-day job must not crash-loop between timers
+StartLimitIntervalSec=1800
+StartLimitBurst=3
+
+[Service]
+Type=simple
+# Same source tree and data authority A's cut used inside E's worker until 2026-10-16 (E-RUNTIME-R1):
+# the reference cache, grouped daily and splits it reads live under this tree's data/runtime.
+WorkingDirectory=/root/usb_runtime/strategy_e_paper/src/backend
+EnvironmentFile=/root/usb/.env
+Environment=PYTHONPATH=/root/usb_runtime/strategy_e_paper/src/backend
+Environment=STRATEGY_E_MAX_ENABLED=false
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/root/usb/.venv/bin/python -m app.dev.run_a_mover_live run --out /root/usb_runtime/strategy_a_mover_live/run
+Restart=on-failure
+RestartSec=30
+MemoryMax=300M
+# E's 09:25 finalization and seal outrank A's post-cut scan on this host
+Nice=10
+CPUWeight=20

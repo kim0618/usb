@@ -12,6 +12,13 @@ The frozen definition is read from the research code, never restated by hand
 * ``premarket_rvol`` = today's premarket dollar volume / that median; NaN when the median is
   undefined or not positive. A NaN from too little history is the frozen rule, not missing data.
 
+A session's row is final only once the session's premarket and its 09:30 bar exist, so the store
+refuses a row for session D before ``SESSION_CLOSED_AT`` (09:35 ET) of D. Before 2026-10-16 the
+collector ran after ET midnight and wrote D from the overnight bars stamped with D's date - zero
+premarket bars, not staged, ``complete=1`` - and the append-only ``put`` then kept that row and
+discarded D's real data as a CONFLICT (E-RUNTIME-R1). ``premature_rows`` finds such rows and
+``repair`` replaces one, explicitly, with an audit row in ``kiwoom_repair_log``.
+
 The store keeps one row per (symbol, session) instead of the minute tape, so a runtime preloads the
 denominator of the whole universe without re-reading bars or calling the API at 09:25. Massive volume
 is never written here: the numerator and the denominator must come from the same source.
@@ -21,7 +28,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import date, datetime, time, timezone
 import hashlib
 import inspect
 import json
@@ -29,6 +36,7 @@ from pathlib import Path
 import sqlite3
 from statistics import median
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from app.backtest.strategy_e1_premarket.premarket import (
     DECISION_LAST_BAR, OPEN_MIN, PREMARKET_START, session_rows,
@@ -40,6 +48,13 @@ STORE_VERSION = "e-rt3-kiwoom-rvol-v1"
 _defaults = inspect.signature(session_rows).parameters
 RVOL_WINDOW = int(_defaults["rvol_window"].default)          # frozen: 20
 RVOL_MINIMUM = int(_defaults["rvol_minimum"].default)        # frozen: 5
+
+ET = ZoneInfo("America/New_York")
+#: A row for session D may be written from this ET time of D on: the premarket window ends at 09:24
+#: and the staging rule needs the 09:30 bar, which is complete at 09:31.
+SESSION_CLOSED_AT = time(9, 35)
+PREMATURE_REJECTED = "PREMATURE_REJECTED"
+REPAIR_PREMATURE_DAILY_APPEND = "PREMATURE_DAILY_APPEND_V1"
 
 READY = "RVOL_READY"
 NAN_BY_RULE = "RVOL_NORMAL_NAN_BY_RULE"
@@ -68,7 +83,36 @@ CREATE TABLE IF NOT EXISTS kiwoom_collection_state (
   last_pass_at TEXT NOT NULL,
   last_error TEXT
 );
+CREATE TABLE IF NOT EXISTS kiwoom_repair_log (
+  symbol TEXT NOT NULL,
+  session TEXT NOT NULL,
+  repair_reason TEXT NOT NULL,
+  old_pm_dollar_volume REAL,
+  old_pm_bars INTEGER,
+  old_has_open_0930 INTEGER,
+  old_staged INTEGER,
+  old_collected_at TEXT,
+  old_checksum TEXT NOT NULL,
+  new_pm_dollar_volume REAL,
+  new_pm_bars INTEGER NOT NULL,
+  new_has_open_0930 INTEGER NOT NULL,
+  new_staged INTEGER NOT NULL,
+  new_checksum TEXT NOT NULL,
+  repaired_at TEXT NOT NULL,
+  PRIMARY KEY (symbol, session, repair_reason)
+);
 """
+
+
+def session_closed_at(session: date) -> datetime:
+    """The first moment a row for ``session`` may be stored as final."""
+    return datetime.combine(session, SESSION_CLOSED_AT, tzinfo=ET)
+
+
+def collected_before_close(session: str | date, collected_at: str) -> bool:
+    """True when a stored row was written before its own session could be complete."""
+    day = date.fromisoformat(session) if isinstance(session, str) else session
+    return datetime.fromisoformat(collected_at) < session_closed_at(day)
 
 
 @dataclass(frozen=True)
@@ -112,9 +156,10 @@ def from_minute_rows(symbol: str, session: date, rows: Iterable[Mapping[str, Any
 class RvolStore:
     """SQLite-backed, append-only per (symbol, session); a stored row is never silently rewritten."""
 
-    def __init__(self, path: Path):
+    def __init__(self, path: Path, *, clock=None):
         path.parent.mkdir(parents=True, exist_ok=True)
         self.path = path
+        self.clock = clock or (lambda: datetime.now(timezone.utc))
         # one connection shared by the collector's lane threads; every write goes through a lock
         self.connection = sqlite3.connect(path, check_same_thread=False)
         self.connection.executescript(SCHEMA)
@@ -122,6 +167,8 @@ class RvolStore:
 
     # -- writing
     def put(self, record: SessionRecord, *, replace: bool = False) -> str:
+        if self.clock() < session_closed_at(record.session):
+            return PREMATURE_REJECTED                  # D's row cannot be final before D's 09:35 ET
         existing = self.connection.execute(
             "SELECT checksum FROM kiwoom_premarket_sessions WHERE symbol=? AND session=?",
             (record.symbol, record.session.isoformat())).fetchone()
@@ -131,9 +178,86 @@ class RvolStore:
             "INSERT OR REPLACE INTO kiwoom_premarket_sessions VALUES (?,?,?,?,?,?,?,?,?,?)",
             (record.symbol, record.session.isoformat(), record.pm_dollar_volume, record.pm_bars,
              int(record.has_open_0930), int(record.staged), record.source, int(record.complete),
-             record.checksum(), datetime.now(timezone.utc).isoformat(timespec="seconds")))
+             record.checksum(), self.clock().astimezone(timezone.utc).isoformat(timespec="seconds")))
         self.connection.commit()
         return "WRITTEN"
+
+    # -- E-RUNTIME-R1 repair
+    def row(self, symbol: str, session: date | str) -> dict[str, Any] | None:
+        day = session.isoformat() if isinstance(session, date) else session
+        found = self.connection.execute(
+            "SELECT symbol, session, pm_dollar_volume, pm_bars, has_open_0930, staged, source, complete, "
+            "checksum, collected_at FROM kiwoom_premarket_sessions WHERE symbol=? AND session=?",
+            (symbol, day)).fetchone()
+        if found is None:
+            return None
+        keys = ("symbol", "session", "pm_dollar_volume", "pm_bars", "has_open_0930", "staged", "source",
+                "complete", "checksum", "collected_at")
+        return dict(zip(keys, found))
+
+    def premature_rows(self, sessions: Sequence[date] | None = None) -> list[dict[str, Any]]:
+        """Rows stored as complete before their own session's 09:35 ET (the E-RUNTIME-R1 defect).
+
+        ``sessions`` limits the scan to trading sessions; a row dated on a weekend is never part of
+        a denominator and is reported by the caller separately, not repaired.
+        """
+        wanted = None if sessions is None else {d.isoformat() for d in sessions}
+        out = []
+        for row in self.connection.execute(
+                "SELECT symbol, session, pm_dollar_volume, pm_bars, has_open_0930, staged, complete, "
+                "checksum, collected_at FROM kiwoom_premarket_sessions WHERE complete=1 "
+                "ORDER BY session, symbol"):
+            symbol, session, pm, bars, has_open, staged, complete, checksum, collected = row
+            if wanted is not None and session not in wanted:
+                continue
+            if not collected_before_close(session, collected):
+                continue
+            out.append({"symbol": symbol, "session": session, "pm_dollar_volume": pm, "pm_bars": bars,
+                        "has_open_0930": bool(has_open), "staged": bool(staged), "complete": bool(complete),
+                        "checksum": checksum, "collected_at": collected,
+                        "session_closed_at": session_closed_at(date.fromisoformat(session)).isoformat(),
+                        "reason_corrupted": "COLLECTED_BEFORE_SESSION_CLOSE"})
+        return out
+
+    def repair(self, record: SessionRecord, *, reason: str, expected_old_checksum: str) -> str:
+        """Replace one premature row with the session's real record, keeping an audit row.
+
+        Refuses unless the stored row is still the exact row the inventory found and it really was
+        written before its session closed, and unless the new record is itself final. A repair that
+        recomputes the same row is reported ``UNCHANGED`` and writes nothing.
+        """
+        if self.clock() < session_closed_at(record.session):
+            return PREMATURE_REJECTED
+        old = self.row(record.symbol, record.session)
+        if old is None:
+            return "NOT_FOUND"
+        if old["checksum"] != expected_old_checksum:
+            return "OLD_ROW_CHANGED"
+        if not collected_before_close(record.session, old["collected_at"]):
+            return "NOT_PREMATURE"
+        if old["checksum"] == record.checksum():
+            return "UNCHANGED"
+        stamp = self.clock().astimezone(timezone.utc).isoformat(timespec="seconds")
+        with self.connection:
+            self.connection.execute(
+                "INSERT OR REPLACE INTO kiwoom_repair_log VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (record.symbol, record.session.isoformat(), reason, old["pm_dollar_volume"], old["pm_bars"],
+                 old["has_open_0930"], old["staged"], old["collected_at"], old["checksum"],
+                 record.pm_dollar_volume, record.pm_bars, int(record.has_open_0930), int(record.staged),
+                 record.checksum(), stamp))
+            self.connection.execute(
+                "UPDATE kiwoom_premarket_sessions SET pm_dollar_volume=?, pm_bars=?, has_open_0930=?, "
+                "staged=?, complete=?, checksum=?, collected_at=? WHERE symbol=? AND session=?",
+                (record.pm_dollar_volume, record.pm_bars, int(record.has_open_0930), int(record.staged),
+                 int(record.complete), record.checksum(), stamp, record.symbol, record.session.isoformat()))
+        return "REPAIRED"
+
+    def repair_log(self) -> list[dict[str, Any]]:
+        keys = ("symbol", "session", "repair_reason", "old_pm_dollar_volume", "old_pm_bars", "old_has_open_0930",
+                "old_staged", "old_collected_at", "old_checksum", "new_pm_dollar_volume", "new_pm_bars",
+                "new_has_open_0930", "new_staged", "new_checksum", "repaired_at")
+        return [dict(zip(keys, row)) for row in self.connection.execute(
+            "SELECT * FROM kiwoom_repair_log ORDER BY session, symbol")]
 
     def append_today(self, record: SessionRecord) -> str:
         """The daily step after a session's premarket is complete: one row, no history rebuild."""
@@ -227,6 +351,13 @@ class RvolStore:
         return {row[0] for row in self.connection.execute(
             "SELECT symbol FROM kiwoom_collection_state WHERE history_exhausted=1 "
             "OR last_error IN ('MARKET_DATA_UNAVAILABLE','INVALID_SYMBOL','HISTORY_PAGE_LIMIT')")}
+
+    def conflicted_symbols(self) -> set[str]:
+        """Symbols whose last walk found stored rows it could not write over (a CONFLICT): the store
+        disagrees with the chart, so re-walking cannot help until the rows are repaired. They are
+        not unreachable either - they stay pending, which keeps the evidence grade fail-closed."""
+        return {row[0] for row in self.connection.execute(
+            "SELECT symbol FROM kiwoom_collection_state WHERE last_error='STORE_CONFLICT'")}
 
     def exhausted_symbols(self) -> set[str]:
         """Symbols whose Kiwoom history ran out before the frozen window; not worth re-walking."""

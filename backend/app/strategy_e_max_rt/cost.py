@@ -38,6 +38,11 @@ MAX_RULES_SHA256 = "b30a3e95d6333c17d736c4c4fa23f55a7f67ba4af328317379a86a4a37e8
 
 ACCOUNTING_VERSION = "V1"
 EXECUTION_VERSION = "e_cost_v1_round_trip"
+#: E-RUNTIME-R1 (2026-10-16): the same COST_10BP contract, with the exit filled at the frozen exact
+#: 09:34 bar close instead of the 09:35 bar open. A new book root, never merged with V1.
+ACCOUNTING_VERSION_V2 = "V2"
+EXECUTION_VERSION_V2 = "e_cost_v2_exact_0934_close"
+_ACCOUNTING_BY_EXECUTION = {EXECUTION_VERSION: ACCOUNTING_VERSION, EXECUTION_VERSION_V2: ACCOUNTING_VERSION_V2}
 
 
 class CostContractError(RuntimeError):
@@ -79,17 +84,23 @@ def contract() -> dict[str, Any]:
     }
 
 
-def official_execution() -> RoundTripCostConfig:
+def official_execution(version: str = EXECUTION_VERSION) -> RoundTripCostConfig:
     """The SimBroker config for E's OFFICIAL paper book: raw-price fills, 10 bp once per trade."""
+    if version not in _ACCOUNTING_BY_EXECUTION:
+        raise CostContractError(f"unknown E execution version {version}")
     body = contract()
-    return RoundTripCostConfig(version=EXECUTION_VERSION, default_spread_bps=Decimal("0"),
+    return RoundTripCostConfig(version=version, default_spread_bps=Decimal("0"),
                                default_slippage_bps=Decimal("0"), commission_bps=Decimal("0"),
                                fx_cost_bps=Decimal("0"), round_trip_cost_bps=body["official_round_trip_bp"],
                                cost_contract=body["version"])
 
 
-def record() -> dict[str, str]:
-    """What every V1 E trade and book carries about the cost it was charged."""
+def accounting_version(execution_version: str) -> str:
+    return _ACCOUNTING_BY_EXECUTION.get(execution_version, ACCOUNTING_VERSION)
+
+
+def record(execution_version: str = EXECUTION_VERSION) -> dict[str, str]:
+    """What every E trade and book carries about the cost it was charged."""
     body = contract()
-    return {"accounting_version": ACCOUNTING_VERSION, "cost_contract_version": body["version"],
+    return {"accounting_version": accounting_version(execution_version), "cost_contract_version": body["version"],
             "execution_cost_bp": str(body["official_round_trip_bp"]), "cost_basis": "ROUND_TRIP_ON_ENTRY_NOTIONAL"}

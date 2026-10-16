@@ -156,7 +156,9 @@ def e_trade_records(state: Mapping[str, Any], *, strategy_id: str, strategy_vers
     stays the authority and the per-trade net is ``None``.
     """
     session = state.get("session")
-    v1 = state.get("accounting_version") == "V1"
+    # V2 (E-RUNTIME-R1) changes the exit fill, not the accounting: it is the V1 cash-charges method
+    label = state.get("accounting_version")
+    v1 = label in ("V1", "V2")
     decision = state.get("decision") or {}
     digest = decision.get("digest")
     selected = list(decision.get("selected") or [])
@@ -199,7 +201,7 @@ def e_trade_records(state: Mapping[str, Any], *, strategy_id: str, strategy_vers
             "costs": _s(costs), "net_pnl": None,
             "commission": _s(_sum_present(entry.get("commission"), exit_row.get("commission"))),
             "recorded_net_pnl": None, "recomputed_v1_net_pnl": _s(recomputed),
-            "accounting_version": "V1" if v1 else "V0",
+            "accounting_version": label if v1 else "V0",
             "cost_contract_version": state.get("cost_contract_version") or "execution_v0",
             "execution_cost_bp": state.get("execution_cost_bp"),
             "evaluation": OFF.classify(session, "V1" if v1 else "V0"),

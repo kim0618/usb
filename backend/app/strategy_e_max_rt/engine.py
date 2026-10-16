@@ -21,8 +21,12 @@ Fill semantics (no look-ahead):
 
 * entry: a BUY with ``market_as_of = 09:29`` fills on the first bar after it, the 09:30 bar, at its
   open; it is submitted only once that bar exists (after 09:31) and was never known before 09:30;
-* exit: a SELL with ``market_as_of = 09:34`` fills on the 09:35 bar open, the first executable
-  price after the development proxy (the 09:34 close), which is recorded beside it, not as the fill.
+* exit, execution ``e_cost_v1_round_trip`` (V1 books, 2026-09-28 .. 2026-10-15): a SELL with
+  ``market_as_of = 09:34`` fills on the 09:35 bar open; the frozen 09:34 close is recorded beside it;
+* exit, execution ``e_cost_v2_exact_0934_close`` (E-RUNTIME-R1): the frozen rule itself - the SELL
+  fills at the exact 09:34 bar close (``market_as_of = 09:33``, ``price_field="close"``). No 09:34 bar
+  means UNRESOLVED_EXIT: no fallback bar, no later price, and the trade is excluded from the book's
+  PnL exactly as E-D3 excludes it from standard PnL.
 
 Idempotency: every action is keyed ``strategy_id|session|symbol|action`` and written to the state
 before the next step; a restart rebuilds the in-memory SimBroker by replaying the recorded intents on
@@ -155,7 +159,8 @@ class Engine:
         for bucket in ("entries", "exits"):
             for record in state[bucket].values():
                 if record.get("status") == "FILLED":
-                    order = broker.submit_order(_intent_from(record["intent"]), [_bar_from(record["fill_bar"])])
+                    order = broker.submit_order(_intent_from(record["intent"]), [_bar_from(record["fill_bar"])],
+                                                price_field=record.get("fill_price_field", "open"))
                     if order.status.value != "FILLED":
                         raise RuntimeError(f"replay of {record['key']} did not reproduce its fill")
         return broker
@@ -279,7 +284,14 @@ class Engine:
         filled = [s for s, r in state["entries"].items() if r["status"] == "FILLED"]
         state["phase"] = Phase.POSITION_OPEN if filled else Phase.COMPLETE
 
+    @property
+    def exact_close_exit(self) -> bool:
+        return self.execution.version == COST.EXECUTION_VERSION_V2
+
     def _exit(self, state: dict[str, Any], session: date, now: datetime) -> None:
+        if self.exact_close_exit:
+            self._exit_exact_close(state, session, now)
+            return
         exit_proxy = _at(session, self.config.exit_bar)
         open_symbols = [s for s, r in state["entries"].items() if r["status"] == "FILLED" and s not in state["exits"]]
         if not open_symbols:
@@ -331,11 +343,79 @@ class Engine:
         if all(s in state["exits"] for s in open_symbols):
             state["phase"] = Phase.COMPLETE
 
+    def _exit_exact_close(self, state: dict[str, Any], session: date, now: datetime) -> None:
+        """The frozen X1 exit: the exact 09:34 bar close, or UNRESOLVED_EXIT. Nothing else."""
+        exit_bar = _at(session, self.config.exit_bar)
+        open_symbols = [s for s, r in state["entries"].items() if r["status"] == "FILLED" and s not in state["exits"]]
+        if not open_symbols:
+            state["phase"] = Phase.COMPLETE
+            return
+        bars = self._regular_bars(open_symbols, session, "09:33", "09:59")
+        broker = self._broker(state)
+        late = now >= _at(session, self.config.exit_late_after)
+        for symbol in open_symbols:
+            key = self.key(session, symbol, "EXIT")
+            if key in state["keys"]:
+                continue
+            mine = sorted((b for b in bars if b.symbol == symbol), key=lambda b: b.timestamp)
+            bar = next((b for b in mine if b.timestamp == exit_bar), None)
+            if bar is None:
+                if not late and not any(b.timestamp > exit_bar for b in mine):
+                    continue                               # the 09:34 bar may still be published
+                # a later bar exists (no print at 09:34) or the wait is over: no fallback price
+                state["exits"][symbol] = {
+                    "key": key, "status": "UNRESOLVED_EXIT", "reason": "NO_EXACT_0934_BAR",
+                    "resolved_at": now.isoformat(), "fill_price_field": None,
+                    "development_proxy": {"exit": "exact 09:34 bar close", "value": None,
+                                          "status": "UNRESOLVED_EXIT"},
+                    "standard_pnl": "EXCLUDED (E-D3: no synthetic return)"}
+                state["keys"].append(key)
+                self._event(state, now, f"EXIT {symbol} UNRESOLVED_EXIT NO_EXACT_0934_BAR")
+                continue
+            position = broker.get_position(symbol)
+            entry = state["entries"][symbol]
+            close = Decimal(str(bar.close))
+            intent = OrderIntent(symbol=symbol, side=OrderSide.SELL, intent_type=IntentType.EXIT,
+                                 quantity=position.quantity, reference_price=close,
+                                 notional=position.quantity * close,
+                                 account_notional=Decimal(state["equity_at_open"]), account_currency="USD",
+                                 instrument_currency="USD", strategy_version=self.config.strategy_id,
+                                 risk_amount=position.quantity * close, initial_stop=Decimal("0"),
+                                 market_as_of=exit_bar - MINUTE, created_at=now,
+                                 reason="E_MAX_V1_EXIT_EXACT_0934_CLOSE")
+            order = broker.submit_order(intent, [bar], price_field="close")
+            fill = broker.get_fills(order.id)
+            entry_raw = Decimal(entry["raw_market_price"])
+            exit_raw = fill[0].raw_market_price if fill else None
+            gross = (exit_raw / entry_raw - 1) if exit_raw else None
+            weight = Fraction(entry["weight"])
+            w = Decimal(weight.numerator) / Decimal(weight.denominator)
+            state["exits"][symbol] = {
+                "key": key, "status": order.status.value, "intent": _intent_to(intent), "fill_bar": _bar_to(bar),
+                "fill_price_field": "close", "order_at": now.isoformat(),
+                "fill_at": fill[0].filled_at.isoformat() if fill else None,
+                "raw_market_price": str(exit_raw) if exit_raw else None,
+                "fill_price": str(fill[0].fill_price) if fill else None,
+                "fill_cost": str(fill[0].total_cost) if fill else None,
+                "commission": str(fill[0].commission) if fill else None,
+                "exit_flag": "EXACT_0934_CLOSE",
+                "development_proxy": {"exit": "exact 09:34 bar close", "value": bar.close, "status": "VALID"},
+                "fill_semantics": "the exact 09:34 bar close (frozen X1); never the 09:35 open",
+                "bar_volume": bar.volume, "bid": None, "ask": None, "spread": None,
+                "fixed_bp_views": _fixed_views(w, gross)}
+            state["keys"].append(key)
+            self._event(state, now, f"EXIT {symbol} {order.status.value} at 09:34 close")
+        if all(s in state["exits"] for s in open_symbols):
+            state["phase"] = Phase.COMPLETE
+
     def _finalize(self, state: dict[str, Any], session: date, book: dict[str, Any], now: datetime) -> None:
         if session.isoformat() in book["sessions"]:
             return                                          # idempotent
         broker = self._broker(state)
-        trades = [t for t in (broker.get_trade(s) for s in state["entries"]) if t is not None]
+        # an UNRESOLVED_EXIT position is excluded from standard PnL (E-D3); its entry cost with it
+        closed = [s for s in state["entries"]
+                  if (state["exits"].get(s) or {}).get("status") not in ("UNRESOLVED_EXIT",)]
+        trades = [t for t in (broker.get_trade(s) for s in closed) if t is not None]
         realized = sum((t.net_pnl for t in trades), Decimal(0))
         gross = sum((t.gross_pnl for t in trades), Decimal(0))
         views = {f"net_{bp:02d}bp": str(sum((Decimal(x["fixed_bp_views"][f"net_{bp:02d}bp"])
@@ -345,7 +425,8 @@ class Engine:
         state["summary"] = {"sim_realized_pnl": str(realized), "equity_after": str(equity),
                             "sim_gross_pnl": str(gross), "sim_cost": str(gross - realized),
                             "fixed_bp_session_return_views": views,
-                            "gross_exposure": state["decision"]["final_exposure"] if state["decision"] else "0"}
+                            "gross_exposure": state["decision"]["final_exposure"] if state["decision"] else "0",
+                            **_exposure(state)}
         book["sessions"][session.isoformat()] = {"sim_realized_pnl": str(realized), "equity_after": str(equity),
                                                  "sim_gross_pnl": str(gross), "sim_cost": str(gross - realized),
                                                  "phase": Phase.COMPLETE}
@@ -355,11 +436,26 @@ class Engine:
         self._event(state, now, f"COMPLETE realized={realized}")
 
 
+def _exposure(state: Mapping[str, Any]) -> dict[str, Any]:
+    """Target vs realised gross exposure: whole shares at the 09:25 reference price land a little
+    below the frozen 2x / 3x. The rule is unchanged; the gap is recorded, never corrected."""
+    decision = state.get("decision") or {}
+    target = Fraction(decision.get("final_exposure") or "0")
+    equity = Decimal(state["equity_at_open"])
+    filled = [r for r in state["entries"].values() if r.get("status") == "FILLED"]
+    notional = sum((Decimal(r["intent"]["quantity"]) * Decimal(r["raw_market_price"]) for r in filled), Decimal(0))
+    actual = notional / equity if equity else Decimal(0)
+    target_d = Decimal(target.numerator) / Decimal(target.denominator) if filled else Decimal(0)
+    return {"target_exposure": str(target_d), "actual_exposure": str(actual),
+            "exposure_gap": str(actual - target_d), "entry_notional": str(notional),
+            "exposure_note": "whole shares at the 09:25 reference price (execution constraint, rule unchanged)"}
+
+
 def _cost_record(execution: ExecutionConfig) -> dict[str, str]:
     """Accounting and cost identity stamped on a book and on each session state."""
     contract = getattr(execution, "cost_contract", None)
     if contract:
-        return COST.record()
+        return COST.record(execution.version)
     return {"accounting_version": COST.ACCOUNTING_VERSION, "cost_contract_version": execution.version}
 
 

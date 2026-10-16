@@ -351,12 +351,14 @@ def test_every_a_failure_leaves_e_phases_and_deadline_identical_to_a_off(tmp_pat
 
 
 def test_the_worker_calls_the_isolated_attach_and_no_longer_wraps_it_itself(tmp_path):
-    """A regression guard on the seam: an unguarded ``attach`` there is the original defect."""
-    source = (Path(INT.__file__).resolve().parents[1] / "dev" / "run_e_rt2_dryrun.py"
-              ).read_text(encoding="utf-8")
-    assert "A_LIVE.attach_isolated(" in source
-    assert "A_LIVE.attach(" not in source
-    assert "if a_live.active:" in source
+    """A regression guard on the seam, after E-RUNTIME-R1 (2026-10-16): A's cut runs in its own
+    worker (``run_a_mover_live``) through the isolated attach, and E's worker holds no A call."""
+    dev = Path(INT.__file__).resolve().parents[1] / "dev"
+    a_worker = (dev / "run_a_mover_live.py").read_text(encoding="utf-8")
+    e_worker = (dev / "run_e_rt2_dryrun.py").read_text(encoding="utf-8")
+    assert "A_LIVE.attach_isolated(" in a_worker and "A_LIVE.attach(" not in a_worker
+    assert "a_live.run_cut()" in a_worker
+    assert "attach_isolated" not in e_worker and "strategy_a_mover_live" not in e_worker
 
 
 # -- section C: nothing is substituted for a failed A ----------------------------------------
@@ -561,7 +563,10 @@ def test_current_session_generation_persists_identity_and_is_read_by_a(tmp_path,
 ])
 def test_real_e_worker_finalizes_and_runs_paper_after_a_attach_failure(tmp_path, monkeypatch,
                                                                     error):
-    """Run the worker itself with offline lanes; compare every deterministic E artifact."""
+    """Run the worker itself with offline lanes; compare every deterministic E artifact.
+
+    E-RUNTIME-R1: the A flag and an A that would fail are both invisible to E's worker - it never
+    calls A at all, so the two runs are identical and neither carries an ``a_mover_live`` block."""
     from types import SimpleNamespace
     from app.dev import run_e_rt2_dryrun as worker
     from app.core import config as core_config
@@ -623,12 +628,11 @@ def test_real_e_worker_finalizes_and_runs_paper_after_a_attach_failure(tmp_path,
         monkeypatch.setattr(worker, "_paper_stage", paper)
         monkeypatch.setattr(INT, "attach", raising(error))
         monkeypatch.setenv(CFG.ENV_FLAG, "true" if enabled else "false")
-        original = INT.attach_isolated
+        attach_calls = []
 
         def isolated_attach(**kwargs):
-            from app.core.database import SessionLocal
-            assert kwargs["session_factory"] is SessionLocal
-            return original(**(kwargs | {"repo": tmp_path}))
+            attach_calls.append(kwargs)
+            raise AssertionError("E's worker must not attach A")
 
         # Restore this wrapper after each run so the second run cannot wrap itself.
         with monkeypatch.context() as local:
@@ -642,6 +646,7 @@ def test_real_e_worker_finalizes_and_runs_paper_after_a_attach_failure(tmp_path,
         assert report["capacity"]["status_counts"]["SPARSE_NO_PREMARKET"] == 2
         assert phases.count("finalize") == 3  # both E symbols and SPY
         assert phases[-1] == "paper"
+        assert attach_calls == []
         results.append((report, phases, root))
     off, failed = results
     assert off[1] == failed[1]
@@ -649,9 +654,8 @@ def test_real_e_worker_finalizes_and_runs_paper_after_a_attach_failure(tmp_path,
         assert off[0][name] == failed[0][name]
     for name in ("symbol_status.csv", "lane_stats.json", "cutoff_audit.json"):
         assert (off[2] / name).read_bytes() == (failed[2] / name).read_bytes()
-    assert "a_mover_live" not in off[0]
-    assert failed[0]["a_mover_live"]["status"] == "FAILED"
-    assert failed[0]["a_mover_live"]["paper_injections"] == 0
+    assert "a_mover_live" not in off[0] and "a_mover_live" not in failed[0]
+    assert off[0]["a_attached"] is False and failed[0]["a_attached"] is False
 
 
 # -- section L, M: nothing about E's SLA or A's rules moved ----------------------------------
