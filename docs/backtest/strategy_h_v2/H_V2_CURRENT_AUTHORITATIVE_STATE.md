@@ -8,7 +8,7 @@ what happened in a past stage, the result document wins.
 Last verified: 2026-10-15 15:30 KST, after the V3 production deploy and manual acceptance run
 (`H_V2_DETERMINISTIC_V3_PRODUCTION_ACTIVATION_V1.md`). The change log below section 0 is history.
 
-## 0. Current state (2026-10-15, V3 deployed)
+## 0. Current state (2026-10-16, V3 + P1 + P2.1 deployed; evaluation timer DISABLED after a SCAN defect)
 
 **What H is.** Strategy H is a US-equity, medium-horizon strategy that looks for issuers whose actual
 fundamentals or business are improving, whose price does not yet fully reflect that change, and whose
@@ -32,9 +32,14 @@ Paper execution                             = ACTIVE (production backend, launch
 H UI                                        = ACTIVE (production frontend Rh0hJ2skzuYNTyehDWSI-)
 Futures paper position size                 = ACTIVE / PASS
 usb-h-research                              = REMOVED from production (2026-10-15)
-usb-h-evaluation                            = INSTALLED, manual run PASS, timer DISABLED (1 GB host pressure; see below)
-V3 production runtime                       = DEPLOYED 2026-10-15 (files over db41f04, backend restarted once) = DEGRADED:
-                                              runs by hand only until the resource condition is met
+usb-h-evaluation                            = INSTALLED with precondition gate + resource guard (d696c78);
+                                              timer DISABLED: first gated run 2026-10-16 FAILED in SCAN
+                                              (SEC_SUBMISSIONS_NOT_FOUND after compaction, pre-existing defect)
+V3 production runtime                       = DEPLOYED 2026-10-15 (files over db41f04, backend restarted once) = DEGRADED
+IO optimisation P1 (ec66400)                = ACTIVE in production (share-class reference cache; MJ reads 1,236 -> 94 MB)
+import footprint P2.1 (99db463)             = ACTIVE in production (H entrypoint does not load pyarrow; import RSS 133 -> 98 MB)
+price-pass fusion / persistent price state  = DEFERRED / NOT IMPLEMENTED
+Autonomous evaluation                       = DISABLED (gate and guard installed; re-enable after the SCAN fix)
 ```
 
 The AI budget ($24/day, $12 reservation), `claude-opus-5-5` canonical model, `authorization.json` and the
@@ -81,10 +86,26 @@ as two processes (`7ccdd0c`). trader-j has about 1 GB RAM and historically 150-2
 path: upgrade to 2 GB or more, then manual acceptance; optimising further on 1 GB first is the operator's
 alternative. RAM is not a strategy dependency.
 
-**Next action (one).** Resolve the host resource condition (RAM/instance upgrade recommended, or an
-agreed evaluation window that does not overlap manual crypto trading), rerun `usb-h-evaluation` once by
-hand with the same monitor, and enable its timer only if crypto/backend latency and memory pressure stay
-normal (runbook §V3). Until then evaluations run by hand. Strategy research is not a next action.
+**Next action (one).** Fix the SCAN compaction defect (data-collection bug, allowed by the freeze policy):
+`facts_cache.compact` drops bodies but keeps the request ledger, so the entry stays FRESH and `plan` never
+refetches it; when the reference snapshot changes, `scan_production` re-scans those rows and `FC.load`
+raises `SEC_SUBMISSIONS_NOT_FOUND`. Then re-enable `usb-h-evaluation.timer` (gate and guard already
+installed, runbook §V3.1). Strategy research is not a next action.
+
+**P1 + P2.1 activation (2026-10-16).** P2.1 deployed (`run_h_v2_d7.py` only, sha `a5e38a8d…`, no restart),
+P1 files unchanged; gate + guard units installed from `d696c78`; timer enabled 15:29 KST. The 02:40 ET try
+started at 15:40:05 (precondition RUN); the guard saw the SCAN process with pandas mapped and pyarrow 0.
+First 2 minutes versus the morning failure (09:06): one crypto 10 s timeout at 38 s (market-gate pass), then
+under 3.1 s, no sustained stall (morning: 30 s timeouts from 2:40 on); H process RSS 107-118 MB (cgroup
+with page cache 160-174 MB); memory PSI full max 34.6 % and near 0 after 1 min (morning 62-88 %); swap
+about 8 MB (morning: crypto-paper lost 70 MB to swap); IO PSI full 30-63 %. Whole run (833 s, through the
+SEC download): MemAvailable min 177 MB, swap -43 MB, memory PSI full max 69.7 %, IO PSI full max 75.6 %,
+crypto max 10 s, >1 s 32 / >5 s 8 / timeouts 3 of 134 samples, backend max 0.03 s, cgroup max 329 MB, the
+guard did not stop it (no 30 s run of trouble). Then the SCAN failed: 1,413 rows to re-scan (reference
+snapshot changed), CIK 0000006201's body compacted by the 10-15 run, `SEC_SUBMISSIONS_NOT_FOUND`, exit 1,
+before any index, queue, ledger or paper write. Forward verify PASS (20), paper verify PASS (15/15), ledgers
+and service PIDs identical to before; 178 MB of today's SEC cache written. Timer disabled again 15:56 KST.
+Guard CSV `d7/auto/guard/20261016T064006Z.csv`.
 
 **Production activation (2026-10-15).** Manual run 65 min (SCAN 37, evaluation 28), 12 items COMPLETE, no
 OOM, integrity PASS; host MemAvailable min 179 MB, memory PSI full max 49.6 %, swap-out about 100 MB, unit

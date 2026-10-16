@@ -244,6 +244,29 @@ Rollback: disable/remove `usb-h-evaluation`, restore the step-1 backup; the appe
 `d7/auto/` stay. Strategy rules are frozen (state document §0): only bug, data, parser-correctness,
 performance, infrastructure, scheduler, UI and observability changes are allowed.
 
+## V3.1. Gated evaluation timer and resource guard (2026-10-16, d696c78)
+
+Status: installed; **timer DISABLED** after the first gated run failed in SCAN (compaction defect, state
+document §0). Re-enable with `systemctl enable --now usb-h-evaluation.timer` once the SCAN fix is deployed.
+
+* Tries: Mon..Fri 01:40, 02:10, 02:40 ET. `ExecCondition=deploy/h_evaluation/precondition.sh` runs the
+  evaluation only when today's (ET) `usb-h-forward` succeeded, none of `usb-e-universe`, `usb-e-rvol-once`,
+  `usb-grouped-daily`, `usb-splits-refresh`, `usb-e-paper` is active, the time is 01:30-02:45 ET, and
+  `d7/auto/evaluation_attempt_day` is not today. A skip is logged (`h-evaluation precondition: SKIP ...`)
+  and is not a failure. The attempt day is written before the run: a failed or stopped run is not retried
+  the same day.
+* `usb-h-evaluation-guard.service` (started by the unit's ExecStartPre, outside its cgroup, Nice -5) samples
+  every 5 s and stops only `usb-h-evaluation` on 30 s in a row of: crypto or backend health > 5 s, memory
+  PSI full avg10 > 50, MemAvailable < 100 MB, swap traffic > 10 MB per 5 s; at once on a new OOM kill; and at
+  03:35 ET. It never stops another unit. Evidence: `d7/auto/guard/<start>.csv` (last 30) and the journal
+  line `h-guard: summary ...` (MemAvailable min, swap delta, PSI max, crypto >1 s / >5 s / timeouts,
+  backend max, cgroup max) plus `h-guard: pid ... pyarrow_maps=N` (P2.1 check, 0 expected).
+* Look: `journalctl -u usb-h-evaluation -u usb-h-evaluation-guard --since today`.
+* Rollback: `systemctl disable --now usb-h-evaluation.timer`; units and `run_h_v2_d7.py` from
+  `/root/h_p21_backup_pre_activation_20261016-152754.tar.gz` (P2.1 alone: `/root/h_p21_backup_pre_deploy_20261016-135735.tar.gz`).
+* Never run a standalone Python import benchmark on trader-j (2026-10-16: a cold import alone took >55 s and
+  raised IO PSI full to 73 %).
+
 ## 10A. Production evaluation is NO-AI (H_V2_AUTONOMOUS_PIPELINE_V2_NO_AI, 2026-10-14) - superseded by §V3 for D3/D4, memory and units
 
 This section supersedes the model, budget and authorization parts of §10. Write-up:
