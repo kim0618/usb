@@ -25,9 +25,9 @@ import TradingPage from "@/app/trading/page";
 
 const D = "2026-10-16";
 const authority = (entry: string): ResearchCurrentAuthority => ({
-  status: "ACTIVE", scanner_run_id: 39, trading_date: D, analysis_session_date: D, entry_session_date: entry,
+  status: "READY", scanner_run_id: 39, trading_date: D, analysis_session_date: D, entry_session_date: entry,
   completed_at: "2026-10-16T13:27:00Z", active_analysis_id: 27, analysis_at: "2026-10-16T13:35:00Z", approved_count: 1,
-} as ResearchCurrentAuthority);
+});
 const adoption: AdoptionResponse = { filter_version: "adoption_filter_v0", analysis_id: 27, scanner_run_id: 39, trading_date: D,
   counts: { adoption_candidate: 0, review_required: 0, excluded: 0 }, items: [] };
 const board: EntryBoard = { status: "NO_APPROVALS", scanner_run_id: 39, analysis_session_date: D, entry_session_date: D,
