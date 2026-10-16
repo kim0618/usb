@@ -9,6 +9,13 @@ Two sources, never mixed:
   which carries the position at plan time) and Binance's answer (`LIVE_ORDER_RESULT`, which
   carries the fill). A local file read; no signed Binance request is made.
 
+  The fill price is not always in the answer. Binance's default MARKET response (`ACK`) has
+  no `avgPrice`, no `cumQuote` and no `fills` - every one of this account's real results looks
+  like that - so the price is resolved, in order, from the answer itself when it has one and
+  otherwise from the account's `userTrades` already cached on disk by the performance panel
+  (`manual_performance*.json`), matched by order id. Never from a mark or a current quote:
+  an order whose fill price cannot be found is left off the chart, not drawn at a guess.
+
 Read only. Nothing here writes a ledger, a tape or a mirror line.
 """
 from __future__ import annotations
@@ -94,16 +101,97 @@ def _mirror_lines(path: Path) -> Iterable[dict[str, Any]]:
                 continue
 
 
-def live_executions(lines: Iterable[dict[str, Any]], *, symbol: str,
-                    account: str | None) -> list[dict[str, Any]]:
-    """Filled orders of one LIVE account on one symbol, oldest first, numbered from 1.
+#: Where a LIVE row's price came from, most direct first.
+PRICE_AVG = "RESPONSE_AVG_PRICE"
+PRICE_FILLS = "RESPONSE_FILLS"
+PRICE_CUM_QUOTE = "RESPONSE_CUM_QUOTE"
+PRICE_USER_TRADES = "USER_TRADES_CACHE"
+#: Why a filled answer was still left off the chart.
+DROP_NO_PRICE = "NO_PRICE_SOURCE"
+DROP_TRADES_INCOMPLETE = "USER_TRADES_QTY_MISMATCH"
 
-    The plan is the `stage="SUBMIT"` intent line (the one offered to the gate); the fill is the
-    result line with the same client order id. A plan with no result was refused or never
-    answered, and an answer with nothing executed filled nothing: neither is an execution.
-    """
+
+def _average(total: Decimal, qty: Decimal) -> Decimal:
+    """A computed average, cut to 8 places so three fills do not print 28 digits on a marker."""
+    text = format((total / qty).quantize(Decimal("1e-8")), "f").rstrip("0").rstrip(".")
+    return Decimal(text)
+
+
+def _positive(value: Any) -> Decimal | None:
+    number = _decimal(value)
+    return number if number is not None and number > 0 else None
+
+
+def user_trades_by_order(path: Path | None) -> dict[str, list[dict[str, Any]]]:
+    """The cached `userTrades` rows of one symbol, grouped by Binance order id.
+
+    Read only, from the file the performance panel already keeps; a missing or unreadable file
+    is simply no trades. A trade id seen twice counts once."""
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    if path is None or not path.exists():
+        return grouped
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return grouped
+    seen: set[str] = set()
+    for row in (raw.get("trades") or []) if isinstance(raw, dict) else []:
+        if not isinstance(row, dict) or row.get("order_id") is None:
+            continue
+        trade_id = str(row.get("id"))
+        if trade_id in seen:
+            continue
+        seen.add(trade_id)
+        grouped.setdefault(str(row["order_id"]), []).append(row)
+    return grouped
+
+
+def resolve_fill_price(response: dict[str, Any], executed: Decimal,
+                       trades: list[dict[str, Any]] | None) -> tuple[Decimal | None, str]:
+    """The average fill price of one answered order and where it came from.
+
+    Returns `(price, source)` or `(None, drop_reason)`. The order's own answer wins when it
+    carries a price; the cached trades are used only when their quantity adds up to exactly
+    what the answer says was executed, so a cache that has not caught up yet is not mistaken
+    for a cheaper or dearer fill."""
+    average = _positive(response.get("avgPrice"))
+    if average is not None:
+        return average, PRICE_AVG
+    fills = response.get("fills") if isinstance(response.get("fills"), list) else []
+    qty = sum((_positive(f.get("qty")) or Decimal(0) for f in fills if isinstance(f, dict)),
+              Decimal(0))
+    if qty > 0:
+        quote = sum(((_positive(f.get("qty")) or Decimal(0)) * (_positive(f.get("price")) or Decimal(0))
+                     for f in fills if isinstance(f, dict)), Decimal(0))
+        if quote > 0:
+            return _average(quote, qty), PRICE_FILLS
+    cum_quote = _positive(response.get("cumQuote"))
+    if cum_quote is not None:
+        return _average(cum_quote, executed), PRICE_CUM_QUOTE
+    if trades:
+        qty = sum((_positive(t.get("qty")) or Decimal(0) for t in trades), Decimal(0))
+        if qty != executed:
+            return None, DROP_TRADES_INCOMPLETE
+        quote = Decimal(0)
+        for trade in trades:
+            line = _positive(trade.get("quote_qty"))
+            if line is None:
+                line = (_positive(trade.get("qty")) or Decimal(0)) * (_positive(trade.get("price")) or Decimal(0))
+            quote += line
+        if quote > 0:
+            return _average(quote, qty), PRICE_USER_TRADES
+    return None, DROP_NO_PRICE
+
+
+def live_execution_audit(lines: Iterable[dict[str, Any]], *, symbol: str, account: str | None,
+                         trades: dict[str, list[dict[str, Any]]] | None = None
+                         ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """`(rows, dropped)`: the chart rows, and every filled answer on this symbol that did not
+    become one, with the reason. See `live_executions`."""
+    trades = trades or {}
     plans: dict[str, dict[str, Any]] = {}
     rows: list[dict[str, Any]] = []
+    dropped: list[dict[str, Any]] = []
     for line in lines:
         if account is not None and line.get("account") not in (None, account):
             continue
@@ -129,8 +217,13 @@ def live_executions(lines: Iterable[dict[str, Any]], *, symbol: str,
         if plan is None or plan.get("symbol") != symbol:
             continue
         executed = _decimal(response.get("executedQty"))
-        price = _decimal(response.get("avgPrice"))
-        if executed is None or executed <= 0 or price is None or price <= 0:
+        if executed is None or executed <= 0:
+            continue
+        price, source = resolve_fill_price(
+            response, executed, trades.get(str(response.get("orderId"))))
+        if price is None:
+            dropped.append({"client_order_id": cid, "order_id": response.get("orderId"),
+                            "reason": source})
             continue
         held = _decimal(plan.get("position_qty_at_plan")) or Decimal(0)
         if plan.get("intent") == "OPEN":
@@ -143,14 +236,28 @@ def live_executions(lines: Iterable[dict[str, Any]], *, symbol: str,
             "account": line.get("account") or account, "side": plan.get("side"),
             "event_type": event_type, "price": str(price), "qty": str(executed),
             "leverage": None if plan.get("leverage") is None else str(plan.get("leverage")),
-            "client_order_id": cid,
+            "client_order_id": cid, "price_source": source,
         })
-    return rows
+    return rows, dropped
 
 
-def live_executions_from_file(path: Path, *, symbol: str,
-                              account: str | None) -> list[dict[str, Any]]:
-    return live_executions(_mirror_lines(path), symbol=symbol, account=account)
+def live_executions(lines: Iterable[dict[str, Any]], *, symbol: str, account: str | None,
+                    trades: dict[str, list[dict[str, Any]]] | None = None
+                    ) -> list[dict[str, Any]]:
+    """Filled orders of one LIVE account on one symbol, oldest first, numbered from 1.
+
+    The plan is the `stage="SUBMIT"` intent line (the one offered to the gate); the fill is the
+    result line with the same client order id. A plan with no result was refused or never
+    answered, and an answer with nothing executed filled nothing: neither is an execution. The
+    price comes from `resolve_fill_price`; `trades` is the cached `userTrades` by order id.
+    """
+    return live_execution_audit(lines, symbol=symbol, account=account, trades=trades)[0]
+
+
+def live_executions_from_file(path: Path, *, symbol: str, account: str | None,
+                              trades_path: Path | None = None) -> list[dict[str, Any]]:
+    return live_executions(_mirror_lines(path), symbol=symbol, account=account,
+                           trades=user_trades_by_order(trades_path))
 
 
 __all__ = ["ADD_ENTRY", "FULL_CLOSE", "INITIAL_ENTRY", "PARTIAL_CLOSE", "POSITION_FLIP",

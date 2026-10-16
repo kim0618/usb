@@ -759,8 +759,12 @@ async def binance_executions(symbol: str | None = None) -> Any:
     adapter = entry.adapter
     mirror = adapter.mirror
     account = mirror.account_fingerprint if mirror is not None else None
+    # The fill prices Binance's MARKET answer leaves out come from the trades the performance
+    # panel has already cached on disk: a file read, never a `userTrades` call from here.
+    trades_path = entry.performance.path if entry.performance is not None else None
     rows = ([] if mirror is None else
-            live_executions_from_file(mirror.path, symbol=entry.symbol, account=account))
+            live_executions_from_file(mirror.path, symbol=entry.symbol, account=account,
+                                      trades_path=trades_path))
     return jsonable({"mode": "LIVE", "symbol": entry.symbol, "account": account,
                      "executions": rows})
 
