@@ -269,15 +269,12 @@ describe("the leverage panel", () => {
     expect(screen.queryByTestId("live-leverage-50")).not.toBeInTheDocument();
   });
 
-  it("locks every value on a HOT symbol whose LIVE switch is off", () => {
+  it("offers a HOT symbol's values exactly as it offers BTC's", () => {
     const onSelect = vi.fn();
-    const hot = account({ gates: { ...account().gates, symbol_orders_enabled: false } });
-    render(<LiveLeveragePanel account={hot} options={options()} onSelect={onSelect} />);
-    for (const value of [1, 5, 10, 20]) {
-      expect(screen.getByTestId(`live-leverage-${value}`)).toBeDisabled();
-    }
+    render(<LiveLeveragePanel account={account({ symbol: "AGTUSDT" })} options={options()}
+      onSelect={onSelect} />);
     fireEvent.click(screen.getByTestId("live-leverage-5"));
-    expect(onSelect).not.toHaveBeenCalled();
+    expect(onSelect).toHaveBeenCalledWith(5);
   });
 
   it("marks the value Binance currently reports, not the one last clicked", () => {

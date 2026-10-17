@@ -10,7 +10,7 @@ What is proved here, each against the failure it would have:
 * on the paper engine, BTC and HOT positions coexist and an order or CLOSE on one never touches
   the other;
 * on the Binance side, a HOT CLOSE carries the HOT symbol and its own quantity only, its filters
-  and Safe MAX are its own, and LIVE orders on the HOT symbol stay off behind their switch;
+  and Safe MAX are its own (manual orders on it: `test_hot_live_manual_order`);
 * the Binance market feed parses its own symbol only and its history pages correctly;
 * twenty replacements leave no feed, socket, session, cache page or LIVE runtime behind.
 
@@ -684,45 +684,6 @@ def test_no_key_means_no_live_exposure_rather_than_unknown(live, monkeypatch) ->
     monkeypatch.setattr(lr.live_runtime, "config", None)
     exposure = lr.live_exposure.exposure(HOT_A)
     assert exposure.position_amt == 0 and exposure.open_orders == 0
-
-
-def test_the_screen_is_told_the_hot_symbol_cannot_be_ordered_while_the_switch_is_off(
-        live, monkeypatch) -> None:
-    lr = live(FakeLiveClient())
-    admit_dynamic(HOT_A)
-
-    class Router:
-        def gate_view(self):
-            return {"armed": True, "env_flag": True}
-
-    adapter = type("A", (), {"router": Router()})()
-    monkeypatch.delenv(lr.HOT_LIVE_ORDERS_ENV, raising=False)
-    assert lr._symbol_gates(adapter, HOT_A)["symbol_orders_enabled"] is False
-    assert lr._symbol_gates(adapter, "BTCUSDT")["symbol_orders_enabled"] is True
-    assert lr._symbol_gates(adapter, HOT_A)["armed"] is True       # the router's gates kept
-    monkeypatch.setenv(lr.HOT_LIVE_ORDERS_ENV, "on")
-    assert lr._symbol_gates(adapter, HOT_A)["symbol_orders_enabled"] is True
-
-
-def test_hot_live_orders_and_leverage_stay_off_behind_their_switch(live, monkeypatch) -> None:
-    lr = live(FakeLiveClient())
-    admit_dynamic(HOT_A)
-
-    class Untouchable:
-        def __getattr__(self, name):
-            raise AssertionError(f"adapter.{name} touched while HOT LIVE orders are off")
-
-    entry = type("E", (), {"symbol": HOT_A, "adapter": Untouchable()})()
-    monkeypatch.setattr(lr, "_entry", lambda symbol: (entry, None))
-    monkeypatch.delenv(lr.HOT_LIVE_ORDERS_ENV, raising=False)
-    from app.crypto.terminal.server import app
-    client = TestClient(app)
-    for path, body in (("/api/crypto/binance/order", {"side": "LONG", "intent": "OPEN", "symbol": HOT_A, "qty": "1"}),
-                       ("/api/crypto/binance/order", {"side": "LONG", "intent": "CLOSE", "symbol": HOT_A}),
-                       ("/api/crypto/binance/leverage", {"leverage": "5", "symbol": HOT_A})):
-        response = client.post(path, json=body)
-        assert response.status_code == 409 and response.json()["error"]["code"] == "HOT_LIVE_ORDERS_DISABLED"
-    assert lr._hot_live_refusal("BTCUSDT") is None
 
 
 def _hot_specs(monkeypatch):

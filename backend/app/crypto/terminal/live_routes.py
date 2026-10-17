@@ -50,7 +50,7 @@ from ..live.models import LiveFieldMissing, LivePosition
 from ..live.rest import BinanceError, BinanceFuturesClient, TradingDisabled
 from ..live.stream import UserDataStream
 from ..symbols import (DEFAULT_SYMBOL, SUPPORTED_SYMBOLS, SymbolNotSupported,
-                            base_asset, dynamic_symbols, is_dynamic, resolve as resolve_symbol)
+                            base_asset, dynamic_symbols, resolve as resolve_symbol)
 from ..hot_coins.lock import InFlightRegistry, SymbolExposure
 from ..hot_coins.slot import controller as hot_slot
 from .api import app, error, jsonable, runtime
@@ -493,33 +493,10 @@ def _entry(symbol: str | None) -> tuple[SymbolRuntime | None, JSONResponse | Non
 
 #: Binance order requests sent and not yet answered, per symbol. Read by the HOT lock.
 live_in_flight = InFlightRegistry()
-#: LIVE orders and leverage writes on the HOT symbol stay refused until this is turned on. The
-#: HOT symbol's read paths (filters, brackets, position, Safe MAX) work regardless; what this
-#: gates is the first real order on an instrument chosen at runtime, which is a decision the
-#: operator makes on purpose after the order path has been validated on the real account.
-HOT_LIVE_ORDERS_ENV = "BINANCE_LIVE_HOT_ORDERS"
-
-
-def hot_live_orders_enabled() -> bool:
-    return os.environ.get(HOT_LIVE_ORDERS_ENV, "off").strip().lower() in {"on", "1", "true", "yes"}
-
-
-def _symbol_gates(adapter: Any, symbol: str) -> dict[str, Any]:
-    """The router's gates plus whether this symbol may be ordered at all, so the screen closes
-    the HOT symbol's order controls while the switch is off instead of offering a click the
-    server would refuse."""
-    gates = dict(adapter.router.gate_view())
-    gates["symbol_orders_enabled"] = not is_dynamic(symbol) or hot_live_orders_enabled()
-    gates["symbol_orders_flag_name"] = HOT_LIVE_ORDERS_ENV
-    return gates
-
-
-def _hot_live_refusal(symbol: str) -> JSONResponse | None:
-    if is_dynamic(symbol) and not hot_live_orders_enabled():
-        return error(409, "HOT_LIVE_ORDERS_DISABLED",
-                     f"HOT 심볼({symbol})의 LIVE 주문·레버리지 변경은 아직 꺼져 있습니다 "
-                     f"({HOT_LIVE_ORDERS_ENV}).")
-    return None
+# The HOT symbol takes manual LIVE orders, leverage writes and closes on the same contract as the
+# deployment's own symbols: arm, Safe MAX, exchange filters, preflight and reduceOnly closes all
+# apply unchanged. It has no switch of its own. AUTO stays on the default symbol only
+# (`_build_exit_guard`, `AUTO_SINGLE_SYMBOL`).
 
 
 def _permitted(configured: Any) -> list[str]:
@@ -645,7 +622,7 @@ async def binance_status(symbol: str | None = None) -> Any:
     snapshot = adapter.snapshot()
     body.update({"available": True, "ready": snapshot.ready,
                  "blockers": [item.view() for item in snapshot.blockers],
-                 "gates": _symbol_gates(adapter, requested),
+                 "gates": adapter.router.gate_view(),
                  "arm": live_runtime.arm.view() if live_runtime.arm is not None else None,
                  "stream": adapter.stream.view() if adapter.stream is not None else None,
                  "mirror": adapter.mirror.view() if adapter.mirror is not None else None,
@@ -677,7 +654,7 @@ async def binance_account(force: bool = False, symbol: str | None = None) -> Any
         view["position_krw"] = _krw(snapshot.position.view(), ("unrealized_pnl", "notional"), rate)
     view["krw_per_usdt"] = rate
     view["krw_note"] = "표시용 환산입니다. LIVE 회계 정본은 USDT이며 환율은 페이퍼 런에 고정된 값입니다."
-    view["gates"] = _symbol_gates(adapter, adapter.config.symbol)
+    view["gates"] = adapter.router.gate_view()
     view["stream"] = adapter.stream.view() if adapter.stream is not None else None
     # The unit a quantity on this screen is denominated in, from Binance's own `baseAsset`
     # rather than from the symbol string, so the panel never has to parse "BTCUSDT" itself.
@@ -809,9 +786,6 @@ async def binance_order(request: LiveOrderRequest) -> Any:
     if failure is not None:
         return failure
     assert entry is not None
-    refused = _hot_live_refusal(entry.symbol)
-    if refused is not None:
-        return refused
     adapter = entry.adapter
     intent = request.intent.upper()
     if intent not in (OPEN, CLOSE):
@@ -886,9 +860,6 @@ async def binance_leverage(request: LiveLeverageRequest) -> Any:
     if failure is not None:
         return failure
     assert entry is not None
-    refused = _hot_live_refusal(entry.symbol)
-    if refused is not None:
-        return refused
     adapter = entry.adapter
     try:
         value = _decimal(request.leverage, "leverage")

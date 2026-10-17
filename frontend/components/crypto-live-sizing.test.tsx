@@ -184,42 +184,56 @@ describe("the quick size row on the ticket", () => {
 });
 
 
-describe("a HOT symbol while its LIVE order switch is off", () => {
-  const hotOff = (over: Partial<LiveAccount> = {}) => account({
-    symbol: "GTCUSDT",
-    gates: { armed: true, env_flag: true, client_armed: true,
-             env_flag_name: "BINANCE_LIVE_TRADING_ENABLED", symbol_orders_enabled: false,
-             symbol_orders_flag_name: "BINANCE_LIVE_HOT_ORDERS" },
-    ...over,
+describe("a HOT symbol on LIVE", () => {
+  // The server no longer sends a HOT switch, so a HOT account looks like any other symbol's.
+  const hot = (over: Partial<LiveAccount> = {}) => account({ symbol: "AGTUSDT", ...over });
+  const disarmed = (over: Partial<LiveAccount> = {}) => hot({
+    gates: { ...account().gates, armed: false, client_armed: false }, ...over });
+
+  it("is tradable when armed, with no HOT-specific reason", () => {
+    const gate = liveTradeGate(hot(), null);
+    expect(gate.tradable).toBe(true);
+    expect(gate.reasons).toEqual([]);
   });
 
-  it("is not tradable even when armed, and says the switch is the reason", () => {
-    const gate = liveTradeGate(hotOff(), null);
-    expect(gate.tradable).toBe(false);
-    expect(gate.reasons.map(r => r.code)).toContain("HOT_LIVE_ORDERS_DISABLED");
-    expect(gate.reasons.find(r => r.code === "HOT_LIVE_ORDERS_DISABLED")?.message)
-      .toContain("BINANCE_LIVE_HOT_ORDERS");
-  });
-
-  it("closes LONG, SHORT and CLOSE and offers no activation for it", () => {
-    const held = hotOff({ position: { ...account().position!, symbol: "GTCUSDT", is_flat: false,
-                                      side: "LONG", qty: "100" } });
+  it("opens LONG, SHORT, the size presets and CLOSE when armed", () => {
+    const held = hot({ position: { ...account().position!, symbol: "AGTUSDT", is_flat: false,
+                                   side: "LONG", qty: "100" } });
     const onOrder = vi.fn();
     render(<LiveOrderTicket account={held} gate={liveTradeGate(held, null)} onOrder={onOrder}
       sizing={sizing()} />);
-    expect(screen.getByTestId("live-long")).toBeDisabled();
-    expect(screen.getByTestId("live-short")).toBeDisabled();
-    expect(screen.getByTestId("live-close")).toBeDisabled();
-    expect(screen.getByTestId("live-hot-orders-off")).toBeInTheDocument();
-    expect(screen.queryByTestId("live-order-activate")).not.toBeInTheDocument();
+    expect(screen.getByTestId("live-long")).toBeEnabled();
+    expect(screen.getByTestId("live-short")).toBeEnabled();
+    expect(screen.getByTestId("live-close")).toBeEnabled();
+    for (const preset of ["25%", "HALF", "75%", "MAX"]) {
+      expect(screen.getByTestId(`live-preset-${preset}`)).toBeEnabled();
+    }
+    expect(screen.queryByText(/조회만 가능/)).not.toBeInTheDocument();
+    expect(screen.queryByTestId("live-order-locked")).not.toBeInTheDocument();
     fireEvent.click(screen.getByTestId("live-close"));
+    fireEvent.click(screen.getByTestId("live-submit"));
+    expect(onOrder).toHaveBeenCalledWith({ side: "LONG", intent: "CLOSE", qty: undefined });
+  });
+
+  it("locks on DISARM for the arm reason, and offers activation", () => {
+    const gate = liveTradeGate(disarmed(), null);
+    expect(gate.tradable).toBe(false);
+    expect(gate.reasons.map(r => r.code)).toEqual(["NOT_ARMED"]);
+    const onOrder = vi.fn();
+    const onActivate = vi.fn();
+    render(<LiveOrderTicket account={disarmed()} gate={gate} onOrder={onOrder}
+      onActivate={onActivate} sizing={sizing()} />);
+    expect(screen.getByTestId("live-order-locked")).toBeInTheDocument();
+    expect(screen.getByTestId("live-order-activate")).toBeInTheDocument();
+    expect(screen.queryByText(/조회만 가능/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("live-long"));
     expect(onOrder).not.toHaveBeenCalled();
   });
 
   it("leaves BTC exactly as before: armed means tradable", () => {
     expect(liveTradeGate(account(), null).tradable).toBe(true);
-    const explicit = account({ gates: { ...account().gates, symbol_orders_enabled: true } });
-    expect(liveTradeGate(explicit, null).tradable).toBe(true);
+    expect(liveTradeGate(account({ gates: { ...account().gates, armed: false } }), null).tradable)
+      .toBe(false);
   });
 });
 

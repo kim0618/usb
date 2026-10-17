@@ -20,13 +20,7 @@ export type LiveBlocker = { code: string; message: string };
 export type LiveGates = {
   armed: boolean; env_flag: boolean; client_armed: boolean; env_flag_name: string;
   arm_session?: LiveArmState | null;
-  /** False on the HOT symbol while its LIVE order switch is off. Absent on older servers and
-   *  on the deployment's own symbols, which read as allowed. */
-  symbol_orders_enabled?: boolean;
-  symbol_orders_flag_name?: string;
 };
-
-export const HOT_LIVE_ORDERS_DISABLED = "HOT_LIVE_ORDERS_DISABLED";
 
 /** The manual arm window.
  *
@@ -523,8 +517,6 @@ export function liveTradeGate(account: LiveAccount | null, arm: LiveArmState | n
   // have to say yes, so a disagreement between two reads a tick apart locks rather than opens.
   const armed = Boolean(account?.gates.armed) && (arm == null || Boolean(arm.armed));
   const connected = Boolean(account?.ready && !account.stale);
-  // Per symbol, not per arm: arming opens BTC, never a HOT symbol whose switch is off.
-  const symbolOrders = account?.gates.symbol_orders_enabled !== false;
 
   if (!available) {
     reasons.push({ code: "LIVE_UNAVAILABLE", message: arm?.reason || "LIVE를 사용할 수 없습니다." });
@@ -544,14 +536,10 @@ export function liveTradeGate(account: LiveAccount | null, arm: LiveArmState | n
   } else if (!armed) {
     reasons.push({ code: "NOT_ARMED", message: "거래 활성화 후 직접 해제할 때까지 주문이 나갑니다." });
   }
-  if (!symbolOrders) {
-    reasons.push({ code: HOT_LIVE_ORDERS_DISABLED,
-                   message: `HOT 심볼 LIVE 주문은 꺼져 있습니다 (${account?.gates.symbol_orders_flag_name || "BINANCE_LIVE_HOT_ORDERS"}). 조회만 가능합니다.` });
-  }
   if (error) reasons.push({ code: "LIVE_ERROR", message: error });
 
   return {
-    tradable: available && connected && capability && armed && symbolOrders,
+    tradable: available && connected && capability && armed,
     connected, capability, armed,
     remaining_s: arm?.remaining_s ?? null,
     armed_by: arm?.armed_by ?? null,
