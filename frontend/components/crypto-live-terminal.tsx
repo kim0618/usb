@@ -18,12 +18,12 @@ import { CryptoApiError, costUsdt, holdingDuration, krw, num, price, qty as qtyF
 import type { OrderSide } from "@/lib/crypto-paper";
 import {
   ACTIVATE_CONFIRM_NOTE, ARM_CONFIRMATION, ARM_NOTE, AccountSource, LIVE_AUTHORITY_NOTE,
-  LIVE_LOCK_NOTE, LIVE_PRESET_LABELS,
+  LIVE_LEVERAGE_CANDIDATES, LIVE_LOCK_NOTE, LIVE_PRESET_LABELS,
   LiveAccount, LiveArmState, LiveBlocker, LiveExitGuard, LivePerformance, LiveLeverageOptions, LivePositionCard as LivePositionCardData,
   LivePreview, LiveSizing, LiveStatus, LiveTradeGate, MARGIN_MODE_LABELS,
   MARGIN_MODE_READONLY_NOTE, leverageRestriction, liveApi, liveBlockerLabel, livePresetQty,
   liveSideAllowance, liveTradeGate,
-  liveLeverageLabel,
+  liveLeverageLabel, liveLeverageValidity,
 } from "@/lib/crypto-live";
 import { DEFAULT_SYMBOL, baseAsset as baseAssetOf } from "@/lib/crypto-symbols";
 import { visiblePoll } from "@/lib/visible-poll";
@@ -653,7 +653,7 @@ export function LiveAccountCards({ account }: { account: LiveAccount }) {
  *  Nothing here is optimistic. A button press sends the change to Binance and then re-reads
  *  `symbolConfig`; the value displayed is always the one that came back.
  */
-export function LiveLeveragePanel({ account, options, onSelect, busy, error, compact = false }: {
+export function LiveLeveragePanel({ account, options: given, onSelect, busy, error, compact = false }: {
   account: LiveAccount;
   options: LiveLeverageOptions | null;
   onSelect: (leverage: number) => void;
@@ -664,10 +664,23 @@ export function LiveLeveragePanel({ account, options, onSelect, busy, error, com
    *  what made this screen read as a developer console rather than a terminal. */
   compact?: boolean;
 }) {
+  // A table about another symbol - the previous HOT symbol's, still in flight after a switch -
+  // is not this symbol's and is treated as not read yet.
+  const options = given && given.symbol === account.symbol ? given : null;
   const config = account.symbol_config;
   const current = config ? Number(config.leverage) : null;
   const position = account.position;
   const hasPosition = Boolean(position && !position.is_flat);
+  // The symbol's own maximum, from its own bracket table. Every step is shown; the ones above
+  // it are disabled rather than hidden, and a setting above it is named, never changed here.
+  const validity = liveLeverageValidity(account, options);
+  const steps = options
+    ? [...new Set([...(options.candidates ?? LIVE_LEVERAGE_CANDIDATES), ...options.options])].sort((a, b) => a - b)
+    : [];
+  // Named only when it is what closes a step: BTCUSDT's table reaches 150x, past every step, and
+  // "최대 150x" beside a row whose 50x and 100x are shut by the account would read as a promise.
+  const capNote = validity.max != null && steps.some(value => value > validity.max!)
+    ? `${options?.symbol} 최대 ${validity.max}x` : null;
 
   // One sentence for the whole row: every restricted step shares the same cause (the account,
   // not the number), so the tightest one is quoted and the rest are struck through.
@@ -696,13 +709,14 @@ export function LiveLeveragePanel({ account, options, onSelect, busy, error, com
           same number; both said the screen would not change anything by itself, which the
           screen demonstrates by not changing anything by itself. */}
       <div className="mt-3 flex flex-wrap gap-1.5" data-testid="live-leverage-options">
-        {(options?.options ?? []).map(value => {
-          const restriction = leverageRestriction(options, value);
-          const locked = Boolean(restriction);
+        {steps.map(value => {
+          const aboveMax = validity.max != null && value > validity.max;
+          const restriction = aboveMax ? null : leverageRestriction(options, value);
+          const locked = aboveMax || Boolean(restriction);
           return (
             <button key={value} type="button" data-testid={`live-leverage-${value}`}
               aria-pressed={value === current} disabled={busy || hasPosition || locked}
-              title={restriction ? restriction.message : undefined}
+              title={aboveMax ? capNote ?? undefined : restriction ? restriction.message : undefined}
               onClick={() => onSelect(value)}
               className={`rounded-md border px-2.5 py-1.5 text-xs font-bold tabular-nums transition-colors
                 ${value === current ? "border-danger bg-danger-soft text-danger"
@@ -715,6 +729,13 @@ export function LiveLeveragePanel({ account, options, onSelect, busy, error, com
         })}
         {!options && <span className="text-[11px] text-muted">구간표를 읽는 중입니다.</span>}
       </div>
+      {capNote && (
+        <p className="mt-2 text-[11px] text-muted" data-testid="live-leverage-max">{capNote}</p>
+      )}
+      {validity.invalid && (
+        <p className="mt-2 rounded-md bg-danger-soft px-2.5 py-1.5 text-[11px] font-semibold text-danger"
+          role="status" data-testid="live-leverage-invalid">{validity.message}</p>
+      )}
 
       {hasPosition && (
         <p className="mt-2 text-[11px] text-warning" data-testid="live-leverage-locked">
@@ -846,7 +867,7 @@ export function LiveQuickSize({ sizing, onPick, busy, stale, sides,
  *  opens the activation dialog instead of sending an order that would be refused.
  */
 export function LiveOrderTicket({ account, onOrder, busy, error, preview, onPreview, gate,
-  onActivate, sizing }: {
+  onActivate, sizing, leverageInvalid }: {
   account: LiveAccount;
   onOrder: (body: { side: string; intent: "OPEN" | "CLOSE"; qty?: string }) => void;
   busy?: boolean;
@@ -859,6 +880,9 @@ export function LiveOrderTicket({ account, onOrder, busy, error, preview, onPrev
   onActivate?: () => void;
   /** Server-computed quick sizes. Absent means the row renders disabled with a reason. */
   sizing?: LiveSizing | null;
+  /** Set when the leverage on this symbol is above its maximum: no entry or add can be sent
+   *  until the operator picks again. Closes and reductions are reduceOnly and stay available. */
+  leverageInvalid?: string | null;
 }) {
   const unit = liveUnit(account);
   /** The exchange minimum, not a round number. This ticket's default is what gets sent when
@@ -950,10 +974,12 @@ export function LiveOrderTicket({ account, onOrder, busy, error, preview, onPrev
           const reduce = reducing(side);
           const tooLarge = reduceTooLarge(side);
           const long = side === "LONG";
+          const leverageBlocked = Boolean(leverageInvalid) && !reduce;
           return (
             <button key={side} type="button" data-testid={`live-${side.toLowerCase()}`}
-              disabled={busy || !tradable || tooLarge}
+              disabled={busy || !tradable || tooLarge || leverageBlocked}
               title={tooLarge ? `감소 수량은 보유 ${qtyFmt(position?.qty)} ${unit} 이하여야 합니다.`
+                : leverageBlocked ? leverageInvalid ?? undefined
                 : tradable ? undefined : "거래불가 상태입니다. 먼저 거래를 활성화하세요."}
               onClick={() => setPending({ side, intent: "OPEN" })}
               className={`rounded-md px-3 py-2 text-sm font-bold disabled:opacity-40
@@ -963,6 +989,11 @@ export function LiveOrderTicket({ account, onOrder, busy, error, preview, onPrev
           );
         })}
       </div>
+      {leverageInvalid && (
+        <p className="mt-1.5 text-[11px] font-semibold text-danger" data-testid="live-order-leverage-invalid">
+          {leverageInvalid}
+        </p>
+      )}
       {allowance.blocked && (
         <p className="mt-1.5 text-[11px] text-muted" data-testid="live-opposite-blocked">
           {allowance.blocked}은 보유 {allowance.holding} 포지션을 입력 수량만큼 줄입니다(reduceOnly).

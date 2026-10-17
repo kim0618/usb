@@ -393,12 +393,14 @@ describe("the leverage ladder", () => {
     expect(leverageRestriction(leverage(), 100)).toBeNull();
   });
 
-  it("drops the steps the symbol's bracket table does not reach", () => {
+  it("disables the steps the symbol's bracket table does not reach", () => {
     render(<LiveLeveragePanel account={flat()}
       options={leverage({ max_leverage: 20, options: [1, 2, 3, 5, 10, 20] })}
       onSelect={vi.fn()} />);
-    expect(screen.queryByTestId("live-leverage-50")).toBeNull();
-    expect(screen.queryByTestId("live-leverage-100")).toBeNull();
+    expect(screen.getByTestId("live-leverage-50")).toBeDisabled();
+    expect(screen.getByTestId("live-leverage-100")).toBeDisabled();
+    expect(screen.getByTestId("live-leverage-20")).toBeEnabled();
+    expect(screen.getByTestId("live-leverage-max")).toHaveTextContent("BTCUSDT 최대 20x");
   });
 
   it("disables every step while a position is held, which is unchanged policy", () => {

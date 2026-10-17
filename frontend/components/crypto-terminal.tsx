@@ -19,7 +19,8 @@ import { DEFAULT_SYMBOL } from "@/lib/crypto-symbols";
 import type { ChartTimeframe } from "@/lib/crypto-paper";
 import { positionOpenedMs } from "@/lib/crypto-paper";
 import type { ContextView } from "@/lib/btc-context";
-import { ARM_NOTE, LIVE_CHART_SOURCE_NOTE, LIVE_LOCK_NOTE, liveOverlays, liveTradeGate }
+import { ARM_NOTE, LIVE_CHART_SOURCE_NOTE, LIVE_LOCK_NOTE, liveLeverageValidity, liveOverlays,
+  liveTradeGate }
   from "@/lib/crypto-live";
 import type { AccountSource } from "@/lib/crypto-live";
 
@@ -242,7 +243,8 @@ export function CryptoTerminal({ marketContext }: {
                 <LiveOrderTicket account={account} onOrder={binance.order} busy={binance.busy}
                   error={binance.actionError} preview={binance.preview}
                   onPreview={binance.requestPreview} gate={gate} onActivate={activate}
-                  sizing={binance.sizing} />
+                  sizing={binance.sizing}
+                  leverageInvalid={liveLeverageValidity(account, binance.leverage).message} />
                 {account.position && !account.position.is_flat && (
                   // AUTO is out of scope for the multi-symbol step, so the guard still watches
                   // one instrument. On the others the server answers UNAVAILABLE with the

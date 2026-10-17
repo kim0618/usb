@@ -1,10 +1,13 @@
-"""Safe MAX at the leverage the position's band allows, not at the configured setting.
+"""Safe MAX at the configured leverage, and only inside what that leverage allows.
 
-The defect this pins: GTCUSDT reads 20x configured against a 10x first band on the real
-account, and Safe MAX priced margin at 20x - about twice the size Binance would margin. Every
-margin figure is now priced at min(configured, allowed(band of the resulting position)), the
-same contract on the ladder, the pre-send check, the preview and the order builder, for BTC
-and a HOT symbol alike. No test touches the network.
+Binance margins an order at the configured leverage and refuses a position past the largest
+band cap that leverage reaches (-2027). On 2026-10-17 SIRENUSDT read 20x configured against a
+10x first band: Binance refused 23,994 SIREN (about 735 USDT) at 20x and filled 36,014 at 10x.
+The first version of this contract priced margin at min(configured, band) and offered sizes
+Binance then refused. Now a setting above the symbol's maximum offers nothing and asks the
+operator to choose again (`LEVERAGE_INVALID_FOR_SYMBOL`), and a position past what the setting
+allows is refused (`LEVERAGE_TIER_EXCEEDED`) - on the ladder, the pre-send check and the
+preview alike, for BTC and a HOT symbol. No test touches the network.
 """
 from __future__ import annotations
 
@@ -15,7 +18,8 @@ import httpx
 import pytest
 
 from app.crypto import symbols as symbols_module
-from app.crypto.live.brackets import (LEVERAGE_BRACKET_UNKNOWN, NOTIONAL_ABOVE_MAXIMUM,
+from app.crypto.live.brackets import (LEVERAGE_BRACKET_UNKNOWN, LEVERAGE_INVALID_FOR_SYMBOL,
+                                      LEVERAGE_TIER_EXCEEDED, NOTIONAL_ABOVE_MAXIMUM,
                                       BracketsMalformed, LeverageBrackets, effective_leverage)
 from app.crypto.live.models import LivePosition
 from app.crypto.live.orders import CLOSE, OPEN
@@ -84,10 +88,24 @@ def test_a_table_for_another_symbol_is_refused() -> None:
         LeverageBrackets.from_payload([{"symbol": "BTCUSDT", "brackets": []}], "GTCUSDT")
 
 
-@pytest.mark.parametrize("configured, allowed, effective", [(10, 20, 10), (20, 20, 20), (20, 10, 10)])
-def test_effective_is_the_lower_of_setting_and_band(configured, allowed, effective) -> None:
+@pytest.mark.parametrize("configured, allowed", [(10, 20), (20, 20), (5, 10)])
+def test_margin_is_priced_at_the_configured_leverage(configured, allowed) -> None:
     decided = effective_leverage(D(configured), bands((0, 10000, allowed)), D(500))
-    assert decided.effective == effective and decided.capped is (configured > allowed)
+    assert decided.effective == configured and decided.capped is False
+
+
+def test_a_setting_above_the_symbols_maximum_is_refused_not_lowered() -> None:
+    decided = effective_leverage(D(20), bands((0, 10000, 10), symbol="SIRENUSDT"), D(500))
+    assert decided.code == LEVERAGE_INVALID_FOR_SYMBOL
+    assert decided.message == "현재 심볼(SIRENUSDT)은 최대 10x입니다. 레버리지를 다시 선택하세요."
+
+
+def test_max_notional_at_a_leverage_is_the_last_band_that_reaches_it() -> None:
+    # The real SIRENUSDT table, first four bands.
+    siren = bands((0, 10000, 10), (10000, 60000, 5), (60000, 70000, 4), (70000, 250000, 3),
+                  symbol="SIRENUSDT")
+    assert [siren.max_notional_at(D(lev)) for lev in (20, 10, 5, 4, 3, 2)] == [
+        0, 10000, 60000, 70000, 250000, 250000]
 
 
 def test_unknown_and_out_of_range_are_refusals_not_guesses() -> None:
@@ -108,24 +126,28 @@ def test_configured_equal_to_the_band_leaves_safe_max_exactly_as_before() -> Non
     assert ladder(bands((0, 10 ** 9, 20)))["max_qty"] == ladder(WIDE_BRACKETS)["max_qty"]
 
 
-def test_configured_above_the_band_is_priced_at_the_band_gtc_case() -> None:
-    capped = ladder(bands((0, 10 ** 6, 10)))           # 20x configured, 10x allowed
-    naive = ladder(WIDE_BRACKETS)                       # what the old code computed
-    assert capped["leverage"] == 10 and capped["configured_leverage"] == 20
-    assert capped["leverage_capped_by_bracket"] is True and capped["bracket_max_leverage"] == 10
-    # 100 USDT at 10x is ~995 of notional once the fee rides on top; at 20x it was ~1,990.
-    assert D(1000) - TWO_STEPS < notional_of(capped) <= D(1000)
-    # Before the one-step reserve, the 20x answer is twice the 10x one (0.022 vs 0.011 BTC).
-    solve = lambda table: max_open(side="LONG", depth=DEEP, mark=MARK, commission=COMMISSION,
-                                   filters=FILTERS, leverage=D(20), brackets=table,
-                                   available=D(100), ceiling=None, position=FLAT)["theoretical_max_qty"]
-    ratio = solve(WIDE_BRACKETS) / solve(bands((0, 10 ** 6, 10)))
-    assert D("1.9") < ratio < D("2.1")
-    row = check(side="LONG", qty=capped["max_qty"], depth=DEEP, mark=MARK, commission=COMMISSION,
-                filters=FILTERS, leverage=D(20), brackets=bands((0, 10 ** 6, 10)), available=D(100),
-                ceiling=None, position=FLAT)
-    assert row["feasible"] and row["leverage"] == 10
-    assert row["required_margin"] == row["notional"] / 10
+def test_configured_above_the_symbols_maximum_offers_no_size_siren_case() -> None:
+    table = bands((0, 10 ** 6, 10))                     # 20x configured, 10x symbol maximum
+    invalid = ladder(table)
+    assert invalid["max_qty"] == 0 and invalid["max_feasible"] is False
+    assert invalid["reject_code"] == LEVERAGE_INVALID_FOR_SYMBOL
+    assert all(row["reject_code"] == LEVERAGE_INVALID_FOR_SYMBOL and not row["feasible"]
+               for row in invalid["presets"])
+    # Not even the smallest order is offered: Binance would refuse it at 20x.
+    row = check(side="LONG", qty=D("0.002"), depth=DEEP, mark=MARK, commission=COMMISSION,
+                filters=FILTERS, leverage=D(20), brackets=table, available=D(100), ceiling=None,
+                position=FLAT)
+    assert row["feasible"] is False and row["reject_code"] == LEVERAGE_INVALID_FOR_SYMBOL
+
+
+@pytest.mark.parametrize("leverage, ceiling", [(D(10), D(1000)), (D(5), D(500))])
+def test_safe_max_follows_the_leverage_the_operator_chose(leverage, ceiling) -> None:
+    # 100 USDT: about 995 of notional at 10x and 497 at 5x, once the fee rides on top.
+    result = ladder(bands((0, 10 ** 6, 10)), leverage=leverage)
+    assert result["leverage"] == leverage and result["leverage_capped_by_bracket"] is False
+    assert ceiling - TWO_STEPS < notional_of(result) <= ceiling
+    row = max_row(result)
+    assert row["feasible"] and row["required_margin"] == row["notional"] / leverage
 
 
 def test_a_band_boundary_the_lower_leverage_cannot_cross_stops_safe_max_at_the_boundary() -> None:
@@ -138,14 +160,20 @@ def test_a_band_boundary_the_lower_leverage_cannot_cross_stops_safe_max_at_the_b
     assert result["leverage"] == 20 and max_row(result)["bracket"] == 1
 
 
-def test_crossing_a_band_reprices_everything_beyond_it_at_the_lower_leverage() -> None:
-    # 20x up to 500, 10x beyond. 100 USDT at 10x reaches ~995, past the boundary: Safe MAX is
-    # priced in band 2 at 10x, not at 20x (which would say ~1,990).
+def test_a_band_the_setting_cannot_reach_stops_safe_max_at_the_tier_cap() -> None:
+    # 20x up to 500, 10x beyond. At 20x the position may not pass 500, however much margin is
+    # free; past it the size is refused as a tier, not repriced at 10x.
     table = bands((0, 500, 20), (500, 10 ** 9, 10))
     result = ladder(table)
-    assert D(1000) - TWO_STEPS < notional_of(result) <= D(1000)
-    assert result["leverage"] == 10 and result["leverage_capped_by_bracket"] is True
-    assert max_row(result)["bracket"] == 2
+    assert D(500) - TWO_STEPS < notional_of(result) <= D(500)
+    assert result["leverage"] == 20 and max_row(result)["bracket"] == 1
+    past = check(side="LONG", qty=D("0.007"), depth=DEEP, mark=MARK, commission=COMMISSION,
+                 filters=FILTERS, leverage=D(20), brackets=table, available=D(100), ceiling=None,
+                 position=FLAT)
+    assert past["feasible"] is False and past["reject_code"] == LEVERAGE_TIER_EXCEEDED
+    # At 10x the same table reaches ~995, in band 2.
+    lower = ladder(table, leverage=D(10))
+    assert D(1000) - TWO_STEPS < notional_of(lower) <= D(1000) and max_row(lower)["bracket"] == 2
 
 
 def test_feasibility_is_monotone_across_a_boundary_so_the_search_cannot_oscillate() -> None:
@@ -171,9 +199,13 @@ def test_an_existing_position_counts_toward_the_band() -> None:
                                     "notional": "501", "initialMargin": "25", "maintMargin": "1",
                                     "adl": 0, "updateTime": 1}], "BTCUSDT")
     table = bands((0, 500, 20), (500, 10 ** 9, 10))
-    row = check(side="LONG", qty=D("0.002"), depth=DEEP, mark=MARK, commission=COMMISSION,
-                filters=FILTERS, leverage=D(20), brackets=table, available=D(100), ceiling=None,
-                position=held)
+    at = lambda lev: check(side="LONG", qty=D("0.002"), depth=DEEP, mark=MARK, commission=COMMISSION,
+                           filters=FILTERS, leverage=lev, brackets=table, available=D(100),
+                           ceiling=None, position=held)
+    # At 20x the resulting ~668 is past the 500 that 20x allows: refused, though the add alone
+    # (~167) would fit.
+    assert at(D(20))["feasible"] is False and at(D(20))["reject_code"] == LEVERAGE_TIER_EXCEEDED
+    row = at(D(10))
     assert row["feasible"] and row["leverage"] == 10 and row["bracket"] == 2
 
 
@@ -188,13 +220,13 @@ def test_no_usable_table_means_no_safe_max(brackets, code) -> None:
 
 
 def test_a_zero_balance_offers_nothing() -> None:
-    result = ladder(bands((0, 10 ** 6, 10)), available=D(0))
+    result = ladder(bands((0, 10 ** 6, 10)), leverage=D(10), available=D(0))
     assert result["max_qty"] == 0 and result["presets"][0]["reject_code"] == INSUFFICIENT_MARGIN
 
 
 @pytest.mark.parametrize("available", [D(100), D(500), D(1000)])
-def test_fixture_balances_scale_safe_max_at_the_effective_leverage(available) -> None:
-    result = ladder(bands((0, 10 ** 7, 10)), available=available)
+def test_fixture_balances_scale_safe_max_at_the_chosen_leverage(available) -> None:
+    result = ladder(bands((0, 10 ** 7, 10)), leverage=D(10), available=available)
     row = max_row(result)
     assert row["leverage"] == 10
     assert row["required_total"] == row["required_margin"] + row["entry_fee"] <= available
@@ -202,15 +234,20 @@ def test_fixture_balances_scale_safe_max_at_the_effective_leverage(available) ->
     assert result["max_qty"] % FILTERS.market_qty_step == 0
 
 
-def test_the_preview_prices_margin_at_the_same_effective_leverage() -> None:
+def test_the_preview_prices_margin_at_the_same_leverage_and_refuses_the_same_setting() -> None:
     table = bands((0, 10 ** 6, 10))
     rt = round_trip(side="LONG", qty=D("0.010"), depth=DEEP, mark=MARK, commission=COMMISSION,
-                    filters=FILTERS, leverage=D(20), brackets=table)
+                    filters=FILTERS, leverage=D(10), brackets=table)
     en = entry(side="LONG", qty=D("0.010"), depth=DEEP, mark=MARK, commission=COMMISSION,
-               filters=FILTERS, leverage=D(20), brackets=table)
+               filters=FILTERS, leverage=D(10), brackets=table)
     for priced in (rt, en):
-        assert priced["leverage"] == 10 and priced["configured_leverage"] == 20
+        assert priced["leverage"] == 10 and priced["configured_leverage"] == 10
         assert priced["required_margin"] == priced["notional"] / 10
+    for invalid in (round_trip(side="LONG", qty=D("0.010"), depth=DEEP, mark=MARK, commission=COMMISSION,
+                               filters=FILTERS, leverage=D(20), brackets=table),
+                    entry(side="LONG", qty=D("0.010"), depth=DEEP, mark=MARK, commission=COMMISSION,
+                          filters=FILTERS, leverage=D(20), brackets=table)):
+        assert invalid["feasible"] is False and invalid["reject_code"] == LEVERAGE_INVALID_FOR_SYMBOL
     assert rt["required_margin"] == en["required_margin"]
     assert round_trip(side="LONG", qty=D("0.010"), depth=DEEP, mark=MARK, commission=COMMISSION,
                       filters=FILTERS, leverage=D(20), brackets=None)["reject_code"] == LEVERAGE_BRACKET_UNKNOWN
@@ -257,12 +294,23 @@ def _hot_fake(monkeypatch, *, positions=None, extra_rows=None, brackets=None, le
     return ms, client, config, fake
 
 
+def test_hot_at_a_setting_above_its_maximum_offers_nothing_and_preflight_refuses(monkeypatch) -> None:
+    ms, client, config, fake = _hot_fake(monkeypatch)              # 20x set, 10x table
+    hot = ms.adapter_for(HOT, client, config)
+    long = hot.get_sizing()["sides"]["LONG"]
+    assert long["max_qty"] == 0 and long["reject_code"] == LEVERAGE_INVALID_FOR_SYMBOL
+    pre = hot.preflight_open("LONG", qty="30.0")
+    assert pre["feasible"] is False and pre["reject_code"] == LEVERAGE_INVALID_FOR_SYMBOL
+    assert pre["safe_max_qty"] == 0
+    assert not any(method != "GET" for method, _, _ in fake.calls), "no leverage write, no order"
+
+
 def test_hot_sizing_preview_preflight_and_builder_share_one_leverage(monkeypatch) -> None:
-    ms, client, config, fake = _hot_fake(monkeypatch)
+    ms, client, config, fake = _hot_fake(monkeypatch, leverage="10")
     hot = ms.adapter_for(HOT, client, config)
     sizing = hot.get_sizing()
     long = sizing["sides"]["LONG"]
-    assert long["leverage"] == 10 and long["configured_leverage"] == D(20) and long["leverage_capped_by_bracket"]
+    assert long["leverage"] == 10 and long["configured_leverage"] == D(10) and not long["leverage_capped_by_bracket"]
     max_qty = long["max_qty"]
     assert max_qty > 0 and max_qty % D("0.1") == 0
     preview = hot.get_order_preview("LONG", qty=str(max_qty))

@@ -261,18 +261,18 @@ describe("arming from the screen", () => {
 
 
 describe("the leverage panel", () => {
-  it("offers only the values the account's bracket table allows", () => {
+  it("enables only the values the symbol's bracket table allows and names the maximum", () => {
     render(<LiveLeveragePanel account={account()} options={options({ max_leverage: 10,
       options: [1, 2, 3, 5, 10] })} onSelect={vi.fn()} />);
-    expect(screen.getByTestId("live-leverage-10")).toBeInTheDocument();
-    expect(screen.queryByTestId("live-leverage-20")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("live-leverage-50")).not.toBeInTheDocument();
+    expect(screen.getByTestId("live-leverage-10")).toBeEnabled();
+    for (const value of [20, 50, 100]) expect(screen.getByTestId(`live-leverage-${value}`)).toBeDisabled();
+    expect(screen.getByTestId("live-leverage-max")).toHaveTextContent("BTCUSDT 최대 10x");
   });
 
   it("offers a HOT symbol's values exactly as it offers BTC's", () => {
     const onSelect = vi.fn();
-    render(<LiveLeveragePanel account={account({ symbol: "AGTUSDT" })} options={options()}
-      onSelect={onSelect} />);
+    render(<LiveLeveragePanel account={account({ symbol: "AGTUSDT" })}
+      options={options({ symbol: "AGTUSDT" })} onSelect={onSelect} />);
     fireEvent.click(screen.getByTestId("live-leverage-5"));
     expect(onSelect).toHaveBeenCalledWith(5);
   });

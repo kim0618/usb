@@ -78,7 +78,48 @@ export type LiveLeverageOptions = {
   unavailable?: Record<string, LiveLeverageRestriction> | null;
   capability?: Record<string, unknown> | null;
   capability_authority?: string;
+  /** Every step the row shows; the ones above `max_leverage` are shown disabled. */
+  candidates?: number[];
+  /** False when Binance reports a setting above this symbol's maximum. Every opening order is
+   *  refused at it, and nothing lowers it: the operator chooses again. */
+  current_valid?: boolean;
+  current_invalid_message?: string | null;
 };
+
+/** The steps the LIVE leverage row offers before the symbol's own maximum is applied. */
+export const LIVE_LEVERAGE_CANDIDATES = [1, 2, 3, 5, 10, 20, 50, 100] as const;
+
+export type LiveLeverageValidity = {
+  /** This symbol's maximum from its own bracket table; null until it has been read. */
+  max: number | null;
+  /** Binance's setting on this symbol, as the account snapshot reports it. */
+  current: number | null;
+  invalid: boolean;
+  message: string | null;
+};
+
+/** Whether the setting on screen can open a position on this symbol at all.
+ *
+ *  Read from the account (the setting) and the leverage options (the symbol's maximum), and
+ *  only when both are about the same symbol: a table still on screen from the previous HOT
+ *  symbol says nothing about this one. Unknown is not invalid here - the server's preflight
+ *  refuses the order on its own - so nothing is blocked on a figure that has not arrived. */
+export function liveLeverageValidity(account: LiveAccount | null | undefined,
+                                     options: LiveLeverageOptions | null | undefined): LiveLeverageValidity {
+  const symbol = account?.symbol ?? null;
+  const setting = Number(account?.symbol_config?.leverage);
+  const current = Number.isFinite(setting) && setting > 0 ? setting : null;
+  if (!options || !symbol || options.symbol !== symbol || !(options.max_leverage > 0)) {
+    return { max: null, current, invalid: false, message: null };
+  }
+  const max = options.max_leverage;
+  const invalid = current != null && current > max;
+  return {
+    max, current, invalid,
+    message: invalid ? (options.current_invalid_message
+      ?? `현재 심볼(${symbol})은 최대 ${max}x입니다. 레버리지를 다시 선택하세요.`) : null,
+  };
+}
 
 /** The restriction on one step, or null when there is none on record.
  *

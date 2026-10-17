@@ -37,6 +37,7 @@ from ..live.adapter import BinanceLiveAdapter
 from .executions import live_executions_from_file
 from ..live.arm import ArmRefused, ArmSession
 from ..live.credentials import LiveConfig, client_armed, load_config, load_credentials
+from ..live.brackets import leverage_invalid_message
 from ..live.credentials import CredentialsMissing
 from ..live.endpoints import registry_view
 from ..live.leverage import (ACCOUNT_LEVERAGE_NOT_YET_AVAILABLE, RESTRICTION_CODES,
@@ -1187,8 +1188,11 @@ async def binance_leverage_options(symbol: str | None = None) -> Any:
     maximum = max(int(item["initialLeverage"]) for item in brackets)
     snapshot = adapter.snapshot()
     current = snapshot.symbol_config.leverage if snapshot.symbol_config else None
+    # A setting above this symbol's maximum is reported, never offered: Binance refuses every
+    # opening order at it (-2027), and nothing here lowers it - the operator picks again.
+    current_valid = current is None or int(current) <= maximum
     options = sorted({value for value in LEVERAGE_LADDER if value <= maximum}
-                     | ({int(current)} if current else set()))
+                     | ({int(current)} if current and current_valid else set()))
     # The bracket table says what the *symbol* allows. What this *account* allows is only known
     # from Binance's own refusals, so the steps it has refused are reported alongside the
     # options rather than quietly dropped: a button that is there and greyed with a reason is
@@ -1221,6 +1225,10 @@ async def binance_leverage_options(symbol: str | None = None) -> Any:
         "current": current,
         "margin_type": snapshot.symbol_config.margin_type if snapshot.symbol_config else None,
         "max_leverage": maximum,
+        "candidates": list(LEVERAGE_LADDER),
+        "current_valid": current_valid,
+        "current_invalid_message": (None if current_valid else leverage_invalid_message(
+            adapter.config.symbol, Decimal(maximum))),
         "options": options,
         "brackets": brackets,
         "notional_coef": row.get("notionalCoef"),

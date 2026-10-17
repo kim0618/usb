@@ -65,9 +65,10 @@ def _margin(*, leverage: Decimal | None, brackets: LeverageBrackets | None, qty:
             held_notional: Decimal) -> dict[str, Any]:
     """The leverage an order is priced at and the margin that follows from it.
 
-    `leverage` is the account's configured figure. It is capped by the leverage band the whole
-    resulting position falls in (see `live.brackets`); without a usable band table there is no
-    margin figure, and the caller refuses the size rather than pricing it at the setting.
+    `leverage` is the account's configured figure, and the margin is priced at it: Binance does
+    not lower it to fit a band. The size is refused instead when that leverage is above the
+    symbol's maximum or past what the band of the whole resulting position allows (see
+    `live.brackets`); without a usable band table there is no margin figure either.
     """
     if not leverage or leverage <= 0:
         return {"leverage": leverage, "required_margin": None}
