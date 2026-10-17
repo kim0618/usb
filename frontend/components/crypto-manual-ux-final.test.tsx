@@ -100,8 +100,8 @@ describe("execution markers", () => {
     const markers = executionMarkers(rows, candles);
     expect(markers).toHaveLength(4);
     expect(markers.map(m => m.text)).toEqual([
-      "#1 LONG 진입 0.01 @ 84000 20x", "#2 LONG 추가 0.02 @ 83500 20x",
-      "#3 LONG 추가 0.01 @ 82900 20x", "#4 LONG 부분청산 0.015 @ 85100 20x"]);
+      "#1 LONG 0.01 @ 84000", "#2 LONG 0.02 @ 83500",
+      "#3 LONG 0.01 @ 82900", "LONG 부분청산 0.015 @ 85100"]);
     expect(markers.slice(0, 3).every(m => m.shape === "arrowUp" && m.position === "belowBar")).toBe(true);
     expect(markers[3].position).toBe("aboveBar");
     // Every marker sits on a candle that exists, at or before the fill.

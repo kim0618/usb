@@ -16,6 +16,11 @@ Two sources, never mixed:
   (`manual_performance*.json`), matched by order id. Never from a mark or a current quote:
   an order whose fill price cannot be found is left off the chart, not drawn at a guess.
 
+Every row carries `seq` (its place among all fills of the account and symbol, the row's
+identity) and `entry_no` (its place among the entries of the position it belongs to: the first
+entry or the opening leg of a flip is 1, each add is one more, and a full close ends the
+position so the next entry is 1 again; null on a close). The chart labels an entry `#entry_no`.
+
 Read only. Nothing here writes a ledger, a tape or a mirror line.
 """
 from __future__ import annotations
@@ -35,6 +40,29 @@ POSITION_FLIP = "POSITION_FLIP"
 FLIP_OPEN_PREFIX = "flip-open-"
 
 
+class _EntryCounter:
+    """Numbers the entries of one position at a time.
+
+    An add that arrives with no entry before it in what was read (the position was opened
+    before the record starts, say) has no number rather than a guessed one."""
+
+    def __init__(self) -> None:
+        self.count = 0
+
+    def take(self, event_type: str) -> int | None:
+        if event_type in (INITIAL_ENTRY, POSITION_FLIP):
+            self.count = 1
+            return 1
+        if event_type == ADD_ENTRY:
+            if self.count == 0:
+                return None
+            self.count += 1
+            return self.count
+        if event_type == FULL_CLOSE:
+            self.count = 0
+        return None
+
+
 def _decimal(value: Any) -> Decimal | None:
     if value is None or value == "":
         return None
@@ -49,6 +77,7 @@ def paper_executions(events: Iterable[dict[str, Any]], *, symbol: str,
     """Fills of one PAPER run on one symbol, oldest first, numbered from 1."""
     fills: dict[str, dict[str, Any]] = {}
     rows: list[dict[str, Any]] = []
+    entries = _EntryCounter()
     for event in events:
         kind = event.get("event_type")
         request_id = event.get("request_id")
@@ -73,11 +102,13 @@ def paper_executions(events: Iterable[dict[str, Any]], *, symbol: str,
             event_type = PARTIAL_CLOSE if kind == "POSITION_REDUCE" else FULL_CLOSE
             price = event.get("exit_price")
             qty = event.get("closed_qty")
+        entry_no = entries.take(event_type)
         if side not in ("LONG", "SHORT") or _decimal(price) is None or _decimal(qty) is None:
             continue
         rows.append({
             "seq": len(rows) + 1, "ts_ms": int(event.get("ts_ms") or 0), "mode": "PAPER",
             "symbol": symbol, "account": account, "side": side, "event_type": event_type,
+            "entry_no": entry_no,
             "price": str(price), "qty": str(qty),
             "leverage": None if event.get("leverage") is None else str(event.get("leverage")),
             "request_id": request_id, "reason": event.get("reason"),
@@ -192,6 +223,9 @@ def live_execution_audit(lines: Iterable[dict[str, Any]], *, symbol: str, accoun
     plans: dict[str, dict[str, Any]] = {}
     rows: list[dict[str, Any]] = []
     dropped: list[dict[str, Any]] = []
+    # Counted over every fill, priced or not: a fill left off the chart for want of a price
+    # still happened, and the entries after it keep the number they really have.
+    entries = _EntryCounter()
     for line in lines:
         if account is not None and line.get("account") not in (None, account):
             continue
@@ -219,22 +253,24 @@ def live_execution_audit(lines: Iterable[dict[str, Any]], *, symbol: str, accoun
         executed = _decimal(response.get("executedQty"))
         if executed is None or executed <= 0:
             continue
+        held = _decimal(plan.get("position_qty_at_plan")) or Decimal(0)
+        if plan.get("intent") == "OPEN":
+            event_type = INITIAL_ENTRY if held <= 0 else ADD_ENTRY
+        else:
+            event_type = FULL_CLOSE if executed >= held else PARTIAL_CLOSE
+        entry_no = entries.take(event_type)
         price, source = resolve_fill_price(
             response, executed, trades.get(str(response.get("orderId"))))
         if price is None:
             dropped.append({"client_order_id": cid, "order_id": response.get("orderId"),
                             "reason": source})
             continue
-        held = _decimal(plan.get("position_qty_at_plan")) or Decimal(0)
-        if plan.get("intent") == "OPEN":
-            event_type = INITIAL_ENTRY if held <= 0 else ADD_ENTRY
-        else:
-            event_type = FULL_CLOSE if executed >= held else PARTIAL_CLOSE
         ts = response.get("updateTime") or line.get("ts_ms") or 0
         rows.append({
             "seq": len(rows) + 1, "ts_ms": int(ts), "mode": "LIVE", "symbol": symbol,
             "account": line.get("account") or account, "side": plan.get("side"),
-            "event_type": event_type, "price": str(price), "qty": str(executed),
+            "event_type": event_type, "entry_no": entry_no, "price": str(price),
+            "qty": str(executed),
             "leverage": None if plan.get("leverage") is None else str(plan.get("leverage")),
             "client_order_id": cid, "price_source": source,
         })

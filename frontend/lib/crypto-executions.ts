@@ -22,6 +22,10 @@ export type Execution = {
   /** The position side the fill acted on (a close of a LONG is LONG). */
   side: "LONG" | "SHORT";
   event_type: ExecutionEventType;
+  /** The entry's number within its position: 1 for the first entry (or a flip's opening leg),
+   *  one more for each add, back to 1 after a full close. Null on a close, and on an add whose
+   *  earlier entries are not in the record. Absent from an older server, where `seq` stands in. */
+  entry_no?: number | null;
   price: string;
   qty: string;
   leverage: string | null;
@@ -76,16 +80,35 @@ export function executionsFor(executions: readonly Execution[] | null | undefine
   return kept.sort((a, b) => a.seq - b.seq);
 }
 
+/** 36014 -> "36,014", 0.0105 -> "0.0105": grouped, at most 8 significant digits. */
 const compactQty = (value: string) => {
   const n = Number(value);
-  return Number.isFinite(n) ? String(Number(n.toPrecision(8))) : value;
+  return Number.isFinite(n)
+    ? Number(n.toPrecision(8)).toLocaleString("en-US", { maximumFractionDigits: 8 }) : value;
 };
+
+/** The backend's price string as it is, without trailing zeros: "0.03061000" -> "0.03061". */
+const compactPrice = (value: string) =>
+  /^-?\d+\.\d*$/.test(value) ? value.replace(/0+$/, "").replace(/\.$/, "") : value;
+
+/** `#1 LONG 36,014 @ 0.03061` for an entry, `LONG 부분청산 18,000 @ 0.03120` for a close. */
+export function executionLabel(row: Execution): string {
+  const body = `${compactQty(row.qty)} @ ${compactPrice(row.price)}`;
+  if (!ENTRY_TYPES.has(row.event_type)) return `${row.side} ${EXECUTION_LABELS[row.event_type]} ${body}`;
+  const number = row.entry_no === undefined ? row.seq : row.entry_no;
+  return number == null ? `${row.side} ${EXECUTION_LABELS[row.event_type]} ${body}`
+    : `#${number} ${row.side} ${body}`;
+}
 
 /** Executions as chart markers, each placed on the candle it happened in.
  *
  *  `candleTimes` are the series' bar times in seconds, ascending. A fill is put on the last bar
  *  that starts at or before it; a fill older than the first bar in view is left off (the chart
- *  cannot place it, and pinning it to the first bar would draw it at the wrong time). */
+ *  cannot place it, and pinning it to the first bar would draw it at the wrong time).
+ *
+ *  One marker per fill, always: three fills in one minute are three markers on one bar, which
+ *  the chart stacks so each label stays readable. Nothing here merges them, and nothing here
+ *  derives a price - the average entry line is the account's own figure, drawn separately. */
 export function executionMarkers(executions: readonly Execution[],
                                  candleTimes: readonly number[]): ChartMarker[] {
   if (candleTimes.length === 0) return [];
@@ -96,17 +119,17 @@ export function executionMarkers(executions: readonly Execution[],
     if (time == null) continue;
     const buying = (row.side === "LONG") === ENTRY_TYPES.has(row.event_type);
     const entry = ENTRY_TYPES.has(row.event_type);
-    const leverage = row.leverage ? ` ${Number(row.leverage)}x` : "";
     markers.push({
       id: `${row.mode}:${row.account ?? ""}:${row.seq}`,
       time,
       position: buying ? "belowBar" : "aboveBar",
       shape: entry ? (buying ? "arrowUp" : "arrowDown") : "circle",
       color: entry ? (row.side === "LONG" ? "#16a34a" : "#dc2626") : "#f59e0b",
-      text: `#${row.seq} ${row.side} ${EXECUTION_LABELS[row.event_type]} ${compactQty(row.qty)} @ ${row.price}${leverage}`,
+      text: executionLabel(row),
     });
   }
-  return markers;
+  // The chart wants markers in time order; fills on one bar keep the order they happened in.
+  return markers.sort((a, b) => a.time - b.time);
 }
 
 function barAtOrBefore(times: readonly number[], at: number): number | null {
