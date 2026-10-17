@@ -56,6 +56,11 @@ SESSION_CLOSED_AT = time(9, 35)
 PREMATURE_REJECTED = "PREMATURE_REJECTED"
 REPAIR_PREMATURE_DAILY_APPEND = "PREMATURE_DAILY_APPEND_V1"
 
+#: Recorded exceptions collection cannot advance past (with ``history_exhausted``).
+TERMINAL_ERRORS = ("MARKET_DATA_UNAVAILABLE", "INVALID_SYMBOL", "HISTORY_PAGE_LIMIT")
+#: Stored rows disagree with the chart; pending until a repair, never re-walked meanwhile.
+STORE_CONFLICT = "STORE_CONFLICT"
+
 READY = "RVOL_READY"
 NAN_BY_RULE = "RVOL_NORMAL_NAN_BY_RULE"
 DATA_MISSING = "RVOL_DATA_MISSING"
@@ -336,8 +341,25 @@ class RvolStore:
 
     # -- collection state (which symbols still have something to fetch)
     def note_pass(self, symbol: str, *, staged_count: int, oldest_session: str | None,
-                  history_exhausted: bool, error: str | None) -> None:
-        """What a collector pass found, so the next pass does not re-walk a finished symbol."""
+                  history_exhausted: bool, error: str | None, authoritative: bool = True,
+                  clears_conflict: bool = False) -> None:
+        """What a collector pass found, so the next pass does not re-walk a finished symbol.
+
+        Only a walk aimed at the full window (``authoritative``) may overturn a recorded exception.
+        A shorter pass - the daily append, a repair - never looked far enough back to know whether
+        the history still runs out or the source still refuses, so it keeps the exception until
+        real data brings the symbol to the window. ``clears_conflict`` is for a repair, which is
+        what resolves a STORE_CONFLICT.
+        """
+        prior = self.collection_state().get(symbol)
+        if not authoritative and prior and staged_count < RVOL_WINDOW:
+            conflict = prior["last_error"] == STORE_CONFLICT
+            if prior["history_exhausted"] or prior["last_error"] in TERMINAL_ERRORS or (conflict and not clears_conflict):
+                history_exhausted = prior["history_exhausted"]
+                error = prior["last_error"]
+                oldest_session = oldest_session or prior["oldest_session"]
+            elif conflict:
+                error = None
         self.connection.execute(
             "INSERT OR REPLACE INTO kiwoom_collection_state VALUES (?,?,?,?,?,?)",
             (symbol, staged_count, oldest_session, int(history_exhausted),
@@ -348,16 +370,26 @@ class RvolStore:
         """Symbols collection can never advance: Kiwoom's history ran out, or the source refuses
         them. They are recorded exceptions, not unfinished work, so a promotion gate must not wait
         for them (the frozen rule simply leaves their RVOL undefined)."""
+        marks = ",".join("?" * len(TERMINAL_ERRORS))
         return {row[0] for row in self.connection.execute(
-            "SELECT symbol FROM kiwoom_collection_state WHERE history_exhausted=1 "
-            "OR last_error IN ('MARKET_DATA_UNAVAILABLE','INVALID_SYMBOL','HISTORY_PAGE_LIMIT')")}
+            f"SELECT symbol FROM kiwoom_collection_state WHERE history_exhausted=1 OR last_error IN ({marks})",
+            TERMINAL_ERRORS)}
+
+    def bootstrap_pending(self, symbols: Sequence[str], session: date) -> list[str]:
+        """Symbols collection can still advance and that are short of the window before ``session``.
+
+        Empty means the bootstrap is complete (recorded exceptions aside); this is what the runtime
+        gates on at 09:25.
+        """
+        unreachable = self.unreachable_symbols()
+        return sorted(s for s in symbols if s not in unreachable and self.staged_count(s, session) < RVOL_WINDOW)
 
     def conflicted_symbols(self) -> set[str]:
         """Symbols whose last walk found stored rows it could not write over (a CONFLICT): the store
         disagrees with the chart, so re-walking cannot help until the rows are repaired. They are
         not unreachable either - they stay pending, which keeps the evidence grade fail-closed."""
         return {row[0] for row in self.connection.execute(
-            "SELECT symbol FROM kiwoom_collection_state WHERE last_error='STORE_CONFLICT'")}
+            "SELECT symbol FROM kiwoom_collection_state WHERE last_error=?", (STORE_CONFLICT,))}
 
     def exhausted_symbols(self) -> set[str]:
         """Symbols whose Kiwoom history ran out before the frozen window; not worth re-walking."""

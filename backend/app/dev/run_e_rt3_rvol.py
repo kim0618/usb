@@ -98,8 +98,11 @@ def _pass(store: RvolStore, lane: BS.Lane, work: list[tuple[str, str, str]], *, 
             # The chart had what the store needs but the store kept other rows for those sessions:
             # walking again cannot change that, so the symbol is parked until it is repaired.
             error = "STORE_CONFLICT"
+        # only a walk aimed at the full window may overturn a recorded exception; the daily
+        # append (target 1) stops after one session and would otherwise erase it every night
         store.note_pass(result.symbol, staged_count=staged, oldest_session=result.oldest_session,
-                        history_exhausted=bool(result.exhausted and staged < target), error=error)
+                        history_exhausted=bool(result.exhausted and staged < target), error=error,
+                        authoritative=target >= RVOL_WINDOW)
         if len(results) % 25 == 0:
             done = sum(r.pages for r in results)
             log(f"{label} {len(results)}/{len(work)} pages={done} last={result.symbol} staged={staged}")
@@ -368,7 +371,8 @@ def repair(args) -> int:
             with lock:
                 before = datetime.now(ET).date() + timedelta(days=1)
                 store.note_pass(symbol, staged_count=store.staged_count(symbol, before),
-                                oldest_session=None, history_exhausted=False, error=None)
+                                oldest_session=None, history_exhausted=False, error=None,
+                                authoritative=False, clears_conflict=True)
         return result
 
     with ThreadPoolExecutor(max_workers=args.workers) as pool:
@@ -422,7 +426,7 @@ def repair_replay(args) -> int:
         before = datetime.now(ET).date() + timedelta(days=1)
         for symbol in sorted({row["symbol"] for row in rows}):
             target.note_pass(symbol, staged_count=target.staged_count(symbol, before), oldest_session=None,
-                             history_exhausted=False, error=None)
+                             history_exhausted=False, error=None, authoritative=False, clears_conflict=True)
     report = {"mode": "E_RVOL_REPAIR_REPLAY_V1", "apply": bool(args.apply), "source": str(args.source),
               "store": str(args.store), "log_rows": len(rows), "outcomes": outcomes}
     source.close()
