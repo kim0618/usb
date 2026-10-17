@@ -1,0 +1,34 @@
+70c70
+< &&c.entry_price)return`신호 ${(0,e.UK)(c.entry_price)}`;let d=r(a.premarket?.gap_pct,!0);return d?`Gap ${d}`:null}},15395:(a,b,c)=>{Promise.resolve().then(c.bind(c,39397))},19121:a=>{
+---
+> &&c.entry_price)return`신호 ${(0,e.UK)(c.entry_price)}`;let d=r(a.premarket?.gap_pct,!0);return d?`Gap ${d}`:null}},17735:(a,b,c)=>{
+75d74
+< ). 조회만 가능합니다.
+111c110
+< ,children:v?`추가 수량 (${l})`:`수량 (${l})`}),(0,d.jsx)(
+---
+> ,children:u?`추가 수량 (${l})`:`수량 (${l})`}),(0,d.jsx)(
+115d113
+< ,message:`HOT 심볼 LIVE 주문은 꺼져 있습니다 (${a?.gates.symbol_orders_flag_name||
+233c231
+< ===q.intent?`${q.side} 전량 청산 (${B(u?.qty)} ${l})`:x(q.side)?`${w.holding} ${Number(n)>=y?
+---
+> ===q.intent?`${q.side} 전량 청산 (${B(t?.qty)} ${l})`:w(q.side)?`${v.holding} ${Number(n)>=x?
+268,270d265
+< HOT 심볼 LIVE 레버리지 변경은 꺼져 있습니다.
+< HOT 심볼 LIVE 주문은 꺼져 있습니다 (
+< HOT 심볼 LIVE 주문은 꺼져 있습니다. 조회만 가능합니다.
+375c370
+< } 청산 ${n} ${l} (보유 ${B(u?.qty)} ${l})`:v?`${q.side} 추가 진입 ${n} ${l} (보유 ${B(u?.qty)} ${l})`:`${q.side} ${n} ${l}`}),(0,d.jsxs)(
+---
+> } 청산 ${n} ${l} (보유 ${B(t?.qty)} ${l})`:u?`${q.side} 추가 진입 ${n} ${l} (보유 ${B(t?.qty)} ${l})`:`${q.side} ${n} ${l}`}),(0,d.jsxs)(
+382d376
+< }). 조회만 가능합니다.`}),c&&d.push({code:
+386c380
+< }=false 입니다. 서버 설정을 바꿔야 열립니다.`}),i||d.push({code:
+---
+> }=false 입니다. 서버 설정을 바꿔야 열립니다.`}),c&&d.push({code:
+400c394
+< 감소 수량은 보유 ${B(u?.qty)} ${l} 이하여야 합니다.
+---
+> 감소 수량은 보유 ${B(t?.qty)} ${l} 이하여야 합니다.

@@ -1,0 +1,203 @@
+diff --git a/frontend/components/crypto-live-arm.test.tsx b/frontend/components/crypto-live-arm.test.tsx
+index 9d5a96a..5a1358d 100644
+--- a/frontend/components/crypto-live-arm.test.tsx
++++ b/frontend/components/crypto-live-arm.test.tsx
+@@ -269,15 +269,12 @@ describe("the leverage panel", () => {
+     expect(screen.queryByTestId("live-leverage-50")).not.toBeInTheDocument();
+   });
+ 
+-  it("locks every value on a HOT symbol whose LIVE switch is off", () => {
++  it("offers a HOT symbol's values exactly as it offers BTC's", () => {
+     const onSelect = vi.fn();
+-    const hot = account({ gates: { ...account().gates, symbol_orders_enabled: false } });
+-    render(<LiveLeveragePanel account={hot} options={options()} onSelect={onSelect} />);
+-    for (const value of [1, 5, 10, 20]) {
+-      expect(screen.getByTestId(`live-leverage-${value}`)).toBeDisabled();
+-    }
++    render(<LiveLeveragePanel account={account({ symbol: "AGTUSDT" })} options={options()}
++      onSelect={onSelect} />);
+     fireEvent.click(screen.getByTestId("live-leverage-5"));
+-    expect(onSelect).not.toHaveBeenCalled();
++    expect(onSelect).toHaveBeenCalledWith(5);
+   });
+ 
+   it("marks the value Binance currently reports, not the one last clicked", () => {
+diff --git a/frontend/components/crypto-live-sizing.test.tsx b/frontend/components/crypto-live-sizing.test.tsx
+index 9ec3ddd..cd48e50 100644
+--- a/frontend/components/crypto-live-sizing.test.tsx
++++ b/frontend/components/crypto-live-sizing.test.tsx
+@@ -184,42 +184,56 @@ describe("the quick size row on the ticket", () => {
+ });
+ 
+ 
+-describe("a HOT symbol while its LIVE order switch is off", () => {
+-  const hotOff = (over: Partial<LiveAccount> = {}) => account({
+-    symbol: "GTCUSDT",
+-    gates: { armed: true, env_flag: true, client_armed: true,
+-             env_flag_name: "BINANCE_LIVE_TRADING_ENABLED", symbol_orders_enabled: false,
+-             symbol_orders_flag_name: "BINANCE_LIVE_HOT_ORDERS" },
+-    ...over,
+-  });
++describe("a HOT symbol on LIVE", () => {
++  // The server no longer sends a HOT switch, so a HOT account looks like any other symbol's.
++  const hot = (over: Partial<LiveAccount> = {}) => account({ symbol: "AGTUSDT", ...over });
++  const disarmed = (over: Partial<LiveAccount> = {}) => hot({
++    gates: { ...account().gates, armed: false, client_armed: false }, ...over });
+ 
+-  it("is not tradable even when armed, and says the switch is the reason", () => {
+-    const gate = liveTradeGate(hotOff(), null);
+-    expect(gate.tradable).toBe(false);
+-    expect(gate.reasons.map(r => r.code)).toContain("HOT_LIVE_ORDERS_DISABLED");
+-    expect(gate.reasons.find(r => r.code === "HOT_LIVE_ORDERS_DISABLED")?.message)
+-      .toContain("BINANCE_LIVE_HOT_ORDERS");
++  it("is tradable when armed, with no HOT-specific reason", () => {
++    const gate = liveTradeGate(hot(), null);
++    expect(gate.tradable).toBe(true);
++    expect(gate.reasons).toEqual([]);
+   });
+ 
+-  it("closes LONG, SHORT and CLOSE and offers no activation for it", () => {
+-    const held = hotOff({ position: { ...account().position!, symbol: "GTCUSDT", is_flat: false,
+-                                      side: "LONG", qty: "100" } });
++  it("opens LONG, SHORT, the size presets and CLOSE when armed", () => {
++    const held = hot({ position: { ...account().position!, symbol: "AGTUSDT", is_flat: false,
++                                   side: "LONG", qty: "100" } });
+     const onOrder = vi.fn();
+     render(<LiveOrderTicket account={held} gate={liveTradeGate(held, null)} onOrder={onOrder}
+       sizing={sizing()} />);
+-    expect(screen.getByTestId("live-long")).toBeDisabled();
+-    expect(screen.getByTestId("live-short")).toBeDisabled();
+-    expect(screen.getByTestId("live-close")).toBeDisabled();
+-    expect(screen.getByTestId("live-hot-orders-off")).toBeInTheDocument();
+-    expect(screen.queryByTestId("live-order-activate")).not.toBeInTheDocument();
++    expect(screen.getByTestId("live-long")).toBeEnabled();
++    expect(screen.getByTestId("live-short")).toBeEnabled();
++    expect(screen.getByTestId("live-close")).toBeEnabled();
++    for (const preset of ["25%", "HALF", "75%", "MAX"]) {
++      expect(screen.getByTestId(`live-preset-${preset}`)).toBeEnabled();
++    }
++    expect(screen.queryByText(/조회만 가능/)).not.toBeInTheDocument();
++    expect(screen.queryByTestId("live-order-locked")).not.toBeInTheDocument();
+     fireEvent.click(screen.getByTestId("live-close"));
++    fireEvent.click(screen.getByTestId("live-submit"));
++    expect(onOrder).toHaveBeenCalledWith({ side: "LONG", intent: "CLOSE", qty: undefined });
++  });
++
++  it("locks on DISARM for the arm reason, and offers activation", () => {
++    const gate = liveTradeGate(disarmed(), null);
++    expect(gate.tradable).toBe(false);
++    expect(gate.reasons.map(r => r.code)).toEqual(["NOT_ARMED"]);
++    const onOrder = vi.fn();
++    const onActivate = vi.fn();
++    render(<LiveOrderTicket account={disarmed()} gate={gate} onOrder={onOrder}
++      onActivate={onActivate} sizing={sizing()} />);
++    expect(screen.getByTestId("live-order-locked")).toBeInTheDocument();
++    expect(screen.getByTestId("live-order-activate")).toBeInTheDocument();
++    expect(screen.queryByText(/조회만 가능/)).not.toBeInTheDocument();
++    fireEvent.click(screen.getByTestId("live-long"));
+     expect(onOrder).not.toHaveBeenCalled();
+   });
+ 
+   it("leaves BTC exactly as before: armed means tradable", () => {
+     expect(liveTradeGate(account(), null).tradable).toBe(true);
+-    const explicit = account({ gates: { ...account().gates, symbol_orders_enabled: true } });
+-    expect(liveTradeGate(explicit, null).tradable).toBe(true);
++    expect(liveTradeGate(account({ gates: { ...account().gates, armed: false } }), null).tradable)
++      .toBe(false);
+   });
+ });
+ 
+diff --git a/frontend/components/crypto-live-terminal.tsx b/frontend/components/crypto-live-terminal.tsx
+index 596330d..0c36e23 100644
+--- a/frontend/components/crypto-live-terminal.tsx
++++ b/frontend/components/crypto-live-terminal.tsx
+@@ -698,12 +698,11 @@ export function LiveLeveragePanel({ account, options, onSelect, busy, error, com
+       <div className="mt-3 flex flex-wrap gap-1.5" data-testid="live-leverage-options">
+         {(options?.options ?? []).map(value => {
+           const restriction = leverageRestriction(options, value);
+-          const locked = Boolean(restriction) || account.gates.symbol_orders_enabled === false;
++          const locked = Boolean(restriction);
+           return (
+             <button key={value} type="button" data-testid={`live-leverage-${value}`}
+               aria-pressed={value === current} disabled={busy || hasPosition || locked}
+-              title={restriction ? restriction.message
+-                : account.gates.symbol_orders_enabled === false ? "HOT 심볼 LIVE 레버리지 변경은 꺼져 있습니다." : undefined}
++              title={restriction ? restriction.message : undefined}
+               onClick={() => onSelect(value)}
+               className={`rounded-md border px-2.5 py-1.5 text-xs font-bold tabular-nums transition-colors
+                 ${value === current ? "border-danger bg-danger-soft text-danger"
+@@ -889,9 +888,6 @@ export function LiveOrderTicket({ account, onOrder, busy, error, preview, onPrev
+   }, [minimum]);
+   const [pending, setPending] = useState<{ side: string; intent: "OPEN" | "CLOSE" } | null>(null);
+   const tradable = (gate ?? liveTradeGate(account, null)).tradable;
+-  // The HOT switch is a server setting, not something arming fixes, so the ticket says so and
+-  // offers no activation for it.
+-  const symbolOff = account.gates.symbol_orders_enabled === false;
+   const position = account.position;
+   const hasPosition = Boolean(position && !position.is_flat);
+   /** The router's own rule, read off Binance's reported position: a held side may be added to
+@@ -975,18 +971,13 @@ export function LiveOrderTicket({ account, onOrder, busy, error, preview, onPrev
+       )}
+       {/* CLOSE keeps working off Binance's reported position, and the backend still re-reads the
+           real size and sends it reduceOnly. Nothing about that changes here. */}
+-      <button type="button" data-testid="live-close" disabled={busy || !hasPosition || symbolOff}
++      <button type="button" data-testid="live-close" disabled={busy || !hasPosition}
+         onClick={() => (tradable ? setPending({ side: position?.side || "LONG", intent: "CLOSE" })
+                                  : onActivate?.())}
+         className="mt-2 w-full rounded-md border border-line px-3 py-2 text-sm font-bold text-foreground disabled:opacity-40">
+         CLOSE {hasPosition ? `· ${qtyFmt(position?.qty)} ${unit}` : ""}
+       </button>
+-      {symbolOff && (
+-        <p className="mt-2 text-[11px] text-muted" data-testid="live-hot-orders-off">
+-          HOT 심볼 LIVE 주문은 꺼져 있습니다. 조회만 가능합니다.
+-        </p>
+-      )}
+-      {!tradable && !symbolOff && (
++      {!tradable && (
+         <p className="mt-2 text-[11px] text-muted" data-testid="live-order-locked">
+           거래불가 상태입니다.{" "}
+           {onActivate && (
+diff --git a/frontend/lib/crypto-live.ts b/frontend/lib/crypto-live.ts
+index f1dd671..e10070a 100644
+--- a/frontend/lib/crypto-live.ts
++++ b/frontend/lib/crypto-live.ts
+@@ -20,14 +20,8 @@ export type LiveBlocker = { code: string; message: string };
+ export type LiveGates = {
+   armed: boolean; env_flag: boolean; client_armed: boolean; env_flag_name: string;
+   arm_session?: LiveArmState | null;
+-  /** False on the HOT symbol while its LIVE order switch is off. Absent on older servers and
+-   *  on the deployment's own symbols, which read as allowed. */
+-  symbol_orders_enabled?: boolean;
+-  symbol_orders_flag_name?: string;
+ };
+ 
+-export const HOT_LIVE_ORDERS_DISABLED = "HOT_LIVE_ORDERS_DISABLED";
+-
+ /** The manual arm window.
+  *
+  *  `env_flag` is the deployment's capability and `armed` is whether an order can be sent right
+@@ -523,8 +517,6 @@ export function liveTradeGate(account: LiveAccount | null, arm: LiveArmState | n
+   // have to say yes, so a disagreement between two reads a tick apart locks rather than opens.
+   const armed = Boolean(account?.gates.armed) && (arm == null || Boolean(arm.armed));
+   const connected = Boolean(account?.ready && !account.stale);
+-  // Per symbol, not per arm: arming opens BTC, never a HOT symbol whose switch is off.
+-  const symbolOrders = account?.gates.symbol_orders_enabled !== false;
+ 
+   if (!available) {
+     reasons.push({ code: "LIVE_UNAVAILABLE", message: arm?.reason || "LIVE를 사용할 수 없습니다." });
+@@ -544,14 +536,10 @@ export function liveTradeGate(account: LiveAccount | null, arm: LiveArmState | n
+   } else if (!armed) {
+     reasons.push({ code: "NOT_ARMED", message: "거래 활성화 후 직접 해제할 때까지 주문이 나갑니다." });
+   }
+-  if (!symbolOrders) {
+-    reasons.push({ code: HOT_LIVE_ORDERS_DISABLED,
+-                   message: `HOT 심볼 LIVE 주문은 꺼져 있습니다 (${account?.gates.symbol_orders_flag_name || "BINANCE_LIVE_HOT_ORDERS"}). 조회만 가능합니다.` });
+-  }
+   if (error) reasons.push({ code: "LIVE_ERROR", message: error });
+ 
+   return {
+-    tradable: available && connected && capability && armed && symbolOrders,
++    tradable: available && connected && capability && armed,
+     connected, capability, armed,
+     remaining_s: arm?.remaining_s ?? null,
+     armed_by: arm?.armed_by ?? null,
