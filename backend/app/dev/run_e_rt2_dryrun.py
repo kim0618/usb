@@ -44,7 +44,7 @@ import time
 import numpy as np
 
 from app.strategy_e_max_rt import availability as AV
-from app.strategy_e_max_rt.rvol_store import RVOL_WINDOW, RvolStore
+from app.strategy_e_max_rt.rvol_store import RvolStore
 
 RVOL_STORE_DEFAULT = "data/runtime/strategy_e_max/rvol/kiwoom_premarket.sqlite3"
 
@@ -553,8 +553,7 @@ def run(universe_path: Path, out_root: Path, *, paper: bool = False,
         # is exhausted, or that the source refuses, is a recorded exception and never becomes
         # collectable, so it must not hold the evidence grade at PROVISIONAL forever.
         unreachable = store.unreachable_symbols()
-        pending = sorted(s for s in caches
-                         if s not in unreachable and store.staged_count(s, session) < RVOL_WINDOW)
+        pending = store.bootstrap_pending(list(caches), session)
         bootstrap_complete = not pending
         coverage = coverage | {"unreachable": len(unreachable), "pending_collection": len(pending),
                                "pending_examples": pending[:10]}
