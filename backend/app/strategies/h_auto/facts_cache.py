@@ -10,9 +10,14 @@ submissions and companyfacts into):
 * each run refreshes at most ``cap`` CIKs - the ones with no fresh copy, oldest first, then by CIK -
   through ``inputs.fetch_sec`` (``sec_store`` + ``xbrl_store``, the same User-Agent, the same
   5 req/s limiter, raw bytes plus ledger, never rewritten);
-* a CIK is *fresh* when its newest cached ``companyfacts`` ledger is at most ``max_age_days`` old;
+* a CIK is *fresh* when its newest *usable* cached copy was fetched at most ``max_age_days`` ago;
   an older copy is treated exactly like no copy (E1 then says FUNDAMENTALS_NOT_FETCHED), which is
   the fail-closed reading of the contract's "fetched within 7 days";
+* a copy is *usable* only when every stored document has both its body and its request ledger - the
+  stores' own cache-hit rule (``sec_store._page``, ``xbrl_store.fetch_cik``). A ledger whose body was
+  dropped by ``compact`` (or lost any other way) is ``EVICTED``: planned for refetch like a stale copy,
+  never scanned. A fresh ledger alone is not a reusable copy (2026-10-16: 691 such CIKs were read
+  back cache-only and the SCAN died on SEC_SUBMISSIONS_NOT_FOUND);
 * dated roots beyond ``keep_roots`` are dropped whole, so disk is bounded by about one copy per
   market-eligible CIK (measured median 125 KB per companyfacts document).
 
@@ -38,6 +43,7 @@ FACTS_MAX_AGE_DAYS = 7
 KEEP_DATED_ROOTS = 6
 DEFAULT_FETCH_CAP = 700
 FRESH, STALE, MISSING, NOT_FOUND = "FRESH", "STALE", "MISSING", "NOT_FOUND"
+EVICTED = "EVICTED"                # ledger kept, a body gone: not readable cache-only, so refetched
 
 
 @dataclass(frozen=True)
@@ -46,6 +52,7 @@ class CacheEntry:
     day: str                       # dated root (ET day of the fetch)
     fetched_at: datetime
     has_facts: bool
+    usable: bool = True            # every document has body + ledger (see ``_usable``)
 
 
 def sec_dir() -> Path:
@@ -75,8 +82,29 @@ def _ledger_time(path: Path) -> datetime | None:
         return None
 
 
+def _pair(path: Path) -> Path:
+    """Body <-> ledger: ``X.json.gz`` <-> ``X.json.gz.request.json`` (``sec_store.ledger_path``)."""
+    name = path.name
+    return path.with_name(name.removesuffix(".request.json")) if name.endswith(".request.json") \
+        else path.with_name(name + ".request.json")
+
+
+def _usable(folder: Path, facts_body: Path) -> bool:
+    """Whether ``fetch_sec(client=None)`` can serve this copy as fetched: every submissions page and the
+    companyfacts document stored here has both its body and its ledger. A ledger without a body reads
+    back as NOT_FOUND / MISSING (the stores' cache-only answer), a body without a ledger as never fetched;
+    either would make the SCAN fail or read a truncated issuer. Only names are checked - a body whose
+    bytes are damaged still fails closed in the reader, as before."""
+    for path in folder.iterdir():
+        if path.name.endswith(".json.gz") or path.name.endswith(".json.gz.request.json"):
+            if not _pair(path).is_file():
+                return False
+    return facts_body.is_file() == _pair(facts_body).is_file()
+
+
 def index() -> dict[str, CacheEntry]:
-    """Newest cached copy per CIK across the dated roots (submissions primary page is the key)."""
+    """Newest cached copy per CIK across the dated roots (submissions primary page is the key); a usable
+    copy is preferred over a newer one that is not."""
     out: dict[str, CacheEntry] = {}
     for root in dated_roots():                          # oldest first: a newer root overwrites
         subs = root / "submissions"
@@ -90,14 +118,21 @@ def index() -> dict[str, CacheEntry]:
             fetched = _ledger_time(ledger)
             if fetched is None:
                 continue
-            facts_ledger = root / "companyfacts" / f"CIK{cik}.json.gz.request.json"
-            out[cik] = CacheEntry(cik, root.name, fetched, facts_ledger.is_file())
+            facts_body = root / "companyfacts" / f"CIK{cik}.json.gz"
+            entry = CacheEntry(cik, root.name, fetched, _pair(facts_body).is_file(), _usable(folder, facts_body))
+            if entry.usable or not out.get(cik, entry).usable:
+                out[cik] = entry
     return out
 
 
 def state_of(entry: CacheEntry | None, today: date, *, max_age_days: int = FACTS_MAX_AGE_DAYS) -> str:
     if entry is None:
         return MISSING
+    if not entry.usable:
+        # ranked by ``plan`` with the stale copies (oldest fetch first), not as MISSING: compact evicts
+        # every scanned non-candidate each run, and a MISSING tie breaks by CIK, so the same lowest CIKs
+        # would take the whole fetch cap every day while the rest never got a turn
+        return EVICTED
     return FRESH if (today - entry.fetched_at.date()).days <= max_age_days else STALE
 
 
@@ -230,9 +265,9 @@ def compact(keep_ciks: Iterable[str]) -> dict[str, int]:
 
     The scan reads a body once (E1->E3) and records the result in ``intake_index.json``; only a CIK
     that became a candidate needs its body again, and the executor fetches its own copy anyway. The
-    ledgers stay, so freshness (``index``) is unchanged, and a body that is gone is simply refetched
-    by ``sec_store``/``xbrl_store`` the next time it is planned. Measured reason: one copy per
-    market-eligible CIK is about 3,100 x 156 KB = 480 MB, and trader-j has about 1.9 GB free.
+    ledgers stay as the fetch record; ``index`` reads such a copy as ``EVICTED`` (not FRESH), so ``plan``
+    schedules it and ``sec_store``/``xbrl_store`` refetch exactly the missing bodies. Measured reason:
+    one copy per market-eligible CIK is about 3,100 x 156 KB = 480 MB, and trader-j has about 1.9 GB free.
     """
     keep = set(keep_ciks)
     dropped = kept = 0
@@ -249,7 +284,7 @@ def compact(keep_ciks: Iterable[str]) -> dict[str, int]:
 
 def summary(today: date, entries: Mapping[str, CacheEntry] | None = None) -> dict[str, Any]:
     entries = index() if entries is None else entries
-    states = {FRESH: 0, STALE: 0}
+    states = {FRESH: 0, STALE: 0, EVICTED: 0}
     for entry in entries.values():
         states[state_of(entry, today)] += 1
     roots = dated_roots()

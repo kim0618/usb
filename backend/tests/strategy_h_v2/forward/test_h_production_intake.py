@@ -353,14 +353,17 @@ def fake_sec(cik: str, *, facts_fetched: bool = True, latest: str = "2026-10-09"
 
 
 def wire_fakes(monkeypatch, *, fetched: list[str], scan_result):
-    """SEC: every planned CIK is 'fetched' into today's root; E1->E3: ``scan_result`` per row."""
+    """SEC: every planned CIK is 'fetched' into today's root (body + ledger, as the stores write them);
+    E1->E3: ``scan_result`` per row."""
     def fake_refresh(ciks, *, day, client_factory, log=lambda _m: None):
         for cik in ciks:
             root = FC.sec_dir() / day
             (root / "submissions" / f"CIK{cik}").mkdir(parents=True, exist_ok=True)
+            (root / "submissions" / f"CIK{cik}" / f"CIK{cik}.json.gz").write_bytes(gzip.compress(b"{}"))
             (root / "submissions" / f"CIK{cik}" / f"CIK{cik}.json.gz.request.json").write_text(
                 json.dumps({"fetched_at": RUN_AT.isoformat()}))
             (root / "companyfacts").mkdir(parents=True, exist_ok=True)
+            (root / "companyfacts" / f"CIK{cik}.json.gz").write_bytes(gzip.compress(b"{}"))
             (root / "companyfacts" / f"CIK{cik}.json.gz.request.json").write_text("{}")
             fetched.append(cik)
         return {"day": day, "requested": len(ciks), "fetched": list(ciks), "not_found": [], "degraded": None}
@@ -608,7 +611,10 @@ def test_compact_drops_non_candidate_bodies_and_keeps_ledgers(store):
     assert FC.compact(["0000000002"]) == {"bodies_dropped": 2, "bodies_kept": 2}
     assert not (root / "companyfacts" / "CIK0000000001.json.gz").exists()
     assert (root / "companyfacts" / "CIK0000000001.json.gz.request.json").exists()
-    assert FC.index() == before                       # freshness is read from ledgers only
+    after = FC.index()                                # the ledger stays, but a ledger alone is not a copy
+    assert after["0000000002"] == before["0000000002"] and after["0000000002"].usable
+    assert not after["0000000001"].usable and after["0000000001"].fetched_at == before["0000000001"].fetched_at
+    assert FC.state_of(after["0000000001"], date(2026, 10, 13)) == FC.EVICTED
 
 
 def test_scan_status_with_an_ineligible_row_is_json_serialisable(store, a_store, monkeypatch):
