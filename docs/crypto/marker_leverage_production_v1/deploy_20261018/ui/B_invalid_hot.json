@@ -1,0 +1,51 @@
+{
+ "header": null,
+ "trade_state": "거래가능",
+ "leverage": {
+  "live-leverage-1": true,
+  "live-leverage-2": true,
+  "live-leverage-3": true,
+  "live-leverage-5": true,
+  "live-leverage-10": true,
+  "live-leverage-20": true,
+  "live-leverage-50": false,
+  "live-leverage-100": false
+ },
+ "leverage_max": "BRUSDT 최대 25x",
+ "leverage_invalid": "현재 심볼(BRUSDT)은 최대 25x입니다. 레버리지를 다시 선택하세요.",
+ "order_leverage_invalid": "현재 심볼(BRUSDT)은 최대 25x입니다. 레버리지를 다시 선택하세요.",
+ "long_short_close": {
+  "live-long": false,
+  "live-short": false,
+  "live-close": false
+ },
+ "presets": {
+  "live-preset-25%": false,
+  "live-preset-HALF": false,
+  "live-preset-75%": false,
+  "live-preset-MAX": false
+ },
+ "half_full": {},
+ "live_markers": "0",
+ "paper_markers": "0",
+ "paper_leverage": [
+  "paper-leverage-1",
+  "paper-leverage-5",
+  "paper-leverage-10",
+  "paper-leverage-20",
+  "paper-leverage-50",
+  "paper-leverage-100",
+  "paper-leverage-1",
+  "paper-leverage-5",
+  "paper-leverage-10",
+  "paper-leverage-20",
+  "paper-leverage-50",
+  "paper-leverage-100"
+ ],
+ "waited_s": 4.8,
+ "bad": {
+  "조회만 가능": false,
+  "HOT 심볼 LIVE": false
+ },
+ "console_errors": []
+}

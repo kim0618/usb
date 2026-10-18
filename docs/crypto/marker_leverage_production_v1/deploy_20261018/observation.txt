@@ -1,0 +1,39 @@
+12:30:24 | crypto-paper pid=2519676 nr=0 rss=80M pss=71M swap=0M | frontend pid=2520193 nr=0 rss=40M pss=24M swap=0M | backend pid=2248392 nr=0 rss=34M pss=24M swap=101M | crypto-context pid=1582777 nr=0 rss=48M pss=40M swap=48M | crypto-q123-forward pid=1684303 nr=0 rss=93M pss=84M swap=25M
+   avail=283M swapused=380M mem[avg10=0.00 avg60=0.60 avg300=4.27] io[avg10=41.97 avg60=20.91 avg300=28.13] lat_crypto=690ms lat_backend=332ms disk_free_kb=124684 paper_memevents=high 0 max 0 oom_kill 0 
+   q123 RUNNING lag_ms 12337 samples 657761 store 3621 kline_err None | flow age 14 {'COMPLETE'}
+12:31:25 | crypto-paper pid=2519676 nr=0 rss=80M pss=71M swap=0M | frontend pid=2520193 nr=0 rss=40M pss=24M swap=0M | backend pid=2248392 nr=0 rss=34M pss=24M swap=101M | crypto-context pid=1582777 nr=0 rss=48M pss=40M swap=48M | crypto-q123-forward pid=1684303 nr=0 rss=93M pss=84M swap=25M
+   avail=300M swapused=380M mem[avg10=0.00 avg60=0.21 avg300=3.47] io[avg10=30.38 avg60=18.15 avg300=25.67] lat_crypto=11ms lat_backend=14ms disk_free_kb=124120 paper_memevents=high 0 max 0 oom_kill 0 
+   q123 RUNNING lag_ms 12039 samples 657821 store 3621 kline_err None | flow age 15 {'COMPLETE'}
+12:32:25 | crypto-paper pid=2519676 nr=0 rss=80M pss=70M swap=0M | frontend pid=2520193 nr=0 rss=40M pss=24M swap=0M | backend pid=2248392 nr=0 rss=34M pss=23M swap=101M | crypto-context pid=1582777 nr=0 rss=48M pss=40M swap=48M | crypto-q123-forward pid=1684303 nr=0 rss=93M pss=84M swap=25M
+   avail=299M swapused=380M mem[avg10=0.00 avg60=0.07 avg300=2.80] io[avg10=2.39 avg60=9.74 avg300=21.83] lat_crypto=26ms lat_backend=14ms disk_free_kb=123424 paper_memevents=high 0 max 0 oom_kill 0 
+   q123 RUNNING lag_ms 12639 samples 657880 store 3621 kline_err None | flow age 15 {'COMPLETE'}
+12:33:25 | crypto-paper pid=2519676 nr=0 rss=80M pss=70M swap=0M | frontend pid=2520193 nr=0 rss=40M pss=24M swap=0M | backend pid=2248392 nr=0 rss=34M pss=23M swap=101M | crypto-context pid=1582777 nr=0 rss=48M pss=40M swap=48M | crypto-q123-forward pid=1684303 nr=0 rss=92M pss=83M swap=25M
+   avail=304M swapused=380M mem[avg10=0.00 avg60=0.02 avg300=2.27] io[avg10=3.25 avg60=6.49 avg300=18.62] lat_crypto=31ms lat_backend=15ms disk_free_kb=122868 paper_memevents=high 0 max 0 oom_kill 0 
+   q123 RUNNING lag_ms 12238 samples 657940 store 3621 kline_err None | flow age 15 {'COMPLETE'}
+12:34:26 | crypto-paper pid=2519676 nr=0 rss=80M pss=70M swap=0M | frontend pid=2520193 nr=0 rss=40M pss=24M swap=0M | backend pid=2248392 nr=0 rss=34M pss=24M swap=101M | crypto-context pid=1582777 nr=0 rss=48M pss=40M swap=48M | crypto-q123-forward pid=1684303 nr=0 rss=95M pss=86M swap=25M
+   avail=301M swapused=380M mem[avg10=0.00 avg60=0.00 avg300=1.84] io[avg10=1.14 avg60=4.07 avg300=15.71] lat_crypto=60ms lat_backend=22ms disk_free_kb=122284 paper_memevents=high 0 max 0 oom_kill 0 
+   q123 RUNNING lag_ms 19935 samples 658000 store 3621 kline_err None | flow age 16 {'COMPLETE'}
+12:35:26 | crypto-paper pid=2519676 nr=0 rss=80M pss=70M swap=0M | frontend pid=2520193 nr=0 rss=40M pss=24M swap=0M | backend pid=2248392 nr=0 rss=34M pss=24M swap=101M | crypto-context pid=1582777 nr=0 rss=48M pss=40M swap=48M | crypto-q123-forward pid=1684303 nr=0 rss=93M pss=84M swap=25M
+   avail=309M swapused=380M mem[avg10=0.13 avg60=0.15 avg300=1.54] io[avg10=2.63 avg60=4.12 avg300=13.55] lat_crypto=32ms lat_backend=27ms disk_free_kb=121776 paper_memevents=high 0 max 0 oom_kill 0 
+   q123 RUNNING lag_ms 19643 samples 658060 store 3621 kline_err None | flow age 16 {'COMPLETE'}
+12:36:27 | crypto-paper pid=2519676 nr=0 rss=80M pss=71M swap=0M | frontend pid=2520193 nr=0 rss=40M pss=24M swap=0M | backend pid=2248392 nr=0 rss=34M pss=24M swap=101M | crypto-context pid=1582777 nr=0 rss=48M pss=40M swap=48M | crypto-q123-forward pid=1684303 nr=0 rss=95M pss=86M swap=25M
+   avail=314M swapused=380M mem[avg10=0.00 avg60=0.05 avg300=1.24] io[avg10=6.41 avg60=5.19 avg300=12.10] lat_crypto=13ms lat_backend=15ms disk_free_kb=121240 paper_memevents=high 0 max 0 oom_kill 0 
+   q123 RUNNING lag_ms 19134 samples 658121 store 3621 kline_err None | flow age 17 {'COMPLETE'}
+12:37:27 | crypto-paper pid=2519676 nr=0 rss=80M pss=70M swap=0M | frontend pid=2520193 nr=0 rss=40M pss=24M swap=0M | backend pid=2248392 nr=0 rss=34M pss=24M swap=101M | crypto-context pid=1582777 nr=0 rss=48M pss=40M swap=48M | crypto-q123-forward pid=1684303 nr=0 rss=94M pss=85M swap=25M
+   avail=309M swapused=380M mem[avg10=0.00 avg60=0.01 avg300=1.00] io[avg10=2.00 avg60=3.74 avg300=10.38] lat_crypto=35ms lat_backend=28ms disk_free_kb=120612 paper_memevents=high 0 max 0 oom_kill 0 
+   q123 RUNNING lag_ms 19833 samples 658180 store 3621 kline_err None | flow age 17 {'COMPLETE'}
+12:38:27 | crypto-paper pid=2519676 nr=0 rss=80M pss=70M swap=0M | frontend pid=2520193 nr=0 rss=40M pss=24M swap=0M | backend pid=2248392 nr=0 rss=34M pss=23M swap=101M | crypto-context pid=1582777 nr=0 rss=48M pss=40M swap=48M | crypto-q123-forward pid=1684303 nr=0 rss=94M pss=85M swap=25M
+   avail=306M swapused=380M mem[avg10=0.60 avg60=0.15 avg300=0.84] io[avg10=2.86 avg60=3.74 avg300=9.08] lat_crypto=25ms lat_backend=24ms disk_free_kb=119980 paper_memevents=high 0 max 0 oom_kill 0 
+   q123 RUNNING lag_ms 18838 samples 658241 store 3621 kline_err None | flow age 17 {'COMPLETE'}
+12:39:28 | crypto-paper pid=2519676 nr=0 rss=80M pss=71M swap=0M | frontend pid=2520193 nr=0 rss=40M pss=24M swap=0M | backend pid=2248392 nr=0 rss=34M pss=24M swap=101M | crypto-context pid=1582777 nr=0 rss=48M pss=40M swap=48M | crypto-q123-forward pid=1684303 nr=0 rss=93M pss=84M swap=25M
+   avail=293M swapused=380M mem[avg10=0.00 avg60=0.05 avg300=0.68] io[avg10=4.56 avg60=6.35 avg300=8.88] lat_crypto=29ms lat_backend=32ms disk_free_kb=119424 paper_memevents=high 0 max 0 oom_kill 0 
+   q123 RUNNING lag_ms 18445 samples 658301 store 3621 kline_err None | flow age 18 {'COMPLETE'}
+== journal since 12:22
+kernel oom lines: 0
+paper tracebacks: 0
+flow|structure|feedlog|recorder failures: 1
+Oct 18 12:39:21 trader-j systemd[1]: Finished usb-crypto-manual-research.service - US-B CRYPTO manual trade snapshot rec
+Oct 18 12:39:28 trader-j systemd[1]: Finished usb-crypto-feedlog.service - US-B CRYPTO paper terminal feed-transition lo
+{"status": "OK", "written": {"events": 0, "snapshots": 0, "episodes": 0}, "deferred_snapshots": 0, "events": 48, "episodes": 20, "open_episode": null, "market_status": "OK", "market_requests": 0, "tri
+{"absorption":{"ABSORPTION_CANDIDATE":3047,"NONE":553},"band01_bid_coverage":{"COMPLETE":3599,"PARTIAL":1},"book_state":{"SYNCED":3600},"collector_state":{"LIVE":3600},"first_ms":1792285200098,"flow60_coverage":{"COMPLETE":3600},"flow_state":{"LIVE":3600},"hour_start_ms":1792285200000,"key":"31cc817
+{"absorption":{"ABSORPTION_CANDIDATE":2952,"NONE":648},"band01_bid_coverage":{"COMPLETE":3600},"book_state":{"SYNCED":3600},"collector_state":{"LIVE":3600},"first_ms":1792288800097,"flow60_coverage":{"COMPLETE":3600},"flow_state":{"LIVE":3600},"hour_start_ms":1792288800000,"key":"31cc8177:1792288800

@@ -1,0 +1,4 @@
+c7892979c19c21c0fdc306045768e7dd3220ab04823ca00283626a549894023d  ./backend/app/crypto/live/brackets.py
+7420bd113708cdccbfcfa00ea88203967f3d8811996c769ac257e066ffd675c6  ./backend/app/crypto/live/preview.py
+15d7f5a1cea15ebddd712d16b99d8f4cdf809395bacf393d3e103a52a850b127  ./backend/app/crypto/terminal/executions.py
+b6a33a014221f60c838eea35978281b39ae1920aeeccd63f5a9c6e5665f3b13f  ./backend/app/crypto/terminal/live_routes.py

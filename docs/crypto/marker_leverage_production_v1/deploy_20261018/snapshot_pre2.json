@@ -1,0 +1,630 @@
+{
+ "arm": {
+  "body": {
+   "arm_count": 1,
+   "armed": true,
+   "armed_at_ms": 1792239585571,
+   "armed_by": "SESSION",
+   "available": true,
+   "capability": true,
+   "confirmation_phrase": "ARM LIVE TRADING",
+   "disarm_count": 0,
+   "env_armed": false,
+   "expires_at_ms": null,
+   "last_disarm_ms": null,
+   "last_disarm_reason": "BOOT",
+   "operator_note": null,
+   "remaining_s": null,
+   "role": "MANUAL_ONLY: 서버 부팅은 항상 해제 상태이고, 무장은 사용자가 명시적으로 요청할 때 열려 직접 해제하거나 프로세스가 재시작할 때까지 유지된다. AUTO는 이 경로에 접근할 수 없다.",
+   "ttl_s": null
+  },
+  "http": 200
+ },
+ "disk_free_kb": 134468,
+ "flow": {
+  "age_s": 22,
+  "quality": {
+   "10m": "COMPLETE",
+   "1d": "COMPLETE",
+   "1h": "COMPLETE",
+   "4h": "COMPLETE"
+  }
+ },
+ "host": {
+  "MemAvailable": 336792,
+  "SwapFree": 1592888,
+  "SwapTotal": 2097148,
+  "load": "0.47 0.42 0.29 6/191 2519475",
+  "psi_io": [
+   "some avg10=46.70 avg60=15.30 avg300=13.73 total=193443347620",
+   "full avg10=10.53 avg60=5.66 avg300=6.95 total=151080247791"
+  ],
+  "psi_mem": [
+   "some avg10=5.46 avg60=1.41 avg300=0.82 total=54648804896",
+   "full avg10=0.00 avg60=0.00 avg300=0.00 total=44249888166"
+  ],
+  "swap_used_k": 504260
+ },
+ "hot": {
+  "http": 200,
+  "raw_keys": [
+   "held",
+   "hot",
+   "lock",
+   "lock_basis",
+   "main",
+   "paper",
+   "permitted",
+   "scanning",
+   "server_time_ms"
+  ],
+  "selected_at_ms": 1792242666578,
+  "symbol": "BRUSDT"
+ },
+ "live": {
+  "exit_guard": {
+   "configured_qty": "0.034",
+   "created_at_ms": 1791245366432,
+   "current_net_krw": "-9578.5463078096245200",
+   "current_net_usdt": "-7.14283840999972",
+   "enabled": false,
+   "last_error": "MONITOR: BinanceError",
+   "opened_at_ms": 1791176662484,
+   "position_qty": "0.034",
+   "side": "SHORT",
+   "state": "ERROR",
+   "stop_loss_krw": "50000",
+   "symbol": "BTCUSDT",
+   "take_profit_krw": "50000",
+   "updated_at_ms": 1791251030105
+  },
+  "exit_guard_sha256": "45c386ac0b1fe61ae16b150276f0e95682372eb26e1001ed3674d38831c458de",
+  "last_arm_event": null,
+  "last_reconcile_seq": 19615,
+  "leverage_capability_sha256": "1107b2a0850af79d1be0fab09abaa2f8f9429cb94dcfddbd51943ba7e34e6f52",
+  "mirror": "/root/usb_runtime/crypto_paper/data/runtime/crypto/live/487ea08e/binance_live_events.jsonl",
+  "mirror_bytes": 10211556,
+  "mirror_last_event": "LIVE_RECONCILE",
+  "mirror_last_seq": 19615,
+  "mirror_sha256": "38fc634251c2d6fb2d03269f5914c4126d487accb287078bccf4f9ba69e2f866",
+  "order_events_in_tail": 547,
+  "position": {
+   "entry_price": null,
+   "is_flat": true,
+   "leverage": null,
+   "notional": null,
+   "qty": "0",
+   "side": null,
+   "symbol": "BRUSDT"
+  },
+  "positions": null,
+  "wallet_balance": "0.01316920"
+ },
+ "live_detail": {
+  "BRUSDT": {
+   "executions_n": 4,
+   "executions_sha": "0fede37a0ba073dce9c93472e83c77aa4829b252eddd31301d78bb28fa49acfb",
+   "last_execution": {
+    "client_order_id": "usbm-open-1792242862050",
+    "entry_no": null,
+    "event_type": "ADD_ENTRY",
+    "price": "0.36785504",
+    "qty": "2230",
+    "seq": 4
+   },
+   "leverage_options": {
+    "current": "20",
+    "current_valid": null,
+    "max_leverage": 25,
+    "options": [
+     1,
+     2,
+     3,
+     5,
+     10,
+     20
+    ]
+   },
+   "position": {
+    "entry_price": null,
+    "is_flat": true,
+    "leverage": null,
+    "qty": "0",
+    "side": null
+   },
+   "symbol_config_leverage": "20"
+  },
+  "BTCUSDT": {
+   "executions_n": 41,
+   "executions_sha": "b89b14dbdbdfbb06e354ae8ef8028a1c25e8041b48bcff061f337cc0891e6db7",
+   "last_execution": {
+    "client_order_id": "usbm-open-1791339777997",
+    "entry_no": null,
+    "event_type": "INITIAL_ENTRY",
+    "price": "83913.1",
+    "qty": "0.108",
+    "seq": 41
+   },
+   "leverage_options": {
+    "current": "20",
+    "current_valid": null,
+    "max_leverage": 150,
+    "options": [
+     1,
+     2,
+     3,
+     5,
+     10,
+     20,
+     50,
+     100
+    ]
+   },
+   "position": {
+    "entry_price": null,
+    "is_flat": true,
+    "leverage": null,
+    "qty": "0",
+    "side": null
+   },
+   "symbol_config_leverage": "20"
+  }
+ },
+ "live_gates": {
+  "BRUSDT": {
+   "account_gates": {
+    "arm_session": {
+     "arm_count": 1,
+     "armed": true,
+     "armed_at_ms": 1792239585571,
+     "armed_by": "SESSION",
+     "confirmation_phrase": "ARM LIVE TRADING",
+     "disarm_count": 0,
+     "env_armed": false,
+     "expires_at_ms": null,
+     "last_disarm_ms": null,
+     "last_disarm_reason": "BOOT",
+     "operator_note": null,
+     "remaining_s": null,
+     "role": "MANUAL_ONLY: 서버 부팅은 항상 해제 상태이고, 무장은 사용자가 명시적으로 요청할 때 열려 직접 해제하거나 프로세스가 재시작할 때까지 유지된다. AUTO는 이 경로에 접근할 수 없다.",
+     "ttl_s": null
+    },
+    "armed": true,
+    "client_arm_env_name": "BINANCE_LIVE_CLIENT_ARMED",
+    "client_armed": true,
+    "env_flag": true,
+    "env_flag_name": "BINANCE_LIVE_TRADING_ENABLED",
+    "max_open_qty": null,
+    "max_open_qty_env_name": "BINANCE_LIVE_MAX_QTY"
+   },
+   "account_http": 200,
+   "available": "0.01316655",
+   "leverage": "20",
+   "position": {
+    "entry_price": null,
+    "is_flat": true,
+    "qty": "0",
+    "side": null
+   },
+   "status_gates": {
+    "arm_session": {
+     "arm_count": 1,
+     "armed": true,
+     "armed_at_ms": 1792239585571,
+     "armed_by": "SESSION",
+     "confirmation_phrase": "ARM LIVE TRADING",
+     "disarm_count": 0,
+     "env_armed": false,
+     "expires_at_ms": null,
+     "last_disarm_ms": null,
+     "last_disarm_reason": "BOOT",
+     "operator_note": null,
+     "remaining_s": null,
+     "role": "MANUAL_ONLY: 서버 부팅은 항상 해제 상태이고, 무장은 사용자가 명시적으로 요청할 때 열려 직접 해제하거나 프로세스가 재시작할 때까지 유지된다. AUTO는 이 경로에 접근할 수 없다.",
+     "ttl_s": null
+    },
+    "armed": true,
+    "client_arm_env_name": "BINANCE_LIVE_CLIENT_ARMED",
+    "client_armed": true,
+    "env_flag": true,
+    "env_flag_name": "BINANCE_LIVE_TRADING_ENABLED",
+    "max_open_qty": null,
+    "max_open_qty_env_name": "BINANCE_LIVE_MAX_QTY"
+   },
+   "status_http": 200,
+   "wallet": "0.01316920"
+  },
+  "BTCUSDT": {
+   "account_gates": {
+    "arm_session": {
+     "arm_count": 1,
+     "armed": true,
+     "armed_at_ms": 1792239585571,
+     "armed_by": "SESSION",
+     "confirmation_phrase": "ARM LIVE TRADING",
+     "disarm_count": 0,
+     "env_armed": false,
+     "expires_at_ms": null,
+     "last_disarm_ms": null,
+     "last_disarm_reason": "BOOT",
+     "operator_note": null,
+     "remaining_s": null,
+     "role": "MANUAL_ONLY: 서버 부팅은 항상 해제 상태이고, 무장은 사용자가 명시적으로 요청할 때 열려 직접 해제하거나 프로세스가 재시작할 때까지 유지된다. AUTO는 이 경로에 접근할 수 없다.",
+     "ttl_s": null
+    },
+    "armed": true,
+    "client_arm_env_name": "BINANCE_LIVE_CLIENT_ARMED",
+    "client_armed": true,
+    "env_flag": true,
+    "env_flag_name": "BINANCE_LIVE_TRADING_ENABLED",
+    "max_open_qty": null,
+    "max_open_qty_env_name": "BINANCE_LIVE_MAX_QTY"
+   },
+   "account_http": 200,
+   "available": "0.01316655",
+   "leverage": "20",
+   "position": {
+    "entry_price": null,
+    "is_flat": true,
+    "qty": "0",
+    "side": null
+   },
+   "status_gates": {
+    "arm_session": {
+     "arm_count": 1,
+     "armed": true,
+     "armed_at_ms": 1792239585571,
+     "armed_by": "SESSION",
+     "confirmation_phrase": "ARM LIVE TRADING",
+     "disarm_count": 0,
+     "env_armed": false,
+     "expires_at_ms": null,
+     "last_disarm_ms": null,
+     "last_disarm_reason": "BOOT",
+     "operator_note": null,
+     "remaining_s": null,
+     "role": "MANUAL_ONLY: 서버 부팅은 항상 해제 상태이고, 무장은 사용자가 명시적으로 요청할 때 열려 직접 해제하거나 프로세스가 재시작할 때까지 유지된다. AUTO는 이 경로에 접근할 수 없다.",
+     "ttl_s": null
+    },
+    "armed": true,
+    "client_arm_env_name": "BINANCE_LIVE_CLIENT_ARMED",
+    "client_armed": true,
+    "env_flag": true,
+    "env_flag_name": "BINANCE_LIVE_TRADING_ENABLED",
+    "max_open_qty": null,
+    "max_open_qty_env_name": "BINANCE_LIVE_MAX_QTY"
+   },
+   "status_http": 200,
+   "wallet": "0.01316920"
+  }
+ },
+ "live_positions": {
+  "http": 200,
+  "others": [],
+  "positions": [
+   {
+    "entry_price": null,
+    "is_flat": true,
+    "leverage": null,
+    "qty": "0",
+    "side": null,
+    "symbol": "BTCUSDT"
+   },
+   {
+    "entry_price": null,
+    "is_flat": true,
+    "leverage": null,
+    "qty": "0",
+    "side": null,
+    "symbol": "ETHUSDT"
+   },
+   {
+    "entry_price": null,
+    "is_flat": true,
+    "leverage": null,
+    "qty": "0",
+    "side": null,
+    "symbol": "SOLUSDT"
+   },
+   {
+    "entry_price": null,
+    "is_flat": true,
+    "leverage": null,
+    "qty": "0",
+    "side": null,
+    "symbol": "BRUSDT"
+   }
+  ]
+ },
+ "paper_exec_btc": {
+  "last": {
+   "entry_no": null,
+   "event_type": "INITIAL_ENTRY",
+   "price": "83612.90",
+   "qty": "0.064",
+   "seq": 51
+  },
+  "n": 51
+ },
+ "paper_runs": {
+  "paper-server-001": {
+   "events": 308,
+   "last_event": "FUNDING",
+   "last_seq": 308,
+   "ledger_sha256": "c891045d9ecc8253f45be7a5588d036516e9b7f826bd87668fc6419baf1ccfd1",
+   "order_like_lines": 126
+  },
+  "paper-server-001-1000RATSUSDT": {
+   "events": 1,
+   "last_event": "RUN_START",
+   "last_seq": 1,
+   "ledger_sha256": "e7b0ace977b05b6b756772cb4e29eb76b2dc298b452e0a6c86bb5f0a41e38879",
+   "order_like_lines": 0
+  },
+  "paper-server-001-AGTUSDT": {
+   "events": 1,
+   "last_event": "RUN_START",
+   "last_seq": 1,
+   "ledger_sha256": "054f490b8b907c788b115bc855a018dbfbb93b328829f6f9ac65003febf23a88",
+   "order_like_lines": 0
+  },
+  "paper-server-001-ARCUSDT": {
+   "events": 17,
+   "last_event": "POSITION_CLOSE",
+   "last_seq": 17,
+   "ledger_sha256": "8c32bbf49d2a9fe6bf9b80312d1e314cc09b4fd8b39e046493a3ade3234d708b",
+   "order_like_lines": 8
+  },
+  "paper-server-001-BRUSDT": {
+   "events": 1,
+   "last_event": "RUN_START",
+   "last_seq": 1,
+   "ledger_sha256": "f7f1278a31d30286c38a4685e2dbed6c9e5283ed92bd70765e009bb2606813c5",
+   "order_like_lines": 0
+  },
+  "paper-server-001-ETHUSDT": {
+   "events": 1,
+   "last_event": "RUN_START",
+   "last_seq": 1,
+   "ledger_sha256": "928e8b8766b9bc440647ca584ad4f78e0f1ada2f65aaf5ae776c62dbb5732ef3",
+   "order_like_lines": 0
+  },
+  "paper-server-001-MAGICUSDT": {
+   "events": 8,
+   "last_event": "POSITION_CLOSE",
+   "last_seq": 8,
+   "ledger_sha256": "633351b5fdaa6b22205d887688539e30d93b52573be79031b8174705bd76dc0b",
+   "order_like_lines": 2
+  },
+  "paper-server-001-OGNUSDT": {
+   "events": 17,
+   "last_event": "POSITION_CLOSE",
+   "last_seq": 17,
+   "ledger_sha256": "6bb6629fb2a832fbd7e9fc0c37b133d66df143e3b05c22ff71df08d9b6b2b457",
+   "order_like_lines": 6
+  },
+  "paper-server-001-QNTUSDT": {
+   "events": 1,
+   "last_event": "RUN_START",
+   "last_seq": 1,
+   "ledger_sha256": "007922ab05c25b0bce319c5809a2bca6fc38a43304c48995f478c4921eb940a8",
+   "order_like_lines": 0
+  },
+  "paper-server-001-SIRENUSDT": {
+   "events": 4,
+   "last_event": "LEVERAGE_CHANGE",
+   "last_seq": 4,
+   "ledger_sha256": "0ecf12cebed28477a0af216c00433802ac490413ce941aacff03e017a342069b",
+   "order_like_lines": 0
+  },
+  "paper-server-001-SOLUSDT": {
+   "events": 1,
+   "last_event": "RUN_START",
+   "last_seq": 1,
+   "ledger_sha256": "b4a045a6087462c87aae8790c522e1e7c802bab78a246e86ec8a62eb22ee2b48",
+   "order_like_lines": 0
+  },
+  "paper-server-001-STRKUSDT": {
+   "events": 17,
+   "last_event": "POSITION_CLOSE",
+   "last_seq": 17,
+   "ledger_sha256": "198df897a12e53273479fdd9f3493b848f5d01edcdbae9a933701b477545ec7c",
+   "order_like_lines": 8
+  },
+  "paper-server-001-TRUTHUSDT": {
+   "events": 26,
+   "last_event": "LEVERAGE_CHANGE",
+   "last_seq": 26,
+   "ledger_sha256": "a2d418f2156a9d4abb4bc1a459f2ae7a3cd85467fe96ae1905ea1b3a39394675",
+   "order_like_lines": 14
+  },
+  "paper-server-001-ZEREBROUSDT": {
+   "events": 133,
+   "last_event": "POSITION_CLOSE",
+   "last_seq": 133,
+   "ledger_sha256": "141d8b9a1b43136fe0405fc4477df141d00ee17ba799cdf8cc464e534bc5fb6e",
+   "order_like_lines": 82
+  },
+  "paper-server-001-ZKUSDT": {
+   "events": 1,
+   "last_event": "RUN_START",
+   "last_seq": 1,
+   "ledger_sha256": "37058843ef02020ea2f766819298de703b51946b77a864a1f663466aa69767c3",
+   "order_like_lines": 0
+  },
+  "paper-server-001-c1-auto": {
+   "events": 1,
+   "last_event": "RUN_START",
+   "last_seq": 1,
+   "ledger_sha256": "e2bfbb9c25b2da539e4ba17a374549dfe4570df12cfc93592f273c7dbe326237",
+   "order_like_lines": 0
+  },
+  "paper-server-001-龙虾USDT": {
+   "events": 1,
+   "last_event": "RUN_START",
+   "last_seq": 1,
+   "ledger_sha256": "49e0c3cd779dbd274d5cb1f3a50a8c731603075b70e86f4f42061b4814c33a9c",
+   "order_like_lines": 0
+  }
+ },
+ "paper_state": {
+  "BTCUSDT": {
+   "account": {
+    "available_balance": "9605.28905712639479250678596",
+    "avg_entry": "83612.90",
+    "cumulative_fees": "1154.302590562000000000000000",
+    "equity": "10257.44841712639479250678596",
+    "leverage": "10",
+    "position_qty": "0.064",
+    "position_side": "SHORT",
+    "realized_pnl": "3113.508839999999999999999976",
+    "used_margin": "535.12256",
+    "wallet_balance": "10140.41161712639479250678596"
+   },
+   "has_c1_key": false,
+   "http": 200,
+   "ledger_event_count": 308,
+   "leverage": "10",
+   "symbol": "BTCUSDT"
+  },
+  "ETHUSDT": {
+   "account": {
+    "available_balance": "9605.28905712639479250678596",
+    "avg_entry": null,
+    "cumulative_fees": "0",
+    "equity": "10140.41161712639479250678596",
+    "leverage": null,
+    "position_qty": "0",
+    "position_side": null,
+    "realized_pnl": "0",
+    "used_margin": "0",
+    "wallet_balance": "10140.41161712639479250678596"
+   },
+   "has_c1_key": false,
+   "http": 200,
+   "ledger_event_count": 1,
+   "leverage": "10",
+   "symbol": "ETHUSDT"
+  },
+  "SOLUSDT": {
+   "account": {
+    "available_balance": "9605.28905712639479250678596",
+    "avg_entry": null,
+    "cumulative_fees": "0",
+    "equity": "10140.41161712639479250678596",
+    "leverage": null,
+    "position_qty": "0",
+    "position_side": null,
+    "realized_pnl": "0",
+    "used_margin": "0",
+    "wallet_balance": "10140.41161712639479250678596"
+   },
+   "has_c1_key": false,
+   "http": 200,
+   "ledger_event_count": 1,
+   "leverage": "10",
+   "symbol": "SOLUSDT"
+  },
+  "STRKUSDT": 400
+ },
+ "q123": {
+  "kline_error": null,
+  "lag_ms": 12836,
+  "samples_read": 657238,
+  "state": "RUNNING",
+  "store_counts": {
+   "approaches.jsonl": 1030,
+   "events.jsonl": 736,
+   "outcomes.jsonl": 1672,
+   "quality.jsonl": 183
+  }
+ },
+ "recorder_tail": "{\"status\": \"OK\", \"written\": {\"events\": 0, \"snapshots\": 0, \"episodes\": 0}, \"deferred_snapshots\": 0, \"events\": 48, \"episodes\": 20, \"open_episode\": null, \"market_s",
+ "route/api/crypto/c1/state": 404,
+ "route/api/crypto/paper/c1-auto": 404,
+ "run_config_depth_keys": {},
+ "services": {
+  "usb-backend": {
+   "pss_k": 24423,
+   "rss_k": 34744,
+   "show": [
+    "2248392",
+    "0",
+    "active",
+    "enabled"
+   ],
+   "swap_k": 103608
+  },
+  "usb-btc-context-ui": {
+   "pss_k": 9771,
+   "rss_k": 19224,
+   "show": [
+    "2063894",
+    "0",
+    "active",
+    "enabled"
+   ],
+   "swap_k": 26852
+  },
+  "usb-crypto-context": {
+   "pss_k": 41209,
+   "rss_k": 49964,
+   "show": [
+    "1582777",
+    "0",
+    "active",
+    "enabled"
+   ],
+   "swap_k": 49384
+  },
+  "usb-crypto-liqfwd": {
+   "show": [
+    "0",
+    "0",
+    "inactive",
+    "disabled"
+   ]
+  },
+  "usb-crypto-liqfwd-daily.timer": {
+   "err": "[Errno 2] No such file or directory: '/proc/inactive/status'",
+   "show": [
+    "inactive",
+    "disabled"
+   ]
+  },
+  "usb-crypto-paper": {
+   "pss_k": 110965,
+   "rss_k": 122136,
+   "show": [
+    "2454106",
+    "0",
+    "active",
+    "enabled"
+   ],
+   "swap_k": 10796
+  },
+  "usb-crypto-q123-forward": {
+   "pss_k": 89523,
+   "rss_k": 98768,
+   "show": [
+    "1684303",
+    "0",
+    "active",
+    "enabled"
+   ],
+   "swap_k": 23356
+  },
+  "usb-frontend": {
+   "pss_k": 3811,
+   "rss_k": 9728,
+   "show": [
+    "2454989",
+    "0",
+    "active",
+    "enabled"
+   ],
+   "swap_k": 21020
+  }
+ },
+ "taken_at": "2026-10-18T12:21:25+0900"
+}

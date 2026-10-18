@@ -1,0 +1,64 @@
+49c49
+< !==a));return az(m(`/api/crypto/binance/preview?${d.toString()}`,a),{signal:c})},positionCard:(a,b)=>az(m(
+---
+> !==a));return aA(m(`/api/crypto/binance/preview?${d.toString()}`,a),{signal:c})},positionCard:(a,b)=>aA(m(
+63c63,64
+< ${j(a)} \xb7 1시간 변동폭 없음 (${be[b.reason]})
+---
+> ${h?.symbol} 최대 ${m.max}x
+> ${j(a)} \xb7 1시간 변동폭 없음 (${bf[b.reason]})
+65c66
+< ${j(a)} \xb7 최근 60분 변동폭 ${a9(b)} ${bb[b.direction]} \xb7 ${d} KST${c?" \xb7 표시 종목 중 최대":""}
+---
+> ${j(a)} \xb7 최근 60분 변동폭 ${ba(b)} ${bc[b.direction]} \xb7 ${d} KST${c?" \xb7 표시 종목 중 최대":""}
+70c71
+< &&c.entry_price)return`신호 ${(0,e.UK)(c.entry_price)}`;let d=r(a.premarket?.gap_pct,!0);return d?`Gap ${d}`:null}},17735:(a,b,c)=>{
+---
+> &&c.entry_price)return`신호 ${(0,e.UK)(c.entry_price)}`;let d=r(a.premarket?.gap_pct,!0);return d?`Gap ${d}`:null}},19121:a=>{
+82c83
+< );return`세 심볼이 지갑 하나를 함께 씁니다. 현재 증거금: ${d}`}(g)}),(0,d.jsx)(ak,{label:
+---
+> );return`세 심볼이 지갑 하나를 함께 씁니다. 현재 증거금: ${d}`}(g)}),(0,d.jsx)(aj,{label:
+89a91
+> )은 최대 
+110c112
+< ,children:u?`추가 수량 (${l})`:`수량 (${l})`}),(0,d.jsx)(
+---
+> ,children:v?`추가 수량 (${m})`:`수량 (${m})`}),(0,d.jsx)(
+116d117
+< ,message:d.messages?.[String(b)]??`현재 계정에서 ${b}x를 사용할 수 없습니다.`,source:d.source}:null}let ay=[
+133c134
+< ,{children:a.targets.length?a.targets.map((a,b)=>`${b+1}차 ${a2(Number(a))}`).join(
+---
+> ,{children:a.targets.length?a.targets.map((a,b)=>`${b+1}차 ${a3(Number(a))}`).join(
+206c207
+< :"NO_LIQUIDITY"===a.close_reject_code?"청산 가능한 호가 깊이 부족":H(a.close_reject_code,a.close_reject_message);return(0,d.jsx)(ab,{testId:"position-pnl-breakdown",lines:j,quoteAge:
+---
+> :"NO_LIQUIDITY"===a.close_reject_code?"청산 가능한 호가 깊이 부족":H(a.close_reject_code,a.close_reject_message);return(0,d.jsx)(aa,{testId:"position-pnl-breakdown",lines:j,quoteAge:
+213c214
+< :b.toFixed(0)}"/btc-context-api".trim().replace(/\/$/,"");let a4="1"===(process.env.NEXT_PUBLIC_ENTRY_ANALYSIS_PREVIEW??"").trim();async function a5(a,b){let c=await fetch(
+---
+> :b.toFixed(0)}"/btc-context-api".trim().replace(/\/$/,"");let a5="1"===(process.env.NEXT_PUBLIC_ENTRY_ANALYSIS_PREVIEW??"").trim();async function a6(a,b){let c=await fetch(
+221c222
+< :k}이 최소 주문 수량 ${c}보다 작습니다.`};let m=Number(d??0),n=Number(e??0);return m>0&&n>0&&j*n<m?{qty:null,reason:`절반 ${k}의 명목 ${(j*n).toFixed(2)} USDT가 최소 ${m} USDT보다 작습니다.`}:{qty:k,reason:null}}let V=a=>`₩${Math.round(a).toLocaleString(
+---
+> :k}이 최소 주문 수량 ${c}보다 작습니다.`};let m=Number(d??0),n=Number(e??0);return m>0&&n>0&&j*n<m?{qty:null,reason:`절반 ${k}의 명목 ${(j*n).toFixed(2)} USDT가 최소 ${m} USDT보다 작습니다.`}:{qty:k,reason:null}}let U=a=>`₩${Math.round(a).toLocaleString(
+231c232
+< ===q.intent?`${q.side} 전량 청산 (${B(t?.qty)} ${l})`:w(q.side)?`${v.holding} ${Number(n)>=x?
+---
+> ===r.intent?`${r.side} 전량 청산 (${B(u?.qty)} ${m})`:x(r.side)?`${w.holding} ${Number(o)>=y?
+362a364
+> x입니다. 레버리지를 다시 선택하세요.
+370c372
+< } 청산 ${n} ${l} (보유 ${B(t?.qty)} ${l})`:u?`${q.side} 추가 진입 ${n} ${l} (보유 ${B(t?.qty)} ${l})`:`${q.side} ${n} ${l}`}),(0,d.jsxs)(
+---
+> } 청산 ${o} ${m} (보유 ${B(u?.qty)} ${m})`:v?`${r.side} 추가 진입 ${o} ${m} (보유 ${B(u?.qty)} ${m})`:`${r.side} ${o} ${m}`}),(0,d.jsxs)(
+394c396
+< 감소 수량은 보유 ${B(t?.qty)} ${l} 이하여야 합니다.
+---
+> 감소 수량은 보유 ${B(u?.qty)} ${m} 이하여야 합니다.
+846a849
+> 현재 계정에서 ${b}x를 사용할 수 없습니다.
+852a856,857
+> 현재 심볼(
+> 현재 심볼(${c})은 최대 ${f}x입니다. 레버리지를 다시 선택하세요.

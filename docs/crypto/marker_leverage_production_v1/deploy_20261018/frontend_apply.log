@@ -1,0 +1,14 @@
+stop/swap/start at 12:24:07 free=132864KB
+rollback build intact (cache moved to the new build)
+BUILD_ID now c4VYa7VRAWu0aFBN3fAvV after 16s (rollback: .next-build.pre-marker-leverage-20261018-121704)
+/crypto-paper 200
+/trading 200
+/adoption 200
+/trading-h 200
+/ 307
+-- service diff (only usb-frontend may change):
+1c1
+< usb-frontend pid=2454989 nr=0 active
+---
+> usb-frontend pid=2520193 nr=0 active
+free after: 127584KB

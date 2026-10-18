@@ -1,0 +1,462 @@
+diff --git a/frontend/components/crypto-live-arm.test.tsx b/frontend/components/crypto-live-arm.test.tsx
+index 5a1358d..dfcf955 100644
+--- a/frontend/components/crypto-live-arm.test.tsx
++++ b/frontend/components/crypto-live-arm.test.tsx
+@@ -261,18 +261,18 @@ describe("arming from the screen", () => {
+ 
+ 
+ describe("the leverage panel", () => {
+-  it("offers only the values the account's bracket table allows", () => {
++  it("enables only the values the symbol's bracket table allows and names the maximum", () => {
+     render(<LiveLeveragePanel account={account()} options={options({ max_leverage: 10,
+       options: [1, 2, 3, 5, 10] })} onSelect={vi.fn()} />);
+-    expect(screen.getByTestId("live-leverage-10")).toBeInTheDocument();
+-    expect(screen.queryByTestId("live-leverage-20")).not.toBeInTheDocument();
+-    expect(screen.queryByTestId("live-leverage-50")).not.toBeInTheDocument();
++    expect(screen.getByTestId("live-leverage-10")).toBeEnabled();
++    for (const value of [20, 50, 100]) expect(screen.getByTestId(`live-leverage-${value}`)).toBeDisabled();
++    expect(screen.getByTestId("live-leverage-max")).toHaveTextContent("BTCUSDT 최대 10x");
+   });
+ 
+   it("offers a HOT symbol's values exactly as it offers BTC's", () => {
+     const onSelect = vi.fn();
+-    render(<LiveLeveragePanel account={account({ symbol: "AGTUSDT" })} options={options()}
+-      onSelect={onSelect} />);
++    render(<LiveLeveragePanel account={account({ symbol: "AGTUSDT" })}
++      options={options({ symbol: "AGTUSDT" })} onSelect={onSelect} />);
+     fireEvent.click(screen.getByTestId("live-leverage-5"));
+     expect(onSelect).toHaveBeenCalledWith(5);
+   });
+diff --git a/frontend/components/crypto-live-leverage-cap.test.tsx b/frontend/components/crypto-live-leverage-cap.test.tsx
+new file mode 100644
+index 0000000..8a3db80
+--- /dev/null
++++ b/frontend/components/crypto-live-leverage-cap.test.tsx
+@@ -0,0 +1,197 @@
++import React from "react";
++import { afterEach, describe, expect, it, vi } from "vitest";
++import { cleanup, fireEvent, render, screen } from "@testing-library/react";
++import { LiveLeveragePanel, LiveOrderTicket, LivePositionPanel } from "@/components/crypto-live-terminal";
++import { liveLeverageValidity, liveTradeGate } from "@/lib/crypto-live";
++import type { LiveAccount, LiveLeverageOptions, LiveSideSizing, LiveSizing } from "@/lib/crypto-live";
++
++/** LIVE symbol leverage cap V1, on screen.
++ *
++ *  The row shows every step and enables only those at or below this symbol's own maximum, read
++ *  from its own bracket table. A setting above the maximum is named and blocks entries; the
++ *  screen never changes it - only a press of a valid step does, through the existing write.
++ */
++
++afterEach(() => { cleanup(); vi.restoreAllMocks(); });
++
++const SIREN = "SIRENUSDT";
++
++const account = (symbol: string, leverage: string, held?: { side: "LONG" | "SHORT"; qty: string }): LiveAccount => ({
++  symbol, ready: true, blockers: [], fetched_at_ms: 1, age_ms: 900, stale: false, source: "BINANCE_LIVE",
++  balance: { asset: "USDT", wallet_balance: "147.78458089", available_balance: "147.75502801",
++    margin_balance: "147.78", unrealized_pnl: "0", max_withdraw: "147.75", initial_margin: "0",
++    maint_margin: "0", account_wallet_usd: "147.7", account_available_usd: "147.7",
++    account_margin_usd: "147.7", account_unrealized_usd: "0", usd_valuation_ratio: "1",
++    update_time_ms: 1, balance_source: "binance" },
++  position: held
++    ? { symbol, side: held.side, position_side: "BOTH", qty: held.qty,
++        signed_qty: held.side === "LONG" ? held.qty : `-${held.qty}`, entry_price: "0.0306",
++        break_even_price: "0.0306", mark_price: "0.0306", unrealized_pnl: "0",
++        liquidation_price: null, isolated_margin: null, notional: "1438", initial_margin: "143",
++        maint_margin: "7", adl: 0, update_time_ms: 1, is_flat: false }
++    : { symbol, side: null, position_side: "BOTH", qty: "0", signed_qty: "0", entry_price: null,
++        break_even_price: null, mark_price: "0.0306", unrealized_pnl: "0", liquidation_price: null,
++        isolated_margin: null, notional: "0", initial_margin: "0", maint_margin: "0", adl: 0,
++        update_time_ms: null, is_flat: true },
++  symbol_config: { symbol, margin_type: "CROSSED", leverage, max_notional: "10000", is_auto_add_margin: false },
++  position_mode: { dual_side: false, mode: "ONE_WAY" },
++  commission: { symbol, maker: "0.0002", taker: "0.0005", source: "binance" },
++  mark: { symbol, mark_price: "0.0306", index_price: "0.0306", last_funding_rate: "0.0001",
++          next_funding_time_ms: null },
++  book: { best_bid: "0.03059", best_ask: "0.03061", bid_qty: "100000", ask_qty: "100000", spread: "0.00002" },
++  filters: { market_min_qty: "1", min_qty: "1", qty_step: "1", market_qty_step: "1" },
++  krw: null, position_krw: null, krw_per_usdt: "1340", krw_note: "",
++  gates: { armed: true, env_flag: true, client_armed: true, env_flag_name: "BINANCE_LIVE_TRADING_ENABLED" },
++  stream: null,
++} as unknown as LiveAccount);
++
++const options = (symbol: string, max: number, current: number): LiveLeverageOptions => {
++  const ladder = [1, 2, 3, 5, 10, 20, 50, 100];
++  const valid = current <= max;
++  return {
++    symbol, current: String(current), margin_type: "CROSSED", max_leverage: max,
++    options: ladder.filter(value => value <= max), brackets: [], notional_coef: null,
++    authority: "binance GET /fapi/v1/leverageBracket", margin_type_note: "", candidates: ladder,
++    current_valid: valid,
++    current_invalid_message: valid ? null : `현재 심볼(${symbol})은 최대 ${max}x입니다. 레버리지를 다시 선택하세요.`,
++  };
++};
++
++const side = (over: Partial<LiveSideSizing> = {}): LiveSideSizing => ({
++  side: "LONG", leverage: "10", available_balance: "147.75", local_max_qty: null,
++  max_qty: "47900", max_feasible: true, reject_code: null, reject_message: null,
++  max_definition: "ENTRY_AND_IMMEDIATE_EXIT_ON_THIS_SNAPSHOT",
++  instrument: { qty_step: "1", min_qty: "1", smallest_orderable_qty: "164", min_notional: "5",
++                market_max_qty: "5000000" },
++  presets: ["25%", "HALF", "75%", "MAX"].map((label, i) => ({
++    label, fraction: "0.25", qty: String(11975 * (i + 1)), feasible: true, notional: "366",
++    required_margin: "36.6", entry_fee: "0.18", required_total: "36.8", available_after: "110",
++    entry_fill_price: "0.03061", exit_fill_price: "0.03059", reject_code: null, reject_message: null })),
++  ...over,
++} as LiveSideSizing);
++
++const sizing = (symbol: string): LiveSizing => ({
++  source: "BINANCE_LIVE", available: true, symbol, fetched_at_ms: 1, age_ms: 900,
++  sides: { LONG: side(), SHORT: side({ side: "SHORT" }) },
++} as LiveSizing);
++
++const enabledSteps = () => [1, 2, 3, 5, 10, 20, 50, 100]
++  .filter(value => (screen.getByTestId(`live-leverage-${value}`) as HTMLButtonElement).disabled === false);
++
++describe("the leverage row follows the symbol's own maximum", () => {
++  it("1. BTC max 20 enables 1/2/3/5/10/20", () => {
++    render(<LiveLeveragePanel account={account("BTCUSDT", "20")} options={options("BTCUSDT", 20, 20)} onSelect={vi.fn()} />);
++    expect(enabledSteps()).toEqual([1, 2, 3, 5, 10, 20]);
++    expect(screen.getByTestId("live-leverage-max")).toHaveTextContent("BTCUSDT 최대 20x");
++  });
++
++  it("2. SIREN max 10 disables 20/50/100 and says so", () => {
++    render(<LiveLeveragePanel account={account(SIREN, "10")} options={options(SIREN, 10, 10)} onSelect={vi.fn()} />);
++    expect(enabledSteps()).toEqual([1, 2, 3, 5, 10]);
++    expect(screen.getByTestId("live-leverage-20")).toHaveAttribute("title", "SIRENUSDT 최대 10x");
++    expect(screen.queryByTestId("live-leverage-invalid")).not.toBeInTheDocument();
++  });
++
++  it("a symbol with max 50 enables up to 50", () => {
++    render(<LiveLeveragePanel account={account("ZEREBROUSDT", "20")} options={options("ZEREBROUSDT", 50, 20)} onSelect={vi.fn()} />);
++    expect(enabledSteps()).toEqual([1, 2, 3, 5, 10, 20, 50]);
++  });
++});
++
++describe("3-4. a setting above the maximum is named, blocks entries, and is never changed by the screen", () => {
++  it("SIREN at 20x: warning, 20x shown as the current setting but disabled, nothing written", () => {
++    const onSelect = vi.fn();
++    render(<LiveLeveragePanel account={account(SIREN, "20")} options={options(SIREN, 10, 20)} onSelect={onSelect} />);
++    expect(screen.getByTestId("live-leverage-invalid"))
++      .toHaveTextContent("현재 심볼(SIRENUSDT)은 최대 10x입니다. 레버리지를 다시 선택하세요.");
++    expect(screen.getByTestId("live-leverage-20")).toHaveAttribute("aria-pressed", "true");
++    expect(screen.getByTestId("live-leverage-20")).toBeDisabled();
++    expect(onSelect).not.toHaveBeenCalled();                 // no automatic leverage change
++    fireEvent.click(screen.getByTestId("live-leverage-20"));
++    expect(onSelect).not.toHaveBeenCalled();
++    fireEvent.click(screen.getByTestId("live-leverage-10"));  // the operator's own choice
++    expect(onSelect).toHaveBeenCalledWith(10);
++  });
++
++  it("SIREN at 20x: LONG and SHORT are disabled with the reason; at 10x they open again", () => {
++    const acct = account(SIREN, "20");
++    const check = liveLeverageValidity(acct, options(SIREN, 10, 20));
++    expect(check).toMatchObject({ max: 10, current: 20, invalid: true });
++    const onOrder = vi.fn();
++    const { unmount } = render(<LiveOrderTicket account={acct} gate={liveTradeGate(acct, null)} onOrder={onOrder}
++      sizing={sizing(SIREN)} leverageInvalid={check.message} />);
++    expect(screen.getByTestId("live-long")).toBeDisabled();
++    expect(screen.getByTestId("live-short")).toBeDisabled();
++    expect(screen.getByTestId("live-order-leverage-invalid")).toHaveTextContent("최대 10x");
++    fireEvent.click(screen.getByTestId("live-long"));
++    expect(onOrder).not.toHaveBeenCalled();
++    unmount();
++
++    const ten = account(SIREN, "10");
++    const ok = liveLeverageValidity(ten, options(SIREN, 10, 10));
++    expect(ok.invalid).toBe(false);
++    render(<LiveOrderTicket account={ten} gate={liveTradeGate(ten, null)} onOrder={onOrder}
++      sizing={sizing(SIREN)} leverageInvalid={ok.message} />);
++    expect(screen.getByTestId("live-long")).toBeEnabled();
++    expect(screen.getByTestId("live-short")).toBeEnabled();
++    expect(screen.queryByTestId("live-order-leverage-invalid")).not.toBeInTheDocument();
++  });
++});
++
++describe("6-7. a symbol switch never carries the previous table", () => {
++  it("AGT's 20x table on screen says nothing about SIREN", () => {
++    const siren = account(SIREN, "20");
++    expect(liveLeverageValidity(siren, options("AGTUSDT", 20, 20))).toMatchObject({ max: null, invalid: false });
++    render(<LiveLeveragePanel account={siren} options={options("AGTUSDT", 20, 20)} onSelect={vi.fn()} />);
++    expect(screen.queryByTestId("live-leverage-max")).not.toBeInTheDocument();
++    expect(screen.queryByTestId("live-leverage-20")).not.toBeInTheDocument();
++    expect(screen.getByText("구간표를 읽는 중입니다.")).toBeInTheDocument();
++  });
++
++  it("SIREN then another HOT: each uses its own maximum", () => {
++    const { unmount } = render(<LiveLeveragePanel account={account(SIREN, "10")} options={options(SIREN, 10, 10)} onSelect={vi.fn()} />);
++    expect(enabledSteps()).toEqual([1, 2, 3, 5, 10]);
++    unmount();
++    render(<LiveLeveragePanel account={account("ZEREBROUSDT", "10")} options={options("ZEREBROUSDT", 50, 10)} onSelect={vi.fn()} />);
++    expect(enabledSteps()).toEqual([1, 2, 3, 5, 10, 20, 50]);
++    expect(screen.getByTestId("live-leverage-max")).toHaveTextContent("ZEREBROUSDT 최대 50x");
++  });
++});
++
++describe("9-10. closes are not held back by an invalid setting", () => {
++  it("CLOSE and the opposite-side reduce stay available; the same-side add does not", () => {
++    const held = account(SIREN, "20", { side: "LONG", qty: "47015" });
++    const check = liveLeverageValidity(held, options(SIREN, 10, 20));
++    render(<LiveOrderTicket account={held} gate={liveTradeGate(held, null)} onOrder={vi.fn()}
++      sizing={sizing(SIREN)} leverageInvalid={check.message} />);
++    expect(screen.getByTestId("live-close")).toBeEnabled();
++    expect(screen.getByTestId("live-short")).toBeEnabled();   // SHORT on a LONG is a reduceOnly reduce
++    expect(screen.getByTestId("live-long")).toBeDisabled();   // an add needs a valid leverage
++  });
++
++  it("HALF CLOSE and FULL CLOSE on the position panel are enabled", () => {
++    const held = account(SIREN, "20", { side: "LONG", qty: "47015" });
++    const onHalf = vi.fn();
++    const onFull = vi.fn();
++    render(<LivePositionPanel account={held} onClose={onFull} onHalfClose={onHalf} />);
++    expect(screen.getByTestId("live-position-half-close")).toBeEnabled();
++    expect(screen.getByTestId("live-position-full-close")).toBeEnabled();
++    fireEvent.click(screen.getByTestId("live-position-half-close"));
++    expect(onHalf).toHaveBeenCalledWith("23507");
++  });
++});
++
++describe("unchanged", () => {
++  it("11. BTC at 20x is valid and tradable", () => {
++    const btc = account("BTCUSDT", "20");
++    const check = liveLeverageValidity(btc, options("BTCUSDT", 20, 20));
++    expect(check.invalid).toBe(false);
++    render(<LiveOrderTicket account={btc} gate={liveTradeGate(btc, null)} onOrder={vi.fn()}
++      sizing={sizing("BTCUSDT")} leverageInvalid={check.message} />);
++    expect(screen.getByTestId("live-long")).toBeEnabled();
++  });
++
++  it("unknown is not invalid: nothing is blocked before the table arrives", () => {
++    expect(liveLeverageValidity(account(SIREN, "20"), null)).toMatchObject({ max: null, invalid: false, message: null });
++  });
++});
+diff --git a/frontend/components/crypto-live-position-v2.test.tsx b/frontend/components/crypto-live-position-v2.test.tsx
+index 64ac46e..a3a0874 100644
+--- a/frontend/components/crypto-live-position-v2.test.tsx
++++ b/frontend/components/crypto-live-position-v2.test.tsx
+@@ -393,12 +393,14 @@ describe("the leverage ladder", () => {
+     expect(leverageRestriction(leverage(), 100)).toBeNull();
+   });
+ 
+-  it("drops the steps the symbol's bracket table does not reach", () => {
++  it("disables the steps the symbol's bracket table does not reach", () => {
+     render(<LiveLeveragePanel account={flat()}
+       options={leverage({ max_leverage: 20, options: [1, 2, 3, 5, 10, 20] })}
+       onSelect={vi.fn()} />);
+-    expect(screen.queryByTestId("live-leverage-50")).toBeNull();
+-    expect(screen.queryByTestId("live-leverage-100")).toBeNull();
++    expect(screen.getByTestId("live-leverage-50")).toBeDisabled();
++    expect(screen.getByTestId("live-leverage-100")).toBeDisabled();
++    expect(screen.getByTestId("live-leverage-20")).toBeEnabled();
++    expect(screen.getByTestId("live-leverage-max")).toHaveTextContent("BTCUSDT 최대 20x");
+   });
+ 
+   it("disables every step while a position is held, which is unchanged policy", () => {
+diff --git a/frontend/components/crypto-live-terminal.tsx b/frontend/components/crypto-live-terminal.tsx
+index 0c36e23..1dcb047 100644
+--- a/frontend/components/crypto-live-terminal.tsx
++++ b/frontend/components/crypto-live-terminal.tsx
+@@ -18,12 +18,12 @@ import { CryptoApiError, costUsdt, holdingDuration, krw, num, price, qty as qtyF
+ import type { OrderSide } from "@/lib/crypto-paper";
+ import {
+   ACTIVATE_CONFIRM_NOTE, ARM_CONFIRMATION, ARM_NOTE, AccountSource, LIVE_AUTHORITY_NOTE,
+-  LIVE_LOCK_NOTE, LIVE_PRESET_LABELS,
++  LIVE_LEVERAGE_CANDIDATES, LIVE_LOCK_NOTE, LIVE_PRESET_LABELS,
+   LiveAccount, LiveArmState, LiveBlocker, LiveExitGuard, LivePerformance, LiveLeverageOptions, LivePositionCard as LivePositionCardData,
+   LivePreview, LiveSizing, LiveStatus, LiveTradeGate, MARGIN_MODE_LABELS,
+   MARGIN_MODE_READONLY_NOTE, leverageRestriction, liveApi, liveBlockerLabel, livePresetQty,
+   liveSideAllowance, liveTradeGate,
+-  liveLeverageLabel,
++  liveLeverageLabel, liveLeverageValidity,
+ } from "@/lib/crypto-live";
+ import { DEFAULT_SYMBOL, baseAsset as baseAssetOf } from "@/lib/crypto-symbols";
+ import { visiblePoll } from "@/lib/visible-poll";
+@@ -653,7 +653,7 @@ export function LiveAccountCards({ account }: { account: LiveAccount }) {
+  *  Nothing here is optimistic. A button press sends the change to Binance and then re-reads
+  *  `symbolConfig`; the value displayed is always the one that came back.
+  */
+-export function LiveLeveragePanel({ account, options, onSelect, busy, error, compact = false }: {
++export function LiveLeveragePanel({ account, options: given, onSelect, busy, error, compact = false }: {
+   account: LiveAccount;
+   options: LiveLeverageOptions | null;
+   onSelect: (leverage: number) => void;
+@@ -664,10 +664,23 @@ export function LiveLeveragePanel({ account, options, onSelect, busy, error, com
+    *  what made this screen read as a developer console rather than a terminal. */
+   compact?: boolean;
+ }) {
++  // A table about another symbol - the previous HOT symbol's, still in flight after a switch -
++  // is not this symbol's and is treated as not read yet.
++  const options = given && given.symbol === account.symbol ? given : null;
+   const config = account.symbol_config;
+   const current = config ? Number(config.leverage) : null;
+   const position = account.position;
+   const hasPosition = Boolean(position && !position.is_flat);
++  // The symbol's own maximum, from its own bracket table. Every step is shown; the ones above
++  // it are disabled rather than hidden, and a setting above it is named, never changed here.
++  const validity = liveLeverageValidity(account, options);
++  const steps = options
++    ? [...new Set([...(options.candidates ?? LIVE_LEVERAGE_CANDIDATES), ...options.options])].sort((a, b) => a - b)
++    : [];
++  // Named only when it is what closes a step: BTCUSDT's table reaches 150x, past every step, and
++  // "최대 150x" beside a row whose 50x and 100x are shut by the account would read as a promise.
++  const capNote = validity.max != null && steps.some(value => value > validity.max!)
++    ? `${options?.symbol} 최대 ${validity.max}x` : null;
+ 
+   // One sentence for the whole row: every restricted step shares the same cause (the account,
+   // not the number), so the tightest one is quoted and the rest are struck through.
+@@ -696,13 +709,14 @@ export function LiveLeveragePanel({ account, options, onSelect, busy, error, com
+           same number; both said the screen would not change anything by itself, which the
+           screen demonstrates by not changing anything by itself. */}
+       <div className="mt-3 flex flex-wrap gap-1.5" data-testid="live-leverage-options">
+-        {(options?.options ?? []).map(value => {
+-          const restriction = leverageRestriction(options, value);
+-          const locked = Boolean(restriction);
++        {steps.map(value => {
++          const aboveMax = validity.max != null && value > validity.max;
++          const restriction = aboveMax ? null : leverageRestriction(options, value);
++          const locked = aboveMax || Boolean(restriction);
+           return (
+             <button key={value} type="button" data-testid={`live-leverage-${value}`}
+               aria-pressed={value === current} disabled={busy || hasPosition || locked}
+-              title={restriction ? restriction.message : undefined}
++              title={aboveMax ? capNote ?? undefined : restriction ? restriction.message : undefined}
+               onClick={() => onSelect(value)}
+               className={`rounded-md border px-2.5 py-1.5 text-xs font-bold tabular-nums transition-colors
+                 ${value === current ? "border-danger bg-danger-soft text-danger"
+@@ -715,6 +729,13 @@ export function LiveLeveragePanel({ account, options, onSelect, busy, error, com
+         })}
+         {!options && <span className="text-[11px] text-muted">구간표를 읽는 중입니다.</span>}
+       </div>
++      {capNote && (
++        <p className="mt-2 text-[11px] text-muted" data-testid="live-leverage-max">{capNote}</p>
++      )}
++      {validity.invalid && (
++        <p className="mt-2 rounded-md bg-danger-soft px-2.5 py-1.5 text-[11px] font-semibold text-danger"
++          role="status" data-testid="live-leverage-invalid">{validity.message}</p>
++      )}
+ 
+       {hasPosition && (
+         <p className="mt-2 text-[11px] text-warning" data-testid="live-leverage-locked">
+@@ -846,7 +867,7 @@ export function LiveQuickSize({ sizing, onPick, busy, stale, sides,
+  *  opens the activation dialog instead of sending an order that would be refused.
+  */
+ export function LiveOrderTicket({ account, onOrder, busy, error, preview, onPreview, gate,
+-  onActivate, sizing }: {
++  onActivate, sizing, leverageInvalid }: {
+   account: LiveAccount;
+   onOrder: (body: { side: string; intent: "OPEN" | "CLOSE"; qty?: string }) => void;
+   busy?: boolean;
+@@ -859,6 +880,9 @@ export function LiveOrderTicket({ account, onOrder, busy, error, preview, onPrev
+   onActivate?: () => void;
+   /** Server-computed quick sizes. Absent means the row renders disabled with a reason. */
+   sizing?: LiveSizing | null;
++  /** Set when the leverage on this symbol is above its maximum: no entry or add can be sent
++   *  until the operator picks again. Closes and reductions are reduceOnly and stay available. */
++  leverageInvalid?: string | null;
+ }) {
+   const unit = liveUnit(account);
+   /** The exchange minimum, not a round number. This ticket's default is what gets sent when
+@@ -950,10 +974,12 @@ export function LiveOrderTicket({ account, onOrder, busy, error, preview, onPrev
+           const reduce = reducing(side);
+           const tooLarge = reduceTooLarge(side);
+           const long = side === "LONG";
++          const leverageBlocked = Boolean(leverageInvalid) && !reduce;
+           return (
+             <button key={side} type="button" data-testid={`live-${side.toLowerCase()}`}
+-              disabled={busy || !tradable || tooLarge}
++              disabled={busy || !tradable || tooLarge || leverageBlocked}
+               title={tooLarge ? `감소 수량은 보유 ${qtyFmt(position?.qty)} ${unit} 이하여야 합니다.`
++                : leverageBlocked ? leverageInvalid ?? undefined
+                 : tradable ? undefined : "거래불가 상태입니다. 먼저 거래를 활성화하세요."}
+               onClick={() => setPending({ side, intent: "OPEN" })}
+               className={`rounded-md px-3 py-2 text-sm font-bold disabled:opacity-40
+@@ -963,6 +989,11 @@ export function LiveOrderTicket({ account, onOrder, busy, error, preview, onPrev
+           );
+         })}
+       </div>
++      {leverageInvalid && (
++        <p className="mt-1.5 text-[11px] font-semibold text-danger" data-testid="live-order-leverage-invalid">
++          {leverageInvalid}
++        </p>
++      )}
+       {allowance.blocked && (
+         <p className="mt-1.5 text-[11px] text-muted" data-testid="live-opposite-blocked">
+           {allowance.blocked}은 보유 {allowance.holding} 포지션을 입력 수량만큼 줄입니다(reduceOnly).
+diff --git a/frontend/components/crypto-terminal.tsx b/frontend/components/crypto-terminal.tsx
+index caa33dc..00cfa4d 100644
+--- a/frontend/components/crypto-terminal.tsx
++++ b/frontend/components/crypto-terminal.tsx
+@@ -19,7 +19,8 @@ import { DEFAULT_SYMBOL } from "@/lib/crypto-symbols";
+ import type { ChartTimeframe } from "@/lib/crypto-paper";
+ import { positionOpenedMs } from "@/lib/crypto-paper";
+ import type { ContextView } from "@/lib/btc-context";
+-import { ARM_NOTE, LIVE_CHART_SOURCE_NOTE, LIVE_LOCK_NOTE, liveOverlays, liveTradeGate }
++import { ARM_NOTE, LIVE_CHART_SOURCE_NOTE, LIVE_LOCK_NOTE, liveLeverageValidity, liveOverlays,
++  liveTradeGate }
+   from "@/lib/crypto-live";
+ import type { AccountSource } from "@/lib/crypto-live";
+ 
+@@ -242,7 +243,8 @@ export function CryptoTerminal({ marketContext }: {
+                 <LiveOrderTicket account={account} onOrder={binance.order} busy={binance.busy}
+                   error={binance.actionError} preview={binance.preview}
+                   onPreview={binance.requestPreview} gate={gate} onActivate={activate}
+-                  sizing={binance.sizing} />
++                  sizing={binance.sizing}
++                  leverageInvalid={liveLeverageValidity(account, binance.leverage).message} />
+                 {account.position && !account.position.is_flat && (
+                   // AUTO is out of scope for the multi-symbol step, so the guard still watches
+                   // one instrument. On the others the server answers UNAVAILABLE with the
+diff --git a/frontend/lib/crypto-live.ts b/frontend/lib/crypto-live.ts
+index e10070a..c8b8751 100644
+--- a/frontend/lib/crypto-live.ts
++++ b/frontend/lib/crypto-live.ts
+@@ -78,8 +78,49 @@ export type LiveLeverageOptions = {
+   unavailable?: Record<string, LiveLeverageRestriction> | null;
+   capability?: Record<string, unknown> | null;
+   capability_authority?: string;
++  /** Every step the row shows; the ones above `max_leverage` are shown disabled. */
++  candidates?: number[];
++  /** False when Binance reports a setting above this symbol's maximum. Every opening order is
++   *  refused at it, and nothing lowers it: the operator chooses again. */
++  current_valid?: boolean;
++  current_invalid_message?: string | null;
+ };
+ 
++/** The steps the LIVE leverage row offers before the symbol's own maximum is applied. */
++export const LIVE_LEVERAGE_CANDIDATES = [1, 2, 3, 5, 10, 20, 50, 100] as const;
++
++export type LiveLeverageValidity = {
++  /** This symbol's maximum from its own bracket table; null until it has been read. */
++  max: number | null;
++  /** Binance's setting on this symbol, as the account snapshot reports it. */
++  current: number | null;
++  invalid: boolean;
++  message: string | null;
++};
++
++/** Whether the setting on screen can open a position on this symbol at all.
++ *
++ *  Read from the account (the setting) and the leverage options (the symbol's maximum), and
++ *  only when both are about the same symbol: a table still on screen from the previous HOT
++ *  symbol says nothing about this one. Unknown is not invalid here - the server's preflight
++ *  refuses the order on its own - so nothing is blocked on a figure that has not arrived. */
++export function liveLeverageValidity(account: LiveAccount | null | undefined,
++                                     options: LiveLeverageOptions | null | undefined): LiveLeverageValidity {
++  const symbol = account?.symbol ?? null;
++  const setting = Number(account?.symbol_config?.leverage);
++  const current = Number.isFinite(setting) && setting > 0 ? setting : null;
++  if (!options || !symbol || options.symbol !== symbol || !(options.max_leverage > 0)) {
++    return { max: null, current, invalid: false, message: null };
++  }
++  const max = options.max_leverage;
++  const invalid = current != null && current > max;
++  return {
++    max, current, invalid,
++    message: invalid ? (options.current_invalid_message
++      ?? `현재 심볼(${symbol})은 최대 ${max}x입니다. 레버리지를 다시 선택하세요.`) : null,
++  };
++}
++
+ /** The restriction on one step, or null when there is none on record.
+  *
+  *  Two sources, and the per-symbol one wins when both speak. `unavailable` is what Binance has
