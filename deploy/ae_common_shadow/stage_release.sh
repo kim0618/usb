@@ -24,7 +24,12 @@ STORE=/root/usb_runtime/strategy_e_rvol/kiwoom_premarket.sqlite3
 PAPER_DB=/root/usb/data/runtime/usb_paper_trading.sqlite3
 PROD_DOCS="docs/backtest/strategy_e_candidate docs/backtest/strategy_e_max"
 
-remote() { ssh -n traderj "hostname | grep -qx trader-j || { echo 'not trader-j'; exit 9; }; $1"; }
+# the host is checked by name on every call; target and key can be overridden for another workstation
+TARGET=${AE_SSH_TARGET:-root@223.130.151.202}
+KEY=${AE_SSH_KEY:-$HOME/.ssh/trader-j.pem}
+SSH=(ssh -i "$KEY" -o BatchMode=yes "$TARGET")
+remote() { "${SSH[@]}" -n "hostname | grep -qx trader-j || { echo 'not trader-j'; exit 9; }; $1"; }
+push() { scp -q -i "$KEY" -o BatchMode=yes "$1" "$TARGET:$2" < /dev/null; }
 release() { grep -v '^#' "$HERE/RELEASE_FILES.txt" | awk 'NF>=3' | grep -E "^($1) "; }
 target_of() {                                   # tree path [unit-name]
   case $1 in EP) echo "$EP/$2";; UNIT) echo "$UNITS/$3";; esac
@@ -54,24 +59,25 @@ stage() {
   remote "mkdir -p $PROD $ROOT/snapshots $ROOT/run $ROOT/a_consumer"
   # E's decision reads its frozen rules from <tree>/docs/backtest (strategy_e_v1_1.decision.load_rules,
   # strategy_e_max.v1.load_rules): without them the shadow decision fails, so they ship with the code
-  git -C "$REPO" archive "$commit" backend/app $PROD_DOCS | ssh traderj "tar -x -C $PROD"
+  git -C "$REPO" archive "$commit" backend/app $PROD_DOCS | "${SSH[@]}" "tar -x -C $PROD"
   remote "cd $PROD/backend && PYTHONPATH=$PROD/backend /root/usb/.venv/bin/python -c \
     'from app.strategy_e_v1_1 import decision as D; from app.strategy_e_max import v1; D.load_rules(); v1.load_rules(); import app.ae_common.producer, app.dev.run_ae_common_producer; print(\"producer tree imports and E rules: ok\")'"
   while read -r tree path _ name; do
     dst=$(target_of "$tree" "$path" "$name")
     remote "mkdir -p $(dirname "$dst")"
-    scp -q "$REPO/$path" "traderj:$dst" < /dev/null
+    push "$REPO/$path" "$dst"
     echo "copied $tree $path -> $dst"
   done < <(release "EP|UNIT")
   remote "systemctl daemon-reload && systemctl enable usb-ae-producer.timer usb-a-snapshot-consumer.timer"
-  echo "$commit" | ssh traderj "cat > $ROOT/RELEASE_COMMIT"
+  echo "$commit" | "${SSH[@]}" "cat > $ROOT/RELEASE_COMMIT"
   echo "staged $commit; not armed (no ACTIVE_SESSION): usb-e-paper is unchanged"
 }
 
 arm() {
   local session=${1:?YYYY-MM-DD}
+  [[ $session =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || { echo "session must be YYYY-MM-DD"; exit 2; }
   remote "test -f $PROD/backend/app/dev/run_ae_common_producer.py && test -f $EP/backend/app/ae_common/a_consumer.py"
-  echo "$session" | ssh traderj "cat > $ROOT/ACTIVE_SESSION"
+  echo "$session" | "${SSH[@]}" "cat > $ROOT/ACTIVE_SESSION"
   remote "systemctl daemon-reload; systemctl list-timers --all --no-pager | grep -E 'usb-e-paper|usb-ae-producer|usb-a-snapshot'"
   echo "armed for $session: usb-e-paper skips that morning only"
 }
