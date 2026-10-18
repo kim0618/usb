@@ -1,0 +1,31 @@
+[Unit]
+Description=USB A/E common premarket producer, one-session shadow cutover (Kiwoom read-only, no orders, E decision shadow-only)
+After=network-online.target usb-backend.service
+StartLimitIntervalSec=1800
+StartLimitBurst=3
+
+[Service]
+Type=simple
+# Runs only on the armed session: ACTIVE_SESSION must name today's ET date. Any other day this unit
+# is skipped (exit 1 from ExecCondition is a skip, not a failure) and usb-e-paper runs as before.
+ExecCondition=/bin/sh -c 'test -f /root/usb_runtime/ae_common_producer/ACTIVE_SESSION && test "$(cat /root/usb_runtime/ae_common_producer/ACTIVE_SESSION)" = "$(TZ=America/New_York date +%%F)"'
+# Its own clean source tree (git archive of the release commit); A's data authority is read from the
+# A/E operations tree via --a-repo, read-only.
+WorkingDirectory=/root/usb_runtime/ae_common_producer/src/backend
+EnvironmentFile=/root/usb/.env
+Environment=PYTHONPATH=/root/usb_runtime/ae_common_producer/src/backend
+Environment=STRATEGY_E_MAX_ENABLED=false
+Environment=RT2_DRY_RUN=true
+Environment=NO_ORDER_MODE=true
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/root/usb/.venv/bin/python -m app.dev.run_ae_common_producer run \
+  --universe /root/usb_runtime/strategy_e_paper/universe \
+  --a-repo /root/usb_runtime/strategy_e_paper/src \
+  --snapshots /root/usb_runtime/ae_common_producer/snapshots \
+  --out /root/usb_runtime/ae_common_producer/run \
+  --rvol-store /root/usb_runtime/strategy_e_rvol/kiwoom_premarket.sqlite3
+Restart=on-failure
+RestartSec=30
+# the same envelope usb-e-paper ran the A-in-E acquisition under
+MemoryMax=350M
+Nice=5

@@ -1,0 +1,12 @@
+[Unit]
+Description=Start the A snapshot consumer after A's cut; it waits for snapshot_0915 (armed session only)
+
+[Timer]
+# Imports and attach run while the producer sweeps; the consumer then polls for the seal until 09:40.
+OnCalendar=Mon..Fri 09:16 America/New_York
+Persistent=false
+AccuracySec=1s
+Unit=usb-a-snapshot-consumer.service
+
+[Install]
+WantedBy=timers.target

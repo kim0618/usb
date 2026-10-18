@@ -1,0 +1,21 @@
+# A/E common producer, one-session shadow cutover. repo path -> server target.
+#
+# tree PROD = /root/usb_runtime/ae_common_producer/src   NEW tree: `git archive <release commit> backend/app
+#                                                          docs/backtest/strategy_e_candidate docs/backtest/strategy_e_max`
+#                                                          (producer + E shadow run from HEAD code; E's frozen
+#                                                          rules are read from <tree>/docs and must ship with it)
+# tree EP   = /root/usb_runtime/strategy_e_paper/src      A/E operations tree: three NEW files only,
+#                                                          nothing replaced (A keeps its deployed code)
+# tree UNIT = /etc/systemd/system                         NEW units; timers enabled at `stage`, every unit
+#                                                          gated by ACTIVE_SESSION, so nothing runs until `arm`
+#
+# Every EP and UNIT target must be absent before staging (preflight). The consumer was tested against
+# the deployed A code listed in EP_A_CODE_TESTED.md5; preflight refuses if the server differs.
+EP   backend/app/ae_common/__init__.py                       NEW
+EP   backend/app/ae_common/snapshot.py                       NEW
+EP   backend/app/ae_common/a_consumer.py                     NEW
+UNIT deploy/ae_common_shadow/usb-ae-producer.service         NEW usb-ae-producer.service
+UNIT deploy/ae_common_shadow/usb-ae-producer.timer           NEW usb-ae-producer.timer
+UNIT deploy/ae_common_shadow/usb-a-snapshot-consumer.service NEW usb-a-snapshot-consumer.service
+UNIT deploy/ae_common_shadow/usb-a-snapshot-consumer.timer   NEW usb-a-snapshot-consumer.timer
+UNIT deploy/ae_common_shadow/usb-e-paper.ae-shadow-skip.conf NEW usb-e-paper.service.d/ae-shadow-skip.conf
