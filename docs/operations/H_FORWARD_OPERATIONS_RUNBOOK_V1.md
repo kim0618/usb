@@ -246,9 +246,8 @@ performance, infrastructure, scheduler, UI and observability changes are allowed
 
 ## V3.1. Gated evaluation timer and resource guard (2026-10-16, d696c78)
 
-Status: installed; **timer DISABLED** after the first gated run failed in SCAN (compaction defect, state
-document §0). Re-enable with `systemctl enable --now usb-h-evaluation.timer` once the SCAN fix is deployed
-(fix `1e8d1bd`, §V3.2).
+Status: installed; **timer ENABLED 2026-10-18 17:06 KST** after the compaction fix `1e8d1bd` was deployed
+(§V3.2). History: disabled 2026-10-16 15:56 KST after the first gated run failed in SCAN.
 
 * Tries: Mon..Fri 01:40, 02:10, 02:40 ET. `ExecCondition=deploy/h_evaluation/precondition.sh` runs the
   evaluation only when today's (ET) `usb-h-forward` succeeded, none of `usb-e-universe`, `usb-e-rvol-once`,

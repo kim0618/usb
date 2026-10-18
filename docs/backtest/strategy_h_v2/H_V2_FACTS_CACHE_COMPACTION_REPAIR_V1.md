@@ -93,3 +93,24 @@ per run and rotate oldest-first; each issuer is rescanned every few runs instead
 honest consequence of keeping disk bounded (one full copy per market-eligible CIK is about 480 MB, and
 trader-j has about 0.7 GB free), not a ranking change. Disk: at most one run's refetch (about 180 MB) before
 that run's compact.
+
+## 5. Production deployment (2026-10-18 17:04-17:07 KST, Sunday)
+
+* Pre-deploy: host `trader-j`, server `facts_cache.py` sha `dc7be5a5…` (the pre-fix file), no H unit running.
+  Backup `/root/h_fc_repair_backup_pre_deploy_20261018-170447.tar.gz` (that file only).
+* Deployed `backend/app/strategies/h_auto/facts_cache.py` only (copied beside it, sha checked, renamed in
+  place): sha `f9f0604d…` = `1e8d1bd`. `intake.py fbe6d1d9…`, `inputs.py 703328e0…` (P1),
+  `run_h_v2_d7.py a5e38a8d…` (P2.1) unchanged. No service restarted (the API does not import the module).
+* Forward `verify` PASS (20 rows, problems []), `paper-verify` PASS (15 stored = 15 recomputed); forward
+  ledger and paper events byte-identical before/after.
+* Host cache plan with the deployed code (read only): 1,413 cached, FRESH 712, EVICTED 701 (2026-10-14: 10,
+  2026-10-15: 691), AAL EVICTED, cache 178 MB - identical to the local copy.
+* Gate and guard unchanged (precondition `ba2d749f…`, guard `522fe9b6…`, units `173b2bd7…` / `ef4954e1…` /
+  `7d32feee…`). `systemctl enable --now usb-h-evaluation.timer` at 17:06:49 KST: no catch-up run, next try
+  Mon 2026-10-19 14:40 KST (01:40 ET). After: crypto 0.07 s, backend 0.003 s, MemAvailable 362 MB, memory PSI
+  full 0, OOM 0.
+* State: H-V2 AUTONOMOUS EVALUATION = ENABLED_FIRST_RUN_PENDING. The first automated run is the acceptance
+  evidence; FULLY_AUTONOMOUS_ACTIVE only after it completes.
+* During this work a read-only `rsync` of `auto/sec` (190 MB, `ionice -c3`) raised the host's IO PSI full
+  avg10 to 68 % for under a minute (health stayed under 0.6 s); copy production data with a bandwidth
+  limit next time.

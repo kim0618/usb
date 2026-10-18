@@ -5,10 +5,10 @@ records a stage result as of its own date and is never edited after the fact. Wh
 and a result document disagree about the present, this document wins. When they disagree about
 what happened in a past stage, the result document wins.
 
-Last verified: 2026-10-18 KST, after the facts cache compaction repair (`H_V2_FACTS_CACHE_COMPACTION_REPAIR_V1.md`,
-local PASS, not yet deployed). The change log below section 0 is history.
+Last verified: 2026-10-18 17:07 KST, after the facts cache compaction repair was deployed and the evaluation
+timer re-enabled (`H_V2_FACTS_CACHE_COMPACTION_REPAIR_V1.md` §5). The change log below section 0 is history.
 
-## 0. Current state (2026-10-18, V3 + P1 + P2.1 deployed; SCAN compaction fix READY, evaluation timer OFF pending deployment)
+## 0. Current state (2026-10-18, V3 + P1 + P2.1 + compaction fix deployed; evaluation timer ENABLED, first run pending)
 
 **What H is.** Strategy H is a US-equity, medium-horizon strategy that looks for issuers whose actual
 fundamentals or business are improving, whose price does not yet fully reflect that change, and whose
@@ -39,10 +39,11 @@ V3 production runtime                       = DEPLOYED 2026-10-15 (files over db
 IO optimisation P1 (ec66400)                = ACTIVE in production (share-class reference cache; MJ reads 1,236 -> 94 MB)
 import footprint P2.1 (99db463)             = ACTIVE in production (H entrypoint does not load pyarrow; import RSS 133 -> 98 MB)
 price-pass fusion / persistent price state  = DEFERRED / NOT IMPLEMENTED
-Autonomous evaluation                       = DISABLED (gate and guard installed; re-enable after the SCAN fix)
-facts_cache.compact bug                     = FIXED / READY_FOR_PRODUCTION (1e8d1bd; a ledger without its body
-                                              is EVICTED and refetched, never read as FRESH)
-Evaluation timer                            = OFF pending deployment of 1e8d1bd
+facts_cache.compact bug                     = FIXED_AND_DEPLOYED (1e8d1bd, facts_cache.py sha f9f0604d…, 2026-10-18;
+                                              a ledger without its body is EVICTED and refetched, never FRESH)
+H-V2 AUTONOMOUS EVALUATION                  = ENABLED_FIRST_RUN_PENDING (timer enabled 2026-10-18 17:06 KST;
+                                              first try Mon 2026-10-19 01:40 ET = 14:40 KST); FULLY_AUTONOMOUS_ACTIVE
+                                              only after that run completes
 ```
 
 The AI budget ($24/day, $12 reservation), `claude-opus-5-5` canonical model, `authorization.json` and the
@@ -89,9 +90,14 @@ as two processes (`7ccdd0c`). trader-j has about 1 GB RAM and historically 150-2
 path: upgrade to 2 GB or more, then manual acceptance; optimising further on 1 GB first is the operator's
 alternative. RAM is not a strategy dependency.
 
-**Next action (one).** Deploy `facts_cache.py` from `1e8d1bd` (no backend restart: the API does not import it),
-check paper/forward verify and the cache plan on the host, then `systemctl enable --now usb-h-evaluation.timer`;
-the next gated run is the acceptance evidence (`H_V2_FACTS_CACHE_COMPACTION_REPAIR_V1.md` §4).
+**Next action (one).** Read the first automated run (Mon 2026-10-19 from 14:40 KST): SEC fetches, SCAN
+complete, evaluation complete, decisions, guard summary (crypto latency, MemAvailable, PSI, OOM). Do not change
+a rule because of its results. If it fails, `systemctl disable --now usb-h-evaluation.timer` and keep the
+journal; the rollback file is `/root/h_fc_repair_backup_pre_deploy_20261018-170447.tar.gz`.
+
+*Superseded next action (2026-10-18, before deploy):* Deploy `facts_cache.py` from `1e8d1bd` (no backend
+restart: the API does not import it), check paper/forward verify and the cache plan on the host, then
+`systemctl enable --now usb-h-evaluation.timer`.
 
 **Facts cache compaction repair V1 (2026-10-18, 1e8d1bd).** Root cause: `facts_cache.index` read a copy as
 reusable from the request ledger alone; the stores' own reuse rule is body + ledger. A copy missing any body
