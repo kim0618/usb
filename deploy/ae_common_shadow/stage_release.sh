@@ -82,11 +82,15 @@ arm() {
   [[ $session =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || { echo "session must be YYYY-MM-DD"; exit 2; }
   remote "test -f $PROD/backend/app/dev/run_ae_common_producer.py && test -f $EP/backend/app/ae_common/a_consumer.py"
   echo "$session" | "${SSH[@]}" "cat > $ROOT/ACTIVE_SESSION"
-  remote "systemctl daemon-reload; systemctl list-timers --all --no-pager | grep -E 'usb-e-paper|usb-ae-producer|usb-a-snapshot'"
+  # stage only enables the timers (active from the next boot); arm starts them for this session
+  remote "systemctl daemon-reload; systemctl start usb-ae-producer.timer usb-a-snapshot-consumer.timer; systemctl list-timers --all --no-pager | grep -E 'usb-e-paper|usb-ae-producer|usb-a-snapshot'"
   echo "armed for $session: usb-e-paper skips that morning only"
 }
 
-disarm() { remote "rm -f $ROOT/ACTIVE_SESSION"; echo "disarmed: usb-e-paper runs from its next start"; }
+disarm() {
+  remote "rm -f $ROOT/ACTIVE_SESSION; systemctl stop usb-ae-producer.timer usb-a-snapshot-consumer.timer"
+  echo "disarmed: usb-e-paper runs from its next start"
+}
 
 verify() {
   local session=${1:?YYYY-MM-DD}
