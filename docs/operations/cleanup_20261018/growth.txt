@@ -1,0 +1,110 @@
+== heavy@start 12:49:05
+691700	/root/usb_runtime/crypto_context
+689596	/root/usb_runtime/crypto_context/journal
+187544	/root/usb_runtime/crypto_context/journal/context
+184124	/root/usb_runtime/crypto_context/journal/wall_r0
+174868	/root/usb_runtime/crypto_context/journal/telemetry
+73048	/root/usb_runtime/crypto_context/journal/storage_stats
+69980	/root/usb_runtime/crypto_context/journal/wall_v2
+1936	/root/usb_runtime/crypto_context/releases
+1308	/root/usb_runtime/crypto_context/releases/crypto-context-f3806e7
+140	/root/usb_runtime/crypto_context/releases/staging-retention-v1-2-20261014
+124	/root/usb_runtime/crypto_context/releases/staging-retention-v1-2b-20261014
+124	/root/usb_runtime/crypto_context/archive
+== sample 0 12:49:05 avail_bytes=762769408 io[avg10=14.16 avg60=44.98] mem[avg10=0.00]
+231600 /root/usb_runtime/crypto_paper/run
+10148 /root/usb_runtime/crypto_paper/data
+13416 /root/usb_runtime/q123_forward
+17096 /root/usb_runtime/btc_context_ui
+18800 /root/usb_runtime/manual_trade_research
+423728 /root/usb/data/runtime
+159272 /var/log/journal
+17372 /var/log/nginx
+4488 /var/log/sysstat
+119076 /root/usb/frontend/.next-build/cache
+== sample 1 12:54:05 avail_bytes=759623680 io[avg10=0.63 avg60=2.42] mem[avg10=0.00]
+232016 /root/usb_runtime/crypto_paper/run
+10148 /root/usb_runtime/crypto_paper/data
+13432 /root/usb_runtime/q123_forward
+17100 /root/usb_runtime/btc_context_ui
+18800 /root/usb_runtime/manual_trade_research
+423728 /root/usb/data/runtime
+159272 /var/log/journal
+17372 /var/log/nginx
+4488 /var/log/sysstat
+119076 /root/usb/frontend/.next-build/cache
+== sample 2 12:59:05 avail_bytes=784150528 io[avg10=4.97 avg60=9.07] mem[avg10=0.12]
+232428 /root/usb_runtime/crypto_paper/run
+10148 /root/usb_runtime/crypto_paper/data
+13440 /root/usb_runtime/q123_forward
+17104 /root/usb_runtime/btc_context_ui
+18800 /root/usb_runtime/manual_trade_research
+423728 /root/usb/data/runtime
+159272 /var/log/journal
+17380 /var/log/nginx
+4488 /var/log/sysstat
+119076 /root/usb/frontend/.next-build/cache
+== sample 3 13:04:05 avail_bytes=788475904 io[avg10=2.68 avg60=5.78] mem[avg10=0.00]
+225612 /root/usb_runtime/crypto_paper/run
+10148 /root/usb_runtime/crypto_paper/data
+13384 /root/usb_runtime/q123_forward
+17104 /root/usb_runtime/btc_context_ui
+18800 /root/usb_runtime/manual_trade_research
+423728 /root/usb/data/runtime
+159272 /var/log/journal
+17384 /var/log/nginx
+4492 /var/log/sysstat
+119076 /root/usb/frontend/.next-build/cache
+== sample 4 13:09:05 avail_bytes=785842176 io[avg10=0.65 avg60=3.33] mem[avg10=0.00]
+226016 /root/usb_runtime/crypto_paper/run
+10148 /root/usb_runtime/crypto_paper/data
+13384 /root/usb_runtime/q123_forward
+17108 /root/usb_runtime/btc_context_ui
+18804 /root/usb_runtime/manual_trade_research
+423728 /root/usb/data/runtime
+159272 /var/log/journal
+17392 /var/log/nginx
+4492 /var/log/sysstat
+119076 /root/usb/frontend/.next-build/cache
+== sample 5 13:14:05 avail_bytes=782622720 io[avg10=85.27 avg60=37.27] mem[avg10=0.00]
+226424 /root/usb_runtime/crypto_paper/run
+10148 /root/usb_runtime/crypto_paper/data
+13404 /root/usb_runtime/q123_forward
+17108 /root/usb_runtime/btc_context_ui
+18804 /root/usb_runtime/manual_trade_research
+423728 /root/usb/data/runtime
+159272 /var/log/journal
+17776 /var/log/nginx
+4492 /var/log/sysstat
+119076 /root/usb/frontend/.next-build/cache
+== sample 6 13:19:05 avail_bytes=779128832 io[avg10=0.17 avg60=3.75] mem[avg10=0.00]
+226812 /root/usb_runtime/crypto_paper/run
+10148 /root/usb_runtime/crypto_paper/data
+13404 /root/usb_runtime/q123_forward
+19468 /root/usb_runtime/btc_context_ui
+18804 /root/usb_runtime/manual_trade_research
+423728 /root/usb/data/runtime
+159272 /var/log/journal
+18884 /var/log/nginx
+4492 /var/log/sysstat
+119076 /root/usb/frontend/.next-build/cache
+== heavy@end 13:19:24
+== light delta KB (sample0 -> sample6)
++4 KB /var/log/sysstat
++4 KB /root/usb_runtime/manual_trade_research
++2372 KB /root/usb_runtime/btc_context_ui
++1512 KB /var/log/nginx
++0 KB /var/log/journal
++0 KB /root/usb_runtime/crypto_paper/data
++0 KB /root/usb/frontend/.next-build/cache
++0 KB /root/usb/data/runtime
+-12 KB /root/usb_runtime/q123_forward
+-4788 KB /root/usb_runtime/crypto_paper/run
+== crypto_context delta KB (start -> end, depth 2, nonzero)
++208 KB /root/usb_runtime/crypto_context/journal/storage_stats
++128 KB /root/usb_runtime/crypto_context/journal/telemetry
+-2372 KB /root/usb_runtime/crypto_context/journal/wall_v2
+-4948 KB /root/usb_runtime/crypto_context/journal/wall_r0
+-6316 KB /root/usb_runtime/crypto_context/journal/context
+-13300 KB /root/usb_runtime/crypto_context/journal
+-13300 KB /root/usb_runtime/crypto_context

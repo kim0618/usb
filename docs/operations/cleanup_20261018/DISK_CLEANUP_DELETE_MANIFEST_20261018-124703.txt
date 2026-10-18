@@ -1,0 +1,15 @@
+# DISK CLEANUP DELETE MANIFEST 20261018-124703 (mode=check)
+# DELETE_MANIFEST_BEFORE df: /dev/vda2      10460876800 9789968384 117420032  99% /
+# keep current : /root/usb/frontend/.next-build BUILD_ID=c4VYa7VRAWu0aFBN3fAvV (served: usb-frontend WorkingDirectory=/root/usb/frontend, npm start NEXT_DIST_DIR=.next-build)
+# keep rollback: /root/usb/frontend/.next-build.pre-marker-leverage-20261018-121704 BUILD_ID=PrBzRXD3I4vTsgKCutS24 (latest valid rollback, made 2026-10-18 12:24)
+# checks per path: systemd, nginx, symlink, open fd, mmap, process cwd/root, config/cron, runtime scripts (controls: 60 open fds and a /root/usb/frontend mmap detected by the same method)
+#path	bytes	BUILD_ID	files	mtime	listing_sha256	refs	reason
+/root/usb/frontend/.next-build.failed-crypto-manual-ux-20261016-113758	125786178	07OdWY-ZZkVp2DU514MYg	240	2026-10-16 11:44:15	3eaffa4a2daeb20a	refs=0	failed build, referenced by nothing (retention)
+/root/usb/frontend/.next-build.pre-c1-remove-20261015-122146	119166256	Rh0hJ2skzuYNTyehDWSI-	240	2026-10-14 13:20:32	a36447c0f04e166c	refs=0	older frontend rollback/build (retention: keep current + latest rollback)
+/root/usb/frontend/.next-build.pre-crypto-manual-ux-20261016-113758	125829654	lhfMQRNCjhcSjNt_5G58v	240	2026-10-16 11:16:48	eae0df730eae2770	refs=0	older frontend rollback/build (retention: keep current + latest rollback)
+/root/usb/frontend/.next-build.pre-exfix-20261013-133453	4177549	iDZ8nqou1OQfCsr7UWK-G	230	2026-10-13 12:23:00	0a00f3c4ca6020fe	refs=0	older frontend rollback/build (retention: keep current + latest rollback)
+/root/usb/frontend/.next-build.pre-flow-20261012-143915	4062585	_7ZVp-E2ahV720vAUb8yE	222	2026-10-11 18:12:36	80ef1d83657915b8	refs=0	older frontend rollback/build (retention: keep current + latest rollback)
+/root/usb/frontend/.next-build.pre-hauto-20261014-1354	3982810	w3LLcmPdetY4iarG7TXCX	230	2026-10-13 15:12:05	8eed61ed6688cce7	refs=0	older frontend rollback/build (retention: keep current + latest rollback)
+/root/usb/frontend/.next-build.pre-hot-live-manual-20261017-204005	125786178	07OdWY-ZZkVp2DU514MYg	240	2026-10-16 11:48:57	3eaffa4a2daeb20a	refs=0	older frontend rollback/build (retention: keep current + latest rollback)
+/root/usb/frontend/.next-build.pre-polling-20261013-151541	4180520	CJzmsJll8gufq0NNjZR91	230	2026-10-13 13:14:32	594f40202c030411	refs=0	older frontend rollback/build (retention: keep current + latest rollback)
+/root/usb/frontend/.next-build.pre-same-day-20261016-111531	126031464	EbLTGbg4JLkd9-CIcf4f7	240	2026-10-15 12:18:45	fba79c994e4666d4	refs=0	older frontend rollback/build (retention: keep current + latest rollback)

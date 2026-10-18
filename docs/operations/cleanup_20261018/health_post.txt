@@ -1,0 +1,9 @@
+/root/usb/frontend/.next-build
+/root/usb/frontend/.next-build.pre-marker-leverage-20261018-121704
+c4VYa7VRAWu0aFBN3fAvVPrBzRXD3I4vTsgKCutS24rollback build intact vs manifest
+/dev/vda2       9.8G  8.6G  729M  93% /
+/dev/vda2      10460876800 9143468032 763920384  93% /
+3000/crypto-paper=200 8100/api/crypto/state=200 8000/health=200 
+q123 RUNNING lag 11864 samples 658808 | flow age 33 {'COMPLETE'}
+frontend:2520193/0 crypto-paper:2519676/0 backend:2248392/0 crypto-context:1582777/0 crypto-q123-forward:1684303/0 btc-context-ui:2063894/0 
+77626366304a5dac
