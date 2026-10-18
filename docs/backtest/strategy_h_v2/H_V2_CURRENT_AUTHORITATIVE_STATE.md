@@ -5,10 +5,10 @@ records a stage result as of its own date and is never edited after the fact. Wh
 and a result document disagree about the present, this document wins. When they disagree about
 what happened in a past stage, the result document wins.
 
-Last verified: 2026-10-15 15:30 KST, after the V3 production deploy and manual acceptance run
-(`H_V2_DETERMINISTIC_V3_PRODUCTION_ACTIVATION_V1.md`). The change log below section 0 is history.
+Last verified: 2026-10-18 KST, after the facts cache compaction repair (`H_V2_FACTS_CACHE_COMPACTION_REPAIR_V1.md`,
+local PASS, not yet deployed). The change log below section 0 is history.
 
-## 0. Current state (2026-10-16, V3 + P1 + P2.1 deployed; evaluation timer DISABLED after a SCAN defect)
+## 0. Current state (2026-10-18, V3 + P1 + P2.1 deployed; SCAN compaction fix READY, evaluation timer OFF pending deployment)
 
 **What H is.** Strategy H is a US-equity, medium-horizon strategy that looks for issuers whose actual
 fundamentals or business are improving, whose price does not yet fully reflect that change, and whose
@@ -40,6 +40,9 @@ IO optimisation P1 (ec66400)                = ACTIVE in production (share-class 
 import footprint P2.1 (99db463)             = ACTIVE in production (H entrypoint does not load pyarrow; import RSS 133 -> 98 MB)
 price-pass fusion / persistent price state  = DEFERRED / NOT IMPLEMENTED
 Autonomous evaluation                       = DISABLED (gate and guard installed; re-enable after the SCAN fix)
+facts_cache.compact bug                     = FIXED / READY_FOR_PRODUCTION (1e8d1bd; a ledger without its body
+                                              is EVICTED and refetched, never read as FRESH)
+Evaluation timer                            = OFF pending deployment of 1e8d1bd
 ```
 
 The AI budget ($24/day, $12 reservation), `claude-opus-5-5` canonical model, `authorization.json` and the
@@ -86,7 +89,19 @@ as two processes (`7ccdd0c`). trader-j has about 1 GB RAM and historically 150-2
 path: upgrade to 2 GB or more, then manual acceptance; optimising further on 1 GB first is the operator's
 alternative. RAM is not a strategy dependency.
 
-**Next action (one).** Fix the SCAN compaction defect (data-collection bug, allowed by the freeze policy):
+**Next action (one).** Deploy `facts_cache.py` from `1e8d1bd` (no backend restart: the API does not import it),
+check paper/forward verify and the cache plan on the host, then `systemctl enable --now usb-h-evaluation.timer`;
+the next gated run is the acceptance evidence (`H_V2_FACTS_CACHE_COMPACTION_REPAIR_V1.md` §4).
+
+**Facts cache compaction repair V1 (2026-10-18, 1e8d1bd).** Root cause: `facts_cache.index` read a copy as
+reusable from the request ledger alone; the stores' own reuse rule is body + ledger. A copy missing any body
+is now `EVICTED` (ranked with stale copies, oldest fetch first) and the SCAN reports it as
+FUNDAMENTALS_FETCH_REQUIRED until it is refetched. On a read-only copy of the production cache: 1,413 cached
+CIKs, old reading 1,413 FRESH, new 712 FRESH + 701 EVICTED; the old cache-only load failed 50/50 on the
+evicted ones; the 712 usable copies load identically. compact, plan ranking, E1-E3, MJ, D3-D6, paper and
+forward unchanged.
+
+*Superseded next action (2026-10-16):* Fix the SCAN compaction defect (data-collection bug, allowed by the freeze policy):
 `facts_cache.compact` drops bodies but keeps the request ledger, so the entry stays FRESH and `plan` never
 refetches it; when the reference snapshot changes, `scan_production` re-scans those rows and `FC.load`
 raises `SEC_SUBMISSIONS_NOT_FOUND`. Then re-enable `usb-h-evaluation.timer` (gate and guard already

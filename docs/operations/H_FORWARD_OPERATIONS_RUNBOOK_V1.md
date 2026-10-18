@@ -247,7 +247,8 @@ performance, infrastructure, scheduler, UI and observability changes are allowed
 ## V3.1. Gated evaluation timer and resource guard (2026-10-16, d696c78)
 
 Status: installed; **timer DISABLED** after the first gated run failed in SCAN (compaction defect, state
-document §0). Re-enable with `systemctl enable --now usb-h-evaluation.timer` once the SCAN fix is deployed.
+document §0). Re-enable with `systemctl enable --now usb-h-evaluation.timer` once the SCAN fix is deployed
+(fix `1e8d1bd`, §V3.2).
 
 * Tries: Mon..Fri 01:40, 02:10, 02:40 ET. `ExecCondition=deploy/h_evaluation/precondition.sh` runs the
   evaluation only when today's (ET) `usb-h-forward` succeeded, none of `usb-e-universe`, `usb-e-rvol-once`,
@@ -266,6 +267,20 @@ document §0). Re-enable with `systemctl enable --now usb-h-evaluation.timer` on
   `/root/h_p21_backup_pre_activation_20261016-152754.tar.gz` (P2.1 alone: `/root/h_p21_backup_pre_deploy_20261016-135735.tar.gz`).
 * Never run a standalone Python import benchmark on trader-j (2026-10-16: a cold import alone took >55 s and
   raised IO PSI full to 73 %).
+
+## V3.2. SEC facts cache lifecycle (facts cache compaction repair V1, 2026-10-18, 1e8d1bd)
+
+`d7/auto/sec/<ET day>/` is H's rolling SEC cache. A CIK copy is reused only when every document has body and
+ledger; `compact` drops non-candidate bodies after each SCAN and keeps ledgers, so those copies read as
+`EVICTED` and are refetched by a later run (cap 700 per run, missing first, then oldest fetch).
+
+* Look: the SCAN status `sec_cache` (`FRESH` / `STALE` / `EVICTED` counts) and `readiness_counts`
+  (`FUNDAMENTALS_FETCH_REQUIRED` = not fetched yet this rotation, not a failure).
+* Never copy, create or hand-edit SEC bodies or ledgers to "repair" the cache; the planner refetches.
+* A damaged body that is present fails the SCAN closed (reader error, exit 1): remove that CIK's ledgers
+  in that dated root and let the next run refetch it.
+* Deploy: `backend/app/strategies/h_auto/facts_cache.py` only; no backend restart (the API does not import
+  it); the next `usb-h-evaluation` process picks it up.
 
 ## 10A. Production evaluation is NO-AI (H_V2_AUTONOMOUS_PIPELINE_V2_NO_AI, 2026-10-14) - superseded by §V3 for D3/D4, memory and units
 
