@@ -54,7 +54,11 @@ preflight() {
 
 stage() {
   local commit=${1:?release commit}
-  git -C "$REPO" diff --quiet "$commit" -- backend/app deploy/ae_common_shadow $PROD_DOCS || { echo "working tree differs from $commit"; exit 2; }
+  # the producer tree comes from the commit itself (git archive); only the EP/UNIT files are copied
+  # from the working tree, so those - and nothing another session is editing - must equal the commit
+  local copied; copied=$(release "EP|UNIT" | awk '{print $2}')
+  git -C "$REPO" diff --quiet "$commit" -- $copied || { echo "working tree differs from $commit for a copied file"; exit 2; }
+  git -C "$REPO" ls-files --error-unmatch $copied > /dev/null
   preflight
   remote "mkdir -p $PROD $ROOT/snapshots $ROOT/run $ROOT/a_consumer"
   # E's decision reads its frozen rules from <tree>/docs/backtest (strategy_e_v1_1.decision.load_rules,
