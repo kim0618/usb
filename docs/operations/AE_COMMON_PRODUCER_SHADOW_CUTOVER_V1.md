@@ -1,5 +1,7 @@
 # A/E Common Producer: 1-session live shadow cutover V1
 
+> **SUPERSEDED 2026-10-18** by `AE_COMMON_PRODUCER_FIRST_PAPER_V1.md`. 별도 shadow 세션 없이 10/19 ET부터 A/E official paper를 직접 실행한다. 아래는 이력으로 남긴다.
+
 상태: **READY_FOR_ONE_SESSION_SHADOW_CUTOVER** (구현과 테스트는 완료, 운영 배포와 arm은 미실행)
 
 전략 규칙은 바꾸지 않는다. A의 union, 09:15 컷, snapshot, scan, handoff는 운영 EP 트리에 이미 배포된 코드를 그대로 쓴다.

@@ -1,14 +1,14 @@
 [Unit]
-Description=USB A/E common premarket producer, one-session shadow cutover (Kiwoom read-only, no orders, E decision shadow-only)
+Description=USB A/E common premarket producer (Kiwoom read-only; snapshot_0915 for A, snapshot_0924 for E official paper on SimBroker; no real orders)
 After=network-online.target usb-backend.service
 StartLimitIntervalSec=1800
 StartLimitBurst=3
 
 [Service]
 Type=simple
-# Runs only on the armed session: ACTIVE_SESSION must name today's ET date. Any other day this unit
-# is skipped (exit 1 from ExecCondition is a skip, not a failure) and usb-e-paper runs as before.
-ExecCondition=/bin/sh -c 'test -f /root/usb_runtime/ae_common_producer/ACTIVE_SESSION && test "$(cat /root/usb_runtime/ae_common_producer/ACTIVE_SESSION)" = "$(TZ=America/New_York date +%%F)"'
+# Runs from the armed first session on (ACTIVE_FROM, an ET date): on and after it this unit runs and
+# usb-e-paper is skipped; before it, or with ACTIVE_FROM removed (rollback), the reverse.
+ExecCondition=/bin/sh -c 'f=/root/usb_runtime/ae_common_producer/ACTIVE_FROM; test -f "$f" && test "$(TZ=America/New_York date +%%Y%%m%%d)" -ge "$(tr -d - < "$f")"'
 # Its own clean source tree (git archive of the release commit); A's data authority is read from the
 # A/E operations tree via --a-repo, read-only.
 WorkingDirectory=/root/usb_runtime/ae_common_producer/src/backend
@@ -23,7 +23,9 @@ ExecStart=/root/usb/.venv/bin/python -m app.dev.run_ae_common_producer run \
   --a-repo /root/usb_runtime/strategy_e_paper/src \
   --snapshots /root/usb_runtime/ae_common_producer/snapshots \
   --out /root/usb_runtime/ae_common_producer/run \
-  --rvol-store /root/usb_runtime/strategy_e_rvol/kiwoom_premarket.sqlite3
+  --rvol-store /root/usb_runtime/strategy_e_rvol/kiwoom_premarket.sqlite3 \
+  --paper --e-book-root /root/usb_runtime/strategy_e_paper/run --equity 10000 \
+  --control-dir /root/usb_runtime/ae_common_producer
 Restart=on-failure
 RestartSec=30
 # the same envelope usb-e-paper ran the A-in-E acquisition under

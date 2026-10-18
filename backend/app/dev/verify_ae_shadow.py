@@ -1,8 +1,8 @@
-"""The live gate of the one-session common-producer shadow cutover. Read-only, after the session.
+"""The post-session audit of a common-producer paper session (A official, E official paper). Read-only.
 
     PYTHONPATH=backend python -m app.dev.verify_ae_shadow --session 2026-10-19 \
         --producer-out <run root> --consumer-out <A consumer run root> --snapshots <snapshot root> \
-        [--database <paper sqlite>]
+        [--database <paper sqlite>] [--e-book <paper_state_v2/OFFICIAL_KIWOOM_PAPER>]
 
 Reads the producer record, the A consumer record, the sealed snapshots and (``mode=ro``) A's
 ``scanner_runs`` row, and writes ``<producer-out>/<session>/live_gate.json``. Nothing else is
@@ -43,8 +43,76 @@ def _scanner_run(database: Path | None, session: date, run_id: Any) -> dict[str,
             "completed": any(r["id"] == run_id and r["status"] == "COMPLETED" for r in runs)}
 
 
+def _e_book(e_book: Path | None, session: date) -> tuple[dict | None, dict | None]:
+    if e_book is None:
+        return None, None
+    base = e_book / "STRATEGY_E_MAX_V1"
+    return _load(base / "book.json"), _load(base / "sessions" / f"{session.isoformat()}.json")
+
+
+def execution_checks(state: dict[str, Any] | None, book: dict[str, Any] | None, session: date,
+                     decision: dict[str, Any] | None, authorized: bool | None) -> dict[str, dict[str, Any]]:
+    """E's SimBroker execution against the frozen rule: 09:30 open in, exact 09:34 close out or
+    UNRESOLVED_EXIT, never the 09:35 open; the book chain; the executed decision is the sealed one."""
+    out: dict[str, dict[str, Any]] = {}
+    day = session.isoformat()
+    if state is None or book is None:
+        out["E_book_session_recorded"] = {"pass": False, "detail": "no book or no session state"}
+        return out
+    out["E_book_session_recorded"] = {"pass": day in book.get("sessions", {}), "phase": state.get("phase")}
+    out["E_book_version"] = {"pass": book.get("execution_version") == "e_cost_v2_exact_0934_close"
+                             and state.get("execution_version") == "e_cost_v2_exact_0934_close",
+                             "book": book.get("execution_version"), "initial_equity": book.get("initial_equity")}
+    executed = (state.get("decision") or {})
+    out["E_executed_decision_is_sealed_decision"] = {
+        "pass": decision is not None and executed.get("selected") == decision.get("selected")
+        and executed.get("digest") == decision.get("digest"),
+        "selected": executed.get("selected"), "digest": executed.get("digest")}
+    entries, exits = state.get("entries", {}), state.get("exits", {})
+    if authorized is False:
+        out["E_unauthorized_not_traded"] = {"pass": state.get("phase") == "NO_DECISION" and not entries,
+                                            "no_decision": state.get("no_decision")}
+        return out
+    bad_entries = [s for s, e in entries.items() if e.get("status") == "FILLED" and not (
+        str((e.get("fill_bar") or {}).get("timestamp", "")).startswith(f"{day}T09:30")
+        and e.get("raw_market_price") is not None
+        and float(e["raw_market_price"]) == float((e.get("fill_bar") or {}).get("open", "nan")))]
+    out["E_entry_0930_open"] = {"pass": not bad_entries, "filled": sum(e.get("status") == "FILLED" for e in entries.values()),
+                                "invalid": {s: e.get("reason") for s, e in entries.items() if e.get("status") != "FILLED"},
+                                "violations": bad_entries}
+    bad_exits, unresolved = [], []
+    for symbol, exit_ in exits.items():
+        if exit_.get("status") == "UNRESOLVED_EXIT":
+            ok = exit_.get("reason") == "NO_EXACT_0934_BAR" and exit_.get("fill_price_field") is None
+            (unresolved if ok else bad_exits).append(symbol)
+            continue
+        bar = exit_.get("fill_bar") or {}
+        ok = (str(bar.get("timestamp", "")).startswith(f"{day}T09:34") and exit_.get("fill_price_field") == "close"
+              and exit_.get("exit_flag") == "EXACT_0934_CLOSE"
+              and float(exit_.get("raw_market_price", "nan")) == float(bar.get("close", "nan")))
+        if not ok:
+            bad_exits.append(symbol)
+    filled = [s for s, e in entries.items() if e.get("status") == "FILLED"]
+    out["E_exit_exact_0934_close"] = {"pass": not bad_exits and set(filled) <= set(exits), "exits": len(exits),
+                                      "unresolved_exit": unresolved, "violations": bad_exits,
+                                      "open_without_exit": sorted(set(filled) - set(exits))}
+    sessions = book.get("sessions", {})
+    days = sorted(sessions)
+    previous = sessions[days[days.index(day) - 1]]["equity_after"] if day in days and days.index(day) > 0 \
+        else book.get("initial_equity")
+    current = sessions.get(day, {})
+    try:
+        from decimal import Decimal
+        chained = Decimal(current["equity_after"]) == Decimal(previous) + Decimal(current["sim_realized_pnl"])
+    except Exception:
+        chained = False
+    out["E_book_chain"] = {"pass": chained, "previous_equity": previous, "session": current,
+                           "summary": state.get("summary")}
+    return out
+
+
 def gate(session: date, producer_out: Path, consumer_out: Path, snapshots: Path,
-         database: Path | None = None) -> dict[str, Any]:
+         database: Path | None = None, e_book: Path | None = None) -> dict[str, Any]:
     from app.ae_common import snapshot as SS
     day = session.isoformat()
     producer = _load(producer_out / day / "producer.json") or {}
@@ -103,8 +171,18 @@ def gate(session: date, producer_out: Path, consumer_out: Path, snapshots: Path,
     check("E_cutoff_violation_zero", fin.get("future_cutoff_violation_count") == 0,
           violations=fin.get("future_cutoff_violation_count"))
     check("E_snapshot_0924_parity", bool((e_shadow.get("parity") or {}).get("exact")), parity=e_shadow.get("parity"))
-    check("E_no_execution", e_shadow.get("orders") == 0 and e_shadow.get("simbroker_used") is False
-          and e_shadow.get("book_written") is False and producer.get("orders") == 0)
+    decision = from_snapshot.get("decision") or {}
+    check("E_h5_r1_top3_b2", bool((e_shadow.get("parity") or {}).get("exact")),
+          h5_count=decision.get("h5_count"), candidates=decision.get("candidates"),
+          r1_order=decision.get("r1_order"), selected=decision.get("selected"),
+          high_breadth=decision.get("high_breadth"), final_exposure=decision.get("final_exposure"),
+          note="the snapshot decision equals the live-cache decision field by field (parity)")
+    check("E_no_real_orders", e_shadow.get("real_orders") == 0 and producer.get("real_order_requests") == 0,
+          sim_entries=e_shadow.get("sim_entries"), entry_exit_requests=producer.get("entry_exit_requests"))
+    book, state = _e_book(e_book, session)
+    if e_book is not None and (e_shadow.get("paper_runtime") or {}).get("reason") != "E_PAPER_NOT_ENABLED":
+        for name, body in execution_checks(state, book, session, decision or None, egate.get("authorized")).items():
+            check(name, body.pop("pass"), **body)
 
     # -- shared -------------------------------------------------------------------------------
     clients = producer.get("clients") or {}
@@ -129,9 +207,13 @@ def gate(session: date, producer_out: Path, consumer_out: Path, snapshots: Path,
              "http_attempts": attempts, "retries_estimate": attempts - logical, "deadline_refusals": refused,
              "per_phase": phases}
     failed = sorted(k for k, v in checks.items() if v["pass"] is False)
-    verdict = ("COMMON PRODUCER SHADOW PASS" if not failed else "COMMON PRODUCER SHADOW FAIL")
-    return {"session": day, "verdict": verdict, "failed": failed, "checks": checks, "calls": calls,
-            "generated_at": datetime.now().astimezone().isoformat()}
+    verdicts = {}
+    for group, prefix in (("A", "A_"), ("E", "E_"), ("COMMON", "S_")):
+        bad = [k for k in failed if k.startswith(prefix)]
+        verdicts[group] = {"verdict": "PASS" if not bad else "FAIL", "failed": bad}
+    verdict = "PASS" if not failed else "FAIL"
+    return {"session": day, "verdict": verdict, "verdicts": verdicts, "failed": failed, "checks": checks,
+            "calls": calls, "generated_at": datetime.now().astimezone().isoformat()}
 
 
 def main(argv=None) -> int:
@@ -141,11 +223,12 @@ def main(argv=None) -> int:
     parser.add_argument("--consumer-out", type=Path, required=True)
     parser.add_argument("--snapshots", type=Path, required=True)
     parser.add_argument("--database", type=Path)
+    parser.add_argument("--e-book", type=Path)
     args = parser.parse_args(argv)
-    body = gate(args.session, args.producer_out, args.consumer_out, args.snapshots, args.database)
+    body = gate(args.session, args.producer_out, args.consumer_out, args.snapshots, args.database, args.e_book)
     out = args.producer_out / args.session.isoformat() / "live_gate.json"
     out.write_text(json.dumps(body, indent=1, default=str) + "\n", encoding="utf-8")
-    print(f"{body['verdict']} failed={body['failed']} -> {out}")
+    print(" ".join(f"{g}={v['verdict']}" for g, v in body["verdicts"].items()), f"failed={body['failed']} -> {out}")
     return 0
 
 

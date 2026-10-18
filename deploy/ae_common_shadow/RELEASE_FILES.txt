@@ -1,4 +1,4 @@
-# A/E common producer, one-session shadow cutover. repo path -> server target.
+# A/E common producer (A official via snapshot_0915, E official paper via snapshot_0924). repo path -> server target.
 #
 # tree PROD = /root/usb_runtime/ae_common_producer/src   NEW tree: `git archive <release commit> backend/app
 #                                                          docs/backtest/strategy_e_candidate docs/backtest/strategy_e_max`
@@ -7,7 +7,7 @@
 # tree EP   = /root/usb_runtime/strategy_e_paper/src      A/E operations tree: three NEW files only,
 #                                                          nothing replaced (A keeps its deployed code)
 # tree UNIT = /etc/systemd/system                         NEW units; timers enabled at `stage`, every unit
-#                                                          gated by ACTIVE_SESSION, so nothing runs until `arm`
+#                                                          gated by ACTIVE_FROM, so nothing runs until `arm`
 #
 # Every EP and UNIT target must be absent before staging (preflight). The consumer was tested against
 # the deployed A code listed in EP_A_CODE_TESTED.md5; preflight refuses if the server differs.

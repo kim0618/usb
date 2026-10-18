@@ -1,8 +1,8 @@
 [Unit]
-Description=Start the A/E common producer before the 04:00 ET premarket (armed session only)
+Description=Start the A/E common producer before the 04:00 ET premarket (from the armed first session on)
 
 [Timer]
-# usb-e-paper's own slot. The service's ExecCondition skips every day but the armed one.
+# usb-e-paper's own slot. The service's ExecCondition skips every day before ACTIVE_FROM.
 OnCalendar=Mon..Fri 03:45 America/New_York
 Persistent=false
 AccuracySec=1s

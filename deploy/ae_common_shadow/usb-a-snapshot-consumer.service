@@ -6,7 +6,9 @@ StartLimitBurst=3
 
 [Service]
 Type=simple
-ExecCondition=/bin/sh -c 'test -f /root/usb_runtime/ae_common_producer/ACTIVE_SESSION && test "$(cat /root/usb_runtime/ae_common_producer/ACTIVE_SESSION)" = "$(TZ=America/New_York date +%%F)"'
+ExecCondition=/bin/sh -c 'f=/root/usb_runtime/ae_common_producer/ACTIVE_FROM; test -f "$f" && test "$(TZ=America/New_York date +%%Y%%m%%d)" -ge "$(tr -d - < "$f")"'
+# operator hold for A only: A does not scan that day (no fallback to any other path)
+ExecCondition=/bin/sh -c 'test ! -e /root/usb_runtime/ae_common_producer/HOLD_A'
 # The A/E operations tree: A's own code, data authority and database exactly as inside usb-e-paper.
 # Three new files (app/ae_common/{__init__,snapshot,a_consumer}.py) are added to it; nothing replaced.
 WorkingDirectory=/root/usb_runtime/strategy_e_paper/src/backend

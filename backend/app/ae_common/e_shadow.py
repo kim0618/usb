@@ -1,10 +1,11 @@
-"""E's shadow consumer of ``snapshot_0924``: decision recomputed read-only, nothing executed.
+"""E's consumer of ``snapshot_0924``: the decision, read-only, from the sealed file.
 
-For this cutover E stays decision-only. The consumer rebuilds E's caches from the sealed file and
-runs E-RUNTIME-R1's own decision path - availability classification, the Kiwoom-native RVOL
-denominators, ``_feature_rows``, the V1.1 seal (H5), R1, Top3 and B2 through
-``decision.decide_from_frame``, and ``execution_gate`` - with the RVOL store opened read-only. No
-paper stage, no SimBroker, no book, no Kiwoom request: those modules are not even imported here.
+The consumer rebuilds E's caches from the sealed file and runs E-RUNTIME-R1's own decision path -
+availability classification, the Kiwoom-native RVOL denominators, ``_feature_rows``, the V1.1 seal
+(H5), R1, Top3 and B2 through ``decision.decide_from_frame``, and ``execution_gate`` - with the RVOL
+store opened read-only. This module never executes anything and imports no paper, broker or book
+code: the producer hands an authorized decision to E-RUNTIME-R1's own paper stage (SimBroker, the
+``e_cost_v2_exact_0934_close`` book) and nothing else.
 
 The same path is also run on the producer's live caches, so :func:`parity` can show that the file
 gives E exactly the inputs and the decision the live cache would have.
@@ -53,10 +54,15 @@ def statuses_of(caches: Mapping[str, FZ.SymbolCache], unmapped: Sequence[str], d
 def decide(caches: Mapping[str, FZ.SymbolCache], spy: FZ.SymbolCache, art: Mapping[str, Any], *,
            unmapped: Sequence[str], session: date, deadline: datetime, store: RvolStore,
            decided_at: datetime, source: str) -> dict[str, Any]:
-    """E-RUNTIME-R1's decision and execution gate over ``caches``, as plain data."""
+    """E-RUNTIME-R1's decision, execution gate and session record over ``caches``, as plain data.
+
+    ``_decision`` (the sealed ``EDecision``) and ``_record`` (``paper.session_record``) are the two
+    objects the paper stage takes; they are dropped before the body is written anywhere.
+    """
     from app.backtest.strategy_e1_forward.seal import SEALED_FEATURES
     from app.dev import run_e_rt2_dryrun as RT2
     from app.strategy_e_max_rt import decision as DEC
+    from app.strategy_e_max_rt import paper as PAPER
     from app.strategy_e_v1_1.universe import DecisionFrame
 
     statuses = statuses_of(caches, unmapped, deadline)
@@ -75,10 +81,32 @@ def decide(caches: Mapping[str, FZ.SymbolCache], spy: FZ.SymbolCache, art: Mappi
                               unreachable=unreachable, pending=pending)
     counts = {k: sum(v == k for v in statuses.values())
               for k in (AV.FEATURE_COMPLETE, AV.SPARSE_NO_PREMARKET, AV.STALE, AV.MARKET_DATA_UNAVAILABLE)}
-    return {"decision": decision.to_json(), "gate": gate, "status_counts": counts,
+    body = {"decision": decision.to_json(), "gate": gate, "status_counts": counts,
             "statuses_digest": SS.digest(dict(sorted(statuses.items()))),
             "feature_rows_digest": SS.digest({s: rows[s] for s in symbols}),
             "rvol_unknown": sorted(rvol_unknown), "eligible_rows": len(symbols)}
+    # the session record exactly as E-RUNTIME-R1's runner builds it (statuses after the RVOL relabel)
+    record_states = dict(statuses)
+    for sym in rvol_unknown:
+        record_states[sym] = AV.RVOL_HISTORY_INSUFFICIENT
+    h5_by_symbol = {sym: AV.h5_status(record_states[sym], sym in decision.candidates) for sym in caches}
+    coverage = store.coverage(list(caches), session) | {"unreachable": len(unreachable),
+                                                         "pending_collection": len(pending),
+                                                         "pending_examples": pending[:10]}
+    body["_decision"] = decision
+    body["_record"] = PAPER.session_record(
+        session, states=record_states, h5_by_symbol=h5_by_symbol, eligible_rows=decision.universe_rows,
+        candidates=decision.candidates, selected=decision.selected,
+        rvol_ready_rows=len(symbols) - len(rvol_unknown), rvol_missing_rows=len(rvol_unknown),
+        bootstrap_complete=not pending, coverage=coverage, decision_digest=decision.digest,
+        extra={"universe_digest": art["digest"], "runtime": "AE_COMMON_PRODUCER_V1", "execution_gate": gate,
+               "decision_source": source})
+    return body
+
+
+def public(body: Mapping[str, Any]) -> dict[str, Any]:
+    """The body without the in-memory objects, for a run record."""
+    return {k: v for k, v in body.items() if not k.startswith("_")}
 
 
 def parity(from_file: Mapping[str, Any], from_live: Mapping[str, Any]) -> dict[str, Any]:
@@ -91,6 +119,6 @@ def parity(from_file: Mapping[str, Any], from_live: Mapping[str, Any]) -> dict[s
 
 
 def no_decision(reason: str, detail: str) -> dict[str, Any]:
-    """The shadow record when the producer could not give E a sealed snapshot. Never a decision."""
+    """E's record when the producer could not give it a sealed snapshot. Never a decision, never a trade."""
     return {"status": "NO_DECISION", "reason": reason, "detail": detail, "decision": None,
-            "orders": 0, "simbroker_used": False, "book_written": False}
+            "real_orders": 0, "sim_entries": 0, "simbroker_used": False, "book_written": False}

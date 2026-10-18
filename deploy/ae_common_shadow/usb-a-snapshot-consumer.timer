@@ -1,5 +1,5 @@
 [Unit]
-Description=Start the A snapshot consumer after A's cut; it waits for snapshot_0915 (armed session only)
+Description=Start the A snapshot consumer after A's cut; it waits for snapshot_0915 (from the armed first session on)
 
 [Timer]
 # Imports and attach run while the producer sweeps; the consumer then polls for the seal until 09:40.

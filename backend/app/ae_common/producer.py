@@ -84,6 +84,22 @@ class Clock:
 
 
 @dataclass
+class EPaper:
+    """E's official paper stage: E-RUNTIME-R1's ``_paper_stage`` on the V2 official book.
+
+    ``book_root`` is E's run root; the book is ``<book_root>/paper_state_v2/OFFICIAL_KIWOOM_PAPER/
+    STRATEGY_E_MAX_V1`` (execution ``e_cost_v2_exact_0934_close``, initial equity ``equity``), which
+    no earlier runtime has written. ``provider_factory`` builds the entry/exit price provider on its
+    own client and limiter - the producer's lanes are closed by then."""
+
+    book_root: Path
+    provider_factory: Callable[[], Any]
+    calendar: Any
+    equity: str = "10000"
+    interval: float = 10.0
+
+
+@dataclass
 class Morning:
     """Everything the session leaves behind, for the run record and the gate."""
 
@@ -103,7 +119,7 @@ def _lat(lane: FZ.Lane) -> dict[str, float] | None:
 def run_session(inputs: Inputs, *, lane_minute: FZ.Lane, lane_tick: FZ.Lane,
                 limiters: Sequence[DeadlineRateLimiter], clock: Clock, snapshot_dir: Path,
                 rvol_store: Path, log: Callable[[str], None] = print,
-                on_phase: Callable[[str], None] | None = None) -> Morning:
+                on_phase: Callable[[str], None] | None = None, e_paper: EPaper | None = None) -> Morning:
     session, at = inputs.session, clock.at
     morning = Morning()
     report = morning.report
@@ -207,6 +223,16 @@ def run_session(inputs: Inputs, *, lane_minute: FZ.Lane, lane_tick: FZ.Lane,
         morning.e_shadow = ES.no_decision("UNIVERSE_NOT_AVAILABLE", inputs.e_refusal or "no E universe")
     begin("closed", at(E_DEADLINE))
 
+    # -- E official paper: only a sealed, gated decision from snapshot_0924 reaches SimBroker -----
+    decision, record = morning.e_shadow.pop("_decision", None), morning.e_shadow.pop("_record", None)
+    if e_paper is None:
+        morning.e_shadow["paper_runtime"] = {"ran": False, "reason": "E_PAPER_NOT_ENABLED"}
+    elif decision is None:
+        morning.e_shadow["paper_runtime"] = {"ran": False, "reason": "NO_SEALED_DECISION",
+                                             "book_written": False}
+    else:
+        morning.e_shadow["paper_runtime"] = _paper(e_paper, decision, record, morning.e_shadow, clock, log)
+
     # -- after both seals: A parity (file vs the frozen live cache) ------------------------------
     if seal_thread is not None:
         seal_thread.join()
@@ -296,8 +322,8 @@ def _finalize_e(inputs: Inputs, caches: dict[str, FZ.SymbolCache], spy: FZ.Symbo
     except Exception as error:
         return ES.no_decision("COMMON_SNAPSHOT_0924_NOT_SEALED", f"{type(error).__name__}: {error}") | {
             "finalization": finalization}
-    out: dict[str, Any] = {"status": "SHADOW_DECIDED", "snapshot_0924": manifest, "finalization": finalization,
-                           "orders": 0, "simbroker_used": False, "book_written": False}
+    out: dict[str, Any] = {"status": "DECIDING", "snapshot_0924": manifest, "finalization": finalization,
+                           "real_orders": 0, "sim_entries": 0, "simbroker_used": False, "book_written": False}
     try:
         store = ES.ReadOnlyRvolStore(rvol_store)
         sealed = SS.load(snapshot_dir, SS.SNAPSHOT_0924, fmt=SS.FORMAT_0924, session=session)
@@ -305,17 +331,44 @@ def _finalize_e(inputs: Inputs, caches: dict[str, FZ.SymbolCache], spy: FZ.Symbo
         from_file = ES.decide(file_caches, file_spy, art, unmapped=inputs.e_unmapped, session=session,
                               deadline=deadline, store=store, decided_at=clock.now(),
                               source="KIWOOM_COMMON_PRODUCER_SNAPSHOT_0924")
-        out["from_snapshot"] = from_file
-        log(f"E shadow: gate {from_file['gate']['status']} selected {from_file['decision']['selected']}")
+        out["from_snapshot"] = ES.public(from_file)
+        out["_decision"], out["_record"] = from_file["_decision"], from_file["_record"]
+        out["session_record"] = from_file["_record"]
+        out["status"] = "DECIDED"
+        log(f"E decision: gate {from_file['gate']['status']} selected {from_file['decision']['selected']}")
         from_live = ES.decide(e_caches, spy, art, unmapped=inputs.e_unmapped, session=session, deadline=deadline,
                               store=store, decided_at=clock.now(), source="KIWOOM_COMMON_PRODUCER_LIVE_CACHE")
         out["live_cache_gate_status"] = from_live["gate"]["status"]
         out["parity"] = ES.parity(from_file, from_live)
         store.connection.close()
     except Exception as error:
-        out.update(status="NO_DECISION", reason="E_SHADOW_FAILED", detail=f"{type(error).__name__}: {error}",
+        out.pop("_decision", None)
+        out.pop("_record", None)
+        out.update(status="NO_DECISION", reason="E_DECISION_FAILED", detail=f"{type(error).__name__}: {error}",
                    traceback=traceback.format_exc()[-4000:])
     return out
+
+
+def _paper(e_paper: EPaper, decision: Any, record: dict[str, Any], e_out: dict[str, Any], clock: Clock,
+           log) -> dict[str, Any]:
+    """E-RUNTIME-R1's paper stage, unchanged: an unauthorized gate is recorded in the book and not
+    traded; an authorized one enters at the 09:30 open and exits at the exact 09:34 close."""
+    from app.dev import run_e_rt2_dryrun as RT2
+    gate = e_out["from_snapshot"]["gate"]
+    try:
+        summary = RT2._paper_stage(decision, clock.session, record, Path(e_paper.book_root), e_paper.calendar,  # noqa: SLF001
+                                   clock.now, clock.at, log, e_paper.equity,
+                                   provider_factory=e_paper.provider_factory, interval=e_paper.interval,
+                                   book=RT2.BOOK_OFFICIAL, gate=gate)
+    except Exception as error:                       # E fails closed on its own; A is another process
+        log(f"E_PAPER_FAILED {type(error).__name__}: {error}")
+        return {"ran": False, "reason": "E_PAPER_FAILED", "error": f"{type(error).__name__}: {error}",
+                "traceback": traceback.format_exc()[-4000:]}
+    e_out["sim_entries"] = summary.get("entries", 0)
+    e_out["real_orders"] = summary.get("real_orders", 0)
+    e_out["simbroker_used"] = bool(summary.get("ran"))
+    e_out["book_written"] = True
+    return summary
 
 
 def _a_parity(frozen: SS.FrozenA | None, snapshot_dir: Path, session: date, morning: Morning,
