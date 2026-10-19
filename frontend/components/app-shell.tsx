@@ -4,11 +4,11 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { api } from "@/lib/api";
-import { etTime, kstDate, kstTime, tradingDate } from "@/lib/format";
+import { etTime, kstTime, tradingDate } from "@/lib/format";
 import { useApi } from "@/hooks/use-api";
 import { RuntimeBanner, StatusBadge } from "@/components/ui";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { formatBrokerMode, formatMarketSession, formatRuntimeMode } from "@/lib/display";
+import { formatMarketSession, formatRuntimeMode } from "@/lib/display";
 import { marketSessionSchedule } from "@/lib/market-session";
 import { FX_CONFIG, FX_MODE_LABELS, formatFxRate } from "@/lib/fx";
 
@@ -16,12 +16,12 @@ type NavigationItem = { href: string; icon: string; label: string; activePaths: 
 export const navigationItems: NavigationItem[] = [
   // The analysis screens that used to sit under a 전략 menu are reached from the dashboard's
   // 전략 분석 links, so the dashboard stays lit on them. Strategy H's research detail is reached
-  // from Trading H and lights 트레이딩.
+  // from Trading H and lights 트레이딩. Strategy A (archived 2026-10-19) has no menu entry: its
+  // screen (/trading) and its scanner/GPT/adoption screens were removed with it.
   { href: "/dashboard", icon: "▦", label: "대시보드",
-    activePaths: ["/dashboard", "/daily", "/strategy-compare", "/strategy-history", "/shadow", "/strategy-b"] },
-  { href: "/trading", icon: "↗", label: "트레이딩",
-    activePaths: ["/trading", "/trading-b", "/strategy-e", "/trading-h", "/strategy-h"] },
-  { href: "/candidates", icon: "◎", label: "종목 분석", activePaths: ["/candidates", "/research", "/adoption"] },
+    activePaths: ["/dashboard", "/daily", "/strategy-compare", "/strategy-history", "/strategy-b"] },
+  { href: "/strategy-e", icon: "↗", label: "트레이딩",
+    activePaths: ["/trading-b", "/strategy-e", "/trading-h", "/strategy-h"] },
   // Crypto perpetuals. The symbol is chosen by the tab strip inside the screen rather than by
   // the route, so one menu entry covers all of them; `activePaths` is a list so a future
   // /crypto-paper/<SYMBOL> route would light the same entry without needing a submenu.
@@ -44,12 +44,13 @@ export function AppShell({ children }: { children: ReactNode }) {
   const equityChrome = isEquityChrome(path);
   const market = state.data?.market;
   const sessions = market ? marketSessionSchedule(market.trading_date, market.market_open, market.market_close) : [];
-  const contextTradingDate = state.data?.scanner.trading_date;
-  const paperStartedAt = state.data?.trading.paper_started_at;
+  // The market calendar's date, not a strategy's: the scanner date and the paper start the header
+  // used to show were Strategy A's, and A is archived.
+  const contextTradingDate = market?.trading_date;
   return <div className="min-h-screen bg-background">
     <RuntimeBanner mode={runtime}/>
     <aside className={`fixed inset-y-0 left-0 z-40 w-60 border-r border-line bg-sidebar transition-transform lg:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}>
-      <Link href="/trading" aria-label="USB Trading System" className="flex h-16 items-center gap-2.5 border-b border-line px-5">
+      <Link href="/dashboard" aria-label="USB Trading System" className="flex h-16 items-center gap-2.5 border-b border-line px-5">
         <Image src="/brand/usb-symbol.svg" alt="" aria-hidden="true" width={28} height={28} className="shrink-0"/>
         <span className="text-[17px] font-extrabold leading-none tracking-[0.12em] text-foreground">USB</span>
       </Link>
@@ -61,7 +62,6 @@ export function AppShell({ children }: { children: ReactNode }) {
         {equityChrome && <><p className="shrink-0 whitespace-nowrap text-xs text-muted"><span>현재시각 :</span> <span className="font-medium tabular-nums text-foreground" title={state.data ? etTime(state.data.system_time) : undefined}>{state.data ? kstTime(state.data.system_time) : "연결 중…"}</span></p>
         <span className="hidden h-4 w-px shrink-0 bg-line 2xl:block" aria-hidden="true"/>
         <p className="shrink-0 whitespace-nowrap text-xs text-muted"><span>기준거래일 :</span> <span className="font-medium tabular-nums text-foreground-secondary">{tradingDate(contextTradingDate)}</span></p>
-        {paperStartedAt && <><span className="hidden h-4 w-px shrink-0 bg-line 2xl:block" aria-hidden="true"/><p className="shrink-0 whitespace-nowrap text-xs text-muted"><span>가상매매 시작 :</span> <span className="font-medium tabular-nums text-foreground-secondary" title={kstTime(paperStartedAt)}>{kstDate(paperStartedAt)}</span></p></>}
         <span className="hidden h-4 w-px shrink-0 bg-line 2xl:block" aria-hidden="true"/>
         {/* The one rate every KRW figure on screen is converted with (lib/fx). A fixed value, never a quote. */}
         <p className="shrink-0 whitespace-nowrap text-xs text-muted" data-fx-rate={FX_CONFIG.usdKrw} data-fx-mode={FX_CONFIG.mode}><span>USD/KRW :</span> <span className="font-medium tabular-nums text-foreground-secondary">{formatFxRate()}</span> · {FX_MODE_LABELS[FX_CONFIG.mode]}</p>
@@ -70,7 +70,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             strip and the market header inside it; a symbol in the chrome would be wrong on two
             tabs out of three and would not change when the operator switched. */}
         {!equityChrome && <p className="shrink-0 whitespace-nowrap text-xs font-semibold text-foreground">선물 수동매매</p>}
-        <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-1.5">{equityChrome && <><span className="text-[11px] text-muted">시장</span><StatusBadge value={market?.session || "UNKNOWN"} label={market && !market.is_trading_day ? "휴장" : formatMarketSession(market?.session || "UNKNOWN")}/></>}<span className="text-[11px] text-muted">시스템</span><StatusBadge value={runtime} label={formatRuntimeMode(runtime)}/>{equityChrome && state.data?.trading.broker_mode && <StatusBadge value={state.data.trading.broker_mode} label={formatBrokerMode(state.data.trading.broker_mode)}/>}<ThemeToggle/></div>
+        <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-1.5">{equityChrome && <><span className="text-[11px] text-muted">시장</span><StatusBadge value={market?.session || "UNKNOWN"} label={market && !market.is_trading_day ? "휴장" : formatMarketSession(market?.session || "UNKNOWN")}/></>}<span className="text-[11px] text-muted">시스템</span><StatusBadge value={runtime} label={formatRuntimeMode(runtime)}/><ThemeToggle/></div>
       </div>
     </header><main className="p-4 md:p-7 xl:p-9">{children}</main></div>
   </div>;

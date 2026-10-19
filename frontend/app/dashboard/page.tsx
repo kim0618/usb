@@ -4,10 +4,9 @@ import Link from "next/link";
 import { ErrorState, LoadingState } from "@/components/ui";
 import { DashboardStrategyCards } from "@/components/dashboard-strategy-card";
 import { useApi } from "@/hooks/use-api";
-import { dashboardStrategies, STRATEGY_A, STRATEGY_E, STRATEGY_H } from "@/lib/strategies";
+import { dashboardStrategies, STRATEGY_E, STRATEGY_H } from "@/lib/strategies";
 
 const DETAIL_HREF: Readonly<Record<string, string>> = {
-  [STRATEGY_A]: "/trading",
   [STRATEGY_E]: "/strategy-e",
   [STRATEGY_H]: "/trading-h",
 };

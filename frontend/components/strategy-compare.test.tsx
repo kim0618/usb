@@ -158,10 +158,12 @@ describe("Comparison screen", () => {
     expect(within(second).getByText("-6.15%")).toBeInTheDocument();
   });
 
-  it("compares A and E from the live API, no longer the closed Strategy B mock", () => {
+  it("compares the operating strategies from the live API, no longer the closed Strategy B mock", () => {
     const page = source("app/strategy-compare/page.tsx");
     expect(page).toContain("strategiesApi.performance");
-    expect(page).toContain("strategiesApi.portfolio");
+    // The A+E portfolio simulation left with archived Strategy A.
+    expect(page).not.toContain("strategiesApi.portfolio");
+    expect(page).not.toContain("PortfolioPanel");
     expect(page).not.toMatch(/strategyCompareSource|STRATEGY_B_MOCK|MockBadge|mocks\//);
   });
 

@@ -1,16 +1,16 @@
 "use client";
 
-/** The operating views: the A/E/H performance board, the frozen A/E paper gate, the 50/50 A+E
- *  portfolio simulation, and the research history that says which strategies are closed.
+/** The operating views: the E/H performance board, the frozen paper gate, and the research
+ *  history that says which strategies are closed. Archived strategies (lib/strategies
+ *  ARCHIVED_STRATEGIES, Strategy A since 2026-10-19) get no column, gate card or history row.
  *
- *  Every figure is the backend's (GET /strategies/performance, /portfolio, /strategies). Nothing is
+ *  Every figure is the backend's (GET /strategies/performance, /strategies). Nothing is
  *  recomputed here: a missing value renders "N/A" with the backend's reason as its title, a zero
  *  count renders 0, and no strategy name is typed into this file.
  *
- *  Strategy H joined the board in H-V2-D7. Its column comes from the same pure calculator A's and
- *  E's do, so none of their figures moved; what H does *not* join is the Combined column and the
- *  portfolio simulation, because both sum initial equities and H has no capital book. The gate panel
- *  stays A/E: the frozen gate contract does not list H, and H's own state is shown beside it. */
+ *  Strategy H joined the board in H-V2-D7. Its column comes from the same pure calculator E's does,
+ *  so none of E's figures moved. The frozen gate contract does not list H, so H's own state is shown
+ *  beside the gate panel instead. */
 
 import Link from "next/link";
 import { pnlTone } from "@/components/daily-performance";
@@ -20,9 +20,9 @@ import { useApi } from "@/hooks/use-api";
 import { formatSignedUsd, formatUsd } from "@/lib/format";
 import {
   ALL_STRATEGIES, LIFECYCLE_LABELS, OPERATION_LABELS, PAPER_MODES, RESEARCH_LABELS,
-  STRATEGY_A, STRATEGY_E, STRATEGY_H, selectorOptions, strategyLabel,
+  STRATEGY_E, STRATEGY_H, isArchived, selectorOptions, strategyLabel,
   strategiesApi,
-  type GateResult, type PerformanceBoard, type PortfolioView, type StrategyMetrics, type StrategyRow,
+  type GateResult, type PerformanceBoard, type StrategyMetrics, type StrategyRow,
 } from "@/lib/strategies";
 import { HBoardRow } from "@/components/h-forward";
 
@@ -71,30 +71,25 @@ const METRIC_ROWS: Row[] = [
   { label: "Avg Holding", key: "avg_holding_seconds", render: m => holding(m.avg_holding_seconds) },
 ];
 
-/** A, E and the A+E combined column for one book, each value exactly as the backend sent it.
+/** One column per operating strategy for one book, each value exactly as the backend sent it.
  *  ``official`` is ACCOUNTING_V1 from the official start (what the gate reads); ``legacy`` is the V0
  *  rows as recorded, shown for reference and never mixed with official. */
 export function PerformanceTable({ board, rows, book = "official", strategy = ALL_STRATEGIES }: {
   board: PerformanceBoard; rows: StrategyRow[]; book?: "official" | "legacy";
-  /** ALL, or one strategy id. ALL shows every operating strategy plus the A+E Combined column. */
+  /** ALL, or one strategy id. ALL shows every operating strategy side by side. */
   strategy?: string;
 }) {
   const official = book === "official";
   const all = strategy === ALL_STRATEGIES;
   // Which strategies have a column is the registry's answer, not a list typed here.
-  const operating = rows.filter(r => r.enabled && PAPER_MODES.includes(r.mode) && board.strategies[r.strategy_id])
+  const operating = rows.filter(r => r.enabled && !isArchived(r.strategy_id) && PAPER_MODES.includes(r.mode) && board.strategies[r.strategy_id])
     .filter(r => all || r.strategy_id === strategy);
-  const columns: Array<{ id: string; label: string; metrics: StrategyMetrics }> = [
-    ...operating.map(row => ({ id: row.strategy_id, label: row.short_name || row.display_name,
-                               metrics: board.strategies[row.strategy_id][book] })),
-    // Combined is A+E only. It is omitted when one strategy is selected, and when H is that one.
-    ...(all && board.strategies[STRATEGY_A] && board.strategies[STRATEGY_E]
-      ? [{ id: "COMBINED", label: "Combined", metrics: official ? board.combined : board.legacy_combined }]
-      : []),
-  ];
+  // The backend's Combined column was A+E; with A archived there is nothing left to combine.
+  const columns: Array<{ id: string; label: string; metrics: StrategyMetrics }> =
+    operating.map(row => ({ id: row.strategy_id, label: row.short_name || row.display_name,
+                            metrics: board.strategies[row.strategy_id][book] }));
   const showH = official && board.h_forward && (all || strategy === STRATEGY_H);
   const shows = (id: string) => columns.some(column => column.id === id);
-  const hasCombined = shows("COMBINED");
   const clock = board.paper_clock;
   const titleId = official ? "ae-performance-title" : "ae-legacy-title";
   return <section aria-labelledby={titleId} className="mb-7 min-w-0" data-book={book}>
@@ -108,7 +103,7 @@ export function PerformanceTable({ board, rows, book = "official", strategy = AL
       공식 Paper 시계가 아직 시작되지 않았습니다. V1 회계와 E 비용 계약이 배포·확인된 뒤 첫 세션부터 집계합니다.</p>}
     <div className="table-wrap relative">
       <table className="analysis-table min-w-[480px]">
-        <caption className="sr-only">{official ? "공식 전략별 성과와 합산" : "레거시 전략별 성과와 합산"}</caption>
+        <caption className="sr-only">{official ? "공식 전략별 성과" : "레거시 전략별 성과"}</caption>
         <thead><tr><th scope="col">Metric</th>{columns.map(c => <th key={c.id} scope="col" className="text-right" data-column={c.id}>{c.label}</th>)}</tr></thead>
         <tbody>
           {METRIC_ROWS.map(row => <tr key={row.label}>
@@ -124,15 +119,13 @@ export function PerformanceTable({ board, rows, book = "official", strategy = AL
       </table>
     </div>
     {/* A note is shown only when the thing it describes is on screen: under a single strategy the
-        Combined, E-book and H-cohort sentences describe columns that are not there. */}
+        E-book and H-cohort sentences describe columns that are not there. */}
     <ul className="mt-3 space-y-1 text-xs text-muted">
       {official ? <>
-        {hasCombined && <li>Combined는 두 공식 장부의 거래와 일별 손익을 더한 회계 합계입니다. 배분 규칙이 아닙니다.</li>}
-        {(shows(STRATEGY_A) || shows(STRATEGY_E)) && <li>MFE·MAE는 두 원장 모두 장중 경로를 기록하지 않아 N/A입니다.</li>}
+        {shows(STRATEGY_E) && <li>MFE·MAE는 원장이 장중 경로를 기록하지 않아 N/A입니다.</li>}
         {shows(STRATEGY_E) && <li>E는 {board.books[STRATEGY_E] || "-"} 장부만 집계합니다.</li>}
-        {hasCombined && board.combined_definition && <li>{board.combined_definition}</li>}
         {shows(STRATEGY_H) && board.h_forward && <li>
-          H는 자본 장부가 없어 금액 지표가 N/A이고 Combined·포트폴리오 합산에 들어가지 않습니다.
+          H는 자본 장부가 없어 금액 지표가 N/A입니다.
           결정 상태는 APPROVE {board.h_forward.decision_counts.APPROVE ?? 0} ·
           WATCH {board.h_forward.decision_counts.WATCH ?? 0} ·
           REJECT {board.h_forward.decision_counts.REJECT ?? 0}이며 포지션 0은 정상입니다.
@@ -145,7 +138,7 @@ export function PerformanceTable({ board, rows, book = "official", strategy = AL
   </section>;
 }
 
-/** ALL / A / E / H. One strategy at a time, or every operating one side by side. */
+/** ALL / E / H. One strategy at a time, or every operating one side by side. */
 export function StrategySelector({ rows, value, onChange }: {
   rows: StrategyRow[]; value: string; onChange: (id: string) => void;
 }) {
@@ -169,7 +162,7 @@ export function GatePanel({ gate, rows, board, strategy = ALL_STRATEGIES }: {
   gate: Record<string, GateResult>; rows: StrategyRow[]; board?: PerformanceBoard; strategy?: string;
 }) {
   const h = board?.h_forward;
-  const shown = Object.values(gate).filter(r => strategy === ALL_STRATEGIES || r.strategy_id === strategy);
+  const shown = Object.values(gate).filter(r => !isArchived(r.strategy_id) && (strategy === ALL_STRATEGIES || r.strategy_id === strategy));
   if (!shown.length) return null;
   return <section aria-labelledby="ae-gate-title" className="mb-7">
     <h2 id="ae-gate-title" className="mb-1 font-semibold">Paper 평가 게이트</h2>
@@ -200,61 +193,6 @@ export function GatePanel({ gate, rows, board, strategy = ALL_STRATEGIES }: {
         </article>;
       })}
     </div>
-  </section>;
-}
-
-function overlapText(o?: { both: number; either: number }) {
-  return o ? `${o.both} / ${o.either}일` : NA;
-}
-
-/** The 50/50 risk-budget simulation and the live exposure, labelled as a simulation throughout. */
-export function PortfolioPanel({ view, rows }: { view: PortfolioView; rows: StrategyRow[] }) {
-  const b = view.baseline;
-  const name = (id: string) => rows.find(r => r.strategy_id === id)?.short_name || id;
-  const stats: Array<[string, string, string | undefined]> = [
-    ["Risk budget", Object.entries(b.risk_budget).map(([id, w]) => `${name(id)} ${pct(w)}`).join(" · "), "배분 규칙으로 쓰지 않음"],
-    ["공통 운영 기간", b.window ? `${b.window.start} ~ ${b.window.end}` : NA, `${b.days}일`],
-    ["Combined return (sim)", pct(b.combined_return, true) ?? NA, "50/50 일별 수익률 합성"],
-    ["Combined MDD (sim)", pct(b.combined_mdd) ?? NA, undefined],
-    ["A/E 상관계수", b.correlation ?? NA, b.na.correlation],
-    ["손실일 겹침", overlapText(b.losing_day_overlap), "둘 다 손실 / 어느 한쪽 손실"],
-    ["수익일 겹침", overlapText(b.winning_day_overlap), "둘 다 수익 / 어느 한쪽 수익"],
-    ["종목 겹침", `${b.symbol_overlap.both} / ${b.symbol_overlap.either}종목`, b.symbol_overlap.symbols?.join(", ") || undefined],
-    ["섹터 겹침", NA, b.na.sector_overlap],
-    ["합산 Net PnL (실제 장부)", view.combined.net_pnl == null ? NA : formatSignedUsd(view.combined.net_pnl), undefined],
-    ["합산 MDD (실제 장부)", pct(view.combined.mdd) ?? NA, undefined],
-  ];
-  return <section aria-labelledby="ae-portfolio-title" className="mb-7">
-    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-      <h2 id="ae-portfolio-title" className="font-semibold">A+E 포트폴리오 · {view.book === "official" ? "Official (V1)" : "Legacy (V0)"}</h2>
-      <StatusBadge value={b.mode} label="SIMULATION BASELINE" tone="neutral"/>
-    </div>
-    <dl className="panel grid gap-x-6 gap-y-3 p-4 text-sm sm:grid-cols-2 xl:grid-cols-3">
-      {stats.map(([label, value, detail]) => <div key={label} data-portfolio-stat={label}>
-        <dt className="label">{label}</dt>
-        <dd className="mt-0.5 font-medium tabular-nums text-foreground">{value}</dd>
-        {detail && <dd className="text-[11px] text-muted">{detail}</dd>}
-      </div>)}
-    </dl>
-    <p className="mt-2 text-xs text-muted">{b.definition}</p>
-    <h3 className="mb-2 mt-5 text-sm font-semibold">현재 노출</h3>
-    {view.exposure.per_symbol.length === 0
-      ? <EmptyState title="보유 포지션 없음" description="두 전략 모두 현재 보유 종목이 없습니다."/>
-      : <div className="table-wrap relative"><table className="analysis-table min-w-[420px]">
-          <thead><tr><th scope="col">종목</th><th scope="col" className="text-right">합계 수량</th><th scope="col" className="text-right">원가</th><th scope="col">전략별</th></tr></thead>
-          <tbody>{view.exposure.per_symbol.map(s => <tr key={s.symbol}>
-            <th scope="row">{s.symbol}</th><td className="text-right tabular-nums">{s.quantity}</td>
-            <td className="text-right tabular-nums">{formatUsd(s.cost_basis)}</td>
-            <td>{Object.entries(s.by_strategy).map(([id, v]) => `${name(id)} ${v.quantity}`).join(" · ")}</td>
-          </tr>)}</tbody>
-        </table></div>}
-    <dl className="mt-3 grid gap-3 text-xs sm:grid-cols-2">
-      {Object.entries(view.cash_usage).map(([id, c]) => <div key={id} className="panel p-3" data-cash={id}>
-        <dt className="label">{name(id)} 현금 사용</dt>
-        <dd className="mt-0.5 tabular-nums">{c.cash_share == null ? NA : `현금 ${pct(c.cash_share)}`}</dd>
-        {c.note && <dd className="text-muted">{c.note}</dd>}
-      </div>)}
-    </dl>
   </section>;
 }
 
@@ -304,7 +242,7 @@ export function ResearchHistory({ rows }: { rows: StrategyRow[] }) {
     <table className="analysis-table min-w-[560px]">
       <caption className="sr-only">전략 연구 이력</caption>
       <thead><tr><th scope="col">전략</th><th scope="col">Research</th><th scope="col">Operations</th><th scope="col">종결일</th><th scope="col">메모</th></tr></thead>
-      <tbody>{rows.map(row => {
+      <tbody>{rows.filter(row => !isArchived(row.strategy_id)).map(row => {
         const closed = row.research_lifecycle === "CLOSED";
         return <tr key={row.strategy_id} data-history={row.strategy_id}>
           <th scope="row"><span className="font-semibold">{row.display_name}</span><span className="block text-[11px] text-muted">{row.variant_label || row.version}</span></th>
@@ -319,36 +257,6 @@ export function ResearchHistory({ rows }: { rows: StrategyRow[] }) {
       })}</tbody>
     </table>
   </div>;
-}
-
-/** The experiments that are not strategies, and so have no registry row of their own.
- *
- *  Strategy A's exit-rule variants (`/shadow`) are the only one: five exit rules replayed over A's
- *  own entries, confusingly labelled A to E like the strategies themselves. The screen is kept
- *  reachable rather than deleted, but it is not a tab, because the live paper runtime writes no
- *  `shadow_trades` row and the table is empty. */
-export function ExperimentHistory() {
-  return <section aria-labelledby="experiment-title" className="mt-7">
-    <h2 id="experiment-title" className="mb-1 font-semibold">전략이 아닌 실험</h2>
-    <p className="mb-3 text-xs text-muted">레지스트리에 전략으로 올라가지 않는 비교 실험입니다. 기록은 지우지 않습니다.</p>
-    <div className="panel p-4" data-experiment="A_EXIT_VARIANTS">
-      <div className="mb-2 flex flex-wrap items-center gap-2">
-        <span className="font-semibold">A 청산규칙 변형 (A~E)</span>
-        <StatusBadge value="NO_DATA" label="기록 없음" tone="neutral"/>
-      </div>
-      <p className="text-sm text-foreground-secondary">
-        Strategy A가 실제로 잡은 진입을 청산 규칙만 바꿔 다시 돌린 비교입니다
-        (당일청산·ATR 1.5 / Day2 허용·ATR 1.0·1.5·2.0 / 당일청산·구조손절).
-      </p>
-      <p className="mt-1 text-xs text-muted">
-        여기서의 A~E는 청산 변형 이름이고 Strategy A·E와는 다른 것입니다. 운영 런타임이 shadow 기록을
-        쓰지 않아 표가 비어 있어 전략 탭에서는 내렸습니다. 화면과 데이터는 그대로 있습니다.
-      </p>
-      <p className="mt-3">
-        <Link href="/shadow" className="btn-action-secondary-compact">섀도 변형 화면 열기</Link>
-      </p>
-    </div>
-  </section>;
 }
 
 /** What a closed strategy's old screen shows now: that it is closed, and where the record lives.

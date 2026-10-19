@@ -14,6 +14,12 @@ export const STRATEGY_A = "STRATEGY_A";
 export const STRATEGY_E = "STRATEGY_E_MAX_V1";
 export const STRATEGY_H = "STRATEGY_H_V2";
 export const PROVISIONAL = "PROVISIONAL_RVOL_BOOTSTRAP";
+
+/** Strategies closed and archived that the backend registry may still list as enabled. Strategy A
+ *  was archived on 2026-10-19 (docs/backtest/strategy_a/A_EDGE_FIRST_CLOSEOUT_V1.md); its history
+ *  stays in the backend and the database, but no screen lists it as a tab, card, column or option. */
+export const ARCHIVED_STRATEGIES: ReadonlySet<string> = new Set([STRATEGY_A]);
+export const isArchived = (strategyId: string): boolean => ARCHIVED_STRATEGIES.has(strategyId);
 export const OFFICIAL = "OFFICIAL_KIWOOM_PAPER";
 
 /** What a strategy does with capital. A and E place simulated orders (SIMULATION_PAPER); H observes
@@ -102,28 +108,6 @@ export type PerformanceBoard = {
   e_sessions: Array<{ session: string; phase: string | null; error: boolean }>;
 };
 
-export type Overlap = { both: number; either: number; a_only: number; e_only: number; share_of_either: string | null; symbols?: string[] };
-export type PortfolioView = {
-  currency: string; book: "official" | "legacy"; accounting_version: string; paper_clock: PaperClock;
-  baseline: {
-    mode: string; risk_budget: Record<string, string>; allocation_rule: string; definition: string;
-    window: { start: string; end: string } | null; days: number;
-    combined_return?: string | null; combined_mdd?: string | null; correlation?: string | null;
-    losing_day_overlap?: Overlap; winning_day_overlap?: Overlap; symbol_overlap: Overlap;
-    same_session_symbol_collisions: string[]; sector_overlap: null;
-    equity_curve: Array<{ date: string; r_a: string; r_e: string; combined: string; index: string }>;
-    na: Record<string, string>;
-  };
-  combined: { net_pnl: string | null; mdd: string | null; mdd_amount?: string | null; initial_equity?: string | null; equity_change?: string | null; trades?: number };
-  exposure: {
-    per_strategy: Record<string, { open_positions: number; cost_basis: string | null }>;
-    per_symbol: Array<{ symbol: string; quantity: string; cost_basis: string | null;
-                        by_strategy: Record<string, { quantity: string; cost_basis: string | null }> }>;
-    total_cost_basis: string | null;
-  };
-  cash_usage: Record<string, { cash: string | null; equity: string | null; cash_share: string | null; note?: string }>;
-};
-
 export type BootstrapState = {
   available: boolean; status: string; symbols?: number; ready?: number; partial?: number; zero?: number;
   history_exhausted?: number; target_sessions?: number; minimum_sessions?: number; percent?: number | null;
@@ -183,7 +167,6 @@ export type StrategyEquity = {
 /** Where each operating strategy's screen lives. Only the route is a frontend concern; the label
  *  comes from the registry (strategyLabel) and which strategies operate is the registry's answer. */
 export const OPERATING_ROUTES: Readonly<Record<string, { href: string }>> = {
-  [STRATEGY_A]: { href: "/trading" },
   [STRATEGY_E]: { href: "/strategy-e" },
   [STRATEGY_H]: { href: "/trading-h" },
 };
@@ -197,7 +180,7 @@ export function strategyLabel(row: Pick<StrategyRow, "display_name" | "variant_l
  *  A closed research strategy is listed on the research history screen instead. */
 export function operatingTabs(rows: readonly StrategyRow[]): Array<{ href: string; label: string; strategy_id: string }> {
   return rows
-    .filter(row => row.enabled && PAPER_MODES.includes(row.mode) && OPERATING_ROUTES[row.strategy_id])
+    .filter(row => row.enabled && !isArchived(row.strategy_id) && PAPER_MODES.includes(row.mode) && OPERATING_ROUTES[row.strategy_id])
     .map(row => ({ strategy_id: row.strategy_id, href: OPERATING_ROUTES[row.strategy_id].href, label: strategyLabel(row) }));
 }
 
@@ -215,7 +198,7 @@ export const LIFECYCLE_LABELS: Readonly<Record<string, string>> = {
 export const ALL_STRATEGIES = "ALL";
 export function selectorOptions(rows: readonly StrategyRow[]): Array<{ id: string; label: string }> {
   return [{ id: ALL_STRATEGIES, label: "ALL" },
-    ...rows.filter(row => row.enabled && PAPER_MODES.includes(row.mode))
+    ...rows.filter(row => row.enabled && !isArchived(row.strategy_id) && PAPER_MODES.includes(row.mode))
       .map(row => ({ id: row.strategy_id, label: row.short_name || row.display_name }))];
 }
 
@@ -382,7 +365,6 @@ export const strategiesApi = {
   equity: (id: string) => apiFetch<StrategyEquity>(`/api/v1/strategies/${encodeURIComponent(id)}/equity`),
   cards: () => apiFetch<StrategyCardData[]>("/api/v1/strategies/cards"),
   performance: () => apiFetch<PerformanceBoard>("/api/v1/strategies/performance"),
-  portfolio: () => apiFetch<PortfolioView>("/api/v1/strategies/portfolio"),
   daily: (limit = 60) => apiFetch<DailyView>(`/api/v1/strategies/daily?limit=${limit}`),
   forward: (id: string = STRATEGY_H) =>
     apiFetch<HForwardView>(`/api/v1/strategies/${encodeURIComponent(id)}/forward`),
@@ -397,7 +379,7 @@ export async function dashboardStrategies(): Promise<Array<{
   row: StrategyRow; status: StrategyStatus; account: StrategyAccount; equity: StrategyEquity; card?: StrategyCardData;
 }>> {
   const [rows, cards] = await Promise.all([strategiesApi.list(), strategiesApi.cards()]);
-  return Promise.all(rows.filter(row => row.enabled).map(async row => ({
+  return Promise.all(rows.filter(row => row.enabled && !isArchived(row.strategy_id)).map(async row => ({
     row,
     status: await strategiesApi.status(row.strategy_id),
     account: await strategiesApi.account(row.strategy_id),

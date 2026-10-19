@@ -2,23 +2,24 @@ import React from "react";
 import { readFileSync } from "node:fs";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { AnalysisTabs, SectionTabs, SystemTabs, isRouteActive } from "./section-tabs";
+import { SectionTabs, SystemTabs, isRouteActive } from "./section-tabs";
 import { isNavigationActive, navigationItems } from "./app-shell";
 
-let pathname = "/candidates";
+let pathname = "/dashboard";
 vi.mock("next/navigation", () => ({ usePathname: () => pathname }));
 
 const source = (path: string) => readFileSync(path, "utf8");
 
 describe("Stage 9.10 navigation", () => {
-  beforeEach(() => { pathname = "/candidates"; });
+  beforeEach(() => { pathname = "/dashboard"; });
   afterEach(() => cleanup());
 
-  it("defines exactly five top-level menu entries, dashboard first and 선물 before 시스템", () => {
+  it("defines exactly four top-level menu entries, dashboard first and 선물 before 시스템", () => {
     // The 전략 menu was removed: its screens are reached from the dashboard and from Trading H.
+    // 종목 분석 (Strategy A's scanner, GPT analysis and adoption) left with archived Strategy A.
     // 시스템 stays last.
-    expect(navigationItems.map(item => item.label)).toEqual(["대시보드", "트레이딩", "종목 분석", "선물", "시스템"]);
-    expect(navigationItems).toHaveLength(5);
+    expect(navigationItems.map(item => item.label)).toEqual(["대시보드", "트레이딩", "선물", "시스템"]);
+    expect(navigationItems).toHaveLength(4);
     expect(navigationItems.some(item => item.label === "전략")).toBe(false);
     expect(navigationItems.some(item => item.href === "/strategy-b" || item.href === "/trading-b")).toBe(false);
     const shell = source("components/app-shell.tsx");
@@ -27,11 +28,7 @@ describe("Stage 9.10 navigation", () => {
 
   it.each([
     ["/dashboard", "대시보드"],
-    ["/trading", "트레이딩"],
-    ["/candidates", "종목 분석"],
-    ["/candidates/NVDA", "종목 분석"],
-    ["/research", "종목 분석"],
-    ["/shadow", "대시보드"],
+    ["/strategy-e", "트레이딩"],
     ["/strategy-b", "대시보드"],
     ["/daily", "대시보드"],
     ["/strategy-compare", "대시보드"],
@@ -54,23 +51,20 @@ describe("Stage 9.10 navigation", () => {
     expect(isRouteActive("/research-old", "/research")).toBe(false);
   });
 
-  it("renders analysis tabs as links with the current route", () => {
-    render(<AnalysisTabs/>);
-    expect(screen.getByRole("navigation", { name: "분석 화면" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "후보 종목" })).toHaveAttribute("href", "/candidates");
-    expect(screen.getByRole("link", { name: "후보 종목" })).toHaveAttribute("aria-current", "page");
-    expect(screen.getByRole("link", { name: "GPT 분석" })).toHaveAttribute("href", "/research");
+  it("no menu entry or active path points at a removed Strategy A screen", () => {
+    const removed = ["/trading", "/candidates", "/research", "/adoption", "/shadow"];
+    navigationItems.forEach(item => {
+      expect(removed).not.toContain(item.href);
+      item.activePaths.forEach(path => expect(removed).not.toContain(path));
+    });
+    removed.forEach(route => expect(() => source(`app${route}/page.tsx`)).toThrow());
   });
 
-  it("shares compact blue analysis navigation across both active routes", () => {
-    const first = render(<AnalysisTabs/>);
-    expect(screen.getByRole("link", { name: "후보 종목" })).toHaveClass("h-9", "border-primary", "bg-primary-soft", "text-primary");
-    expect(screen.getByRole("link", { name: "GPT 분석" })).toHaveClass("border-line", "bg-surface", "text-foreground-secondary");
-    first.unmount();
-    pathname = "/research";
-    render(<AnalysisTabs/>);
-    expect(screen.getByRole("link", { name: "GPT 분석" })).toHaveAttribute("aria-current", "page");
-    expect(screen.getByRole("link", { name: "GPT 분석" })).toHaveClass("border-primary", "bg-primary-soft", "text-primary");
+  it("styles the active section tab compactly and keeps the focus ring", () => {
+    pathname = "/runtime";
+    render(<SystemTabs/>);
+    expect(screen.getByRole("link", { name: "시스템 상태" })).toHaveClass("h-9", "border-primary", "bg-primary-soft", "text-primary");
+    expect(screen.getByRole("link", { name: "설정" })).toHaveClass("border-line", "bg-surface", "text-foreground-secondary");
     expect(source("components/section-tabs.tsx")).toContain("focus-visible:ring-2");
   });
 
@@ -87,10 +81,8 @@ describe("Stage 9.10 navigation", () => {
   });
 
   it("keeps every route page and grouped tabs in place", () => {
-    ["page.tsx", "dashboard/page.tsx", "candidates/page.tsx", "research/page.tsx", "trading/page.tsx", "shadow/page.tsx", "strategy-b/page.tsx", "strategy-compare/page.tsx", "runtime/page.tsx", "settings/page.tsx"].forEach(path => expect(() => source(`app/${path}`)).not.toThrow());
-    ["shadow", "strategy-b", "strategy-compare"].forEach(route => expect(source(`app/${route}/page.tsx`)).toContain("<StrategyTabs"));
-    expect(source("app/candidates/page.tsx")).toContain("<AnalysisTabs/>");
-    expect(source("app/research/page.tsx")).toContain("<AnalysisTabs/>");
+    ["page.tsx", "dashboard/page.tsx", "strategy-b/page.tsx", "strategy-compare/page.tsx", "runtime/page.tsx", "settings/page.tsx"].forEach(path => expect(() => source(`app/${path}`)).not.toThrow());
+    ["strategy-b", "strategy-compare"].forEach(route => expect(source(`app/${route}/page.tsx`)).toContain("<StrategyTabs"));
     expect(source("app/runtime/page.tsx")).toContain("<SystemTabs/>");
     expect(source("app/settings/page.tsx")).toContain("<SystemTabs/>");
   });
@@ -99,7 +91,7 @@ describe("Stage 9.10 navigation", () => {
     expect(source("app/page.tsx")).toContain('redirect("/dashboard")');
     expect(source("app/page.tsx")).not.toContain('redirect("/trading")');
     const shell = source("components/app-shell.tsx");
-    expect(shell).toContain('href="/trading" aria-label="USB Trading System"');
+    expect(shell).toContain('href="/dashboard" aria-label="USB Trading System"');
   });
 
   it("uses the official vector brand with a theme-aware wordmark", () => {
@@ -118,23 +110,11 @@ describe("Stage 9.10 navigation", () => {
     expect(source("app/layout.tsx")).toContain('icon: "/brand/usb-symbol.svg"');
   });
 
-  it("renders the portfolio-centered Korean trading hierarchy", () => {
-    const trading = source("app/trading/page.tsx");
-    const board = source("components/entry-status-board.tsx");
-    ["계좌 요약", "총 자산", "투자 중", "보유 현금", "누적 수익", "직전 거래일 손익", "현재 보유 종목", "<EntryStatusBoard"].forEach(label => expect(trading).toContain(label));
-    expect(board).toContain("진입 평가");
-    ["오늘의 운영 요약", "미국 시장", "오늘 승인 종목", "매매 현황", "시스템 보기 →"].forEach(label => expect(trading).not.toContain(label));
-    // Entry candidates come from the backend's current-run authority, never a frontend APPROVE filter.
-    expect(trading).not.toContain('human_decision?.decision === "APPROVE"');
-    expect(trading + board).not.toContain(".slice(0, 2)");
-  });
-
-  it("moves broker mode to the header and removes the sidebar runtime footer", () => {
+  it("shows no Strategy A broker badge in the header and no sidebar runtime footer", () => {
     const shell = source("components/app-shell.tsx");
     expect(shell).not.toContain("Backend 연결");
     expect(shell).not.toContain('className="absolute bottom-0');
-    expect(shell).toContain("state.data.trading.broker_mode");
-    expect(shell).toContain("formatBrokerMode(state.data.trading.broker_mode)");
+    expect(shell).not.toContain("broker_mode");
   });
 
   it("renders calendar-authoritative market sessions with explicit active and closed states", () => {
@@ -152,22 +132,19 @@ describe("Stage 9.10 navigation", () => {
     expect(shell).not.toContain('border-t border-line');
     expect(shell).toContain('grid w-full shrink-0 grid-cols-3 gap-1.5 sm:flex sm:w-auto');
     expect(shell).toContain('aria-label="미국 시장 세션"');
-    expect(shell).toContain("state.data?.trading.broker_mode");
     expect(shell.indexOf("현재시각 :")).toBeLessThan(shell.indexOf("기준거래일 :"));
-    expect(shell.indexOf("기준거래일 :")).toBeLessThan(shell.indexOf("가상매매 시작 :"));
-    expect(shell.indexOf("가상매매 시작 :")).toBeLessThan(shell.indexOf('aria-label="미국 시장 세션"'));
+    expect(shell.indexOf("기준거래일 :")).toBeLessThan(shell.indexOf('aria-label="미국 시장 세션"'));
   });
 
-  it("renders authoritative trading and paper dates with graceful null handling", () => {
+  it("takes the trading date from the market calendar, not from Strategy A's scanner or paper account", () => {
     const shell = source("components/app-shell.tsx");
-    expect(shell).toContain("const contextTradingDate = state.data?.scanner.trading_date");
+    expect(shell).toContain("const contextTradingDate = market?.trading_date");
     expect(shell).toContain("현재시각 :");
     expect(shell).toContain("기준거래일 :");
     expect(shell).toContain("tradingDate(contextTradingDate)");
-    expect(shell).toContain("const paperStartedAt = state.data?.trading.paper_started_at");
-    expect(shell).toContain("paperStartedAt &&");
-    expect(shell).toContain("가상매매 시작 :");
-    expect(shell).toContain("kstDate(paperStartedAt)");
+    expect(shell).not.toContain("scanner.trading_date");
+    expect(shell).not.toContain("paper_started_at");
+    expect(shell).not.toContain("가상매매 시작 :");
     expect(shell).not.toContain("Paper 시작");
     expect(shell).not.toContain("2026-09-08");
   });

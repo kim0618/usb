@@ -2,28 +2,25 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { GatePanel, PerformanceTable, PortfolioPanel, StrategyBookPanel, StrategySelector } from "@/components/ae-operations";
+import { GatePanel, PerformanceTable, StrategyBookPanel, StrategySelector } from "@/components/ae-operations";
 import { HCohortTable, HEvaluationPanel, HSummary } from "@/components/h-forward";
 import { StrategyTabs } from "@/components/section-tabs";
 import { ErrorState, LoadingState, PageHeader } from "@/components/ui";
 import { useApi } from "@/hooks/use-api";
-import { ALL_STRATEGIES, STRATEGY_A, STRATEGY_E, STRATEGY_H, strategiesApi } from "@/lib/strategies";
+import { ALL_STRATEGIES, STRATEGY_H, strategiesApi } from "@/lib/strategies";
 
 async function load() {
-  const [rows, board, portfolio] = await Promise.all([
-    strategiesApi.list(), strategiesApi.performance(), strategiesApi.portfolio(),
-  ]);
-  return { rows, board, portfolio };
+  const [rows, board] = await Promise.all([strategiesApi.list(), strategiesApi.performance()]);
+  return { rows, board };
 }
 
-/** Every operating strategy side by side, each from its own book, plus the A+E portfolio view.
+/** Every operating strategy side by side, each from its own book.
  *
- *  The selector is ALL / A / E / H and drives the whole screen, not only the metrics table. Under
- *  ALL the strategies get a column each, A+E additionally get their Combined column, and the
- *  portfolio simulation is shown; selecting one strategy narrows to it and opens its own book
- *  (holdings, closed trades, equity) inline, so comparing A with E does not mean leaving this page.
- *  Strategy H brings its decision panels instead of a book, because it holds no capital, and is
- *  never summed with A or E.
+ *  The selector is ALL / E / H and drives the whole screen, not only the metrics table. Under ALL
+ *  the strategies get a column each; selecting one strategy narrows to it and opens its own book
+ *  (holdings, closed trades, equity) inline. Strategy H brings its decision panels instead of a
+ *  book, because it holds no capital. Strategy A is archived (lib/strategies ARCHIVED_STRATEGIES)
+ *  and has no column, gate card or portfolio view here.
  *
  *  Before 2026-09-27 this route compared A with the closed Strategy B from a mock module. It now
  *  reads GET /strategies/performance and /strategies/portfolio; the old A/B components stay in the
@@ -32,10 +29,10 @@ export default function StrategyComparePage() {
   const state = useApi(load, 60_000);
   const [strategy, setStrategy] = useState<string>(ALL_STRATEGIES);
   const header = <PageHeader title="전략 성과 비교"
-    description="A·E는 공식 Paper(V1) 장부로, H는 forward shadow 결정으로 봅니다. 레거시(V0) 기록은 맨 아래에 참고용으로 따로 둡니다."/>;
+    description="E는 공식 Paper(V1) 장부로, H는 forward shadow 결정으로 봅니다. 레거시(V0) 기록은 맨 아래에 참고용으로 따로 둡니다."/>;
   if (state.loading) return <><StrategyTabs/>{header}<LoadingState/></>;
   if (!state.data) return <><StrategyTabs/>{header}<ErrorState message={state.error || "전략 성과 조회 실패"} retry={state.refresh}/></>;
-  const { rows, board, portfolio } = state.data;
+  const { rows, board } = state.data;
   const all = strategy === ALL_STRATEGIES;
   const showH = all || strategy === STRATEGY_H;
   const h = board.h_forward;
@@ -58,7 +55,6 @@ export default function StrategyComparePage() {
       </p>
     </>}
     <GatePanel gate={board.gate} rows={rows} board={board} strategy={strategy}/>
-    {all && <PortfolioPanel view={portfolio} rows={rows}/>}
     <PerformanceTable board={board} rows={rows} book="legacy" strategy={strategy}/>
   </>;
 }

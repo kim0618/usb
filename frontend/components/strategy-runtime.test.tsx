@@ -223,7 +223,7 @@ describe("dashboard route", () => {
     ],
   };
 
-  it("renders both strategies from the live API", async () => {
+  it("renders the operating strategy from the live API and no card for archived A", async () => {
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo) => {
       const path = String(input).replace(/^https?:\/\/[^/]+/, "");
       const body = payloads[path];
@@ -231,24 +231,21 @@ describe("dashboard route", () => {
                json: async () => body ?? { error: { message: path } } } as Response;
     }));
     render(<DashboardPage/>);
-    expect(await screen.findAllByText("Strategy A")).toHaveLength(1);
-    expect(screen.getAllByText("Strategy E-MAX V1")).toHaveLength(1);
-    expect(document.querySelectorAll("[data-dashboard-card]")).toHaveLength(2);
+    // The registry payload still lists Strategy A as enabled; the dashboard leaves it out anyway.
+    expect(await screen.findAllByText("Strategy E-MAX V1")).toHaveLength(1);
+    expect(screen.queryByText("Strategy A")).not.toBeInTheDocument();
+    expect(document.querySelectorAll("[data-dashboard-card]")).toHaveLength(1);
+    expect(document.querySelector(`[data-strategy="${STRATEGY_A}"]`)).toBeNull();
     // No page heading or subtitle: the cards start the page.
     expect(screen.queryByRole("heading", { level: 1 })).not.toBeInTheDocument();
     expect(screen.queryByText("운영 중인 전략의 현재 상태와 각자의 성과를 확인합니다.")).not.toBeInTheDocument();
-    const a = document.querySelector(`[data-strategy="${STRATEGY_A}"]`) as HTMLElement;
     const e = document.querySelector(`[data-strategy="${STRATEGY_E}"]`) as HTMLElement;
     // One state and one mode per card, folded by the backend; no raw status words.
-    expect(a.querySelector("[data-status]")!.getAttribute("data-status")).toBe("RUNNING");
-    expect(a.querySelector("[data-mode]")!.textContent).toBe("PAPER");
     expect(e.querySelector("[data-status]")!.getAttribute("data-status")).toBe("ISSUE");
     expect(e.querySelector("[data-reason]")!.textContent).toBe("데이터 오류");
     expect(e.querySelector("[data-mode]")!.textContent).toBe("OFFICIAL PAPER");
     expect(e.querySelector("[data-period]")!.textContent).toBe("운영 16일째 · 공식 10세션");
-    expect(a.querySelector("[data-last-run]")!.textContent).toBe("마지막 실행 10/13 09:32 KST");
     expect(e.querySelector("[data-last-run]")!.textContent).toBe("마지막 실행 -");
-    expect(a.textContent).toContain("신호 없음");
     // Everything the old card carried is gone from the dashboard, and so is the curve section.
     for (const gone of ["보유 포지션", "최근 세션 청산", "갱신", "오늘 실현손익", "오늘 미실현손익", "Research:", "Legacy Paper", "D7"]) {
       expect(document.body.textContent).not.toContain(gone);
@@ -258,8 +255,7 @@ describe("dashboard route", () => {
     expect(document.querySelector("[data-operating-fields]")).toBeNull();
     // Same fields, same order on every card.
     const labels = (card: HTMLElement) => [...card.querySelectorAll("dt")].map(dt => dt.textContent);
-    expect(labels(a)).toEqual(["초기 자본", "현재 자산", "최근 세션 손익", "공식 누적 손익", "공식 거래 수", "최근 결정"]);
-    expect(labels(e)).toEqual(labels(a));
+    expect(labels(e)).toEqual(["초기 자본", "현재 자산", "최근 세션 손익", "공식 누적 손익", "공식 거래 수", "최근 결정"]);
   });
 
   it("has no mock import and no mock fallback left on the dashboard", () => {
@@ -286,7 +282,7 @@ describe("operating tabs come from the registry", () => {
   it("shows only the enabled paper strategies and never invents one while loading", async () => {
     const { TradingTabs } = await import("./section-tabs");
     const { operatingTabs } = await import("../lib/strategies");
-    expect(operatingTabs(rows).map(tab => tab.href)).toEqual(["/trading", "/strategy-e"]);
+    expect(operatingTabs(rows).map(tab => tab.href)).toEqual(["/strategy-e"]);                 // A archived
     vi.stubGlobal("fetch", vi.fn(async () => new Promise(() => {})));       // never resolves
     render(<TradingTabs/>);
     expect(screen.getByRole("navigation", { name: "트레이딩 화면" })).toBeInTheDocument();
@@ -303,19 +299,19 @@ describe("operating tabs come from the registry", () => {
     expect(page).toContain("<TradingTabs/>");
   });
 
-  it("leaves Strategy A's screen and its data calls untouched", () => {
-    const trading = readFileSync("app/trading/page.tsx", "utf8");
-    expect(trading).toContain("<TradingTabs/>");
-    ["api.trading", "api.entryBoard", "계좌 요약", "현재 보유 종목"].forEach(m => expect(trading).toContain(m));
+  it("removes archived Strategy A's screen and its data calls", () => {
+    expect(() => readFileSync("app/trading/page.tsx", "utf8")).toThrow();
+    const api = readFileSync("lib/api.ts", "utf8");
+    ["/api/v1/trading", "/research/", "/scanner/"].forEach(path => expect(api).not.toContain(path));
   });
 });
 
-describe("summary cards are the same five on A and E", () => {
+describe("Strategy E's summary cards", () => {
   const order = ["총 자산", "투자 중", "보유 현금", "누적 수익", "직전 거래일 손익"];
   const positions = (source: string) => order.map(label => source.indexOf(label));
 
-  it("keeps the same card order on both screens and drops 평가 손익 from the summary", () => {
-    for (const path of ["app/trading/page.tsx", "app/strategy-e/page.tsx"]) {
+  it("keeps the card order and drops 평가 손익 from the summary", () => {
+    for (const path of ["app/strategy-e/page.tsx"]) {
       const source = readFileSync(path, "utf8");
       const at = positions(source);
       expect(at.every(index => index >= 0), path).toBe(true);
@@ -323,12 +319,6 @@ describe("summary cards are the same five on A and E", () => {
       expect(source, path).not.toContain('label="평가 손익"');
       expect(source, path).toContain("CumulativePerformance");
     }
-  });
-
-  it("keeps the per-position unrealized column on Strategy A's holdings table", () => {
-    const trading = readFileSync("app/trading/page.tsx", "utf8");
-    expect(trading).toContain("pnlTone(position.unrealized_pnl)");
-    expect(trading).toContain("signedDecimal(position.unrealized_pnl)");
   });
 
   it("reuses the existing PnL tone classes and adds none", async () => {

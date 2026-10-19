@@ -10,12 +10,6 @@ export type SectionTab = {
   label: string;
 };
 
-export const analysisTabs: SectionTab[] = [
-  { href: "/candidates", label: "후보 종목" },
-  { href: "/research", label: "GPT 분석" },
-  { href: "/adoption", label: "채택 후보" },
-];
-
 /** Operating screens are derived from the strategy registry (see lib/strategies.ts), so a strategy
  *  appears here by being enabled in the backend rather than by being written into this file. */
 
@@ -23,9 +17,8 @@ export const analysisTabs: SectionTab[] = [
  *
  *  There is no tab bar for it any more. The analysis screens it used to point at - the metric
  *  comparison (`/strategy-compare`), Strategy H's valuation cohort (`/strategy-h`), the research
- *  history (`/strategy-history`) and A's empty exit-rule experiment (`/shadow`) - keep their routes
- *  and their data, but they answer research questions rather than operating ones and are not part
- *  of the screen you land on. `strategyTabs` stays exported and empty so `StrategyTabs` renders
+ *  history (`/strategy-history`) - keep their routes and their data, but they answer research
+ *  questions rather than operating ones and are not part of the screen you land on. `strategyTabs` stays exported and empty so `StrategyTabs` renders
  *  nothing rather than disappearing from the markup those screens still mount.
  */
 export const strategyTabs: SectionTab[] = [];
@@ -59,10 +52,6 @@ export function SectionTabs({ label, tabs }: { label: string; tabs: SectionTab[]
       })}
     </nav>
   );
-}
-
-export function AnalysisTabs() {
-  return <SectionTabs label="분석 화면" tabs={analysisTabs} />;
 }
 
 /** The operating tab bar. While the registry is loading the landmark stays (so the page does not

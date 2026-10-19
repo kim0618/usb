@@ -1,4 +1,4 @@
-import type { AdoptionResponse, Capabilities, DailyPerformance, Dashboard, EntryBoard, Failure, Fill, Order, ReplayReport, ResearchAnalysis, ResearchCurrentAuthority, ResearchDetail, ResearchHistoryItem, RuntimeStatus, ScannerSnapshot, Settings, ShadowSummary, StrategyEvaluationDetail, StrategyEvaluationSummary, Trade, TradingOverview } from "@/types/api";
+import type { Capabilities, Dashboard, Failure, ReplayReport, RuntimeStatus, Settings } from "@/types/api";
 
 export const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
 
@@ -20,30 +20,6 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
 
 export const api = {
   dashboard: () => apiFetch<Dashboard>("/api/v1/dashboard"),
-  scanner: () => apiFetch<ScannerSnapshot>("/api/v1/scanner/latest"),
-  scannerRun: (id: number) => apiFetch<ScannerSnapshot>(`/api/v1/scanner/runs/${id}`),
-  prompt: (symbol?: string) => apiFetch<{ prompt: string; prompt_version: string }>(`/api/v1/research/prompt${symbol ? `/${encodeURIComponent(symbol)}` : ""}`),
-  research: () => apiFetch<ResearchAnalysis>("/api/v1/research/latest"),
-  researchCurrent: () => apiFetch<ResearchCurrentAuthority>("/api/v1/research/current"),
-  researchHistory: () => apiFetch<ResearchHistoryItem[]>("/api/v1/research/history"),
-  adoption: () => apiFetch<AdoptionResponse>("/api/v1/research/adoption"),
-  researchDetail: (id: number, symbol: string) => apiFetch<ResearchDetail>(`/api/v1/research/${id}/candidates/${encodeURIComponent(symbol)}`),
-  importResearch: (raw_json: string) => apiFetch<{ analysis_id: number; active_analysis_id: number; activated: boolean; candidate_count: number }>("/api/v1/research/import", { method: "POST", body: JSON.stringify({ raw_json }) }),
-  activateResearch: (id: number) => apiFetch<{ analysis_id: number; scanner_run_id: number; active: boolean }>(`/api/v1/research/${id}/activate`, { method: "PUT" }),
-  decide: (id: number, symbol: string, decision: "APPROVE" | "REJECT", note?: string) => apiFetch<{ approved_count: number }>(`/api/v1/research/${id}/decisions/${encodeURIComponent(symbol)}`, { method: "PUT", body: JSON.stringify({ decision, note: note || null }) }),
-  trading: () => apiFetch<TradingOverview>("/api/v1/trading"),
-  entryBoard: () => apiFetch<EntryBoard>("/api/v1/trading/entry-board"),
-  dailyPerformance: () => apiFetch<DailyPerformance[]>("/api/v1/trading/daily-performance"),
-  orders: () => apiFetch<Order[]>("/api/v1/trading/orders"),
-  fills: () => apiFetch<Fill[]>("/api/v1/trading/fills"),
-  trades: () => apiFetch<Trade[]>("/api/v1/trading/trades"),
-  strategyEvaluations: (limit = 30) => apiFetch<StrategyEvaluationSummary[]>(`/api/v1/strategy/evaluations?limit=${limit}`),
-  strategyEvaluationDetail: (tradingDate: string) => apiFetch<StrategyEvaluationDetail>(`/api/v1/strategy/evaluations/${encodeURIComponent(tradingDate)}`),
-  shadow: (range?: { startDate: string; endDate: string }) => {
-    const query = range ? `?start_date=${encodeURIComponent(range.startDate)}&end_date=${encodeURIComponent(range.endDate)}` : "";
-    return apiFetch<ShadowSummary>(`/api/v1/shadow/summary${query}`);
-  },
-  shadowTrades: (query = "") => apiFetch<Trade[]>(`/api/v1/shadow/trades${query}`),
   replay: () => apiFetch<ReplayReport>("/api/v1/replay-smoke/latest"),
   runtime: () => apiFetch<RuntimeStatus>("/api/v1/runtime"),
   failures: () => apiFetch<Failure[]>("/api/v1/runtime/failures?limit=100"),

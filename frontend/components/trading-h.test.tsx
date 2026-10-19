@@ -36,18 +36,20 @@ const view = {
 describe("Trading H routing", () => {
   it("puts H's operating tab on /trading-h and keeps the research screen on /strategy-h", () => {
     expect(OPERATING_ROUTES[STRATEGY_H].href).toBe("/trading-h");
-    expect(OPERATING_ROUTES[STRATEGY_A].href).toBe("/trading");
+    expect(OPERATING_ROUTES[STRATEGY_A]).toBeUndefined();                     // archived
     expect(OPERATING_ROUTES[STRATEGY_E].href).toBe("/strategy-e");
     expect(() => readFileSync("app/strategy-h/page.tsx", "utf8")).not.toThrow();
     const tabs = operatingTabs([STRATEGY_A, STRATEGY_E, STRATEGY_H].map(id => ({ strategy_id: id, display_name: id, version: "", enabled: true,
       mode: id === STRATEGY_H ? "FORWARD_SHADOW" : "SIMULATION_PAPER", market_data_source: "", runtime_status: null,
       paper_status: null, evidence_status: null, session: null })));
-    expect(tabs.map(t => t.href)).toEqual(["/trading", "/strategy-e", "/trading-h"]);
+    expect(tabs.map(t => t.href)).toEqual(["/strategy-e", "/trading-h"]);
   });
 
-  it("keeps 트레이딩 active on all three tabs and on H's research detail", () => {
+  it("keeps 트레이딩 active on both tabs and on H's research detail, and opens on E", () => {
     const trading = navigationItems.find(i => i.label === "트레이딩")!;
-    for (const path of ["/trading", "/strategy-e", "/trading-h", "/strategy-h"]) expect(isNavigationActive(path, trading)).toBe(true);
+    expect(trading.href).toBe("/strategy-e");
+    for (const path of ["/strategy-e", "/trading-h", "/strategy-h"]) expect(isNavigationActive(path, trading)).toBe(true);
+    expect(isNavigationActive("/trading", trading)).toBe(false);
   });
 });
 
@@ -101,11 +103,13 @@ describe("the retired 전략 menu's screens stay reachable", () => {
   it("links them from the dashboard and keeps every route file", async () => {
     const page = readFileSync("app/dashboard/page.tsx", "utf8");
     for (const href of ["/strategy-compare", "/daily", "/strategy-history"]) expect(page).toContain(`href: "${href}"`);
-    for (const route of ["daily", "strategy-compare", "strategy-history", "shadow", "strategy-h", "strategy-b", "trading-b"]) {
+    for (const route of ["daily", "strategy-compare", "strategy-history", "strategy-h", "strategy-b", "trading-b"]) {
       expect(() => readFileSync(`app/${route}/page.tsx`, "utf8"), route).not.toThrow();
     }
     expect(readFileSync("app/trading-h/page.tsx", "utf8")).toContain('href="/strategy-h"');
-    expect(readFileSync("components/ae-operations.tsx", "utf8")).toContain('href="/shadow"');   // from the history screen
+    // Strategy A's exit-rule experiment (/shadow) left with archived A.
+    expect(() => readFileSync("app/shadow/page.tsx", "utf8")).toThrow();
+    expect(readFileSync("components/ae-operations.tsx", "utf8")).not.toContain('href="/shadow"');
   });
 });
 

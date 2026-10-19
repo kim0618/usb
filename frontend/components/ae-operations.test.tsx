@@ -1,8 +1,8 @@
 import React from "react";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-import { PerformanceTable, PortfolioPanel, ResearchHistory } from "./ae-operations";
-import type { PerformanceBoard, PortfolioView, StrategyMetrics, StrategyRow } from "../lib/strategies";
+import { PerformanceTable, ResearchHistory } from "./ae-operations";
+import type { PerformanceBoard, StrategyMetrics, StrategyRow } from "../lib/strategies";
 
 afterEach(() => cleanup());
 
@@ -13,6 +13,8 @@ const metrics = (over: Partial<StrategyMetrics> = {}): StrategyMetrics => ({
   ledger_vs_equity_gap: null, accounting_mix: [], na: { net_pnl: "NO_CLOSED_TRADE" }, ...over,
 });
 
+// The backend registry still lists Strategy A as enabled after it was archived; every board below
+// must leave it out anyway.
 const rows: StrategyRow[] = [
   { strategy_id: "STRATEGY_A", display_name: "Strategy A", short_name: "A", variant_label: "기존 전략", version: "V0",
     enabled: true, mode: "SIMULATION_PAPER", market_data_source: "KIWOOM", research_lifecycle: "PASSED_TO_PAPER",
@@ -49,7 +51,9 @@ describe("official and legacy performance", () => {
     const section = document.querySelector("[data-book=official]") as HTMLElement;
     expect(section.querySelector("[data-clock=NOT_STARTED]")).not.toBeNull();
     const trades = within(section).getByText("Trades").closest("tr")!;
-    expect(within(trades).getAllByText("0")).toHaveLength(3);                     // A, E, Combined
+    expect(within(trades).getAllByText("0")).toHaveLength(1);                     // E only: A archived, no Combined
+    expect(section.querySelector("th[data-column=STRATEGY_A]")).toBeNull();
+    expect(section.querySelector("th[data-column=COMBINED]")).toBeNull();
     expect(section.textContent).not.toContain("72.36");
     expect(section.textContent).not.toContain("123.15");
   });
@@ -61,7 +65,8 @@ describe("official and legacy performance", () => {
     expect(section.textContent).toContain("공식 평가·게이트·합산에서 제외");
     expect(section.querySelector("[data-accounting-warning]")).not.toBeNull();
     const trades = within(section).getByText("Trades").closest("tr")!;
-    expect(within(trades).getByText("6")).toBeInTheDocument();                    // legacy combined only
+    expect(within(trades).getByText("3")).toBeInTheDocument();                    // E's legacy rows only
+    expect(section.textContent).not.toContain("72.36");                           // A's legacy figure
   });
 
   it("names the official start once the clock runs", () => {
@@ -71,26 +76,11 @@ describe("official and legacy performance", () => {
   });
 });
 
-describe("portfolio book label", () => {
-  it("says which book the simulation reads", () => {
-    const view = { currency: "USD", book: "official", accounting_version: "V1",
-      paper_clock: board(false).paper_clock,
-      baseline: { mode: "SIMULATION_BASELINE_ONLY", risk_budget: { STRATEGY_A: "0.5", STRATEGY_E_MAX_V1: "0.5" },
-        allocation_rule: "NOT_IN_USE", definition: "d", window: null, days: 0,
-        symbol_overlap: { both: 0, either: 0, a_only: 0, e_only: 0, share_of_either: null, symbols: [] },
-        same_session_symbol_collisions: [], sector_overlap: null, equity_curve: [], na: {} },
-      combined: { net_pnl: null, mdd: null }, exposure: { per_strategy: {}, per_symbol: [], total_cost_basis: "0" },
-      cash_usage: {} } as PortfolioView;
-    render(<PortfolioPanel view={view} rows={rows}/>);
-    expect(screen.getByRole("heading", { name: "A+E 포트폴리오 · Official (V1)" })).toBeInTheDocument();
-  });
-});
-
 describe("research history", () => {
-  it("lists A and E as active and B, C, D as retired", () => {
+  it("lists E as active, B, C, D as retired, and leaves archived A out", () => {
     render(<ResearchHistory rows={rows}/>);
-    ["STRATEGY_A", "STRATEGY_E_MAX_V1"].forEach(id =>
-      expect(document.querySelector(`[data-history=${id}]`)!.textContent).toContain("ACTIVE · PAPER"));
+    expect(document.querySelector("[data-history=STRATEGY_A]")).toBeNull();
+    expect(document.querySelector("[data-history=STRATEGY_E_MAX_V1]")!.textContent).toContain("ACTIVE · PAPER");
     ["STRATEGY_B", "STRATEGY_C", "STRATEGY_D"].forEach(id =>
       expect(document.querySelector(`[data-history=${id}]`)!.textContent).toContain("RETIRED"));
   });

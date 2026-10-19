@@ -203,10 +203,10 @@ describe("Strategy B screen sections", () => {
 
   it("keeps Strategy B inside the trading and strategy groups, never as a new top-level menu", async () => {
     const { navigationItems } = await import("./app-shell");
-    expect(navigationItems).toHaveLength(5);
+    expect(navigationItems).toHaveLength(4);
     // Strategy E's screen is an operating one, so it highlights 트레이딩. B's old routes still light
     // their group (they now show a CLOSED notice), but B is never a menu of its own.
-    expect(navigationItems.find(item => item.label === "트레이딩")!.activePaths).toEqual(["/trading", "/trading-b", "/strategy-e", "/trading-h", "/strategy-h"]);
+    expect(navigationItems.find(item => item.label === "트레이딩")!.activePaths).toEqual(["/trading-b", "/strategy-e", "/trading-h", "/strategy-h"]);
     // The 전략 menu is gone; B's own route still lights the dashboard and is still not a menu.
     expect(navigationItems.find(item => item.label === "전략")).toBeUndefined();
     expect(navigationItems.find(item => item.label === "대시보드")!.activePaths).toContain("/strategy-b");

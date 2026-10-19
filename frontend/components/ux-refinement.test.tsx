@@ -7,31 +7,25 @@ import { ConvertedKrw, EmptyState, InfoTooltip, PageHeader } from "./ui";
 const source = (path: string) => readFileSync(path, "utf8");
 
 describe("Stage 9.6 UX policy", () => {
-  it("keeps the five confirmed top-level navigation labels", () => {
+  it("keeps the four confirmed top-level navigation labels", () => {
     const shell = source("components/app-shell.tsx");
-    ["대시보드", "트레이딩", "종목 분석", 'label: "선물"', "시스템"].forEach(label => expect(shell).toContain(label));
+    ["대시보드", "트레이딩", 'label: "선물"', "시스템"].forEach(label => expect(shell).toContain(label));
+    expect(shell).not.toContain('label: "종목 분석"');
     expect(shell).not.toContain('label: "전략"');
     expect(shell).not.toContain('label: "전략 성과"');
   });
-  it("redirects the dashboard route and removes the research onboarding guide", () => {
+  it("redirects the root route to the dashboard", () => {
     expect(source("app/page.tsx")).toContain('redirect("/dashboard")');
-    expect(source("app/research/page.tsx")).not.toContain("1. 프롬프트 복사");
-    expect(source("app/research/page.tsx")).not.toContain("4. 승인 / 거절");
   });
-  it("uses compact trading empty states", () => {
+  it("uses compact empty states", () => {
     render(<EmptyState title="주문 내역이 없습니다."/>);
     expect(screen.getByText("주문 내역이 없습니다.").parentElement).toHaveAttribute("data-empty-size", "compact");
-    expect(source("app/trading/page.tsx")).toContain("청산 내역이 없습니다.");
   });
   it("only renders secondary KRW when an explicit converted amount is supplied", () => {
     const { rerender } = render(<ConvertedKrw/>);
     expect(screen.queryByText(/환산 약/)).not.toBeInTheDocument();
     rerender(<ConvertedKrw amount="76204000"/>);
     expect(screen.getByText("환산 약 ₩76,204,000")).toHaveClass("text-muted");
-  });
-  it("documents every Shadow variant and the control strategy", () => {
-    const shadow = source("app/shadow/page.tsx") + source("components/shadow-performance.tsx") + source("lib/shadow-performance.ts");
-    ["당일 청산 · ATR 1.5", "Day2 허용 · ATR 1.0", "Day2 허용 · ATR 1.5", "Day2 허용 · ATR 2.0", "당일 청산 · 구조 손절", "기준 전략"].forEach(label => expect(shadow).toContain(label));
   });
   it("keeps minimal runtime status, failures, controls, and Kill Switch confirmation", () => {
     const runtime = source("app/runtime/page.tsx");
@@ -66,62 +60,5 @@ describe("Stage 9.6 UX policy", () => {
     const trigger = screen.getByRole("button", { name: "종합 점수 설명" });
     expect(trigger).toHaveAttribute("aria-describedby", "tooltip-종합 점수");
     expect(screen.getByRole("tooltip")).toHaveTextContent("점수 설명");
-  });
-});
-
-describe("Stage 9.13.3 analysis workflow policy", () => {
-  it("keeps candidates Quant-first and uses compact metadata", () => {
-    const candidates = source("app/candidates/page.tsx");
-    ["순위", "종목", "회사명", "종합 점수", "거래량 강도", "시장 대비", "거래 규모", "최근 흐름", "분석 상태"].forEach(label => expect(candidates).toContain(label));
-    ["multiple(candidate.raw_metrics.rvol)", "signedPercent(candidate.raw_metrics.relative_strength)", "compactUsd(candidate.raw_metrics.dollar_volume)", "signedPercent(candidate.raw_metrics.momentum)"].forEach(call => expect(candidates).toContain(call));
-    expect(candidates).toContain("기준 거래일");
-    expect(candidates).toContain("정량 분석을 통과한 종목 중 최대 8개를 표시합니다.");
-    expect(candidates).toContain("현재 후보 {s.run.candidate_count}개 / 전체 유니버스 {s.run.universe_count}개");
-    expect(candidates).toContain("const showCompany = s.top8.some");
-    expect(candidates).not.toContain('<MetricCard label="거래일"');
-    expect(candidates).not.toContain("<th>GPT 순위</th>");
-    expect(candidates).not.toContain("<th>근거 점수</th>");
-    expect(candidates).toContain("미리보기");
-    expect(candidates).toContain("GPT 프롬프트 복사");
-    ["quantScoreLabel", "rvolLabel", "signedMetricTone"].forEach(helper => expect(candidates).toContain(helper));
-    ["거래량, 시장 대비 강도, 거래 규모, 최근 흐름을 결합한 정량 종합점수입니다.", "평균 거래량 대비 현재 거래량 수준을 배수로 나타냅니다.", "시장 벤치마크와 비교해 종목이 얼마나 강하거나 약하게 움직였는지 나타냅니다.", "가격과 거래량을 기반으로 계산한 거래대금 규모입니다.", "최근 가격 움직임의 상승·하락 강도를 나타냅니다."].forEach(text => expect(candidates).toContain(text));
-    expect(candidates).toContain('className="block truncate"');
-    expect(candidates).toContain('researched ? "분석 완료" : "분석 전"');
-    const headerOrder = ["<th>순위</th>", "<th>종목</th>", "<th>회사명</th>", "<th>최근 흐름", "<th>거래량 강도", "<th>시장 대비", "<th>종합 점수", "<th>거래 규모", "<th>분석 상태</th>"].map(value => candidates.indexOf(value));
-    expect(headerOrder.every(index => index >= 0)).toBe(true);
-    expect(headerOrder).toEqual([...headerOrder].sort((left, right) => left - right));
-    const rowOrder = [">#{candidate.rank}</td>", ">{candidate.symbol}</td>", ">{candidate.company_name ||", "signedPercent(candidate.raw_metrics.momentum)", "multiple(candidate.raw_metrics.rvol)", "signedPercent(candidate.raw_metrics.relative_strength)", "score(candidate.quant_score)", "compactUsd(candidate.raw_metrics.dollar_volume)", "<StatusBadge value={decision"].map(value => candidates.indexOf(value, candidates.indexOf("return <tr")));
-    expect(rowOrder.every(index => index >= 0)).toBe(true);
-    expect(rowOrder).toEqual([...rowOrder].sort((left, right) => left - right));
-    ["최근 흐름", "거래량 강도", "시장 대비", "종합 점수", "거래 규모"].forEach(label => expect(candidates).toContain(`<InfoTooltip label="${label}"`));
-    expect(candidates).toContain('className="hidden xl:inline"');
-    expect(candidates).toContain("tone-text-${signedMetricTone(candidate.raw_metrics.momentum)}");
-  });
-
-  it("keeps research result-first with an optional re-import area", () => {
-    const research = source("app/research/page.tsx");
-    const adoption = source("app/adoption/page.tsx");
-    ["GPT 순위", "종목", "Quant 순위", "촉매 강도", "모멘텀", "안전도", "종합 판단", "근거 신뢰도", "기업 체력", "분석 상태"].forEach(label => expect(research).toContain(label));
-    const headerOrder = ["<th>GPT 순위</th>", "<th>종목</th>", "<th>Quant 순위</th>", "<th>촉매 강도", "<th>모멘텀", "<th>안전도", "<th>종합 판단", "<th>근거 신뢰도", "<th>기업 체력", "<th>분석 상태</th>"].map(value => research.indexOf(value));
-    expect(headerOrder.every(index => index >= 0)).toBe(true);
-    expect(headerOrder).toEqual([...headerOrder].sort((left, right) => left - right));
-    ["촉매 강도", "모멘텀", "안전도", "종합 판단", "근거 신뢰도", "기업 체력"].forEach(label => expect(research).toContain(`<InfoTooltip label="${label}"`));
-    expect(research).toContain('className="hidden xl:inline"');
-    expect(research).not.toContain("human_decision");
-    expect(research).not.toContain("상세보기");
-    expect(research).toContain("showImport && importArea");
-    expect(research).toContain("분석 결과 입력");
-    expect(research).not.toContain("GPT 프롬프트 복사");
-    expect(research).not.toContain("분석 결과 다시 불러오기");
-    expect(research).toContain("noAnalysis");
-    expect(research).toContain("setShowImport(false)");
-    expect(research).not.toContain('<MetricCard label="분석 종목"');
-    expect(research).not.toContain("GPT 분석 및 투자 승인");
-    expect(research).not.toContain("api.decide");
-    expect(adoption).toContain("api.decide(target.analysis_id, target.symbol, decision)");
-    expect(adoption).not.toContain("error.status === 409");
-    expect(research).not.toContain("api.researchDetail");
-    expect(adoption).toContain("api.researchDetail");
-    expect(research).toContain("api.importResearch(raw)");
   });
 });

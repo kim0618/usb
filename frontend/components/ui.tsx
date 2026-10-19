@@ -35,8 +35,6 @@ export function MetricCard({ label, value, detail, meta, accent, icon }: { label
 export function EmptyState({ title, description, size = "compact" }: { title: string; description?: string; size?: "compact" | "medium" }) { return <div className={`panel px-6 text-center ${size === "medium" ? "py-10" : "py-6"}`} data-empty-size={size}><p className="text-sm font-medium text-foreground-secondary">{title}</p>{description && <p className="mt-2 text-xs text-muted">{description}</p>}</div>; }
 export function LoadingState() { return <div className="grid animate-pulse gap-4 md:grid-cols-3">{[0,1,2].map(i => <div className="panel h-28 bg-surface-alt" key={i}/>)}</div>; }
 export function ErrorState({ message, retry }: { message: string; retry?: () => void }) {
-  const missingResearch = message.toLowerCase().includes("research analysis not found");
-  if (missingResearch) return <EmptyState title="아직 불러온 GPT 분석 결과가 없습니다." description="위 입력창에 ChatGPT 분석 JSON을 붙여넣으면 종목별 순위와 근거가 표시됩니다."/>;
   return <div className="panel border-danger p-6"><p className="font-semibold text-danger">Backend에 연결할 수 없습니다</p><p className="mt-2 text-sm text-foreground-secondary">{message}</p>{retry && <button className="btn-muted mt-4" onClick={retry}>다시 시도</button>}</div>;
 }
 

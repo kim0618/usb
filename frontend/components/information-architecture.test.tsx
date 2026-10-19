@@ -24,14 +24,15 @@ const projectFiles = (directory: string): string[] => readdirSync(directory, { w
 afterEach(() => cleanup());
 
 describe("Final information architecture", () => {
-  it("keeps five top-level menus and routes both trading screens to 트레이딩", () => {
-    expect(navigationItems.map(item => item.label)).toEqual(["대시보드", "트레이딩", "종목 분석", "선물", "시스템"]);
+  it("keeps four top-level menus and routes the trading screens to 트레이딩", () => {
+    expect(navigationItems.map(item => item.label)).toEqual(["대시보드", "트레이딩", "선물", "시스템"]);
     const group = (route: string) => navigationItems.find(item => isNavigationActive(route, item))?.label;
     expect(group("/dashboard")).toBe("대시보드");
-    expect(group("/trading")).toBe("트레이딩");
+    expect(group("/strategy-e")).toBe("트레이딩");
     expect(group("/trading-b")).toBe("트레이딩");
+    // Strategy A was archived with its screens; none of them belongs to a menu any more.
+    ["/trading", "/candidates", "/research", "/adoption", "/shadow"].forEach(route => expect(group(route)).toBeUndefined());
     // The retired 전략 menu's screens keep their routes; the dashboard is where they are reached from.
-    expect(group("/shadow")).toBe("대시보드");
     expect(group("/strategy-b")).toBe("대시보드");
     expect(group("/strategy-compare")).toBe("대시보드");
     expect(group("/strategy-history")).toBe("대시보드");
@@ -49,8 +50,8 @@ describe("Final information architecture", () => {
       { strategy_id: "STRATEGY_B", display_name: "Strategy B", variant_label: "실시간 모멘텀", enabled: false, mode: "RESEARCH_CLOSED" },
     ] as never;
     // Labels are the registry's own display_name + variant; no strategy name is typed into the tab code.
+    // Strategy A is archived: the backend registry may still list it as enabled, and it gets no tab.
     expect(operatingTabs(registry)).toEqual([
-      { strategy_id: "STRATEGY_A", href: "/trading", label: "Strategy A · 기존 전략" },
       { strategy_id: "STRATEGY_E_MAX_V1", href: "/strategy-e", label: "Strategy E · E-MAX V1" },
     ]);
     // H-V2-D7: Strategy H operates too, as a forward shadow rather than an order-placing paper
@@ -60,10 +61,7 @@ describe("Final information architecture", () => {
         enabled: true, mode: "FORWARD_SHADOW" }] as never)).toContainEqual(
       { strategy_id: "STRATEGY_H_V2", href: "/trading-h", label: "Strategy H · Forward Shadow" });
     expect(Object.keys(OPERATING_ROUTES))
-      .toEqual(["STRATEGY_A", "STRATEGY_E_MAX_V1", "STRATEGY_H_V2"]);   // B is not operating
-    // A's exit-rule experiment is not a tab: its variants are also called A to E, which collides
-    // with Strategy A and Strategy E, and the server's shadow_trades table is empty. The route
-    // survives and the research history links to it.
+      .toEqual(["STRATEGY_E_MAX_V1", "STRATEGY_H_V2"]);   // A archived, B is not operating
     // The strategy group is one screen now, so it has no tab bar: `strategyTabs` is empty and
     // `StrategyTabs` renders nothing. The analysis routes keep working, they are just not tabs.
     expect(strategyTabs).toEqual([]);
@@ -87,7 +85,7 @@ describe("Final information architecture", () => {
     render(<TradingTabs/>);
     expect(await screen.findByRole("link", { name: "Strategy E · E-MAX V1" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("navigation", { name: "트레이딩 화면" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Strategy A · 기존 전략" })).toHaveAttribute("href", "/trading");
+    expect(screen.queryByRole("link", { name: /Strategy A/ })).not.toBeInTheDocument();          // archived: hidden
     expect(screen.queryByRole("link", { name: /Strategy B|전략 B/ })).not.toBeInTheDocument();   // closed: hidden
     pathname = "/trading-b";
   });
@@ -99,14 +97,6 @@ describe("Final information architecture", () => {
     expect(screen.getByRole("navigation", { name: "전략 화면" })).toBeInTheDocument();
     expect(screen.queryAllByRole("link")).toHaveLength(0);
     pathname = "/trading-b";
-  });
-
-  it("adds Strategy A's trading screen nothing but the tab row", () => {
-    const trading = source("app/trading/page.tsx");
-    expect(trading).toContain("<TradingTabs/>");
-    // Strategy A keeps its own sections and its own data calls, untouched.
-    ["계좌 요약", "현재 보유 종목", "<EntryStatusBoard", "api.trading", "api.entryBoard"].forEach(marker => expect(trading).toContain(marker));
-    expect(trading).not.toContain("strategyBSource");
   });
 });
 

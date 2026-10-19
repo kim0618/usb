@@ -162,7 +162,7 @@ describe("Strategy information architecture", () => {
   });
 
   it("has no 전략 menu and keeps the dashboard as the first entry", () => {
-    expect(navigationItems.map(item => item.label)).toEqual(["대시보드", "트레이딩", "종목 분석", "선물", "시스템"]);
+    expect(navigationItems.map(item => item.label)).toEqual(["대시보드", "트레이딩", "선물", "시스템"]);
     const dashboard = navigationItems[0];
     expect(dashboard.href).toBe("/dashboard");
     expect(dashboard.activePaths).toContain("/dashboard");
