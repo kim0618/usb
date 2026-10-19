@@ -1,0 +1,247 @@
+{
+ "contract_id": "H_N1_CONTRACT_V1",
+ "status": "FROZEN_BEFORE_OUTCOME",
+ "declared_at_kst": "2026-10-19",
+ "question": "Do US common stocks whose quarterly revenue and net income improved year over year, and whose price reaction to the information was weak, earn SPY-relative excess returns after costs over 5/21/63 sessions, reproducibly in development and holdout?",
+ "observed_before_freeze": "prevalidation coverage counts only. No event table, reaction value, quantile, forward return, cohort outcome or feature distribution was computed.",
+ "llm_use": "PROHIBITED for any alpha, scoring, approval or ranking",
+ "data": {
+  "companyfacts": "data/runtime/strategy_h_v2/d1_1/sec_raw/companyfacts",
+  "submissions": [
+   "data/runtime/strategy_h_v2/d1_1/sec_raw/submissions",
+   "data/runtime/strategy_c/e0/raw/submissions"
+  ],
+  "submissions_merge": "per CIK, union of filings keyed by accessionNumber",
+  "universe_snapshot": "data/runtime/research_universe_u1/reference/tickers/CS_2024-10-25.json.gz",
+  "ticker_change_snapshots": "all CS_*.json.gz under data/runtime, ordered by date",
+  "prices": "data/runtime/strategy_c/raw/grouped (unadjusted; 2024-09-16 stub excluded)",
+  "splits": "data/runtime/strategy_c/raw/splits",
+  "benchmark": "SPY from the same grouped store",
+  "new_downloads": "PROHIBITED"
+ },
+ "universe": {
+  "rows": "type CS with non-empty CIK, primary_exchange in XNYS, XNAS, XASE",
+  "price_filter": "unadjusted close on the signal-formation session >= 5.00 USD",
+  "liquidity_filter": "median close*volume over the 20 sessions ending at the signal-formation session >= 5,000,000 USD (reused from strategy_e_v1_1 daily eligibility); fewer than 20 sessions -> excluded",
+  "ticker_mapping": "start from the 2024-10-25 ticker; when it has no grouped row on a session, look up the same CIK in the newest CS snapshot dated on or before that session; if a different ticker is found and has a grouped row, continue on it from that session; record TICKER_CHANGED",
+  "dedup": "one event per (CIK, filingDate); earliest accessionNumber",
+  "snapshot_date": "2024-10-25",
+  "signal_eligibility": "signal-formation session >= 2024-10-25 (the universe snapshot date); earlier signals -> EXCLUDED_PRE_UNIVERSE_SNAPSHOT, counted, never in any cohort or cutoff",
+  "share_classes": "when one CIK maps to several snapshot tickers, use the ticker with the highest 20-session median dollar volume ending at the signal-formation session (ties -> alphabetical)",
+  "no_backfill": "no earlier universe snapshot is reconstructed or used (CS_2024-10-01, CS_2024-10-21 are not read)"
+ },
+ "event": {
+  "primary_form": "10-Q exactly (amendments excluded)",
+  "diagnostic_form": "10-K exactly, annual YoY, never aggregated with primary",
+  "filing_window": "filingDate 2024-10-01 .. 2026-10-09",
+  "signal_formation_session": "first XNYS session strictly after filingDate; information usable at its close",
+  "entry": "OPEN of the session after the signal-formation session (no same-close entry)",
+  "acceptance_datetime": "NOT USED"
+ },
+ "fundamentals": {
+  "as_known": "every value is taken from rows with filed <= event filingDate; when several rows exist for the same period, the one with the latest filed <= event filingDate",
+  "current_period_10q": "fact rows with accn == event accession and duration 80..100 days; latest end",
+  "current_period_10k": "fact rows with accn == event accession and duration 350..380 days; latest end",
+  "prior_period": "same tag, end 365 +/- 20 days before current end, duration within 15 days of current duration",
+  "revenue_tags_in_order": [
+   "Revenues",
+   "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "SalesRevenueNet",
+   "RevenueFromContractWithCustomerIncludingAssessedTax"
+  ],
+  "net_income_tags_in_order": [
+   "NetIncomeLoss",
+   "ProfitLoss"
+  ],
+  "tag_rule": "first tag in order that has both current and prior; unit USD",
+  "revenue_improved": "prior > 0 and current > prior",
+  "net_income_improved": "current > prior (no sign condition)",
+  "F_plus": "FUNDAMENTAL_VALID AND prior Revenue > 0 AND current Revenue > prior Revenue AND current Net Income > prior Net Income",
+  "F_minus": "FUNDAMENTAL_VALID AND NOT F_plus",
+  "missing": "NOT FUNDAMENTAL_VALID -> excluded from F_plus, F_minus, cutoffs and every cohort; reasons counted: XBRL_MISSING, INVALID_FILING_MAPPING, REVENUE_MISSING, REVENUE_PRIOR_MISSING, NET_INCOME_MISSING, NET_INCOME_PRIOR_MISSING, INVALID_PERIOD",
+  "diagnostic_only": [
+   "EPS diluted YoY",
+   "operating income YoY",
+   "operating margin change",
+   "revenue growth acceleration",
+   "EPS growth acceleration",
+   "FCF (YTD differenced)"
+  ],
+  "FUNDAMENTAL_VALID": "current Revenue, prior-year comparable Revenue, current Net Income and prior-year comparable Net Income all present under the tag/period rules AND period/comparability validation PASS",
+  "period_validation": [
+   "event accession has at least one us-gaap fact row (else INVALID_FILING_MAPPING)",
+   "current row: accn == event accession, unit USD, duration 80..100 days, latest end",
+   "current end < event filingDate and filingDate - current end <= 180 days (else INVALID_PERIOD)",
+   "prior row: same tag and unit, filed <= event filingDate, end 365 +/- 20 days before current end, duration within 15 days of current duration",
+   "Revenue and Net Income are evaluated independently (each picks its own first tag that has both current and prior)"
+  ]
+ },
+ "reaction": {
+  "anchor": "nearest preceding 8-K whose items contain 2.02, same CIK, filingDate in [event filingDate - 60 calendar days, event filingDate]; ties -> earliest accessionNumber; none -> the 10-Q itself",
+  "start": "close of the last XNYS session strictly before the anchor filingDate",
+  "end": "close of the signal-formation session",
+  "value": "split-adjusted end/start - 1 (raw, not SPY-relative)",
+  "terciles": "q33/q67 computed once on all DEVELOPMENT primary events passing universe filters and evaluable (F_plus and F_minus together); frozen and reused unchanged for HOLDOUT",
+  "buckets": {
+   "WEAK": "<= q33",
+   "MIDDLE": "(q33, q67]",
+   "STRONG": "> q67"
+  },
+  "missing": "start or end close unavailable for the mapped ticker -> REACTION_UNAVAILABLE, excluded, counted; not part of the tercile population",
+  "tercile_population": "DEVELOPMENT 10-Q events passing PIT, universe, price, ADV, FUNDAMENTAL_VALID (F_plus and F_minus together) and reaction available",
+  "quantile_method": "numpy.quantile(values, [1/3, 2/3], method='linear') on float64",
+  "ties": "WEAK = reaction <= q33 inclusive; MIDDLE = q33 < r <= q67; STRONG = r > q67",
+  "freeze": "cutoffs written once to h_n1_dev_reaction_cutoff_v1.json with the contract canonical checksum and its own digest before any forward price is read; never recomputed; HOLDOUT rows are never passed to the quantile function"
+ },
+ "cohorts": {
+  "PRIMARY": "F_plus AND WEAK",
+  "CONTRAST": "F_minus AND WEAK",
+  "diagnostic": [
+   "F_plus MIDDLE",
+   "F_plus STRONG",
+   "F_minus MIDDLE",
+   "F_minus STRONG",
+   "10-K cohorts",
+   "market-cap buckets",
+   "SIC division"
+  ]
+ },
+ "returns": {
+  "horizons_primary": [
+   5,
+   21,
+   63
+  ],
+  "horizon_diagnostic": [
+   1
+  ],
+  "definition": "h sessions counting the entry session as 1; exit at the CLOSE of session h; stock = exit_close_adj / entry_open - 1",
+  "split_adjustment": "for each split with execution_date in (entry session, exit session]: exit price *= split_to/split_from",
+  "excess": "stock return - SPY return over the same entry-open to exit-close window",
+  "costs_round_trip_bp": [
+   0,
+   10,
+   25
+  ],
+  "net": "excess - cost, deducted once per event",
+  "eligibility": "an event enters horizon h only if the exit session h exists in the price store (<= 2026-10-12)",
+  "delisting": "no grouped row for the (mapped) ticker on any session from some session s <= exit through the last store session -> DELISTED_BEFORE_HORIZON; OBSERVED variant = last available close; CONSERVATIVE variant = stock return -100%",
+  "other_gap": "missing exactly on the exit session but present later -> use the next available close, flag EXIT_GAP",
+  "overlap": "each event is an independent observation; 63D diagnostic reports the share of windows containing the next 10-Q of the same CIK and the result truncated at that filing's signal-formation close",
+  "window_benchmark": "SPY return from the entry-session open to the close of the session whose stock close is used (EXIT_GAP: the later session); delisted OBSERVED: SPY to the horizon exit session (proceeds held as cash)",
+  "ticker_continuity_in_outcome": "inside an outcome window the CIK may be followed through any CS snapshot (including ones dated after the session) to find the successor ticker; signal-time filters use only snapshots dated on or before the session; TRUE_DELISTING = the CIK has no grouped row under any mapped ticker from some session <= exit through the last store session",
+  "entry_unavailable": "no row for the mapped ticker on the entry session or no SPY open -> ENTRY_UNAVAILABLE, excluded, counted"
+ },
+ "split": {
+  "by": "signal-formation session",
+  "DEVELOPMENT": "2024-10-25 .. 2025-12-31 (first valid signal session on or after the 2024-10-25 snapshot; 2024-10-02..2024-10-24 excluded)",
+  "HOLDOUT": "2026-01-01 .. end",
+  "holdout_rule": "nothing may change after holdout is read; changes require H_N1_CONTRACT_V2 evaluated on new data"
+ },
+ "statistics": {
+  "bootstrap": "block bootstrap, block = ISO week (isocalendar year, week) of the signal-formation session, resample blocks with replacement (count = number of distinct blocks), 10,000 resamples, numpy.random.default_rng(20261019), 95% percentile CI (2.5, 97.5) of the pooled mean net excess",
+  "season": "calendar quarter of the signal-formation session"
+ },
+ "gates": {
+  "sample": {
+   "INSUFFICIENT": "PRIMARY N < 100 in a split for that horizon",
+   "WEAK_SAMPLE": "100 <= N < 300 (verdict capped at BORDERLINE)",
+   "OK": "N >= 300"
+  },
+  "per_horizon_pass_all": [
+   "DEV and HOLDOUT: mean net excess at 25 bp > 0 (OBSERVED delisting variant)",
+   "DEV and HOLDOUT: median net excess at 10 bp > 0",
+   "DEV: bootstrap 95% CI lower bound of mean net excess at 10 bp > 0",
+   "DEV and HOLDOUT: CONSERVATIVE delisting variant mean net excess at 10 bp > 0",
+   "DEV and HOLDOUT: top 5 events < 50% of the summed net excess at 10 bp, and mean net excess at 10 bp after removing the top 1% of events > 0",
+   "ALL SEASONS (DEV+HOLDOUT): mean net excess at 10 bp > 0 in at least 60% of seasons with N >= 30",
+   "DEV and HOLDOUT: mean excess at 0 bp of PRIMARY > mean excess at 0 bp of CONTRAST",
+   "shorter-horizon consistency: 5D none; 21D requires DEV and HOLDOUT 5D gross (0 bp) mean excess >= 0; 63D requires DEV and HOLDOUT 5D and 21D gross (0 bp) mean excess >= 0 (PRIMARY, OBSERVED variant)"
+  ],
+  "H_N1_PASS": "21D or 63D satisfies every per_horizon condition with sample OK",
+  "BORDERLINE": "21D or 63D has positive mean net at 25 bp in both splits but fails CI, concentration, season, contrast, delisting sensitivity, or has WEAK_SAMPLE",
+  "FAIL_SIGNAL": "DEV mean excess at 0 bp <= 0 at 5D, 21D and 63D",
+  "FAIL_COST_BOUND": "some primary horizon has DEV mean at 0 bp > 0 but no horizon has DEV mean net at 25 bp > 0",
+  "FAIL_HOLDOUT": "DEV passes for a horizon but HOLDOUT mean net at 25 bp <= 0 for it",
+  "INSUFFICIENT": "PRIMARY N < 100 in either split at 21D and 63D",
+  "verdict_order": [
+   "INSUFFICIENT",
+   "FAIL_SIGNAL",
+   "FAIL_COST_BOUND",
+   "H_N1_PASS",
+   "FAIL_HOLDOUT",
+   "BORDERLINE",
+   "FAIL"
+  ],
+  "diagnostics_never_upgrade": true,
+  "delisting_consistency": "all per-horizon gates are evaluated twice, once with the OBSERVED and once with the CONSERVATIVE delisting variant (gate 4 is CONSERVATIVE in both); a horizon can PASS only if both evaluations pass; if they differ the horizon cannot PASS",
+  "definitions": {
+   "sample_ok": "PRIMARY N >= 300 in DEV and in HOLDOUT for that horizon",
+   "concentration": "denominator = sum of net excess at 10 bp over all PRIMARY events of the split; if <= 0 the gate fails; top5 share = sum of the 5 largest net values / denominator; top 1% removed = drop ceil(0.01*N) largest net values",
+   "season": "calendar quarter of the signal-formation session, DEV and HOLDOUT pooled, only seasons with N >= 30; zero eligible seasons -> fail",
+   "dev_passes_for_FAIL_HOLDOUT": "every DEV-side condition of gates 1-5 and 7 holds for that primary horizon",
+   "insufficient": "for both 21D and 63D, min(N_DEV, N_HOLDOUT) < 100",
+   "final_line": "FAIL_SIGNAL, FAIL_COST_BOUND, FAIL_HOLDOUT and FAIL report as FAIL"
+  }
+ },
+ "prohibited_after_freeze": [
+  "changing universe, filters, tags, YoY rules, F_plus definition, reaction window, anchor rule, tercile cutoffs, horizons, costs, split dates, gates",
+  "adding feature combinations or cohorts as PRIMARY",
+  "promoting a diagnostic cohort to PRIMARY after results",
+  "historical GPT/LLM decisions",
+  "runtime, scheduler, API, UI, paper broker before H-N2 PASS"
+ ],
+ "separation": "legacy Strategy H forward ledger is LEGACY_FORWARD_EVIDENCE and is never read by H-N1",
+ "checksum_recipe": "sha256 of json.dumps(obj, sort_keys=True, separators=(',',':'), ensure_ascii=False)",
+ "revision": "PRE_OUTCOME_AMENDMENT_1",
+ "supersedes": {
+  "canonical": "e08f3d8cab90ac4917cfbf91b7e0f9fb5a2ade9826b1ed25007a68f5bd3545e7",
+  "file_sha256": "b83bf917efb409da93069e01e81c3cf72e3db3e5dbf8ae306fa7642e88beb976",
+  "md_sha256": "9d31bcc4adc7f2cd6c0fb4f095581f627c95e608277f674b2af0c202b9430fd2",
+  "location": "superseded_e08f3d8c/",
+  "status": "SUPERSEDED_BY_PRE_OUTCOME_AMENDMENT"
+ },
+ "state_at_freeze": {
+  "outcome_return_calculations": 0,
+  "reaction_q33": "NOT CALCULATED",
+  "reaction_q67": "NOT CALCULATED",
+  "reaction_values": "NOT CALCULATED",
+  "feature_outcome_distribution": "NOT INSPECTED",
+  "holdout_outcome": "NOT INSPECTED",
+  "outcome_21d": "NOT INSPECTED",
+  "outcome_63d": "NOT INSPECTED",
+  "event_table": "NOT BUILT"
+ },
+ "phases": [
+  "PHASE 1 event construction: no forward price, no quantile",
+  "PHASE 2 DEV cutoff: q33/q67 from DEV rows only, frozen file",
+  "PHASE 3 forward outcomes: only after the contract checksum and the cutoff digest verify"
+ ],
+ "amendments": [
+  {
+   "id": "A",
+   "title": "universe snapshot / DEV start",
+   "effect": "signal >= 2024-10-25; earlier -> EXCLUDED_PRE_UNIVERSE_SNAPSHOT; DEV shortened; no extra universe reconstruction"
+  },
+  {
+   "id": "B",
+   "title": "FUNDAMENTAL_VALID / F+ / F-",
+   "effect": "F- = FUNDAMENTAL_VALID and not F+; missing/invalid data never F-"
+  },
+  {
+   "id": "C",
+   "title": "shorter-horizon consistency",
+   "effect": "21D needs 5D gross >= 0 both splits; 63D needs 5D and 21D gross >= 0 both splits"
+  },
+  {
+   "id": "D",
+   "title": "delisting sensitivity consistency",
+   "effect": "OBSERVED vs CONSERVATIVE disagreement -> no PASS for that horizon"
+  },
+  {
+   "id": "E",
+   "title": "implementation clarifications",
+   "effect": "quantile method, ties, share classes, benchmark window, outcome ticker continuity, bootstrap RNG, concentration and season edge cases; no threshold, horizon, cost or filter value changed"
+  }
+ ]
+}

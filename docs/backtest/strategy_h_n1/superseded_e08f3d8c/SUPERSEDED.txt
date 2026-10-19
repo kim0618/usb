@@ -1,0 +1,4 @@
+STATUS = SUPERSEDED_BY_PRE_OUTCOME_AMENDMENT
+superseded_at_kst = 2026-10-19 15:39:32
+superseded_by = ../h_n1_contract_v1.json (H_N1_CONTRACT_V1, amendments A/B/C/D/E)
+files in this folder are byte-identical to the 15:26 KST freeze; checksums in h_n1_contract_v1.sha256 still verify
