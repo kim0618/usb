@@ -5,10 +5,61 @@ records a stage result as of its own date and is never edited after the fact. Wh
 and a result document disagree about the present, this document wins. When they disagree about
 what happened in a past stage, the result document wins.
 
-Last verified: 2026-10-18 17:07 KST, after the facts cache compaction repair was deployed and the evaluation
-timer re-enabled (`H_V2_FACTS_CACHE_COMPACTION_REPAIR_V1.md` §5). The change log below section 0 is history.
+Last verified: 2026-10-19 14:30 KST, read-only finalization audit of the suspended mode (server health,
+units, forward/paper verify, production file sha256 against this repository, disk cleanup result). The change
+log below section 0 is history.
 
-## 0. Current state (2026-10-18, V3 + P1 + P2.1 + compaction fix deployed; evaluation timer ENABLED, first run pending)
+## 0. Current state (2026-10-19, RESEARCH_SUSPENDED: new evaluation OFF, forward observation ON)
+
+**2026-10-19 13:46 KST operator decision (this block supersedes the 10-18 state below).**
+
+```text
+Strategy H                      = RESEARCH_SUSPENDED
+Reason                          = INSUFFICIENT_ALPHA_EVIDENCE (PV1 FAIL, PV2C FAIL, V3 never return-tested,
+                                  20 ledger rows APPROVE 0 / WATCH 14 / REJECT 4, paper trades 0)
+                                  + COST_OF_CONTINUED_EVALUATION (SCAN ~246 MB on a 1 GB host, crypto stalls)
+usb-h-evaluation.timer          = DISABLED 2026-10-19 13:46 KST (never ran successfully after the 10-16 failure;
+                                  the 10-19 14:40 KST first try did not happen). Unit files kept; `systemctl enable --now` restores it.
+usb-h-forward.timer             = KEEP ENABLED (14:10 KST daily; matures 1D/5D/21D/63D, TP1/TP2 and Bear; no SCAN)
+New intake / D3-D6 evaluation   = OFF
+D3/D4/D5/D6 contracts           = FROZEN, no edits
+Forward ledger (20 rows), paper ledger ($10,000, 0 positions) = PRESERVED, append-only, unchanged
+                                  (forward_ledger sha256 9916f2dc…, paper events sha256 88850387… before and after)
+Forward observation             = ACTIVE: launch cohort 21D matures 2026-11-02, 63D 2027-01-04
+Historical replay of V3 rules   = DEFERRED
+Restart condition               = forward evidence (WATCH vs REJECT, TP1/TP2 realism) or a future research
+                                  priority that warrants a historical replay; never a rule change made to raise APPROVE
+Data infrastructure (SEC submissions/companyfacts caches, PIT handling, MarketCalendar, reference cache) = retained for reuse
+Production AI                   = NONE (no model call anywhere in H production)
+P1 MethodJudgement IO (ec66400) = DEPLOYED, ACTIVE (code path idle while evaluation is OFF)
+P2.1 import footprint (99db463) = DEPLOYED, ACTIVE (run_h_v2_d7.py, also used by the forward unit)
+Facts cache repair (1e8d1bd)    = DEPLOYED; autonomous evaluation suspended by strategy decision, not by a defect
+Disk cleanup (2026-10-19)       = PASS, 334.76 MB recovered (see change log); forward/paper data untouched
+```
+
+**Finalization audit 2026-10-19 14:30 KST (read-only).**
+
+```text
+usb-h-evaluation.timer          = disabled / inactive, no next trigger; usb-h-evaluation(-guard).service inactive
+usb-h-forward.timer             = enabled / active (waiting), next Tue 2026-10-20 14:10 KST (01:10 ET)
+last forward run                = 2026-10-19 14:10:00 -> 14:12:25 KST, exit 0, integrity PASS, refresh_run OK,
+                                  paper_run OK
+forward                         = verify PASS, ledger 20 rows sha256 9916f2dc… (unchanged since the suspension),
+                                  price store latest 2026-10-16 (22 session files), decisions APPROVE 0 / WATCH 6 / REJECT 2
+maturity                        = 1D matured 8/8, 5D matured 8/8, 21D pending 8 (2026-11-02), 63D pending 8 (2027-01-04)
+refresh queue                   = cache_as_of 2026-10-19, REFRESH_DUE AEYE, FG, VRRM, PG (queued; no evaluator runs while suspended)
+paper                           = verify PASS (16 stored = 16 recomputed), $10,000 cash = equity, 0 positions,
+                                  0 trades, 0 pending entries, realized/unrealized 0; 12 SIGNAL_NO_ACTION, 0 entries
+paper events                    = 16 rows sha256 b0784488…: the 2026-10-19 forward run appended one NAV row
+                                  (session 2026-10-16); the first 15 rows still hash to 88850387…, so no row was rewritten
+production files                = 62 H files (h_auto, h_forward, h_paper, run_h_v2_d7.py, deploy/h_evaluation,
+                                  usb-h-* units, docs/operations/h_* contracts) byte-identical to this repository's HEAD
+```
+
+Other services were untouched (usb-backend 2248392, usb-crypto-paper 2519676, usb-frontend 2520193,
+usb-crypto-context 1582777, usb-crypto-q123-forward 1684303 PIDs identical before and after).
+
+## 0a. State as of 2026-10-18 (historical; superseded by the block above)
 
 **What H is.** Strategy H is a US-equity, medium-horizon strategy that looks for issuers whose actual
 fundamentals or business are improving, whose price does not yet fully reflect that change, and whose
@@ -137,6 +188,22 @@ cgroup 397/400 MB, crypto terminal stalls up to 12.7 s (idle median 0.001 s). De
 NO-AI repair `H_V2_PRODUCTION_NO_AI_RUNTIME_REPAIR_V1.md`.
 
 ## Change log (dated entries; history, not the present)
+
+**2026-10-19 14:13-14:25 KST suspended-mode disk cleanup V1 = PASS.** Read-only audit first (forward `update`
+reads d7 ledger/snapshot/prices/sec_submissions/refresh files/paper, the auto queue files and `auto/reference`;
+GATE only counts `auto/price_history` file names; `auto/sec`, `evaluation`, `d2_1_cache`, `reference_history`
+are not imported on the forward path). Deleted on the server: `d7/auto/sec/2026-10-16` (186.2 MB, the 10-16
+failed SCAN's companyfacts/submissions, referenced nowhere, STALE from 10-24 and never pruned while SCAN is OFF),
+`d7/auto/d2_1_cache` (6.3 MB), `/root/h_auto_deploy_20261014-130816/h_auto_data.tar` (60.6 MB, 488/488 files
+identical to the live store) and `next-build-Rh0hJ2sk.tgz` (18.0 MB): 271.06 MB. `/root/h_v3_backup_pre_deploy_20261015-040700.tar.gz`
+(63.7 MB, sha256 `0d157abd…`) was copied to the operator's local `~/usb_archive/2026-10/h_v2_cleanup_20261019/`,
+matched by sha256 and size, then removed from the server: 63.70 MB. Free space 1,029.4 MB -> 1,361.4 MB.
+Forward ledger, prices, sec_submissions, price_history, reference_history, evaluation, sec 10-14/10-15 and the
+contracts hash the same before and after; verify and paper-verify PASS. No restart, no timer change.
+Resume cost: before 2026-10-23 the first SCAN refetches about 1,400 SEC documents (about 11 min, free API);
+after that, nothing beyond what staleness already required.
+
+**2026-10-19 13:46 KST RESEARCH_SUSPENDED.** Operator decision; see section 0.
 
 **2026-10-15 D3/D4 deterministic production contract V3 = PASS (local, NOT DEPLOYED, not pushed;
 `H_V2_D3D4_DETERMINISTIC_PRODUCTION_CONTRACT_V3.md`, freeze `181794a`, impl `5302fb9`, class-D fix `2bddbaa`,
@@ -406,12 +473,15 @@ stale SEC cache can no longer overwrite the research queue. It was deployed the 
 
 ## M. Next operational actions
 
-The single next action is in section 0: deploy the V3 deterministic runtime, run `usb-h-evaluation`
-once by hand, check memory, latency, A/E/C isolation, paper and forward integrity, then enable its timer.
-Procedure: `docs/operations/H_FORWARD_OPERATIONS_RUNBOOK_V1.md` §V3. Meanwhile the 01:10 ET update keeps
-prices, SEC refresh, the queue and paper NAV running, and observation continues (daily outcomes, material
-filings, 21D on 2026-11-02, 63D on 2027-01-04). The 2026-10-14 operator items (Claude CLI login,
-`auto-authorize`, re-enabling `usb-h-research`) are retired with the AI path.
+Research is suspended (section 0). There is no deployment or evaluation action pending. The 01:10 ET
+update keeps prices, outcomes, SEC submissions refresh, the refresh queue and paper NAV running.
+
+* Next check: 21D maturity of the launch cohort on 2026-11-02, then 63D on 2027-01-04
+  (`<prefix> status`, `<prefix> verify`, `<prefix> paper-verify`; runbook §0 and §4).
+* Resuming evaluation is an operator decision, taken only on forward evidence or a research priority that
+  warrants a historical replay; a rule change made to raise APPROVE is not a reason. Procedure: runbook §0.
+* The 2026-10-14 operator items (Claude CLI login, `auto-authorize`, re-enabling `usb-h-research`) are
+  retired with the AI path.
 
 ## N. Authoritative commits
 

@@ -6,6 +6,24 @@ Procedures only. Current numbers and state are in
 Every server command runs as `ssh traderj 'bash -s'` with a `hostname` guard (`trader-j`), from
 `/root/usb` with `PYTHONPATH=backend`. Prefix: `.venv/bin/python -m app.dev.run_h_v2_d7`.
 
+## 0. Current mode: RESEARCH_SUSPENDED (since 2026-10-19 13:46 KST)
+
+* Runs: `usb-h-forward.timer` only (enabled, Mon..Fri 01:10 ET): prices, outcomes, SEC submissions refresh,
+  material refresh queue, intake GATE (freshness record only, no SCAN), research queue, paper NAV.
+* Does not run: `usb-h-evaluation.timer` is **disabled**; no intake SCAN, no D3/D4/D5/D6 evaluation, no new
+  decisions. REFRESH_DUE items stay queued. Unit files stay installed. Production AI = none.
+* Do not, while suspended: enable the evaluation timer, start `usb-h-evaluation.service`, run `intake-scan`,
+  `auto-evaluate`, `launch` or `paper-launch`, or edit D3-D6 contracts.
+* Daily check: §4, plus `<prefix> paper-verify`. A NAV row appended by the daily run is normal; the paper
+  events and the forward ledger are append-only, so an earlier prefix must keep its sha256.
+* Resume (operator decision only, on forward evidence or a research priority that warrants a historical
+  replay; never to raise APPROVE): run `/usb-server-preflight`, then `systemctl enable --now usb-h-evaluation.timer`
+  and follow §V3.1. The first SCAN refetches SEC facts the 2026-10-19 cleanup removed (about 1,400 documents,
+  about 11 minutes, if resumed before 2026-10-23; after that the cache would have been stale anyway).
+* Server backups: `h_v3_backup_pre_deploy_20261015-040700.tar.gz` (pre-V3 rollback) is no longer on the server;
+  the copy is in the operator's `~/usb_archive/2026-10/h_v2_cleanup_20261019/` (sha256 `0d157abd…`).
+  The later rollback tars named in §V3.1 remain on the server.
+
 ## 1. Daily job
 
 `usb-h-forward.timer`: `Mon..Fri 01:10 America/New_York`, `Persistent=true`. It runs
@@ -67,8 +85,8 @@ systemctl list-timers usb-h-forward.timer --no-pager
 ## 5. AEYE / any REFRESH_DUE
 
 The queue only queues. Clearing a REFRESH_DUE needs a D3→D4→D5→D6 re-evaluation. In production that is
-the deterministic evaluator `usb-h-evaluation` (§V3: no model, no cost, no approval step); until it is
-deployed the decisions stand. A scan that would clear a REFRESH_DUE, or drop a known filing, is refused
+the deterministic evaluator `usb-h-evaluation` (§V3: no model, no cost, no approval step); while research
+is suspended (§0) it does not run and the decisions stand. A scan that would clear a REFRESH_DUE, or drop a known filing, is refused
 (`REFRESH_DUE_CLEARED_BY_SCAN`, `KNOWN_FILING_LOST`).
 
 ## 6. Sizing
@@ -246,8 +264,9 @@ performance, infrastructure, scheduler, UI and observability changes are allowed
 
 ## V3.1. Gated evaluation timer and resource guard (2026-10-16, d696c78)
 
-Status: installed; **timer ENABLED 2026-10-18 17:06 KST** after the compaction fix `1e8d1bd` was deployed
-(§V3.2). History: disabled 2026-10-16 15:56 KST after the first gated run failed in SCAN.
+Status: installed; **timer DISABLED 2026-10-19 13:46 KST (research suspended, §0)**. History: disabled
+2026-10-16 15:56 KST after the first gated run failed in SCAN; re-enabled 2026-10-18 17:06 KST after the
+compaction fix `1e8d1bd` (§V3.2); no gated run had succeeded before the suspension.
 
 * Tries: Mon..Fri 01:40, 02:10, 02:40 ET. `ExecCondition=deploy/h_evaluation/precondition.sh` runs the
   evaluation only when today's (ET) `usb-h-forward` succeeded, none of `usb-e-universe`, `usb-e-rvol-once`,
@@ -280,6 +299,9 @@ ledger; `compact` drops non-candidate bodies after each SCAN and keeps ledgers, 
   in that dated root and let the next run refetch it.
 * Deploy: `backend/app/strategies/h_auto/facts_cache.py` only; no backend restart (the API does not import
   it); the next `usb-h-evaluation` process picks it up.
+* Pruning of old dated roots happens only inside a SCAN. While suspended nothing prunes, so a root left by a
+  failed run stays until removed by hand (2026-10-19: `d7/auto/sec/2026-10-16` removed, 186 MB). Never touch
+  `d7/sec_submissions/`: that is the forward unit's own submissions cache, not this one.
 
 ## 10A. Production evaluation is NO-AI (H_V2_AUTONOMOUS_PIPELINE_V2_NO_AI, 2026-10-14) - superseded by §V3 for D3/D4, memory and units
 
