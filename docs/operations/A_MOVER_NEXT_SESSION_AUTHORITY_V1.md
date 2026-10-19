@@ -1,3 +1,5 @@
+> **ARCHIVED (2026-10-19). Strategy A is closed and disabled in production.** Historical only. Final status: `docs/backtest/strategy_a/A_EDGE_FIRST_CLOSEOUT_V1.md`.
+
 > **SUPERSEDED (2026-10-16). Do not use as the A contract.** Its date rule (mover run D -> entry
 > `next_trading_day(D)`) moved the strategy to the session after the premarket gap and was an
 > accidental strategy change; the same-session rule is restored. Current contract:

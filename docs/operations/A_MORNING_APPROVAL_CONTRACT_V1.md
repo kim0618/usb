@@ -1,5 +1,7 @@
 # Strategy A: the morning approval contract, and what the live source did to it
 
+> **ARCHIVED (2026-10-19). Strategy A is closed and disabled in production.** Historical only; A research writes now return 409. Final status: `docs/backtest/strategy_a/A_EDGE_FIRST_CLOSEOUT_V1.md`.
+
 > **SUPERSEDED (2026-10-10).** Kept as the record of the second A authority audit. Its disposition (entry authority off, legacy `quant_v0` bound to entry) is **not** the production configuration. The current contract is `docs/backtest/mover_scanner_v1/A_MOVER_LIVE_V1.md (same session)`.
 
 Audited 2026-10-10 (Asia/Seoul) against the production database on `trader-j`, read-only

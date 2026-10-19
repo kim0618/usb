@@ -54,6 +54,11 @@ ENV_FLAG = "A_MOVER_LIVE_ENABLED"
 #: Whether entry and the review UI resolve candidates from the live runs. Tri-state: unset
 #: follows :data:`ENV_FLAG`, a false word declines, anything else is reported unparsed.
 ENV_ENTRY_AUTHORITY_FLAG = "A_MOVER_LIVE_ENTRY_AUTHORITY"
+#: Whether the A paper runtime (entry, position and closing-review owners) starts at all, and
+#: whether A's research writes (GPT import, activation, human decisions) are accepted. Strategy A
+#: was archived on 2026-10-19 (``docs/backtest/strategy_a/A_EDGE_FIRST_CLOSEOUT_V1.md``): only a
+#: false word turns A off, so unset keeps every existing environment exactly as it was.
+ENV_PAPER_RUNTIME_FLAG = "A_PAPER_RUNTIME_ENABLED"
 TRUE_WORDS = frozenset({"1", "true", "yes", "on"})
 #: Only for the tri-state flag. ``ENV_FLAG`` keeps its two-valued reading: a scan that is not
 #: explicitly asked for does not run, and there is no default for it to follow.
@@ -103,6 +108,18 @@ def _tristate(name: str, environ: dict[str, str] | None = None) -> bool | None:
     if raw in FALSE_WORDS:
         return False
     return None
+
+
+def paper_runtime_enabled(environ: dict[str, str] | None = None) -> bool:
+    """False only when :data:`ENV_PAPER_RUNTIME_FLAG` is a false word (A archived)."""
+    return _tristate(ENV_PAPER_RUNTIME_FLAG, environ) is not False
+
+
+def require_paper_runtime(environ: dict[str, str] | None = None) -> None:
+    """Refuse an A research write once A is archived; reads stay available as history."""
+    if not paper_runtime_enabled(environ):
+        raise ValueError(f"Strategy A is archived ({ENV_PAPER_RUNTIME_FLAG}=false): "
+                         "A research writes are closed; history stays readable")
 
 
 def entry_authority_asked(environ: dict[str, str] | None = None) -> bool | None:

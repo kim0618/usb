@@ -34,6 +34,7 @@ from app.repositories.simulation import SimulationStateRepository
 from app.research.prompt import ResearchPromptService
 from app.research.versions import DETAIL_PROMPT_VERSION, EVIDENCE_VERSION, GPT_SCHEMA_VERSION, TOP8_PROMPT_VERSION
 from app.research import current_run as CR
+from app.strategy_a_mover_live import config as mover_live_config
 from app.research.adoption import ADOPTION_FILTER_VERSION
 from app.research.authority import ResearchAuthorityService
 from app.scanner.config import ScannerConfig
@@ -162,6 +163,7 @@ def require_current_run_target(db: Session, raw_json: str) -> None:
 
 @router.post("/research/import", tags=["Research"], status_code=201)
 async def research_import(body: ResearchImportRequest, db: DB) -> dict[str, Any]:
+    mover_live_config.require_paper_runtime()
     require_current_run_target(db, body.raw_json)
     analysis = GPTImportService(ResearchRepository(db), ScannerSnapshotRepository(db)).import_json(body.raw_json)
     count = int(db.scalar(select(func.count()).select_from(GPTCandidateAnalysis).where(GPTCandidateAnalysis.gpt_analysis_id == analysis.id)) or 0)
@@ -238,6 +240,7 @@ async def research_history(db: DB, scanner_run_id: int | None = None) -> list[di
 
 @router.put("/research/{analysis_id}/activate", tags=["Research"])
 async def activate_research(analysis_id: int, db: DB) -> dict[str, Any]:
+    mover_live_config.require_paper_runtime()
     analysis = require(db.get(GPTAnalysis, analysis_id), "Research analysis not found")
     activated = ResearchAuthorityService(db).activate(analysis.scanner_run_id, analysis.id)
     return {"analysis_id": activated.id, "scanner_run_id": activated.scanner_run_id,
@@ -264,6 +267,7 @@ async def research_candidate(analysis_id: int, symbol: str, db: DB) -> dict[str,
 
 @router.put("/research/{analysis_id}/decisions/{symbol}", tags=["Research"])
 async def decide(analysis_id: int, symbol: str, body: HumanDecisionRequest, db: DB) -> dict[str, Any]:
+    mover_live_config.require_paper_runtime()
     record = HumanDecisionService(ResearchRepository(db)).decide(analysis_id, symbol, body.decision, note=body.note)
     approved = ResearchRepository(db).count_approvals(analysis_id)
     return {**query_service(db).decision(record), "approved_count": approved}

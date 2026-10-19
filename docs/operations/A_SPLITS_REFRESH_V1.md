@@ -1,5 +1,7 @@
 # Strategy A Splits Refresh V1 (2026-10-05)
 
+> **ARCHIVED (2026-10-19). Strategy A is closed and disabled in production.** The `usb-splits-refresh` timer is deliberately KEPT for the same reason as grouped daily (input of the shared A/E producer). It is no longer an A operating dependency. Final status: `docs/backtest/strategy_a/A_EDGE_FIRST_CLOSEOUT_V1.md`.
+
 > **REFERENCE runbook, in production.** Current A contract: `docs/backtest/mover_scanner_v1/A_MOVER_LIVE_V1.md (same session)`.
 
 ```text

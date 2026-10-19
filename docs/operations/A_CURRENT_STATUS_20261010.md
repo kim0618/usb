@@ -1,3 +1,5 @@
+> **ARCHIVED (2026-10-19). Strategy A is closed and disabled in production.** Nothing below is a current operating instruction. Final status: `docs/backtest/strategy_a/A_EDGE_FIRST_CLOSEOUT_V1.md`.
+
 > **STALE CONTRACT POINTER (2026-10-16).** The contract named below
 > (`A_MOVER_NEXT_SESSION_AUTHORITY_V1.md`, D -> D+1) is superseded by the same-session contract in
 > `docs/backtest/mover_scanner_v1/A_MOVER_LIVE_V1.md`. The rest of this file is the 10-10 state.

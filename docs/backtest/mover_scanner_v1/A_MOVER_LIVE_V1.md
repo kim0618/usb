@@ -1,5 +1,7 @@
 # A-MOVER-LIVE-V1
 
+> **ARCHIVED (2026-10-19). Strategy A is closed and disabled in production.** This is the historical final runtime contract of A, not an active one: `A_PAPER_RUNTIME_ENABLED=false`, `A_MOVER_LIVE_ENABLED=false`, `A_MOVER_LIVE_ENTRY_AUTHORITY=false`, the A snapshot consumer timer is disabled and no A entry, position or closing-review owner starts. Final status: `docs/backtest/strategy_a/A_EDGE_FIRST_CLOSEOUT_V1.md`.
+
 > **CURRENT CONTRACT for Strategy A (same session, restored 2026-10-16).** A mover run of
 > session D (09:15 ET premarket cut of D) is reviewed (GPT + human APPROVE) and traded on **D
 > itself**: premarket gate, OR15 and entry from 09:45 ET to the 10:30 ET deadline, Risk V0 /

@@ -1,5 +1,7 @@
 # Morning Scanner operations
 
+> **ARCHIVED (2026-10-19). Strategy A is closed and disabled in production.** The `usb-morning-scan` timer is disabled (2026-10-19 13:53 KST); this page is reference only. Final status: `docs/backtest/strategy_a/A_EDGE_FIRST_CLOSEOUT_V1.md`.
+
 > **REFERENCE (legacy `quant_v0` source).** This timer still records `quant_v0` runs, but they are **not** Strategy A's entry authority while `A_MOVER_LIVE_ENTRY_AUTHORITY` is on, and they are never a fallback. Current A contract: `docs/backtest/mover_scanner_v1/A_MOVER_LIVE_V1.md (same session)`.
 
 `usb-morning-scan.timer` is the sole recurring owner. The Backend does not run

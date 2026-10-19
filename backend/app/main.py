@@ -51,7 +51,13 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     # figures, not the execution assumptions that produced them.
     runtime = activate_operator_simulation_runtime(current, config=ExecutionConfig())
     try:
-        if runtime is not None:
+        if runtime is not None and not mover_live_config.paper_runtime_enabled():
+            # Strategy A archived: the account stays loaded so its history reads as before, but
+            # no entry, position or closing-review owner starts. The book is empty at archive.
+            logger.warning("A: paper runtime DISABLED (%s=false); entry, position and closing "
+                           "review owners not started; A history read-only",
+                           mover_live_config.ENV_PAPER_RUNTIME_FLAG)
+        elif runtime is not None:
             # Provider construction is lazy inside the owner: an empty book performs
             # neither Kiwoom authentication nor minute-bar requests. The factory is
             # reached through its module, not through a name bound here, so the

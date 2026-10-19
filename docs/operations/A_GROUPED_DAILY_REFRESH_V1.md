@@ -1,5 +1,7 @@
 # Strategy A Grouped Daily Refresh V1 (2026-10-05)
 
+> **ARCHIVED (2026-10-19). Strategy A is closed and disabled in production.** The `usb-grouped-daily` timer is deliberately KEPT: the shared A/E premarket producer (`usb-ae-producer`) builds A's universe from these files inside the E process, so stopping it would change the shared E run path. It is no longer an A operating dependency. Final status: `docs/backtest/strategy_a/A_EDGE_FIRST_CLOSEOUT_V1.md`.
+
 > **REFERENCE runbook, in production.** Section 5's splits gap is closed by `A_SPLITS_REFRESH_V1.md`. Current A contract: `docs/backtest/mover_scanner_v1/A_MOVER_LIVE_V1.md (same session)`.
 
 ```text
