@@ -1,0 +1,34 @@
+usb-frontend pid=2520193 nr=0 active
+usb-backend pid=2606983 nr=0 active
+usb-crypto-paper pid=2519676 nr=0 active
+usb-crypto-context pid=1582777 nr=0 active
+usb-crypto-q123-forward pid=1684303 nr=0 active
+usb-btc-context-ui pid=2063894 nr=0 active
+usb-e-paper pid=0 nr=0 inactive
+usb-ae-producer pid=0 nr=0 inactive
+nginx pid=707 nr=0 active
+stop/swap/start at 15:29:43 free=1308856KB
+rollback build intact (cache moved to the new build)
+BUILD_ID now R6xplGezseLQq2HrES91s after 63s (rollback: .next-build.pre-a-ui-removal-20261019-151548)
+/crypto-paper 200
+/dashboard 200
+/strategy-e 200
+/trading-h 200
+/strategy-h 200
+/strategy-compare 200
+/daily 200
+/strategy-history 200
+/runtime 200
+/settings 200
+/ 307
+/trading 404
+/adoption 404
+/candidates 404
+/research 404
+/shadow 404
+-- service diff (only usb-frontend may change):
+1c1
+< usb-frontend pid=2520193 nr=0 active
+---
+> usb-frontend pid=2618562 nr=0 active
+free after: 1304276KB
