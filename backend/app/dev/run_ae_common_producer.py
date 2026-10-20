@@ -18,11 +18,13 @@ BROKER_PROVIDER=simulation and KIWOOM_MODE=market_data_only (E-RT2's own safety 
 from __future__ import annotations
 
 import argparse
+from collections.abc import Callable
 from datetime import datetime
 import fcntl
 import json
 import os
 from pathlib import Path
+import threading
 import time
 import traceback
 
@@ -49,6 +51,31 @@ def _e_artifact(universe: Path, session, calendar):
 #: An operator's per-strategy hold, next to ACTIVE_FROM. ``HOLD_E`` keeps E decision-only (no book
 #: write) while A runs; A's hold is ``HOLD_A`` on the A consumer unit.
 HOLD_E = "HOLD_E"
+
+#: The phases whose start is stamped with a backend health probe.
+HEALTH_PHASES = ("a_sweep", "e_finalization", "closed")
+#: How long the run record waits for an outstanding probe (``a_health`` times out at 5 s).
+HEALTH_JOIN_S = 6.0
+
+
+def phase_hook(sampler, record: dict, health: Callable[[], dict], probes: list) -> Callable[[str], None]:
+    """The producer's ``on_phase``: denser sampling in the two timed phases, and a backend health
+    probe that runs beside the phase, never in front of it.
+
+    A phase starts on the clock (A's sweep at 09:15:00, E's finalization at 09:25:00) and its T0 is
+    read right after ``on_phase`` returns. The probe (``systemctl is-active`` + an HTTP GET, up to
+    5 s) ran inline until 2026-10-19, when it put E's T0 at 09:25:01.227 and A's at 09:15:03.142.
+    """
+    def probe(name: str) -> None:
+        record["a_health"].append(health() | {"phase": name})
+
+    def on_phase(name: str) -> None:
+        sampler.dense(2.0 if name in ("a_sweep", "e_finalization") else 30.0)
+        if name in HEALTH_PHASES:
+            thread = threading.Thread(target=probe, args=(name,), daemon=True, name=f"health-{name}")
+            thread.start()
+            probes.append(thread)
+    return on_phase
 
 
 def run(universe: Path, a_repo: Path, snapshot_root: Path, out_root: Path, rvol_store: Path, *,
@@ -92,6 +119,7 @@ def run(universe: Path, a_repo: Path, snapshot_root: Path, out_root: Path, rvol_
         return 0
     sampler = RS.Sampler(clock=now, interval=30.0)
     sampler.start()
+    probes: list[threading.Thread] = []
     try:
         art, refusal = _e_artifact(universe, session, calendar)
         try:                                   # A's data authority failing must not stop E's morning
@@ -140,10 +168,7 @@ def run(universe: Path, a_repo: Path, snapshot_root: Path, out_root: Path, rvol_
         record["e_paper"] = ("ON_OFFICIAL_V2" if e_paper else "HELD_BY_OPERATOR" if held
                              else "OFF" if not paper else "NO_UNIVERSE")
 
-        def on_phase(name: str) -> None:
-            sampler.dense(2.0 if name in ("a_sweep", "e_finalization") else 30.0)
-            if name in ("a_sweep", "e_finalization", "closed"):
-                record["a_health"].append(RT2.a_health())
+        on_phase = phase_hook(sampler, record, RT2.a_health, probes)
         morning = P.run_session(inputs, lane_minute=lane_minute, lane_tick=lane_tick, limiters=limiters,
                                 clock=clock, snapshot_dir=snapshot_dir, rvol_store=rvol_store, log=log,
                                 on_phase=on_phase, e_paper=e_paper)
@@ -160,6 +185,8 @@ def run(universe: Path, a_repo: Path, snapshot_root: Path, out_root: Path, rvol_
         record["traceback"] = traceback.format_exc()[-6000:]
         log(f"PRODUCER_FAILED {record['error']}")
     finally:
+        for thread in probes:
+            thread.join(timeout=HEALTH_JOIN_S)
         sampler.stop()
         record["resources"] = sampler.summary()
         record["finished_at"] = now().isoformat()

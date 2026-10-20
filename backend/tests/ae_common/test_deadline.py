@@ -73,3 +73,19 @@ def test_two_threads_never_release_a_request_at_or_after_the_deadline():
     [t.join() for t in threads]
     assert released and max(released) < at(time(9, 25))
     assert lim.refused >= 2                              # both workers were stopped by the limiter
+
+
+def test_a_phase_rate_slows_only_its_phase():
+    """Rolling paces at its own rate; the deadline phases keep the lane rate."""
+    clock = Clock(at(time(9, 0)))
+    lim = DeadlineRateLimiter(5.0, clock, phase_rates={"rolling": 2.0}, monotonic=clock.monotonic, sleeper=clock.tick)
+    lim.begin_phase("rolling", at(time(9, 15)))
+    lim.acquire()
+    lim.acquire()
+    assert clock() - at(time(9, 0)) == timedelta(seconds=0.5)          # 1 / 2.0
+    lim.begin_phase("a_sweep", at(time(9, 25)))
+    start = clock()
+    lim.acquire()                                                      # the rolling slot ends first
+    lim.acquire()
+    assert clock() - start == timedelta(seconds=0.5 + 0.2)             # then 1 / 5.0
+    assert lim.declaration()["phase_rates"] == {"rolling": 2.0}

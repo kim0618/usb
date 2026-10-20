@@ -195,7 +195,8 @@ def gate(session: date, producer_out: Path, consumer_out: Path, snapshots: Path,
     check("S_duplicate_rolling_zero", producer.get("rolling_order_unique") is True,
           rolling=producer.get("rolling"))
     check("S_429", status_429 <= TOLERATED_429, status_429=status_429,
-          statuses={k: c.get("http_statuses") for k, c in clients.items()})
+          statuses={k: c.get("http_statuses") for k, c in clients.items()},
+          events={k: [e for e in c.get("events") or [] if e.get("status") == "429"] for k, c in clients.items()})
     resources = producer.get("resources") or {}
     check("S_resources_recorded", bool(resources.get("samples")), producer=resources,
           a_consumer_peak_rss_mb=consumer.get("peak_rss_mb"))

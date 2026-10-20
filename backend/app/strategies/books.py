@@ -117,20 +117,20 @@ def e_operating_sessions(status: str, accounting: str = RB.CURRENT, since: str |
     or when the runner left no engine session at all; a decided session with no candidate is normal.
     """
     engines = {s["session"]: s for s in e_session_trades(status, accounting)}
-    dirs = RB.session_dirs()
-    first = next((d.name for d in dirs
-                  if RB.evidence_status(RB.session_record(d.name) or {}) == status), None)
+    # V2 sessions are the common producer's mornings; earlier books' are the E runner's run dirs
+    names = [d.name for d in (RB.producer_session_dirs() if accounting == RB.V2 else RB.session_dirs())]
+    first = next((name for name in names
+                  if RB.evidence_status(RB.session_record(name) or {}) == status), None)
     if first is None:
         return []
     floor = max(first, since) if since else first
     out = []
-    for directory in dirs:
-        if directory.name < floor:
+    for name in names:
+        if name < floor:
             continue
-        engine = engines.get(directory.name)
+        engine = engines.get(name)
         phase = None if engine is None else engine.get("phase")
-        out.append({"session": directory.name, "phase": phase,
-                    "error": engine is None or phase in E_ERROR_PHASES})
+        out.append({"session": name, "phase": phase, "error": engine is None or phase in E_ERROR_PHASES})
     return out
 
 
@@ -152,8 +152,7 @@ def _e_book(status: str, accounting: str, since: str | None,
 
 
 def e_books(open_positions: list[dict[str, Any]] | None = None) -> dict[str, Book]:
-    mode = RB.runtime_mode()
-    if mode is not None and mode["mode"] == RB.MODE_OFFICIAL and RB.book(RB.OFFICIAL, RB.V2) is not None:
+    if RB.active_accounting() == RB.V2:
         # E-RUNTIME-R1: the V2 book is the only current official record; V1 is never summed into it
         return {"official": _e_book(RB.OFFICIAL, RB.V2, None, open_positions),
                 "legacy": _e_book(RB.OFFICIAL, RB.LEGACY, None, None)}

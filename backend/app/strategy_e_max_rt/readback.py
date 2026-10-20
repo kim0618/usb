@@ -23,6 +23,10 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 PAPER_RUN_ENV = "STRATEGY_E_PAPER_RUN_DIR"
 RVOL_ENV = "STRATEGY_E_RVOL_DIR"
 UNIVERSE_ENV = "STRATEGY_E_UNIVERSE_DIR"
+#: The A/E common producer's run root (``<root>/<session>/{producer,e_shadow}.json``). From the armed
+#: first paper session on, E's session record is written there and not under the E run root. Unset
+#: means no producer: every accessor reads the E run root only, exactly as before the producer.
+PRODUCER_RUN_ENV = "AE_COMMON_PRODUCER_RUN_DIR"
 DEFAULT_PAPER_RUN = REPO_ROOT / "data/runtime/strategy_e_max/paper/run"
 DEFAULT_RVOL = REPO_ROOT / "data/runtime/strategy_e_max/rvol"
 DEFAULT_UNIVERSE = REPO_ROOT / "data/runtime/strategy_e_max/rt2"
@@ -44,6 +48,11 @@ EVIDENCE_LABELS = REPO_ROOT / "docs/operations/e_runtime_r1_evidence_labels_v1.j
 
 def paper_run_dir() -> Path:
     return Path(os.environ.get(PAPER_RUN_ENV, str(DEFAULT_PAPER_RUN)))
+
+
+def producer_run_dir() -> Path | None:
+    value = os.environ.get(PRODUCER_RUN_ENV)
+    return Path(value) if value else None
 
 
 def rvol_dir() -> Path:
@@ -87,7 +96,64 @@ def session_dirs() -> list[Path]:
 
 
 def session_record(session: str | None = None) -> dict[str, Any] | None:
-    """The newest session record, or a named session's."""
+    """The newest session record, or a named session's, from the producer or the E run root.
+
+    A session the common producer ran is read from the producer; on the same session it wins over a
+    record under the E run root, which no runtime writes once the producer owns the morning."""
+    produced = _producer_session_record(session)
+    legacy = _run_session_record(session)
+    if produced is None or legacy is None:
+        return produced or legacy
+    return produced if produced["session"] >= (legacy.get("session") or "") else legacy
+
+
+def producer_session_dirs() -> list[Path]:
+    root = producer_run_dir()
+    if root is None:
+        return []
+    try:
+        return sorted((p for p in root.iterdir() if p.is_dir() and len(p.name) == 10), key=lambda p: p.name)
+    except OSError:
+        return []
+
+
+def _producer_summary(producer: dict[str, Any] | None, shadow: dict[str, Any] | None) -> dict[str, Any]:
+    """What the producer itself did that morning: its status, E's T0/T1 and the 0915 seal."""
+    producer, shadow = producer or {}, shadow or {}
+    final = producer.get("e_finalization") or shadow.get("finalization") or {}
+    paper = shadow.get("paper_runtime") or {}
+    return {"status": producer.get("status") or "PRODUCER_RUNNING", "e_paper": producer.get("e_paper"),
+            "T0": final.get("T0"), "T1": final.get("T1"), "margin_to_0930_s": final.get("margin_to_0930_s"),
+            "seal_0915": (producer.get("seal_0915") or {}).get("status"),
+            "decision_status": shadow.get("status"), "paper_phase": paper.get("phase"),
+            "real_order_requests": producer.get("real_order_requests"),
+            "finished_at": producer.get("finished_at")}
+
+
+def _producer_session_record(session: str | None) -> dict[str, Any] | None:
+    for directory in reversed(producer_session_dirs()):
+        if session and directory.name != session:
+            continue
+        shadow, producer = _json(directory / "e_shadow.json"), _json(directory / "producer.json")
+        newest = next((p for p in (directory / "e_shadow.json", directory / "producer.json",
+                                   directory / "producer.lock") if p.exists()), None)
+        if newest is None:
+            if session:
+                return None
+            continue
+        meta = {"_dir": str(directory), "_updated_at": _mtime(newest), "_source": "AE_COMMON_PRODUCER",
+                "producer": _producer_summary(producer, shadow)}
+        record = (shadow or {}).get("session_record")
+        if record:
+            return record | meta
+        # no session record: the producer is still running, failed, or E had no sealed decision
+        reason = (shadow or {}).get("reason") or (producer or {}).get("error")
+        status = (shadow or {}).get("status") or (producer or {}).get("status") or "PRODUCER_RUNNING"
+        return {"session": directory.name, "status": status, "reason": reason} | meta
+    return None
+
+
+def _run_session_record(session: str | None) -> dict[str, Any] | None:
     for directory in reversed(session_dirs()):
         if session and directory.name != session:
             continue
@@ -116,6 +182,15 @@ BOOK_ROOTS = {"V2": "paper_state_v2", "V1": "paper_state_v1", "V0": "paper_state
 CURRENT = "V1"
 LEGACY = "V0"
 V2 = "V2"
+
+
+def active_accounting() -> str:
+    """The accounting root of E's active official book: V2 once E-RUNTIME-R1's official runtime is
+    running (operator state) and its book exists, V1 before. V1 and V0 are history from then on."""
+    mode = runtime_mode()
+    if mode is not None and mode["mode"] == MODE_OFFICIAL and book(OFFICIAL, V2) is not None:
+        return V2
+    return CURRENT
 
 
 def runtime_mode() -> dict[str, Any] | None:

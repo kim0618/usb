@@ -35,6 +35,9 @@ class DeadlineRateLimiter:
     requests_per_second: float
     clock: Callable[[], datetime]
     deadline: datetime | None = None
+    #: A slower pace for named phases (e.g. the five-hour rolling phase, which has no deadline to
+    #: make); every other phase paces at ``requests_per_second``.
+    phase_rates: dict[str, float] = field(default_factory=dict)
     phase: str = "setup"
     monotonic: Callable[[], float] = _time.monotonic
     sleeper: Callable[[float], None] = _time.sleep
@@ -67,9 +70,12 @@ class DeadlineRateLimiter:
         self._phase_refused += 1
         raise DeadlineReached(f"{why}: {moment.isoformat()} >= deadline {self.deadline.isoformat()}")
 
+    def rate(self) -> float:
+        return self.phase_rates.get(self.phase, self.requests_per_second)
+
     def acquire(self) -> None:
-        interval = 1.0 / self.requests_per_second
         with self._lock:
+            interval = 1.0 / self.rate()
             moment = self.clock()
             if self.deadline is not None and moment >= self.deadline:
                 self._refuse(moment, "deadline reached")
@@ -88,5 +94,6 @@ class DeadlineRateLimiter:
 
     def declaration(self) -> dict[str, Any]:
         with self._lock:
-            return {"rate_per_s": self.requests_per_second, "sent": self.sent, "refused": self.refused,
+            return {"rate_per_s": self.requests_per_second, "phase_rates": dict(self.phase_rates),
+                    "sent": self.sent, "refused": self.refused,
                     "phases": [*self.phases, self._phase_record()]}

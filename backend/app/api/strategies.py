@@ -234,6 +234,8 @@ def _e_status() -> dict[str, Any]:
             "no_decision_reason": ((gate or {}).get("status") if gate and not gate.get("authorized", True)
                                    else (record or {}).get("reason")),
             "execution_gate": gate,
+            "record_source": (record or {}).get("_source") or ("E_RUN_ROOT" if record else None),
+            "producer": (record or {}).get("producer"),
             "evidence_label": RB.evidence_label(session) if mode is not None and gate is None else None,
             "bootstrap": bootstrap,
             "universe": universe,
@@ -252,7 +254,7 @@ def _e_account_r1(mode: dict[str, Any]) -> dict[str, Any]:
     V1 official book is shown as what it is (legacy runtime evidence) - never the PROVISIONAL one."""
     v2_official, v2_shadow = RB.book(RB.OFFICIAL, RB.V2), RB.book(RB.SHADOW, RB.V2)
     v1_official, v1_provisional = RB.book(RB.OFFICIAL, RB.CURRENT), RB.book(RB.PROVISIONAL, RB.CURRENT)
-    active = mode["mode"] == RB.MODE_OFFICIAL and v2_official is not None
+    active = RB.active_accounting() == RB.V2
     headline = v2_official if active else v1_official
     record = RB.session_record()
     session = None if record is None else record.get("session")
@@ -261,6 +263,7 @@ def _e_account_r1(mode: dict[str, Any]) -> dict[str, Any]:
     entries, exits = (engine or {}).get("entries") or {}, (engine or {}).get("exits") or {}
     filled = [s for s, e in entries.items() if e.get("status") == "FILLED"]
     labels = RB.evidence_labels()
+    evidence = RB.OFFICIAL if active else "LEGACY_RUNTIME_V1"
     return {
         "currency": "USD",
         "initial_equity": (headline or {}).get("initial_equity"),
@@ -270,7 +273,7 @@ def _e_account_r1(mode: dict[str, Any]) -> dict[str, Any]:
         "open_positions": len([s for s in filled if s not in exits]),
         "closed_trades_today": len(exits) if active else 0,
         "source": "E_RUNTIME_FILES",
-        "evidence_status": RB.OFFICIAL if active else "LEGACY_RUNTIME_V1",
+        "evidence_status": evidence,
         "runtime_mode": mode,
         "headline_book": ("paper_state_v2/OFFICIAL_KIWOOM_PAPER" if active
                           else "paper_state_v1/OFFICIAL_KIWOOM_PAPER (LEGACY / INVALIDATED runtime, not active)"),
@@ -281,6 +284,9 @@ def _e_account_r1(mode: dict[str, Any]) -> dict[str, Any]:
                                                   label="LEGACY_RUNTIME_EXIT_PROXY / INVALID_RUNTIME_EVIDENCE"),
             "V1_PROVISIONAL_RVOL_BOOTSTRAP": _book_row(v1_provisional, accounting_version="V1",
                                                        label="INVALID_RUNTIME_EVIDENCE"),
+            # the headline book again under ``evidence_status``, the key the screens look a book up by
+            evidence: _book_row(headline, accounting_version=RB.V2 if active else RB.CURRENT,
+                                label="ACTIVE_OFFICIAL" if active else "LEGACY_RUNTIME_EXIT_PROXY / INVALID_RUNTIME_EVIDENCE"),
         },
         "evidence_labels": labels.get("labels", []),
         "separate_books": "V2 공식 장부만 현재 성과다. V1·PROVISIONAL·V0은 과거 증거로만 남기고 합산하지 않는다",
@@ -359,8 +365,17 @@ def _e_positions() -> list[dict[str, Any]]:
     return out
 
 
-def _e_trades(limit: int) -> list[dict[str, Any]]:
-    """Every book (evidence grade x accounting root), each row tagged with its own; never merged."""
+def _e_trades(limit: int, history: bool = True) -> list[dict[str, Any]]:
+    """Every book (evidence grade x accounting root), each row tagged with its own; never merged.
+
+    Once the V2 official book is active, ``history=False`` answers with that book alone: V1 and V0
+    rows are history, kept and labelled, and are not the strategy's current trades."""
+    if not history and RB.active_accounting() == RB.V2:
+        out = [trade | {"evidence_status": RB.OFFICIAL, "source": "E_RUNTIME_FILES", "accounting_version": RB.V2,
+                        "evaluation_label": "E_RUNTIME_R1_V2"}
+               for session in BK.e_session_trades(RB.OFFICIAL, RB.V2) for trade in session["trades"]]
+        out.sort(key=lambda r: (r["session"] or "", r["symbol"]), reverse=True)
+        return out[:limit]
     out = [trade | {"evidence_status": status, "source": "E_RUNTIME_FILES",
                     "evaluation_label": RB.evidence_label(session["session"], accounting)}
            for accounting in (RB.CURRENT, RB.LEGACY) for status in RB.BOOK_STATUSES
@@ -389,6 +404,10 @@ def _e_equity() -> dict[str, Any]:
                                                  for d, r in sorted((v2.get("sessions") or {}).items())],
                                       "baseline": v2.get("initial_equity")}
         current = ("V2_" + RB.OFFICIAL) if (mode["mode"] == RB.MODE_OFFICIAL and v2) else RB.OFFICIAL
+        if RB.active_accounting() == RB.V2:
+            series["V1_" + RB.OFFICIAL] = series[RB.OFFICIAL]
+            series[RB.OFFICIAL] = series["V2_" + RB.OFFICIAL]
+            current = RB.OFFICIAL
     return {"strategy_id": REG.STRATEGY_E_MAX_V1, "currency": "USD", "source": "E_RUNTIME_FILES",
             "current_book": current, "points": series[current]["points"],
             "baseline": series[current]["baseline"], "books": series,
@@ -464,11 +483,12 @@ async def strategy_positions(strategy_id: str, db: DB) -> list[dict[str, Any]]:
 
 @router.get("/{strategy_id}/trades")
 async def strategy_trades(strategy_id: str, db: DB,
-                          limit: Annotated[int, Query(ge=1, le=500)] = 100) -> list[dict[str, Any]]:
+                          limit: Annotated[int, Query(ge=1, le=500)] = 100,
+                          history: bool = False) -> list[dict[str, Any]]:
     if strategy_id == REG.STRATEGY_A:
         return _a_trades(db, limit)
     if strategy_id == REG.STRATEGY_E_MAX_V1:
-        return _e_trades(limit)
+        return _e_trades(limit, history=history)
     if strategy_id == REG.STRATEGY_H_V2:
         return HV.trades()                    # H writes no trade row; see /forward
     return []
@@ -588,7 +608,8 @@ def _card(db: Session, meta: REG.StrategyMeta) -> dict[str, Any]:
     status, account = _e_status(), _e_account()
     evidence = account["evidence_status"]
     books = BK.e_books()
-    sessions = [s for accounting in (RB.CURRENT, RB.LEGACY) for s in BK.e_session_trades(RB.OFFICIAL, accounting)]
+    accountings = (RB.V2,) if RB.active_accounting() == RB.V2 else (RB.CURRENT, RB.LEGACY)
+    sessions = [s for accounting in accountings for s in BK.e_session_trades(RB.OFFICIAL, accounting)]
     trades = [t for s in sessions for t in s["trades"]]
     official = [t for t in trades if t.get("evaluation") == OFF.OFFICIAL]
     open_now = account["open_positions"]
@@ -670,7 +691,9 @@ async def strategy_performance(db: DB) -> dict[str, Any]:
     a, e = books[REG.STRATEGY_A], books[REG.STRATEGY_E_MAX_V1]
     clock = OFF.state()
     start = clock["official_paper_start"]
-    e_sessions = BK.e_operating_sessions(RB.OFFICIAL, RB.CURRENT, start) if start else []
+    e_accounting = RB.active_accounting()
+    e_since = start if e_accounting == RB.CURRENT else None      # the V2 book starts with its own first session
+    e_sessions = BK.e_operating_sessions(RB.OFFICIAL, e_accounting, e_since) if start else []
     # H's book is added to the per-strategy table only, through the same pure calculator, so its
     # column is computed by the same definitions as A's and E's and none of theirs move.
     with_h = books | {REG.STRATEGY_H_V2: HV.books()}
@@ -680,7 +703,8 @@ async def strategy_performance(db: DB) -> dict[str, Any]:
     return {
         "currency": "USD",
         "paper_clock": clock,
-        "strategies": {sid: {"strategy_id": sid, "official": official[sid] | {"accounting_version": "V1"},
+        "strategies": {sid: {"strategy_id": sid, "official": official[sid] | {
+                                 "accounting_version": e_accounting if sid == REG.STRATEGY_E_MAX_V1 else "V1"},
                              "legacy": legacy[sid] | {"accounting_version": "V0"}} for sid in with_h},
         "combined": PERF.combined_metrics([a["official"], e["official"]]) | {"accounting_version": "V1"},
         "legacy_combined": PERF.combined_metrics([a["legacy"], e["legacy"]]) | {"accounting_version": "V0"},
@@ -690,9 +714,9 @@ async def strategy_performance(db: DB) -> dict[str, Any]:
             REG.STRATEGY_E_MAX_V1: GATE.evaluate(
                 REG.STRATEGY_E_MAX_V1, official[REG.STRATEGY_E_MAX_V1],
                 error_sessions=sum(1 for s in e_sessions if s["error"]) if start else None,
-                divergence=BK.e_divergence(start) if start else None),
+                divergence=BK.e_divergence(e_since, e_accounting) if start else None),
         },
-        "books": {REG.STRATEGY_A: "PAPER_DB", REG.STRATEGY_E_MAX_V1: f"{RB.BOOK_ROOTS[RB.CURRENT]}/{RB.OFFICIAL}",
+        "books": {REG.STRATEGY_A: "PAPER_DB", REG.STRATEGY_E_MAX_V1: f"{RB.BOOK_ROOTS[e_accounting]}/{RB.OFFICIAL}",
                   REG.STRATEGY_H_V2: HV.SOURCE},
         # H's own state. It is not a gate row: the A/E paper gate contract does not list H, and a
         # forward observation with no matured horizon has no verdict to give yet.
@@ -769,7 +793,8 @@ async def strategy_portfolio(db: DB, book: Annotated[str, Query(pattern="^(offic
         "cash_usage": {
             REG.STRATEGY_A: {"cash": a_cash, "equity": a_equity,
                              "cash_share": None if not (a_cash and a_equity) else str(Decimal(a_cash) / Decimal(a_equity))},
-            REG.STRATEGY_E_MAX_V1: {"cash": None, "equity": (RB.book(RB.OFFICIAL) or {}).get("equity"), "cash_share": None,
+            REG.STRATEGY_E_MAX_V1: {"cash": None, "equity": (RB.book(RB.OFFICIAL, RB.active_accounting()) or {}).get("equity"),
+                                    "cash_share": None,
                                     "note": "E 런타임은 현금 잔고를 기록하지 않는다. 세션 사이에는 전액 현금이다"},
         },
     }
