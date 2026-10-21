@@ -1,0 +1,82 @@
+{
+  "contract": "us-b-equity-auto-factor-v2-portfolio-integrity-repair",
+  "status": "FROZEN_BEFORE_PORTFOLIO_OUTCOME",
+  "frozen_at": "2026-10-19",
+  "amends": {
+    "v1_contract_canonical_sha256": "c253d7868d0680c83d083bf5b5ed69967002452ed592be6aad538cb11474f733",
+    "v1_census_script_sha256": "6f8cf6730f75d97296fcc659e629ad8473f35e88d99a36dd466b195fdc60b910",
+    "v1_result_sha256": "213a9a162a2c337096e19b2e29788afe2f50dad7af99dac693bf3222f5fe4ea3"
+  },
+  "purpose": "portfolio accounting and risk integrity only; factor semantics frozen; not a return improvement",
+  "unchanged_from_v1": [
+    "MOM12_2 and LOWVOL252 definitions and ranking (V1 module function reused, imported unchanged)",
+    "universe, $5 price, $5M ADV, excluded tickers",
+    "USD 10,000, N = 20, 5% target, whole shares, fractional forbidden",
+    "monthly calendar: signal = last session of month, fill = next session close",
+    "entry top 10%, hold top 20%, whole-share skip -> next rank",
+    "sizing on signal close; sells before buys; proceeds usable same session",
+    "40 bp one-way primary, 0/20/30 bp diagnostics, SEC 0.206 bp + FINRA TAF on sells",
+    "benchmarks SPY, RSP, MTUM, USMV; price return",
+    "no factor combination, no regime filter, no sector filter or cap"
+  ],
+  "ticker_continuity": {
+    "identity": "issuer continuity (CIK) has priority over ticker for an open position",
+    "cik_source": "union of all CS snapshots (ticker -> cik); old and new ticker must map to the same CIK",
+    "transition_if_all": [
+      "old ticker has a last valid close L_old inside the price window and no close after it",
+      "new ticker first valid close F_new > L_old",
+      "sessions strictly between L_old and F_new <= 5",
+      "new ticker has no close on or before L_old (not a concurrent share class)",
+      "exactly one candidate new ticker satisfies the above (otherwise AMBIGUOUS -> treated as delisting, flagged)"
+    ],
+    "position_carry": "shares carried 1:1 to the new ticker at F_new; split records of the new ticker apply as usual; value = shares x new close",
+    "price_gap_ratio": "first new close / last old close is reported as a diagnostic, not a condition",
+    "ranking": "unchanged: the new ticker is ranked under V1 rules (its own price history); if it has no valid feature it is outside the hold zone and is sold at the next execution",
+    "true_delisting": "price stop with no qualifying transition: V1 rule (value at last close, sold at it at the next execution, flagged)",
+    "regression_fixture": "BREA -> SLMT: CIK 0001939965, L_old 2025-10-02, F_new 2025-10-03, must be detected and the MOM position carried"
+  },
+  "drift_band": {
+    "target": 0.05,
+    "lower": 0.025,
+    "upper": 0.075,
+    "weight_basis": "position value / NAV at the signal close (pre-trade), same basis as sizing",
+    "target_shares": "floor(0.05 * NAV_signal / signal close)",
+    "in_band": "no trade",
+    "above_upper": "sell down to max(1, target_shares) shares (never below one share)",
+    "below_lower_and_hold_eligible": "buy up to target_shares (cash permitting, decrement while cash short; partial allowed, flagged cash-limited)",
+    "outside_hold_zone": "full exit (V1)",
+    "new_entry": "target_shares (V1); if cash shortfall would leave the new position below 2.5% of NAV_signal it is not opened (cash-constrained stop) [band applied to entries, added at freeze]",
+    "no_signal_or_exec_price": "no band trade for that name, flagged",
+    "order": "exits, trims (sells) -> top-ups in rank order -> new entries in rank order",
+    "costs": "band trades pay the same 40 bp + SEC + TAF; included in turnover and cost"
+  },
+  "dust": "no dollar threshold; handled by hold zone and band only",
+  "measurements_after_each_execution": [
+    "holding count", "effective N = 1 / sum(w_i^2) with w_i = value_i / NAV (reported) and with w_i normalized to invested value (gated)",
+    "max and min weight (signal basis and execution-close basis)", "HHI", "SIC division and 2-digit concentration",
+    "cash %", "one-way turnover", "cost", "whole-share skips, replacements, cash stops", "band trims, band top-ups, cash-limited top-ups"
+  ],
+  "runs": {
+    "V1_recorded": "census_v1 output as frozen (before)",
+    "V1C": "V1 weights rule + ticker continuity (isolates the accounting fix)",
+    "V2": "ticker continuity + drift band (canonical from V2 on)"
+  },
+  "integrity_gates": {
+    "I1_transition_fixture": "BREA -> SLMT detected with the fixture dates and the V2 MOM position carried to SLMT",
+    "I2_separation": "every held price stop is classified TRANSITION or DELISTING (or AMBIGUOUS, flagged); no TRANSITION valued at a stale last close after F_new",
+    "I3_max_weight": "after every execution, signal-basis weight <= 7.5% for every position, except a single-share position (whole-share tolerance)",
+    "I4_no_pathological_dust": "no position below 2.5% signal-basis weight after two consecutive executions",
+    "I5_effective_N": "V2 minimum invested-normalized effective N across executions > V1C minimum, for each factor",
+    "I6_accounting": "final cash reconciles to the trade log within $0.01, and recomputed costs from the trade log match within $0.01",
+    "I7_determinism": "two runs produce identical trade-log sha256",
+    "I8_ranking_unchanged": "V1 contract and V1 census script sha256 verified at start; ranking function is the V1 module object",
+    "PASS": "PORTFOLIO_INTEGRITY_PASS iff I1..I8 pass for both factors",
+    "returns": "diagnostic only"
+  },
+  "attribution": "MOM vs MTUM and LOWVOL vs USMV: universe, weighting, rebalance, turnover, concentration, sector, cash drag, whole-share; holdings market cap from dei shares outstanding x close; ETF methodology from official MSCI/iShares pages",
+  "forbidden_after_outcome": ["band limits", "fill assumption", "transition gap rule", "anything in unchanged_from_v1", "gates"],
+  "out_of_scope": ["broker orders", "LOC fill model (V3 Paper contract)", "runtime", "scheduler", "UI", "paper service"],
+  "DEPLOY": "NO",
+  "PAPER": "NO",
+  "RUNTIME": "NO"
+}

@@ -1,0 +1,58 @@
+{
+  "contract": "us-b-equity-auto-factor-v2.1-contract-correction-and-cash-integrity",
+  "status": "FROZEN_BEFORE_PORTFOLIO_OUTCOME",
+  "frozen_at": "2026-10-19",
+  "amends": {
+    "v2_contract_canonical_sha256": "c1933d02336b7bc83a1b50dbd49dac76627c0ae9a1c4fb3fb9573dd9c712576a",
+    "v2_script_sha256": "6597cfd2bfd97e0eac1e13c6a60d41213731425f37c71819a9d25a3d03e750b1",
+    "v2_result_sha256": "7b9569ad06a18c59a6d63c52805a93bae903465f69902d6e81890745349bde84"
+  },
+  "v2_record": "V2 = PORTFOLIO_INTEGRITY_FAIL (MOM 8/8 PASS, LOWVOL I5 FAIL) is preserved and not re-labelled",
+  "unchanged": [
+    "MOM12_2, LOWVOL252 (V1 ranking function object)", "universe, ADV >= $5M", "N = 20", "5% target", "entry top 10%, hold top 20%",
+    "monthly calendar, next-session close fill", "whole shares", "40 bp + SEC + TAF", "ticker continuity (V2)", "drift band 2.5%..7.5% (V2)",
+    "no sector cap, no regime filter, no factor combination"
+  ],
+  "rebalance_order": [
+    "1 exit: outside hold zone -> full exit",
+    "2 trim: signal-basis weight > 7.5% -> sell to max(1, floor(5% NAV_signal / sizing price))",
+    "3 top-up: signal-basis weight < 2.5% and inside hold zone -> buy up to floor(5% NAV_signal / sizing price)",
+    "4 entry: empty slots from the top-10% zone in rank order (V2 rules incl. whole-share skip and the 2.5% cash-short stop)",
+    "5 cash allocation: holdings inside the top-10% zone whose signal-basis weight after steps 1-4 is < 5%, in rank order, one pass: buy floor((5% NAV_signal - current signal-basis value) / sizing price) shares, decremented while cash is short",
+    "6 no position exceeds the 5% target through step 5 (signal basis)",
+    "7 residual cash stays cash"
+  ],
+  "cash_allocation_scope": "held names only (step 4 already offers every empty slot to the top-10% zone); N never exceeds 20; applies to BOTH books (one portfolio engine)",
+  "signal_basis": "value = shares x signal close in execution-day share units; weight = value / NAV at the signal close (pre-trade)",
+  "I5_amended": {
+    "defect_definition": "V1C (V1 weights + continuity) has a non-single-share position with post-execution signal-basis weight outside [2.5%, 7.5%] at any execution",
+    "if_defect": "min invested-normalized effective N (V2.1) > min (V1C)",
+    "if_no_defect": "NOT_APPLICABLE_PASS iff min effective N (V2.1) >= min (V1C) AND I3 passes AND max top-SIC2 count over executions (V2.1) <= that of V1C",
+    "v2_fail_record": "kept"
+  },
+  "gates": {
+    "MOM12_2_CASH_INTEGRITY_PASS": [
+      "V2 gates I1..I8 with amended I5",
+      "C1 allocation completeness: after every execution, no held top-10% name could take one more share with the remaining cash without exceeding 5% signal-basis weight",
+      "C2 no overshoot: no step-5 trade leaves a position above 5% signal-basis weight",
+      "C3 holdings <= 20 at every execution",
+      "C4 idle cash repaired: mean post-execution cash % (V2.1) < V2 mean (7.08%)"
+    ],
+    "LOWVOL252_PORTFOLIO_INTEGRITY_PASS": [
+      "V2 gates I1..I8 with amended I5",
+      "C1, C2, C3 as above (C4 not applied: LOWVOL had no trim-cash defect; its cash is whole-share residue)"
+    ],
+    "separate_verdicts": "the two books are judged separately; no combined verdict"
+  },
+  "measurements": ["average and max cash %", "turnover", "cost", "effective N", "max/min weight", "cash allocation trades", "sector concentration", "V2 vs V2.1"],
+  "returns": "diagnostic only",
+  "forbidden_after_outcome": ["cash rule", "band", "sector cap", "N", "gates"],
+  "next": {
+    "MOM_pass": "V3 Paper Contract candidate",
+    "LOWVOL_pass": "implementable control candidate; paper is a separate economic decision",
+    "before_V3": "separate Risk Overlay Contract review (single-name, industry/sector, beta, volatility); not implemented in V2.1"
+  },
+  "DEPLOY": "NO",
+  "PAPER": "NO",
+  "RUNTIME": "NO"
+}

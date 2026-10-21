@@ -1,0 +1,129 @@
+{
+  "contract": "us-b-equity-auto-factor-v1-implementation-census",
+  "status": "FROZEN_BEFORE_PORTFOLIO_OUTCOME",
+  "frozen_at": "2026-10-19",
+  "purpose": "implementation census of literature factors under personal long-only whole-share constraints; not alpha discovery",
+  "prior_stage": "FACTOR_V0_PREVALIDATION_V1.md = FEASIBLE_FOR_IMPLEMENTATION_CENSUS (CONDITIONAL)",
+  "factor_status": {
+    "MOM12_2": "PRIMARY_TRACK_A",
+    "LOWVOL252": "PRIMARY_TRACK_B",
+    "GPA": "DATA_REPAIR_REQUIRED",
+    "STREV": "COST_REJECTED",
+    "combination": "FORBIDDEN"
+  },
+  "data": {
+    "prices": "data/runtime/strategy_c/raw/grouped (Massive grouped daily, unadjusted), sessions 2024-09-17..2026-10-12 (519)",
+    "splits": "data/runtime/strategy_c/raw/splits, back-adjust: prices before execution_date multiplied by split_from/split_to",
+    "universe_snapshots": "CS_*.json.gz in strategy_c/raw/tickers and research_universe_u1/reference/tickers; snapshot = latest as_of <= signal date",
+    "sic": "SEC submissions sic via snapshot cik (diagnostic only)",
+    "dividends": "NOT AVAILABLE: price return for portfolios and all benchmarks"
+  },
+  "universe": {
+    "security_type": "CS",
+    "primary_exchange": ["XNYS", "XNAS", "XASE"],
+    "min_close_unadjusted_usd": 5.0,
+    "adv_rule": "median of unadjusted close*volume over sessions [i-19, i], NaN skipped, >= 5000000",
+    "must_trade_on_signal_session": true,
+    "excluded_tickers": ["PSKY", "RGC", "LILAK"],
+    "excluded_reason": "residual split-adjustment jump in prevalidation E",
+    "market_cap_floor": "NONE",
+    "sector_exclusion": "NONE"
+  },
+  "features": {
+    "daily_return": "adjusted close(s)/adjusted close(s-1) - 1 over consecutive stored sessions; NaN if either missing",
+    "MOM12_2": {
+      "literature": "Jegadeesh-Titman 1993; Carhart 1997; Fama-French UMD (t-12..t-2 months)",
+      "value": "adjclose[i-21] / adjclose[i-252] - 1",
+      "valid_if": "adjclose[i-21] and adjclose[i-252] present AND >= 200 non-NaN daily returns among sessions [i-251, i-21]",
+      "rank": "descending value, ties by ticker ascending"
+    },
+    "LOWVOL252": {
+      "literature": "trailing 1-year daily realized volatility (S&P 500 Low Volatility / MSCI min-vol practice); AHXZ 2006 low-vol anomaly",
+      "value": "sample std (ddof=1) of daily returns over sessions [i-251, i]",
+      "valid_if": ">= 200 non-NaN daily returns in the window",
+      "rank": "ascending value, ties by ticker ascending"
+    },
+    "ranked_set": "eligible names with a valid feature on the signal session"
+  },
+  "calendar": {
+    "signal_session": "last stored session of each calendar month",
+    "execution_session": "next stored session after the signal session",
+    "first_signal": "2025-09-30",
+    "last_signal": "2026-09-30",
+    "executions": 13,
+    "primary_window": "close 2025-10-01 (after initial build) .. close 2026-10-01 (after 12th rebalance)",
+    "tail_diagnostic": "NAV continues to 2026-10-12, reported separately"
+  },
+  "portfolio": {
+    "capital_usd": 10000,
+    "N": 20,
+    "target_weight": 0.05,
+    "weighting": "equal target at entry only; market-cap weighting forbidden",
+    "fractional_shares": "FORBIDDEN",
+    "entry_zone": "rank <= floor(0.10 * ranked_set_size)",
+    "hold_zone": "rank <= floor(0.20 * ranked_set_size); a holding outside it (or ineligible, or feature invalid) is SOLD",
+    "drift_rule": "membership change only: existing holdings are never trimmed or topped up",
+    "target_usd": "0.05 * NAV at signal close (cash + shares * unadjusted signal close); initial build 500",
+    "sizing_price": "unadjusted close of the signal session (known when the order is placed)",
+    "shares_planned": "floor(target_usd / sizing_price)",
+    "whole_share_skip": "shares_planned == 0 (price > target) -> candidate skipped, next entry-zone candidate in rank order is tried",
+    "buy_order": "entry-zone candidates not held, in rank order, until holdings == N or entry zone exhausted",
+    "cash_constraint": "if shares_planned * fill * (1+cost) > cash, decrement shares by 1 until it fits; if 0 -> cash-constrained skip and buying STOPS for this rebalance",
+    "residual_cash": "stays cash, no interest",
+    "sell_proceeds": "available for buys in the same execution session (sells processed first)"
+  },
+  "execution_reference": {
+    "intended_live_order": "Kiwoom REST LOC (trde_tp 30) on the execution session",
+    "fill_price": "unadjusted close of the execution session",
+    "fill_assumption": "close is not a guaranteed fill; friction is inside the 40 bp cost",
+    "missing_close_on_execution": "sell at last available close, flagged; not bought",
+    "delisting_or_price_stop": "position valued at last available close until the next execution, then sold at that price, flagged",
+    "split_handling": "position value follows adjusted close ratio; share count does not need re-basing"
+  },
+  "cost": {
+    "primary_one_way_bp": 40,
+    "primary_components_bp": {"commission": 25, "spread": 10, "slippage": 5},
+    "diagnostic_one_way_bp": [0, 20, 30],
+    "regulatory_on_sells": {"sec_section31_bp": 0.206, "finra_taf_usd_per_share": 0.000195, "finra_taf_max_usd": 9.79},
+    "applied_to": "every fill notional; regulatory fees on sells only, in all scenarios including 0 bp",
+    "verdict_scenario": "40 bp"
+  },
+  "benchmarks": {
+    "required": ["SPY", "RSP"],
+    "factor_reference": {"MOM12_2": "MTUM", "LOWVOL252": "USMV"},
+    "return_type": "price return, same window closes",
+    "interpretation": "implementation sanity only; no premium claim from 12 months"
+  },
+  "measurements": [
+    "monthly eligible N, ranked_set N, entry/hold zone size",
+    "post-rebalance holdings N",
+    "whole-share skips, replacements, cash-constrained skips",
+    "cash % after each rebalance",
+    "one-way turnover per rebalance = (buys + sells) / (2 * NAV before trades), initial build excluded",
+    "annualized turnover = sum over the 12 rebalances",
+    "transaction-cost drag = costs (initial build excluded) / mean NAV, annualized",
+    "realized weights after each rebalance: min, max, std, HHI",
+    "top holding weight at month ends",
+    "SIC division and 2-digit concentration (diagnostic)",
+    "trade count per rebalance",
+    "returns: gross (0 bp + regulatory), net 40 bp, minus SPY, RSP, factor ETF"
+  ],
+  "implementable_gates": {
+    "note": "numeric thresholds added at freeze by the implementer (contract section 14 is qualitative); all must pass per factor",
+    "G1_coverage": "valid feature / eligible >= 0.90 at every signal",
+    "G2_cross_section": "ranked_set >= 500 at every signal (entry zone >= 50 = 2.5 N)",
+    "G3_holdings": "post-rebalance holdings >= 18 at >= 11 of 13 executions and >= 15 at all 13",
+    "G4_cash_drag": "post-rebalance cash % median <= 10 and max <= 20",
+    "G5_turnover": "annualized one-way turnover <= 3.0 (MOM12_2) / <= 1.2 (LOWVOL252); 1.5x the prevalidation band estimate (1.99 / 0.77); equivalent 40 bp cost drag about <= 2.4% / <= 1.0% per year",
+    "G6_corporate_action": "0 held-position days with |adjusted daily return| > 50% within 2 sessions of a split execution_date of that ticker",
+    "G7_determinism": "two independent runs produce identical trade-log sha256",
+    "G8_no_collapse": "cash never negative, NAV finite every session, holdings never 0 after the initial build",
+    "returns": "NOT a gate; a negative 12-month return does not fail the factor"
+  },
+  "forbidden_after_outcome": ["change N", "change 10/20 thresholds", "add market-cap floor", "exclude sectors", "exclude periods", "change rebalance dates", "combine MOM and LOWVOL", "add regime filter", "change gates"],
+  "out_of_scope": ["runtime", "scheduler", "broker execution", "UI", "paper service", "production unit"],
+  "paper_promotion": "IMPLEMENTABLE is necessary, not sufficient; paper requires a separate user decision and a LOC fill-behavior contract",
+  "DEPLOY": "NO",
+  "PAPER": "NO",
+  "RUNTIME": "NO"
+}

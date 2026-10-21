@@ -1,0 +1,56 @@
+{
+  "months": [
+    {
+      "signal": "2025-09-30",
+      "order_sha256": "aac112dda035e7404761dd4fcc52603f705bc6a3d7037deb63bbd11bcbaa678f"
+    },
+    {
+      "signal": "2025-10-31",
+      "order_sha256": "3284e552ac5cd0c29654aa8c4e86cb99578ba8d6a5142f71960e92066f8b722c"
+    },
+    {
+      "signal": "2025-11-28",
+      "order_sha256": "a0a66183d2e3db8896e4b2e0932840ca83109a5daa7235106147e5bfb1ebad37"
+    },
+    {
+      "signal": "2025-12-31",
+      "order_sha256": "ccb69e00c9b84b8d0416c0429450d42c981cabe66099e51e2bb2954fe53dc129"
+    },
+    {
+      "signal": "2026-01-30",
+      "order_sha256": "6d85b406ea95b7572673ddf7162014ec31c0be9dd6a2290de665e7b03238184e"
+    },
+    {
+      "signal": "2026-02-27",
+      "order_sha256": "0812005dac3d6801a6854b31a71f3a7030b89e3bdf111e796558bfbddd99e18e"
+    },
+    {
+      "signal": "2026-03-31",
+      "order_sha256": "06357ec0197133bc6f5212af9807566aeb2a3eb9d3d14482fea482f53053c0fb"
+    },
+    {
+      "signal": "2026-04-30",
+      "order_sha256": "f76f46ab7bfaeb63c3f5858cb4cb9608a980414d04d6074873ca7afe0876dac4"
+    },
+    {
+      "signal": "2026-05-29",
+      "order_sha256": "b48b82d22341ad5fc7c7bc361a97f3a69e06546117ef0145e537a2a05c7fa4f8"
+    },
+    {
+      "signal": "2026-06-30",
+      "order_sha256": "2abd883d29796e9813ea168b2ed2d794f12e22faebd100df0507e50fc0d3eef9"
+    },
+    {
+      "signal": "2026-07-31",
+      "order_sha256": "c436c9b3ad201ef65f0997a6733c11051f1ac59f4bde5f3715b81123ceed6791"
+    },
+    {
+      "signal": "2026-08-31",
+      "order_sha256": "768db33fa8dc926a23549d923a632c7a5a00158516da8539ab89e247e9e3028f"
+    },
+    {
+      "signal": "2026-09-30",
+      "order_sha256": "dbb46c5f3fe7a2ae7919bac1b4698a39f804594a3c4d54221a164def7d90b7f9"
+    }
+  ]
+}

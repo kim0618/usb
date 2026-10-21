@@ -1,0 +1,1089 @@
+{
+ "contract": "us-b-equity-auto-factor-v2.1-risk-overlay-industry",
+ "contract_id": "I-R1",
+ "freeze_task": "US-B-I-R1F1",
+ "candidate_id": "I-R1F0",
+ "candidate_version": "R1_FREEZE_CANDIDATE_FROM_V3_2_LOW",
+ "contract_version": "R1_FROZEN_FROM_I_R1F0_CANDIDATE",
+ "status": "R1_FROZEN",
+ "frozen_at": "2026-10-21T12:18:06+09:00",
+ "approved": true,
+ "derived_from_candidate": {
+  "path": "docs/backtest/equity_factor_v0/risk_overlay_r1f0/I_R1F0_CONTRACT_FREEZE_CANDIDATE.json",
+  "raw_sha256": "2627464f84a03465137be44e2a9274ae9139e7d0081c731825e04000283a8855",
+  "canonical_sha256": "969c45d58275d37b383b1bae0b9e174556e735fd0ad734c3498295a732d6c176",
+  "md_path": "docs/backtest/equity_factor_v0/risk_overlay_r1f0/I_R1F0_CONTRACT_FREEZE_CANDIDATE.md",
+  "md_raw_sha256": "06fb3a541d9297b15d475ce1f32592ab05685834bfa44865f1df6decc5c1084a",
+  "change_scope": "approval/status fields only; decisions, option texts, conditions, RP measures and limits, clause texts copied unchanged"
+ },
+ "schema_note": "No predefined JSON schema exists for the R1 overlay contract (searched equity_factor_v0/). Top-level key style follows FACTOR_V1/V2.1 contract JSON (contract, status, frozen_at, ..., forbidden_after_outcome, next, DEPLOY, PAPER, RUNTIME). This file does not establish a canonical schema. R1F1: no official JSON schema definition exists for this contract. The frozen file keeps every I-R1F0 candidate key and adds contract_id, freeze_task, contract_version, derived_from_candidate, per-decision r1_approval, freeze_record and not_done. Structural compatibility is checked by key comparison only, not by schema validation.",
+ "book": "MOM12_2_RO (MOM12_2 only; LOWVOL252 out of scope)",
+ "canonical_parent": {
+  "path": "docs/backtest/equity_factor_v0/FACTOR_V2_1_CORRECTION_CONTRACT.json",
+  "raw_sha256": "bc2e012dc56c378ec57659a38fe4409c3ea37283b45c1ad399bf3a3ca49d8765",
+  "canonical_sha256": "34d8fa7591cbafb753470c02847e00d66fe2a3f53b9e32ae17ff11464ee24e4d",
+  "canonical_method": "json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False)",
+  "modified": false
+ },
+ "baseline_text": {
+  "path": "docs/backtest/equity_factor_v0/risk_overlay_r0d4j/I_R0D4J_CONTRACT_V3_2_LOW_CANDIDATE.md",
+  "raw_sha256": "308947cf8acb9b488f58696b5a48e2030f7f580041c648a7527be5e37173cc91",
+  "text_status_inside_file": "PROPOSED_V3_2_LOW_CORRECTED_NOT_FROZEN",
+  "incorporation": "by reference, bytes unchanged; this candidate applies only r1_deltas",
+  "user_confirmation": "U3 = APPROVED_CANDIDATE (recorded in D17-R execution report header)"
+ },
+ "sources": [
+  {
+   "path": "docs/backtest/equity_factor_v0/FACTOR_V2_1_CORRECTION_CONTRACT.json",
+   "sha256": "bc2e012dc56c378ec57659a38fe4409c3ea37283b45c1ad399bf3a3ca49d8765",
+   "role": "ORIGINAL_CANONICAL_V2_1"
+  },
+  {
+   "path": "docs/backtest/equity_factor_v0/cash_integrity_census_v2_1.py",
+   "sha256": "c6b78d9cbd5f3b30523850bb2b581630ae3045952657373335950d074f43fef6",
+   "role": "ORIGINAL_CODE_V2_1"
+  },
+  {
+   "path": "docs/backtest/equity_factor_v0/integrity_census_v2.py",
+   "sha256": "6597cfd2bfd97e0eac1e13c6a60d41213731425f37c71819a9d25a3d03e750b1",
+   "role": "ORIGINAL_CODE_V2"
+  },
+  {
+   "path": "docs/backtest/equity_factor_v0/implementation_census_v1.py",
+   "sha256": "6f8cf6730f75d97296fcc659e629ad8473f35e88d99a36dd466b195fdc60b910",
+   "role": "ORIGINAL_CODE_V1"
+  },
+  {
+   "path": "docs/backtest/equity_factor_v0/risk_overlay_r0d4h/I_R0D4H_RISK_OVERLAY_CONTRACT_V3_2.md",
+   "sha256": "eb984dc1f804c283b96d2a05939a00db00c0d7f91544584f91ce962e1aaf3ee6",
+   "role": "V3_2_ORIGINAL_CONTRACT_TEXT"
+  },
+  {
+   "path": "docs/backtest/equity_factor_v0/risk_overlay_r0d4j/V3_2_LOW.diff",
+   "sha256": "51fe705d8f2a57f6c65be70b7f7d35ab67b7146415ab398c8323c4ad9ad52031",
+   "role": "LOW_REPAIR_DIFF"
+  },
+  {
+   "path": "docs/backtest/equity_factor_v0/risk_overlay_r0d4j/I_R0D4J_CONTRACT_V3_2_LOW_CANDIDATE.md",
+   "sha256": "308947cf8acb9b488f58696b5a48e2030f7f580041c648a7527be5e37173cc91",
+   "role": "R1_BASELINE_TEXT"
+  },
+  {
+   "path": "docs/backtest/equity_factor_v0/risk_overlay_r0d4j/SHA256SUMS",
+   "sha256": "2efdd1301da3d51468ecce05123d60e067862c1476915fc75f50c76ff10e580f",
+   "role": "R0D4J_BUNDLE_SUMS"
+  },
+  {
+   "path": "docs/backtest/equity_factor_v0/risk_overlay_r0d4j/decision_register.json",
+   "sha256": "6e22ed491f591549f21b25f73a2e278465c6784a9c47aca67a012f012b4c25b0",
+   "role": "DECISION_REGISTER_DATA (approved=false, unchanged)"
+  },
+  {
+   "path": "docs/backtest/equity_factor_v0/risk_overlay_r0d4j/I_R0D4J_R1_DECISION_REGISTER.md",
+   "sha256": "27b05f23398ea64dd48a8dd50773026b7bab232aa4aa883359bdd1fa55d97db1",
+   "role": "DECISION_REGISTER_TEXT"
+  },
+  {
+   "path": "docs/backtest/equity_factor_v0/risk_overlay_r0d4k/I_R0D4K_LOW_REPAIR_CROSS_AUDIT_RESULT.md",
+   "sha256": "0c0dae1ee3777e62e667674b1b373047f14f5ff1d97e4a642c562b16327bf0eb",
+   "role": "INDEPENDENT_CROSS_AUDIT"
+  },
+  {
+   "path": "docs/backtest/equity_factor_v0/risk_overlay_r1p/I_R1P_POLICY_DECISION_DRAFT.md",
+   "sha256": "099019016f6ba66b46703e0eac61b46aa47de9890469dfc5eaede36a67b62adb",
+   "role": "POLICY_DRAFT"
+  },
+  {
+   "path": "docs/backtest/equity_factor_v0/risk_overlay_r1p/I_R1P_D17_K01_RESOLUTION_PROPOSAL.md",
+   "sha256": "0210ff177ff4cb783226055aa167176829c6d8ccb54a70bf16ba1dffa7a7269d",
+   "role": "D17_R_CLAUSE_SOURCE"
+  },
+  {
+   "path": "docs/backtest/equity_factor_v0/risk_overlay_r1p/I_R1P_FIXTURE_CROSSCHECK_RESULT.md",
+   "sha256": "a0c14595441a2dc1d026dffca49a2ed57fe79ba7c339cdf92fed3a57bf680128",
+   "role": "HETEROGENEOUS_FIXTURE_CROSSCHECK"
+  },
+  {
+   "path": "docs/backtest/equity_factor_v0/risk_overlay_r1p/I_R1P_EVIDENCE_PRESERVATION_PLAN.md",
+   "sha256": "470fcf6a1c396d862f487d712c8ca3b8637baa623d264d5e72fe0a70260c90a0",
+   "role": "GIT_ALLOWLIST_128_PLAN"
+  },
+  {
+   "path": "docs/backtest/equity_factor_v0/risk_overlay_r1p2/I_R1P2_USER_POLICY_RECORD.md",
+   "sha256": "fe7c7b1563227e2794f2465d5d31a3cdcb5e0828e578f9bac7d325a78f642e52",
+   "role": "USER_POLICY_SELECTION_RECORD"
+  },
+  {
+   "path": "docs/backtest/equity_factor_v0/risk_overlay_r1p2/I_R1P2_D17_CONDITIONAL_GATE.md",
+   "sha256": "77a862ad1c94032313a9aae79740711f56fee2d71df188dfc3365f02976fa32d",
+   "role": "D17_GATE_DEFINITION"
+  },
+  {
+   "path": "docs/backtest/equity_factor_v0/risk_overlay_r1p2/I_R1P2_GIT_ALLOWLIST_AUDIT.md",
+   "sha256": "5f505ab948889b438a6592e1e975900d55b0bdaad7a6de1f67a43e9b2a02a553",
+   "role": "GIT_ALLOWLIST_AUDIT"
+  },
+  {
+   "path": "docs/backtest/equity_factor_v0/risk_overlay_r1p2/I_R1P2_PREFREEZE_READINESS_REPORT.md",
+   "sha256": "3b0f5eafcce9b1cc486db7d3dbe9137f76e2104a67ad7031def3d8c3316c8932",
+   "role": "PREFREEZE_READINESS"
+  },
+  {
+   "path": "docs/backtest/equity_factor_v0/risk_overlay_r1p2/SHA256SUMS",
+   "sha256": "3a30aa8a2b4dbfdd4d8c352c4320b23d95a4eac7d162c5e19d97d0021db5d5c0",
+   "role": "R1P2_BUNDLE_SUMS"
+  },
+  {
+   "path": "docs/backtest/equity_factor_v0/risk_overlay_r1p3/I_R1P3_E1_CORRECTION.md",
+   "sha256": "4d4b5cb597fe92c7b8fb7f311e2336f69d24a41f655feea66d96ab8d75d17906",
+   "role": "E1_R_CLAUSE_SOURCE"
+  },
+  {
+   "path": "docs/backtest/equity_factor_v0/risk_overlay_r1p3/I_R1P3_D17_EXECUTION_PLAN.md",
+   "sha256": "ee9d108e0e72925cfab6a3aa5c24922d72b200bff1a100cc5289a07cf3d7b550",
+   "role": "D17_R_EXECUTION_PLAN"
+  },
+  {
+   "path": "docs/backtest/equity_factor_v0/risk_overlay_r1p3/I_R1P3_R1_BASELINE_CANDIDATE.md",
+   "sha256": "43b23b2c440ce35ec756a0a5b7b3be71326fde2cb3d5430568d8b2139c375b52",
+   "role": "R1_DELTA_LIST_SOURCE"
+  },
+  {
+   "path": "docs/backtest/equity_factor_v0/risk_overlay_r1p3/I_R1P3_PREFLIGHT_RESULT.md",
+   "sha256": "a4cecb63004c6a775a201cc0edd9b2d52fb0dd4e843b85441304b1bb2b4a4618",
+   "role": "R1P3_PREFLIGHT"
+  },
+  {
+   "path": "docs/backtest/equity_factor_v0/risk_overlay_r1p3/scripts/e1_recount.py",
+   "sha256": "6b2d4ca66e6e3e44f1d7b2564947b413b2a4c9fad822136588a0a4d05e0a8fd4",
+   "role": "E1_RECOUNT_SCRIPT"
+  },
+  {
+   "path": "docs/backtest/equity_factor_v0/risk_overlay_d17r_exec/I_D17R_EXECUTION_RESULT.md",
+   "sha256": "40ecf95a1876dae9294a0a4cc3a36e71791563453f8f1891cdba9597f9b42da5",
+   "role": "D17_R_EXECUTION_REPORT"
+  },
+  {
+   "path": "docs/backtest/equity_factor_v0/risk_overlay_d17r_exec/d17r_result.json",
+   "sha256": "a89e807ebd4e96082489592d1bc45239c93fcc0e6e537e0c21a55be3d0b2cfe8",
+   "role": "D17_R_JUDGE_OUTPUT"
+  },
+  {
+   "path": "docs/backtest/equity_factor_v0/risk_overlay_d17r_exec/input_manifest.json",
+   "sha256": "0e51fdae3e4058a4cced6019f791280c30073046a99020c9587336457a985ad4",
+   "role": "D17_R_INPUT_MANIFEST"
+  },
+  {
+   "path": "docs/backtest/equity_factor_v0/risk_overlay_d17r_exec/preflight_before.json",
+   "sha256": "82df7e719f6e9d41bdb2777377a932627902f66d4259320dfe96b6b2c926c911",
+   "role": "D17_R_S0_SNAPSHOT"
+  },
+  {
+   "path": "docs/backtest/equity_factor_v0/risk_overlay_d17r_exec/postcheck_after.json",
+   "sha256": "58650506437c807faaa9bbd40974917671d2b45cf9d5898fe512819edd0d8e14",
+   "role": "D17_R_S6_SNAPSHOT"
+  },
+  {
+   "path": "docs/backtest/equity_factor_v0/census_v2_1/MOM12_2_v2_1_trades_40bp.csv",
+   "sha256": "af4712474a60961739facc30b3254bb3ebb88f928e4db3c4ae150c28aa20dea4",
+   "role": "ORIGINAL_RECORDED_OUTPUT (A1 reference)"
+  },
+  {
+   "path": "docs/backtest/equity_factor_v0/census_v2_1/MOM12_2_v2_1_nav_40bp.csv",
+   "sha256": "1b88912592b349a7d68c9eb8689166978faf3116a8c410fee6d5c322b1610fc0",
+   "role": "ORIGINAL_RECORDED_OUTPUT (A2 reference)"
+  },
+  {
+   "path": "docs/backtest/equity_factor_v0/risk_overlay_d17r_exec/v21_out/MOM12_2_v2_1_trades_40bp.csv",
+   "sha256": "af4712474a60961739facc30b3254bb3ebb88f928e4db3c4ae150c28aa20dea4",
+   "role": "REPLAY_VERIFICATION_OUTPUT (A1)"
+  },
+  {
+   "path": "docs/backtest/equity_factor_v0/risk_overlay_d17r_exec/v21_out/MOM12_2_v2_1_nav_40bp.csv",
+   "sha256": "1b88912592b349a7d68c9eb8689166978faf3116a8c410fee6d5c322b1610fc0",
+   "role": "REPLAY_VERIFICATION_OUTPUT (A2)"
+  },
+  {
+   "path": "docs/backtest/equity_factor_v0/risk_overlay_r0c/rank_replay_run1.json",
+   "sha256": "65a941933f2a6ac7f056f96bbbe7d33094aafbd0bc592c04c7ba2405c522cd57",
+   "role": "R0C_REPLAY_RANK_REFERENCE (A3, not original V2.1 run)"
+  },
+  {
+   "path": "docs/backtest/equity_factor_v0/risk_overlay_d17r_exec/rank_replay/rank_replay.json",
+   "sha256": "65a941933f2a6ac7f056f96bbbe7d33094aafbd0bc592c04c7ba2405c522cd57",
+   "role": "REPLAY_VERIFICATION_OUTPUT (A3)"
+  },
+  {
+   "path": "docs/backtest/equity_factor_v0/risk_overlay_r0c/sic_recover.py",
+   "sha256": "c6e2217e34cd4449040fb6950a94fe1a8d88a42af341e02de0dab8039cbb0b65",
+   "role": "R0C_ORIGINAL_EVIDENCE_SCRIPT"
+  },
+  {
+   "path": "docs/backtest/equity_factor_v0/risk_overlay_r0c/sic_recover.json",
+   "sha256": "4c70fd7caeb1b9963cebdcbcf2fcdb306d76cceac4d816004a9272bfb5ddf4ac",
+   "role": "R0C_ORIGINAL_EVIDENCE"
+  }
+ ],
+ "policy_decisions": [
+  {
+   "id": "D1",
+   "group": "G1",
+   "question": "SEC SIC2, κ=25%",
+   "selected": "A",
+   "user_selection_recorded": "A",
+   "option_text_register": "SEC SIC2와 κ=25% 후보 채택",
+   "classification": "RETAIN_V3_2",
+   "inherited_conditions": "신호일 계획 cap. 실제·월중 cap 보장 아님. 위험 감소 실증 근거로 쓰지 않음. 다른 κ 비교 금지",
+   "register_recommendation": "A",
+   "source_clause": "D.1~D.5, F.4",
+   "register_approved_field": false,
+   "register_selected_field": null,
+   "r1_approval": "APPROVED_S1_FROZEN"
+  },
+  {
+   "id": "D2",
+   "group": "G1",
+   "question": "산업 축소 전량 청산만",
+   "selected": "A",
+   "user_selection_recorded": "A",
+   "option_text_register": "산업 축소는 전량 청산",
+   "classification": "RETAIN_V3_2",
+   "inherited_conditions": "매도 가격·검증 자격 충족 시에만",
+   "register_recommendation": "A",
+   "source_clause": "F.1, F.4, G.3, M1/M4",
+   "register_approved_field": false,
+   "register_selected_field": null,
+   "r1_approval": "APPROVED_S1_FROZEN"
+  },
+  {
+   "id": "D3",
+   "group": "G1",
+   "question": "나쁜 frozen rank 우선. 공개: F.4에서 가장 나쁜 rank 보유가 실행 종가 결측으로 팔 수 없으면 팔 수 있는 보유 중 그다음 나쁜 rank를 판다(C23) `[V3.1Δ R36]`",
+   "selected": "A",
+   "user_selection_recorded": "A",
+   "option_text_register": "팔 수 있는 보유 중 나쁜 frozen rank부터",
+   "classification": "RETAIN_V3_2",
+   "inherited_conditions": "순위 재산정 없음",
+   "register_recommendation": "A",
+   "source_clause": "F.4, N D3",
+   "register_approved_field": false,
+   "register_selected_field": null,
+   "r1_approval": "APPROVED_S1_FROZEN"
+  },
+  {
+   "id": "D4",
+   "group": "G1",
+   "question": "cap 원인 dust 2회 청산, **단 2회째가 검증 상태일 때만**",
+   "selected": "A",
+   "user_selection_recorded": "A",
+   "option_text_register": "CAP_DUST 2회째이고 검증 상태일 때만 전량청산",
+   "classification": "RETAIN_V3_2",
+   "inherited_conditions": "D5 A와 한 묶음",
+   "register_recommendation": "A",
+   "source_clause": "G.1~G.3, F.2",
+   "register_approved_field": false,
+   "register_selected_field": null,
+   "r1_approval": "APPROVED_S1_FROZEN"
+  },
+  {
+   "id": "D16",
+   "group": "G1",
+   "question": "월간 signal 기준 계획 cap",
+   "selected": "A",
+   "user_selection_recorded": "A",
+   "option_text_register": "월간 신호일 기준 PLAN_CAP, 월중/실행 종가 집중은 진단",
+   "classification": "RETAIN_V3_2",
+   "inherited_conditions": "가격 drift로 실제 산업 비중 25% 초과 가능(진단 공개)",
+   "register_recommendation": "A",
+   "source_clause": "F.4, J.3, M14",
+   "register_approved_field": false,
+   "register_selected_field": null,
+   "r1_approval": "APPROVED_S1_FROZEN"
+  },
+  {
+   "id": "D5",
+   "group": "G2",
+   "question": "UNKNOWN과 **CARRIED 모두** 강제 매도 없음, 매수만 금지",
+   "selected": "A",
+   "user_selection_recorded": "A",
+   "option_text_register": "UNKNOWN/CARRIED 매수 금지, 분류 사유 강제매도 없음",
+   "classification": "RETAIN_V3_2",
+   "inherited_conditions": "원 exit/trim은 계속 적용. 미검증 노출은 D-GATE-C로 판정",
+   "register_recommendation": "A",
+   "source_clause": "F.2, G.2, I.4",
+   "register_approved_field": false,
+   "register_selected_field": null,
+   "r1_approval": "APPROVED_S1_FROZEN"
+  },
+  {
+   "id": "D6",
+   "group": "G2",
+   "question": "전방 이어쓰기 깊이 1, FRESH에서만, 보유만",
+   "selected": "A",
+   "user_selection_recorded": "A",
+   "option_text_register": "전방 조회 실패 시 직전 FRESH인 기존 보유만 1회 CARRIED",
+   "classification": "RETAIN_V3_2",
+   "inherited_conditions": "전방 전용. 200 응답 빈 값은 carry 사유 아님",
+   "register_recommendation": "A",
+   "source_clause": "C.3",
+   "register_approved_field": false,
+   "register_selected_field": null,
+   "r1_approval": "APPROVED_S1_FROZEN"
+  },
+  {
+   "id": "D7",
+   "group": "G2",
+   "question": "분류 스냅샷 실패 시 단계 1, 2, 4a만. 가격 결측 산업 `EXPOSURE_UNVERIFIABLE`",
+   "selected": "A",
+   "user_selection_recorded": "A",
+   "option_text_register": "분류 전체 실패 시 1·2·4a만, 매수 중지; 산업 신호가격 결측은 EXPOSURE_UNVERIFIABLE",
+   "classification": "RETAIN_V3_2",
+   "inherited_conditions": "역사 표 실패는 실행 중단",
+   "register_recommendation": "A",
+   "source_clause": "I.1~I.3, C.2/C.3",
+   "register_approved_field": false,
+   "register_selected_field": null,
+   "r1_approval": "APPROVED_S1_FROZEN"
+  },
+  {
+   "id": "D12",
+   "group": "G2",
+   "question": "역사 Census NON_PIT 수용",
+   "selected": "A",
+   "user_selection_recorded": "A",
+   "option_text_register": "역사 NON_PIT 구조 진단 한계 수용",
+   "classification": "JUDGEMENT_ONLY",
+   "inherited_conditions": "위험 감소·alpha·당시 실행가능성 주장 금지",
+   "register_recommendation": "A",
+   "source_clause": "C.2/C.4, J.5",
+   "register_approved_field": false,
+   "register_selected_field": null,
+   "r1_approval": "APPROVED_S1_FROZEN"
+  },
+  {
+   "id": "D-GATE-C",
+   "group": "G2",
+   "question": "RP-10 미검증 노출 ≤ 5%(새 정책값) 채택 여부 `[V3Δ C56]`",
+   "selected": "A",
+   "user_selection_recorded": "A",
+   "option_text_register": "max 미검증 노출≤5% 신규 정책 채택",
+   "classification": "NEW_POLICY_VALUE (RP-10)",
+   "inherited_conditions": "동결 원천 없음. \"한 종목 목표 5%\" 연결은 설명일 뿐",
+   "register_recommendation": "A",
+   "source_clause": "J.2 RP-10, I.3/I.4",
+   "register_approved_field": false,
+   "register_selected_field": null,
+   "r1_approval": "APPROVED_S1_FROZEN"
+  },
+  {
+   "id": "D8",
+   "group": "G3",
+   "question": "신규 중복 매수 금지 **+ 기존 중복은 나쁜 rank 티커 전량 매도**",
+   "selected": "A",
+   "user_selection_recorded": "A",
+   "option_text_register": "동일 CIK 신규 중복 금지 + 기존 중복 나쁜 rank 전량청산",
+   "classification": "RETAIN_V3_2",
+   "inherited_conditions": "as-of CIK, 결측 체결가는 매도 연기",
+   "register_recommendation": "A",
+   "source_clause": "D.3, F.3, H.1, HI-08",
+   "register_approved_field": false,
+   "register_selected_field": null,
+   "r1_approval": "APPROVED_S1_FROZEN"
+  },
+  {
+   "id": "D9",
+   "group": "G3",
+   "question": "같은 execution 재진입 금지(CIK 단위). 공개: BLOCK은 4a~4c 매도 CIK만 담으므로 `EXIT_HOLD_ZONE`으로 나간 CIK의 다른 클래스 티커는 같은 execution step 4에서 진입할 수 있다(V2와 같은 상태, 회귀 아님). 이 경우를 금지에 넣을지 승인 때 함께 정한다 `[V3.1Δ R36]`",
+   "selected": "A",
+   "user_selection_recorded": "A",
+   "option_text_register": "현재 BLOCK 범위(4a~4c 매도 CIK만) 승인; EXIT_HOLD_ZONE 다른 클래스 진입은 허용",
+   "classification": "RETAIN_V3_2",
+   "inherited_conditions": "\"모든 매도 CIK 금지\"로 읽지 않음",
+   "register_recommendation": "A",
+   "source_clause": "K 4d, H.1, N D9 공개문",
+   "register_approved_field": false,
+   "register_selected_field": null,
+   "r1_approval": "APPROVED_S1_FROZEN"
+  },
+  {
+   "id": "D11",
+   "group": "G4",
+   "question": "수치 표현 **정확 유리수**(원천 값 `num()`), 결정·회계 경로 반올림·epsilon 없음, 회계 허용치 없음. V2의 binary64 + fsum 안 폐기 `[V3Δ C54]`",
+   "selected": "A",
+   "user_selection_recorded": "A",
+   "option_text_register": "num() 기반 정확 유리수, 결정·회계 반올림/epsilon/허용치 없음",
+   "classification": "RETAIN_V3_2",
+   "inherited_conditions": "baseline과 경계 수량 차이는 기존 overlay 제안에 포함",
+   "register_recommendation": "A",
+   "source_clause": "E.3/E.6, HI-05/06/19",
+   "register_approved_field": false,
+   "register_selected_field": null,
+   "r1_approval": "APPROVED_S1_FROZEN"
+  },
+  {
+   "id": "D13",
+   "group": "G4",
+   "question": "전방 대기·부분 체결 정책은 V3 Paper 계약",
+   "selected": "A",
+   "user_selection_recorded": "A",
+   "option_text_register": "전방 주문 대기·부분체결·정산·CIL 평가는 별도 V3 Paper 계약으로 이연",
+   "classification": "DEFERRED",
+   "inherited_conditions": "Paper 구현 승인 아님",
+   "register_recommendation": "A",
+   "source_clause": "E.6/E.9/E.10.6, O",
+   "register_approved_field": false,
+   "register_selected_field": null,
+   "r1_approval": "APPROVED_S1_FROZEN"
+  },
+  {
+   "id": "D17",
+   "group": "G4",
+   "question": "`fund.parquet` 자리채움",
+   "selected": "D17_R",
+   "user_selection_recorded": "CONDITIONAL_D17_R",
+   "option_text_register": null,
+   "classification": "조건부",
+   "inherited_conditions": "(R1P2 기록 시점) 실증 조건 미충족 → `CONDITION_PENDING`. 세부는 D17 게이트 문서 → 이후 R1P4 D17-R 실행으로 충족(D17_R_VERIFIED)",
+   "register_recommendation": "A",
+   "source_clause": "B.2, R0D1 provenance 기록",
+   "register_approved_field": false,
+   "register_selected_field": null,
+   "condition": "D17_R_VERIFIED",
+   "condition_evidence": "docs/backtest/equity_factor_v0/risk_overlay_d17r_exec/d17r_result.json",
+   "replaces_register_option_A": "fund.parquet 자리채움은 PLACEHOLDER_NO_OUTPUT_EFFECT로만 허용",
+   "r1_approval": "APPROVED_S1_FROZEN"
+  },
+  {
+   "id": "D18",
+   "group": "G4",
+   "question": "overlay 수량을 p 단위로 통일(split 달 baseline과 다름)",
+   "selected": "A",
+   "user_selection_recorded": "A",
+   "option_text_register": "overlay 모든 sizing은 실행일 주식 단위 p=Csig×from/to",
+   "classification": "RETAIN_V3_2",
+   "inherited_conditions": "split 달 수량이 baseline과 다를 수 있음",
+   "register_recommendation": "A",
+   "source_clause": "E.2/E.8, H.2, M11",
+   "register_approved_field": false,
+   "register_selected_field": null,
+   "r1_approval": "APPROVED_S1_FROZEN"
+  },
+  {
+   "id": "D19",
+   "group": "G4",
+   "question": "step 3/5 수량을 술어 최대 정수로(경계에서 baseline과 다름)",
+   "selected": "A",
+   "user_selection_recorded": "A",
+   "option_text_register": "step3/5는 공통 술어 최대 정수 수량",
+   "classification": "RETAIN_V3_2",
+   "inherited_conditions": "경계 1주 차이 가능",
+   "register_recommendation": "A",
+   "source_clause": "E.3/E.6, H.4, M12",
+   "register_approved_field": false,
+   "register_selected_field": null,
+   "r1_approval": "APPROVED_S1_FROZEN"
+  },
+  {
+   "id": "D21",
+   "group": "G4",
+   "question": "기업행동 단수주: 역사 모드는 사건 세션에 정수 W와 CIL 채권으로 분리, 첫 유효 raw 종가로 확정, 다음 execution step 0 정산, 수수료 없음. 전방은 브로커 대사만 정하고 나머지는 V3 Paper `[V3Δ C55]`",
+   "selected": "A",
+   "user_selection_recorded": "A",
+   "option_text_register": "역사 정수 W+CIL 채권, E.9 조건의 확정/step0 정산/수수료0; 전방은 대사만",
+   "classification": "RETAIN_V3_2",
+   "inherited_conditions": "정산은 sig_k ≥ s_fix인 첫 execution. 전방 나머지는 D13",
+   "register_recommendation": "A",
+   "source_clause": "E.4/E.9, HI-18, N D21",
+   "register_approved_field": false,
+   "register_selected_field": null,
+   "r1_approval": "APPROVED_S1_FROZEN"
+  },
+  {
+   "id": "D10",
+   "group": "G5",
+   "question": "현금 수준을 PASS 조건으로 둘지 → J절 RP-3/RP-4로 대체",
+   "selected": "A",
+   "user_selection_recorded": "A",
+   "option_text_register": "현금 수용은 J절 RP-3/RP-4 및 복원 RP-4m로 판정, RO-C1은 hard 검사",
+   "classification": "JUDGEMENT_ONLY",
+   "inherited_conditions": "D-GATE-B A와 함께 선택되어 K-07 해소",
+   "register_recommendation": "A",
+   "source_clause": "H.4, J.2, M2, N D10",
+   "register_approved_field": false,
+   "register_selected_field": null,
+   "r1_approval": "APPROVED_S1_FROZEN"
+  },
+  {
+   "id": "D14",
+   "group": "G5",
+   "question": "잔여현금 라벨 → H.5 빈틈없는 사다리로 대체",
+   "selected": "A",
+   "user_selection_recorded": "A",
+   "option_text_register": "H.5 순서 사다리 0~11과 후보별 사유 원장",
+   "classification": "JUDGEMENT_ONLY",
+   "inherited_conditions": "원인별 달러 배분 없음",
+   "register_recommendation": "A",
+   "source_clause": "H.5, HI-13",
+   "register_approved_field": false,
+   "register_selected_field": null,
+   "r1_approval": "APPROVED_S1_FROZEN"
+  },
+  {
+   "id": "D15",
+   "group": "G5",
+   "question": "N<20 허용",
+   "selected": "A",
+   "user_selection_recorded": "A",
+   "option_text_register": "cap/자격 때문에 N<20 허용하고 RP-1/2로 수용 판정",
+   "classification": "RETAIN_V3_2",
+   "inherited_conditions": "N을 이유로 Top10% 구역·cap 완화 금지",
+   "register_recommendation": "A",
+   "source_clause": "G.3, J.2, M6",
+   "register_approved_field": false,
+   "register_selected_field": null,
+   "r1_approval": "APPROVED_S1_FROZEN"
+  },
+  {
+   "id": "D20",
+   "group": "G5",
+   "question": "cash-stop break 유지(기본) 대 continue",
+   "selected": "A",
+   "user_selection_recorded": "A",
+   "option_text_register": "cash-stop에서 break 유지",
+   "classification": "RETAIN_V3_2",
+   "inherited_conditions": "baseline 후보 순서 유지",
+   "register_recommendation": "A",
+   "source_clause": "H.2/H.3, M13",
+   "register_approved_field": false,
+   "register_selected_field": null,
+   "r1_approval": "APPROVED_S1_FROZEN"
+  },
+  {
+   "id": "FD-1",
+   "group": "G5",
+   "question": "RP-1 N=20 완성 빈도 한도",
+   "selected": "A",
+   "user_selection_recorded": "A",
+   "option_text_register": "N=20 빈도≥7/13",
+   "classification": "NEW_POLICY_VALUE (RP-1)",
+   "inherited_conditions": "\"mostly\"의 최소 언어 해석",
+   "register_recommendation": "A",
+   "source_clause": "J.2 RP-1, N FD-1",
+   "register_approved_field": false,
+   "register_selected_field": null,
+   "r1_approval": "APPROVED_S1_FROZEN"
+  },
+  {
+   "id": "FD-2",
+   "group": "G5",
+   "question": "RP-2c 평균 종목 수 한도",
+   "selected": "A",
+   "user_selection_recorded": "A",
+   "option_text_register": "평균 N≥18.0",
+   "classification": "NEW_POLICY_VALUE (RP-2c)",
+   "inherited_conditions": "승계 하한 228/13 ≈ 17.54보다 강함",
+   "register_recommendation": "A",
+   "source_clause": "J.2 RP-2c, N FD-2",
+   "register_approved_field": false,
+   "register_selected_field": null,
+   "r1_approval": "APPROVED_S1_FROZEN"
+  },
+  {
+   "id": "FD-5",
+   "group": "G5",
+   "question": "RP-9 baseline 대비 회전율 배수",
+   "selected": "A",
+   "user_selection_recorded": "A",
+   "option_text_register": "RO/BASE 연 회전율≤1.5",
+   "classification": "NEW_POLICY_VALUE (RP-9)",
+   "inherited_conditions": "V1 G5 \"1.5배\"와 다른 질문. 분모 0이면 NOT_APPLICABLE",
+   "register_recommendation": "A",
+   "source_clause": "J.2 RP-9, N FD-5",
+   "register_approved_field": false,
+   "register_selected_field": null,
+   "r1_approval": "APPROVED_S1_FROZEN"
+  },
+  {
+   "id": "FD-6",
+   "group": "G5",
+   "question": "RP-6 비용률을 판정값으로 승격할지. 값 2.40%는 V1 G5 주석에 있으나 판정 조건이 아니었음 `[V3Δ C56]`",
+   "selected": "A",
+   "user_selection_recorded": "A",
+   "option_text_register": "RP-6 진단 전용 유지",
+   "classification": "JUDGEMENT_ONLY",
+   "inherited_conditions": "2.40%는 V1 약산 주석, hard gate 아님",
+   "register_recommendation": "A",
+   "source_clause": "J.1/J.2 RP-6, V1 G5와 코드G5",
+   "register_approved_field": false,
+   "register_selected_field": null,
+   "r1_approval": "APPROVED_S1_FROZEN"
+  },
+  {
+   "id": "D-GATE-A",
+   "group": "G5",
+   "question": "`FROZEN_INHERITED` 5개(RP-2a, 2b, 4, 4m, 5)를 이 overlay 책에 적용, 정확 값 비교 관례 `[V3Δ C56]`. cash_pct 분자에 미정산 CIL 채권을 넣는 정의 확장(J.2 공개)을 같은 승인 문구에 포함 `[V3.1Δ R35]`",
+   "selected": "A",
+   "user_selection_recorded": "A",
+   "option_text_register": "승계5개와 정확 비교 및 cash_pct CIL 확장을 함께 승인",
+   "classification": "INHERITED_GATE (RP-2a, 2b, 4, 4m, 5)",
+   "inherited_conditions": "한도 숫자는 승계, 정확 비교·분자(cash+CIL) 확장은 이번 새 선택",
+   "register_recommendation": "A",
+   "source_clause": "J.1/J.2, V1 implementable_gates G3/G4/G5",
+   "register_approved_field": false,
+   "register_selected_field": null,
+   "r1_approval": "APPROVED_S1_FROZEN"
+  },
+  {
+   "id": "D-GATE-B",
+   "group": "G5",
+   "question": "RP-3 평균 현금 ≤ 5%(새 정책값) 채택 여부 `[V3Δ C56]`",
+   "selected": "A",
+   "user_selection_recorded": "A",
+   "option_text_register": "평균 cash_pct≤5% 신규 정책 채택",
+   "classification": "NEW_POLICY_VALUE (RP-3)",
+   "inherited_conditions": "baseline 결과를 아는 상태의 제안(blind 아님)",
+   "register_recommendation": "A",
+   "source_clause": "J.2 RP-3, N D-GATE-B",
+   "register_approved_field": false,
+   "register_selected_field": null,
+   "r1_approval": "APPROVED_S1_FROZEN"
+  },
+  {
+   "id": "D-GATE-D",
+   "group": "G5",
+   "question": "현금·N의 baseline 대비 한도를 두지 않는 것 `[V3Δ C56]`",
+   "selected": "A",
+   "user_selection_recorded": "A",
+   "option_text_register": "baseline 대비 cash·N 증가/감소 별도 한도 없음, 절대 한도로 판정",
+   "classification": "JUDGEMENT_ONLY",
+   "inherited_conditions": "상대 회전율 RP-9는 별개 유지",
+   "register_recommendation": "A",
+   "source_clause": "J.2 마지막 문단, J.3, N D-GATE-D",
+   "register_approved_field": false,
+   "register_selected_field": null,
+   "r1_approval": "APPROVED_S1_FROZEN"
+  },
+  {
+   "id": "D22",
+   "group": "G6",
+   "question": "실행 종가 결측 시 overlay 강제 매도 연기, trim 생략(baseline과 같음), HI-11 범위 제외, RP-8b 집계 `[V3Δ C55]`. 평가 상태 계약 E.10(FRESH/STALE/UNVERIFIED 기록, `EXIT_AT_STALE_VALUE`, SFB 진단, 전방 stale 매도 금지, E.10.8 인증 관계) 포함 `[V3.1Δ R26]`. V3.2: `Q = 1` 실행 종가 결측의 trim 판정 순서와 RP-8a 귀속(F.1, HI-11), stale 계수 시점 `_pre`/`_post`(E.10.5) `[V3.2Δ S10]`",
+   "selected": "A",
+   "user_selection_recorded": "A",
+   "option_text_register": "E.7/E.10 결측·stale 처리와 _pre/_post·RP 귀속 그대로",
+   "classification": "RETAIN_V3_2",
+   "inherited_conditions": "역사 stale 장부매도 유지, 전방 stale 매도 금지",
+   "register_recommendation": "A",
+   "source_clause": "E.7/E.10, F.1, HI-11/20",
+   "register_approved_field": false,
+   "register_selected_field": null,
+   "r1_approval": "APPROVED_S1_FROZEN"
+  },
+  {
+   "id": "FD-3",
+   "group": "G6",
+   "question": "RP-8a 단일주 예외 한도",
+   "selected": "A",
+   "user_selection_recorded": "A",
+   "option_text_register": "예외 0건(허용 초과비중 없음)",
+   "classification": "NEW_POLICY_VALUE (RP-8a)",
+   "inherited_conditions": "**등록부 권고(C 보류)와 다른 유일한 선택.** 4절",
+   "register_recommendation": "C",
+   "source_clause": "J.2 RP-8a, F.1, HI-11",
+   "register_approved_field": false,
+   "register_selected_field": null,
+   "r1_approval": "APPROVED_S1_FROZEN"
+  },
+  {
+   "id": "FD-4",
+   "group": "G6",
+   "question": "RP-8b 데이터 예외 한도",
+   "selected": "A",
+   "user_selection_recorded": "A",
+   "option_text_register": "RP-8b(a)(b)(c) 각각0건·초과금액0",
+   "classification": "NEW_POLICY_VALUE (RP-8b)",
+   "inherited_conditions": "엔진의 연기 동작 유지",
+   "register_recommendation": "A",
+   "source_clause": "J.2 RP-8b, E.7, F.4",
+   "register_approved_field": false,
+   "register_selected_field": null,
+   "r1_approval": "APPROVED_S1_FROZEN"
+  },
+  {
+   "id": "FD-7",
+   "group": "G6",
+   "question": "`STALE_VALUATION` 관측의 RP 처리(J.2 평가 상태 표): (a) 그대로 판정 + 수 공개, (b) 판정 + `_STALE_QUALIFIED` 수식어, (c) `NOT_VERIFIABLE`(그 RP는 PASS 불가). 허용 빈도·금액 값은 정하지 않는다 `[V3.1Δ R26]`",
+   "selected": "B",
+   "user_selection_recorded": "B",
+   "option_text_register": "(b) 판정+RP·최종명 _STALE_QUALIFIED",
+   "classification": "JUDGEMENT_ONLY",
+   "inherited_conditions": "허용 빈도·금액 임계값 없음. UNVERIFIED와 별개(4절)",
+   "register_recommendation": "B",
+   "source_clause": "E.10, J.2 평가상태표/J.4, N FD-7",
+   "register_approved_field": false,
+   "register_selected_field": null,
+   "r1_approval": "APPROVED_S1_FROZEN"
+  },
+  {
+   "id": "D23",
+   "group": "G7",
+   "question": "HI-16a용 baseline 상태 탐침(V2.1 `simulate21` 글자 그대로 복사 + 읽기 전용 기록, 원 trades·recs와 원소별 일치가 유효 조건) `[V3Δ C55]`. 여기에 실수 의미 상태 재구성기, 독립 기준 오라클 사슬(L.1.2), execution 단위 재동기화(L.1.4), 원천별 정밀도 표(L.2), 사전 등록 변이 시험(L.3) `[V3.1Δ R11]`. V3.2: 오라클 사슬을 BOS 단일 명세로 고정(L.1.2), L.4 fixture 집합, HI-06a 행 oracle·HI-06c, 증인 뒤 자기 상태 재생(L.1.3 9항), `RESIDUAL_COMMON_SPEC_RISK` 공개 `[V3.2Δ S10]`",
+   "selected": "A",
+   "user_selection_recorded": "A",
+   "option_text_register": "보완된 BOS/SR/BSP·독립 원장 검증 및 잔여 공통 해석 위험 공개",
+   "classification": "JUDGEMENT_ONLY",
+   "inherited_conditions": "실제 BSP/엔진 구현 검증은 후속. 사라진 감사 스크립트 공백은 별도 해결",
+   "register_recommendation": "A",
+   "source_clause": "L.1~L.4, HI-06/16/19, O.2",
+   "register_approved_field": false,
+   "register_selected_field": null,
+   "r1_approval": "APPROVED_S1_FROZEN"
+  },
+  {
+   "id": "D24",
+   "group": "G7",
+   "question": "결정 원장을 (step, 보유) 쌍마다 한 행으로(step 3·5 독립 판정) `[V3Δ C55]`",
+   "selected": "A",
+   "user_selection_recorded": "A",
+   "option_text_register": "(step,보유)별 판정 행; step3/5 각각 판정",
+   "classification": "JUDGEMENT_ONLY",
+   "inherited_conditions": "범위 밖 행은 원장 미기록",
+   "register_recommendation": "A",
+   "source_clause": "G.2, H.4, K, HI-13",
+   "register_approved_field": false,
+   "register_selected_field": null,
+   "r1_approval": "APPROVED_S1_FROZEN"
+  }
+ ],
+ "policy_summary": {
+  "total": 35,
+  "selected_A": 33,
+  "selected_B": [
+   "FD-7"
+  ],
+  "conditional": {
+   "D17": "CONDITIONAL_D17_R -> condition D17_R_VERIFIED"
+  },
+  "deviates_from_register_recommendation": [
+   "FD-3"
+  ],
+  "user_direction_quote": "성장 우선, 산업 집중 제한, 과도하게 보수적인 매매 규칙 추가 금지.",
+  "user_direction_effect": "direction statement only; no new trading rule, number or reinterpretation derived from it",
+  "approval": "S1 approved by user (US-B-I-R1F1); D17 = D17_R with condition D17_R_VERIFIED met"
+ },
+ "rp_limits": [
+  {
+   "rp": "RP-1",
+   "measure": "#{k: N_k = 20} / 13",
+   "limit": ">= 7/13",
+   "decided_by": "FD-1 A",
+   "status": "USER_APPROVED_NEW_POLICY_VALUE_FROZEN"
+  },
+  {
+   "rp": "RP-2a",
+   "measure": "#{k: N_k >= 18} / 13",
+   "limit": ">= 11/13",
+   "decided_by": "D-GATE-A A",
+   "status": "FROZEN_INHERITED_APPLIED_BY_USER_SELECTION"
+  },
+  {
+   "rp": "RP-2b",
+   "measure": "min_k N_k",
+   "limit": ">= 15",
+   "decided_by": "D-GATE-A A",
+   "status": "FROZEN_INHERITED_APPLIED_BY_USER_SELECTION"
+  },
+  {
+   "rp": "RP-2c",
+   "measure": "mean_k N_k",
+   "limit": ">= 18.0",
+   "decided_by": "FD-2 A",
+   "status": "USER_APPROVED_NEW_POLICY_VALUE_FROZEN"
+  },
+  {
+   "rp": "RP-3",
+   "measure": "mean_k cash_pct_k (13, equal weight)",
+   "limit": "<= 5.00%",
+   "decided_by": "D-GATE-B A",
+   "status": "USER_APPROVED_NEW_POLICY_VALUE_FROZEN"
+  },
+  {
+   "rp": "RP-4",
+   "measure": "max_k cash_pct_k",
+   "limit": "<= 20.00%",
+   "decided_by": "D-GATE-A A",
+   "status": "FROZEN_INHERITED_APPLIED_BY_USER_SELECTION"
+  },
+  {
+   "rp": "RP-4m",
+   "measure": "median_k cash_pct_k (7th order statistic)",
+   "limit": "<= 10.00%",
+   "decided_by": "D-GATE-A A",
+   "status": "FROZEN_INHERITED_APPLIED_BY_USER_SELECTION"
+  },
+  {
+   "rp": "RP-5",
+   "measure": "annual turnover (J.1)",
+   "limit": "<= 3.0",
+   "decided_by": "D-GATE-A A",
+   "status": "FROZEN_INHERITED_APPLIED_BY_USER_SELECTION"
+  },
+  {
+   "rp": "RP-6",
+   "measure": "annual cost rate (J.1)",
+   "limit": null,
+   "decided_by": "FD-6 A",
+   "status": "DIAGNOSTIC_ANNOTATION (not a gate; 2.40% is not a decision value)"
+  },
+  {
+   "rp": "RP-7",
+   "measure": "industry cap: hard HI-10 + RP-10",
+   "limit": null,
+   "decided_by": "D1 A, D16 A",
+   "status": "STRUCTURAL"
+  },
+  {
+   "rp": "RP-8a",
+   "measure": "(k, i) count with Q = 1 and x > HI$ after execution",
+   "limit": "count = 0",
+   "decided_by": "FD-3 A",
+   "status": "USER_APPROVED_NEW_POLICY_VALUE_FROZEN"
+  },
+  {
+   "rp": "RP-8b",
+   "measure": "(a) trim-blocked Q >= 2 and x > HI$ count, (b) deferred overlay forced-sell count, (c) CAP_UNENFORCEABLE_NO_EXEC_PRICE (k, g) count and excess amount",
+   "limit": "(a) = 0, (b) = 0, (c) count = 0 and excess amount = 0",
+   "decided_by": "FD-4 A",
+   "status": "USER_APPROVED_NEW_POLICY_VALUE_FROZEN"
+  },
+  {
+   "rp": "RP-9",
+   "measure": "annual turnover RO / annual turnover BASE",
+   "limit": "<= 1.5 (denominator 0 -> NOT_APPLICABLE)",
+   "decided_by": "FD-5 A",
+   "status": "USER_APPROVED_NEW_POLICY_VALUE_FROZEN"
+  },
+  {
+   "rp": "RP-10",
+   "measure": "max_k u_k",
+   "limit": "<= 5.00%",
+   "decided_by": "D-GATE-C A",
+   "status": "USER_APPROVED_NEW_POLICY_VALUE_FROZEN"
+  }
+ ],
+ "rp_comparison": "exact rational, no rounding (E.6); boundary sign as in J.2 '경계' column; D-GATE-A A covers the exact-comparison convention and the cash_pct CIL numerator extension",
+ "final_verdict_names": {
+  "all_rp_pass": "RO_RISK_POLICY_PASS_NON_PIT",
+  "all_rp_pass_with_stale_observation": "RO_RISK_POLICY_PASS_NON_PIT_STALE_QUALIFIED (FD-7 B)",
+  "any_rp_fail": "RO_RISK_POLICY_FAIL",
+  "hard_invariant_fail": "INTEGRITY_FAIL",
+  "hard_invariant_not_verifiable": "INTEGRITY_NOT_VERIFIABLE",
+  "unverified_valuation": "VALUATION_UNVERIFIED -> UNEVALUABLE -> that RP FAIL (independent of FD-7)"
+ },
+ "d17": {
+  "status": "D17_R",
+  "clause_text_d17_r": "**D17-R. baseline 재생 import 입력.** V2.1·V2·V1 원 모듈을 바꾸지 않고 다시 불러오기 위해 다음 두 입력만 허용한다. 둘 다 원 실행 입력의 복원이 아니며, 원본과 같다는 주장을 금지한다.\n\n(a) `FUND` 경로: `PLACEHOLDER_NO_OUTPUT_EFFECT`. 열 `cik, k, pri, end, filed, accn, val`을 가진 0행 parquet. `extract_fundamentals.py`로 다시 만들지 않는다(재추출본을 원본으로 오인하는 것을 막기 위함). 용도는 V2 L201 import 통과뿐이다. `mcap()` 및 그에 기반한 attribution 수치는 계산·보고하지 않는다.\n\n(b) `FUND_SIC` 경로(`FUND`의 `.parquet` → `_sic.parquet`): `SIC_CONTENT_EQUIVALENT_SUBSTITUTE_NOT_ORIGINAL`. R0C `sic_recover.py` 순차 추출로 만든 cik → sic 표. 용도는 V1 L63 import 통과와 baseline 진단 열 계산뿐이다. Risk Overlay의 산업 분류 원천으로 쓰지 않는다. overlay 분류는 O.4 `SIC_DERIV_V2`(별도 신규 산출물)만 쓴다.\n\n(c) 두 파일의 SHA256, 생성 명령, 생성 시각, 라벨을 실행 입력 manifest에 기록한다. 파일 이름에 원본과 같은 이름을 쓰는 것은 V2 L14 경로 규칙 때문이며, 라벨이 정체를 정한다.\n\n(d) 수용 조건(전부 충족해야 baseline 재생이 유효):\n1. MOM12_2 trades 40bp 바이트가 `af4712474a60961739facc30b3254bb3ebb88f928e4db3c4ae150c28aa20dea4`와 같다(R0D1A L4).\n2. MOM12_2 NAV 40bp 바이트가 `1b88912592b349a7d68c9eb8689166978faf3116a8c410fee6d5c322b1610fc0`와 같다.\n3. 순위 재생이 R0C `rank_replay_run1.json`(`65a941933f2a6ac7f056f96bbbe7d33094aafbd0bc592c04c7ba2405c522cd57`)의 execution별 `order_sha256` 13개와 같다.\n4. [E1-R로 대체, 아래 e1_r.clause_text]\n5. 1~3 중 하나라도 다르면 STOP. 대체 입력을 바꿔 다시 맞추지 않는다. 원인 조사는 별도 지시.\n\n(e) 진단 열 처리: rebalances CSV와 결과 JSON의 `top_sic2`, `top_sic2_max`, `top_division`, 그리고 LOWVOL252 I5 판정은 **원본 재현을 주장하지 않는다.** 원 출력과 일치하든 다르든 정보로만 기록한다. MOM12_2 rebalances CSV(`68c4506b…dca74`)와 결과 JSON(`450b2a8a…ad891d`)의 바이트 일치는 수용 조건이 아니다.",
+  "replaces": [
+   "baseline_text B.2 (line 130)",
+   "baseline_text N table D17 row (line 1166)"
+  ],
+  "evidence": {
+   "verdict": "D17_R_VERIFIED",
+   "judge_output": {
+    "A1": true,
+    "A2": true,
+    "A3": true,
+    "A4": true,
+    "side_effects": {
+     "tree_unchanged": true,
+     "head_unchanged": true,
+     "subs_unchanged": true
+    },
+    "info_never_claimed": {
+     "MOM12_2_v2_1_rebalances_40bp.csv": true,
+     "census_v2_1_result.json": true,
+     "LOWVOL252_v2_1_trades_40bp.csv": true,
+     "LOWVOL252_v2_1_nav_40bp.csv": true,
+     "LOWVOL252_v2_1_rebalances_40bp.csv": true,
+     "rank_replay_json_bytes": true,
+     "sic_recover_json_bytes": true,
+     "sequential_parquet_bytes_97b06591": true
+    },
+    "verdict": "D17_R_SATISFIED"
+   },
+   "A1_trades_40bp_sha256": "af4712474a60961739facc30b3254bb3ebb88f928e4db3c4ae150c28aa20dea4",
+   "A2_nav_40bp_sha256": "1b88912592b349a7d68c9eb8689166978faf3116a8c410fee6d5c322b1610fc0",
+   "A3_reference": {
+    "file": "risk_overlay_r0c/rank_replay_run1.json",
+    "sha256": "65a941933f2a6ac7f056f96bbbe7d33094aafbd0bc592c04c7ba2405c522cd57",
+    "order_sha256_count": 13,
+    "basis": "R0C replay ranks; the original V2.1 run did not save ranks"
+   },
+   "A4": "E1-R 16/77/5082 of 5175, two set hashes, two contested CIKs",
+   "substitute_inputs": {
+    "fund.parquet": {
+     "sha256": "27b5ec72d567768dd23e5024b9d97647710af333acbc9f45e8b197ecf6c3f277",
+     "label": "PLACEHOLDER_NO_OUTPUT_EFFECT"
+    },
+    "fund_sic.parquet": {
+     "sha256": "97b0659128f375b83df57cd14824f025c5e603856e3e4f1d1aaa0c3a7f4cdbc0",
+     "label": "SIC_CONTENT_EQUIVALENT_SUBSTITUTE_NOT_ORIGINAL",
+     "original_sha256_not_claimed": "9b4fc2b475988de68feaf25c494475543224929cdd2e7a0568d51e0964cd0fe4"
+    }
+   },
+   "original_restoration_claimed": false
+  },
+  "condition_met_is_not_signature": true,
+  "user_approval": "S1 (G4) approved D17 = D17_R; S2 approved R1-Δ1..Δ3"
+ },
+ "e1_r": {
+  "clause_text": "**D17-R (d)4 (E1-R).** (b) 표의 내용 검사. 분모는 표의 행 = CIK 5,175, CIK 중복 0. 각 행의 `sic` 값은 다음 세 부류 중 정확히 하나에 속한다.\n- `SIC_NONEMPTY`: 비어 있지 않은 문자열. 5,082행, 전부 4자리 숫자.\n- `SIC_NULL_EXTRACTION`: None (pandas `isna()` 참). 16행. SEC 원천 미상이 아니라 `sic` 키가 없는 이력 페이지가 그 CIK의 마지막 파일로 읽혀 생긴 값이며, 원 R0 기록 \"missing SIC 16\"과 같은 술어다. 16행 CIK 집합의 SHA256(오름차순, `\\n` 연결)은 `6273522f2db852820831a7230127888ff6b2f84a5cd1f26d214fd3174ae8a6e9`.\n- `SIC_EMPTY_SOURCE`: 빈 문자열 `\"\"`. 77행. SEC 원천에서 SIC가 빈 CIK. 집합 SHA256 `8d949782101c84dd13b9ed550c9689db66299c49bc61b216e611897da34ca3de`.\n\n그리고 `0000093751 = \"6022\"`, `0000831001 = \"6021\"`.\n위 수·집합·두 값이 모두 일치해야 (d)4 통과다. `sic_recover.json`의 `seq_missing` 93은 `None` 또는 `\"\"`의 합(16 + 77)으로 **정보로만** 대조한다. 93을 \"SIC 미상 건수\"로, 16을 \"결측 전부\"로 읽지 않는다. 16행을 본문 값으로 채우는 수정은 금지한다(원본과 내용 동등성을 깨므로). 바이트 해시는 정보로만 기록한다.\n(d)4 실패는 R1P2 게이트 OUTCOME 셋째 줄(\"A4 fails, A1..A3 equal → BLOCKED pending user decision\")을 따른다.",
+  "denominator_rows": 5175,
+  "classes": {
+   "SIC_NONEMPTY": 5082,
+   "SIC_NULL_EXTRACTION": 16,
+   "SIC_EMPTY_SOURCE": 77
+  },
+  "set_sha256": {
+   "SIC_NULL_EXTRACTION": "6273522f2db852820831a7230127888ff6b2f84a5cd1f26d214fd3174ae8a6e9",
+   "SIC_EMPTY_SOURCE": "8d949782101c84dd13b9ed550c9689db66299c49bc61b216e611897da34ca3de"
+  },
+  "set_hash_method": "sha256('\\n'.join(sorted CIK strings)), no trailing newline",
+  "contested": {
+   "0000093751": "6022",
+   "0000831001": "6021"
+  },
+  "seq_missing_93": "information only: None or empty = 16 + 77; not an unknown count",
+  "fill_16_forbidden": true,
+  "user_selection": "U1 = A"
+ },
+ "r1_deltas": [
+  {
+   "id": "R1-Δ1",
+   "where": "B.2",
+   "action": "replace with d17.clause_text_d17_r",
+   "status": "APPLIED_FROZEN",
+   "user_approval": "S2"
+  },
+  {
+   "id": "R1-Δ2",
+   "where": "N table D17 row",
+   "action": "CONDITIONAL_D17_R -> D17_R",
+   "status": "APPLIED_FROZEN",
+   "user_approval": "S2"
+  },
+  {
+   "id": "R1-Δ3",
+   "where": "D17-R (d)4",
+   "action": "replace with e1_r.clause_text",
+   "status": "APPLIED_FROZEN",
+   "user_approval": "S2"
+  },
+  {
+   "id": "R1-Δ4",
+   "where": "L.1.2 item 3",
+   "action": "editorial split of R4I-01/04 sentences into sub-items, meaning unchanged (K-04)",
+   "status": "APPLIED_FROZEN_MD_EDITORIAL",
+   "user_approval": "S2"
+  },
+  {
+   "id": "R1-Δ5",
+   "where": "N table 35 rows and J.2 status column",
+   "action": "user selections from R1P2 record",
+   "status": "APPLIED_FROZEN_S1_APPROVED",
+   "user_approval": "S2"
+  },
+  {
+   "id": "R1-Δ6",
+   "where": "B.1 SIC_DERIV_V2 content hash",
+   "action": "none (not yet generated)",
+   "status": "UNCHANGED_INFO",
+   "user_approval": "S2"
+  }
+ ],
+ "retained_unchanged": [
+  "A.2 factor and MOM semantics",
+  "A.4 frozen rank",
+  "D.1 SIC_DERIV_V2 rule and κ = 0.25 plan cap (D1 A, D16 A)",
+  "E.6 exact rational, no tolerance (D11 A)",
+  "E.9 CIL ledger (D21 A)",
+  "E.10 valuation states (D22 A)",
+  "J.4 aggregation rules",
+  "J.5 sample limits",
+  "K order",
+  "L hard invariants HI-01..HI-20, L.1 HI-16, L.2, L.3, L.4, L.4.3",
+  "M conflict matrix",
+  "C.4 mode mixing ban"
+ ],
+ "limitations": {
+  "historical_non_pit": "C.2: historical mode supports only structural conclusions; no claims on executability, actual-SIC cap compliance, risk reduction, alpha, κ comparison (D12 A)",
+  "d17_rank_basis": "A3 compares with R0C replay ranks, not ranks saved by the original V2.1 run (none saved)",
+  "d17_provenance": [
+   "original fund.parquet and fund_sic.parquet permanently absent; substitutes are not restorations",
+   "16-row set depends on glob listing order; copy/move/restore may change it",
+   "SIC from current SEC submissions snapshot, NON_PIT; not forward PIT data; overlay classification source is SIC_DERIV_V2 only",
+   "single replay on one machine and environment (Python 3.12.3, pandas 2.3.3, numpy 2.5.2, pyarrow 23.0.1)",
+   "baseline replay invariance only; no alpha or profitability evidence"
+  ],
+  "residual_common_spec_risk": "L.1.2 item 8; HI-16 PASS must not be called an independent oracle proof",
+  "o2_heterogeneous_review": "V3.2 focused re-audit (R0D4I) was same model family; L.4 27 fixtures and BOS bindings were re-computed by Codex (R1P K-05 27/27, 21/21, negative 5/5); counterexample re-substitution by another model was not done",
+  "accepted_by_user": "S3: NON_PIT, R0C rank basis, partial O.2, RESIDUAL_COMMON_SPEC_RISK accepted; not resolved"
+ },
+ "forward_paper_pending": [
+  "D13: order waiting, partial fills, settlement, CIL valuation -> separate V3 Paper contract",
+  "D21: forward broker reconciliation only",
+  "C.3: PIT SIC snapshot per signal date with fetched_at window",
+  "execution-time input manifest",
+  "D6: forward CARRIED rules apply only in FORWARD_PIT"
+ ],
+ "census_prerequisites_remaining": [
+  "O.4 SIC_DERIV_V2 generation (separate approval)",
+  "O.5 rank REPLAY artifact",
+  "O.6 overlay engine and fixtures",
+  "O.7 HI-01 baseline trades hash",
+  "O.8 HI-16 component validity and L.3 mutation tests",
+  "O.9 then Census"
+ ],
+ "approval": {
+  "user_policy_signature": "APPROVED S1, S2, S3, S4 by user instruction US-B-I-R1F1",
+  "signature_date": "2026-10-21",
+  "r1_freeze_approved": true,
+  "git_local_preservation_approved": false,
+  "git_push_approved": false,
+  "k03_masked_copies_approved": false,
+  "register_json_updated": false,
+  "items": {
+   "S1_policy_35": "APPROVED",
+   "S2_r1_deltas_1_to_6": "APPROVED",
+   "S3_disclosed_limitations": "ACCEPTED",
+   "S4_r1_freeze": "APPROVED",
+   "S5_git_local_preservation": "NOT_APPROVED",
+   "S6_k03_masked_copies": "NOT_APPROVED",
+   "S7_push": "NOT_APPROVED"
+  },
+  "note": "Freeze approval is not approval of Risk Census, Paper, deployment, LIVE trading, Git staging/commit/push or public upload."
+ },
+ "forbidden_after_outcome": "J.4 item 7: after any overlay result, limits, denominators, periods and exception months are not changed; changes require a new contract version",
+ "freeze_record": {
+  "frozen_at": "2026-10-21T12:18:06+09:00",
+  "task": "US-B-I-R1F1",
+  "canonical_method": "json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False), UTF-8, SHA256",
+  "own_hashes_location": "R1_FREEZE_MANIFEST.json and SHA256SUMS in the same folder (not embedded here, to avoid self reference)",
+  "baseline_text_pinned": "308947cf8acb9b488f58696b5a48e2030f7f580041c648a7527be5e37173cc91",
+  "canonical_parent_pinned": "34d8fa7591cbafb753470c02847e00d66fe2a3f53b9e32ae17ff11464ee24e4d",
+  "local_only": "frozen by local files and hashes; no Git version exists for this freeze"
+ },
+ "not_done": [
+  "git stage / commit / push",
+  "public remote upload",
+  "Risk Census (O.9) and its prerequisites O.4 SIC_DERIV_V2, O.5, O.6, O.7, O.8",
+  "Paper implementation or operation",
+  "production deployment",
+  "LIVE trading",
+  "decision_register.json update (approved/selected fields stay false/null; this file is the approval record)",
+  "consolidated full-text rewrite of the baseline (baseline stays incorporated by reference, bytes pinned)"
+ ],
+ "next": "R1 frozen. Each next step needs its own approval: Git local preservation (S5, allowlist revision F0-01/F0-02), K-03 masked copies (S6), push (S7), Census prerequisites O.4..O.8, then Risk Census O.9. Paper, deployment and LIVE are not approved.",
+ "DEPLOY": false,
+ "PAPER": false,
+ "RUNTIME": false
+}

@@ -1,0 +1,68 @@
+{
+  "format": "US-B-I-FROZEN-PACKAGE-V1",
+  "files": [
+    {
+      "path": "implementation_census_v1.py",
+      "source": "docs/backtest/equity_factor_v0/implementation_census_v1.py",
+      "sha256": "6f8cf6730f75d97296fcc659e629ad8473f35e88d99a36dd466b195fdc60b910",
+      "bytes": 13396,
+      "role": "runtime input"
+    },
+    {
+      "path": "integrity_census_v2.py",
+      "source": "docs/backtest/equity_factor_v0/integrity_census_v2.py",
+      "sha256": "6597cfd2bfd97e0eac1e13c6a60d41213731425f37c71819a9d25a3d03e750b1",
+      "bytes": 19105,
+      "role": "runtime input"
+    },
+    {
+      "path": "cash_integrity_census_v2_1.py",
+      "source": "docs/backtest/equity_factor_v0/cash_integrity_census_v2_1.py",
+      "sha256": "c6b78d9cbd5f3b30523850bb2b581630ae3045952657373335950d074f43fef6",
+      "bytes": 15127,
+      "role": "runtime input"
+    },
+    {
+      "path": "FACTOR_V1_IMPLEMENTATION_CONTRACT.json",
+      "source": "docs/backtest/equity_factor_v0/FACTOR_V1_IMPLEMENTATION_CONTRACT.json",
+      "sha256": "7210ca11b9555174af76127312b5b9e769bb214c1b7bacdad2ff5f91fe0c0315",
+      "bytes": 7955,
+      "role": "runtime input"
+    },
+    {
+      "path": "FACTOR_V2_INTEGRITY_CONTRACT.json",
+      "source": "docs/backtest/equity_factor_v0/FACTOR_V2_INTEGRITY_CONTRACT.json",
+      "sha256": "941d4e3035b8310a7ad716e8dca444ffecf13495379fccfb5a3250e04b644367",
+      "bytes": 6058,
+      "role": "runtime input"
+    },
+    {
+      "path": "FACTOR_V2_1_CORRECTION_CONTRACT.json",
+      "source": "docs/backtest/equity_factor_v0/FACTOR_V2_1_CORRECTION_CONTRACT.json",
+      "sha256": "bc2e012dc56c378ec57659a38fe4409c3ea37283b45c1ad399bf3a3ca49d8765",
+      "bytes": 3860,
+      "role": "runtime input"
+    },
+    {
+      "path": "risk_overlay_d17r_exec/inputs/fund.parquet",
+      "source": "docs/backtest/equity_factor_v0/risk_overlay_d17r_exec/inputs/fund.parquet",
+      "sha256": "27b5ec72d567768dd23e5024b9d97647710af333acbc9f45e8b197ecf6c3f277",
+      "bytes": 3665,
+      "role": "runtime input"
+    },
+    {
+      "path": "risk_overlay_d17r_exec/inputs/fund_sic.parquet",
+      "source": "docs/backtest/equity_factor_v0/risk_overlay_d17r_exec/inputs/fund_sic.parquet",
+      "sha256": "97b0659128f375b83df57cd14824f025c5e603856e3e4f1d1aaa0c3a7f4cdbc0",
+      "bytes": 51579,
+      "role": "runtime input"
+    },
+    {
+      "path": "risk_overlay_r1f1/R1_FROZEN_CONTRACT.json",
+      "source": "docs/backtest/equity_factor_v0/risk_overlay_r1f1/R1_FROZEN_CONTRACT.json",
+      "sha256": "d1ac6d2191199815663f5d2fd39e0290ba1d5425aaccbf63fcefc4301cd87c55",
+      "bytes": 49049,
+      "role": "approved policy provenance"
+    }
+  ]
+}
