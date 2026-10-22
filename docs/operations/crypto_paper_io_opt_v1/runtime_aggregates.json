@@ -1,0 +1,711 @@
+{
+  "capture_scope": "read-only, known paths; reduced aggregates only; no raw trades, balances or credentials",
+  "host_samples": {
+    "first_before": {
+      "ts": 1792646909.5683074,
+      "pid": 2519676,
+      "io": {
+        "rchar": "7135764517209",
+        "wchar": "881655866",
+        "syscr": "925937532",
+        "syscw": "1876893",
+        "read_bytes": "1426726912",
+        "write_bytes": "7681265664",
+        "cancelled_write_bytes": "0"
+      },
+      "available_kb": "MemAvailable:     240508 kB",
+      "psi": {
+        "memory": "some avg10=2.28 avg60=0.91 avg300=1.69 total=59771281663\nfull avg10=2.08 avg60=0.72 avg300=1.22 total=48107381888\n",
+        "io": "some avg10=41.08 avg60=41.90 avg300=36.96 total=223635732275\nfull avg10=10.27 avg60=20.28 avg300=19.44 total=168765415026\n"
+      }
+    },
+    "first_after": {
+      "ts": 1792646924.568421,
+      "pid": 2519676,
+      "io": {
+        "rchar": "7136129682632",
+        "wchar": "881692594",
+        "syscr": "925984428",
+        "syscw": "1876979",
+        "read_bytes": "1426755584",
+        "write_bytes": "7681593344",
+        "cancelled_write_bytes": "0"
+      },
+      "available_kb": "MemAvailable:     241280 kB",
+      "psi": {
+        "memory": "some avg10=0.56 avg60=0.72 avg300=1.61 total=59771281749\nfull avg10=0.51 avg60=0.57 avg300=1.16 total=48107381973\n",
+        "io": "some avg10=30.41 avg60=40.51 avg300=36.94 total=223640208583\nfull avg10=12.52 avg60=19.00 avg300=19.20 total=168767476548\n"
+      }
+    },
+    "second_before": {
+      "ts": 1792647408.7718127,
+      "pid": 2519676,
+      "io": {
+        "rchar": "7146827644130",
+        "wchar": "883639595",
+        "syscr": "927361509",
+        "syscw": "1879565",
+        "read_bytes": "1430372352",
+        "write_bytes": "7693062144",
+        "cancelled_write_bytes": "0"
+      },
+      "available_kb": "MemAvailable:     266744 kB",
+      "psi": {
+        "memory": "some avg10=14.27 avg60=5.72 avg300=2.01 total=59777682428\nfull avg10=10.75 avg60=4.00 avg300=1.39 total=48111807241\n",
+        "io": "some avg10=67.61 avg60=37.05 avg300=24.40 total=223729074552\nfull avg10=43.26 avg60=18.83 avg300=12.27 total=168812681589\n"
+      }
+    },
+    "second_after": {
+      "ts": 1792647424.6484768,
+      "pid": 2519676,
+      "io": {
+        "rchar": "7147120964609",
+        "wchar": "883674107",
+        "syscr": "927399274",
+        "syscw": "1879654",
+        "read_bytes": "1430372352",
+        "write_bytes": "7693422592",
+        "cancelled_write_bytes": "0"
+      },
+      "available_kb": "MemAvailable:     267104 kB",
+      "psi": {
+        "memory": "some avg10=2.88 avg60=4.38 avg300=1.90 total=59777682428\nfull avg10=2.17 avg60=3.07 avg300=1.31 total=48111807241\n",
+        "io": "some avg10=18.95 avg60=31.18 avg300=23.79 total=223730070583\nfull avg10=13.13 avg60=16.75 avg300=12.19 total=168813497622\n"
+      }
+    }
+  },
+  "sessions": {
+    "BTCUSDT": {
+      "symbol": "BTCUSDT",
+      "created_mtime": 1792293798.2844849,
+      "segments": 108,
+      "checkpoint_flat": false,
+      "checkpoint_keys": [
+        "account",
+        "engine",
+        "ledger_bytes",
+        "ledger_events",
+        "ledger_sha256",
+        "position",
+        "run_id",
+        "segment_index",
+        "tape_records",
+        "version"
+      ],
+      "last_ledger_event_type": "FUNDING",
+      "last_ledger_ts_ms": 1792627200000,
+      "active_first_ts_ms": 1792640785529,
+      "first": {
+        "seconds": 15.000113487243652,
+        "active_bytes_after": 2124507,
+        "growth_bytes_per_min": 22463.83004278977
+      },
+      "second": {
+        "seconds": 15.876664161682129,
+        "active_bytes_after": 2311516,
+        "growth_bytes_per_min": 21246.27670931732,
+        "records_per_second": 0.8188118025054107
+      }
+    },
+    "ETHUSDT": {
+      "symbol": "ETHUSDT",
+      "created_mtime": 1792293798.3614852,
+      "segments": 65,
+      "checkpoint_flat": true,
+      "checkpoint_keys": [
+        "account",
+        "engine",
+        "ledger_bytes",
+        "ledger_events",
+        "ledger_sha256",
+        "position",
+        "run_id",
+        "segment_index",
+        "tape_records",
+        "version"
+      ],
+      "last_ledger_event_type": "RUN_START",
+      "last_ledger_ts_ms": 1791099241274,
+      "active_first_ts_ms": 1792628758816,
+      "first": {
+        "seconds": 15.000113487243652,
+        "active_bytes_after": 6241539,
+        "growth_bytes_per_min": 21391.83815328342
+      },
+      "second": {
+        "seconds": 15.876664161682129,
+        "active_bytes_after": 6423380,
+        "growth_bytes_per_min": 20203.236443971964,
+        "records_per_second": 0.8188118025054107
+      }
+    },
+    "SOLUSDT": {
+      "symbol": "SOLUSDT",
+      "created_mtime": 1792293799.0244896,
+      "segments": 63,
+      "checkpoint_flat": true,
+      "checkpoint_keys": [
+        "account",
+        "engine",
+        "ledger_bytes",
+        "ledger_events",
+        "ledger_sha256",
+        "position",
+        "run_id",
+        "segment_index",
+        "tape_records",
+        "version"
+      ],
+      "last_ledger_event_type": "RUN_START",
+      "last_ledger_ts_ms": 1791099241180,
+      "active_first_ts_ms": 1792633373253,
+      "first": {
+        "seconds": 15.000113487243652,
+        "active_bytes_after": 4810846,
+        "growth_bytes_per_min": 22167.832282254436
+      },
+      "second": {
+        "seconds": 15.876664161682129,
+        "active_bytes_after": 4992135,
+        "growth_bytes_per_min": 20883.480095284154,
+        "records_per_second": 0.8188118025054107
+      }
+    },
+    "APRUSDT": {
+      "symbol": "APRUSDT",
+      "created_mtime": 1792314334.3687248,
+      "segments": 12,
+      "checkpoint_flat": true,
+      "checkpoint_keys": [
+        "account",
+        "engine",
+        "ledger_bytes",
+        "ledger_events",
+        "ledger_sha256",
+        "position",
+        "run_id",
+        "segment_index",
+        "tape_records",
+        "version"
+      ],
+      "last_ledger_event_type": "RUN_START",
+      "last_ledger_ts_ms": 1792314336005,
+      "active_first_ts_ms": 1792638359001,
+      "first": {
+        "seconds": 15.000113487243652,
+        "active_bytes_after": 2701259,
+        "growth_bytes_per_min": 21311.83875854414
+      },
+      "second": {
+        "seconds": 15.876664161682129,
+        "active_bytes_after": 2866515,
+        "growth_bytes_per_min": 25199.248149720363,
+        "records_per_second": 0.9447828490447047
+      }
+    },
+    "GTCUSDT": {
+      "symbol": "GTCUSDT",
+      "created_mtime": 1792311789.3724658,
+      "segments": 12,
+      "checkpoint_flat": true,
+      "checkpoint_keys": [
+        "account",
+        "engine",
+        "ledger_bytes",
+        "ledger_events",
+        "ledger_sha256",
+        "position",
+        "run_id",
+        "segment_index",
+        "tape_records",
+        "version"
+      ],
+      "last_ledger_event_type": "RUN_START",
+      "last_ledger_ts_ms": 1792305646000,
+      "active_first_ts_ms": 1792628692000,
+      "first": {
+        "seconds": 15.000113487243652,
+        "active_bytes_after": 5461556,
+        "growth_bytes_per_min": 20763.842904580077
+      },
+      "second": {
+        "seconds": 15.876664161682129,
+        "active_bytes_after": 5622073,
+        "growth_bytes_per_min": 24466.096658861672,
+        "records_per_second": 0.9447828490447047
+      }
+    },
+    "BRUSDT": {
+      "symbol": "BRUSDT",
+      "created_mtime": 1792300147.6806767,
+      "segments": 14,
+      "checkpoint_flat": true,
+      "checkpoint_keys": [
+        "account",
+        "engine",
+        "ledger_bytes",
+        "ledger_events",
+        "ledger_sha256",
+        "position",
+        "run_id",
+        "segment_index",
+        "tape_records",
+        "version"
+      ],
+      "last_ledger_event_type": "RUN_START",
+      "last_ledger_ts_ms": 1792242673000,
+      "active_first_ts_ms": 1792619166000,
+      "first": {
+        "seconds": 15.000113487243652,
+        "active_bytes_after": 8306090,
+        "growth_bytes_per_min": 20083.848049296197
+      },
+      "second": {
+        "seconds": 15.876664161682129,
+        "active_bytes_after": 56201,
+        "growth_bytes_per_min": 22262.86305488942,
+        "records_per_second": 0.8817973257750578
+      }
+    }
+  },
+  "hot": {
+    "symbol": "APRUSDT",
+    "selected_at_ms": 1792314333524,
+    "scanned_at_ms": 1792314863994
+  },
+  "manual": {
+    "manual_cursor": {
+      "status": "OK",
+      "last_run_ms": 1792646900617,
+      "written": {
+        "episodes": 0,
+        "events": 0,
+        "snapshots": 0
+      },
+      "s1_fills": 59,
+      "s1_error": null,
+      "trigger": null,
+      "market_status": "OK",
+      "planned_total": null,
+      "events": 48,
+      "episodes": 20,
+      "snapshots": null,
+      "anomalies": {
+        "events_changed_in_s1": [],
+        "events_no_longer_in_s1": []
+      }
+    },
+    "manual_files": {
+      "events": {
+        "bytes": 30038,
+        "mtime": 1792076301.344794,
+        "recorded_at_ms": 1792076300558,
+        "as_of_ms": null,
+        "last_fill_ms": 1792072436231,
+        "closed": null,
+        "status": null
+      },
+      "episodes": {
+        "bytes": 13615,
+        "mtime": 1792244903.1422813,
+        "recorded_at_ms": 1792244900542,
+        "as_of_ms": null,
+        "last_fill_ms": null,
+        "closed": null,
+        "status": null
+      },
+      "snapshots": {
+        "bytes": 11093600,
+        "mtime": 1792244902.6692781,
+        "recorded_at_ms": 1792244900542,
+        "as_of_ms": 1792076036231,
+        "last_fill_ms": null,
+        "closed": null,
+        "status": null
+      }
+    },
+    "config_presence": {
+      "MTR_TRIGGER_URL": {
+        "present": true,
+        "nonempty": false
+      },
+      "BTC_CONTEXT_MANUAL_STORE": {
+        "present": false,
+        "nonempty": false
+      },
+      "BTC_CONTEXT_ENTRY_ANALYSIS_RESULTS": {
+        "present": false,
+        "nonempty": false
+      }
+    },
+    "s1_summary": {
+      "mtime": 1792321653.0712488,
+      "keys": [
+        "classification_complete",
+        "funding",
+        "last_calculated_ms",
+        "last_error",
+        "last_funding_time_ms",
+        "last_trade_id",
+        "trades",
+        "version"
+      ],
+      "funding_count": 46,
+      "last_calculated_ms": 1792321652981,
+      "last_funding_time_ms": 1792321652981,
+      "trades_count": 59
+    },
+    "market_requests": 0,
+    "deferred_snapshots": 0,
+    "s1_last_calculated_ms": 1792321652981,
+    "waiting_for_s1_classification": [],
+    "open_episode_present": false
+  },
+  "daemon": {
+    "multipathd": {
+      "MainPID": "315",
+      "MemoryCurrent": "22794240",
+      "MemorySwapCurrent": "4096",
+      "Requires": "system.slice",
+      "RequiredBy": "",
+      "Rss": "27292 kB",
+      "Pss": "23003 kB",
+      "SwapPss": "0 kB"
+    },
+    "rpcbind": {
+      "MainPID": "371",
+      "MemoryCurrent": "167936",
+      "MemorySwapCurrent": "421888",
+      "Requires": "rpcbind.socket -.mount system.slice",
+      "RequiredBy": "",
+      "Rss": "3096 kB",
+      "Pss": "215 kB",
+      "SwapPss": "412 kB"
+    },
+    "networkd-dispatcher": {
+      "MainPID": "613",
+      "MemoryCurrent": "991232",
+      "MemorySwapCurrent": "10485760",
+      "Requires": "sysinit.target system.slice",
+      "RequiredBy": "",
+      "Rss": "5136 kB",
+      "Pss": "402 kB",
+      "SwapPss": "10232 kB"
+    },
+    "usb-btc-context-ui": {
+      "MainPID": "2063894",
+      "MemoryCurrent": "1880064",
+      "MemorySwapCurrent": "35098624",
+      "Requires": "-.mount sysinit.target system.slice",
+      "RequiredBy": "",
+      "Rss": "11240 kB",
+      "Pss": "2125 kB",
+      "SwapPss": "34168 kB"
+    }
+  },
+  "nfs": {
+    "fstab_nfs_entries": 0,
+    "rpcinfo": "   program vers proto   port  service\n    100000    4   tcp    111  portmapper\n    100000    3   tcp    111  portmapper\n    100000    2   tcp    111  portmapper\n    100000    4   udp    111  portmapper\n    100000    3   udp    111  portmapper\n    100000    2   udp    111  portmapper\n"
+  },
+  "a_consumer": {
+    "enabled": "disabled",
+    "active": "inactive"
+  },
+  "hold_a": true,
+  "ae": {
+    "2026-10-19": {
+      "rolling": {
+        "cycles": 19,
+        "minute_calls": 92454,
+        "errors": 18,
+        "symbols_per_cycle": 5023,
+        "ended_at": "2026-10-19T09:15:00.018294-04:00",
+        "incomplete_start": [
+          "PS"
+        ]
+      },
+      "a_sweep": {
+        "minute_order": 3769,
+        "tick_shard": 1252,
+        "steal_pool_a_only": 2471,
+        "symbols": 5021,
+        "order": "E-overlap then A-only, each in sha256 order; tick lane: E tick shard first, then A-only from the end of the minute order",
+        "t0": "2026-10-19T09:15:03.142280-04:00",
+        "t1": "2026-10-19T09:23:53.867120-04:00",
+        "elapsed_s": 530.72484,
+        "deadline_hit": false,
+        "reached": 5021,
+        "usable": 5019,
+        "stale": 1,
+        "failed": 1,
+        "source_refusals": [],
+        "interrupted": 0,
+        "not_reached": 0,
+        "not_reached_examples": [],
+        "tick_lane_steals": 1173,
+        "lane_pages": {
+          "A": 2596,
+          "B": 2595
+        },
+        "detached_walkers": 0,
+        "lane_calls": {
+          "A": 95050,
+          "B": 2596
+        },
+        "calls": {
+          "A": 2596,
+          "B": 2596
+        }
+      },
+      "seal_0915": {
+        "status": "SEALED",
+        "started_at": "2026-10-19T09:23:54.956009-04:00",
+        "sealed_at": "2026-10-19T09:23:57.484126-04:00",
+        "manifest": {
+          "name": "snapshot_0915",
+          "format": "ae-common-snapshot-0915-v1",
+          "session": "2026-10-19",
+          "sha256": "68bb4c5136ec86065e91be995ebb5cc85cb1b156d357a305b1274781bad1d344",
+          "bytes": 4967157,
+          "sealed_at": "2026-10-19T09:23:57.484126-04:00",
+          "file": "snapshot_0915.json.gz",
+          "summary": {
+            "a_symbols": 5037,
+            "a_status_counts": {
+              "USABLE": 5017,
+              "UNMAPPED": 18,
+              "STALE": 1,
+              "DOCUMENTED_REFUSAL": 1
+            },
+            "permanent_exceptions": 19,
+            "expected_processable": 5018,
+            "expected_usable": 5017,
+            "unexpected": 1,
+            "unexpected_examples": {
+              "MASK": "STALE"
+            },
+            "complete_for_a": false,
+            "bars": 95808
+          }
+        }
+      },
+      "resources": {
+        "samples": 1112,
+        "process_rss_peak_mb": 224,
+        "process_maxrss_mb": 253.9,
+        "host_mem_available_min_mb": 117,
+        "swap_used_start_mb": 511,
+        "swap_used_peak_mb": 618,
+        "swap_delta_mb": 107,
+        "iowait_peak_pct": 99.49,
+        "psi_io_full_avg10_peak": 97.08,
+        "psi_memory_some_avg10_peak": 99.85
+      },
+      "snapshot_sizes": {
+        "a_parity_0915.json.gz": 210612,
+        "snapshot_0915.manifest.json": 627,
+        "a_parity_0915.manifest.json": 311,
+        "snapshot_0915.json.gz": 1036356,
+        "snapshot_0924.json.gz": 655317,
+        "snapshot_0924.manifest.json": 294
+      }
+    },
+    "2026-10-20": {
+      "rolling": {
+        "cycles": 17,
+        "minute_calls": 84916,
+        "errors": 17,
+        "symbols_per_cycle": 5036,
+        "ended_at": "2026-10-20T09:15:00.015415-04:00",
+        "incomplete_start": [
+          "PS"
+        ]
+      },
+      "a_sweep": {
+        "minute_order": 3787,
+        "tick_shard": 1247,
+        "steal_pool_a_only": 2494,
+        "symbols": 5034,
+        "order": "E-overlap then A-only, each in sha256 order; tick lane: E tick shard first, then A-only from the end of the minute order",
+        "t0": "2026-10-20T09:15:00.040489-04:00",
+        "t1": "2026-10-20T09:23:46.450257-04:00",
+        "elapsed_s": 526.409768,
+        "deadline_hit": false,
+        "reached": 5034,
+        "usable": 5033,
+        "stale": 0,
+        "failed": 1,
+        "source_refusals": [],
+        "interrupted": 0,
+        "not_reached": 0,
+        "not_reached_examples": [],
+        "tick_lane_steals": 1212,
+        "lane_pages": {
+          "A": 2575,
+          "B": 2574
+        },
+        "detached_walkers": 0,
+        "lane_calls": {
+          "A": 87491,
+          "B": 2575
+        },
+        "calls": {
+          "A": 2575,
+          "B": 2575
+        }
+      },
+      "seal_0915": {
+        "status": "SEALED",
+        "started_at": "2026-10-20T09:23:47.526643-04:00",
+        "sealed_at": "2026-10-20T09:23:49.985957-04:00",
+        "manifest": {
+          "name": "snapshot_0915",
+          "format": "ae-common-snapshot-0915-v1",
+          "session": "2026-10-20",
+          "sha256": "d58a913d876e32e3780bcdfaccb14a1a022dd272704f9e2badb6d620b5760416",
+          "bytes": 4673495,
+          "sealed_at": "2026-10-20T09:23:49.985957-04:00",
+          "file": "snapshot_0915.json.gz",
+          "summary": {
+            "a_symbols": 5046,
+            "a_status_counts": {
+              "USABLE": 5031,
+              "UNMAPPED": 14,
+              "DOCUMENTED_REFUSAL": 1
+            },
+            "permanent_exceptions": 15,
+            "expected_processable": 5031,
+            "expected_usable": 5031,
+            "unexpected": 0,
+            "unexpected_examples": {},
+            "complete_for_a": true,
+            "bars": 87963
+          }
+        }
+      },
+      "resources": {
+        "samples": 1113,
+        "process_rss_peak_mb": 242,
+        "process_maxrss_mb": 264.8,
+        "host_mem_available_min_mb": 165,
+        "swap_used_start_mb": 576,
+        "swap_used_peak_mb": 612,
+        "swap_delta_mb": 36,
+        "iowait_peak_pct": 93.43,
+        "psi_io_full_avg10_peak": 86.61,
+        "psi_memory_some_avg10_peak": 88.48
+      },
+      "snapshot_sizes": {
+        "a_parity_0915.json.gz": 211184,
+        "snapshot_0915.manifest.json": 589,
+        "a_parity_0915.manifest.json": 311,
+        "snapshot_0915.json.gz": 960973,
+        "snapshot_0924.json.gz": 603066,
+        "snapshot_0924.manifest.json": 294
+      }
+    },
+    "2026-10-21": {
+      "rolling": {
+        "cycles": 17,
+        "minute_calls": 84071,
+        "errors": 16,
+        "symbols_per_cycle": 5044,
+        "ended_at": "2026-10-21T09:15:00.163983-04:00",
+        "incomplete_start": [
+          "PS"
+        ]
+      },
+      "a_sweep": {
+        "minute_order": 3792,
+        "tick_shard": 1250,
+        "steal_pool_a_only": 2498,
+        "symbols": 5042,
+        "order": "E-overlap then A-only, each in sha256 order; tick lane: E tick shard first, then A-only from the end of the minute order",
+        "t0": "2026-10-21T09:15:00.796138-04:00",
+        "t1": "2026-10-21T09:23:53.445513-04:00",
+        "elapsed_s": 532.649375,
+        "deadline_hit": false,
+        "reached": 5042,
+        "usable": 5040,
+        "stale": 1,
+        "failed": 1,
+        "source_refusals": [],
+        "interrupted": 0,
+        "not_reached": 0,
+        "not_reached_examples": [],
+        "tick_lane_steals": 1186,
+        "lane_pages": {
+          "A": 2606,
+          "B": 2596
+        },
+        "detached_walkers": 0,
+        "lane_calls": {
+          "A": 86677,
+          "B": 2597
+        },
+        "calls": {
+          "A": 2606,
+          "B": 2597
+        }
+      },
+      "seal_0915": {
+        "status": "SEALED",
+        "started_at": "2026-10-21T09:23:54.526077-04:00",
+        "sealed_at": "2026-10-21T09:23:57.450084-04:00",
+        "manifest": {
+          "name": "snapshot_0915",
+          "format": "ae-common-snapshot-0915-v1",
+          "session": "2026-10-21",
+          "sha256": "2b4183b16d3bd2fface8258d8c9495a6dfc912eb6d1ecc8f62ce736b831cef3b",
+          "bytes": 4726524,
+          "sealed_at": "2026-10-21T09:23:57.450084-04:00",
+          "file": "snapshot_0915.json.gz",
+          "summary": {
+            "a_symbols": 5054,
+            "a_status_counts": {
+              "USABLE": 5038,
+              "STALE": 1,
+              "UNMAPPED": 14,
+              "DOCUMENTED_REFUSAL": 1
+            },
+            "permanent_exceptions": 15,
+            "expected_processable": 5039,
+            "expected_usable": 5038,
+            "unexpected": 1,
+            "unexpected_examples": {
+              "AMOD": "STALE"
+            },
+            "complete_for_a": false,
+            "bars": 89111
+          }
+        }
+      },
+      "resources": {
+        "samples": 1104,
+        "process_rss_peak_mb": 215,
+        "process_maxrss_mb": 233.3,
+        "host_mem_available_min_mb": 101,
+        "swap_used_start_mb": 596,
+        "swap_used_peak_mb": 688,
+        "swap_delta_mb": 92,
+        "iowait_peak_pct": 98.49,
+        "psi_io_full_avg10_peak": 96.41,
+        "psi_memory_some_avg10_peak": 99.87
+      },
+      "snapshot_sizes": {
+        "a_parity_0915.json.gz": 211373,
+        "snapshot_0915.manifest.json": 627,
+        "a_parity_0915.manifest.json": 311,
+        "snapshot_0915.json.gz": 976964,
+        "snapshot_0924.json.gz": 615472,
+        "snapshot_0924.manifest.json": 294
+      }
+    }
+  },
+  "other_runtime_source_hashes": {
+    "btc_context_ui/crypto/btc_context_ui_v1/api.py": "84272f846486488203f8eb064073defd63ccb033124918cd20efd7fdd38ef4a5",
+    "btc_context_ui/crypto/btc_context_ui_v1/entry_context.py": "6ec632bbc7500e6aeb087b56ae3da0e8e3237df24f0af55e5a0d0a999aab8476",
+    "manual_trade_research/crypto/manual_snapshot_v1/recorder.py": "2eec501a90e196145ebd178d6f4692d4d468fbaefed1ef48ce42d53b11048986",
+    "ae_common_producer/ae_common/producer.py": "9c3381d28d099f76b56d6f5bb8ce8fdba9e8c3217d6e3ef1f79dcff23f799d1b"
+  }
+}

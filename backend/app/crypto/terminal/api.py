@@ -33,7 +33,7 @@ from ..paper.wallet_recovery import WalletMember, recover_wallet, wallet_event_t
 from ..paper.instrument import InstrumentSpec, RiskTierTable
 from ..paper.state import TransitionRejected
 from ..symbols import (DEFAULT_SYMBOL, SUPPORTED_SYMBOLS, SymbolNotSupported, admit_dynamic,
-                            is_dynamic, permitted_symbols, resolve as resolve_symbol)
+                            is_dynamic, permitted_symbols, retire_dynamic, resolve as resolve_symbol)
 from ..hot_coins import market as hot_market
 from ..hot_coins.slot import controller as hot_slot
 from .chart_history import BybitChartHistory
@@ -480,6 +480,10 @@ class Runtime:
             elif self.cash is not None and self.cash._members.get(symbol) is account:
                 del self.cash._members[symbol]
             released["session"] = "RETIRED" if traded else "DROPPED"
+        # Revoke admission before the first await: while the old socket is stopping, a
+        # queued PAPER poll must not rebuild/revive this session and start a new feed.
+        # The open-position backstop above leaves held symbols admitted.
+        retire_dynamic(symbol)
         feed = self.feeds.pop(symbol, None)
         if feed is not None:
             await feed.stop()

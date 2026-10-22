@@ -1,0 +1,50 @@
+{
+  "paper/segments.py": {
+    "runtime_sha256": "6337805bce529c0028bf9fde258e469cb4e7ec93ec4e2a303b89f3a8a6a75181",
+    "candidate_sha256": "2346e39071ac6164b1f746894603935f67d9f404e5cd83d30cc92d4e893fb85a",
+    "deployment": "INCLUDE minimal candidate patch"
+  },
+  "paper/ledger.py": {
+    "runtime_sha256": "0cd1ba5128f30676ab1eec4ae186c0ad25d231ccbe410c9f3ccb62105852f6f4",
+    "candidate_sha256": "0cd1ba5128f30676ab1eec4ae186c0ad25d231ccbe410c9f3ccb62105852f6f4"
+  },
+  "terminal/api.py": {
+    "runtime_sha256": "7a82dbcbe90c8dd82bd4da7dcfa4d37a30a591ab568dc17878f9952f2ed50b28",
+    "candidate_sha256": "fe9f88a661f09272910aab99993fd2630269b3f76114cf2669ec53adeea4e0ae",
+    "deployment": "INCLUDE minimal candidate patch"
+  },
+  "terminal/server.py": {
+    "runtime_sha256": "6f8d1b93100c15e63a354c97c8d5d96b02546e989eb1923ce6c9624e7470dfa2",
+    "candidate_sha256": "6f8d1b93100c15e63a354c97c8d5d96b02546e989eb1923ce6c9624e7470dfa2"
+  },
+  "terminal/session.py": {
+    "runtime_sha256": "96b8dc5ec7e9e19781bfbee10b5a5cdcd74ef910a807dfddc6426b4078eb0b42",
+    "candidate_sha256": "96b8dc5ec7e9e19781bfbee10b5a5cdcd74ef910a807dfddc6426b4078eb0b42"
+  },
+  "terminal/hot_routes.py": {
+    "runtime_sha256": "a7aacd225192779238d9ecb457e729bc63f532aeeb33e40c01ada15170be69ce",
+    "candidate_sha256": "a7aacd225192779238d9ecb457e729bc63f532aeeb33e40c01ada15170be69ce"
+  },
+  "terminal/trade_candles.py": {
+    "runtime_sha256": "6cf832105ab754b7e25693427c1d66e45ca59c5080cfc0d9a03a479f75c04f62",
+    "candidate_sha256": "6cf832105ab754b7e25693427c1d66e45ca59c5080cfc0d9a03a479f75c04f62"
+  },
+  "hot_coins/slot.py": {
+    "runtime_sha256": "e32af74b097a20aad395c88b4e3ec9f6bf45b40ebe066c5ad28862548a5e2131",
+    "candidate_sha256": "e32af74b097a20aad395c88b4e3ec9f6bf45b40ebe066c5ad28862548a5e2131"
+  },
+  "hot_coins/market.py": {
+    "runtime_sha256": "98a22bbc1ee2f12650933091b07402400cb1b0a5240fa0796bc7a30baead7d63",
+    "candidate_sha256": "b9451ad6a37b6146ed34a3476ad1d0d71945d38ef5a4ef6fc967f645a76eb2c3",
+    "deployment": "EXCLUDED; keep runtime version"
+  },
+  "symbols.py": {
+    "runtime_sha256": "839a36ce1fdedb36629066514db24925e6cc4f46cb137b7605113e8a48e95f4c",
+    "candidate_sha256": "839a36ce1fdedb36629066514db24925e6cc4f46cb137b7605113e8a48e95f4c"
+  },
+  "terminal/chart_history.py": {
+    "runtime_sha256": "f70333c94bf455bb0e2e0f7c5115bfc795bb12ed3134a523f6c858b8e1cd97f1",
+    "candidate_sha256": "59c740277e5fa8579efea4dbd2fa8856cf581c23d9759e00a06092b585911759",
+    "deployment": "EXCLUDED; keep runtime version"
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "final_runtime_equivalent": {
+    "result": "1047 passed, 23 skipped, 0 failed",
+    "seconds": 24.65,
+    "log": "/home/tjd618/usb-io-opt-evidence-20261022/runtime_isolated_final_tests.txt",
+    "cwd": "/tmp/usb-io-opt-runtime-20261022",
+    "command": "PYTHONPATH=backend /home/tjd618/usb/.venv/bin/python /home/tjd618/usb-io-opt-evidence-20261022/runtime_tests.py",
+    "notes": "HEAD source plus candidate two files; runtime chart caches retained; five hashed public reference fixtures; local-only event-loop wakeups and 30s/test watchdog"
+  },
+  "strict_rotation": {
+    "result": "29 passed",
+    "log": "/home/tjd618/usb-io-opt-evidence-20261022/parity_tmpfs_tests.txt"
+  },
+  "hot_final": {
+    "result": "56 passed",
+    "log": "/home/tjd618/usb-io-opt-evidence-20261022/final_hot_tests.txt"
+  },
+  "race_before_fix": {
+    "result": "2 failed as expected (DID NOT RAISE SymbolNotSupported)",
+    "log": "/home/tjd618/usb-io-opt-evidence-20261022/leak_before.txt"
+  },
+  "repo_relevant_initial": {
+    "result": "807 passed, 1 skipped",
+    "log": "/home/tjd618/usb-io-opt-evidence-20261022/relevant_tests.txt"
+  },
+  "expanded_all_crypto_attempt": {
+    "result": "2982 passed, 132 skipped, 13 failed, 342 errors",
+    "seconds": 254.65,
+    "log": "/home/tjd618/usb-io-opt-evidence-20261022/crypto_tests_final.txt",
+    "gating": "NOT a PASS; missing research data/contracts, 30-second C1 deadline, non-isolated cwd hot_slot contamination. Required operational suite rerun in isolated cwd above."
+  },
+  "runtime_only_exclusions": [
+    "test_chart_cache_expiry.py: two cases require independent, unshipped cache-expiry optimization; original runtime versions retained"
+  ],
+  "production_http_calls": 0,
+  "production_orders_issued": 0,
+  "production_mutations": 0,
+  "final_skip_nodeids": [
+    "backend/tests/crypto/test_binance_live_scale_in.py::test_the_card_route_converts_the_exposure_with_the_same_krw_helper",
+    "backend/tests/crypto/test_fee_scenarios.py::test_every_published_vip_row_becomes_a_scenario",
+    "backend/tests/crypto/test_fee_scenarios.py::test_the_default_scenario_is_the_rate_the_deployed_run_uses",
+    "backend/tests/crypto/test_fee_scenarios.py::test_only_the_entry_tier_is_assumed_and_the_rest_are_marked_hypothetical",
+    "backend/tests/crypto/test_fee_scenarios.py::test_the_zero_scenario_is_labelled_as_a_bound_not_as_a_fee",
+    "backend/tests/crypto/test_fee_scenarios.py::test_every_scenario_carries_the_capture_it_came_from",
+    "backend/tests/crypto/test_fee_scenarios.py::test_a_scenario_basis_is_one_the_config_already_knows",
+    "backend/tests/crypto/test_fee_scenarios.py::test_a_scenario_builds_a_usable_fee_schedule",
+    "backend/tests/crypto/test_fee_scenarios.py::test_scenarios_are_ordered_from_most_expensive_to_least",
+    "backend/tests/crypto/test_fee_scenarios.py::test_describe_is_serialisable_for_a_report",
+    "backend/tests/crypto/test_paper_replay.py::test_a_real_d2_window_builds_and_replays",
+    "backend/tests/crypto/test_replay_determinism.py::test_the_same_tape_replays_to_the_same_ledger_every_time",
+    "backend/tests/crypto/test_replay_determinism.py::test_pacing_mode_cannot_change_the_result",
+    "backend/tests/crypto/test_replay_determinism.py::test_stepping_one_record_at_a_time_matches_running_straight_through",
+    "backend/tests/crypto/test_replay_determinism.py::test_a_tape_written_to_disk_reproduces_the_same_ledger",
+    "backend/tests/crypto/test_replay_determinism.py::test_records_are_handed_over_in_non_decreasing_time_order",
+    "backend/tests/crypto/test_replay_determinism.py::test_the_engine_never_sees_a_price_stamped_after_the_command_it_is_filling",
+    "backend/tests/crypto/test_replay_determinism.py::test_every_fill_is_priced_at_or_before_its_own_timestamp",
+    "backend/tests/crypto/test_replay_determinism.py::test_funding_on_a_record_is_never_a_rate_settled_later",
+    "backend/tests/crypto/test_replay_determinism.py::test_open_interest_is_the_last_reading_at_or_before_the_bar",
+    "backend/tests/crypto/test_replay_determinism.py::test_index_and_mark_come_from_their_own_series_not_from_the_trade_price",
+    "backend/tests/crypto/test_replay_determinism.py::test_the_window_never_reaches_outside_the_bounds_it_was_given",
+    "backend/tests/crypto/test_replay_determinism.py::test_a_historical_record_is_always_marked_as_a_modelled_book"
+  ],
+  "commit_only_rerun": {
+    "date_kst": "2026-10-22",
+    "result": "1047 passed, 23 skipped, 0 failed",
+    "seconds": 52.16,
+    "cwd": "/tmp/usb-io-opt-commit-20261022/runtime",
+    "command": "PYTHONPATH=backend /home/tjd618/usb/.venv/bin/python /tmp/usb-io-opt-commit-20261022/runtime_tests.py",
+    "log": "/tmp/usb-io-opt-commit-20261022/regression.log",
+    "junit": "/tmp/usb-io-opt-commit-20261022/tests.xml",
+    "source": "Fresh HEAD 6682429 archive plus exact three changed code/test files; two hash-verified runtime chart files retained; five hash-verified public reference fixtures",
+    "harness": "Original local-only 10ms event-loop wakeups and 30s/test watchdog; original runtime suite and two chart-cache-expiry exclusions unchanged",
+    "skip_nodeids_exact_match_to_previous_log": true,
+    "skip_reasons_same_source_conditions": true,
+    "skip_reasons_counts": {
+      "no D2 historical dataset in this workspace": 1,
+      "no D2 kline_1m dataset in this workspace": 12,
+      "no captured fee verification record in this workspace": 9,
+      "no paper run configured, so there is no display rate to borrow": 1
+    },
+    "hot_passed": 56,
+    "rotation_passed": 29,
+    "new_cases_passed": [
+      "test_old_hot_cannot_reopen_while_its_socket_is_stopping[False]",
+      "test_old_hot_cannot_reopen_while_its_socket_is_stopping[True]",
+      "test_retire_backstop_keeps_open_hot_admitted_and_observed",
+      "test_strict_byte_parity_including_gzip_headers_and_manifest_hashes[False]",
+      "test_strict_byte_parity_including_gzip_headers_and_manifest_hashes[True]"
+    ],
+    "runtime_source_files_compared": 143,
+    "runtime_source_differences": [
+      "paper/segments.py",
+      "terminal/api.py"
+    ],
+    "runtime_patch_check_and_apply_candidate_hashes": "PASS",
+    "whitespace_check": "PASS for all other staged files; runtime_candidate.patch has nine required single-space empty context markers, preserved and validated by git apply"
+  }
+}

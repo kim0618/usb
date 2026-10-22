@@ -340,3 +340,27 @@ def test_output_is_deterministic(config, tiers, tmp_path, monkeypatch) -> None:
     b = _drive(config, tiers, tmp_path / "b", seed=11, every=12, compress=True,
                old_rule=False, monkeypatch=monkeypatch)
     assert a == b
+
+
+@pytest.mark.parametrize("compress", [False, True])
+def test_strict_byte_parity_including_gzip_headers_and_manifest_hashes(
+        config, tiers, tmp_path, monkeypatch, compress) -> None:
+    """Pin gzip's header clock; compare every byte, without normalizing any manifest field.
+
+    The baseline method is the exact expression in the production runtime copy. The fixture
+    includes orders, market records, torn writes, restarts and many segment cuts.
+    """
+    from unittest.mock import patch
+
+    old_root, new_root = tmp_path / "baseline", tmp_path / "optimized"
+    # _drive resets monkeypatch between runs, so use an independent patch for the header clock.
+    with patch("gzip.time.time", return_value=1_790_000_000):
+        old = _drive(config, tiers, old_root, seed=23, every=13, compress=compress,
+                     old_rule=True, monkeypatch=monkeypatch)
+        new = _drive(config, tiers, new_root, seed=23, every=13, compress=compress,
+                     old_rule=False, monkeypatch=monkeypatch)
+    def contents(root):
+        return {p.relative_to(root).as_posix(): p.read_bytes()
+                for p in root.rglob("*") if p.is_file()}
+    assert old[0] == new[0] and old[0]
+    assert contents(old_root) == contents(new_root)

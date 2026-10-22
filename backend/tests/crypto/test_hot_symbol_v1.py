@@ -821,3 +821,64 @@ def test_a_symbol_without_a_margin_table_gets_no_paper_run(tmp_path) -> None:
                                      "notionalFloor": 0, "maintMarginRatio": 0.01, "cum": 0}])
     spec, tiers = hot_market.load_reference(paths)
     assert spec.max_leverage == Decimal(20) and tiers.tiers[0].maintenance_margin_rate == Decimal("0.01")
+
+
+@pytest.mark.parametrize("traded", [False, True])
+def test_old_hot_cannot_reopen_while_its_socket_is_stopping(paper, monkeypatch, traded) -> None:
+    """A queued PAPER poll can run at feed.stop's await during HOT replacement.
+
+    It must be refused before it can rebuild/revive the old session and open a new socket.
+    Both never-traded and wallet-retained former HOT runs have this interleaving.
+    """
+    client, runtime, use_market, feeds = paper
+    use_market(HOT_A)
+    assert client.post("/api/crypto/hot/scan").status_code == 200
+    assert open_hot(client, runtime, HOT_A).status_code == 200
+    if traded:
+        assert order(client, HOT_A, "LONG", qty="100.0").status_code == 200
+        assert order(client, HOT_A, "LONG", intent="CLOSE", qty="100.0").status_code == 200
+    old_session = runtime.sessions[HOT_A]
+    old_account = old_session.engine.account
+    old_state = old_session.engine.snapshot()
+    btc_state = runtime.sessions["BTCUSDT"].engine.snapshot()
+    old_feed = runtime.feeds[HOT_A]
+    stopped = []
+
+    async def stop_with_queued_poll():
+        # Execute the same synchronous session lookup a queued /state poll makes at the
+        # suspension point. No network or real order is used.
+        with pytest.raises(symbols_module.SymbolNotSupported):
+            runtime.session_for(HOT_A)
+        stopped.append(True)
+
+    monkeypatch.setattr(old_feed, "stop", stop_with_queued_poll)
+    use_market(HOT_B)
+    replaced = client.post("/api/crypto/hot/scan")
+    assert replaced.status_code == 200, replaced.text
+    assert stopped == [True]
+    assert HOT_A not in runtime.sessions and HOT_A not in runtime.feeds
+    assert old_session.engine.snapshot() == old_state
+    assert runtime.sessions["BTCUSDT"].engine.snapshot() == btc_state
+    if traded:
+        assert runtime.retired[HOT_A] is old_session
+        assert runtime.cash.members[HOT_A] is old_account
+    else:
+        assert HOT_A not in runtime.retired and HOT_A not in runtime.cash.members
+
+
+def test_retire_backstop_keeps_open_hot_admitted_and_observed(paper) -> None:
+    import asyncio
+
+    client, runtime, use_market, feeds = paper
+    use_market(HOT_A)
+    assert client.post("/api/crypto/hot/scan").status_code == 200
+    assert open_hot(client, runtime, HOT_A).status_code == 200
+    assert order(client, HOT_A, "SHORT", qty="100.0").status_code == 200
+    session, feed = runtime.sessions[HOT_A], runtime.feeds[HOT_A]
+    state = session.engine.snapshot()
+    with pytest.raises(RuntimeError, match="still holds a position"):
+        asyncio.run(runtime.retire(HOT_A))
+    assert symbols_module.resolve(HOT_A) == HOT_A
+    assert runtime.sessions[HOT_A] is session and runtime.feeds[HOT_A] is feed
+    assert HOT_A not in runtime.retired
+    assert session.engine.snapshot() == state

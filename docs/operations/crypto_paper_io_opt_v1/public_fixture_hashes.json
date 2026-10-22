@@ -1,0 +1,7 @@
+{
+  "data/runtime/crypto/BTCUSDT/reference/risk_limit_1790128376.json": "cf4b90de8d2f2895a6984795299e1e13eac1f3d0f556b35ce14233118bf35818",
+  "data/runtime/crypto/ETHUSDT/reference/instruments_info_1791090971.json": "f488a47b3e96b8c560d331219eec00a6ea720810f9b9bf649a2678be96a94e1d",
+  "data/runtime/crypto/ETHUSDT/reference/risk_limit_1791090971.json": "3e788bddf5a4cf8a3446535eb88999ef1a0c626d9dda065d0ebb288b549483fa",
+  "data/runtime/crypto/SOLUSDT/reference/instruments_info_1791090971.json": "81136bc5e9d7a5fe0d785015438316e6333a4c4a3a3e73236b28c9fbca55af3f",
+  "data/runtime/crypto/SOLUSDT/reference/risk_limit_1791090971.json": "7b81dc344934f822764b4bc8b5124ed485bcbe29ebbdad47e490a49463bac9bb"
+}

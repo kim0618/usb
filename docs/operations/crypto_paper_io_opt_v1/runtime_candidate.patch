@@ -1,0 +1,201 @@
+--- a/backend/app/crypto/paper/segments.py
++++ b/backend/app/crypto/paper/segments.py
+@@ -26,8 +26,10 @@
+ """
+ from __future__ import annotations
+ 
++import codecs
+ import gzip
+ import hashlib
++import io
+ import json
+ import os
+ import time
+@@ -52,6 +54,17 @@
+ #: Records per segment. At 1 Hz this is roughly six hours, which keeps a tail replay short
+ #: without producing so many files that listing the directory becomes the slow part.
+ DEFAULT_SEGMENT_RECORDS = 20_000
++
++#: How much of the active tape's head, and of the end of its counted part, `should_rotate`
++#: remembers. Both are compared on every call to notice the file being replaced or rewritten
++#: rather than appended to.
++_HEAD_BYTES = 256
++
++#: The codec `open(path)` decodes the active tape with. The incremental count below decodes
++#: line by line itself, which only gives the same answer for a codec where b"\n" can never sit
++#: inside a character. Anything else keeps the whole-file count.
++_TEXT_ENCODING = codecs.lookup(io.TextIOWrapper(io.BytesIO()).encoding).name
++_INCREMENTAL_COUNT = _TEXT_ENCODING in ("utf-8", "ascii")
+ 
+ 
+ class CheckpointRefused(RuntimeError):
+@@ -360,6 +373,61 @@
+ # ------------------------------------------------------------------ rotation
+ 
+ 
++@dataclass(frozen=True)
++class _ActiveCount:
++    """What `should_rotate` last learned about the active tape.
++
++    `offset` is the byte just past the last newline counted and `complete` the non-blank lines
++    before it. A trailing line with no newline yet is never folded in, so the next reading
++    starts on a line boundary and sees that line whole once it is finished. `head` and `tail`
++    are the first and last bytes of the counted part, as they were when it was counted.
++    """
++    dev: int
++    ino: int
++    offset: int
++    complete: int
++    head: bytes
++    tail: bytes
++
++    @classmethod
++    def read(cls, fd: int, stat: os.stat_result, offset: int, complete: int) -> "_ActiveCount":
++        width = min(offset, _HEAD_BYTES)
++        return cls(stat.st_dev, stat.st_ino, offset, complete, os.pread(fd, width, 0),
++                   os.pread(fd, width, offset - width))
++
++    def unchanged(self, fd: int, stat: os.stat_result) -> bool:
++        """The counted part is still on disk exactly where and as it was."""
++        return ((stat.st_dev, stat.st_ino) == (self.dev, self.ino)
++                and stat.st_size >= self.offset
++                and os.pread(fd, len(self.head), 0) == self.head
++                and os.pread(fd, len(self.tail), self.offset - len(self.tail)) == self.tail)
++
++
++def _tally(lines: Iterator[bytes]) -> tuple[int, int, bool] | None:
++    """Count lines the way `active_records` does, over raw bytes split on b"\\n".
++
++    Returns (non-blank complete lines, bytes through the last newline, whether a non-blank
++    unterminated line follows), or None for anything this cannot count identically: a b"\\r",
++    which text mode would also treat as a line break, or bytes that do not decode, which text
++    mode would raise on. The caller then counts the old way, error and all.
++    """
++    complete = consumed = 0
++    partial = False
++    for raw in lines:
++        if b"\r" in raw:
++            return None
++        try:
++            blank = not raw.decode(_TEXT_ENCODING).strip()
++        except UnicodeDecodeError:
++            return None
++        if raw.endswith(b"\n"):
++            consumed += len(raw)
++            complete += not blank
++        else:
++            partial = not blank
++    return complete, consumed, partial
++
++
+ @dataclass
+ class SegmentedTape:
+     """The active tape plus the archive behind it."""
+@@ -374,6 +442,9 @@
+     clock_ms: Any = field(default=lambda: time.monotonic() * 1000, repr=False, compare=False)
+     _storage: tuple[float, dict[str, Any]] | None = field(default=None, init=False, repr=False,
+                                                           compare=False)
++    _active: _ActiveCount | None = field(default=None, init=False, repr=False, compare=False)
++    #: Whole-file reads `should_rotate` has made: one per start, then only on drift.
++    active_full_scans: int = field(default=0, init=False, repr=False, compare=False)
+ 
+     @property
+     def active_path(self) -> Path:
+@@ -389,7 +460,54 @@
+         return (manifests[-1].index + 1) if manifests else 1
+ 
+     def should_rotate(self) -> bool:
+-        return self.active_records() >= self.segment_records
++        return self._count_active() >= self.segment_records
++
++    def _count_active(self) -> int:
++        """`active_records()`, reading only what was appended since the last call.
++
++        The observe loop asks this once a second, and counting the whole active tape each time
++        read up to a segment's worth of JSON (about 4.5MB at the cut) every second to learn
++        that one line had been added. The answer is still taken from the disk, never from a
++        count of our own appends, so a writer this object does not know about is counted too.
++
++        The remembered position is only trusted while the file is visibly the same one, grown
++        by appending: same device and inode, not shorter, and the same bytes at the start and
++        at the end of the counted part. Anything else - truncation, replacement, a rewrite
++        under the counted part - re-reads the whole file, which is the old answer.
++        """
++        try:
++            fd = os.open(self.active_path, os.O_RDONLY)
++        except FileNotFoundError:
++            self._active = None
++            return 0
++        try:
++            stat = os.fstat(fd)
++            known = self._active
++            if _INCREMENTAL_COUNT and known is not None and known.unchanged(fd, stat):
++                appended = os.pread(fd, stat.st_size - known.offset, known.offset)
++                tally = _tally(iter(appended.splitlines(keepends=True)))
++                if tally is not None:
++                    complete, consumed, partial = tally
++                    if consumed:
++                        self._active = _ActiveCount.read(fd, stat, known.offset + consumed,
++                                                         known.complete + complete)
++                    return known.complete + complete + partial
++            return self._rescan_active(fd, stat)
++        finally:
++            os.close(fd)
++
++    def _rescan_active(self, fd: int, stat: os.stat_result) -> int:
++        self.active_full_scans += 1
++        self._active = None
++        if _INCREMENTAL_COUNT:
++            with os.fdopen(os.dup(fd), "rb") as handle:
++                handle.seek(0)
++                tally = _tally(iter(handle))
++            if tally is not None:
++                complete, consumed, partial = tally
++                self._active = _ActiveCount.read(fd, stat, consumed, complete)
++                return complete + partial
++        return self.active_records()
+ 
+     def rotate(self, engine: PaperEngine, *, tape_records: int) -> SegmentManifest | None:
+         """Close the active tape and take a checkpoint over it.
+@@ -400,6 +518,7 @@
+         if not self.active_path.exists() or self.active_records() == 0:
+             return None
+         self._storage = None
++        self._active = None
+         index = self.next_index()
+         directory = self.run_dir / SEGMENT_DIR
+         directory.mkdir(parents=True, exist_ok=True)
+@@ -444,6 +563,11 @@
+                      json.dumps(checkpoint, indent=2, sort_keys=True) + "\n")
+         self.active_path.touch()
+         self._storage = None
++        # The counted file is now a segment. The fresh one is empty, so its count is known
++        # without reading it; a fresh file that somehow is not empty is simply read.
++        fresh = self.active_path.stat()
++        self._active = (_ActiveCount(fresh.st_dev, fresh.st_ino, 0, 0, b"", b"")
++                        if fresh.st_size == 0 else None)
+         return manifest
+ 
+     def replay_from(self, engine: PaperEngine, *, after_segment: int) -> int:
+--- a/backend/app/crypto/terminal/api.py
++++ b/backend/app/crypto/terminal/api.py
+@@ -33,7 +33,7 @@
+ from ..paper.instrument import InstrumentSpec, RiskTierTable
+ from ..paper.state import TransitionRejected
+ from ..symbols import (DEFAULT_SYMBOL, SUPPORTED_SYMBOLS, SymbolNotSupported, admit_dynamic,
+-                            is_dynamic, permitted_symbols, resolve as resolve_symbol)
++                            is_dynamic, permitted_symbols, retire_dynamic, resolve as resolve_symbol)
+ from ..hot_coins import market as hot_market
+ from ..hot_coins.slot import controller as hot_slot
+ from .chart_history import BybitChartHistory
+@@ -480,6 +480,10 @@
+             elif self.cash is not None and self.cash._members.get(symbol) is account:
+                 del self.cash._members[symbol]
+             released["session"] = "RETIRED" if traded else "DROPPED"
++        # Revoke admission before the first await: while the old socket is stopping, a
++        # queued PAPER poll must not rebuild/revive this session and start a new feed.
++        # The open-position backstop above leaves held symbols admitted.
++        retire_dynamic(symbol)
+         feed = self.feeds.pop(symbol, None)
+         if feed is not None:
+             await feed.stop()
