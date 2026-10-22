@@ -17,6 +17,7 @@ asserted in the tests (matrices, ranks, trades/NAV bytes, paper events).
 from __future__ import annotations
 
 import ast
+import collections
 import gzip
 import hashlib
 import json
@@ -29,8 +30,18 @@ import pandas as pd
 from . import view as V
 
 # statement line ranges of each frozen file that are executed verbatim (inclusive, by first line)
-V1_KEEP = [(7, 9), (12, 27), (41, 56), (63, 63), (65, 93)]
+V1_KEEP = [(7, 9), (12, 20), (26, 27), (41, 44), (54, 56), (63, 63), (65, 93)]
 V1_REPLACED = (28, 40)
+#: V1 lines 21-25 (``snaps``) are replaced by ``_snaps``: the same dict of dicts, keeping only the row
+#: fields any I code path reads (V1 ``ranked``: primary_exchange; V2 TRANS, V2.1 SIC diagnostics and the
+#: overlay: cik). Both keys are always present (value None when absent in the file), so a row dict is
+#: never empty and ``snap.get(tk) or <fallback>`` takes the same branch as with the full row.
+V1_SNAPS_REPLACED = (21, 25)
+SNAP_FIELDS = ("primary_exchange", "cik")
+#: sha256 of the exact source lines each replacement stands for; a different frozen file is refused
+REPLACED_SHA = {(21, 25): "a4ea8ac709a49d416cde9d96b5632f03325e27ee73f1c13f294c5380bd8e19fb",
+                (28, 40): "7a2a4ea702eba94aeccff795c509fa5b3ff660589d964d30ce503d299e44e86c",
+                (45, 53): "0f806d13fb08fa3fde35bf65cf89acaef6c2e5f36cdb5745602e6cebde9b716b"}
 V2_KEEP = [(7, 9), (18, 21), (24, 44)]
 V21_KEEP = [(8, 10), (19, 23), (25, 171)]
 # sha256 of the exact source lines replaced (V1 28-40), so a different file can never be patched
@@ -52,12 +63,98 @@ def _check_code() -> dict[str, str]:
         if V.sha_file(V.RESEARCH / name) != h:
             raise V.ViewError("frozen research code changed: " + name)
     lines = (V.RESEARCH / "implementation_census_v1.py").read_text().splitlines()
-    return {"v1_replaced_lines_sha256": hashlib.sha256("\n".join(lines[V1_REPLACED[0] - 1:V1_REPLACED[1]]).encode()).hexdigest()}
+    for (a, b), h in REPLACED_SHA.items():
+        if hashlib.sha256("\n".join(lines[a - 1:b]).encode()).hexdigest() != h:
+            raise V.ViewError("replaced V1 lines %d-%d changed" % (a, b))
+    return {"v1_replaced_lines_sha256": hashlib.sha256("\n".join(lines[V1_REPLACED[0] - 1:V1_REPLACED[1]]).encode()).hexdigest(),
+            "v1_replaced_ranges": sorted("%d-%d" % k for k in REPLACED_SHA)}
 
 
 #: sessions kept before the first paper signal: the V1 ranking reads back to index i - 252 (CA.iloc[i - 252]);
 #: 8 more as margin. Sessions before that cannot reach any paper decision (asserted by event equality tests).
 LOOKBACK_KEEP = 260
+
+
+#: first DV row any accepted signal reads: the engine refuses a signal at position < 252, and V1 ``ranked``
+#: reads ``DV.iloc[i - 19:i + 1]`` (the 20-session median ADV), so rows before 252 - 19 are never read.
+DV_FIRST_POS = 252 - 19
+
+
+class WindowFrame:
+    """``DV`` holding only rows from position ``offset`` on. ``.iloc[a:b]`` returns the same DataFrame slice
+    (same labels, same values) as the full frame; a slice that starts before ``offset`` is refused."""
+
+    def __init__(self, frame: pd.DataFrame, offset: int):
+        self.frame, self.offset = frame, offset
+        self.columns = frame.columns
+        self.iloc = self
+
+    def __getitem__(self, key):
+        if not isinstance(key, slice) or key.step is not None or key.start is None or key.start < self.offset:
+            raise V.ViewError("DV row %r outside the kept window (from %d)" % (key, self.offset))
+        stop = None if key.stop is None else key.stop - self.offset
+        return self.frame.iloc[key.start - self.offset:stop]
+
+
+def _snaps(ns: dict) -> None:
+    """Replacement of V1 lines 21-25: same files in the same order, same keys, rows cut to SNAP_FIELDS."""
+    import glob as _glob
+    RAW, RT = ns["RAW"], ns["RT"]
+    snaps = {}
+    for p in sorted(_glob.glob(RAW + "/tickers/CS_*.json.gz") + _glob.glob(RT + "/research_universe_u1/reference/tickers/CS_*.json.gz")):
+        j = json.loads(gzip.open(p).read())
+        rs = j["results"] if "results" in j else [r for pg in j["pages"] for r in pg["results"]]
+        snaps[j.get("as_of") or ns["os"].path.basename(p)[3:13]] = {r["ticker"]: {f: r.get(f) for f in SNAP_FIELDS} for r in rs}
+        del j, rs
+    ns["snaps"] = snaps
+
+
+class SplitFactors:
+    """Stands for V1's dense ``adj`` (S x tickers, 1.0 except before a split): only split tickers hold an
+    array; ``adj[tk]`` gives the same float64 Series (index S, name tk), cached per ticker. The I code reads
+    ``adj`` only as ``adj[tk].iloc[i]`` / ``adj[tk].loc[s]`` (V2.1, engine, overlay); ``dense()`` is for tests."""
+
+    def __init__(self, index: pd.Index, columns: pd.Index, factors: dict[str, np.ndarray]):
+        self.index, self.columns, self._f, self._cache = index, columns, factors, {}
+        self._colset = set(columns)
+
+    def __getitem__(self, tk: str) -> pd.Series:
+        s = self._cache.get(tk)
+        if s is None:
+            if tk not in self._colset:
+                raise KeyError(tk)
+            arr = self._f.get(tk)
+            s = self._cache[tk] = pd.Series(arr if arr is not None else np.ones(len(self.index)), index=self.index, name=tk)
+        return s
+
+    def dense(self) -> pd.DataFrame:
+        out = pd.DataFrame(1.0, index=self.index, columns=self.columns)
+        for tk, arr in self._f.items(): out[tk] = arr
+        return out
+
+
+def _adj(ns: dict) -> None:
+    """Replacement of V1 lines 45-53: the same split loop (same order, same in-place products on a 1.0
+    column), kept per split ticker; ``CA = C * adj`` as C with only the split columns multiplied
+    (x * 1.0 == x for every float64, NaN stays NaN)."""
+    S, C, sp = ns["S"], ns["C"], ns["sp"]
+    cols = set(C.columns)
+    factors: dict[str, np.ndarray] = {}
+    split_pos = collections.defaultdict(list)
+    for r in sp.itertuples():
+        if r.ticker not in cols or r.split_to == 0: continue
+        pre = S < r.execution_date
+        if pre.all() or not pre.any(): continue
+        f = factors.get(r.ticker)
+        if f is None: f = factors[r.ticker] = np.ones(len(S))
+        f[pre] *= r.split_from / r.split_to
+        split_pos[r.ticker].append(int(np.argmax(~pre)))
+    ca = C.to_numpy(copy=True)
+    j = C.columns.get_indexer(list(factors))
+    for k, tk in zip(j, factors): ca[:, k] = ca[:, k] * factors[tk]
+    ns["adj"] = SplitFactors(C.index, C.columns, factors)
+    ns["split_pos"] = split_pos
+    ns["CA"] = pd.DataFrame(ca, index=C.index, columns=C.columns)
 
 
 def _panel(ns: dict, start_session: str | None = None) -> None:
@@ -99,9 +196,9 @@ def _panel(ns: dict, start_session: str | None = None) -> None:
     cols = pd.Index(names, name="T")
     ns["S"] = pd.Index(sessions)
     ns["C"] = pd.DataFrame(Cm, index=ns["S"], columns=cols)          # == pivot(...).reindex(S): same index values
-    Vdf = pd.DataFrame(Vm, index=ns["S"], columns=cols)
-    ns["DV"] = ns["C"] * Vdf                                          # V1 L40
-    del Vdf, Vm
+    off = min(DV_FIRST_POS, len(sessions))                            # V1 L40, rows a ranking can read
+    ns["DV"] = WindowFrame(pd.DataFrame(Cm[off:] * Vm[off:], index=ns["S"][off:], columns=cols), off)
+    del Vm
 
 
 def start_for(view: V.View, first_signal: str | None) -> str | None:
@@ -124,11 +221,13 @@ def load(view: V.View, start_session: str | None = None) -> types.ModuleType:
     ns.update(gzip=gzip, json=json, glob=glob, os=os, sys=sys, hashlib=hashlib, collections=collections, np=np, pd=pd,
               HERE=str(V.RESEARCH), RT=str(view.root), SICP=str(V.D17_FUND).replace(".parquet", "_sic.parquet"))
     v1 = V.RESEARCH / "implementation_census_v1.py"
-    head = _statements(v1, [V1_KEEP[0], V1_KEEP[1]])
-    exec(compile(head, str(v1), "exec"), ns)                           # contract, constants, snapshots, all_cs
+    exec(compile(_statements(v1, V1_KEEP[0:2]), str(v1), "exec"), ns)  # contract, constants
+    _snaps(ns)
+    exec(compile(_statements(v1, [V1_KEEP[2]]), str(v1), "exec"), ns)   # snap_dates, all_cs
     _panel(ns, start_session)
-    tail = _statements(v1, V1_KEEP[2:])
-    exec(compile(tail, str(v1), "exec"), ns)                           # splits/adj/CA/CAf/R1/pos, SIC, ranked/get_rank
+    exec(compile(_statements(v1, [V1_KEEP[3]]), str(v1), "exec"), ns)  # splits table sp
+    _adj(ns)
+    exec(compile(_statements(v1, V1_KEEP[4:]), str(v1), "exec"), ns)    # CAf/R1/pos, SIC, ranked/get_rank
     ns["signals"], ns["execs"] = [], []          # V1 L57-62 (contract-window schedule) are not run; the engine sets its own
     m2 = types.ModuleType("i_paper_lean_v2"); n2 = m2.__dict__
     n2.update(json=json, hashlib=hashlib, collections=collections, np=np, pd=pd, HERE=str(V.RESEARCH), m1=m1)

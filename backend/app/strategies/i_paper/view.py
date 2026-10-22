@@ -61,6 +61,10 @@ class Stores:
     #: extra reference snapshot directories used only as continuity evidence (read-only). Default: H's
     #: daily reference store, written by H's own refresh when that runs; absent is fine.
     evidence: tuple[Path, ...] | None = None
+    #: I-owned read-only grouped history (sessions the shared production store does not hold, e.g. the
+    #: 2025-10-17..2026-08-10 package). Kept out of ``strategy_c/raw/grouped`` because H reads that
+    #: directory and would take the extra files as its own input. A session in both must be the same bytes.
+    history: tuple[Path, ...] = ()
 
     @property
     def evidence_dirs(self) -> list[Path]:
@@ -117,7 +121,17 @@ def build_view(stores: Stores, as_of: date, root: Path, calendar: MarketCalendar
     root = Path(root)
     if root.exists() and any(root.iterdir()):
         raise ViewError("view directory must be new or empty: %s" % root)
-    g = sorted(p for p in stores.grouped.glob("*.json.gz") if re.fullmatch(r"\d{4}-\d{2}-\d{2}\.json\.gz", p.name))
+    pat = re.compile(r"\d{4}-\d{2}-\d{2}\.json\.gz")
+    by_name = {p.name: p for p in stores.grouped.glob("*.json.gz") if pat.fullmatch(p.name)}
+    for h in stores.history:
+        for p in sorted(h.glob("*.json.gz")) if h.is_dir() else []:
+            if not pat.fullmatch(p.name): continue
+            q = by_name.get(p.name)
+            if q is None:
+                by_name[p.name] = p
+            elif sha_file(q) != sha_file(p):
+                raise ViewError("grouped %s differs between %s and %s" % (p.name, q.parent, p.parent))
+    g = [by_name[n] for n in sorted(by_name)]
     vis = [p for p in g if p.name[:10] <= as_of.isoformat()]
     if not vis:
         raise ViewError("no grouped session on or before as-of")
@@ -131,7 +145,8 @@ def build_view(stores: Stores, as_of: date, root: Path, calendar: MarketCalendar
         raise ViewError("as-of session %s has no grouped file (latest %s)" % (as_of, have[-1]))
     for sub in ("strategy_c/raw/grouped", "strategy_c/raw/tickers", "strategy_c/raw/splits", "research_universe_u1/reference/tickers"):
         (root / sub).mkdir(parents=True, exist_ok=True)
-    man: dict[str, Any] = {"as_of": as_of.isoformat(), "grouped": {"first": have[0], "last": have[-1], "count": len(have)},
+    man: dict[str, Any] = {"as_of": as_of.isoformat(), "grouped": {"first": have[0], "last": have[-1], "count": len(have),
+                                                                  "from_history": sum(1 for p in vis if p.parent != stores.grouped)},
                            "tickers": {}, "splits": {}}
     for p in vis:
         os.symlink(p.resolve(), root / "strategy_c/raw/grouped" / p.name)

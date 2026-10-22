@@ -1,0 +1,393 @@
+{
+  "loader": "lean",
+  "launch": "2025-09-30",
+  "as_of": "2026-10-20",
+  "window": false,
+  "snapshot_availability": "historical on-time assumption; experiment only",
+  "input_manifest": {
+    "as_of": "2026-10-20",
+    "grouped": {
+      "first": "2024-09-16",
+      "last": "2026-10-20",
+      "count": 526
+    },
+    "tickers": {
+      "CS_2024-10-01.json.gz": "2753e224ad3fa3d040e822b01dc9985b3c89f6d1bba17519676bf3ca58a3ada2",
+      "CS_2025-01-02.json.gz": "ac8174e0991a8ebfae20a56c360beb870f7e3480ba10f04696b2a0cdc09746e4",
+      "CS_2025-04-01.json.gz": "0bde9079559855eee9eb661e582ca3879bb5ef05b9e7fcc40e620efa6dfe960c",
+      "CS_2025-07-01.json.gz": "352ff340e6edc7c3c3fd91695c1599c233f2ab851af4736d782ca2506c7075ff",
+      "CS_2025-10-01.json.gz": "4822805e3e8675515be3ae8c659e70087b76183b2d345e1d19ea3961b1452343",
+      "CS_2026-01-02.json.gz": "0ac4c477a777e67ff811fd5a490875e65b49cd6e19815e64df0c92db133fdd4e",
+      "CS_2026-04-01.json.gz": "5c4b66c2326a5269ae1b5d0c4a30d04d633ed396243b571ecbada47fcd7e6701",
+      "CS_2026-07-01.json.gz": "bbb6c49c46aba847c3c4e5b738b07a4b0f21c22af69a7127ee8fa44c19ee38ea",
+      "CS_2026-10-01.json.gz": "d134a19910dbdac2dac6d0ab9acb7f42d5b8d66d26e2ee7a48b77bbcbb2b277e",
+      "CS_2024-10-21.json.gz": "40cfe2cca906fa2d244fd4effee2cb11b2ebe3b91bace848106d7d21a5090a83",
+      "CS_2024-10-25.json.gz": "a94fb1bdd45675b6441928e6bb3b1535ffb483a2c0485454e20efe09771ae91c"
+    },
+    "splits": {
+      "splits_2024-09-16_2026-09-16.json.gz": "992db9bd165ca66b3a47ab83223494594cc6f9852ae48d03d4090c659fa14262",
+      "splits_2026-09-17_2026-10-02.json.gz": "b252986fe61ade30481fe593351daa1ef4c8ef99ddc12da005c794ba347fe225",
+      "splits_2026-09-27_2026-10-18.json.gz": "5349fca38a079654d2e8b554cc1d9b9af21c8658f755d51ac12071628511205d",
+      "splits_2026-09-28_2026-10-19.json.gz": "8a3c21569036a30364bd4d68df7e6433efd265dc5b3f7c6b89a5a7575ea44c48",
+      "splits_2026-09-29_2026-10-20.json.gz": "e184f0da3ab37099b27ca96331bc34fc5b7bb81551df5f03b9554067d57b2c87",
+      "splits_2026-09-30_2026-10-21.json.gz": "c7839eb9c2f2ed82ee8c09752df30339fa83bb390829ef29f91e82718573e059",
+      "splits_2026-10-01_2026-10-22.json.gz": "d19c79874e52e26f3b003574282cf12e57cf18a5441a9b2346c4f0b7b5eed803",
+      "splits_2026-10-02_2026-10-23.json.gz": "b92d40c8290d8acf6599092f62cfca1be69d481b9a6b0b8b144910002dd098bc",
+      "splits_2026-10-03_2026-10-09.json.gz": "8a41d70dc6c6b37e4cb5eb1c5bbefecaec150679203572386af491616340ed0a",
+      "splits_2026-10-03_2026-10-24.json.gz": "54ad657b7ea86e7439306f1907ebd7ea199817a00b9b2e2b2daa11cd2c272835",
+      "splits_2026-10-04_2026-10-25.json.gz": "e84ba0775f8cfb13d0bf754d473a5aee65ec9104ea6f4ba4b97e5f56690fee8e",
+      "splits_2026-10-05_2026-10-26.json.gz": "53649d2b577f2365886b22d8bd99bcd9913d1c618c2e4c42e15974a0f16ae7bb",
+      "splits_2026-10-06_2026-10-27.json.gz": "0fd13179056d7fcb0bf11346e44b668ebcddd6f57a741fda5f6b32a32a4dc800",
+      "splits_2026-10-07_2026-10-28.json.gz": "05a4b7efb8e374b496469b94c1bdc55f2f1db657da8741fdb50ae69dc111426d",
+      "splits_2026-10-08_2026-10-29.json.gz": "1e5ee5fe7b2b758aa03d4cd7a18e373c38e7cb34f5155b1ed1497378f018b17c",
+      "splits_2026-10-09_2026-10-30.json.gz": "92cf68d539d4d56f3cb512e61169dc477ec3614d88ac5bef23fafff3d6a4b699",
+      "splits_2026-10-10_2026-10-31.json.gz": "6d295cb53f450c14ac948d161b84700f8461beb759d3efa0ef2b69556492ee32",
+      "splits_2026-10-11_2026-11-01.json.gz": "3b533528aab25a298a642acae3de32ed0e0659a30b2b7b0d8f1cd6286e8bf349",
+      "splits_2026-10-12_2026-11-02.json.gz": "25f9797f2f29262aac23f726224af44e392dda44456ce6e36b53ccb5facd90c3",
+      "splits_2026-10-13_2026-11-03.json.gz": "5f9bb69d5d0e98e830fff5f85fbab18440ae5a3e80339781fa74eb5b3d05a87a",
+      "splits_2026-10-14_2026-11-04.json.gz": "b5560824a63197b92ef1b1215687228e0e66a9091619f969e3227c27dea7bf3f"
+    },
+    "evidence": {
+      "CS_2026-10-13.json.gz": "a0c388902ef10f701275fd454d1e25c4192fe2909985f8d6bdd846779fd9e09e",
+      "CS_2026-10-14.json.gz": "6296f568e622a2909e533b7f18488e1789a4a53fd172e0acc8dff0012fb6d294",
+      "CS_2026-10-15.json.gz": "debf0ab8dbadd9f617a250c44f845db373d0fd7cd52ae9dc7a6bb8872bef4ba4",
+      "CS_2026-10-16.json.gz": "f5e81d4b79eed5fb5e6d4ca5cf4d8cd7a3d1338fca7b1fdc1a236558c566648c",
+      "CS_2026-10-19.json.gz": "00f9c85824ab02fdc5f3ea2bc97ccbcb40dda64cc14662d5b4222b38d40aa4d4",
+      "CS_2026-10-20.json.gz": "f772aeec798cef08bf1f8b0bec5e90208a36d9545f248600504a7f731c672a18"
+    },
+    "grouped_hash": "20a01f40d890c80a43c14d10957226a857c8e4f6da1669bfc13a2a55f6885dd3"
+  },
+  "shape": [
+    525,
+    6504
+  ],
+  "events": 468,
+  "event_sha256": "c1f5b85628a4717352de94f9acc8a75cd8cb66cb03efa639484c31eb996b6c30",
+  "candidate_digest": "81a21aa3fd019a22c252423c1d41fd7d22ce447f0d24dec79fb52bd94214163b",
+  "final_state_digest": "63fc75819af122917d212e0f752843ce27122f90af9ccbf3820c87062bfbeb3e",
+  "trade_rebalance_digest": "3693b3e4c439f33102eca54bdecb8d7d099d34ff306f6d30c1051315730338f7",
+  "ranking_digest": "e74f590f26569b96eaa78513bd9022ccbc65c045bdbfcfe970263d51f4fd7dbb",
+  "continuity_digest": "b018f5fbf7371d6ce72231b4379e3ad4416f2e9fb082c47cda52759a4b678097",
+  "final_state": {
+    "session": "2026-10-20",
+    "cash_from_logged_trades": 470.890612,
+    "nav": 10154.700612,
+    "positions": [
+      {
+        "ticker": "ALMS",
+        "shares": 74.0,
+        "close": 6.7,
+        "value": 495.8,
+        "stale": false
+      },
+      {
+        "ticker": "ANRO",
+        "shares": 21.0,
+        "close": 24.41,
+        "value": 512.61,
+        "stale": false
+      },
+      {
+        "ticker": "AXTI",
+        "shares": 9.0,
+        "close": 57.09,
+        "value": 513.81,
+        "stale": false
+      },
+      {
+        "ticker": "BE",
+        "shares": 2.0,
+        "close": 222.65,
+        "value": 445.3,
+        "stale": false
+      },
+      {
+        "ticker": "BW",
+        "shares": 94.0,
+        "close": 4.57,
+        "value": 429.58,
+        "stale": false
+      },
+      {
+        "ticker": "CELC",
+        "shares": 6.0,
+        "close": 60.0,
+        "value": 360.0,
+        "stale": false
+      },
+      {
+        "ticker": "CLYM",
+        "shares": 48.0,
+        "close": 10.8,
+        "value": 518.4,
+        "stale": false
+      },
+      {
+        "ticker": "ERAS",
+        "shares": 37.0,
+        "close": 14.62,
+        "value": 540.94,
+        "stale": false
+      },
+      {
+        "ticker": "HYMC",
+        "shares": 29.0,
+        "close": 16.95,
+        "value": 491.55,
+        "stale": false
+      },
+      {
+        "ticker": "IMMX",
+        "shares": 53.0,
+        "close": 8.91,
+        "value": 472.23,
+        "stale": false
+      },
+      {
+        "ticker": "INBX",
+        "shares": 6.0,
+        "close": 95.3,
+        "value": 571.8,
+        "stale": false
+      },
+      {
+        "ticker": "KOD",
+        "shares": 5.0,
+        "close": 92.97,
+        "value": 464.85,
+        "stale": false
+      },
+      {
+        "ticker": "ORKA",
+        "shares": 6.0,
+        "close": 79.09,
+        "value": 474.54,
+        "stale": false
+      },
+      {
+        "ticker": "PRAX",
+        "shares": 1.0,
+        "close": 264.49,
+        "value": 264.49,
+        "stale": false
+      },
+      {
+        "ticker": "PVLA",
+        "shares": 5.0,
+        "close": 123.92,
+        "value": 619.6,
+        "stale": false
+      },
+      {
+        "ticker": "QTTB",
+        "shares": 66.0,
+        "close": 8.62,
+        "value": 568.92,
+        "stale": false
+      },
+      {
+        "ticker": "SLS",
+        "shares": 44.0,
+        "close": 11.98,
+        "value": 527.12,
+        "stale": false
+      },
+      {
+        "ticker": "STTK",
+        "shares": 80.0,
+        "close": 5.84,
+        "value": 467.2,
+        "stale": false
+      },
+      {
+        "ticker": "TNGX",
+        "shares": 23.0,
+        "close": 25.25,
+        "value": 580.75,
+        "stale": false
+      },
+      {
+        "ticker": "WDC",
+        "shares": 1.0,
+        "close": 364.32,
+        "value": 364.32,
+        "stale": false
+      }
+    ]
+  },
+  "signals": [
+    {
+      "type": "SIGNAL",
+      "session": "2025-09-30",
+      "k": 0,
+      "signal": "2025-09-30",
+      "exec": "2025-10-01",
+      "eligible": 2406,
+      "ranked": 2324,
+      "ez": 232,
+      "hz": 464,
+      "order_sha256": "aac112dda035e7404761dd4fcc52603f705bc6a3d7037deb63bbd11bcbaa678f",
+      "snapshot_as_of": "2025-07-01"
+    },
+    {
+      "type": "SIGNAL",
+      "session": "2025-10-31",
+      "k": 1,
+      "signal": "2025-10-31",
+      "exec": "2025-11-03",
+      "eligible": 2448,
+      "ranked": 2338,
+      "ez": 233,
+      "hz": 467,
+      "order_sha256": "3284e552ac5cd0c29654aa8c4e86cb99578ba8d6a5142f71960e92066f8b722c",
+      "snapshot_as_of": "2025-10-01"
+    },
+    {
+      "type": "SIGNAL",
+      "session": "2025-11-28",
+      "k": 2,
+      "signal": "2025-11-28",
+      "exec": "2025-12-01",
+      "eligible": 2457,
+      "ranked": 2358,
+      "ez": 235,
+      "hz": 471,
+      "order_sha256": "a0a66183d2e3db8896e4b2e0932840ca83109a5daa7235106147e5bfb1ebad37",
+      "snapshot_as_of": "2025-10-01"
+    },
+    {
+      "type": "SIGNAL",
+      "session": "2025-12-31",
+      "k": 3,
+      "signal": "2025-12-31",
+      "exec": "2026-01-02",
+      "eligible": 2449,
+      "ranked": 2361,
+      "ez": 236,
+      "hz": 472,
+      "order_sha256": "ccb69e00c9b84b8d0416c0429450d42c981cabe66099e51e2bb2954fe53dc129",
+      "snapshot_as_of": "2025-10-01"
+    },
+    {
+      "type": "SIGNAL",
+      "session": "2026-01-30",
+      "k": 4,
+      "signal": "2026-01-30",
+      "exec": "2026-02-02",
+      "eligible": 2500,
+      "ranked": 2387,
+      "ez": 238,
+      "hz": 477,
+      "order_sha256": "6d85b406ea95b7572673ddf7162014ec31c0be9dd6a2290de665e7b03238184e",
+      "snapshot_as_of": "2026-01-02"
+    },
+    {
+      "type": "SIGNAL",
+      "session": "2026-02-27",
+      "k": 5,
+      "signal": "2026-02-27",
+      "exec": "2026-03-02",
+      "eligible": 2489,
+      "ranked": 2400,
+      "ez": 240,
+      "hz": 480,
+      "order_sha256": "0812005dac3d6801a6854b31a71f3a7030b89e3bdf111e796558bfbddd99e18e",
+      "snapshot_as_of": "2026-01-02"
+    },
+    {
+      "type": "SIGNAL",
+      "session": "2026-03-31",
+      "k": 6,
+      "signal": "2026-03-31",
+      "exec": "2026-04-01",
+      "eligible": 2483,
+      "ranked": 2396,
+      "ez": 239,
+      "hz": 479,
+      "order_sha256": "06357ec0197133bc6f5212af9807566aeb2a3eb9d3d14482fea482f53053c0fb",
+      "snapshot_as_of": "2026-01-02"
+    },
+    {
+      "type": "SIGNAL",
+      "session": "2026-04-30",
+      "k": 7,
+      "signal": "2026-04-30",
+      "exec": "2026-05-01",
+      "eligible": 2479,
+      "ranked": 2366,
+      "ez": 236,
+      "hz": 473,
+      "order_sha256": "f76f46ab7bfaeb63c3f5858cb4cb9608a980414d04d6074873ca7afe0876dac4",
+      "snapshot_as_of": "2026-04-01"
+    },
+    {
+      "type": "SIGNAL",
+      "session": "2026-05-29",
+      "k": 8,
+      "signal": "2026-05-29",
+      "exec": "2026-06-01",
+      "eligible": 2548,
+      "ranked": 2435,
+      "ez": 243,
+      "hz": 487,
+      "order_sha256": "b48b82d22341ad5fc7c7bc361a97f3a69e06546117ef0145e537a2a05c7fa4f8",
+      "snapshot_as_of": "2026-04-01"
+    },
+    {
+      "type": "SIGNAL",
+      "session": "2026-06-30",
+      "k": 9,
+      "signal": "2026-06-30",
+      "exec": "2026-07-01",
+      "eligible": 2588,
+      "ranked": 2482,
+      "ez": 248,
+      "hz": 496,
+      "order_sha256": "2abd883d29796e9813ea168b2ed2d794f12e22faebd100df0507e50fc0d3eef9",
+      "snapshot_as_of": "2026-04-01"
+    },
+    {
+      "type": "SIGNAL",
+      "session": "2026-07-31",
+      "k": 10,
+      "signal": "2026-07-31",
+      "exec": "2026-08-03",
+      "eligible": 2556,
+      "ranked": 2417,
+      "ez": 241,
+      "hz": 483,
+      "order_sha256": "c436c9b3ad201ef65f0997a6733c11051f1ac59f4bde5f3715b81123ceed6791",
+      "snapshot_as_of": "2026-07-01"
+    },
+    {
+      "type": "SIGNAL",
+      "session": "2026-08-31",
+      "k": 11,
+      "signal": "2026-08-31",
+      "exec": "2026-09-01",
+      "eligible": 2575,
+      "ranked": 2444,
+      "ez": 244,
+      "hz": 488,
+      "order_sha256": "768db33fa8dc926a23549d923a632c7a5a00158516da8539ab89e247e9e3028f",
+      "snapshot_as_of": "2026-07-01"
+    },
+    {
+      "type": "SIGNAL",
+      "session": "2026-09-30",
+      "k": 12,
+      "signal": "2026-09-30",
+      "exec": "2026-10-01",
+      "eligible": 2555,
+      "ranked": 2431,
+      "ez": 243,
+      "hz": 486,
+      "order_sha256": "dbb46c5f3fe7a2ae7919bac1b4698a39f804594a3c4d54221a164def7d90b7f9",
+      "snapshot_as_of": "2026-07-01"
+    }
+  ],
+  "refused": [],
+  "rss_peak_kib": 413692,
+  "anon_peak_sampled_kib": 341032,
+  "wall_seconds": 26.027
+}

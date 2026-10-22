@@ -1,0 +1,367 @@
+{
+  "loader": "lean",
+  "launch": "2025-09-30",
+  "as_of": "2026-10-12",
+  "window": false,
+  "snapshot_availability": "historical on-time assumption; experiment only",
+  "input_manifest": {
+    "as_of": "2026-10-12",
+    "grouped": {
+      "first": "2024-09-16",
+      "last": "2026-10-12",
+      "count": 520
+    },
+    "tickers": {
+      "CS_2024-10-01.json.gz": "2753e224ad3fa3d040e822b01dc9985b3c89f6d1bba17519676bf3ca58a3ada2",
+      "CS_2025-01-02.json.gz": "ac8174e0991a8ebfae20a56c360beb870f7e3480ba10f04696b2a0cdc09746e4",
+      "CS_2025-04-01.json.gz": "0bde9079559855eee9eb661e582ca3879bb5ef05b9e7fcc40e620efa6dfe960c",
+      "CS_2025-07-01.json.gz": "352ff340e6edc7c3c3fd91695c1599c233f2ab851af4736d782ca2506c7075ff",
+      "CS_2025-10-01.json.gz": "4822805e3e8675515be3ae8c659e70087b76183b2d345e1d19ea3961b1452343",
+      "CS_2026-01-02.json.gz": "0ac4c477a777e67ff811fd5a490875e65b49cd6e19815e64df0c92db133fdd4e",
+      "CS_2026-04-01.json.gz": "5c4b66c2326a5269ae1b5d0c4a30d04d633ed396243b571ecbada47fcd7e6701",
+      "CS_2026-07-01.json.gz": "bbb6c49c46aba847c3c4e5b738b07a4b0f21c22af69a7127ee8fa44c19ee38ea",
+      "CS_2026-10-01.json.gz": "d134a19910dbdac2dac6d0ab9acb7f42d5b8d66d26e2ee7a48b77bbcbb2b277e",
+      "CS_2024-10-21.json.gz": "40cfe2cca906fa2d244fd4effee2cb11b2ebe3b91bace848106d7d21a5090a83",
+      "CS_2024-10-25.json.gz": "a94fb1bdd45675b6441928e6bb3b1535ffb483a2c0485454e20efe09771ae91c"
+    },
+    "splits": {
+      "splits_2024-09-16_2026-09-16.json.gz": "992db9bd165ca66b3a47ab83223494594cc6f9852ae48d03d4090c659fa14262",
+      "splits_2026-09-17_2026-10-02.json.gz": "b252986fe61ade30481fe593351daa1ef4c8ef99ddc12da005c794ba347fe225",
+      "splits_2026-10-03_2026-10-09.json.gz": "8a41d70dc6c6b37e4cb5eb1c5bbefecaec150679203572386af491616340ed0a"
+    },
+    "grouped_hash": "7bbfafce1f74f109dfac0f96c63f4b586a12cb5a636b949cf2c59764240c87f8"
+  },
+  "shape": [
+    519,
+    6504
+  ],
+  "events": 462,
+  "event_sha256": "c579744396e33ed891e7ebd2190b325a9eded2ec04e70c78995fb8dcccbb8059",
+  "candidate_digest": "81a21aa3fd019a22c252423c1d41fd7d22ce447f0d24dec79fb52bd94214163b",
+  "final_state_digest": "d4f47eeb3d5779302c046d014bcbf946a95b0b81714858011d99f157016b52f0",
+  "trade_rebalance_digest": "3693b3e4c439f33102eca54bdecb8d7d099d34ff306f6d30c1051315730338f7",
+  "ranking_digest": "e74f590f26569b96eaa78513bd9022ccbc65c045bdbfcfe970263d51f4fd7dbb",
+  "continuity_digest": "b018f5fbf7371d6ce72231b4379e3ad4416f2e9fb082c47cda52759a4b678097",
+  "final_state": {
+    "session": "2026-10-12",
+    "cash_from_logged_trades": 470.890612,
+    "nav": 10537.510612,
+    "positions": [
+      {
+        "ticker": "ALMS",
+        "shares": 74.0,
+        "close": 7.06,
+        "value": 522.44,
+        "stale": false
+      },
+      {
+        "ticker": "ANRO",
+        "shares": 21.0,
+        "close": 24.15,
+        "value": 507.15,
+        "stale": false
+      },
+      {
+        "ticker": "AXTI",
+        "shares": 9.0,
+        "close": 61.98,
+        "value": 557.82,
+        "stale": false
+      },
+      {
+        "ticker": "BE",
+        "shares": 2.0,
+        "close": 262.28,
+        "value": 524.56,
+        "stale": false
+      },
+      {
+        "ticker": "BW",
+        "shares": 94.0,
+        "close": 5.01,
+        "value": 470.94,
+        "stale": false
+      },
+      {
+        "ticker": "CELC",
+        "shares": 6.0,
+        "close": 65.85,
+        "value": 395.1,
+        "stale": false
+      },
+      {
+        "ticker": "CLYM",
+        "shares": 48.0,
+        "close": 10.83,
+        "value": 519.84,
+        "stale": false
+      },
+      {
+        "ticker": "ERAS",
+        "shares": 37.0,
+        "close": 15.46,
+        "value": 572.02,
+        "stale": false
+      },
+      {
+        "ticker": "HYMC",
+        "shares": 29.0,
+        "close": 18.27,
+        "value": 529.83,
+        "stale": false
+      },
+      {
+        "ticker": "IMMX",
+        "shares": 53.0,
+        "close": 9.25,
+        "value": 490.25,
+        "stale": false
+      },
+      {
+        "ticker": "INBX",
+        "shares": 6.0,
+        "close": 90.53,
+        "value": 543.18,
+        "stale": false
+      },
+      {
+        "ticker": "KOD",
+        "shares": 5.0,
+        "close": 99.26,
+        "value": 496.3,
+        "stale": false
+      },
+      {
+        "ticker": "ORKA",
+        "shares": 6.0,
+        "close": 80.35,
+        "value": 482.1,
+        "stale": false
+      },
+      {
+        "ticker": "PRAX",
+        "shares": 1.0,
+        "close": 251.38,
+        "value": 251.38,
+        "stale": false
+      },
+      {
+        "ticker": "PVLA",
+        "shares": 5.0,
+        "close": 134.38,
+        "value": 671.9,
+        "stale": false
+      },
+      {
+        "ticker": "QTTB",
+        "shares": 66.0,
+        "close": 8.74,
+        "value": 576.84,
+        "stale": false
+      },
+      {
+        "ticker": "SLS",
+        "shares": 44.0,
+        "close": 11.93,
+        "value": 524.92,
+        "stale": false
+      },
+      {
+        "ticker": "STTK",
+        "shares": 80.0,
+        "close": 6.09,
+        "value": 487.2,
+        "stale": false
+      },
+      {
+        "ticker": "TNGX",
+        "shares": 23.0,
+        "close": 24.17,
+        "value": 555.91,
+        "stale": false
+      },
+      {
+        "ticker": "WDC",
+        "shares": 1.0,
+        "close": 386.94,
+        "value": 386.94,
+        "stale": false
+      }
+    ]
+  },
+  "signals": [
+    {
+      "type": "SIGNAL",
+      "session": "2025-09-30",
+      "k": 0,
+      "signal": "2025-09-30",
+      "exec": "2025-10-01",
+      "eligible": 2406,
+      "ranked": 2324,
+      "ez": 232,
+      "hz": 464,
+      "order_sha256": "aac112dda035e7404761dd4fcc52603f705bc6a3d7037deb63bbd11bcbaa678f",
+      "snapshot_as_of": "2025-07-01"
+    },
+    {
+      "type": "SIGNAL",
+      "session": "2025-10-31",
+      "k": 1,
+      "signal": "2025-10-31",
+      "exec": "2025-11-03",
+      "eligible": 2448,
+      "ranked": 2338,
+      "ez": 233,
+      "hz": 467,
+      "order_sha256": "3284e552ac5cd0c29654aa8c4e86cb99578ba8d6a5142f71960e92066f8b722c",
+      "snapshot_as_of": "2025-10-01"
+    },
+    {
+      "type": "SIGNAL",
+      "session": "2025-11-28",
+      "k": 2,
+      "signal": "2025-11-28",
+      "exec": "2025-12-01",
+      "eligible": 2457,
+      "ranked": 2358,
+      "ez": 235,
+      "hz": 471,
+      "order_sha256": "a0a66183d2e3db8896e4b2e0932840ca83109a5daa7235106147e5bfb1ebad37",
+      "snapshot_as_of": "2025-10-01"
+    },
+    {
+      "type": "SIGNAL",
+      "session": "2025-12-31",
+      "k": 3,
+      "signal": "2025-12-31",
+      "exec": "2026-01-02",
+      "eligible": 2449,
+      "ranked": 2361,
+      "ez": 236,
+      "hz": 472,
+      "order_sha256": "ccb69e00c9b84b8d0416c0429450d42c981cabe66099e51e2bb2954fe53dc129",
+      "snapshot_as_of": "2025-10-01"
+    },
+    {
+      "type": "SIGNAL",
+      "session": "2026-01-30",
+      "k": 4,
+      "signal": "2026-01-30",
+      "exec": "2026-02-02",
+      "eligible": 2500,
+      "ranked": 2387,
+      "ez": 238,
+      "hz": 477,
+      "order_sha256": "6d85b406ea95b7572673ddf7162014ec31c0be9dd6a2290de665e7b03238184e",
+      "snapshot_as_of": "2026-01-02"
+    },
+    {
+      "type": "SIGNAL",
+      "session": "2026-02-27",
+      "k": 5,
+      "signal": "2026-02-27",
+      "exec": "2026-03-02",
+      "eligible": 2489,
+      "ranked": 2400,
+      "ez": 240,
+      "hz": 480,
+      "order_sha256": "0812005dac3d6801a6854b31a71f3a7030b89e3bdf111e796558bfbddd99e18e",
+      "snapshot_as_of": "2026-01-02"
+    },
+    {
+      "type": "SIGNAL",
+      "session": "2026-03-31",
+      "k": 6,
+      "signal": "2026-03-31",
+      "exec": "2026-04-01",
+      "eligible": 2483,
+      "ranked": 2396,
+      "ez": 239,
+      "hz": 479,
+      "order_sha256": "06357ec0197133bc6f5212af9807566aeb2a3eb9d3d14482fea482f53053c0fb",
+      "snapshot_as_of": "2026-01-02"
+    },
+    {
+      "type": "SIGNAL",
+      "session": "2026-04-30",
+      "k": 7,
+      "signal": "2026-04-30",
+      "exec": "2026-05-01",
+      "eligible": 2479,
+      "ranked": 2366,
+      "ez": 236,
+      "hz": 473,
+      "order_sha256": "f76f46ab7bfaeb63c3f5858cb4cb9608a980414d04d6074873ca7afe0876dac4",
+      "snapshot_as_of": "2026-04-01"
+    },
+    {
+      "type": "SIGNAL",
+      "session": "2026-05-29",
+      "k": 8,
+      "signal": "2026-05-29",
+      "exec": "2026-06-01",
+      "eligible": 2548,
+      "ranked": 2435,
+      "ez": 243,
+      "hz": 487,
+      "order_sha256": "b48b82d22341ad5fc7c7bc361a97f3a69e06546117ef0145e537a2a05c7fa4f8",
+      "snapshot_as_of": "2026-04-01"
+    },
+    {
+      "type": "SIGNAL",
+      "session": "2026-06-30",
+      "k": 9,
+      "signal": "2026-06-30",
+      "exec": "2026-07-01",
+      "eligible": 2588,
+      "ranked": 2482,
+      "ez": 248,
+      "hz": 496,
+      "order_sha256": "2abd883d29796e9813ea168b2ed2d794f12e22faebd100df0507e50fc0d3eef9",
+      "snapshot_as_of": "2026-04-01"
+    },
+    {
+      "type": "SIGNAL",
+      "session": "2026-07-31",
+      "k": 10,
+      "signal": "2026-07-31",
+      "exec": "2026-08-03",
+      "eligible": 2556,
+      "ranked": 2417,
+      "ez": 241,
+      "hz": 483,
+      "order_sha256": "c436c9b3ad201ef65f0997a6733c11051f1ac59f4bde5f3715b81123ceed6791",
+      "snapshot_as_of": "2026-07-01"
+    },
+    {
+      "type": "SIGNAL",
+      "session": "2026-08-31",
+      "k": 11,
+      "signal": "2026-08-31",
+      "exec": "2026-09-01",
+      "eligible": 2575,
+      "ranked": 2444,
+      "ez": 244,
+      "hz": 488,
+      "order_sha256": "768db33fa8dc926a23549d923a632c7a5a00158516da8539ab89e247e9e3028f",
+      "snapshot_as_of": "2026-07-01"
+    },
+    {
+      "type": "SIGNAL",
+      "session": "2026-09-30",
+      "k": 12,
+      "signal": "2026-09-30",
+      "exec": "2026-10-01",
+      "eligible": 2555,
+      "ranked": 2431,
+      "ez": 243,
+      "hz": 486,
+      "order_sha256": "dbb46c5f3fe7a2ae7919bac1b4698a39f804594a3c4d54221a164def7d90b7f9",
+      "snapshot_as_of": "2026-07-01"
+    }
+  ],
+  "refused": [],
+  "rss_peak_kib": 477216,
+  "anon_peak_sampled_kib": 406240,
+  "wall_seconds": 17.094
+}

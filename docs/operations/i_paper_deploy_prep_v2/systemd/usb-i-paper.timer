@@ -1,0 +1,16 @@
+# DRAFT - not installed.
+[Unit]
+Description=Strategy I paper after the previous session's grouped daily is stored
+
+[Timer]
+# 02:15 ET: after usb-e-universe 00:20, usb-grouped-daily 00:40, usb-splits-refresh 00:55 and
+# usb-h-forward 01:10 ET, 90 minutes before the A/E common producer (03:45 ET). All of these are
+# America/New_York timers, so the gaps hold across DST. Tue..Sat = the day after each Mon..Fri session.
+OnCalendar=Tue..Sat 02:15 America/New_York
+Persistent=true
+AccuracySec=1m
+RandomizedDelaySec=0
+Unit=usb-i-paper.service
+
+[Install]
+WantedBy=timers.target

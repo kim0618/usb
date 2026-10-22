@@ -1,0 +1,13 @@
+{
+  "first_session": "2025-10-17",
+  "last_session": "2026-08-10",
+  "files": 203,
+  "bytes": 77641065,
+  "missing_sessions": [],
+  "extra_sessions": [],
+  "duplicate_sessions": 0,
+  "schema_errors": [],
+  "schema": "session=filename; nonempty body.results; unique nonempty T; finite nonnegative numeric c,v",
+  "package": "data/runtime/i_paper_deploy_prep_v2/price_history_2025-10-17_2026-08-10.tar",
+  "package_sha256": "5db967154b7a0136773effff9d542020b23fbf72e89ffdde02587a29d8dc666a"
+}

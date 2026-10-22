@@ -304,8 +304,11 @@ def lean_pair(tmp_path_factory):
 
 def test_lean_matrices_and_tables_equal_frozen_import(lean_pair):
     vw, om, lm = lean_pair
+    assert isinstance(lm.m1.adj, LN.SplitFactors) and lm.adj is lm.m1.adj        # V2.1 reads the same object
     for nm in ("C", "DV", "adj", "CA", "CAf", "R1"):
         x, y = getattr(om.m1, nm), getattr(lm.m1, nm)
+        if nm == "adj": y = y.dense()
+        if nm == "DV": x, y = x.iloc[y.offset:], y.frame                                 # rows a ranking can read
         assert x.index.equals(y.index) and x.columns.equals(y.columns) and x.dtypes.equals(y.dtypes)
         assert np.array_equal(x.to_numpy(), y.to_numpy(), equal_nan=True), nm
     assert list(om.S) == list(lm.S) and om.pos == lm.pos and om.m1.snap_dates == lm.m1.snap_dates and om.m1.sic == lm.m1.sic

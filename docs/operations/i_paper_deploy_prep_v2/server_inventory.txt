@@ -1,0 +1,186 @@
+some avg10=0.00 avg60=0.00 avg300=1.60 total=57958360331
+full avg10=0.00 avg60=0.00 avg300=1.22 total=46774101183
+{"observed_at": "2026-10-21T08:28:16.023228+00:00", "grouped": [], "snapshots": [], "splits": []}
+MemoryCurrent=[not set]
+MemoryPeak=[not set]
+Id=usb-e-rvol-once.service
+LoadState=loaded
+ActiveState=inactive
+SubState=dead
+MemoryCurrent=[not set]
+MemoryPeak=[not set]
+Id=usb-e-rvol.service
+LoadState=loaded
+ActiveState=inactive
+SubState=dead
+MemoryCurrent=[not set]
+MemoryPeak=[not set]
+Id=usb-e-paper.service
+LoadState=loaded
+ActiveState=inactive
+SubState=dead
+MemoryCurrent=[not set]
+MemoryPeak=[not set]
+Id=usb-e-rt2.service
+LoadState=loaded
+ActiveState=inactive
+SubState=dead
+MemoryCurrent=[not set]
+MemoryPeak=[not set]
+Id=usb-grouped-daily.service
+LoadState=loaded
+ActiveState=inactive
+SubState=dead
+MemoryCurrent=[not set]
+MemoryPeak=[not set]
+Id=usb-splits-refresh.service
+LoadState=loaded
+ActiveState=inactive
+SubState=dead
+MemoryCurrent=[not set]
+MemoryPeak=[not set]
+Id=usb-h-forward.service
+LoadState=loaded
+ActiveState=inactive
+SubState=dead
+MemoryCurrent=[not set]
+MemoryPeak=[not set]
+Id=usb-h-evaluation.service
+LoadState=loaded
+ActiveState=inactive
+SubState=dead
+# /etc/systemd/system/usb-e-paper.timer
+[Unit]
+Description=Start the E-MAX V1 provisional paper session before the 04:00 ET premarket
+
+[Timer]
+OnCalendar=Mon..Fri 03:45 America/New_York
+Persistent=false
+AccuracySec=30s
+Unit=usb-e-paper.service
+
+[Install]
+WantedBy=timers.target
+
+# /etc/systemd/system/usb-e-rvol-once.timer
+# DRAFT for /etc/systemd/system/usb-e-rvol-once.timer (not installed).
+# 00:35 ET: after usb-e-universe (Mon..Fri 00:20 ET, about a minute) wrote the day's universe, the
+#           same slot serve's first post-midnight cycle used (its append reports are stamped 00:01-00:27 ET).
+#           Done by about 01:30 ET, before usb-e-paper reads the store at 03:45 ET.
+# 10:00 ET: serve's post-guard cycle, for a bootstrap the 03:55 guard cut short. Normally a no-op
+#           (the day's append report exists, nothing is queued) after the listing call.
+# Every day, as serve did: weekend runs pick up late rows (10/11 staged 1, 10/12 staged 8).
+[Unit]
+Description=Run the E-MAX V1 RVOL store append/bootstrap after the universe build and after the guard
+
+[Timer]
+OnCalendar=*-*-* 00:35 America/New_York
+OnCalendar=*-*-* 10:00 America/New_York
+Persistent=true
+AccuracySec=1min
+Unit=usb-e-rvol-once.service
+
+[Install]
+WantedBy=timers.target
+
+# /etc/systemd/system/usb-h-forward.service
+[Unit]
+Description=USB Strategy H-V2 D7 forward shadow daily update (prices and outcomes, then SEC material refresh)
+After=network-online.target
+Wants=network-online.target
+# H reads Massive itself and does not read Strategy A's grouped store, so there is no data
+# dependency to express. This After= only orders the two if they are ever queued in the same
+# transaction (they are 30 minutes apart, so normally never). Wants= is deliberately absent:
+# pulling usb-grouped-daily.service in would make an H run execute a Strategy A collection,
+# which is a side effect on A that H is not allowed to have.
+After=usb-grouped-daily.service
+# A once-a-day job must not crash-loop between timers; same bound as usb-grouped-daily.service.
+StartLimitIntervalSec=1800
+StartLimitBurst=3
+
+[Service]
+Type=oneshot
+User=root
+# WorkingDirectory is the repository root, NOT backend/. On 2026-10-10 the refresh scan resolved
+# its SEC caches through repository-relative paths and, finding none, rewrote all eight issuers as
+# NO_SUBMISSIONS_CACHE - AEYE's real REFRESH_DUE was lost by a run that exited 0. The scan now reads
+# only H's own dated cache under data/runtime/strategy_h_v2/d7/sec_submissions (module-relative), and
+# a missing or stale cache leaves the queue byte-identical. The root is kept anyway: it is where every
+# other usb unit runs and what the EnvironmentFile and runbook paths below assume.
+WorkingDirectory=/root/usb
+EnvironmentFile=/root/usb/.env
+EnvironmentFile=/root/usb/.env.massive
+Environment=PYTHONPATH=/root/usb/backend
+Environment=PYTHONUNBUFFERED=1
+# systemd never runs a oneshot unit concurrently with itself, but a hand-run catch-up from a
+# shell can collide with a timer firing. flock serialises the two over one writer. -w 300 waits
+# for a hand-run rather than failing the timer over it. The lock file lives in /run and is never
+# unlinked: flock locks an inode, not a path, so deleting it would let a second writer in.
+ExecStart=/usr/bin/flock -w 300 /run/usb-h-forward.lock \
+  /root/usb/.venv/bin/python -m app.dev.run_h_v2_d7 update
+# One run is two failure domains, in this order:
+#   1. prices and outcomes. Steady state is two Massive grouped_daily calls (the settled session,
+#      plus today's which is not settled yet and is reported as no_result), paced by the client's
+#      own 5/minute limiter. An integrity failure of the snapshot or ledger exits 2 = unit failure.
+#   2. SEC submissions for the launch cohort's CIKs only (8 calls through sec_store's 5/s limiter
+#      and the D1.1 User-Agent), then the material scan. Any failure here exits 0 - prices were
+#      collected - but prints REFRESH_DEGRADED to stderr, writes it to refresh_status.json, and
+#      leaves refresh_queue.json byte-identical. It is never a silent success.
+# The ceiling covers flock's 300s wait plus a full provider backoff on both.
+TimeoutStartSec=20min
+# Measured, not assumed: one update peaks at 132 MB resident. 300M matches usb-grouped-daily and
+# leaves better than 2x headroom on a host that has been OOM-hit before.
+MemoryMax=300M
+Nice=10
+# No Restart=: this is Type=oneshot, and a provider refusal must stay a single visible failure.
+# A failed collection stores nothing, so the missing session stays a gap and the outcome layer
+# refuses to mature a horizon across it. There is no path by which a failure here produces a
+# wrong price - the last available price is never substituted.
+# Nothing in A, E, usb-backend or usb-frontend depends on this unit, so its failure is isolated
+# to itself. The CLI prints the whole run as JSON on stdout, which is what lands in the journal.
+
+# /etc/systemd/system/usb-h-evaluation.service
+[Unit]
+Description=USB Strategy H-V2 candidate evaluation (SEC scan, code-only D2->D6 on the evaluation queue, then paper/NAV)
+After=network-online.target usb-h-forward.service
+Wants=network-online.target
+# Replaces usb-h-research (H_V2_AUTONOMOUS_PIPELINE_V1), which ran the research-time model runners.
+# This unit runs no model of any kind (H_V2_AUTONOMOUS_PIPELINE_V2_NO_AI): no model CLI, no API key,
+# no login under HOME. The evaluator also blocks any such attempt at runtime (h_auto.no_ai_guard).
+StartLimitIntervalSec=1800
+StartLimitBurst=3
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/root/usb
+EnvironmentFile=/root/usb/.env
+EnvironmentFile=/root/usb/.env.massive
+Environment=PYTHONPATH=/root/usb/backend
+Environment=PYTHONUNBUFFERED=1
+# Same lock as usb-h-forward: the evaluation and the daily update never write H's files at the same
+# time, and the evaluation always sees the queue the update just rebuilt.
+# Two processes in order, each under the lock: the SCAN, then the evaluation without the SCAN. A Python
+# process keeps its peak, so one process for both measured 314 MB; separate lifetimes keep each step to
+# its own peak (H_V2_D3D4_DETERMINISTIC_PRODUCTION_CONTRACT_V3.md, memory).
+# P2.1 activation (2026-10-16): run only after today's successful usb-h-forward, with no E/A batch
+# running, inside 01:30-02:45 ET, once per ET day (a skipped trigger is a condition result, not a failure);
+# the attempt is marked before the run, so a guard stop is not retried the same day. The guard runs as its
+# own unit beside this one and stops only this unit (deploy/h_evaluation/guard.sh).
+ExecCondition=/root/usb/deploy/h_evaluation/precondition.sh
+ExecStartPre=/bin/sh -c 'TZ=America/New_York date +%%F > /root/usb/data/runtime/strategy_h_v2/d7/auto/evaluation_attempt_day'
+ExecStartPre=/bin/systemctl start --no-block usb-h-evaluation-guard.service
+ExecStart=/usr/bin/flock -w 1800 /run/usb-h-forward.lock \
+  /root/usb/.venv/bin/python -m app.dev.run_h_v2_d7 intake-scan
+ExecStart=/usr/bin/flock -w 1800 /run/usb-h-forward.lock \
+  /root/usb/.venv/bin/python -m app.dev.run_h_v2_d7 auto-evaluate --skip-scan
+# Measured locally (H_V2_PRODUCTION_NO_AI_RUNTIME_REPAIR_V1.md §12): SCAN with 700 CIKs about 14-19 min,
+# each queue item well under a minute. The cap leaves room for the lock wait.
+TimeoutStartSec=60min
+# See the repair document §12 for the measured peaks per stage. On a 961 MB host the cap keeps an
+# overrun inside this cgroup; it does not make memory that the host lacks appear.
+MemoryMax=400M
+Nice=10
+IOSchedulingClass=idle
+# Exit codes: 0 ok (an evaluation failure is reported, not fatal), 3 paper accounting, 4 queue or
+# autonomy contract integrity.

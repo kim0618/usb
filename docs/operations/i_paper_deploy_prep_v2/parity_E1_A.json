@@ -1,0 +1,38 @@
+{
+ "as_of": "2026-10-20",
+ "snapshot": "2026-10-01",
+ "snapshots": [
+  "2026-10-01"
+ ],
+ "shape": [
+  253,
+  5320
+ ],
+ "pos": 252,
+ "eligible": 2540,
+ "ranked": 2398,
+ "order_sha256": "7c9e21d78327fa50bdfbdfc4154c52c19ae22c2f1d65c92ab4d6c92c42a5173e",
+ "rank_sha256": "a824344c74a3df35cbd05d79d91ca177897ba01f505d4aab5ded52ec0a04342a",
+ "top20": [
+  "AXTI",
+  "SNDK",
+  "CLYM",
+  "TXG",
+  "MRNA",
+  "ERAS",
+  "TWST",
+  "LITE",
+  "EDRY",
+  "SLS",
+  "MU",
+  "MXL",
+  "ANRO",
+  "IOVA",
+  "MBX",
+  "IMMX",
+  "DRTS",
+  "ATEX",
+  "SYRE",
+  "EVC"
+ ]
+}

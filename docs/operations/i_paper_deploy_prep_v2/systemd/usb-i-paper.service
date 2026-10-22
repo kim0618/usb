@@ -1,0 +1,29 @@
+# DRAFT - not installed. Strategy I order-less paper, one run per firing (oneshot, not resident).
+[Unit]
+Description=USB Strategy I paper (frozen V2.1 on a point-in-time view; no orders)
+After=network-online.target
+StartLimitIntervalSec=3600
+StartLimitBurst=2
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/root/usb/backend
+Environment=PYTHONPATH=/root/usb/backend
+Environment=PYTHONUNBUFFERED=1
+# Overlap guard: exit 1 = skip this firing (heavy unit or E active, E window, memory pressure).
+ExecCondition=/root/usb/.venv/bin/python -m app.strategies.i_paper.guard --store /root/usb_runtime/strategy_i_paper/store
+ExecStart=/root/usb/.venv/bin/python -m app.strategies.i_paper.run \
+  --store /root/usb_runtime/strategy_i_paper/store \
+  --runtime /root/usb/data/runtime \
+  --history /root/usb_runtime/strategy_i_paper/history/grouped \
+  --as-of auto
+# Measured peak (lean loader, production layout): 235-240 MiB at launch, ~355 MiB after 12 months,
+# 404 MiB for the full 2024-09.. history. MemoryHigh throttles into swap well above that;
+# MemoryMax is the hard stop, not a tight fit.
+MemoryHigh=450M
+MemoryMax=700M
+Nice=19
+IOSchedulingClass=idle
+CPUWeight=20
+TimeoutStartSec=30min

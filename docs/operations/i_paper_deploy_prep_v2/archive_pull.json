@@ -1,0 +1,76 @@
+{
+ "dest": "/home/tjd618/usb_archive/crypto_context",
+ "errors": [],
+ "event": "PULL",
+ "host": "traderj",
+ "invalid_manifests": [],
+ "manifests": [
+  {
+   "bytes": 24408433,
+   "files": 36,
+   "manifest_id": "31cc8177-20261010-001",
+   "result": "ALREADY_VERIFIED",
+   "uploaded": true
+  },
+  {
+   "bytes": 53633377,
+   "files": 72,
+   "manifest_id": "31cc8177-20261011-001",
+   "result": "ALREADY_VERIFIED",
+   "uploaded": true
+  },
+  {
+   "bytes": 69438885,
+   "files": 72,
+   "manifest_id": "31cc8177-20261012-001",
+   "result": "ALREADY_VERIFIED",
+   "uploaded": true
+  },
+  {
+   "bytes": 66483934,
+   "files": 72,
+   "manifest_id": "31cc8177-20261013-001",
+   "result": "ALREADY_VERIFIED",
+   "uploaded": true
+  },
+  {
+   "bytes": 76849884,
+   "files": 72,
+   "manifest_id": "31cc8177-20261014-001",
+   "result": "ALREADY_VERIFIED",
+   "uploaded": true
+  },
+  {
+   "bytes": 86489121,
+   "files": 72,
+   "manifest_id": "31cc8177-20261015-001",
+   "result": "ALREADY_VERIFIED",
+   "uploaded": true
+  },
+  {
+   "bytes": 72059941,
+   "files": 69,
+   "manifest_id": "31cc8177-20261016-001",
+   "result": "ALREADY_VERIFIED",
+   "uploaded": true
+  },
+  {
+   "bytes": 1915880,
+   "failed": [],
+   "files": 3,
+   "manifest_id": "31cc8177-20261016-002",
+   "result": "OK",
+   "uploaded": true,
+   "verified_files": 3
+  },
+  {
+   "bytes": 48164286,
+   "failed": [],
+   "files": 72,
+   "manifest_id": "31cc8177-20261017-001",
+   "result": "OK",
+   "uploaded": true,
+   "verified_files": 72
+  }
+ ]
+}

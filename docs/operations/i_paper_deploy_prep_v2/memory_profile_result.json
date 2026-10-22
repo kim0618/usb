@@ -1,0 +1,92 @@
+[
+ {
+  "label": "launch",
+  "arm": "E1_A",
+  "launch": "2026-10-30",
+  "window": true,
+  "shape": [
+   253,
+   5320
+  ],
+  "events": 0,
+  "snapshots": 1,
+  "rss_peak_mib": 237.7,
+  "anon_peak_mib": 168.4,
+  "wall_s": 12.923
+ },
+ {
+  "label": "full",
+  "arm": "E3_B",
+  "launch": "2025-09-30",
+  "window": false,
+  "shape": [
+   525,
+   6504
+  ],
+  "events": 468,
+  "snapshots": 11,
+  "rss_peak_mib": 404.0,
+  "anon_peak_mib": 333.0,
+  "wall_s": 26.027
+ },
+ {
+  "label": "+1M",
+  "arm": "P1M",
+  "launch": "2026-09-30",
+  "window": true,
+  "shape": [
+   275,
+   5477
+  ],
+  "events": 37,
+  "snapshots": 2,
+  "rss_peak_mib": 260.0,
+  "anon_peak_mib": 189.5,
+  "wall_s": 22.607
+ },
+ {
+  "label": "+3M",
+  "arm": "P3M",
+  "launch": "2026-07-31",
+  "window": true,
+  "shape": [
+   317,
+   5477
+  ],
+  "events": 94,
+  "snapshots": 2,
+  "rss_peak_mib": 272.2,
+  "anon_peak_mib": 201.6,
+  "wall_s": 21.924
+ },
+ {
+  "label": "+6M",
+  "arm": "P6M",
+  "launch": "2026-04-30",
+  "window": true,
+  "shape": [
+   380,
+   5625
+  ],
+  "events": 203,
+  "snapshots": 3,
+  "rss_peak_mib": 298.7,
+  "anon_peak_mib": 228.0,
+  "wall_s": 22.737
+ },
+ {
+  "label": "+12M",
+  "arm": "P12M",
+  "launch": "2025-10-31",
+  "window": true,
+  "shape": [
+   503,
+   5908
+  ],
+  "events": 440,
+  "snapshots": 5,
+  "rss_peak_mib": 353.4,
+  "anon_peak_mib": 282.9,
+  "wall_s": 19.683
+ }
+]
