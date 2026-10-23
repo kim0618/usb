@@ -33,6 +33,7 @@ from zoneinfo import ZoneInfo
 
 from app.integrations.kiwoom.client import KiwoomMarketDataClient
 from app.integrations.kiwoom.timestamps import minute_timestamp
+from app.core import provider_errors as PE
 
 ET = ZoneInfo("America/New_York")
 MINUTE_API, TICK_API = "usa06011", "usa06010"
@@ -79,6 +80,18 @@ class SymbolCache:
     ticks_read: int = 0
     last_relevant_tick: str | None = None
     error: str | None = None
+    error_detail: dict[str, Any] | None = None
+    source_refusal_observations: int = 0
+    final_attempted: bool = False
+
+    def record_error(self, error: BaseException | None) -> None:
+        detail = PE.classify(error).to_json() if error is not None else None
+        same_refusal = (PE.is_source_refusal(detail) and PE.is_source_refusal(self.error_detail)
+                        and detail["error_code"] == self.error_detail["error_code"])
+        self.source_refusal_observations = ((self.source_refusal_observations + 1 if same_refusal else 1)
+                                            if PE.is_source_refusal(detail) else 0)
+        self.error = type(error).__name__ if error is not None else None
+        self.error_detail = detail
 
     def merge_minutes(self, rows: Sequence[Mapping[str, Any]], fetched_at: datetime, session: date,
                       cutoff: int | None = None) -> int | None:
@@ -142,6 +155,18 @@ class Lane:
             self.latencies.append(time.monotonic() - start)
 
 
+def chart_page(lane: Lane, cache: SymbolCache, continuation=None):
+    page = lane.page(cache.code or cache.symbol, cache.exchange, continuation)
+    exchange = getattr(page, "resolved_exchange", None)
+    if exchange is not None and exchange != cache.exchange:
+        cache.exchange = exchange
+        # The corrected authority must establish its own full cutoff coverage.
+        cache.bars.clear()
+        cache.complete_through = cache.first_fetch = None
+        cache.finalized_at = cache.contiguous = cache.data_source = None
+    return page
+
+
 def split_lanes(symbols_by_liquidity: Sequence[str], minute_share: int) -> tuple[list[str], list[str]]:
     """Most liquid ``minute_share`` symbols -> minute lane; the rest -> tick lane (deterministic)."""
     return list(symbols_by_liquidity[:minute_share]), list(symbols_by_liquidity[minute_share:])
@@ -157,7 +182,7 @@ def hash_lanes(symbols: Sequence[str]) -> tuple[list[str], list[str]]:
 
 def finalize_minute(lane: Lane, cache: SymbolCache, session: date, now: Callable[[], datetime]) -> None:
     cutoff = 9 * 60 + 24
-    page = lane.page(cache.code or cache.symbol, cache.exchange)
+    page = chart_page(lane, cache)
     cache.calls += 1
     cache.final_pages += 1
     fetched = now()
@@ -172,7 +197,10 @@ def finalize_ticks(lane: Lane, cache: SymbolCache, session: date, now: Callable[
     need_from = (cache.complete_through + 1) if cache.complete_through is not None else 4 * 60
     ticks, continuation, reached = [], None, False
     for _ in range(MAX_TICK_PAGES):
-        page = lane.page(cache.code or cache.symbol, cache.exchange, continuation)
+        previous_exchange = cache.exchange
+        page = chart_page(lane, cache, continuation)
+        if cache.exchange != previous_exchange:
+            need_from = 4 * 60
         cache.calls += 1
         cache.final_pages += 1
         rows = page.body.get("result_list", [])
@@ -198,7 +226,7 @@ def refresh(lane: Lane, cache: SymbolCache, session: date, now: Callable[[], dat
             catch_up_pages: int = 6) -> None:
     """Latest minute page; on a symbol's first refresh (worker started late or restarted) it pages
     back until 04:00 of the session is covered, so a late start is caught up, not treated as empty."""
-    page = lane.page(cache.code or cache.symbol, cache.exchange)
+    page = chart_page(lane, cache)
     cache.calls += 1
     fetched = now()
     oldest = cache.merge_minutes(page.body.get("result_list", []), fetched, session)
@@ -206,7 +234,7 @@ def refresh(lane: Lane, cache: SymbolCache, session: date, now: Callable[[], dat
         for _ in range(catch_up_pages):
             if oldest is None or oldest == -1 or oldest <= 4 * 60 or not page.continuation:
                 break
-            page = lane.page(cache.code or cache.symbol, cache.exchange, page)
+            page = chart_page(lane, cache, page)
             cache.calls += 1
             older = cache.merge_minutes(page.body.get("result_list", []), fetched, session)
             oldest = older if older is not None else oldest

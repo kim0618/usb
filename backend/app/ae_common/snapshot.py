@@ -33,6 +33,7 @@ from typing import Any
 
 from app.strategy_a_mover_live import acquisition as AQ
 from app.strategy_e_max_rt import finalizer as FZ
+import app.core.provider_errors as PE
 
 FORMAT_0915 = "ae-common-snapshot-0915-v1"
 FORMAT_0924 = "ae-common-snapshot-0924-v1"
@@ -169,7 +170,10 @@ def a_status(symbol: str, outcomes: Mapping[str, AQ.APassOutcome], unmapped: set
         status = INTERRUPTED
     elif outcome.error is not None:
         never_served = cache is not None and cache.first_fetch is None
-        status = (MARKET_DATA_UNAVAILABLE if outcome.error.startswith(SOURCE_REFUSAL_PREFIX) and never_served
+        refusal = (PE.is_source_refusal(outcome.error_detail) and cache is not None
+                   and cache.source_refusal_observations >= 2 and not cache.bars
+                   if outcome.error_detail else outcome.error.startswith(SOURCE_REFUSAL_PREFIX) and never_served)
+        status = (MARKET_DATA_UNAVAILABLE if refusal
                   else FAILED)
     else:
         status = USABLE if outcome.usable else STALE
@@ -201,6 +205,8 @@ def freeze_a(caches: Mapping[str, FZ.SymbolCache], a_pass: AQ.APassReport, symbo
         copy.bars = {m: list(v) for m, v in cache.bars.items()}
         copy.complete_through, copy.first_fetch, copy.calls = cache.complete_through, cache.first_fetch, cache.calls
         copy.error = cache.error
+        copy.error_detail = dict(cache.error_detail) if cache.error_detail else None
+        copy.source_refusal_observations = cache.source_refusal_observations
         copies[symbol] = copy
     passed = AQ.APassReport(session=a_pass.session, t0=a_pass.t0, t1=a_pass.t1,
                             outcomes={k: AQ.APassOutcome(**vars(v)) for k, v in a_pass.outcomes.items()},
@@ -232,6 +238,8 @@ def body_0915(frozen: FrozenA, *, a_symbols: Sequence[str], union_symbols: Seque
                       "a_window_complete": outcome.a_window_complete,
                       "fetched_at": _iso(outcome.finalized_at),
                       "last_complete_minute": outcome.last_complete_minute, "error": outcome.error}
+            if outcome.error_detail:
+                entry |= outcome.error_detail
         symbols[symbol] = entry
     passed = frozen.a_pass
     return {"format": FORMAT_0915, "session": frozen.session.isoformat(), "cut_minute": A_CUT_MINUTE,
@@ -281,6 +289,7 @@ def a_caches_from(body: Mapping[str, Any]) -> tuple[dict[str, FZ.SymbolCache], A
             outcomes[symbol] = AQ.APassOutcome(symbol, entry["lane"], entry["pages"], entry["a_window_complete"],
                                                _dt(entry["fetched_at"]), entry["last_complete_minute"],
                                                entry["error"])
+            outcomes[symbol].error_detail = PE.detail_from_row(entry)
     passed = body["a_pass"]
     report = AQ.APassReport(session=session, t0=_dt(passed["t0"]), t1=_dt(passed["t1"]), outcomes=outcomes,
                             lane_calls=dict(passed["lane_calls"]), order=tuple(passed["order"]),
@@ -322,6 +331,9 @@ def body_0924(session: date, caches: Mapping[str, FZ.SymbolCache], spy: FZ.Symbo
         return {"exchange": cache.exchange, "code": cache.code, "complete_through": cache.complete_through,
                 "finalized_at": _iso(cache.finalized_at), "data_source": cache.data_source,
                 "contiguous": cache.contiguous, "final_pages": cache.final_pages, "error": cache.error,
+                **(cache.error_detail or {}),
+                "source_refusal_observations": cache.source_refusal_observations,
+                "final_attempted": cache.final_attempted,
                 "bars": bars_before(cache, E_CUTOFF_MINUTE + 1)}
     return {"format": FORMAT_0924, "session": session.isoformat(), "cutoff_last_minute": E_CUTOFF_MINUTE,
             "bars_rule": "minutes in [04:00, 09:24] only", "universe": list(universe),
@@ -337,5 +349,8 @@ def e_caches_from(body: Mapping[str, Any]) -> tuple[dict[str, FZ.SymbolCache], F
         item.complete_through, item.finalized_at = entry["complete_through"], _dt(entry["finalized_at"])
         item.data_source, item.contiguous = entry["data_source"], entry["contiguous"]
         item.final_pages, item.error = entry["final_pages"], entry["error"]
+        item.error_detail = PE.detail_from_row(entry)
+        item.source_refusal_observations = entry.get("source_refusal_observations", 0)
+        item.final_attempted = entry.get("final_attempted", False)
         return item
     return ({s: cache(s, e) for s, e in body["symbols"].items()}, cache("SPY", body["spy"]))

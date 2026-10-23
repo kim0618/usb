@@ -35,22 +35,20 @@ from app.ae_common.deadline import DeadlineReached
 from app.strategy_a_mover_live import acquisition as AQ
 from app.strategy_a_mover_live.schedule import A_CUTOFF_LAST_MINUTE
 from app.strategy_e_max_rt import finalizer as FZ
+from app.core import provider_errors as PE
 
 INTERRUPTED = DeadlineReached.code
-#: ``KiwoomMarketDataClient.request`` raises this message only when Kiwoom answered the query with a
-#: non-zero ``return_code`` - the source refusing the symbol. Transport errors, 5xx and malformed
-#: answers carry other messages even when their code is also MARKET_DATA_UNAVAILABLE.
+#: Legacy sanitized message retained for fixtures; classification uses explicit metadata now.
 REJECTED_MESSAGE = "Kiwoom market-data query was rejected"
 SOURCE_REFUSAL_PREFIX = SS.SOURCE_REFUSAL_PREFIX
-SOURCE_REFUSAL_CODES = frozenset({"MARKET_DATA_UNAVAILABLE", "INVALID_SYMBOL"})   # = availability's
 
 
 def error_label(error: BaseException) -> str:
     """The outcome's error string. A source refusal is named as one; anything else keeps its kind."""
     from app.core.exceptions import MarketDataError
     if isinstance(error, MarketDataError):
-        refused = error.code in SOURCE_REFUSAL_CODES and str(error) == REJECTED_MESSAGE
-        return (SOURCE_REFUSAL_PREFIX if refused else "MarketDataError:") + error.code
+        detail = PE.classify(error)
+        return (SOURCE_REFUSAL_PREFIX if detail.source_refusal else "MarketDataError:") + detail.error_code
     return type(error).__name__
 
 
@@ -141,7 +139,8 @@ def run(lane_minute: FZ.Lane, lane_tick: FZ.Lane, caches: Mapping[str, FZ.Symbol
         last = max((minute for minute in cache.bars if minute <= cutoff), default=None)
         usable = AQ.a_usable(cache, cutoff) if error is None else None
         pages[lane.name] += used
-        report.outcomes[symbol] = AQ.APassOutcome(symbol, lane.name, used, usable, now(), last, error)
+        report.outcomes[symbol] = AQ.APassOutcome(symbol, lane.name, used, usable, now(), last, error,
+                                                 cache.error_detail if error else None)
 
     def walk(lane: FZ.Lane, symbols: Iterable[str], step, *, stealing: frozenset[str] = frozenset()) -> None:
         for symbol in symbols:
@@ -159,6 +158,9 @@ def run(lane_minute: FZ.Lane, lane_tick: FZ.Lane, caches: Mapping[str, FZ.Symbol
                 error = INTERRUPTED
             except Exception as failure:
                 error = error_label(failure)
+                scratch.record_error(failure)
+            else:
+                scratch.record_error(None)
             with guard:
                 if closed[0]:
                     return                 # answered after the sweep closed: nothing is kept
@@ -211,9 +213,14 @@ def _scratch(live: FZ.SymbolCache) -> FZ.SymbolCache:
     copy = FZ.SymbolCache(live.symbol, live.exchange, live.code)
     copy.bars = {m: list(v) for m, v in live.bars.items()}
     copy.complete_through, copy.first_fetch, copy.calls = live.complete_through, live.first_fetch, live.calls
+    copy.error, copy.error_detail = live.error, live.error_detail
+    copy.source_refusal_observations = live.source_refusal_observations
     return copy
 
 
 def _commit(scratch: FZ.SymbolCache, live: FZ.SymbolCache) -> None:
     live.bars, live.complete_through = scratch.bars, scratch.complete_through
     live.first_fetch, live.calls = scratch.first_fetch, scratch.calls
+    live.exchange = scratch.exchange
+    live.error, live.error_detail = scratch.error, scratch.error_detail
+    live.source_refusal_observations = scratch.source_refusal_observations

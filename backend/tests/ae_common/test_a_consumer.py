@@ -171,6 +171,7 @@ def test_a_disabled_a_touches_nothing(tmp_path):
 #: Modules the consumer may import: each is byte-identical in the production A/E operations tree,
 #: or is the A code that tree already runs. Nothing from E's runtime, paper, broker or Kiwoom client.
 ALLOWED = {"app.ae_common", "app.ae_common.snapshot", "app.market.calendar", "app.core.database",
+           "app.core.provider_errors",  # pure data taxonomy, deployed with both consumers
            "app.services.mover_scanner_source", "app.strategy_e_max_rt.finalizer",
            "app.strategy_e_max_rt", "app.strategy_a_mover_live"}
 

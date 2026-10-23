@@ -1,0 +1,16 @@
+# Proposed source overlay; not deployed. PROD and EP are distinct trees.
+# PROD = /root/usb_runtime/ae_common_producer/src
+# EP = /root/usb_runtime/strategy_e_paper/src (A consumer)
+PROD backend/app/ae_common/e_shadow.py
+PROD backend/app/ae_common/lanes.py
+PROD backend/app/ae_common/producer.py
+PROD backend/app/ae_common/snapshot.py
+PROD backend/app/ae_common/sweep.py
+PROD backend/app/core/exceptions.py
+PROD backend/app/core/provider_errors.py
+PROD backend/app/integrations/kiwoom/client.py
+PROD backend/app/strategy_a_mover_live/acquisition.py
+PROD backend/app/strategy_e_max_rt/availability.py
+PROD backend/app/strategy_e_max_rt/finalizer.py
+EP backend/app/ae_common/snapshot.py
+EP backend/app/core/provider_errors.py

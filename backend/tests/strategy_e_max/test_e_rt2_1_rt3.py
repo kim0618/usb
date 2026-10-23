@@ -211,7 +211,7 @@ def test_e_stays_disabled_and_a_is_untouched_by_preparation() -> None:
 
 
 def test_rt2_status_rows_are_reread_under_the_contract() -> None:
-    assert AV.reclassify("STALE", "MarketDataError") == AV.MARKET_DATA_UNAVAILABLE       # RT2's PS row
+    assert AV.reclassify("STALE", "MarketDataError") == AV.STALE       # class alone proves no refusal
     assert AV.reclassify("SPARSE_NO_PREMARKET", "") == AV.SPARSE_NO_PREMARKET            # RT2's AAMI/BH.A rows
     assert AV.reclassify("FEATURE_COMPLETE", None) == AV.FEATURE_COMPLETE
     assert AV.reclassify("STALE", "PROVIDER_TIMEOUT") == AV.STALE

@@ -74,17 +74,32 @@ def decide(caches: Mapping[str, FZ.SymbolCache], spy: FZ.SymbolCache, art: Mappi
     decision = DEC.decide_from_frame(frame, source_digest=art["digest"], source=source, decided_at=decided_at)
     unreachable = store.unreachable_symbols()
     pending = store.bootstrap_pending(list(caches), session)
-    documented = {sym for sym, st in store.collection_state().items()
+    collection_state = store.collection_state()
+    documented = {sym for sym, st in collection_state.items()
                   if st.get("last_error") in RT2.DOCUMENTED_REFUSALS}
     gate = RT2.execution_gate(decided_at=decided_at, open_et=datetime.combine(session, dtime(9, 30), tzinfo=FZ.ET),
                               statuses=statuses, documented=documented, rvol_unknown=rvol_unknown,
                               unreachable=unreachable, pending=pending)
+    def example(symbol: str) -> dict[str, Any]:
+        cache = caches.get(symbol)
+        detail = (cache.error_detail or {}) if cache is not None else {}
+        return {"symbol": symbol,
+                "error_code": detail.get("error_code") or collection_state.get(symbol, {}).get("last_error"),
+                "error_category": detail.get("error_category") or ("SOURCE_REFUSAL" if symbol in documented else None),
+                "documented": symbol in documented}
+
+    refused = sorted(s for s, state in statuses.items()
+                     if (state == AV.MARKET_DATA_UNAVAILABLE and s not in unmapped)
+                     or (state == AV.STALE and s in documented))
+    stale = sorted(s for s, state in statuses.items() if state == AV.STALE and s not in documented)
+    telemetry = {"source_refusal_count": len(refused), "source_refusal_examples": [example(s) for s in refused[:20]],
+                 "unexpected_stale_count": len(stale), "unexpected_stale_examples": [example(s) for s in stale[:20]]}
     counts = {k: sum(v == k for v in statuses.values())
               for k in (AV.FEATURE_COMPLETE, AV.SPARSE_NO_PREMARKET, AV.STALE, AV.MARKET_DATA_UNAVAILABLE)}
     body = {"decision": decision.to_json(), "gate": gate, "status_counts": counts,
             "statuses_digest": SS.digest(dict(sorted(statuses.items()))),
             "feature_rows_digest": SS.digest({s: rows[s] for s in symbols}),
-            "rvol_unknown": sorted(rvol_unknown), "eligible_rows": len(symbols)}
+            "rvol_unknown": sorted(rvol_unknown), "eligible_rows": len(symbols), **telemetry}
     # the session record exactly as E-RUNTIME-R1's runner builds it (statuses after the RVOL relabel)
     record_states = dict(statuses)
     for sym in rvol_unknown:
@@ -100,7 +115,8 @@ def decide(caches: Mapping[str, FZ.SymbolCache], spy: FZ.SymbolCache, art: Mappi
         rvol_ready_rows=len(symbols) - len(rvol_unknown), rvol_missing_rows=len(rvol_unknown),
         bootstrap_complete=not pending, coverage=coverage, decision_digest=decision.digest,
         extra={"universe_digest": art["digest"], "runtime": "AE_COMMON_PRODUCER_V1", "execution_gate": gate,
-               "decision_source": source})
+               "decision_source": source, **telemetry,
+               "provider_errors": {s: c.error_detail for s, c in caches.items() if c.error_detail}})
     return body
 
 

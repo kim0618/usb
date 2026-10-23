@@ -1,0 +1,548 @@
+{
+  "observed_at": "2026-10-23T00:49:50.704215+00:00",
+  "listing": {
+    "ND": {
+      "pages": 1,
+      "complete": true,
+      "matches": [
+        {
+          "stk_cd": "AAPL",
+          "stk_enm": "APPLE INC",
+          "stex_tp": "ND"
+        }
+      ]
+    },
+    "NY": {
+      "pages": 1,
+      "complete": true,
+      "matches": [
+        {
+          "stk_cd": "PS",
+          "stk_enm": "PERSHING SQUARE INC",
+          "stex_tp": "NY"
+        }
+      ]
+    },
+    "NA": {
+      "pages": 1,
+      "complete": true,
+      "matches": [
+        {
+          "stk_cd": "CECO",
+          "stk_enm": "CECO ENVIRONMENTAL CORP",
+          "stex_tp": "NA"
+        },
+        {
+          "stk_cd": "IBOC",
+          "stk_enm": "INTERNATIONAL BANCSHARES CORP",
+          "stex_tp": "NA"
+        }
+      ]
+    }
+  },
+  "charts": [
+    {
+      "round": 1,
+      "symbol": "CECO",
+      "exchange": "ND",
+      "api": "usa06010",
+      "http_status": 200,
+      "return_code": 7,
+      "return_msg": "서비스를 처리하는 중에 오류가 발생했습니다[1903:종목 정보가 없습니다. 입력한 종목코드, 거래소구분 값을 확인바랍니다. 거래소구분=ND, 종목코드=CECO]",
+      "bars": 0,
+      "error": {
+        "error_class": "MarketDataError",
+        "error_code": "INVALID_SYMBOL"
+      }
+    },
+    {
+      "round": 1,
+      "symbol": "CECO",
+      "exchange": "ND",
+      "api": "usa06011",
+      "http_status": 200,
+      "return_code": 7,
+      "return_msg": "서비스를 처리하는 중에 오류가 발생했습니다[1903:종목 정보가 없습니다. 입력한 종목코드, 거래소구분 값을 확인바랍니다. 거래소구분=ND, 종목코드=CECO]",
+      "bars": 0,
+      "error": {
+        "error_class": "MarketDataError",
+        "error_code": "INVALID_SYMBOL"
+      }
+    },
+    {
+      "round": 1,
+      "symbol": "CECO",
+      "exchange": "NY",
+      "api": "usa06010",
+      "http_status": 200,
+      "return_code": 7,
+      "return_msg": "서비스를 처리하는 중에 오류가 발생했습니다[1903:종목 정보가 없습니다. 입력한 종목코드, 거래소구분 값을 확인바랍니다. 거래소구분=NY, 종목코드=CECO]",
+      "bars": 0,
+      "error": {
+        "error_class": "MarketDataError",
+        "error_code": "INVALID_SYMBOL"
+      }
+    },
+    {
+      "round": 1,
+      "symbol": "CECO",
+      "exchange": "NY",
+      "api": "usa06011",
+      "http_status": 200,
+      "return_code": 7,
+      "return_msg": "서비스를 처리하는 중에 오류가 발생했습니다[1903:종목 정보가 없습니다. 입력한 종목코드, 거래소구분 값을 확인바랍니다. 거래소구분=NY, 종목코드=CECO]",
+      "bars": 0,
+      "error": {
+        "error_class": "MarketDataError",
+        "error_code": "INVALID_SYMBOL"
+      }
+    },
+    {
+      "round": 1,
+      "symbol": "CECO",
+      "exchange": "NA",
+      "api": "usa06010",
+      "http_status": 200,
+      "return_code": 0,
+      "return_msg": "정상적으로 처리되었습니다",
+      "bars": 100,
+      "error": null
+    },
+    {
+      "round": 1,
+      "symbol": "CECO",
+      "exchange": "NA",
+      "api": "usa06011",
+      "http_status": 200,
+      "return_code": 0,
+      "return_msg": "정상적으로 처리되었습니다",
+      "bars": 100,
+      "error": null
+    },
+    {
+      "round": 1,
+      "symbol": "IBOC",
+      "exchange": "ND",
+      "api": "usa06010",
+      "http_status": 200,
+      "return_code": 7,
+      "return_msg": "서비스를 처리하는 중에 오류가 발생했습니다[1903:종목 정보가 없습니다. 입력한 종목코드, 거래소구분 값을 확인바랍니다. 거래소구분=ND, 종목코드=IBOC]",
+      "bars": 0,
+      "error": {
+        "error_class": "MarketDataError",
+        "error_code": "INVALID_SYMBOL"
+      }
+    },
+    {
+      "round": 1,
+      "symbol": "IBOC",
+      "exchange": "ND",
+      "api": "usa06011",
+      "http_status": 200,
+      "return_code": 7,
+      "return_msg": "서비스를 처리하는 중에 오류가 발생했습니다[1903:종목 정보가 없습니다. 입력한 종목코드, 거래소구분 값을 확인바랍니다. 거래소구분=ND, 종목코드=IBOC]",
+      "bars": 0,
+      "error": {
+        "error_class": "MarketDataError",
+        "error_code": "INVALID_SYMBOL"
+      }
+    },
+    {
+      "round": 1,
+      "symbol": "IBOC",
+      "exchange": "NY",
+      "api": "usa06010",
+      "http_status": 200,
+      "return_code": 7,
+      "return_msg": "서비스를 처리하는 중에 오류가 발생했습니다[1903:종목 정보가 없습니다. 입력한 종목코드, 거래소구분 값을 확인바랍니다. 거래소구분=NY, 종목코드=IBOC]",
+      "bars": 0,
+      "error": {
+        "error_class": "MarketDataError",
+        "error_code": "INVALID_SYMBOL"
+      }
+    },
+    {
+      "round": 1,
+      "symbol": "IBOC",
+      "exchange": "NY",
+      "api": "usa06011",
+      "http_status": 200,
+      "return_code": 7,
+      "return_msg": "서비스를 처리하는 중에 오류가 발생했습니다[1903:종목 정보가 없습니다. 입력한 종목코드, 거래소구분 값을 확인바랍니다. 거래소구분=NY, 종목코드=IBOC]",
+      "bars": 0,
+      "error": {
+        "error_class": "MarketDataError",
+        "error_code": "INVALID_SYMBOL"
+      }
+    },
+    {
+      "round": 1,
+      "symbol": "IBOC",
+      "exchange": "NA",
+      "api": "usa06010",
+      "http_status": 200,
+      "return_code": 0,
+      "return_msg": "정상적으로 처리되었습니다",
+      "bars": 100,
+      "error": null
+    },
+    {
+      "round": 1,
+      "symbol": "IBOC",
+      "exchange": "NA",
+      "api": "usa06011",
+      "http_status": 200,
+      "return_code": 0,
+      "return_msg": "정상적으로 처리되었습니다",
+      "bars": 100,
+      "error": null
+    },
+    {
+      "round": 1,
+      "symbol": "PS",
+      "exchange": "ND",
+      "api": "usa06010",
+      "http_status": 400,
+      "return_code": null,
+      "return_msg": "",
+      "bars": 0,
+      "error": {
+        "error_class": "MarketDataError",
+        "error_code": "MARKET_DATA_UNAVAILABLE"
+      }
+    },
+    {
+      "round": 1,
+      "symbol": "PS",
+      "exchange": "ND",
+      "api": "usa06011",
+      "http_status": 400,
+      "return_code": null,
+      "return_msg": "",
+      "bars": 0,
+      "error": {
+        "error_class": "MarketDataError",
+        "error_code": "MARKET_DATA_UNAVAILABLE"
+      }
+    },
+    {
+      "round": 1,
+      "symbol": "PS",
+      "exchange": "NY",
+      "api": "usa06010",
+      "http_status": 400,
+      "return_code": null,
+      "return_msg": "",
+      "bars": 0,
+      "error": {
+        "error_class": "MarketDataError",
+        "error_code": "MARKET_DATA_UNAVAILABLE"
+      }
+    },
+    {
+      "round": 1,
+      "symbol": "PS",
+      "exchange": "NY",
+      "api": "usa06011",
+      "http_status": 400,
+      "return_code": null,
+      "return_msg": "",
+      "bars": 0,
+      "error": {
+        "error_class": "MarketDataError",
+        "error_code": "MARKET_DATA_UNAVAILABLE"
+      }
+    },
+    {
+      "round": 1,
+      "symbol": "PS",
+      "exchange": "NA",
+      "api": "usa06010",
+      "http_status": 400,
+      "return_code": null,
+      "return_msg": "",
+      "bars": 0,
+      "error": {
+        "error_class": "MarketDataError",
+        "error_code": "MARKET_DATA_UNAVAILABLE"
+      }
+    },
+    {
+      "round": 1,
+      "symbol": "PS",
+      "exchange": "NA",
+      "api": "usa06011",
+      "http_status": 400,
+      "return_code": null,
+      "return_msg": "",
+      "bars": 0,
+      "error": {
+        "error_class": "MarketDataError",
+        "error_code": "MARKET_DATA_UNAVAILABLE"
+      }
+    },
+    {
+      "round": 2,
+      "symbol": "CECO",
+      "exchange": "ND",
+      "api": "usa06010",
+      "http_status": 200,
+      "return_code": 7,
+      "return_msg": "서비스를 처리하는 중에 오류가 발생했습니다[1903:종목 정보가 없습니다. 입력한 종목코드, 거래소구분 값을 확인바랍니다. 거래소구분=ND, 종목코드=CECO]",
+      "bars": 0,
+      "error": {
+        "error_class": "MarketDataError",
+        "error_code": "INVALID_SYMBOL"
+      }
+    },
+    {
+      "round": 2,
+      "symbol": "CECO",
+      "exchange": "ND",
+      "api": "usa06011",
+      "http_status": 200,
+      "return_code": 7,
+      "return_msg": "서비스를 처리하는 중에 오류가 발생했습니다[1903:종목 정보가 없습니다. 입력한 종목코드, 거래소구분 값을 확인바랍니다. 거래소구분=ND, 종목코드=CECO]",
+      "bars": 0,
+      "error": {
+        "error_class": "MarketDataError",
+        "error_code": "INVALID_SYMBOL"
+      }
+    },
+    {
+      "round": 2,
+      "symbol": "CECO",
+      "exchange": "NY",
+      "api": "usa06010",
+      "http_status": 200,
+      "return_code": 7,
+      "return_msg": "서비스를 처리하는 중에 오류가 발생했습니다[1903:종목 정보가 없습니다. 입력한 종목코드, 거래소구분 값을 확인바랍니다. 거래소구분=NY, 종목코드=CECO]",
+      "bars": 0,
+      "error": {
+        "error_class": "MarketDataError",
+        "error_code": "INVALID_SYMBOL"
+      }
+    },
+    {
+      "round": 2,
+      "symbol": "CECO",
+      "exchange": "NY",
+      "api": "usa06011",
+      "http_status": 200,
+      "return_code": 7,
+      "return_msg": "서비스를 처리하는 중에 오류가 발생했습니다[1903:종목 정보가 없습니다. 입력한 종목코드, 거래소구분 값을 확인바랍니다. 거래소구분=NY, 종목코드=CECO]",
+      "bars": 0,
+      "error": {
+        "error_class": "MarketDataError",
+        "error_code": "INVALID_SYMBOL"
+      }
+    },
+    {
+      "round": 2,
+      "symbol": "CECO",
+      "exchange": "NA",
+      "api": "usa06010",
+      "http_status": 200,
+      "return_code": 0,
+      "return_msg": "정상적으로 처리되었습니다",
+      "bars": 100,
+      "error": null
+    },
+    {
+      "round": 2,
+      "symbol": "CECO",
+      "exchange": "NA",
+      "api": "usa06011",
+      "http_status": 200,
+      "return_code": 0,
+      "return_msg": "정상적으로 처리되었습니다",
+      "bars": 100,
+      "error": null
+    },
+    {
+      "round": 2,
+      "symbol": "IBOC",
+      "exchange": "ND",
+      "api": "usa06010",
+      "http_status": 200,
+      "return_code": 7,
+      "return_msg": "서비스를 처리하는 중에 오류가 발생했습니다[1903:종목 정보가 없습니다. 입력한 종목코드, 거래소구분 값을 확인바랍니다. 거래소구분=ND, 종목코드=IBOC]",
+      "bars": 0,
+      "error": {
+        "error_class": "MarketDataError",
+        "error_code": "INVALID_SYMBOL"
+      }
+    },
+    {
+      "round": 2,
+      "symbol": "IBOC",
+      "exchange": "ND",
+      "api": "usa06011",
+      "http_status": 200,
+      "return_code": 7,
+      "return_msg": "서비스를 처리하는 중에 오류가 발생했습니다[1903:종목 정보가 없습니다. 입력한 종목코드, 거래소구분 값을 확인바랍니다. 거래소구분=ND, 종목코드=IBOC]",
+      "bars": 0,
+      "error": {
+        "error_class": "MarketDataError",
+        "error_code": "INVALID_SYMBOL"
+      }
+    },
+    {
+      "round": 2,
+      "symbol": "IBOC",
+      "exchange": "NY",
+      "api": "usa06010",
+      "http_status": 200,
+      "return_code": 7,
+      "return_msg": "서비스를 처리하는 중에 오류가 발생했습니다[1903:종목 정보가 없습니다. 입력한 종목코드, 거래소구분 값을 확인바랍니다. 거래소구분=NY, 종목코드=IBOC]",
+      "bars": 0,
+      "error": {
+        "error_class": "MarketDataError",
+        "error_code": "INVALID_SYMBOL"
+      }
+    },
+    {
+      "round": 2,
+      "symbol": "IBOC",
+      "exchange": "NY",
+      "api": "usa06011",
+      "http_status": 200,
+      "return_code": 7,
+      "return_msg": "서비스를 처리하는 중에 오류가 발생했습니다[1903:종목 정보가 없습니다. 입력한 종목코드, 거래소구분 값을 확인바랍니다. 거래소구분=NY, 종목코드=IBOC]",
+      "bars": 0,
+      "error": {
+        "error_class": "MarketDataError",
+        "error_code": "INVALID_SYMBOL"
+      }
+    },
+    {
+      "round": 2,
+      "symbol": "IBOC",
+      "exchange": "NA",
+      "api": "usa06010",
+      "http_status": 200,
+      "return_code": 0,
+      "return_msg": "정상적으로 처리되었습니다",
+      "bars": 100,
+      "error": null
+    },
+    {
+      "round": 2,
+      "symbol": "IBOC",
+      "exchange": "NA",
+      "api": "usa06011",
+      "http_status": 200,
+      "return_code": 0,
+      "return_msg": "정상적으로 처리되었습니다",
+      "bars": 100,
+      "error": null
+    },
+    {
+      "round": 2,
+      "symbol": "PS",
+      "exchange": "ND",
+      "api": "usa06010",
+      "http_status": 400,
+      "return_code": null,
+      "return_msg": "",
+      "bars": 0,
+      "error": {
+        "error_class": "MarketDataError",
+        "error_code": "MARKET_DATA_UNAVAILABLE"
+      }
+    },
+    {
+      "round": 2,
+      "symbol": "PS",
+      "exchange": "ND",
+      "api": "usa06011",
+      "http_status": 400,
+      "return_code": null,
+      "return_msg": "",
+      "bars": 0,
+      "error": {
+        "error_class": "MarketDataError",
+        "error_code": "MARKET_DATA_UNAVAILABLE"
+      }
+    },
+    {
+      "round": 2,
+      "symbol": "PS",
+      "exchange": "NY",
+      "api": "usa06010",
+      "http_status": 400,
+      "return_code": null,
+      "return_msg": "",
+      "bars": 0,
+      "error": {
+        "error_class": "MarketDataError",
+        "error_code": "MARKET_DATA_UNAVAILABLE"
+      }
+    },
+    {
+      "round": 2,
+      "symbol": "PS",
+      "exchange": "NY",
+      "api": "usa06011",
+      "http_status": 400,
+      "return_code": null,
+      "return_msg": "",
+      "bars": 0,
+      "error": {
+        "error_class": "MarketDataError",
+        "error_code": "MARKET_DATA_UNAVAILABLE"
+      }
+    },
+    {
+      "round": 2,
+      "symbol": "PS",
+      "exchange": "NA",
+      "api": "usa06010",
+      "http_status": 400,
+      "return_code": null,
+      "return_msg": "",
+      "bars": 0,
+      "error": {
+        "error_class": "MarketDataError",
+        "error_code": "MARKET_DATA_UNAVAILABLE"
+      }
+    },
+    {
+      "round": 2,
+      "symbol": "PS",
+      "exchange": "NA",
+      "api": "usa06011",
+      "http_status": 400,
+      "return_code": null,
+      "return_msg": "",
+      "bars": 0,
+      "error": {
+        "error_class": "MarketDataError",
+        "error_code": "MARKET_DATA_UNAVAILABLE"
+      }
+    },
+    {
+      "round": 0,
+      "symbol": "AAPL",
+      "exchange": "ND",
+      "api": "usa06010",
+      "http_status": 200,
+      "return_code": 0,
+      "return_msg": "정상적으로 처리되었습니다",
+      "bars": 100,
+      "error": null
+    },
+    {
+      "round": 0,
+      "symbol": "AAPL",
+      "exchange": "ND",
+      "api": "usa06011",
+      "http_status": 200,
+      "return_code": 0,
+      "return_msg": "정상적으로 처리되었습니다",
+      "bars": 100,
+      "error": null
+    }
+  ],
+  "order_requests": 0
+}

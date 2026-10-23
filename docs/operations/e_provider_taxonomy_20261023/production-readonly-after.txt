@@ -1,0 +1,43 @@
+some avg10=9.60 avg60=4.22 avg300=1.02 total=59811397142
+full avg10=9.19 avg60=4.04 avg300=0.97 total=48133167492
+6d778823cf69d6145f3cab917da2a0da408ef15176b67683ce91a53810d0aaf0  /root/usb_runtime/ae_common_producer/snapshots/2026-10-22/snapshot_0915.json.gz
+c658894d4f05240d83431a1d97fb2aa6c57f204510fe8b92eaa9869611957d9b  /root/usb_runtime/ae_common_producer/snapshots/2026-10-22/snapshot_0924.json.gz
+c26e0ef3f1e04af3f55b3ef028d757c82726c1d35454381c8df49eb176f3f5a2  /root/usb_runtime/ae_common_producer/run/2026-10-22/e_shadow.json
+9c3381d28d099f76b56d6f5bb8ce8fdba9e8c3217d6e3ef1f79dcff23f799d1b  /root/usb_runtime/ae_common_producer/src/backend/app/ae_common/producer.py
+ad90fbc68c70c3c912a7031ef1947f5e31424f3359b625d23820595c9dd9d2bc  /root/usb_runtime/ae_common_producer/src/backend/app/integrations/kiwoom/client.py
+# /etc/systemd/system/usb-ae-producer.service
+[Unit]
+Description=USB A/E common premarket producer (Kiwoom read-only; snapshot_0915 for A, snapshot_0924 for E official paper on SimBroker; no real orders)
+After=network-online.target usb-backend.service
+StartLimitIntervalSec=1800
+StartLimitBurst=3
+
+[Service]
+Type=simple
+# Runs from the armed first session on (ACTIVE_FROM, an ET date): on and after it this unit runs and
+# usb-e-paper is skipped; before it, or with ACTIVE_FROM removed (rollback), the reverse.
+ExecCondition=/bin/sh -c 'f=/root/usb_runtime/ae_common_producer/ACTIVE_FROM; test -f "$f" && test "$(TZ=America/New_York date +%%Y%%m%%d)" -ge "$(tr -d - < "$f")"'
+# Its own clean source tree (git archive of the release commit); A's data authority is read from the
+# A/E operations tree via --a-repo, read-only.
+WorkingDirectory=/root/usb_runtime/ae_common_producer/src/backend
+EnvironmentFile=/root/usb/.env
+Environment=PYTHONPATH=/root/usb_runtime/ae_common_producer/src/backend
+Environment=STRATEGY_E_MAX_ENABLED=false
+Environment=RT2_DRY_RUN=true
+Environment=NO_ORDER_MODE=true
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/root/usb/.venv/bin/python -m app.dev.run_ae_common_producer run \
+  --universe /root/usb_runtime/strategy_e_paper/universe \
+  --a-repo /root/usb_runtime/strategy_e_paper/src \
+  --snapshots /root/usb_runtime/ae_common_producer/snapshots \
+  --out /root/usb_runtime/ae_common_producer/run \
+  --rvol-store /root/usb_runtime/strategy_e_rvol/kiwoom_premarket.sqlite3 \
+  --paper --e-book-root /root/usb_runtime/strategy_e_paper/run --equity 10000 \
+  --control-dir /root/usb_runtime/ae_common_producer
+Restart=on-failure
+RestartSec=30
+# the same envelope usb-e-paper ran the A-in-E acquisition under
+MemoryMax=350M
+Nice=5
+MainPID=0
+ActiveState=inactive

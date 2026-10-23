@@ -169,9 +169,9 @@ def run_session(inputs: Inputs, *, lane_minute: FZ.Lane, lane_tick: FZ.Lane,
                 break
             except Exception as error:
                 errors += 1
-                cache.error = type(error).__name__
+                cache.record_error(error)
             else:
-                cache.error = None
+                cache.record_error(None)
         log(f"rolling cycle {cycles}: minute calls {lane_minute.calls - calls0} errors {errors}")
     report["rolling"] = {"cycles": cycles, "minute_calls": lane_minute.calls - calls0, "errors": errors,
                          "symbols_per_cycle": len(order), "ended_at": clock.now().isoformat(),
@@ -267,13 +267,15 @@ def _finalize_e(inputs: Inputs, caches: dict[str, FZ.SymbolCache], spy: FZ.Symbo
             cache = spy if sym == "SPY" else caches[sym]
             if not claim(sym):
                 continue
+            cache.final_attempted = True
             try:
                 FZ.finalize_minute(lane_a, cache, session, clock.now)
-                cache.error = None
+                cache.record_error(None)
             except DeadlineReached:
+                cache.record_error(DeadlineReached())
                 return
             except Exception as error:
-                cache.error = type(error).__name__
+                cache.record_error(error)
 
     def worker_b() -> None:
         for sym in shard_b:
@@ -281,13 +283,15 @@ def _finalize_e(inputs: Inputs, caches: dict[str, FZ.SymbolCache], spy: FZ.Symbo
                 return
             if not claim(sym):
                 continue
+            caches[sym].final_attempted = True
             try:
                 FZ.finalize_ticks(lane_b, caches[sym], session, clock.now)
-                caches[sym].error = None
+                caches[sym].record_error(None)
             except DeadlineReached:
+                caches[sym].record_error(DeadlineReached())
                 return
             except Exception as error:
-                caches[sym].error = type(error).__name__
+                caches[sym].record_error(error)
 
     before = {lane_a.name: lane_a.calls, lane_b.name: lane_b.calls}
     threads = [threading.Thread(target=worker_a), threading.Thread(target=worker_b)]

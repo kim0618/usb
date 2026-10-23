@@ -27,6 +27,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
+from app.core import provider_errors as PE
 
 FEATURE_COMPLETE = "FEATURE_COMPLETE"
 SPARSE_NO_PREMARKET = "SPARSE_NO_PREMARKET"
@@ -119,6 +120,11 @@ def outcome_from_cache(cache: Any, *, deadline: Any, lane_errors: Mapping[str, s
     serve the symbol on that lane; the caller passes ``lane_errors`` when it tried more than one.
     """
     errors = dict(lane_errors) if lane_errors is not None else {cache.data_source or "lane": cache.error}
+    detail = getattr(cache, "error_detail", None)
+    if detail is not None and lane_errors is None:
+        structural = (PE.is_source_refusal(detail) and getattr(cache, "source_refusal_observations", 0) >= 2
+                      and getattr(cache, "final_attempted", False) and not cache.bars)
+        errors = {cache.data_source or "lane": detail["error_code"] if structural else detail["error_category"]}
     minutes = sorted(m for m in cache.bars if m <= cutoff_minute)
     return SymbolOutcome(
         symbol=cache.symbol,
@@ -133,6 +139,6 @@ def outcome_from_cache(cache: Any, *, deadline: Any, lane_errors: Mapping[str, s
 def reclassify(status: str, error: str | None, *, lanes: int = 1) -> str:
     """Re-read an RT2 status row under this contract; RT2 had no unavailable state and said STALE."""
     code = (error or "").strip()
-    if code in SOURCE_REFUSAL_CODES or code.startswith("MarketDataError"):
+    if code in SOURCE_REFUSAL_CODES:
         return MARKET_DATA_UNAVAILABLE
     return status if status in STATES else STALE

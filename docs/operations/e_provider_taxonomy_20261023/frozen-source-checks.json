@@ -1,0 +1,34 @@
+{
+  "backend/app/strategy_e_max_rt/decision.py": {
+    "sha256": "ff1cf0bda19460286fdc309078b9cff2df207bcead6ff7a308e04aaee0d9de22",
+    "unchanged_from_HEAD": true
+  },
+  "backend/app/strategy_e_max_rt/config.py": {
+    "sha256": "9a491ba09892b37a7d679be1fbefee04fc51187d69501d1b413fdd73584d658f",
+    "unchanged_from_HEAD": true
+  },
+  "backend/app/strategy_e_max_rt/engine.py": {
+    "sha256": "32dce5c725f78c16018b961c352dbb26543838f9fb4bed698e5daebcf7bd8c4f",
+    "unchanged_from_HEAD": true
+  },
+  "backend/app/strategy_e_max_rt/cost.py": {
+    "sha256": "9b2fcc5abc9c3a872f3b05f8312d7f3b957058460ce414ec7b004fd9b7c9ef69",
+    "unchanged_from_HEAD": true
+  },
+  "backend/app/strategy_e_max_rt/paper.py": {
+    "sha256": "badbbf40472cf6ce64ea2c62ea10c85b23b3475b032020b70e3bb98af9b06e5f",
+    "unchanged_from_HEAD": true
+  },
+  "backend/app/strategy_e_v1_1/universe.py": {
+    "sha256": "476218fc3424139246e4974b6958355d569d80279f1f999756d3afa93c6b9a04",
+    "unchanged_from_HEAD": true
+  },
+  "backend/app/backtest/strategy_e1_forward/seal.py": {
+    "sha256": "5f455ebbb0d0d441076164b1439ca3770ea332f26233b9622935befb48935c85",
+    "unchanged_from_HEAD": true
+  },
+  "backend/app/dev/run_e_rt2_dryrun.py": {
+    "sha256": "acf3afbde8fbabb3b206e8d22112902bb405921f3f2b1dfea6eabe7debf5a9f3",
+    "unchanged_from_HEAD": true
+  }
+}

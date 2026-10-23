@@ -89,8 +89,10 @@ def build(*, base_url: str, auth: Any, clock: Callable[[], datetime], max_retrie
         limits = KiwoomRateLimits()
         limiter = DeadlineRateLimiter(rate, clock, phase_rates={"rolling": rolling_rate})
         limits.chart = limiter                                # type: ignore[assignment]
+        limits.query = limiter                                # mapping recovery obeys the same hard deadline
         clients.append(CountingChartLaneClient(base_url=base_url, auth=auth, rate_limits=limits,
                                                max_retries=max_retries, clock=clock,
+                                               recover_chart_mapping=True,
                                                phase=lambda limiter=limiter: limiter.phase))
         limiters.append(limiter)
     return (FZ.Lane("A", FZ.MINUTE_API, clients[0]), FZ.Lane("B", FZ.TICK_API, clients[1]), clients, limiters)

@@ -78,7 +78,8 @@ class LimitedClient:
         if symbol in self.fail:
             from app.core.exceptions import MarketDataError
             from app.ae_common.sweep import REJECTED_MESSAGE
-            raise MarketDataError("MARKET_DATA_UNAVAILABLE", REJECTED_MESSAGE)    # the source refusing it
+            raise MarketDataError("MARKET_DATA_UNAVAILABLE", REJECTED_MESSAGE,
+                                  provider="KIWOOM", error_category="SOURCE_REFUSAL")    # the source refusing it
         return KiwoomPage(body={"result_list": list(self.pages.get(symbol, []))}, continuation=False, next_key=None)
 
 

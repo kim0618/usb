@@ -123,7 +123,10 @@ def refresh_from_ticks(lane: FZ.Lane, cache: FZ.SymbolCache, session: date,
     rows: list[Mapping[str, Any]] = []
     continuation, reached, pages = None, False, 0
     for _ in range(max_pages):
-        page = lane.page(cache.code or cache.symbol, cache.exchange, continuation)
+        previous_exchange = cache.exchange
+        page = FZ.chart_page(lane, cache, continuation)
+        if cache.exchange != previous_exchange:
+            need_from = 4 * 60
         cache.calls += 1
         pages += 1
         body = page.body.get("result_list", [])
@@ -158,6 +161,7 @@ class APassOutcome:
     finalized_at: datetime | None = None
     last_complete_minute: int | None = None
     error: str | None = None
+    error_detail: dict[str, Any] | None = None
 
     @property
     def usable(self) -> bool:
@@ -167,7 +171,8 @@ class APassOutcome:
         return {"symbol": self.symbol, "lane": self.lane, "pages": self.pages,
                 "a_window_complete": self.a_window_complete,
                 "finalized_at": self.finalized_at.isoformat() if self.finalized_at else None,
-                "last_complete_minute": self.last_complete_minute, "error": self.error}
+                "last_complete_minute": self.last_complete_minute, "error": self.error,
+                **(self.error_detail or {})}
 
 
 @dataclass

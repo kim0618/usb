@@ -155,7 +155,7 @@ def _served(symbol, served=True):
 def test_a_source_refusal_on_a_symbol_never_served_all_morning_is_market_data_unavailable():
     from app.ae_common.sweep import error_label, REJECTED_MESSAGE
     from app.core.exceptions import MarketDataError
-    refusal = error_label(MarketDataError("INVALID_SYMBOL", REJECTED_MESSAGE))
+    refusal = error_label(MarketDataError("INVALID_SYMBOL", REJECTED_MESSAGE, provider="KIWOOM", error_category="SOURCE_REFUSAL"))
     assert refusal == "SOURCE_REFUSAL:INVALID_SYMBOL"
     assert SS.a_status("PS", {"PS": _outcome("PS", refusal)}, set(), cache=_served("PS", False)) == \
         SS.MARKET_DATA_UNAVAILABLE
@@ -193,10 +193,8 @@ def test_coverage_is_complete_only_when_every_expected_symbol_is_usable():
         assert not summary["complete_for_a"] and summary["unexpected_examples"] == {"B": bad}
 
 
-def test_the_refusal_message_is_the_one_the_kiwoom_client_raises_for_a_rejected_query():
-    from pathlib import Path
-    from app.ae_common.sweep import REJECTED_MESSAGE
-    from app.integrations.kiwoom import client
-    source = Path(client.__file__).read_text(encoding="utf-8")
-    assert f'raise MarketDataError(code, "{REJECTED_MESSAGE}")' in source          # return_code != 0 only
-    assert source.count(REJECTED_MESSAGE) == 1
+def test_a_refusal_category_is_explicit_and_never_inferred_from_the_message():
+    from app.ae_common.sweep import error_label, REJECTED_MESSAGE
+    from app.core.exceptions import MarketDataError
+    assert error_label(MarketDataError("INVALID_SYMBOL", REJECTED_MESSAGE)) == "MarketDataError:INVALID_SYMBOL"
+    assert error_label(MarketDataError("MARKET_DATA_UNAVAILABLE", REJECTED_MESSAGE)) == "MarketDataError:MARKET_DATA_UNAVAILABLE"

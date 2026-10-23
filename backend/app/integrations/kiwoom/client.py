@@ -4,12 +4,15 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
 import logging
+import re
+import threading
 import time
 from typing import Any
 
 import httpx
 
 from app.core.exceptions import MarketDataError
+from app.core import provider_errors as PE
 from app.integrations.kiwoom.auth import KiwoomAuthClient
 from app.integrations.kiwoom.rate_limit import KiwoomRateLimits, RequestRateLimiter
 from app.integrations.kiwoom.timestamps import ET, minute_timestamp
@@ -24,6 +27,7 @@ class KiwoomPage:
     body: dict[str, Any]
     continuation: bool
     next_key: str | None
+    resolved_exchange: str | None = None
 
 
 @dataclass(frozen=True)
@@ -59,6 +63,7 @@ class KiwoomMarketDataClient:
         max_retries: int = 2,
         rate_limits: KiwoomRateLimits | None = None,
         sleeper: Callable[[float], None] = time.sleep,
+        recover_chart_mapping: bool = False,
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._auth = auth
@@ -68,6 +73,10 @@ class KiwoomMarketDataClient:
         self._sleeper = sleeper
         self._request_counts: dict[str, int] = {}
         self._last_minute_collection: MinuteHistoryCollection | None = None
+        self._recover_chart_mapping = recover_chart_mapping
+        self._mapping_lock = threading.Lock()
+        self._listing_at = float("-inf")
+        self._chart_exchanges: dict[str, set[str]] = {}
 
     @property
     def request_counts(self) -> dict[str, int]:
@@ -122,12 +131,54 @@ class KiwoomMarketDataClient:
             if payload.get("return_code") not in (None, 0):
                 message = str(payload.get("return_msg", ""))
                 code = "INVALID_SYMBOL" if "종목" in message else "MARKET_DATA_UNAVAILABLE"
-                raise MarketDataError(code, "Kiwoom market-data query was rejected")
+                # Kiwoom wraps a stable subcode in its response envelope. 1903 means that
+                # symbol/exchange pair was not found; it does not prove source refusal.
+                subcode = re.search(r"\[(\d+):", message)
+                provider_code = subcode.group(1) if subcode else str(payload.get("return_code"))
+                category = PE.MAPPING_ERROR if provider_code == "1903" or code == "INVALID_SYMBOL" else PE.TRANSIENT_PROVIDER_ERROR
+                explicit = payload.get("error_code")
+                if explicit in PE.SOURCE_REFUSAL_CODES and provider_code != "1903":
+                    code, category = explicit, PE.SOURCE_REFUSAL
+                if (category == PE.MAPPING_ERROR and provider_code == "1903"
+                        and self._recover_chart_mapping and path == "/api/us/chart"
+                        and not continuation):
+                    exchange = self._fresh_chart_exchange(body["stk_cd"])
+                    if exchange is not None and exchange != body["stex_tp"]:
+                        # One authoritative alternate, never a guessed exchange or a symbol exception.
+                        page = self.request(api_id, path, {**body, "stex_tp": exchange})
+                        return KiwoomPage(page.body, page.continuation, page.next_key, exchange)
+                raise MarketDataError(code, "Kiwoom market-data query was rejected",
+                                      provider="KIWOOM", error_category=category, provider_code=provider_code)
             return KiwoomPage(
                 payload,
                 response.headers.get("cont-yn", "N") == "Y",
                 response.headers.get("next-key"),
             )
+
+    def _fresh_chart_exchange(self, symbol: str) -> str | None:
+        """Bounded, complete listing refresh after 1903. Conflicting listings fail closed."""
+        with self._mapping_lock:
+            if time.monotonic() - self._listing_at >= 60:
+                exchanges: dict[str, set[str]] = {}
+                for exchange in ("ND", "NY", "NA"):
+                    page = None
+                    for _ in range(50):
+                        page = self.request("usa10099", "/api/us/stkinfo", {"stex_tp": exchange}, continuation=page)
+                        rows = page.body.get("list")
+                        if not isinstance(rows, list):
+                            raise MarketDataError("PAGINATION_INCOMPLETE", "Kiwoom listing is incomplete",
+                                                  provider="KIWOOM", error_category=PE.DATA_INCOMPLETE)
+                        for row in rows:
+                            if isinstance(row, dict) and row.get("stk_cd"):
+                                exchanges.setdefault(str(row["stk_cd"]).strip(), set()).add(exchange)
+                        if not page.continuation:
+                            break
+                    else:
+                        raise MarketDataError("PAGINATION_INCOMPLETE", "Kiwoom listing is incomplete",
+                                              provider="KIWOOM", error_category=PE.DATA_INCOMPLETE)
+                self._chart_exchanges, self._listing_at = exchanges, time.monotonic()
+            choices = self._chart_exchanges.get(symbol, set())
+            return next(iter(choices)) if len(choices) == 1 else None
 
     def _send_with_transport_retries(
         self, path: str, body: dict[str, str], headers: dict[str, str],
@@ -142,18 +193,22 @@ class KiwoomMarketDataClient:
                 if attempt < self._max_retries:
                     self._sleeper(2**attempt)
                     continue
-                raise MarketDataError("PROVIDER_TIMEOUT", "Kiwoom market-data request timed out") from exc
+                raise MarketDataError("PROVIDER_TIMEOUT", "Kiwoom market-data request timed out",
+                                      provider="KIWOOM", error_category=PE.TRANSIENT_PROVIDER_ERROR) from exc
             except httpx.HTTPError as exc:
                 if attempt < self._max_retries:
                     self._sleeper(2**attempt)
                     continue
-                raise MarketDataError("MARKET_DATA_UNAVAILABLE", "Kiwoom market data is unavailable") from exc
+                raise MarketDataError("MARKET_DATA_UNAVAILABLE", "Kiwoom market data is unavailable",
+                                      provider="KIWOOM", error_category=PE.TRANSIENT_PROVIDER_ERROR) from exc
             if response.status_code == 429 or response.status_code >= 500:
                 if attempt < self._max_retries:
                     self._sleeper(2**attempt)
                     continue
                 code = "RATE_LIMITED" if response.status_code == 429 else "MARKET_DATA_UNAVAILABLE"
-                raise MarketDataError(code, "Kiwoom market-data request failed")
+                raise MarketDataError(code, "Kiwoom market-data request failed", provider="KIWOOM",
+                                      error_category=PE.TRANSIENT_PROVIDER_ERROR,
+                                      provider_code=str(response.status_code))
             return response
         raise AssertionError("bounded retry loop exhausted")
 

@@ -1,0 +1,95 @@
+{
+  "session": "2026-10-22",
+  "classification_decision": "MAPPING_ERROR",
+  "before_gate": {
+    "authorized": false,
+    "reasons": [
+      "DECISION_INCOMPLETE_UNIVERSE"
+    ],
+    "status": "DECISION_INCOMPLETE_UNIVERSE",
+    "seal_at": "2026-10-22T09:29:31.434666-04:00",
+    "seal_margin_s": 28.565334,
+    "unexpected_stale": 2,
+    "unexpected_stale_examples": [
+      "CECO",
+      "IBOC"
+    ],
+    "documented_exceptions": [
+      "PS"
+    ],
+    "unexpected_rvol_missing": 0,
+    "unexpected_rvol_examples": [],
+    "rvol_pending": 0,
+    "rvol_pending_examples": []
+  },
+  "after_gate": {
+    "authorized": false,
+    "reasons": [
+      "DECISION_INCOMPLETE_UNIVERSE"
+    ],
+    "status": "DECISION_INCOMPLETE_UNIVERSE",
+    "seal_at": "2026-10-22T09:29:31.434666-04:00",
+    "seal_margin_s": 28.565334,
+    "unexpected_stale": 2,
+    "unexpected_stale_examples": [
+      "CECO",
+      "IBOC"
+    ],
+    "documented_exceptions": [
+      "PS"
+    ],
+    "unexpected_rvol_missing": 0,
+    "unexpected_rvol_examples": [],
+    "rvol_pending": 0,
+    "rvol_pending_examples": []
+  },
+  "selected": [
+    "DAR",
+    "TRV",
+    "VRTX"
+  ],
+  "all_frozen_decision_fields_exact": true,
+  "compared_fields": [
+    "universe_rows",
+    "h5_count",
+    "h5_rate",
+    "high_breadth",
+    "breadth_multiplier",
+    "global_multiplier",
+    "final_exposure",
+    "candidates",
+    "r1_order",
+    "selected",
+    "reference_prices",
+    "features",
+    "v1_1_seal_digest",
+    "v1_rules_digest"
+  ],
+  "feature_rows_digest": "5202192be245940489a79f6e5d58820828e94c90f6691b17b0e2ada040bf5d4e",
+  "source_refusal_count": 1,
+  "source_refusal_examples": [
+    {
+      "symbol": "PS",
+      "error_code": "MARKET_DATA_UNAVAILABLE",
+      "error_category": "SOURCE_REFUSAL",
+      "documented": true
+    }
+  ],
+  "unexpected_stale_count": 2,
+  "unexpected_stale_examples": [
+    {
+      "symbol": "CECO",
+      "error_code": "INVALID_SYMBOL",
+      "error_category": "MAPPING_ERROR",
+      "documented": false
+    },
+    {
+      "symbol": "IBOC",
+      "error_code": "INVALID_SYMBOL",
+      "error_category": "MAPPING_ERROR",
+      "documented": false
+    }
+  ],
+  "authorized_counterfactual_applied": false,
+  "reason": "NA chart succeeds: structural refusal premise disproven. Original cutoff bars cannot be reconstructed by relabelling errors."
+}
