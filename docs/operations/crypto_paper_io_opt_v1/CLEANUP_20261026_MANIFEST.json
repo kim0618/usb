@@ -1,0 +1,501 @@
+{
+  "baseline_before_test_path_changes": {
+    "count": 41,
+    "bytes": 3632543,
+    "tree_sha256": "2c6bc07d102f800c63e65064507f4e020bdcb8ffe6e8fc9c99f0a4b490005830",
+    "files": [
+      {
+        "path": "aggregate_runtime.py",
+        "bytes": 3962,
+        "sha256": "0b311c7207f9258a35237940864a67561847da1d9a0f3b878a49842fc26eb96b"
+      },
+      {
+        "path": "aggregates.json",
+        "bytes": 15774,
+        "sha256": "732e2f51652b210310ce1ab33dd4d28bdf3c5297c0cfb73836d3c6f948d92dd5"
+      },
+      {
+        "path": "counts.json",
+        "bytes": 7194,
+        "sha256": "02de5415ebd3f1a3576b3e3c63af503dd07611eda5356f12c3d1c4e0bd31989b"
+      },
+      {
+        "path": "crypto_tests_clean.txt",
+        "bytes": 1123494,
+        "sha256": "fe5bbd21061269554d78821d71c4d1aeb81a9c93478b417d10726e5fee2ec52d"
+      },
+      {
+        "path": "crypto_tests_final.txt",
+        "bytes": 883549,
+        "sha256": "1de592c4adf96e2a331d33d6e2a1245658194d549c906598e8b4d18c88c8a08f"
+      },
+      {
+        "path": "crypto_tests_initial.txt",
+        "bytes": 109,
+        "sha256": "be84b19fc1cacb653c7b440f4fdf3b1b036aaad9bd41d546852af80593d971b4"
+      },
+      {
+        "path": "crypto_tests_wakeup.txt",
+        "bytes": 537407,
+        "sha256": "5dfb8b49f6824d48dfb38d18abe9b8c5d5f75a052cd59248511b3712a2bf5051"
+      },
+      {
+        "path": "final_hot_tests.txt",
+        "bytes": 99,
+        "sha256": "67e396a8048d3901b4cee21385e3dbc682ea46839646aa04f537292f1f296acf"
+      },
+      {
+        "path": "final_read.json",
+        "bytes": 14260,
+        "sha256": "fb70c331125f36d496a6f82872a8146ab0a885032ac65f323c8eba75e4711910"
+      },
+      {
+        "path": "final_read.py",
+        "bytes": 1238,
+        "sha256": "9a193cd04b2a4db9436c9ea5b84edfa11bf2c0664085f019e8b5fcf5596f0c53"
+      },
+      {
+        "path": "followup.json",
+        "bytes": 10330,
+        "sha256": "2d85235b3e62d938b18947e8c6fdbb951f015544aef2a9f3ea4d38b2bb36e046"
+      },
+      {
+        "path": "git_status_before.txt",
+        "bytes": 7634,
+        "sha256": "d1916fd44dc1c1788de9fa3547010c5b48fc1d2bdadf7c8ba12d81dca656db6a"
+      },
+      {
+        "path": "hot_coins_market.py.diff",
+        "bytes": 684,
+        "sha256": "686f0a9ec6dcc04fcb8063d10f6fb77c32c11dcfd500834afb967bb4fcbeeb65"
+      },
+      {
+        "path": "leak_before.txt",
+        "bytes": 14241,
+        "sha256": "c4132f32371fabbe61ce8862354261fadfc686ee1563cf51491e53cf46ac41d3"
+      },
+      {
+        "path": "paper_segments.py.diff",
+        "bytes": 7950,
+        "sha256": "0f20587a49438bc568766496c72b1781064392a37832d1bc4fa288f83989a1c5"
+      },
+      {
+        "path": "parity_tests.txt",
+        "bytes": 100,
+        "sha256": "478f9ef799c19222407a1a7c419abcdaa348417355265bc909b45256675054db"
+      },
+      {
+        "path": "parity_tmpfs_tests.txt",
+        "bytes": 99,
+        "sha256": "5b242804868f8b3162f3755e5ed277e62ee9ca0fd25855155537a49f9c3d2ce6"
+      },
+      {
+        "path": "read_followup.py",
+        "bytes": 2357,
+        "sha256": "97bbe1fa1b5d1f90cf932f59d165ed01cae4128f48280e92a07ae308cbaed98d"
+      },
+      {
+        "path": "read_runtime.py",
+        "bytes": 2749,
+        "sha256": "7894f9620c359aeab86c4c223651520cf419a8744fc8bf9a999b6c6834a80144"
+      },
+      {
+        "path": "relevant_tests.py",
+        "bytes": 505,
+        "sha256": "494513f13ee6b89e163b42a78a8966b430f2d299615c3d4a0e5f41e0af9200e8"
+      },
+      {
+        "path": "relevant_tests.txt",
+        "bytes": 129441,
+        "sha256": "5a62c9d85612b4bda8fc1ce33abc86eed1c92a418e1d7ce75074995bde63e43c"
+      },
+      {
+        "path": "run_tests.py",
+        "bytes": 1179,
+        "sha256": "063a5dfcd128777f1650ad5206ff8b1e9e91136881f79739207b6b24a1938189"
+      },
+      {
+        "path": "runtime.json",
+        "bytes": 230389,
+        "sha256": "5cc08bb639e04384e9789247ff42c2cddb2ec030d90b22a8e2ab922636beec18"
+      },
+      {
+        "path": "runtime_candidate_tests.txt",
+        "bytes": 175022,
+        "sha256": "cc466cf7f22791b4caf140e298cb2027255d0c77564b2d54de3ba203cc21cd4b"
+      },
+      {
+        "path": "runtime_isolated_final_tests.txt",
+        "bytes": 128864,
+        "sha256": "5cfc7b97dde791aee7f48b4f1cc76a447460bdb414b2dfcb090beeae864053c6"
+      },
+      {
+        "path": "runtime_isolated_tests.txt",
+        "bytes": 131781,
+        "sha256": "4e87005eef617342758b5c740978c0b057616a583d6aa207dbebd9cd2c64c38e"
+      },
+      {
+        "path": "runtime_sources/hot_coins/market.py",
+        "bytes": 29766,
+        "sha256": "98a22bbc1ee2f12650933091b07402400cb1b0a5240fa0796bc7a30baead7d63"
+      },
+      {
+        "path": "runtime_sources/hot_coins/slot.py",
+        "bytes": 10301,
+        "sha256": "e32af74b097a20aad395c88b4e3ec9f6bf45b40ebe066c5ad28862548a5e2131"
+      },
+      {
+        "path": "runtime_sources/paper/ledger.py",
+        "bytes": 5541,
+        "sha256": "0cd1ba5128f30676ab1eec4ae186c0ad25d231ccbe410c9f3ccb62105852f6f4"
+      },
+      {
+        "path": "runtime_sources/paper/segments.py",
+        "bytes": 23123,
+        "sha256": "6337805bce529c0028bf9fde258e469cb4e7ec93ec4e2a303b89f3a8a6a75181"
+      },
+      {
+        "path": "runtime_sources/symbols.py",
+        "bytes": 6087,
+        "sha256": "839a36ce1fdedb36629066514db24925e6cc4f46cb137b7605113e8a48e95f4c"
+      },
+      {
+        "path": "runtime_sources/terminal/api.py",
+        "bytes": 56150,
+        "sha256": "7a82dbcbe90c8dd82bd4da7dcfa4d37a30a591ab568dc17878f9952f2ed50b28"
+      },
+      {
+        "path": "runtime_sources/terminal/chart_history.py",
+        "bytes": 7655,
+        "sha256": "f70333c94bf455bb0e2e0f7c5115bfc795bb12ed3134a523f6c858b8e1cd97f1"
+      },
+      {
+        "path": "runtime_sources/terminal/hot_routes.py",
+        "bytes": 13393,
+        "sha256": "a7aacd225192779238d9ecb457e729bc63f532aeeb33e40c01ada15170be69ce"
+      },
+      {
+        "path": "runtime_sources/terminal/server.py",
+        "bytes": 17860,
+        "sha256": "6f8d1b93100c15e63a354c97c8d5d96b02546e989eb1923ce6c9624e7470dfa2"
+      },
+      {
+        "path": "runtime_sources/terminal/session.py",
+        "bytes": 8405,
+        "sha256": "96b8dc5ec7e9e19781bfbee10b5a5cdcd74ef910a807dfddc6426b4078eb0b42"
+      },
+      {
+        "path": "runtime_sources/terminal/trade_candles.py",
+        "bytes": 15197,
+        "sha256": "6cf832105ab754b7e25693427c1d66e45ca59c5080cfc0d9a03a479f75c04f62"
+      },
+      {
+        "path": "runtime_tests.py",
+        "bytes": 970,
+        "sha256": "5a6c228bc9c219d81338ba455af073935c2d69753d8ea85c22f9241cf528fe60"
+      },
+      {
+        "path": "sample_counts.py",
+        "bytes": 1202,
+        "sha256": "6c2a17640a0f3a00112fdf04ddff05360a322236a7fc3aa06bf7db61d1e8e003"
+      },
+      {
+        "path": "targeted_tests.txt",
+        "bytes": 180,
+        "sha256": "e19432468203e33e378672ee011e6ef291b430f15cd624b763ce7cb05188b97a"
+      },
+      {
+        "path": "test_hang_diagnostic.txt",
+        "bytes": 6302,
+        "sha256": "40a1b4fc6038b308174f7ee45e8e7625e3ffe17ffc3e3ed57bf01e55b1d54a5b"
+      }
+    ]
+  },
+  "canonical_after_test_path_changes": {
+    "count": 41,
+    "bytes": 3632586,
+    "tree_sha256": "25a18c196509204cefe86fb0024b7ced5a97bfed78d4a58adde8b7ada31cd542",
+    "files": [
+      {
+        "path": "aggregate_runtime.py",
+        "bytes": 3962,
+        "sha256": "0b311c7207f9258a35237940864a67561847da1d9a0f3b878a49842fc26eb96b"
+      },
+      {
+        "path": "aggregates.json",
+        "bytes": 15774,
+        "sha256": "732e2f51652b210310ce1ab33dd4d28bdf3c5297c0cfb73836d3c6f948d92dd5"
+      },
+      {
+        "path": "counts.json",
+        "bytes": 7194,
+        "sha256": "02de5415ebd3f1a3576b3e3c63af503dd07611eda5356f12c3d1c4e0bd31989b"
+      },
+      {
+        "path": "crypto_tests_clean.txt",
+        "bytes": 1123494,
+        "sha256": "fe5bbd21061269554d78821d71c4d1aeb81a9c93478b417d10726e5fee2ec52d"
+      },
+      {
+        "path": "crypto_tests_final.txt",
+        "bytes": 883549,
+        "sha256": "1de592c4adf96e2a331d33d6e2a1245658194d549c906598e8b4d18c88c8a08f"
+      },
+      {
+        "path": "crypto_tests_initial.txt",
+        "bytes": 109,
+        "sha256": "be84b19fc1cacb653c7b440f4fdf3b1b036aaad9bd41d546852af80593d971b4"
+      },
+      {
+        "path": "crypto_tests_wakeup.txt",
+        "bytes": 537407,
+        "sha256": "5dfb8b49f6824d48dfb38d18abe9b8c5d5f75a052cd59248511b3712a2bf5051"
+      },
+      {
+        "path": "final_hot_tests.txt",
+        "bytes": 99,
+        "sha256": "67e396a8048d3901b4cee21385e3dbc682ea46839646aa04f537292f1f296acf"
+      },
+      {
+        "path": "final_read.json",
+        "bytes": 14260,
+        "sha256": "fb70c331125f36d496a6f82872a8146ab0a885032ac65f323c8eba75e4711910"
+      },
+      {
+        "path": "final_read.py",
+        "bytes": 1238,
+        "sha256": "9a193cd04b2a4db9436c9ea5b84edfa11bf2c0664085f019e8b5fcf5596f0c53"
+      },
+      {
+        "path": "followup.json",
+        "bytes": 10330,
+        "sha256": "2d85235b3e62d938b18947e8c6fdbb951f015544aef2a9f3ea4d38b2bb36e046"
+      },
+      {
+        "path": "git_status_before.txt",
+        "bytes": 7634,
+        "sha256": "d1916fd44dc1c1788de9fa3547010c5b48fc1d2bdadf7c8ba12d81dca656db6a"
+      },
+      {
+        "path": "hot_coins_market.py.diff",
+        "bytes": 684,
+        "sha256": "686f0a9ec6dcc04fcb8063d10f6fb77c32c11dcfd500834afb967bb4fcbeeb65"
+      },
+      {
+        "path": "leak_before.txt",
+        "bytes": 14241,
+        "sha256": "c4132f32371fabbe61ce8862354261fadfc686ee1563cf51491e53cf46ac41d3"
+      },
+      {
+        "path": "paper_segments.py.diff",
+        "bytes": 7950,
+        "sha256": "0f20587a49438bc568766496c72b1781064392a37832d1bc4fa288f83989a1c5"
+      },
+      {
+        "path": "parity_tests.txt",
+        "bytes": 100,
+        "sha256": "478f9ef799c19222407a1a7c419abcdaa348417355265bc909b45256675054db"
+      },
+      {
+        "path": "parity_tmpfs_tests.txt",
+        "bytes": 99,
+        "sha256": "5b242804868f8b3162f3755e5ed277e62ee9ca0fd25855155537a49f9c3d2ce6"
+      },
+      {
+        "path": "read_followup.py",
+        "bytes": 2357,
+        "sha256": "97bbe1fa1b5d1f90cf932f59d165ed01cae4128f48280e92a07ae308cbaed98d"
+      },
+      {
+        "path": "read_runtime.py",
+        "bytes": 2749,
+        "sha256": "7894f9620c359aeab86c4c223651520cf419a8744fc8bf9a999b6c6834a80144"
+      },
+      {
+        "path": "relevant_tests.py",
+        "bytes": 532,
+        "sha256": "76fad9105bc907a0441a7d9de2b29e3506e55d2c133e87b05d837b56cc3f0537"
+      },
+      {
+        "path": "relevant_tests.txt",
+        "bytes": 129441,
+        "sha256": "5a62c9d85612b4bda8fc1ce33abc86eed1c92a418e1d7ce75074995bde63e43c"
+      },
+      {
+        "path": "run_tests.py",
+        "bytes": 1179,
+        "sha256": "063a5dfcd128777f1650ad5206ff8b1e9e91136881f79739207b6b24a1938189"
+      },
+      {
+        "path": "runtime.json",
+        "bytes": 230389,
+        "sha256": "5cc08bb639e04384e9789247ff42c2cddb2ec030d90b22a8e2ab922636beec18"
+      },
+      {
+        "path": "runtime_candidate_tests.txt",
+        "bytes": 175022,
+        "sha256": "cc466cf7f22791b4caf140e298cb2027255d0c77564b2d54de3ba203cc21cd4b"
+      },
+      {
+        "path": "runtime_isolated_final_tests.txt",
+        "bytes": 128864,
+        "sha256": "5cfc7b97dde791aee7f48b4f1cc76a447460bdb414b2dfcb090beeae864053c6"
+      },
+      {
+        "path": "runtime_isolated_tests.txt",
+        "bytes": 131781,
+        "sha256": "4e87005eef617342758b5c740978c0b057616a583d6aa207dbebd9cd2c64c38e"
+      },
+      {
+        "path": "runtime_sources/hot_coins/market.py",
+        "bytes": 29766,
+        "sha256": "98a22bbc1ee2f12650933091b07402400cb1b0a5240fa0796bc7a30baead7d63"
+      },
+      {
+        "path": "runtime_sources/hot_coins/slot.py",
+        "bytes": 10301,
+        "sha256": "e32af74b097a20aad395c88b4e3ec9f6bf45b40ebe066c5ad28862548a5e2131"
+      },
+      {
+        "path": "runtime_sources/paper/ledger.py",
+        "bytes": 5541,
+        "sha256": "0cd1ba5128f30676ab1eec4ae186c0ad25d231ccbe410c9f3ccb62105852f6f4"
+      },
+      {
+        "path": "runtime_sources/paper/segments.py",
+        "bytes": 23123,
+        "sha256": "6337805bce529c0028bf9fde258e469cb4e7ec93ec4e2a303b89f3a8a6a75181"
+      },
+      {
+        "path": "runtime_sources/symbols.py",
+        "bytes": 6087,
+        "sha256": "839a36ce1fdedb36629066514db24925e6cc4f46cb137b7605113e8a48e95f4c"
+      },
+      {
+        "path": "runtime_sources/terminal/api.py",
+        "bytes": 56150,
+        "sha256": "7a82dbcbe90c8dd82bd4da7dcfa4d37a30a591ab568dc17878f9952f2ed50b28"
+      },
+      {
+        "path": "runtime_sources/terminal/chart_history.py",
+        "bytes": 7655,
+        "sha256": "f70333c94bf455bb0e2e0f7c5115bfc795bb12ed3134a523f6c858b8e1cd97f1"
+      },
+      {
+        "path": "runtime_sources/terminal/hot_routes.py",
+        "bytes": 13393,
+        "sha256": "a7aacd225192779238d9ecb457e729bc63f532aeeb33e40c01ada15170be69ce"
+      },
+      {
+        "path": "runtime_sources/terminal/server.py",
+        "bytes": 17860,
+        "sha256": "6f8d1b93100c15e63a354c97c8d5d96b02546e989eb1923ce6c9624e7470dfa2"
+      },
+      {
+        "path": "runtime_sources/terminal/session.py",
+        "bytes": 8405,
+        "sha256": "96b8dc5ec7e9e19781bfbee10b5a5cdcd74ef910a807dfddc6426b4078eb0b42"
+      },
+      {
+        "path": "runtime_sources/terminal/trade_candles.py",
+        "bytes": 15197,
+        "sha256": "6cf832105ab754b7e25693427c1d66e45ca59c5080cfc0d9a03a479f75c04f62"
+      },
+      {
+        "path": "runtime_tests.py",
+        "bytes": 986,
+        "sha256": "ce2af5ea182ce84dca17d8c05c26e653a3e2887e5e5d76a2533bff11f1d5c196"
+      },
+      {
+        "path": "sample_counts.py",
+        "bytes": 1202,
+        "sha256": "6c2a17640a0f3a00112fdf04ddff05360a322236a7fc3aa06bf7db61d1e8e003"
+      },
+      {
+        "path": "targeted_tests.txt",
+        "bytes": 180,
+        "sha256": "e19432468203e33e378672ee011e6ef291b430f15cd624b763ce7cb05188b97a"
+      },
+      {
+        "path": "test_hang_diagnostic.txt",
+        "bytes": 6302,
+        "sha256": "40a1b4fc6038b308174f7ee45e8e7625e3ffe17ffc3e3ed57bf01e55b1d54a5b"
+      }
+    ]
+  },
+  "approved_changed_files": [
+    "relevant_tests.py",
+    "runtime_tests.py"
+  ],
+  "unchanged_original_files": 39,
+  "user_approved_equivalence": "41/41 before editing; after editing 39 unchanged files and reviewed diffs for two test runners",
+  "tree_digest_format": "UTF-8 sorted relative path records; compact ensure_ascii JSON [path,bytes,sha256] plus LF per record",
+  "source_allocated_bytes_including_directories": 3751936,
+  "source_nlink_1": true,
+  "reviewed_runner_changes": [
+    {
+      "path": "relevant_tests.py",
+      "original_source": "import runpy,sys\nfrom pathlib import Path\nroot=Path('/tmp/usb-io-opt-clean-20261022/backend/tests/crypto')\nprefixes=('test_paper','test_tape','test_hot','test_binance_live','test_chart','test_current_segment','test_live_')\nfiles=[str(p) for p in sorted(root.glob('test_*.py')) if p.name.startswith(prefixes)]\nsys.argv=['run_tests.py',*files,'-vv','--tb=short','--basetemp=/dev/shm/usb-io-opt-20261022/relevant']\nrunpy.run_path('/home/tjd618/usb-io-opt-evidence-20261022/run_tests.py',run_name='__main__')\n",
+      "unified_diff": "--- original/relevant_tests.py\n+++ repo/relevant_tests.py\n@@ -1,7 +1,8 @@\n import runpy,sys\n from pathlib import Path\n-root=Path('/tmp/usb-io-opt-clean-20261022/backend/tests/crypto')\n+root=Path(__file__).resolve().parents[4]/'backend/tests/crypto'\n prefixes=('test_paper','test_tape','test_hot','test_binance_live','test_chart','test_current_segment','test_live_')\n files=[str(p) for p in sorted(root.glob('test_*.py')) if p.name.startswith(prefixes)]\n-sys.argv=['run_tests.py',*files,'-vv','--tb=short','--basetemp=/dev/shm/usb-io-opt-20261022/relevant']\n-runpy.run_path('/home/tjd618/usb-io-opt-evidence-20261022/run_tests.py',run_name='__main__')\n+if not files:raise SystemExit(f'No crypto tests found in {root}')\n+sys.argv=['run_tests.py',*files,'-vv','--tb=short',*sys.argv[1:]]\n+runpy.run_path(str(Path(__file__).resolve().with_name('run_tests.py')),run_name='__main__')\n"
+    },
+    {
+      "path": "runtime_tests.py",
+      "original_source": "import runpy,sys\nfrom pathlib import Path\nroot=Path('/tmp/usb-io-opt-runtime-20261022/backend/tests/crypto')\nprefixes=('test_paper','test_tape','test_hot','test_binance_live','test_chart','test_current_segment','test_live_')\nextra={'test_crypto_d2.py','test_crypto_multisymbol.py','test_manual_ux_account_sharing.py','test_manual_ux_half_close.py','test_manual_ux_final_v1.py','test_polling_optimization_v1.py','test_pnl_breakdown.py','test_trade_preview.py','test_trade_candles.py','test_replay_determinism.py','test_multi_entry_markers.py','test_safe_sizing.py','test_safe_max_brackets.py','test_fee_scenarios.py'}\nfiles=[str(p) for p in sorted(root.glob('test_*.py')) if (p.name.startswith(prefixes) or p.name in extra) and p.name!='test_chart_cache_expiry.py']\nsys.argv=['run_tests.py',*files,'-vv','--tb=short','--basetemp=/dev/shm/usb-io-opt-20261022/runtime_candidate']\nrunpy.run_path('/home/tjd618/usb-io-opt-evidence-20261022/run_tests.py',run_name='__main__')\n",
+      "unified_diff": "--- original/runtime_tests.py\n+++ repo/runtime_tests.py\n@@ -1,8 +1,9 @@\n import runpy,sys\n from pathlib import Path\n-root=Path('/tmp/usb-io-opt-runtime-20261022/backend/tests/crypto')\n+root=Path(__file__).resolve().parents[4]/'backend/tests/crypto'\n prefixes=('test_paper','test_tape','test_hot','test_binance_live','test_chart','test_current_segment','test_live_')\n extra={'test_crypto_d2.py','test_crypto_multisymbol.py','test_manual_ux_account_sharing.py','test_manual_ux_half_close.py','test_manual_ux_final_v1.py','test_polling_optimization_v1.py','test_pnl_breakdown.py','test_trade_preview.py','test_trade_candles.py','test_replay_determinism.py','test_multi_entry_markers.py','test_safe_sizing.py','test_safe_max_brackets.py','test_fee_scenarios.py'}\n files=[str(p) for p in sorted(root.glob('test_*.py')) if (p.name.startswith(prefixes) or p.name in extra) and p.name!='test_chart_cache_expiry.py']\n-sys.argv=['run_tests.py',*files,'-vv','--tb=short','--basetemp=/dev/shm/usb-io-opt-20261022/runtime_candidate']\n-runpy.run_path('/home/tjd618/usb-io-opt-evidence-20261022/run_tests.py',run_name='__main__')\n+if not files:raise SystemExit(f'No crypto tests found in {root}')\n+sys.argv=['run_tests.py',*files,'-vv','--tb=short',*sys.argv[1:]]\n+runpy.run_path(str(Path(__file__).resolve().with_name('run_tests.py')),run_name='__main__')\n"
+    }
+  ],
+  "original_evidence_reconstruction": "39 unchanged files from raw_evidence plus original_source of the two runners below reproduce all 41 original SHA256 values.",
+  "verification_tests": {
+    "runtime_tests.py": {
+      "tests": 1103,
+      "passed": 1080,
+      "skipped": 23,
+      "failed": 0,
+      "errors": 0,
+      "seconds": 153.69,
+      "junit_sha256": "a1473fc79f7dd554ed8ce7f51e6d32b4723ff1de27ee9dfb77b8c94237642f19",
+      "log_sha256": "e4b14c9c6ccc66de75900e61fe76964d447a1ec496e3352867f58f2a68cac175",
+      "five_io_opt_regression_cases_passed": [
+        "test_old_hot_cannot_reopen_while_its_socket_is_stopping[False]",
+        "test_old_hot_cannot_reopen_while_its_socket_is_stopping[True]",
+        "test_retire_backstop_keeps_open_hot_admitted_and_observed",
+        "test_strict_byte_parity_including_gzip_headers_and_manifest_hashes[False]",
+        "test_strict_byte_parity_including_gzip_headers_and_manifest_hashes[True]"
+      ]
+    },
+    "relevant_tests.py": {
+      "tests": 842,
+      "passed": 840,
+      "skipped": 2,
+      "failed": 0,
+      "errors": 0,
+      "seconds": 130.584,
+      "junit_sha256": "6e38a212ebaae87764de43b595372af429e2faaf77660b929cd1d5045ef9adb9",
+      "log_sha256": "8ce0e32554a7cb37750212427959862a3295a429efb5c1b3dd7c970e362fc7df",
+      "five_io_opt_regression_cases_passed": [
+        "test_old_hot_cannot_reopen_while_its_socket_is_stopping[False]",
+        "test_old_hot_cannot_reopen_while_its_socket_is_stopping[True]",
+        "test_retire_backstop_keeps_open_hot_admitted_and_observed",
+        "test_strict_byte_parity_including_gzip_headers_and_manifest_hashes[False]",
+        "test_strict_byte_parity_including_gzip_headers_and_manifest_hashes[True]"
+      ]
+    }
+  },
+  "source_deletion": "COMPLETE: user confirmed cleanup PASS and original deletion complete on 2026-10-26; final pre-commit check independently confirmed /home/tjd618/usb-io-opt-evidence-20261022 is absent, including as a symlink. Earlier root-process inspection gate is resolved by the user-reported completion; privileged process checks were not rerun in this commit session.",
+  "credential_scan": {
+    "files": 41,
+    "max_file_bytes": 1123494,
+    "all_text": true,
+    "known_token_private_key_credential_literal_matches": 0,
+    "decoded_json_strings_scanned": 1041,
+    "decoded_matches": 0
+  },
+  "other_session_state": {
+    "other_dirty_statuses_unchanged": 657,
+    "other_dirty_hashes_unchanged": 656,
+    "externally_changed_not_touched_or_staged": [
+      ".claude/skill-log.md"
+    ],
+    "preexisting_index_entries_unchanged": true
+  }
+}

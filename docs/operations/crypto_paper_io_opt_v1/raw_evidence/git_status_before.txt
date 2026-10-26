@@ -1,0 +1,170 @@
+ M backend/app/api/router.py
+ M backend/app/backtest/baseline/runner.py
+ M backend/app/dev/collect_u1_minute.py
+ M backend/app/dev/historical_v2.py
+ M backend/app/replay_smoke/runner.py
+ M backend/app/services/end_of_day_lifecycle.py
+ M backend/app/services/entry_capacity.py
+ M backend/app/services/position_lifecycle.py
+ M backend/app/strategies/i_paper/guard.py
+ M backend/app/strategies/i_paper/lean.py
+ M backend/app/strategy/config.py
+ M backend/app/strategy/engine.py
+ M backend/tests/test_collect_u1_minute.py
+ M backend/tests/test_entry_reference_tolerance.py
+ M backend/tests/test_historical_v2.py
+ M backend/tests/test_i_paper.py
+ M backend/tests/test_i_paper_guard.py
+ M backend/tests/test_protection_cursor.py
+ M docs/backtest/WORKFLOW.md
+ M frontend/components/section-tabs.tsx
+ M frontend/next-env.d.ts
+?? .claude/skill-log.md
+?? .streamlit/
+?? backend/app/api/strategy_i.py
+?? backend/app/backtest/authority/coverage.py
+?? backend/app/backtest/authority/decisions.py
+?? backend/app/backtest/authority/importer.py
+?? backend/app/backtest/authority/records.py
+?? backend/app/backtest/authority/resolver.py
+?? backend/app/backtest/authority/source.py
+?? backend/app/backtest/authority/store.py
+?? backend/app/backtest/baseline/__init__.py
+?? backend/app/backtest/baseline/analytics.py
+?? backend/app/backtest/baseline/config_snapshot.py
+?? backend/app/backtest/baseline/contract.py
+?? backend/app/backtest/baseline/coverage.py
+?? backend/app/backtest/baseline/current_paper.py
+?? backend/app/backtest/baseline/errors.py
+?? backend/app/backtest/baseline/experiment.py
+?? backend/app/backtest/baseline/report.py
+?? backend/app/backtest/baseline/schema.py
+?? backend/app/backtest/baseline/storage.py
+?? backend/app/backtest/basis/
+?? backend/app/backtest/collector/daily_collector.py
+?? backend/app/backtest/collector/daily_dataset.py
+?? backend/app/backtest/collector/daily_range.py
+?? backend/app/backtest/collector/daily_storage.py
+?? backend/app/backtest/collector/daily_validation.py
+?? backend/app/backtest/diagnostics/
+?? backend/app/backtest/engine/adapter.py
+?? backend/app/backtest/engine/clock.py
+?? backend/app/backtest/engine/driver.py
+?? backend/app/backtest/engine/errors.py
+?? backend/app/backtest/engine/store.py
+?? backend/app/backtest/experiments/
+?? backend/app/backtest/forward/
+?? backend/app/backtest/parity/
+?? backend/app/backtest/portfolio/
+?? backend/app/backtest/replay/clock.py
+?? backend/app/backtest/replay/db_safety.py
+?? backend/app/backtest/replay/differential.py
+?? backend/app/backtest/replay/position_differential.py
+?? backend/app/backtest/replay/position_replay.py
+?? backend/app/backtest/replay/provider.py
+?? backend/app/backtest/replay/session_replay.py
+?? backend/app/backtest/research/authority.py
+?? backend/app/backtest/research/coverage.py
+?? backend/app/backtest/research/daily.py
+?? backend/app/backtest/research/data_eligibility.py
+?? backend/app/backtest/research/metadata.py
+?? backend/app/backtest/research/regime_gate.py
+?? backend/app/backtest/research/result.py
+?? backend/app/backtest/research/scanner.py
+?? backend/app/backtest/research/sparse_minute.py
+?? backend/app/backtest/research/universe.py
+?? backend/app/backtest/research/universe_artifacts.py
+?? backend/app/backtest/research/universe_file.py
+?? backend/app/backtest/research/universe_selection.py
+?? backend/app/backtest/research/workspace_store.py
+?? backend/app/backtest/strategy_b/adapter.py
+?? backend/app/backtest/strategy_b/raw_fetch.py
+?? backend/app/backtest/strategy_b/result.py
+?? backend/app/backtest/strategy_b/run.py
+?? backend/app/backtest/ui/
+?? backend/app/dev/backtest_ui.py
+?? backend/app/dev/build_historical_top8.py
+?? backend/app/dev/build_research_universe.py
+?? backend/app/dev/build_research_universe_v2.py
+?? backend/app/dev/collect_daily_universe.py
+?? backend/app/dev/fetch_top8_minute_gaps.py
+?? backend/app/dev/gpt_selection_forward.py
+?? backend/app/dev/historical_authority.py
+?? backend/app/dev/kiwoom_us_realtime_probe.py
+?? backend/app/dev/kiwoom_us_realtime_probe_support.py
+?? backend/app/dev/replay_historical_session.py
+?? backend/app/dev/replay_portfolio.py
+?? backend/app/dev/report_family_search.py
+?? backend/app/dev/resolve_daily_basis.py
+?? backend/app/dev/run_a_kiwoom_parity_audit.py
+?? backend/app/dev/run_a_kiwoom_prefilter_audit.py
+?? backend/app/dev/run_a_kiwoom_prefilter_budget.py
+?? backend/app/dev/run_a_shared_collector_budget.py
+?? backend/app/dev/run_a_swing_family_search.py
+?? backend/app/dev/run_a_v2_shadow.py
+?? backend/app/dev/run_baseline_v2_diagnostic.py
+?? backend/app/dev/run_deadline_sensitivity.py
+?? backend/app/dev/run_family_search.py
+?? backend/app/dev/run_gap_sensitivity.py
+?? backend/app/dev/run_historical_research_scanner.py
+?? backend/app/dev/run_massive_year_feasibility.py
+?? backend/app/dev/run_mover_handoff_research.py
+?? backend/app/dev/run_mover_scanner_research.py
+?? backend/app/dev/run_research_scanner_coverage.py
+?? backend/app/dev/run_strategy_b_scanner.py
+?? backend/app/dev/run_top8_baseline.py
+?? backend/app/services/book_snapshots.py
+?? backend/app/services/position_protection.py
+?? backend/tests/fixtures/paper_premarket_evidence_v1.json
+?? backend/tests/strategy_b/test_strategy_b_scanner.py
+?? backend/tests/test_backtest_batch_research.py
+?? backend/tests/test_baseline_v2_diagnostic.py
+?? backend/tests/test_current_paper_baseline.py
+?? backend/tests/test_current_strategy_baseline.py
+?? backend/tests/test_daily_universe_collector.py
+?? backend/tests/test_deadline_sensitivity_experiment.py
+?? backend/tests/test_entry_families.py
+?? backend/tests/test_entry_quality_filters.py
+?? backend/tests/test_gap_sensitivity_experiment.py
+?? backend/tests/test_gpt_selection_forward_shadow.py
+?? backend/tests/test_historical_authority_layer.py
+?? backend/tests/test_historical_position_replay.py
+?? backend/tests/test_historical_replay_core.py
+?? backend/tests/test_historical_research_scanner.py
+?? backend/tests/test_i_paper_capacity.py
+?? backend/tests/test_kiwoom_us_realtime_probe.py
+?? backend/tests/test_local_backtest_ui.py
+?? backend/tests/test_massive_daily_basis.py
+?? backend/tests/test_massive_year_feasibility.py
+?? backend/tests/test_multi_symbol_portfolio_replay.py
+?? backend/tests/test_pnl_accounting_contract.py
+?? backend/tests/test_regime_gate.py
+?? backend/tests/test_replay_provider_daily_cache.py
+?? backend/tests/test_research_universe_v2.py
+?? backend/tests/test_research_universe_v2_dataeligible.py
+?? backend/tests/test_strategy_b_historical_scanner.py
+?? backend/tests/test_strategy_i_api.py
+?? backend/tests/test_time_progress_stop.py
+?? backend/tests/test_top8_baseline_inputs.py
+?? backend/tests/test_true_parity_execution.py
+?? docs/MASSIVE_DAILY_BASIS.md
+?? docs/backtest/STRATEGY_B_PREVALIDATION.md
+?? docs/backtest/STRATEGY_B_SCANNER.md
+?? docs/backtest/STRATEGY_B_V1_SPEC.md
+?? docs/backtest/equity_factor_v0/
+?? docs/backtest/research_metadata_two_year_2024-10-25.json
+?? docs/backtest/research_universe_v1.json
+?? docs/backtest/research_universe_v2.json
+?? docs/backtest/research_universe_v2_blocked_draft_v1.json
+?? docs/backtest/research_universe_v2_minus_crwv.json
+?? docs/backtest/research_universe_v2_two_year_clean.json
+?? docs/operations/PRODUCTION_RESOURCE_OWNERSHIP_AUDIT_V1.md
+?? docs/operations/US_EXECUTION_COST_V1.json
+?? docs/operations/US_EXECUTION_COST_V1.sha256
+?? docs/operations/i_capacity_recovery_v2/
+?? docs/paper/A_CURRENT_PAPER_BASELINE_REALIGNMENT_V1.md
+?? docs/paper/A_PAPER_BACKTEST_TRUE_PARITY_EXECUTION_V1.md
+?? frontend/app/trading-i/
+?? frontend/components/trading-i.test.tsx
+?? frontend/lib/strategy-i.ts
+?? requirements-backtest-ui.txt

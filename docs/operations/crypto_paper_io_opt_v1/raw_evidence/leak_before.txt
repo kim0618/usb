@@ -1,0 +1,252 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+________ test_old_hot_cannot_reopen_while_its_socket_is_stopping[False] ________
+
+paper = (<starlette.testclient.TestClient object at 0x7512c61fc170>, <app.crypto.terminal.api.Runtime object at 0x7512c7112ae0..._hot_symbol_v1.FakeFeed object at 0x7512c61fe270>, 'KAIAUSDT': <test_hot_symbol_v1.FakeFeed object at 0x7512c602b7a0>})
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7512c61fdc10>
+traded = False
+
+    @pytest.mark.parametrize("traded", [False, True])
+    def test_old_hot_cannot_reopen_while_its_socket_is_stopping(paper, monkeypatch, traded) -> None:
+        """A queued PAPER poll can run at feed.stop's await during HOT replacement.
+    
+        It must be refused before it can rebuild/revive the old session and open a new socket.
+        Both never-traded and wallet-retained former HOT runs have this interleaving.
+        """
+        client, runtime, use_market, feeds = paper
+        use_market(HOT_A)
+        assert client.post("/api/crypto/hot/scan").status_code == 200
+        assert open_hot(client, runtime, HOT_A).status_code == 200
+        if traded:
+            assert order(client, HOT_A, "LONG", qty="100.0").status_code == 200
+            assert order(client, HOT_A, "LONG", intent="CLOSE", qty="100.0").status_code == 200
+        old_session = runtime.sessions[HOT_A]
+        old_account = old_session.engine.account
+        old_state = old_session.engine.snapshot()
+        btc_state = runtime.sessions["BTCUSDT"].engine.snapshot()
+        old_feed = runtime.feeds[HOT_A]
+        stopped = []
+    
+        async def stop_with_queued_poll():
+            # Execute the same synchronous session lookup a queued /state poll makes at the
+            # suspension point. No network or real order is used.
+            with pytest.raises(symbols_module.SymbolNotSupported):
+                runtime.session_for(HOT_A)
+            stopped.append(True)
+    
+        monkeypatch.setattr(old_feed, "stop", stop_with_queued_poll)
+        use_market(HOT_B)
+>       replaced = client.post("/api/crypto/hot/scan")
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+backend/tests/crypto/test_hot_symbol_v1.py:856: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.12/site-packages/starlette/testclient.py:546: in post
+    return super().post(
+.venv/lib/python3.12/site-packages/httpx/_client.py:1144: in post
+    return self.request(
+.venv/lib/python3.12/site-packages/starlette/testclient.py:445: in request
+    return super().request(
+.venv/lib/python3.12/site-packages/httpx/_client.py:825: in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/httpx/_client.py:914: in send
+    response = self._send_handling_auth(
+.venv/lib/python3.12/site-packages/httpx/_client.py:942: in _send_handling_auth
+    response = self._send_handling_redirects(
+.venv/lib/python3.12/site-packages/httpx/_client.py:979: in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/httpx/_client.py:1014: in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/starlette/testclient.py:348: in handle_request
+    raise exc
+.venv/lib/python3.12/site-packages/starlette/testclient.py:345: in handle_request
+    portal.call(self.app, scope, receive, send)
+.venv/lib/python3.12/site-packages/anyio/from_thread.py:338: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.12/concurrent/futures/_base.py:456: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.12/concurrent/futures/_base.py:401: in __get_result
+    raise self._exception
+.venv/lib/python3.12/site-packages/anyio/from_thread.py:263: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/fastapi/applications.py:1163: in __call__
+    await super().__call__(scope, receive, send)
+.venv/lib/python3.12/site-packages/starlette/applications.py:107: in __call__
+    await self.middleware_stack(scope, receive, send)
+.venv/lib/python3.12/site-packages/starlette/middleware/errors.py:164: in __call__
+    await self.app(scope, receive, _send)
+.venv/lib/python3.12/site-packages/starlette/middleware/cors.py:87: in __call__
+    await self.app(scope, receive, send)
+.venv/lib/python3.12/site-packages/starlette/middleware/exceptions.py:63: in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+.venv/lib/python3.12/site-packages/starlette/_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+.venv/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py:18: in __call__
+    await self.app(scope, receive, send)
+.venv/lib/python3.12/site-packages/starlette/routing.py:716: in __call__
+    await self.middleware_stack(scope, receive, send)
+.venv/lib/python3.12/site-packages/fastapi/routing.py:2734: in app
+    await route.handle(scope, receive, send)
+.venv/lib/python3.12/site-packages/fastapi/routing.py:1281: in handle
+    await super().handle(scope, receive, send)
+.venv/lib/python3.12/site-packages/starlette/routing.py:290: in handle
+    await self.app(scope, receive, send)
+.venv/lib/python3.12/site-packages/fastapi/routing.py:158: in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+.venv/lib/python3.12/site-packages/starlette/_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+.venv/lib/python3.12/site-packages/fastapi/routing.py:144: in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/fastapi/routing.py:706: in app
+    raw_response = await run_endpoint_function(
+.venv/lib/python3.12/site-packages/fastapi/routing.py:352: in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/app/crypto/terminal/hot_routes.py:299: in hot_scan
+    released = await runtime.retire(previous)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/app/crypto/terminal/api.py:485: in retire
+    await feed.stop()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    async def stop_with_queued_poll():
+        # Execute the same synchronous session lookup a queued /state poll makes at the
+        # suspension point. No network or real order is used.
+>       with pytest.raises(symbols_module.SymbolNotSupported):
+E       Failed: DID NOT RAISE SymbolNotSupported
+
+backend/tests/crypto/test_hot_symbol_v1.py:850: Failed
+________ test_old_hot_cannot_reopen_while_its_socket_is_stopping[True] _________
+
+paper = (<starlette.testclient.TestClient object at 0x7512c7265b20>, <app.crypto.terminal.api.Runtime object at 0x7512c7112ae0..._hot_symbol_v1.FakeFeed object at 0x7512c71eca70>, 'KAIAUSDT': <test_hot_symbol_v1.FakeFeed object at 0x7512c71afb90>})
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7512c72463c0>
+traded = True
+
+    @pytest.mark.parametrize("traded", [False, True])
+    def test_old_hot_cannot_reopen_while_its_socket_is_stopping(paper, monkeypatch, traded) -> None:
+        """A queued PAPER poll can run at feed.stop's await during HOT replacement.
+    
+        It must be refused before it can rebuild/revive the old session and open a new socket.
+        Both never-traded and wallet-retained former HOT runs have this interleaving.
+        """
+        client, runtime, use_market, feeds = paper
+        use_market(HOT_A)
+        assert client.post("/api/crypto/hot/scan").status_code == 200
+        assert open_hot(client, runtime, HOT_A).status_code == 200
+        if traded:
+            assert order(client, HOT_A, "LONG", qty="100.0").status_code == 200
+            assert order(client, HOT_A, "LONG", intent="CLOSE", qty="100.0").status_code == 200
+        old_session = runtime.sessions[HOT_A]
+        old_account = old_session.engine.account
+        old_state = old_session.engine.snapshot()
+        btc_state = runtime.sessions["BTCUSDT"].engine.snapshot()
+        old_feed = runtime.feeds[HOT_A]
+        stopped = []
+    
+        async def stop_with_queued_poll():
+            # Execute the same synchronous session lookup a queued /state poll makes at the
+            # suspension point. No network or real order is used.
+            with pytest.raises(symbols_module.SymbolNotSupported):
+                runtime.session_for(HOT_A)
+            stopped.append(True)
+    
+        monkeypatch.setattr(old_feed, "stop", stop_with_queued_poll)
+        use_market(HOT_B)
+>       replaced = client.post("/api/crypto/hot/scan")
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+backend/tests/crypto/test_hot_symbol_v1.py:856: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.12/site-packages/starlette/testclient.py:546: in post
+    return super().post(
+.venv/lib/python3.12/site-packages/httpx/_client.py:1144: in post
+    return self.request(
+.venv/lib/python3.12/site-packages/starlette/testclient.py:445: in request
+    return super().request(
+.venv/lib/python3.12/site-packages/httpx/_client.py:825: in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/httpx/_client.py:914: in send
+    response = self._send_handling_auth(
+.venv/lib/python3.12/site-packages/httpx/_client.py:942: in _send_handling_auth
+    response = self._send_handling_redirects(
+.venv/lib/python3.12/site-packages/httpx/_client.py:979: in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/httpx/_client.py:1014: in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/starlette/testclient.py:348: in handle_request
+    raise exc
+.venv/lib/python3.12/site-packages/starlette/testclient.py:345: in handle_request
+    portal.call(self.app, scope, receive, send)
+.venv/lib/python3.12/site-packages/anyio/from_thread.py:338: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.12/concurrent/futures/_base.py:456: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.12/concurrent/futures/_base.py:401: in __get_result
+    raise self._exception
+.venv/lib/python3.12/site-packages/anyio/from_thread.py:263: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/fastapi/applications.py:1163: in __call__
+    await super().__call__(scope, receive, send)
+.venv/lib/python3.12/site-packages/starlette/applications.py:107: in __call__
+    await self.middleware_stack(scope, receive, send)
+.venv/lib/python3.12/site-packages/starlette/middleware/errors.py:164: in __call__
+    await self.app(scope, receive, _send)
+.venv/lib/python3.12/site-packages/starlette/middleware/cors.py:87: in __call__
+    await self.app(scope, receive, send)
+.venv/lib/python3.12/site-packages/starlette/middleware/exceptions.py:63: in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+.venv/lib/python3.12/site-packages/starlette/_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+.venv/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py:18: in __call__
+    await self.app(scope, receive, send)
+.venv/lib/python3.12/site-packages/starlette/routing.py:716: in __call__
+    await self.middleware_stack(scope, receive, send)
+.venv/lib/python3.12/site-packages/fastapi/routing.py:2734: in app
+    await route.handle(scope, receive, send)
+.venv/lib/python3.12/site-packages/fastapi/routing.py:1281: in handle
+    await super().handle(scope, receive, send)
+.venv/lib/python3.12/site-packages/starlette/routing.py:290: in handle
+    await self.app(scope, receive, send)
+.venv/lib/python3.12/site-packages/fastapi/routing.py:158: in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+.venv/lib/python3.12/site-packages/starlette/_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+.venv/lib/python3.12/site-packages/fastapi/routing.py:144: in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/fastapi/routing.py:706: in app
+    raw_response = await run_endpoint_function(
+.venv/lib/python3.12/site-packages/fastapi/routing.py:352: in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/app/crypto/terminal/hot_routes.py:299: in hot_scan
+    released = await runtime.retire(previous)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/app/crypto/terminal/api.py:485: in retire
+    await feed.stop()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    async def stop_with_queued_poll():
+        # Execute the same synchronous session lookup a queued /state poll makes at the
+        # suspension point. No network or real order is used.
+>       with pytest.raises(symbols_module.SymbolNotSupported):
+E       Failed: DID NOT RAISE SymbolNotSupported
+
+backend/tests/crypto/test_hot_symbol_v1.py:850: Failed
+=========================== short test summary info ============================
+FAILED backend/tests/crypto/test_hot_symbol_v1.py::test_old_hot_cannot_reopen_while_its_socket_is_stopping[False]
+FAILED backend/tests/crypto/test_hot_symbol_v1.py::test_old_hot_cannot_reopen_while_its_socket_is_stopping[True]
+2 failed, 53 deselected in 0.98s

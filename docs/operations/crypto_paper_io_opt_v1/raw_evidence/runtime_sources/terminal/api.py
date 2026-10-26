@@ -1,0 +1,1091 @@
+"""Standalone FastAPI app for the crypto paper terminal.
+
+It is a separate ASGI app rather than a route on the equity API on purpose: the equity app's
+startup owns a database, a Kiwoom profile and the Strategy A/E runtimes, and none of that
+should have to be up for a public-data paper terminal. This app imports nothing from the
+equity side.
+"""
+from __future__ import annotations
+
+import asyncio
+import contextlib
+import json
+import os
+import time
+from contextlib import asynccontextmanager
+from decimal import Decimal, InvalidOperation
+from pathlib import Path
+from typing import Any, AsyncIterator
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+
+from ..paper import PAPER_ENGINE_VERSION, sizing
+from ..paper.book import NoLiquidity
+from ..paper.config import PaperRunConfig, build_config
+from ..paper.engine import OrderRejected
+from ..paper.analytics import reconcile, summarize
+from ..paper.account import SharedCash
+from ..paper.persistence import RecoveryRefused
+from ..paper.wallet_recovery import WalletMember, recover_wallet, wallet_event_times
+from ..paper.instrument import InstrumentSpec, RiskTierTable
+from ..paper.state import TransitionRejected
+from ..symbols import (DEFAULT_SYMBOL, SUPPORTED_SYMBOLS, SymbolNotSupported, admit_dynamic,
+                            is_dynamic, permitted_symbols, resolve as resolve_symbol)
+from ..hot_coins import market as hot_market
+from ..hot_coins.slot import controller as hot_slot
+from .chart_history import BybitChartHistory
+from .feed import BybitPublicFeed
+from .session import PaperSession
+
+DEFAULT_ROOT = Path("data/runtime/crypto/paper")
+CONFIG_ENV = "CRYPTO_PAPER_RUN_CONFIG"
+chart_history = BybitChartHistory()
+#: The HOT symbol's display history. Binance's, because a HOT symbol may not be listed on Bybit.
+hot_chart_history = hot_market.BinanceChartHistory()
+
+
+def history_for(symbol: str | None):
+    """Which history provider answers for a symbol: Binance for the HOT symbol, Bybit otherwise."""
+    try:
+        instrument = resolve_symbol(symbol)
+    except SymbolNotSupported:
+        return chart_history     # it raises the same refusal it always has
+    return hot_chart_history if is_dynamic(instrument) else chart_history
+
+REQUIRED_CONFIG_FIELDS = (
+    "run_id", "starting_capital_krw", "fx_krw_per_usdt", "fx_source", "fx_asof_utc",
+    "fee_version", "fee_taker_rate", "fee_maker_rate", "fee_source", "fee_effective_date",
+    "slippage_model", "slippage_bps", "leverage", "risk_limit_path",
+)
+
+
+class ConfigMissing(RuntimeError):
+    pass
+
+
+#: A per-symbol PAPER run needs two measured files, and neither can be guessed from the symbol
+#: name: the instrument spec (tick, quantity step, minimum notional) and the risk-limit tier
+#: table. SOLUSDT's quantity step is 0.1 and BTCUSDT's is 0.001, so inheriting the default spec
+#: would size a SOL order a hundred steps wrong. The run config may name them explicitly under
+#: `symbols`; failing that they are discovered by the convention the BTC files already follow,
+#: and the resolved path and its sha256 are recorded in the run's own config snapshot.
+#:
+#: Where they are looked for is deliberately not one relative path. The deployed unit runs with
+#: `WorkingDirectory=/root/usb_runtime/crypto_paper`, not the repository root, which is exactly
+#: why `CRYPTO_PAPER_ROOT` and `CRYPTO_PAPER_RUN_CONFIG` are absolute in that unit. A bare
+#: relative `data/runtime/crypto` therefore resolves to a directory that does not exist there,
+#: and the symptom would be ETHUSDT and SOLUSDT quietly reporting "no measurement" in
+#: production while every test passed locally. So: an explicit variable first, then beside the
+#: run state, then the repository-relative path, and the refusal names every path it tried.
+SYMBOL_REFERENCE_ENV = "CRYPTO_SYMBOL_REFERENCE_ROOT"
+SYMBOL_REFERENCE_ROOT = Path("data/runtime/crypto")
+
+#: Gzip each segment as it is cut. Off unless the variable says one of `COMPRESS_TRUE` exactly.
+#:
+#: The tape is the dominant consumer of this server's disk - about 80 MB a day across three
+#: symbols against roughly a gigabyte of headroom - and a segment compresses to about a tenth
+#: of its size, so this is the difference between a fortnight of runway and a third of a year.
+#: It is a flag and not simply the new default because turning it on changes what a *recovery*
+#: reads, and that is a thing an operator should be able to turn back off without a deploy.
+#:
+#: Only new cuts are affected. Nothing already sealed is touched, converted or re-described.
+COMPRESS_SEGMENTS_ENV = "CRYPTO_PAPER_COMPRESS_SEGMENTS"
+COMPRESS_TRUE = ("on", "1", "true", "yes")
+COMPRESS_FALSE = ("", "off", "0", "false", "no")
+
+
+def compress_segments_setting() -> tuple[bool, str, bool]:
+    """`(enabled, raw, recognised)` for the segment-compression flag.
+
+    Fail closed, and say so. An unrecognised value resolves to *off* rather than raising,
+    because the thing on the other side of this call is a trading terminal holding a live
+    position: refusing to boot over a typo in a disk-retention flag would turn a cosmetic
+    mistake into an outage. What it must never do is resolve a typo to *on* and quietly change
+    what a recovery reads, so the allow-lists are exact and anything outside them is reported
+    as unrecognised - in the startup line below and in `/api/crypto/state`, where
+    `storage.compress_new_segments` shows what the running process actually settled on.
+    """
+    raw = os.environ.get(COMPRESS_SEGMENTS_ENV, "")
+    token = raw.strip().lower()
+    if token in COMPRESS_TRUE:
+        return True, raw, True
+    return False, raw, token in COMPRESS_FALSE
+
+
+def symbol_reference_roots(paper_root: Path | None = None) -> list[Path]:
+    """Every directory a symbol's measured responses may live in, in priority order."""
+    roots: list[Path] = []
+    named = (os.environ.get(SYMBOL_REFERENCE_ENV) or "").strip()
+    if named:
+        roots.append(Path(named))
+    if paper_root is not None:
+        # `CRYPTO_PAPER_ROOT` is the run state's directory. The reference files are the same
+        # kind of thing - measured once, read at startup - so a deployment that ships them
+        # beside the run needs no new variable.
+        roots.append(Path(paper_root) / "reference")
+        roots.append(Path(paper_root).parent)
+    roots.append(SYMBOL_REFERENCE_ROOT)
+    seen: set[str] = set()
+    ordered: list[Path] = []
+    for root in roots:
+        key = str(root)
+        if key not in seen:
+            seen.add(key)
+            ordered.append(root)
+    return ordered
+
+
+def _candidates(symbol: str, prefix: str, paper_root: Path | None) -> list[Path]:
+    return [root / symbol / "reference" for root in symbol_reference_roots(paper_root)]
+
+
+def _discover(symbol: str, prefix: str, paper_root: Path | None = None) -> Path | None:
+    """The newest saved response of one kind for one symbol, or None.
+
+    Newest by filename, which carries the capture timestamp. `None` rather than a fallback to
+    another symbol's file: a missing measurement makes that symbol's PAPER unavailable with a
+    reason, and that is the correct outcome - the alternative is a screen that sizes orders off
+    numbers nobody measured.
+    """
+    for folder in _candidates(symbol, prefix, paper_root):
+        if not folder.is_dir():
+            continue
+        found = sorted(folder.glob(f"{prefix}_*.json"))
+        if found:
+            return found[-1]
+    return None
+
+
+class SymbolReferenceMissing(RuntimeError):
+    """No measured instrument spec or risk table for a symbol. That symbol gets no PAPER run."""
+
+
+def symbol_run_config(base: PaperRunConfig, symbol: str,
+                      named: dict[str, Any] | None = None,
+                      paper_root: Path | None = None) -> tuple[PaperRunConfig, RiskTierTable]:
+    """The same run - same capital, same FX fixing, same fee schedule - on another instrument.
+
+    Same economics on purpose: the three screens are one paper experiment, so a figure differing
+    between them has to be the instrument's doing and not a different fee table's. What does
+    change is everything that is a property of the instrument, and all of it comes from a saved
+    Bybit response rather than from this function.
+
+    The run id is suffixed rather than reused. Each symbol therefore gets its own directory, its
+    own ledger and its own input tape, and the existing BTCUSDT run keeps its id untouched -
+    which is the whole of "do not damage the existing BTC ledger": no file it owns is opened by
+    another symbol's session.
+    """
+    def looked_in() -> str:
+        return ", ".join(str(folder) for folder in _candidates(symbol, "", paper_root))
+
+    spec_path = Path(named["instrument_path"]) if named and named.get("instrument_path") \
+        else _discover(symbol, "instruments_info", paper_root)
+    risk_path = Path(named["risk_limit_path"]) if named and named.get("risk_limit_path") \
+        else _discover(symbol, "risk_limit", paper_root)
+    if spec_path is None or not spec_path.exists():
+        raise SymbolReferenceMissing(
+            f"{symbol}: 측정된 instruments-info 응답이 없어 PAPER를 구성하지 않습니다. "
+            f"찾아본 경로: {looked_in()} (또는 {SYMBOL_REFERENCE_ENV} 설정)")
+    if risk_path is None or not risk_path.exists():
+        raise SymbolReferenceMissing(
+            f"{symbol}: 측정된 risk-limit 응답이 없어 PAPER를 구성하지 않습니다. "
+            f"찾아본 경로: {looked_in()} (또는 {SYMBOL_REFERENCE_ENV} 설정)")
+    instrument = InstrumentSpec.from_file(spec_path, symbol)
+    tiers = RiskTierTable.from_file(risk_path)
+    # The continuity the margin formula depends on is re-verified per symbol rather than assumed
+    # from BTCUSDT's table. A table that fails it would make every maintenance-margin figure on
+    # that screen wrong, so the symbol is refused instead.
+    tiers.verify_continuity()
+    config = PaperRunConfig(
+        run_id=f"{base.run_id}-{symbol}", starting_capital_krw=base.starting_capital_krw,
+        fx=base.fx, fees=base.fees, slippage=base.slippage, leverage=base.leverage,
+        risk_limit_source=str(risk_path), risk_limit_sha256=tiers.source_sha256,
+        instrument=instrument)
+    return config, tiers
+
+
+def dynamic_run_config(base: PaperRunConfig, symbol: str,
+                       paper_root: Path) -> tuple[PaperRunConfig, RiskTierTable]:
+    """The same run on the HOT symbol, from the responses the HOT service measured and saved.
+
+    Binance's filters (the venue the HOT symbol trades on) and a margin table that was measured,
+    never assumed. Leverage starts at the run's own figure, capped at what that table allows:
+    a run configured at 10x cannot be built on an instrument whose table stops at 5x.
+    """
+    paths = hot_market.find_reference(paper_root, symbol)
+    if paths is None:
+        raise SymbolReferenceMissing(
+            f"{symbol}: HOT 기준 응답(Binance 필터·마진표)이 측정되지 않아 PAPER를 구성하지 않습니다.")
+    instrument, tiers = hot_market.load_reference(paths)
+    leverage = min(base.leverage, instrument.max_leverage).to_integral_value(rounding="ROUND_FLOOR")
+    config = PaperRunConfig(
+        run_id=f"{base.run_id}-{symbol}", starting_capital_krw=base.starting_capital_krw,
+        fx=base.fx, fees=base.fees, slippage=base.slippage, leverage=max(leverage, Decimal(1)),
+        risk_limit_source=str(paths.risk_limit), risk_limit_sha256=tiers.source_sha256,
+        instrument=instrument)
+    return config, tiers
+
+
+def load_run_config(path: Path) -> tuple[PaperRunConfig, RiskTierTable]:
+    """Every provenance field is mandatory. A missing fee or FX figure stops the run here
+    rather than being filled in with a plausible number."""
+    if not path.exists():
+        raise ConfigMissing(f"run config not found: {path}")
+    raw = json.loads(path.read_text())
+    missing = [field for field in REQUIRED_CONFIG_FIELDS if not str(raw.get(field, "")).strip()]
+    if missing:
+        raise ConfigMissing(f"run config is missing required fields: {', '.join(missing)}")
+    tiers = RiskTierTable.from_file(Path(raw["risk_limit_path"]))
+    config = build_config(
+        run_id=raw["run_id"], starting_capital_krw=raw["starting_capital_krw"],
+        fx_krw_per_usdt=raw["fx_krw_per_usdt"], fx_source=raw["fx_source"],
+        fx_asof_utc=raw["fx_asof_utc"], fee_version=raw["fee_version"],
+        fee_taker_rate=raw["fee_taker_rate"], fee_maker_rate=raw["fee_maker_rate"],
+        fee_source=raw["fee_source"], fee_effective_date=raw["fee_effective_date"],
+        slippage_model=raw["slippage_model"], slippage_bps=raw["slippage_bps"],
+        leverage=raw["leverage"], risk_limit_source=raw["risk_limit_path"],
+        risk_limit_sha256=tiers.source_sha256,
+        fee_basis=raw.get("fee_basis", "ASSUMED_PUBLIC_NON_VIP"))
+    return config, tiers
+
+
+class Runtime:
+    """Holds one feed and one session per symbol, and drives the 1 Hz observation loop.
+
+    `self.feed` and `self.session` keep their names and keep meaning the *default* symbol's, so
+    every existing caller - the LIVE routes borrowing the FX rate, the tests
+    that reach straight into `runtime.session` - is unchanged.
+
+    One feed per symbol rather than one feed tracking three: the local order book's continuity
+    rule discards the book and resubscribes on a sequence gap, and sharing a socket would mean
+    an ETH gap throwing away the BTC book. One session per symbol rather than one engine holding
+    three positions: `paper.account.Account` owns exactly one `Position` and derives
+    `available_balance` from it, and the engine's determinism proof is about that shape. Giving
+    it three positions is a rewrite of the proven core, so it was not done - see
+    `MULTI_SYMBOL` in the report for what that costs (each symbol has its own virtual cash).
+    """
+
+    def __init__(self) -> None:
+        self.feeds: dict[str, Any] = {}
+        #: The kline seed for each symbol: the symbols that have one, and the in-flight or
+        #: last-failed task for the ones that do not yet. Holding the task rather than a flag is
+        #: what makes the seed exactly-once for free - ten concurrent chart requests for ETHUSDT
+        #: all await the same object - and `_seeded` is a plain set because the lifespan's own
+        #: seed has to be recorded from outside and a resolved future would be bound to a loop.
+        self._seeded: set[str] = set()
+        self._seeds: dict[str, asyncio.Task] = {}
+        self.sessions: dict[str, PaperSession] = {}
+        #: One wallet behind all three engines. Built with the default symbol's session and
+        #: owned by it, so the money that run already holds carries across unchanged and a
+        #: second symbol does not arrive with a starting balance of its own.
+        self.cash: SharedCash | None = None
+        #: Why a symbol has no session, keyed by symbol. A missing measurement is reported, not
+        #: worked around.
+        self.symbol_errors: dict[str, str] = {}
+        #: Sessions of symbols that were the HOT symbol and no longer are. Off the 1 Hz loop and
+        #: off every route, but still wallet members when they traded, because their realised
+        #: PnL and charges are money the shared purse holds.
+        self.retired: dict[str, PaperSession] = {}
+        self.feed = BybitPublicFeed()
+        self.session: PaperSession | None = None
+        self.error: str | None = None
+        self.base_config: PaperRunConfig | None = None
+        self.named_symbols: dict[str, Any] = {}
+        self.root: Path = DEFAULT_ROOT
+        self.compress_segments: bool = False
+        #: Engines recovered together with the shared wallet at boot, handed to the sessions
+        #: built for them and removed as each one is used.
+        self._preloaded: dict[str, Any] = {}
+        self._pump: asyncio.Task | None = None
+
+    # ------------------------------------------------------------------ construction
+
+    def build(self, config_path: Path, root: Path) -> None:
+        """Build the default symbol's run. The others are built on first use."""
+        config, tiers = load_run_config(config_path)
+        self.root = root
+        self.base_config = config
+        try:
+            raw = json.loads(config_path.read_text())
+            named = raw.get("symbols")
+            self.named_symbols = named if isinstance(named, dict) else {}
+        except (OSError, json.JSONDecodeError):
+            self.named_symbols = {}
+        symbol = config.instrument.symbol
+        self.compress_segments = compress_segments_setting()[0]
+        wallet = self._recover_wallet(config, tiers)
+        self.session = PaperSession(config=config, tiers=tiers, root=root,
+                                    compress_segments=self.compress_segments,
+                                    recovered=self._preloaded.pop(symbol, None))
+        self.sessions[symbol] = self.session
+        self.feeds[symbol] = self.feed
+        self.feed.symbol = symbol
+        # After recovery, so the capital base the purse inherits is the replayed one rather
+        # than the configured one. A run that has been reset three times holds the figure those
+        # resets left, and that is the balance the other symbols must draw from.
+        self.cash = wallet.cash if wallet is not None else SharedCash(owner=symbol)
+        self.cash.join(symbol, self.session.engine.account)
+        # Last, because it builds other symbols' sessions and those look the default one up.
+        self._join_symbols_with_history()
+
+    def _wallet_members(self, base: PaperRunConfig) -> tuple[list[WalletMember], list[str]]:
+        """Runs on disk besides the default one, and the ones that cannot be configured."""
+        members: list[WalletMember] = []
+        unconfigured: list[str] = []
+        for symbol in [*SUPPORTED_SYMBOLS, *self._dynamic_run_symbols()]:
+            if symbol == base.instrument.symbol:
+                continue
+            run_dir = self.root / f"{base.run_id}-{symbol}"
+            if not run_dir.is_dir():
+                continue
+            try:
+                if symbol in SUPPORTED_SYMBOLS:
+                    config, tiers = symbol_run_config(base, symbol, self.named_symbols.get(symbol),
+                                                      paper_root=self.root)
+                else:
+                    config, tiers = dynamic_run_config(base, symbol, self.root)
+            except (SymbolReferenceMissing, ValueError, OSError):
+                unconfigured.append(symbol)
+                continue
+            members.append(WalletMember(symbol, self.root / config.run_id, config, tiers))
+        return members, unconfigured
+
+    def _recover_wallet(self, config: PaperRunConfig, tiers: RiskTierTable) -> Any:
+        """Recover every run that shared the wallet together, before any session is built.
+
+        None when only the default run ever touched the wallet: every run then recovers alone,
+        exactly as before. A run that touched the wallet but cannot be configured refuses the
+        whole recovery, because the others' ledgers were written with its money in them.
+        """
+        self._preloaded = {}
+        members, unconfigured = self._wallet_members(config)
+        for symbol in unconfigured:
+            if wallet_event_times(self.root / f"{config.run_id}-{symbol}"):
+                raise RecoveryRefused(
+                    "WALLET_MEMBER_UNCONFIGURED",
+                    f"{symbol} shared the wallet but its reference is missing; the other runs "
+                    "cannot be recovered without it")
+        owner = WalletMember(config.instrument.symbol, self.root / config.run_id, config, tiers)
+        wallet = recover_wallet(owner, members)
+        if wallet is not None:
+            self._preloaded = dict(wallet.engines)
+        return wallet
+
+    def _join_symbols_with_history(self) -> None:
+        """Attach every symbol that has already traded, before serving the first request.
+
+        Sessions are otherwise built on first use, which is right for a symbol nobody has
+        opened. It is wrong for the wallet: a symbol with realised PnL on disk contributes to
+        the shared balance whether or not anybody is looking at it, so a lazily attached member
+        means the wallet reads high (or low) until that tab is first visited and then silently
+        changes. Observed in the preview as three different wallet figures from three polls
+        taken seconds apart.
+
+        A symbol with no run directory has never traded and contributes nothing, so leaving it
+        lazy costs the wallet nothing and saves a replay.
+        """
+        if self.base_config is None:
+            return
+        for symbol in SUPPORTED_SYMBOLS:
+            if symbol in self.sessions:
+                continue
+            try:
+                config, _ = symbol_run_config(self.base_config, symbol,
+                                              self.named_symbols.get(symbol),
+                                              paper_root=self.root)
+            except (SymbolReferenceMissing, ValueError, OSError):
+                continue        # no measurement; `session_for` reports it when asked
+            if not (self.root / config.run_id).is_dir():
+                continue        # never traded
+            try:
+                self.session_for(symbol)
+            except ConfigMissing:
+                continue
+        self._join_dynamic_runs_with_history()
+
+    def _dynamic_run_symbols(self) -> list[str]:
+        """Symbols of former HOT runs on disk: `<run_id>-<SYMBOL>` beside the default run."""
+        if self.base_config is None or not self.root.is_dir():
+            return []
+        prefix = f"{self.base_config.run_id}-"
+        found = []
+        for path in self.root.iterdir():
+            name = path.name
+            if path.is_dir() and name.startswith(prefix):
+                symbol = name[len(prefix):]
+                if (symbol not in SUPPORTED_SYMBOLS and symbol.endswith("USDT")
+                        and all(ch.isalnum() for ch in symbol)):
+                    found.append(symbol)
+        return sorted(found)
+
+    def _join_dynamic_runs_with_history(self) -> None:
+        """Former HOT runs join the wallet at boot exactly like ETH and SOL do.
+
+        A former HOT run that still holds a position (a crash between an order and a HOT
+        change, say) is not left unreachable: it is admitted again and served like the HOT
+        symbol, so the operator can see and close it.
+        """
+        assert self.base_config is not None
+        for symbol in self._dynamic_run_symbols():
+            if symbol in self.sessions or symbol in self.retired:
+                continue
+            try:
+                config, tiers = dynamic_run_config(self.base_config, symbol, self.root)
+                session = PaperSession(config=config, tiers=tiers, root=self.root,
+                                       compress_segments=self.compress_segments,
+                                       recovered=self._preloaded.pop(symbol, None))
+            except (SymbolReferenceMissing, ValueError, OSError):
+                continue
+            if self.cash is not None:
+                self.cash.join(symbol, session.engine.account)
+            if session.engine.account.position.is_flat:
+                self.retired[symbol] = session
+            else:
+                admit_dynamic(symbol)
+                self.sessions[symbol] = session
+                self.feed_for(symbol)
+
+    def held_symbols(self) -> list[str]:
+        """Symbols other than the default that hold an open paper position."""
+        return sorted(symbol for symbol, session in self.sessions.items()
+                      if symbol != DEFAULT_SYMBOL and not session.engine.account.position.is_flat)
+
+    async def retire(self, symbol: str) -> dict[str, Any]:
+        """Release everything a former HOT symbol held, except money.
+
+        Its socket pair stops, its seed and cached history go, it leaves the 1 Hz loop. Its
+        session moves to `retired` if it ever traded (the wallet still counts it) and is
+        dropped, wallet membership included, if it never did.
+        """
+        released: dict[str, Any] = {"symbol": symbol}
+        session = self.sessions.pop(symbol, None)
+        if session is not None:
+            account = session.engine.account
+            if not account.position.is_flat:
+                # The HOT lock refuses a replacement before this point; this is the backstop.
+                self.sessions[symbol] = session
+                raise RuntimeError(f"{symbol} still holds a position; it cannot be retired")
+            traded = any(event.get("event_type") in ("FILL", "FUNDING", "LIQUIDATION", "ACCOUNT_RESET")
+                         for event in session.engine.ledger.events)
+            if traded:
+                # A checkpoint at retirement: the run takes no more records, so this is its
+                # final state, and a restart can start the shared-wallet replay after it
+                # instead of before this run's first trade.
+                if session.segments is not None:
+                    session.segments.rotate(session.engine, tape_records=len(session.tape))
+                self.retired[symbol] = session
+            elif self.cash is not None and self.cash._members.get(symbol) is account:
+                del self.cash._members[symbol]
+            released["session"] = "RETIRED" if traded else "DROPPED"
+        feed = self.feeds.pop(symbol, None)
+        if feed is not None:
+            await feed.stop()
+            released["feed"] = "STOPPED"
+        self._seeded.discard(symbol)
+        task = self._seeds.pop(symbol, None)
+        if task is not None and not task.done():
+            task.cancel()
+        self.symbol_errors.pop(symbol, None)
+        released["history_pages_dropped"] = hot_chart_history.forget(symbol)
+        return released
+
+    def symbols(self) -> list[str]:
+        """Every symbol a PAPER screen may ask for, default first."""
+        return list(permitted_symbols())
+
+    def feed_for(self, symbol: str | None = None) -> BybitPublicFeed:
+        """The feed for one symbol, started on first use.
+
+        Lazy because a socket per symbol costs a connection and a book for a screen nobody is
+        looking at. Started here rather than in the lifespan for the same reason: the first
+        request for ETHUSDT is what makes an ETHUSDT subscription worth having.
+        """
+        instrument = resolve_symbol(symbol)
+        existing = self.feeds.get(instrument)
+        if existing is not None:
+            return existing
+        # The HOT symbol's market data is Binance's; the build's own instruments stay on Bybit.
+        feed = (hot_market.BinancePublicFeed(symbol=instrument) if is_dynamic(instrument)
+                else BybitPublicFeed(symbol=instrument))
+        self.feeds[instrument] = feed
+        feed.start()
+        return feed
+
+    async def seeded_feed_for(self, symbol: str | None = None) -> BybitPublicFeed:
+        """`feed_for`, plus the guarantee that its chart history has been fetched once.
+
+        Every symbol gets the same history contract, which is the point. The default symbol is
+        seeded in the lifespan before its socket starts; a lazily created symbol had no seed at
+        all, so after a restart its chart began at one bar and took two hours to look like the
+        others while BTC showed a full window immediately. The fix is not to seed all three
+        eagerly - a socket and a REST read for a screen nobody is looking at is exactly what
+        `feed_for` is lazy to avoid - but to make the first look pay for the history.
+
+        Deliberately *not* folded into `feed_for`. That one is synchronous and is called from
+        thirteen places, among them the order and order-preview routes, and the seed is a
+        blocking HTTP read that has to go to a thread. Making it awaited everywhere would put a
+        new suspension point and a new failure mode (an exchange kline read) inside the order
+        path, to fix a chart. `klines` is read in exactly one place, `feed.chart()`, so the
+        await belongs where the history is actually wanted.
+
+        Exactly once, by holding the seed as the task that performs it: ten concurrent chart
+        requests for ETHUSDT all await the same object, so there is no lock here and no state
+        to keep in step with reality. `shield` is what makes that safe - a caller that goes away
+        mid-seed must not cancel the seed the other nine are waiting on.
+
+        A failed seed is not sticky: the next look starts a new one. That is the whole retry
+        policy, and the next reasonable moment is the next request.
+        """
+        feed = self.feed_for(symbol)
+        if feed.symbol in self._seeded:
+            return feed
+        task = self._seeds.get(feed.symbol)
+        if task is None or (task.done() and not task.cancelled() and task.exception() is not None):
+            task = asyncio.create_task(asyncio.to_thread(feed.seed_klines))
+            self._seeds[feed.symbol] = task
+        try:
+            await asyncio.shield(task)
+            self._seeded.add(feed.symbol)
+        except Exception as exc:
+            # The handling the default symbol's seed has always had: the feed keeps running on
+            # live bars and the reason goes on the telemetry, rather than the symbol becoming
+            # permanently dead over one REST read. The task stays so `seed_state` can say
+            # FAILED instead of pretending nobody ever asked.
+            feed.telemetry.last_error = f"kline seed failed: {exc}"
+        return feed
+
+    def seed_state(self, symbol: str | None = None) -> str:
+        """`UNSEEDED` / `SEEDING` / `READY` / `FAILED`, derived rather than stored.
+
+        So a chart that is short because its history never arrived cannot be mistaken for a
+        chart that is short because the market is new.
+        """
+        try:
+            instrument = resolve_symbol(symbol)
+        except SymbolNotSupported:
+            return "UNSEEDED"
+        if instrument in self._seeded:
+            return "READY"
+        task = self._seeds.get(instrument)
+        if task is None:
+            return "UNSEEDED"
+        if not task.done():
+            return "SEEDING"
+        # Done but not in `_seeded`: it raised, or it was cancelled. Either way the history
+        # did not arrive, and a cancelled seed must not read as a successful one.
+        return "FAILED"
+
+    def mark_seeded(self, symbol: str) -> None:
+        """Record a seed performed outside this method.
+
+        The lifespan seeds the default symbol itself, against `runtime.feed` and before the
+        socket starts, and that order is the one the engine has always had - routing it through
+        `seeded_feed_for` would go via `feed_for`, which on a failed `build` would create and
+        *start* a second BTC feed. A plain set membership is also the only form of this record
+        that is not bound to an event loop.
+        """
+        self._seeded.add(resolve_symbol(symbol))
+
+    def session_for(self, symbol: str | None = None) -> PaperSession:
+        """The paper session for one symbol, built on first use.
+
+        Raises `ConfigMissing` when the symbol has no measured instrument spec or risk table,
+        which is the honest refusal: that symbol's quantity rules are unknown and an engine
+        configured with another symbol's would accept sizes the exchange does not have.
+        """
+        instrument = resolve_symbol(symbol)
+        existing = self.sessions.get(instrument)
+        if existing is not None:
+            return existing
+        revived = self.retired.pop(instrument, None)
+        if revived is not None:
+            # The HOT slot came back to a symbol that traded before: same session, same wallet
+            # membership, nothing replayed twice.
+            self.sessions[instrument] = revived
+            self.feed_for(instrument)
+            return revived
+        failure = self.symbol_errors.get(instrument)
+        if failure is not None:
+            raise ConfigMissing(failure)
+        if self.base_config is None:
+            raise ConfigMissing(self.error or "paper session is not configured")
+        try:
+            if is_dynamic(instrument):
+                config, tiers = dynamic_run_config(self.base_config, instrument, self.root)
+            else:
+                config, tiers = symbol_run_config(self.base_config, instrument,
+                                                  self.named_symbols.get(instrument),
+                                                  paper_root=self.root)
+        except (SymbolReferenceMissing, ValueError, OSError) as exc:
+            message = f"{type(exc).__name__}: {exc}"
+            self.symbol_errors[instrument] = message
+            raise ConfigMissing(message) from None
+        # Resolved once in `build`, not re-read here: every symbol in one process must cut its
+        # tape the same way, and an environment that changed under a long-running server would
+        # otherwise leave BTC compressing while ETH did not.
+        session = PaperSession(config=config, tiers=tiers, root=self.root,
+                               compress_segments=self.compress_segments,
+                               recovered=self._preloaded.pop(instrument, None))
+        if self.cash is not None:
+            # Joins the existing wallet. Its own capital base is ignored by the purse, so this
+            # adds an instrument rather than more money: a BTCUSDT position immediately shrinks
+            # what this symbol may open, which is what the real Binance wallet does.
+            self.cash.join(instrument, session.engine.account)
+        self.sessions[instrument] = session
+        self.feed_for(instrument)
+        return session
+
+    # ------------------------------------------------------------------ the loop
+
+    async def _observe_loop(self) -> None:
+        while True:
+            await asyncio.sleep(0.25)
+            # Snapshot the mapping: `session_for` can add an entry from a request thread while
+            # this loop is iterating, and mutating a dict mid-iteration is a crash that would
+            # stop every symbol's tape, not just the new one's.
+            for symbol, session in list(self.sessions.items()):
+                feed = self.feeds.get(symbol)
+                if feed is None:
+                    continue
+                quote = feed.quote()
+                if quote is None:
+                    continue
+                try:
+                    if not session.is_started:
+                        session.start(quote.ts_ms)
+                    session.observe(quote)
+                except Exception as exc:  # a bad tick must not kill the loop silently
+                    self.error = f"{symbol} {type(exc).__name__}: {exc}"
+
+    def start(self) -> None:
+        self.feed.start()
+        if self._pump is None or self._pump.done():
+            self._pump = asyncio.create_task(self._observe_loop())
+
+    async def stop(self) -> None:
+        if self._pump is not None:
+            self._pump.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await self._pump
+            self._pump = None
+        for feed in list(self.feeds.values()):
+            await feed.stop()
+
+    def require_session(self) -> PaperSession:
+        if self.session is None:
+            raise ConfigMissing(self.error or "paper session is not configured")
+        return self.session
+
+    def selected_session(self, symbol: str | None = None) -> PaperSession:
+        """The session a request is about.
+
+        `None` means the default symbol and goes through `require_session`, which is the exact
+        path and the exact error every existing caller already had.
+        """
+        if symbol in (None, ""):
+            return self.require_session()
+        return self.session_for(symbol)
+
+
+runtime = Runtime()
+
+
+class OrderRequest(BaseModel):
+    side: str
+    intent: str = "OPEN"
+    qty: str | None = None
+    notional_usdt: str | None = None
+    reason: str = "PAPER_MANUAL"
+    symbol: str | None = None
+
+
+class LeverageRequest(BaseModel):
+    leverage: str
+    symbol: str | None = None
+
+
+class ModeRequest(BaseModel):
+    action: str
+    confirmed: bool = False
+    symbol: str | None = None
+
+
+
+def _decimal(value: str, name: str) -> Decimal:
+    try:
+        parsed = Decimal(str(value))
+    except (InvalidOperation, ValueError) as exc:
+        raise ValueError(f"{name} is not a number: {value!r}") from exc
+    if not parsed.is_finite():
+        raise ValueError(f"{name} must be finite")
+    return parsed
+
+
+def jsonable(value: Any) -> Any:
+    if isinstance(value, Decimal):
+        return str(value)
+    if isinstance(value, dict):
+        return {key: jsonable(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [jsonable(item) for item in value]
+    return value
+
+
+def error(status: int, code: str, message: str) -> JSONResponse:
+    return JSONResponse(status_code=status, content={"error": {"code": code, "message": message}})
+
+
+def paper_session(symbol: str | None):
+    """`(session, None)` or `(None, the response that says why not)`.
+
+    One helper for the three refusals every paper route shares - an off-list symbol, no run
+    configured, a symbol with no measured instrument spec - so a route cannot omit one and so
+    the codes are identical everywhere.
+    """
+    try:
+        return runtime.selected_session(symbol), None
+    except SymbolNotSupported as exc:
+        return None, error(400, exc.code, exc.message)
+    except ConfigMissing as exc:
+        return None, error(503, "RUN_NOT_CONFIGURED", str(exc))
+
+
+def paper_feed(symbol: str | None):
+    try:
+        return runtime.feed_for(symbol), None
+    except SymbolNotSupported as exc:
+        return None, error(400, exc.code, exc.message)
+
+
+async def seeded_paper_feed(symbol: str | None):
+    """`paper_feed` for the routes that read chart history rather than the live quote."""
+    try:
+        return await runtime.seeded_feed_for(symbol), None
+    except SymbolNotSupported as exc:
+        return None, error(400, exc.code, exc.message)
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    config_path = Path(os.environ.get(CONFIG_ENV, DEFAULT_ROOT / "run_config.json"))
+    root = Path(os.environ.get("CRYPTO_PAPER_ROOT", DEFAULT_ROOT))
+    # One line, before the build, naming what the flag resolved to and what it was asked to
+    # resolve. The unit runs with PYTHONUNBUFFERED=1 so this lands in the journal, and it is
+    # the only record of the raw value: `storage.compress_new_segments` reports the decision
+    # but not the string that produced it, and an unrecognised string is exactly the case where
+    # the difference between the two is the thing worth seeing.
+    enabled, raw, recognised = compress_segments_setting()
+    print(json.dumps({"event": "PAPER_SEGMENT_COMPRESSION", "env": COMPRESS_SEGMENTS_ENV,
+                      "raw": raw, "effective": enabled,
+                      "value": "RECOGNISED" if recognised else "UNRECOGNISED_FAIL_CLOSED"}),
+          flush=True)
+    try:
+        runtime.build(config_path, root)
+    except Exception as exc:
+        runtime.error = f"{type(exc).__name__}: {exc}"
+    try:
+        await asyncio.to_thread(runtime.feed.seed_klines)
+        # Recorded as this symbol's seed, so the first chart request reads the history that is
+        # already here instead of fetching it a second time.
+        runtime.mark_seeded(runtime.feed.symbol)
+    except Exception as exc:
+        runtime.feed.telemetry.last_error = f"kline seed failed: {exc}"
+    runtime.start()
+    try:
+        yield
+    finally:
+        await runtime.stop()
+
+
+def create_app() -> FastAPI:
+    app = FastAPI(title="US-B CRYPTO Paper Terminal", version=PAPER_ENGINE_VERSION, lifespan=lifespan)
+    app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET", "POST"],
+                       allow_headers=["Content-Type"])
+
+    @app.get("/health")
+    async def health() -> dict[str, Any]:
+        return {"status": "ok", "engine": PAPER_ENGINE_VERSION,
+                "configured": runtime.session is not None, "error": runtime.error}
+
+    @app.get("/api/crypto/state")
+    async def state(symbol: str | None = None) -> Any:
+        session, failure = paper_session(symbol)
+        if failure is not None:
+            return failure
+        feed, feed_failure = paper_feed(symbol)
+        if feed_failure is not None:
+            return feed_failure
+        snapshot = session.snapshot()
+        snapshot["symbol"] = session.config.instrument.symbol
+        snapshot["symbols"] = runtime.symbols()
+        # The quantity grid, so the order ticket can default to a size this instrument accepts
+        # rather than to BTC's 0.001 - which is below SOLUSDT's 0.1 minimum and would open the
+        # panel pre-filled with a quantity the engine refuses.
+        spec = session.config.instrument
+        snapshot["instrument"] = {
+            "symbol": spec.symbol, "qty_step": spec.qty_step,
+            "min_order_qty": spec.min_order_qty, "max_mkt_order_qty": spec.max_mkt_order_qty,
+            "min_notional_value": spec.min_notional_value, "tick_size": spec.tick_size,
+            "max_leverage": spec.max_leverage, "source": spec.source}
+        # PAPER's own ceiling (at least 100x), which is what the leverage buttons obey. The
+        # instrument's measured figure above stays as measured.
+        snapshot["paper_max_leverage"] = session.config.max_leverage
+        snapshot["feed"] = feed.view()
+        snapshot["server_time_ms"] = int(time.time() * 1000)
+        snapshot["engine_version"] = PAPER_ENGINE_VERSION
+        account = snapshot.get("account")
+        if account is not None:
+            rate = session.config.fx.krw_per_usdt
+            snapshot["krw"] = {key: account[key] * rate for key in
+                               ("equity", "available_balance", "realized_pnl", "unrealized_pnl",
+                                "used_margin", "wallet_balance")}
+        snapshot["paper_source"] = "PAPER_MANUAL"
+        return jsonable(snapshot)
+
+    @app.get("/api/crypto/chart")
+    async def chart(limit: int = 120, symbol: str | None = None) -> Any:
+        # Awaited, so the first look at a symbol returns its history rather than the one bar
+        # the socket has managed to push since the tab was opened.
+        feed, failure = await seeded_paper_feed(symbol)
+        if failure is not None:
+            return failure
+        # The symbol is returned with the bars so the chart can discard a response that arrived
+        # after the operator changed tabs, instead of drawing it under the new label. `seed`
+        # goes with them so a short window reads as a seed that failed rather than as the truth.
+        return jsonable({"symbol": feed.symbol, "bars": feed.chart(min(limit, 600)),
+                         "seed": runtime.seed_state(feed.symbol)})
+
+    @app.get("/api/crypto/chart-history")
+    async def chart_history_route(timeframe: str, limit: int = 500,
+                                  before_ms: int | None = None,
+                                  symbol: str | None = None) -> Any:
+        """Paged display history. It never feeds orders, sizing, PnL or the paper ledger."""
+        try:
+            provider = history_for(symbol)
+            if provider is hot_chart_history:
+                symbol = resolve_symbol(symbol)
+            body = await asyncio.to_thread(provider.get, timeframe, limit, before_ms, symbol)
+        except SymbolNotSupported as exc:
+            return error(400, exc.code, exc.message)
+        except ValueError as exc:
+            return error(400, "CHART_QUERY_INVALID", str(exc))
+        except Exception as exc:
+            return error(502, "CHART_SOURCE_UNAVAILABLE",
+                         f"{type(exc).__name__}: {exc}")
+        return jsonable(body)
+
+    @app.get("/api/crypto/performance")
+    async def performance(symbol: str | None = None) -> Any:
+        """Everything here is folded out of the ledger, not read off a running total."""
+        session, failure = paper_session(symbol)
+        if failure is not None:
+            return failure
+        events = session.engine.ledger.events
+        account = session.engine.account
+        summary = summarize(events, starting_capital=account.starting_capital_usdt)
+        rate = session.config.fx.krw_per_usdt
+        summary["krw"] = {key: Decimal(summary[key]) * rate
+                          for key in ("gross_pnl", "fees", "funding", "net_pnl", "max_drawdown",
+                                      "ending_equity")}
+        summary["reconciliation"] = reconcile(
+            events, starting_capital=account.starting_capital_usdt,
+            account_realized=account.realized_pnl, account_fees=account.cumulative_fees,
+            account_funding=account.cumulative_funding_paid)
+        summary["source"] = "LIVE_PAPER"
+        summary["paper_source"] = "PAPER_MANUAL"
+        summary["run_id"] = session.config.run_id
+        summary["symbol"] = session.config.instrument.symbol
+        return jsonable(summary)
+
+    @app.get("/api/crypto/trades")
+    async def trades(limit: int = 50, symbol: str | None = None) -> Any:
+        session, failure = paper_session(symbol)
+        if failure is not None:
+            return failure
+        from ..paper.analytics import build_trades
+        rows = build_trades(session.engine.ledger.events)
+        return jsonable({"symbol": session.config.instrument.symbol, "total": len(rows),
+                         "trades": [trade.view() for trade in rows[-min(limit, 200):]][::-1]})
+
+    @app.get("/api/crypto/ledger")
+    async def ledger(limit: int = 100, symbol: str | None = None) -> Any:
+        session, failure = paper_session(symbol)
+        if failure is not None:
+            return failure
+        events = session.engine.ledger.events
+        return jsonable({"symbol": session.config.instrument.symbol, "total": len(events),
+                         "events": events[-min(limit, 500):][::-1]})
+
+    @app.post("/api/crypto/order")
+    async def order(request: OrderRequest) -> Any:
+        session, failure = paper_session(request.symbol)
+        if failure is not None:
+            return failure
+        feed, feed_failure = paper_feed(request.symbol)
+        if feed_failure is not None:
+            return feed_failure
+        # The one check that makes the symbol parameter safe rather than decorative: the engine
+        # about to be asked for a fill and the feed supplying the price must be the same
+        # instrument. They are, by construction, because both were looked up with the same
+        # string - and that is precisely why asserting it is cheap and why its absence would be
+        # invisible.
+        if session.config.instrument.symbol != feed.symbol:
+            return error(500, "SYMBOL_MISMATCH",
+                         f"엔진({session.config.instrument.symbol})과 "
+                         f"피드({feed.symbol})의 심볼이 다릅니다.")
+        quote = feed.quote()
+        if quote is None:
+            return error(409, "NO_QUOTE", "no live quote yet; the feed has not delivered a book and mark")
+        try:
+            if request.qty is not None:
+                qty = _decimal(request.qty, "qty")
+            elif request.notional_usdt is not None:
+                notional = _decimal(request.notional_usdt, "notional_usdt")
+                reference = quote.best_ask if request.side == "LONG" else quote.best_bid
+                if reference is None:
+                    return error(409, "NO_QUOTE", "the book side needed for sizing is empty")
+                step = session.config.instrument.qty_step
+                qty = (notional / reference / step).to_integral_value(rounding="ROUND_DOWN") * step
+            else:
+                return error(400, "QTY_REQUIRED", "pass either qty or notional_usdt")
+        except ValueError as exc:
+            return error(400, "INVALID_REQUEST", str(exc))
+        # Put the engine on the tick this order is about to be judged against, then re-check
+        # the size on it. A preset was priced seconds ago and the book moves; letting a stale
+        # preview through is how an operator ends up holding a position the engine will refuse
+        # to close. `quote=None` below because the observation has already happened here.
+        session.observe(quote, force=True)
+        # An OPEN against the held side is not an entry: it is classified by what it does to
+        # the position, the way a one-way Binance account treats it. Up to the held size it
+        # reduces (partial or full close); past it, it closes in full and opens the remainder
+        # on the other side. The engine's one-order reverse policy is untouched: a flip is sent
+        # as two commands, both on the tape, so a replay rebuilds it exactly.
+        legs = [(request.side, request.intent, qty, request.intent.lower())]
+        position = session.engine.account.position
+        opposite = (request.intent == "OPEN" and not position.is_flat
+                    and position.side != request.side)
+        if opposite:
+            held = position.abs_qty
+            if qty <= held:
+                legs = [(position.side, "CLOSE", qty, "reduce")]
+            else:
+                remainder = qty - held
+                # Priced before anything is sent, on a clone that has already closed: either
+                # both legs can go or neither does.
+                rehearsal = sizing.clone_engine(session.engine)
+                try:
+                    rehearsal.submit_order(ts_ms=quote.ts_ms, side=position.side, qty=held,
+                                           intent="CLOSE", request_id=f"probe-flip-{quote.ts_ms}",
+                                           reason=sizing.PROBE_REASON)
+                except Exception as exc:  # noqa: BLE001 - reported, nothing was sent
+                    return error(409, "FLIP_CLOSE_REFUSED", f"전환 전 청산을 할 수 없습니다: {exc}")
+                guard = sizing.probe(rehearsal, request.side, remainder, require_exit=True)
+                if not guard.feasible:
+                    safe = sizing.max_entry(rehearsal, request.side)
+                    return error(409, guard.reject_code or "UNSAFE_SIZE",
+                                 f"{guard.reject_message} (전환 후 신규 {remainder}; "
+                                 f"현재 호가 기준 안전 최대 {safe.qty if safe.feasible else 0})")
+                legs = [(position.side, "CLOSE", held, "flip-close"),
+                        (request.side, "OPEN", remainder, "flip-open")]
+        elif request.intent == "OPEN":
+            guard = sizing.probe(session.engine, request.side, qty, require_exit=True)
+            if not guard.feasible:
+                safe = sizing.max_entry(session.engine, request.side)
+                return error(409, guard.reject_code or "UNSAFE_SIZE",
+                             f"{guard.reject_message} "
+                             f"(현재 호가 기준 안전 최대 {safe.qty if safe.feasible else 0})")
+
+        instrument = session.config.instrument.symbol
+        # Registered in flight *before* the HOT replacement flag is read, which is the order the
+        # HOT slot relies on: either the scan's re-check sees this order, or this order sees
+        # the replacement and refuses. An order can never land on a symbol being swapped out.
+        with hot_slot.paper_in_flight.sending(instrument, unknown_on_error=False):
+            if hot_slot.replacing == instrument:
+                return error(409, "HOT_REPLACING", "HOT 심볼 교체가 진행 중이라 주문을 보내지 않았습니다.")
+            events: list[Any] = []
+            for index, (leg_side, leg_intent, leg_qty, label) in enumerate(legs):
+                payload = {"command": "ORDER", "ts_ms": quote.ts_ms, "side": leg_side,
+                           "qty": str(leg_qty), "intent": leg_intent,
+                           "request_id": f"{label}-{quote.ts_ms}-{len(session.tape)}",
+                           "reason": request.reason}
+                result = session.command(payload, quote=None)
+                events.extend(result["events"])
+                if result["rejection"] is not None:
+                    rejection = result["rejection"]
+                    done = " (전환의 청산은 체결됨)" if index > 0 else ""
+                    return error(409, str(rejection["code"]), f"{rejection['message']}{done}")
+        return jsonable({"symbol": session.config.instrument.symbol,
+                         "events": events, "state": session.snapshot()})
+
+    @app.post("/api/crypto/leverage")
+    async def leverage(request: LeverageRequest) -> Any:
+        session, failure = paper_session(request.symbol)
+        if failure is not None:
+            return failure
+        try:
+            value = _decimal(request.leverage, "leverage")
+            session.config.validate_leverage(value)
+        except (ValueError, TypeError) as exc:
+            return error(400, "INVALID_LEVERAGE", str(exc))
+        if not session.engine.account.position.is_flat:
+            return error(409, "LEVERAGE_LOCKED_WHILE_OPEN",
+                         "leverage can only change while the position is flat")
+        feed, feed_failure = paper_feed(request.symbol)
+        if feed_failure is not None:
+            return feed_failure
+        quote = feed.quote()
+        ts = quote.ts_ms if quote is not None else int(time.time() * 1000)
+        session.command({"command": "SET_LEVERAGE", "ts_ms": ts, "leverage": str(value)}, quote=quote)
+        return jsonable({"symbol": session.config.instrument.symbol,
+                         "state": session.snapshot()})
+
+    @app.post("/api/crypto/mode")
+    async def mode(request: ModeRequest) -> Any:
+        session, failure = paper_session(request.symbol)
+        if failure is not None:
+            return failure
+        try:
+            session.engine.state.check(request.action, confirmed=request.confirmed)
+        except TransitionRejected as exc:
+            return error(409, exc.code, str(exc))
+        feed, feed_failure = paper_feed(request.symbol)
+        if feed_failure is not None:
+            return feed_failure
+        quote = feed.quote()
+        ts = quote.ts_ms if quote is not None else int(time.time() * 1000)
+        result = session.command({"command": "SET_MODE", "ts_ms": ts, "action": request.action,
+                                  "confirmed": request.confirmed, "reason": "OPERATOR"}, quote=quote)
+        return jsonable({"events": result["events"], "state": session.snapshot()})
+
+    @app.post("/api/crypto/fault/drop-feed")
+    async def drop_feed(symbol: str | None = None) -> Any:
+        """Operational test hook. Off unless CRYPTO_PAPER_FAULT_INJECTION=1 is set."""
+        if os.environ.get("CRYPTO_PAPER_FAULT_INJECTION") != "1":
+            return error(404, "FAULT_INJECTION_DISABLED", "fault injection is not enabled")
+        feed, failure = paper_feed(symbol)
+        if failure is not None:
+            return failure
+        dropped = await feed.inject_disconnect()
+        return jsonable({"dropped": dropped, "feed": feed.view()})
+
+    @app.post("/api/crypto/emergency-close")
+    async def emergency_close(symbol: str | None = None) -> Any:
+        session, failure = paper_session(symbol)
+        if failure is not None:
+            return failure
+        feed, feed_failure = paper_feed(symbol)
+        if feed_failure is not None:
+            return feed_failure
+        quote = feed.quote()
+        ts = quote.ts_ms if quote is not None else int(time.time() * 1000)
+        result = session.command({"command": "EMERGENCY_CLOSE", "ts_ms": ts, "reason": "EMERGENCY"},
+                                 quote=quote)
+        return jsonable({"events": result["events"], "state": session.snapshot()})
+
+    return app
+
+
+app = create_app()
