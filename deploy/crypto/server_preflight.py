@@ -2,8 +2,15 @@
 """US-B server maintenance preflight: disk free space and crypto context archive freshness.
 
 Read only. One ssh call reads `df`, the archive manifest/receipt listings, the last line of the
-context retention log and the IO PSI; the local COLD receipts give the last successful pull. It
-never pulls, writes a receipt, runs retention, deletes, truncates or restarts anything.
+context retention log, the IO PSI and whether context collection is still running (two unit
+states, a /proc scan for writers, the journal's newest write); the local COLD receipts give the
+last successful pull. It never pulls, writes a receipt, runs retention, deletes, truncates or
+restarts anything.
+
+The pull-age rule only applies while context collection is ACTIVE. Once the collector and Q123
+are retired (2026-10-26) nothing new is written and no pull is ever due again, so the age of the
+last pull is no reason to warn. RETIRED needs positive evidence on every check; anything that
+cannot be read is UNKNOWN, which warns and keeps the pull-age rule.
 
     python3 deploy/crypto/server_preflight.py            # check the server, print the report
     python3 deploy/crypto/server_preflight.py --json     # same, as JSON
@@ -32,6 +39,10 @@ NO_RECEIPT_WARN_BYTES = 150 * MB
 DISK_WARN_BYTES = 800 * MB
 DISK_CRITICAL_BYTES = 500 * MB
 IO_PSI_HIGH_AVG10 = 60.0
+# Context collection counts as retired only after this long without a journal write.
+CTX_QUIET_H = 24
+# unit -> whether it may be gone altogether (removed) and still count as retired.
+CTX_UNITS = {"usb-crypto-context.service": False, "usb-crypto-q123-forward.service": True}
 
 KST = timezone(timedelta(hours=9))
 
@@ -70,6 +81,46 @@ try:
     out["io_psi"] = open("/proc/pressure/io").readline().strip()
 except Exception:
     out["io_psi"] = None
+import subprocess
+ctx = {"units": {}}
+for name in ("usb-crypto-context.service", "usb-crypto-q123-forward.service"):
+    try:
+        r = subprocess.run(["systemctl", "show", "-p", "LoadState", "-p", "UnitFileState",
+                            "-p", "ActiveState", name], capture_output=True, text=True, timeout=10)
+        ctx["units"][name] = (dict(x.split("=", 1) for x in r.stdout.splitlines() if "=" in x)
+                              if r.returncode == 0 else {"error": "rc%d" % r.returncode})
+    except Exception as e:
+        ctx["units"][name] = {"error": type(e).__name__}
+try:
+    writers = []
+    for p in os.listdir("/proc"):
+        if not p.isdigit() or int(p) == os.getpid():
+            continue
+        try:
+            c = open("/proc/%s/cmdline" % p, "rb").read().replace(b"\0", b" ").decode(errors="replace")
+        except OSError:
+            continue
+        if "context_collector_v1 collect" in c or "q123_forward_v1" in c:
+            writers.append(int(p))
+    ctx["writers"] = writers
+except Exception as e:
+    ctx["writers_error"] = type(e).__name__
+J = "/root/usb_runtime/crypto_context/journal"
+try:
+    if not os.path.isdir(J):
+        raise FileNotFoundError(J)
+    newest = None
+    for root, _, files in os.walk(J):
+        for f in files:
+            p = os.path.join(root, f)
+            if os.path.islink(p):  # journal/state points into /run, gone once the collector stops
+                continue
+            t = os.lstat(p).st_mtime
+            newest = t if newest is None or t > newest else newest
+    ctx["journal_newest_mtime"] = newest if newest is not None else os.path.getmtime(J)
+except Exception as e:
+    ctx["journal_error"] = type(e).__name__
+out["ctx"] = ctx
 print(json.dumps(out))
 PY
 '''
@@ -87,12 +138,61 @@ def _parse_ts(value) -> float | None:
         return None
 
 
+def ctx_state(ctx: dict | None, now: float) -> tuple[str, list[str]]:
+    """ACTIVE, RETIRED or UNKNOWN for context collection, with the evidence.
+
+    Any sign of collection (a unit enabled or running, a writer process, a recent journal write)
+    is ACTIVE. RETIRED needs every check read and quiet; a missing or unreadable answer is UNKNOWN,
+    never RETIRED. Q123 may also be removed outright (unit not found); the collector may not.
+    """
+    if not isinstance(ctx, dict) or not ctx:
+        return "UNKNOWN", ["context state unread"]
+    active, unknown = [], []
+    units = ctx.get("units") or {}
+    for unit, removable in CTX_UNITS.items():
+        s = units.get(unit) or {"error": "MISSING"}
+        if s.get("error"):
+            unknown.append(f"{unit} {s['error']}")
+            continue
+        load, file_state, act = s.get("LoadState"), s.get("UnitFileState"), s.get("ActiveState")
+        if load == "not-found" and removable and act == "inactive":
+            continue
+        if load != "loaded":
+            unknown.append(f"{unit} load {load}")
+            continue
+        if act != "inactive":
+            active.append(f"{unit} {act}")
+        if file_state not in ("disabled", "masked"):
+            active.append(f"{unit} {file_state}")
+    writers = ctx.get("writers")
+    if writers is None:
+        unknown.append(f"writer scan {ctx.get('writers_error') or 'unread'}")
+    elif writers:
+        active.append(f"writer pid {','.join(map(str, writers))}")
+    newest = ctx.get("journal_newest_mtime")
+    if newest is None:
+        unknown.append(f"journal {ctx.get('journal_error') or 'unread'}")
+    elif now - newest < CTX_QUIET_H * 3600:
+        active.append(f"journal written {(now - newest) / 3600:.1f}h ago")
+    if active:
+        return "ACTIVE", active
+    if unknown:
+        return "UNKNOWN", unknown
+    return "RETIRED", [f"units disabled/inactive, writers 0, journal quiet {(now - newest) / 3600:.0f}h"]
+
+
 def classify(*, free_bytes: int | None, hours_since_pull: float | None,
-             no_receipt_bytes: int | None) -> dict:
-    """The verdict. Unknown inputs never pass silently: they count as RECOMMENDED."""
+             no_receipt_bytes: int | None, ctx: str) -> dict:
+    """The verdict. Unknown inputs never pass silently: they count as RECOMMENDED.
+
+    `ctx` is `ctx_state()`'s answer. RETIRED drops only the pull-age rule; disk and NO_RECEIPT
+    still decide the verdict, and the archive reminder then follows NO_RECEIPT alone (a pull is
+    the only thing that clears it). UNKNOWN warns and keeps the pull-age rule.
+    """
     reasons = []
     strong = False
     remind = False
+    archive_due = False
     if free_bytes is None:
         remind = True
         reasons.append("disk free unknown")
@@ -102,26 +202,31 @@ def classify(*, free_bytes: int | None, hours_since_pull: float | None,
     elif free_bytes < DISK_WARN_BYTES:
         remind = True
         reasons.append(f"free {free_bytes / MB:.1f}MB < {DISK_WARN_BYTES // MB}MB")
-    if hours_since_pull is None:
+    if ctx == "UNKNOWN":
         remind = True
-        reasons.append("last pull unknown")
-    elif hours_since_pull >= PULL_STRONG_H:
-        strong = True
-        reasons.append(f"last pull {hours_since_pull:.0f}h >= {PULL_STRONG_H}h")
-    elif hours_since_pull >= PULL_REMIND_H:
-        remind = True
-        reasons.append(f"last pull {hours_since_pull:.0f}h >= {PULL_REMIND_H}h")
+        reasons.append("context collection state unknown")
+    if ctx != "RETIRED":
+        if hours_since_pull is None:
+            remind = True
+            reasons.append("last pull unknown")
+        elif hours_since_pull >= PULL_STRONG_H:
+            strong = True
+            reasons.append(f"last pull {hours_since_pull:.0f}h >= {PULL_STRONG_H}h")
+        elif hours_since_pull >= PULL_REMIND_H:
+            remind = True
+            reasons.append(f"last pull {hours_since_pull:.0f}h >= {PULL_REMIND_H}h")
     if no_receipt_bytes is None:
-        remind = True
+        remind = archive_due = True
         reasons.append("NO_RECEIPT unknown")
     elif no_receipt_bytes >= NO_RECEIPT_WARN_BYTES:
-        remind = True
+        remind = archive_due = True
         reasons.append(f"NO_RECEIPT {no_receipt_bytes / MB:.0f}MB >= {NO_RECEIPT_WARN_BYTES // MB}MB")
-    if strong:
-        return {"verdict": "CRITICAL", "reminder": "STRONGLY_RECOMMENDED", "reasons": reasons}
-    if remind:
-        return {"verdict": "WARNING", "reminder": "RECOMMENDED", "reasons": reasons}
-    return {"verdict": "PASS", "reminder": "NONE", "reasons": reasons}
+    verdict = "CRITICAL" if strong else "WARNING" if remind else "PASS"
+    if ctx == "RETIRED":
+        reminder = "RECOMMENDED" if archive_due else "NONE"
+    else:
+        reminder = {"CRITICAL": "STRONGLY_RECOMMENDED", "WARNING": "RECOMMENDED", "PASS": "NONE"}[verdict]
+    return {"verdict": verdict, "reminder": reminder, "reasons": reasons}
 
 
 def last_local_pull(cold: Path) -> float | None:
@@ -190,8 +295,10 @@ def gather(host: str = HOST, cold: Path = LOCAL_COLD, now: float | None = None) 
     rep["io_psi_avg10"] = avg10
     rep["io_pressure_high"] = avg10 is not None and avg10 >= IO_PSI_HIGH_AVG10
 
+    state, evidence = ctx_state(srv.get("ctx"), now)
+    rep["ctx_state"], rep["ctx_evidence"] = state, evidence
     rep.update(classify(free_bytes=free, hours_since_pull=rep["hours_since_pull"],
-                        no_receipt_bytes=rep["no_receipt_bytes"]))
+                        no_receipt_bytes=rep["no_receipt_bytes"], ctx=state))
     rep["operational_action_taken"] = 0
     return rep
 
@@ -206,12 +313,15 @@ def render(r: dict) -> str:
         f"disk free = {mb(r['disk_free_bytes'])}",
         f"disk use = {r['disk_use_pct']}%",
         f"last ctx archive pull = {r['last_pull']}",
-        f"hours since pull = {r['hours_since_pull']}",
+        f"hours since pull = {r['hours_since_pull']}"
+        + (" (not checked: context retired)" if r["ctx_state"] == "RETIRED" else ""),
+        f"context collection = {r['ctx_state']} ({'; '.join(r['ctx_evidence'])})",
         f"NO_RECEIPT files = {r['no_receipt_files']}",
         f"NO_RECEIPT bytes = {mb(r['no_receipt_bytes'])}",
         f"pending manifests = {', '.join(r['pending_manifests']) or 'none'}",
         f"retention status = last {ret.get('last_run_utc')} health {ret.get('health')} "
-        f"q123 {ret.get('q123_state')} failed {ret.get('failed')} | {kr_s}",
+        f"q123 {ret.get('q123_state')} failed {ret.get('failed')} | {kr_s}"
+        + (" (timer retired: last log kept as is)" if r["ctx_state"] == "RETIRED" else ""),
         f"io psi avg10 = {r['io_psi_avg10']}" + (" (HIGH: defer any pull)" if r["io_pressure_high"] else ""),
         f"archive reminder = {r['reminder']}",
         f"verdict = {r['verdict']}" + (f" ({'; '.join(r['reasons'])})" if r["reasons"] else ""),
@@ -223,31 +333,83 @@ def render(r: dict) -> str:
 
 
 SCENARIOS = [
-    # (name, free MB, hours since pull, NO_RECEIPT MB, expected verdict, expected reminder)
-    ("T1", 1200, 12, 30, "PASS", "NONE"),
-    ("T2", 900, 55, 120, "WARNING", "RECOMMENDED"),
-    ("T3", 700, 24, 170, "WARNING", "RECOMMENDED"),
-    ("T4", 480, 30, 90, "CRITICAL", "STRONGLY_RECOMMENDED"),
-    ("T5", 900, 80, 200, "CRITICAL", "STRONGLY_RECOMMENDED"),
-    ("B48", 1200, 48, 0, "WARNING", "RECOMMENDED"),        # boundary: >= 48h
-    ("B72", 1200, 72, 0, "CRITICAL", "STRONGLY_RECOMMENDED"),
-    ("B150", 1200, 1, 150, "WARNING", "RECOMMENDED"),
-    ("B800", 799.999999, 1, 0, "WARNING", "RECOMMENDED"),
-    ("B800ok", 800, 1, 0, "PASS", "NONE"),
-    ("B500", 499.999999, 1, 0, "CRITICAL", "STRONGLY_RECOMMENDED"),
-    ("UNKNOWN", None, None, None, "WARNING", "RECOMMENDED"),
+    # (name, context state, free MB, hours since pull, NO_RECEIPT MB, expected verdict, expected reminder)
+    ("T1", "ACTIVE", 1200, 12, 30, "PASS", "NONE"),
+    ("T2", "ACTIVE", 900, 55, 120, "WARNING", "RECOMMENDED"),
+    ("T3", "ACTIVE", 700, 24, 170, "WARNING", "RECOMMENDED"),
+    ("T4", "ACTIVE", 480, 30, 90, "CRITICAL", "STRONGLY_RECOMMENDED"),
+    ("T5", "ACTIVE", 900, 80, 200, "CRITICAL", "STRONGLY_RECOMMENDED"),
+    ("B48", "ACTIVE", 1200, 48, 0, "WARNING", "RECOMMENDED"),        # boundary: >= 48h
+    ("B72", "ACTIVE", 1200, 72, 0, "CRITICAL", "STRONGLY_RECOMMENDED"),
+    ("B150", "ACTIVE", 1200, 1, 150, "WARNING", "RECOMMENDED"),
+    ("B800", "ACTIVE", 799.999999, 1, 0, "WARNING", "RECOMMENDED"),
+    ("B800ok", "ACTIVE", 800, 1, 0, "PASS", "NONE"),
+    ("B500", "ACTIVE", 499.999999, 1, 0, "CRITICAL", "STRONGLY_RECOMMENDED"),
+    ("UNKNOWN", "ACTIVE", None, None, None, "WARNING", "RECOMMENDED"),
+    # Context retired (2026-10-26): the pull age stops counting, nothing else does.
+    ("C1", "ACTIVE", 1200, 47, 0, "PASS", "NONE"),
+    ("C2", "ACTIVE", 1200, 49, 0, "WARNING", "RECOMMENDED"),
+    ("C3", "ACTIVE", 1200, 73, 0, "CRITICAL", "STRONGLY_RECOMMENDED"),
+    ("C4", "RETIRED", 1200, 49, 0, "PASS", "NONE"),
+    ("C5", "RETIRED", 1200, 100, 0, "PASS", "NONE"),
+    ("C5n", "RETIRED", 1200, None, 0, "PASS", "NONE"),                  # no pull at all
+    ("C6", "RETIRED", 799.999999, 100, 0, "WARNING", "NONE"),
+    ("C7", "RETIRED", 499.999999, 100, 0, "CRITICAL", "NONE"),
+    ("C8", "RETIRED", 1200, 100, 150, "WARNING", "RECOMMENDED"),
+    ("C8u", "RETIRED", 1200, 100, None, "WARNING", "RECOMMENDED"),
+    ("C9", "UNKNOWN", 1200, 1, 0, "WARNING", "RECOMMENDED"),
+    ("C9h", "UNKNOWN", 1200, 100, 0, "CRITICAL", "STRONGLY_RECOMMENDED"),  # keeps the age rule
+]
+
+_NOW = 2_000_000_000.0
+_OFF = {"LoadState": "loaded", "UnitFileState": "disabled", "ActiveState": "inactive"}
+_GONE = {"LoadState": "not-found", "UnitFileState": "", "ActiveState": "inactive"}
+
+
+def _ctx(collector=_OFF, q123=_OFF, writers=(), quiet_h=30.0, drop=()) -> dict:
+    c = {"units": {"usb-crypto-context.service": collector, "usb-crypto-q123-forward.service": q123},
+         "writers": list(writers), "journal_newest_mtime": _NOW - quiet_h * 3600}
+    for key in drop:
+        c.pop(key, None)
+    return c
+
+
+CTX_SCENARIOS = [
+    # (name, server ctx answer, expected state)
+    ("S_retired", _ctx(), "RETIRED"),
+    ("S_q123_removed", _ctx(q123=_GONE), "RETIRED"),
+    ("S_collector_removed", _ctx(collector=_GONE), "UNKNOWN"),      # the collector must be seen
+    ("S_collector_enabled", _ctx(collector={**_OFF, "UnitFileState": "enabled"}), "ACTIVE"),
+    ("S_collector_running", _ctx(collector={**_OFF, "ActiveState": "active"}), "ACTIVE"),
+    ("S_q123_failed", _ctx(q123={**_OFF, "ActiveState": "failed"}), "ACTIVE"),
+    ("S_writer", _ctx(writers=[4242]), "ACTIVE"),
+    ("S_journal_recent", _ctx(quiet_h=23.9), "ACTIVE"),
+    ("S_journal_quiet", _ctx(quiet_h=24.0), "RETIRED"),
+    ("S_unit_error", _ctx(collector={"error": "rc1"}), "UNKNOWN"),
+    ("S_units_unread", _ctx(drop=("units",)), "UNKNOWN"),
+    ("S_writers_unread", _ctx(drop=("writers",)), "UNKNOWN"),
+    ("S_journal_unread", _ctx(drop=("journal_newest_mtime",)), "UNKNOWN"),
+    ("S_no_ctx", None, "UNKNOWN"),
+    ("S_active_beats_unknown", _ctx(collector={**_OFF, "ActiveState": "active"}, q123={"error": "rc1"}),
+     "ACTIVE"),
 ]
 
 
 def selftest() -> int:
     bad = 0
-    for name, free, h, nr, verdict, reminder in SCENARIOS:
+    for name, ctx, free, h, nr, verdict, reminder in SCENARIOS:
         got = classify(free_bytes=None if free is None else int(free * MB), hours_since_pull=h,
-                       no_receipt_bytes=None if nr is None else int(nr * MB))
+                       no_receipt_bytes=None if nr is None else int(nr * MB), ctx=ctx)
         ok = got["verdict"] == verdict and got["reminder"] == reminder
         bad += not ok
         print(f"{'PASS' if ok else 'FAIL'} {name}: {got['verdict']}/{got['reminder']} {got['reasons']}")
-    print(f"{len(SCENARIOS) - bad}/{len(SCENARIOS)} passed")
+    for name, answer, expected in CTX_SCENARIOS:
+        state, evidence = ctx_state(answer, _NOW)
+        ok = state == expected
+        bad += not ok
+        print(f"{'PASS' if ok else 'FAIL'} {name}: {state} {evidence}")
+    total = len(SCENARIOS) + len(CTX_SCENARIOS)
+    print(f"{total - bad}/{total} passed")
     return 1 if bad else 0
 
 

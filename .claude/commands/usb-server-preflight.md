@@ -41,12 +41,18 @@ cd ~/usb && python3 deploy/crypto/server_preflight.py
 
 | 입력 | RECOMMENDED (WARNING) | STRONGLY_RECOMMENDED (CRITICAL) |
 |---|---|---|
-| 마지막 성공 pull 이후 | ≥ 48시간 | ≥ 72시간 |
+| 마지막 성공 pull 이후 (context collection ACTIVE 또는 UNKNOWN일 때만) | ≥ 48시간 | ≥ 72시간 |
+| context collection 상태 UNKNOWN | WARNING | |
 | NO_RECEIPT | ≥ 150MB | (자체로는 WARNING까지) |
 | 디스크 여유 | < 800MB | < 500MB |
 | 값을 못 읽음 | 해당 항목 unknown → WARNING | |
 
 - 셋 다 아니면 PASS다. **PASS면 archive 얘기를 꺼내지 않고** 원래 작업을 계속한다.
+- context collection 상태(`ctx_state()`): collector와 Q123은 2026-10-26에 퇴역했다. 퇴역 뒤에는 pull할 일이 다시 생기지 않으므로 pull 경과 시간으로 경보하지 않는다.
+  - **ACTIVE**: unit이 enabled이거나 실행 중, writer 프로세스(`context_collector_v1 collect`, `q123_forward_v1`)가 있음, 또는 journal 쓰기가 24시간 이내. 이 중 하나라도 해당하면 ACTIVE이고 기존 pull 규칙을 그대로 적용한다.
+  - **RETIRED**: 모든 항목을 실제로 읽었고 전부 조용할 때만이다. `usb-crypto-context.service`는 loaded·disabled·inactive여야 한다. `usb-crypto-q123-forward.service`는 그와 같거나 not-found(제거)여도 된다. writer 0, journal(심볼릭 링크 제외) 마지막 쓰기 24시간 이상이어야 한다. 이때 pull 경과 시간만 판정에서 빠지고, 디스크·NO_RECEIPT 규칙은 그대로다. archive reminder는 NO_RECEIPT로만 정해진다(디스크 부족만으로는 NONE, pull로 디스크가 늘지 않으니까).
+  - **UNKNOWN**: 하나라도 읽지 못했을 때다(collector unit not-found 포함). 파일이 없다고 RETIRED로 보지 않는다. WARNING을 내고 pull 규칙도 유지한다.
+- collector unit 파일을 나중에 지우면 상태가 UNKNOWN이 된다. 그 정리를 할 때 이 규칙도 같이 고친다.
 - NO_RECEIPT는 "현재 receipt가 없는 manifest의 합"과 "마지막 retention 로그의 NO_RECEIPT" 중 큰 값이다. 아직 manifest에 안 들어간 48시간 이내 파일(YOUNG, NO_MANIFEST)은 세지 않는다.
 - 마지막 pull은 서버 receipt와 로컬 receipt의 `verified_at` 중 최신값이다.
 - IO PSI avg10 ≥ 60이면 출력에 `HIGH: defer any pull`이 붙는다. 이 값은 판정에 들어가지 않고, pull 시점을 미루라는 안내에만 쓴다.
@@ -73,7 +79,8 @@ US-B SERVER MAINTENANCE PREFLIGHT
 disk free = ?
 disk use = ?%
 last ctx archive pull = ?
-hours since pull = ?
+hours since pull = ?            (RETIRED면 "not checked: context retired")
+context collection = ACTIVE / RETIRED / UNKNOWN (근거)
 NO_RECEIPT files = ?
 NO_RECEIPT bytes = ?
 pending manifests = ?
@@ -126,4 +133,7 @@ ctx archive pull은 Q123도, Wall/Flow 계산기도, collector도, 주문 기능
 cd ~/usb && python3 deploy/crypto/server_preflight.py --selftest
 ```
 
-시나리오 T1~T5와 경계값(48h, 72h, 150MB, 800MB, 500MB), 값 unknown까지 12개를 검증한다.
+다음 세 묶음, 모두 39개를 검증한다.
+- 시나리오 T1~T5, 경계값(48h, 72h, 150MB, 800MB, 500MB), 값 unknown: 12개
+- context 상태별 판정 C1~C9: 12개
+- 상태 판정 자체 S_*: 15개(enabled, 실행 중, failed, writer, 24h 경계, 읽기 실패, Q123 제거 허용, collector 제거는 UNKNOWN 등)
