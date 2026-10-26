@@ -285,9 +285,10 @@ class Runtime:
         #: Why a symbol has no session, keyed by symbol. A missing measurement is reported, not
         #: worked around.
         self.symbol_errors: dict[str, str] = {}
-        #: Sessions of symbols that were the HOT symbol and no longer are. Off the 1 Hz loop and
-        #: off every route, but still wallet members when they traded, because their realised
-        #: PnL and charges are money the shared purse holds.
+        #: Flat runs with history: former HOT symbols, and ETH/SOL runs recovered at boot. Off
+        #: the 1 Hz loop and off every route, but still wallet members when they traded, because
+        #: their realised PnL and charges are money the shared purse holds. `session_for` revives
+        #: one on its first request.
         self.retired: dict[str, PaperSession] = {}
         self.feed = BybitPublicFeed()
         self.session: PaperSession | None = None
@@ -386,24 +387,36 @@ class Runtime:
 
         A symbol with no run directory has never traded and contributes nothing, so leaving it
         lazy costs the wallet nothing and saves a replay.
+
+        Joining the wallet is not the same as being active. A flat run is recovered into
+        `retired`, as a former HOT run is: its money is counted, but it has no socket and no
+        tape until its first request revives it. Activating it here kept an ETHUSDT and a
+        SOLUSDT socket open and their tapes growing by a few MB a day for screens nobody had
+        open. A run that still holds a position stays active, so it can be seen and closed.
         """
         if self.base_config is None:
             return
         for symbol in SUPPORTED_SYMBOLS:
-            if symbol in self.sessions:
+            if symbol in self.sessions or symbol in self.retired:
                 continue
             try:
-                config, _ = symbol_run_config(self.base_config, symbol,
-                                              self.named_symbols.get(symbol),
-                                              paper_root=self.root)
+                config, tiers = symbol_run_config(self.base_config, symbol,
+                                                  self.named_symbols.get(symbol),
+                                                  paper_root=self.root)
             except (SymbolReferenceMissing, ValueError, OSError):
                 continue        # no measurement; `session_for` reports it when asked
             if not (self.root / config.run_id).is_dir():
                 continue        # never traded
-            try:
-                self.session_for(symbol)
-            except ConfigMissing:
-                continue
+            session = PaperSession(config=config, tiers=tiers, root=self.root,
+                                   compress_segments=self.compress_segments,
+                                   recovered=self._preloaded.pop(symbol, None))
+            if self.cash is not None:
+                self.cash.join(symbol, session.engine.account)
+            if session.engine.account.position.is_flat:
+                self.retired[symbol] = session
+            else:
+                self.sessions[symbol] = session
+                self.feed_for(symbol)
         self._join_dynamic_runs_with_history()
 
     def _dynamic_run_symbols(self) -> list[str]:
