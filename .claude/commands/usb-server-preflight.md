@@ -50,9 +50,9 @@ cd ~/usb && python3 deploy/crypto/server_preflight.py
 - 셋 다 아니면 PASS다. **PASS면 archive 얘기를 꺼내지 않고** 원래 작업을 계속한다.
 - context collection 상태(`ctx_state()`): collector와 Q123은 2026-10-26에 퇴역했다. 퇴역 뒤에는 pull할 일이 다시 생기지 않으므로 pull 경과 시간으로 경보하지 않는다.
   - **ACTIVE**: unit이 enabled이거나 실행 중, writer 프로세스(`context_collector_v1 collect`, `q123_forward_v1`)가 있음, 또는 journal 쓰기가 24시간 이내. 이 중 하나라도 해당하면 ACTIVE이고 기존 pull 규칙을 그대로 적용한다.
-  - **RETIRED**: 모든 항목을 실제로 읽었고 전부 조용할 때만이다. `usb-crypto-context.service`는 loaded·disabled·inactive여야 한다. `usb-crypto-q123-forward.service`는 그와 같거나 not-found(제거)여도 된다. writer 0, journal(심볼릭 링크 제외) 마지막 쓰기 24시간 이상이어야 한다. 이때 pull 경과 시간만 판정에서 빠지고, 디스크·NO_RECEIPT 규칙은 그대로다. archive reminder는 NO_RECEIPT로만 정해진다(디스크 부족만으로는 NONE, pull로 디스크가 늘지 않으니까).
-  - **UNKNOWN**: 하나라도 읽지 못했을 때다(collector unit not-found 포함). 파일이 없다고 RETIRED로 보지 않는다. WARNING을 내고 pull 규칙도 유지한다.
-- collector unit 파일을 나중에 지우면 상태가 UNKNOWN이 된다. 그 정리를 할 때 이 규칙도 같이 고친다.
+  - **RETIRED**: 모든 항목을 실제로 읽었고 전부 조용할 때만이다. 두 unit(`usb-crypto-context.service`, `usb-crypto-q123-forward.service`)은 각각 loaded·disabled·inactive이거나 not-found(제거)여야 한다. 여기에 writer 0이 반드시 읽혀야 하고, journal(심볼릭 링크 제외) 마지막 쓰기가 24시간 이상이거나 context runtime(`/root/usb_runtime/crypto_context`) 자체가 없어야 한다(상위 경로를 읽을 수 있을 때만 "없음"으로 인정). unit이 없다는 것만으로는 RETIRED가 아니다. 이때 pull 경과 시간만 판정에서 빠지고, 디스크·NO_RECEIPT 규칙은 그대로다. archive reminder는 NO_RECEIPT로만 정해진다(디스크 부족만으로는 NONE, pull로 디스크가 늘지 않으니까).
+  - **UNKNOWN**: 하나라도 읽지 못했을 때, 또는 두 unit이 모두 제거됐는데 writer나 24시간 이내 journal 쓰기가 보일 때(고아 writer)다. 파일이 없다고 RETIRED로 보지 않는다. WARNING을 내고 pull 규칙도 유지한다.
+- 2026-10-26 phase 2에서 두 unit 파일과 context runtime을 지웠다(COLD 사본 `~/usb_archive/2026-10/crypto/final-legacy-cleanup-phase2-20261026/`). 현재 정상 출력은 `context collection = RETIRED (units removed, writers 0, context runtime removed)`, `retention status = retired (context runtime removed)`다.
 - NO_RECEIPT는 "현재 receipt가 없는 manifest의 합"과 "마지막 retention 로그의 NO_RECEIPT" 중 큰 값이다. 아직 manifest에 안 들어간 48시간 이내 파일(YOUNG, NO_MANIFEST)은 세지 않는다.
 - 마지막 pull은 서버 receipt와 로컬 receipt의 `verified_at` 중 최신값이다.
 - IO PSI avg10 ≥ 60이면 출력에 `HIGH: defer any pull`이 붙는다. 이 값은 판정에 들어가지 않고, pull 시점을 미루라는 안내에만 쓴다.
@@ -92,6 +92,8 @@ operational action automatically taken = 0
 ```
 
 ## 5. 사용자가 archive 정리를 승인했을 때 (정본 절차만)
+
+> 2026-10-26부터 기록용이다. collector, Q123, retention unit과 서버 context runtime이 모두 제거되어 이 절차를 실행할 대상이 없다. collector를 다시 살리는 결정이 나면 그때 이 절차와 unit을 함께 복원한다.
 
 계약은 `docs/crypto/context_collector_v1/RETENTION_CTX_V1_2.md`, 절차는 같은 폴더의 `RETENTION_CTX_V1_2_RUNBOOK.md`다. 새 archive 규칙을 만들지 않는다.
 
@@ -133,7 +135,7 @@ ctx archive pull은 Q123도, Wall/Flow 계산기도, collector도, 주문 기능
 cd ~/usb && python3 deploy/crypto/server_preflight.py --selftest
 ```
 
-다음 세 묶음, 모두 39개를 검증한다.
+다음 세 묶음, 모두 49개를 검증한다.
 - 시나리오 T1~T5, 경계값(48h, 72h, 150MB, 800MB, 500MB), 값 unknown: 12개
-- context 상태별 판정 C1~C9: 12개
-- 상태 판정 자체 S_*: 15개(enabled, 실행 중, failed, writer, 24h 경계, 읽기 실패, Q123 제거 허용, collector 제거는 UNKNOWN 등)
+- context 상태별 판정 C1~C10: 13개
+- 상태 판정 자체 S_*: 24개(enabled, 실행 중, failed, writer, 24h 경계, 읽기 실패, unit 제거, runtime 제거, 고아 writer, 고아 쓰기 등)

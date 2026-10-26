@@ -41,8 +41,9 @@ DISK_CRITICAL_BYTES = 500 * MB
 IO_PSI_HIGH_AVG10 = 60.0
 # Context collection counts as retired only after this long without a journal write.
 CTX_QUIET_H = 24
-# unit -> whether it may be gone altogether (removed) and still count as retired.
-CTX_UNITS = {"usb-crypto-context.service": False, "usb-crypto-q123-forward.service": True}
+# Both unit files were deleted on 2026-10-26 (legacy cleanup phase 2). Absent units only count as
+# retired together with the independent checks: writer scan 0 and no journal write (or no runtime).
+CTX_UNITS = ("usb-crypto-context.service", "usb-crypto-q123-forward.service")
 
 KST = timezone(timedelta(hours=9))
 
@@ -105,6 +106,12 @@ try:
     ctx["writers"] = writers
 except Exception as e:
     ctx["writers_error"] = type(e).__name__
+try:
+    if not os.path.isdir("/root/usb_runtime"):
+        raise FileNotFoundError("/root/usb_runtime")
+    ctx["root_exists"] = os.path.lexists("/root/usb_runtime/crypto_context")
+except Exception as e:
+    ctx["root_error"] = type(e).__name__
 J = "/root/usb_runtime/crypto_context/journal"
 try:
     if not os.path.isdir(J):
@@ -143,19 +150,24 @@ def ctx_state(ctx: dict | None, now: float) -> tuple[str, list[str]]:
 
     Any sign of collection (a unit enabled or running, a writer process, a recent journal write)
     is ACTIVE. RETIRED needs every check read and quiet; a missing or unreadable answer is UNKNOWN,
-    never RETIRED. Q123 may also be removed outright (unit not found); the collector may not.
+    never RETIRED. A unit may be removed outright (systemd answers not-found), and the whole
+    context runtime may be gone (then nothing can have been written), but an absent unit is never
+    evidence by itself: the writer scan must still read 0. Activity with both units removed is an
+    orphan writer, which is UNKNOWN (always a warning) rather than ACTIVE.
     """
     if not isinstance(ctx, dict) or not ctx:
         return "UNKNOWN", ["context state unread"]
-    active, unknown = [], []
+    active, unknown, quiet = [], [], []
     units = ctx.get("units") or {}
-    for unit, removable in CTX_UNITS.items():
+    absent = 0
+    for unit in CTX_UNITS:
         s = units.get(unit) or {"error": "MISSING"}
         if s.get("error"):
             unknown.append(f"{unit} {s['error']}")
             continue
         load, file_state, act = s.get("LoadState"), s.get("UnitFileState"), s.get("ActiveState")
-        if load == "not-found" and removable and act == "inactive":
+        if load == "not-found" and act == "inactive":
+            absent += 1
             continue
         if load != "loaded":
             unknown.append(f"{unit} load {load}")
@@ -170,15 +182,23 @@ def ctx_state(ctx: dict | None, now: float) -> tuple[str, list[str]]:
     elif writers:
         active.append(f"writer pid {','.join(map(str, writers))}")
     newest = ctx.get("journal_newest_mtime")
-    if newest is None:
-        unknown.append(f"journal {ctx.get('journal_error') or 'unread'}")
-    elif now - newest < CTX_QUIET_H * 3600:
-        active.append(f"journal written {(now - newest) / 3600:.1f}h ago")
+    if newest is not None:
+        if now - newest < CTX_QUIET_H * 3600:
+            active.append(f"journal written {(now - newest) / 3600:.1f}h ago")
+        else:
+            quiet.append(f"journal quiet {(now - newest) / 3600:.0f}h")
+    elif ctx.get("root_exists") is False:
+        quiet.append("context runtime removed")
+    else:
+        unknown.append(f"journal {ctx.get('journal_error') or ctx.get('root_error') or 'unread'}")
+    if active and absent == len(CTX_UNITS):
+        return "UNKNOWN", ["units removed but " + "; ".join(active)]
     if active:
         return "ACTIVE", active
     if unknown:
         return "UNKNOWN", unknown
-    return "RETIRED", [f"units disabled/inactive, writers 0, journal quiet {(now - newest) / 3600:.0f}h"]
+    units_s = "units removed" if absent == len(CTX_UNITS) else f"units disabled/inactive ({absent} removed)"
+    return "RETIRED", [f"{units_s}, writers 0, {quiet[0]}"]
 
 
 def classify(*, free_bytes: int | None, hours_since_pull: float | None,
@@ -308,6 +328,11 @@ def render(r: dict) -> str:
     ret = r["retention"]
     kr = ret.get("keep_reasons") or {}
     kr_s = ", ".join(f"{k} {v.get('files')}/{mb(v.get('bytes'))}" for k, v in sorted(kr.items())) or "?"
+    retention_s = (f"last {ret.get('last_run_utc')} health {ret.get('health')} "
+                   f"q123 {ret.get('q123_state')} failed {ret.get('failed')} | {kr_s}")
+    if r["ctx_state"] == "RETIRED":
+        retention_s = ("retired (context runtime removed)" if ret.get("error")
+                       else retention_s + " (timer retired: last log kept as is)")
     lines = [
         "US-B SERVER MAINTENANCE PREFLIGHT",
         f"disk free = {mb(r['disk_free_bytes'])}",
@@ -319,9 +344,7 @@ def render(r: dict) -> str:
         f"NO_RECEIPT files = {r['no_receipt_files']}",
         f"NO_RECEIPT bytes = {mb(r['no_receipt_bytes'])}",
         f"pending manifests = {', '.join(r['pending_manifests']) or 'none'}",
-        f"retention status = last {ret.get('last_run_utc')} health {ret.get('health')} "
-        f"q123 {ret.get('q123_state')} failed {ret.get('failed')} | {kr_s}"
-        + (" (timer retired: last log kept as is)" if r["ctx_state"] == "RETIRED" else ""),
+        f"retention status = {retention_s}",
         f"io psi avg10 = {r['io_psi_avg10']}" + (" (HIGH: defer any pull)" if r["io_pressure_high"] else ""),
         f"archive reminder = {r['reminder']}",
         f"verdict = {r['verdict']}" + (f" ({'; '.join(r['reasons'])})" if r["reasons"] else ""),
@@ -359,6 +382,7 @@ SCENARIOS = [
     ("C8u", "RETIRED", 1200, 100, None, "WARNING", "RECOMMENDED"),
     ("C9", "UNKNOWN", 1200, 1, 0, "WARNING", "RECOMMENDED"),
     ("C9h", "UNKNOWN", 1200, 100, 0, "CRITICAL", "STRONGLY_RECOMMENDED"),  # keeps the age rule
+    ("C10", "RETIRED", 1200, None, None, "WARNING", "RECOMMENDED"),     # receipts unread still warn
 ]
 
 _NOW = 2_000_000_000.0
@@ -366,9 +390,14 @@ _OFF = {"LoadState": "loaded", "UnitFileState": "disabled", "ActiveState": "inac
 _GONE = {"LoadState": "not-found", "UnitFileState": "", "ActiveState": "inactive"}
 
 
-def _ctx(collector=_OFF, q123=_OFF, writers=(), quiet_h=30.0, drop=()) -> dict:
+def _ctx(collector=_OFF, q123=_OFF, writers=(), quiet_h=30.0, root=True, drop=()) -> dict:
+    """A server answer. quiet_h=None: no journal to read (journal_error); root: runtime present."""
     c = {"units": {"usb-crypto-context.service": collector, "usb-crypto-q123-forward.service": q123},
-         "writers": list(writers), "journal_newest_mtime": _NOW - quiet_h * 3600}
+         "writers": list(writers), "root_exists": root}
+    if quiet_h is None:
+        c["journal_error"] = "FileNotFoundError"
+    else:
+        c["journal_newest_mtime"] = _NOW - quiet_h * 3600
     for key in drop:
         c.pop(key, None)
     return c
@@ -378,7 +407,19 @@ CTX_SCENARIOS = [
     # (name, server ctx answer, expected state)
     ("S_retired", _ctx(), "RETIRED"),
     ("S_q123_removed", _ctx(q123=_GONE), "RETIRED"),
-    ("S_collector_removed", _ctx(collector=_GONE), "UNKNOWN"),      # the collector must be seen
+    ("S_collector_removed", _ctx(collector=_GONE), "RETIRED"),
+    # Units deleted (phase 2): absent counts only with writer scan 0 and no write / no runtime.
+    ("S_both_removed_quiet", _ctx(collector=_GONE, q123=_GONE), "RETIRED"),
+    ("S_both_removed_no_runtime", _ctx(collector=_GONE, q123=_GONE, quiet_h=None, root=False), "RETIRED"),
+    ("S_removed_orphan_writer", _ctx(collector=_GONE, q123=_GONE, writers=[4242]), "UNKNOWN"),
+    ("S_removed_recent_write", _ctx(collector=_GONE, q123=_GONE, quiet_h=1), "UNKNOWN"),
+    ("S_removed_writers_unread", _ctx(collector=_GONE, q123=_GONE, quiet_h=None, root=False,
+                                      drop=("writers",)), "UNKNOWN"),
+    ("S_one_removed_recent_write", _ctx(collector=_GONE, quiet_h=1), "ACTIVE"),
+    ("S_journal_gone_root_present", _ctx(collector=_GONE, q123=_GONE, quiet_h=None), "UNKNOWN"),
+    ("S_journal_gone_root_unread", _ctx(collector=_GONE, q123=_GONE, quiet_h=None,
+                                        drop=("root_exists",)), "UNKNOWN"),
+    ("S_removed_running", _ctx(collector={**_GONE, "ActiveState": "active"}, q123=_GONE), "UNKNOWN"),
     ("S_collector_enabled", _ctx(collector={**_OFF, "UnitFileState": "enabled"}), "ACTIVE"),
     ("S_collector_running", _ctx(collector={**_OFF, "ActiveState": "active"}), "ACTIVE"),
     ("S_q123_failed", _ctx(q123={**_OFF, "ActiveState": "failed"}), "ACTIVE"),
