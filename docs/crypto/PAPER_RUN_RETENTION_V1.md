@@ -21,7 +21,7 @@ Older segments are only a safety net for a checkpoint that cannot be used. Witho
 | ACTIVE_OPEN_POSITION, ACTIVE_DEFAULT (BTC), ACTIVE_CURRENT_HOT | ledger, config, active tape, every segment and checkpoint from the second newest usable checkpoint on | older segments, manifests and checkpoints |
 | CLOSED_TRADED | ledger, config, active tape, final checkpoint, last segment | older segments and checkpoints |
 | CLOSED_NO_TRADE (no wallet event ever, flat, not HOT; ETH/SOL today) | nothing | the whole run directory, **only while `usb-crypto-paper` is stopped** |
-| RETIRED_C1 (not discovered by the terminal, C1 state file, no money) | nothing | the whole directory, service stopped |
+| RETIRED_UNDISCOVERED (a paper run the terminal never discovers, recognised by its own `run_config.json` and RUN_START, no money; the old C1 AUTO run) | nothing | the whole directory, service stopped |
 | BLOCKED | everything | nothing |
 
 How the boundary is chosen:
@@ -38,7 +38,7 @@ The plan blocks a run when anything is unclear:
 - a command on the tape the ledger has not recorded
 - a segment without a manifest
 - an unreadable HOT slot (blocks every dynamic run)
-- an undiscovered directory without C1 state
+- an undiscovered directory that is not a recognisable paper run, or that holds money
 
 A ledger that records any wallet event is never a candidate.
 

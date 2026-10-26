@@ -3,7 +3,7 @@
 A real paper history is built with the real `Runtime` and real sessions (segments cut every few
 records so there is history to keep or drop): BTC holding a position, a HOT run that traded and
 was retired, a HOT run that never traded, ETH and SOL that only ever recorded quotes, the current
-HOT symbol, and a directory the terminal never discovers carrying C1 state. The retention then
+HOT symbol, and a paper run the terminal never discovers (the old C1 AUTO run). The retention then
 plans, writes manifests, pulls to a local COLD directory with rsync, receipts, and prunes; a
 second `Runtime` boots on what is left and must hold the same money and positions.
 """
@@ -101,6 +101,9 @@ def build_world(make, root: Path):
     (c1 / "ledger.jsonl").write_text(first + "\n")
     (c1 / "input.jsonl").write_text('{"kind":"COMMAND","payload":{"command":"START","ts_ms":1}}\n')
     (c1 / "c1_auto_state.json").write_text("{}\n")
+    # As the real one has: its own run config naming this directory. That, not the state file
+    # or the name, is what the retention recognises.
+    (c1 / "run_config.json").write_text(json.dumps({"run_id": c1.name}))
     return runtime
 
 
@@ -159,7 +162,7 @@ def test_runs_are_classified_from_ledger_position_and_hot_slot(world) -> None:
     assert plans[name("ETHUSDT")].classification == R.CLOSED_NO_TRADE
     assert plans[name("SOLUSDT")].classification == R.CLOSED_NO_TRADE
     assert plans[name(HOT_NOW)].classification == R.ACTIVE_CURRENT_HOT
-    assert plans[f"{RUN_ID}-c1-auto"].classification == R.RETIRED_C1
+    assert plans[f"{RUN_ID}-c1-auto"].classification == R.RETIRED_UNDISCOVERED
 
 
 def test_ledger_with_money_is_never_a_candidate(world) -> None:
@@ -228,6 +231,24 @@ def test_planning_writes_nothing_into_the_run_root(world, tmp_path) -> None:
 
 
 # --------------------------------------------------------------------------- fail closed
+
+
+def test_an_undiscovered_run_that_traded_is_blocked(world) -> None:
+    _make, root, _rt = world
+    odd = root / f"{RUN_ID}-c1-auto"
+    fill = json.loads((root / name(HOT_TRADED) / "ledger.jsonl").read_text().splitlines()[2])
+    with (odd / "ledger.jsonl").open("a") as handle:
+        handle.write(json.dumps(fill) + "\n")
+    p = plan(root)[odd.name]
+    assert p.classification == R.BLOCKED_RUN and not any(e["candidate"] for e in p.files)
+
+
+def test_an_undiscovered_directory_whose_config_names_another_run_is_blocked(world) -> None:
+    _make, root, _rt = world
+    odd = root / f"{RUN_ID}-c1-auto"
+    (odd / "run_config.json").write_text(json.dumps({"run_id": RUN_ID}))
+    p = plan(root)[odd.name]
+    assert p.classification == R.BLOCKED_RUN and p.reason == "UNKNOWN_RUN"
 
 
 def test_unknown_directory_is_blocked(world) -> None:

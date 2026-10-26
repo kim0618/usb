@@ -35,8 +35,9 @@ Classes, decided from each run's ledger, checkpoints and the HOT slot (never fro
 * CLOSED_NO_TRADE: no wallet event ever, flat, not the HOT symbol: the whole run directory may go.
   The running service holds such a run as a retired session and would write into it if it were
   revived, so whole-run removal requires the paper service to be stopped.
-* RETIRED_C1: a run directory the terminal never discovers, with the C1 auto state file, no
-  wallet event and no position.
+* RETIRED_UNDISCOVERED: a paper run directory the terminal never discovers (so nothing reads it
+  and it is in no wallet), recognised from its own `run_config.json` and ledger rather than its
+  name, with no wallet event and no position. Any other undiscovered directory is BLOCKED.
 
 Anything that cannot be decided - an unreadable ledger, a position the checkpoint and the ledger
 disagree on, a command on the tape the ledger has not caught up with, a segment without a
@@ -82,10 +83,10 @@ ACTIVE_DEFAULT = "ACTIVE_DEFAULT"
 ACTIVE_CURRENT_HOT = "ACTIVE_CURRENT_HOT"
 CLOSED_TRADED = "CLOSED_TRADED"
 CLOSED_NO_TRADE = "CLOSED_NO_TRADE"
-RETIRED_C1 = "RETIRED_C1"
+RETIRED_UNDISCOVERED = "RETIRED_UNDISCOVERED"
 BLOCKED_RUN = "BLOCKED"
 ACTIVE_CLASSES = (ACTIVE_OPEN_POSITION, ACTIVE_DEFAULT, ACTIVE_CURRENT_HOT)
-WHOLE_RUN_CLASSES = (CLOSED_NO_TRADE, RETIRED_C1)
+WHOLE_RUN_CLASSES = (CLOSED_NO_TRADE, RETIRED_UNDISCOVERED)
 
 KEEP = "KEEP"
 ARCHIVE_REQUIRED = "ARCHIVE_REQUIRED"
@@ -94,7 +95,7 @@ BLOCKED = "BLOCKED"
 
 LEDGER_FILE = segment_store.LEDGER_FILE
 ACTIVE_TAPE = segment_store.ACTIVE_TAPE
-C1_STATE_FILE = "c1_auto_state.json"
+RUN_CONFIG_FILE = "run_config.json"
 _OPENING = ("POSITION_OPEN", "POSITION_INCREASE")
 _REDUCING = ("POSITION_REDUCE", "POSITION_CLOSE")
 _CHUNK = 1 << 20
@@ -458,6 +459,18 @@ def _initial_keep_from(plan: RunPlan) -> int:
     return usable[0] if usable else 0                     # CLOSED_TRADED: the final checkpoint
 
 
+def _is_paper_run(facts: RunFacts) -> bool:
+    """A directory a paper session wrote: its run config names this directory as its run, and its
+    ledger opens with the engine's RUN_START. What it was for is not asked; that it is a paper
+    run the terminal no longer discovers is what makes it safe to treat as retired."""
+    try:
+        config = json.loads((facts.run_dir / RUN_CONFIG_FILE).read_text())
+    except (OSError, ValueError):
+        return False
+    return (isinstance(config, dict) and config.get("run_id") == facts.name
+            and bool(facts.events) and facts.events[0].get("event_type") == "RUN_START")
+
+
 def classify(root: Path, *, run_id: str) -> list[RunPlan]:
     hot, hot_problem = _hot_symbol(root)
     plans = []
@@ -471,8 +484,8 @@ def classify(root: Path, *, run_id: str) -> list[RunPlan]:
             plans.append(RunPlan(facts, BLOCKED_RUN, facts.problem))
             continue
         if facts.symbol is None:
-            if (run_dir / C1_STATE_FILE).exists() and not facts.traded and facts.position == 0:
-                plans.append(RunPlan(facts, RETIRED_C1))
+            if _is_paper_run(facts) and not facts.traded and facts.position == 0:
+                plans.append(RunPlan(facts, RETIRED_UNDISCOVERED))
             else:
                 plans.append(RunPlan(facts, BLOCKED_RUN, "UNKNOWN_RUN"))
             continue
