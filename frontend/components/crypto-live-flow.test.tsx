@@ -63,6 +63,8 @@ function fakeBinance({ capability = true }: { capability?: boolean } = {}) {
   vi.stubGlobal("fetch", vi.fn(async (input: string, init?: RequestInit) => {
     const url = String(input);
     const method = init?.method || "GET";
+    // The PAPER screen asks the local route for `available`; the LIVE screen asks the full one.
+    if (url.includes("/binance/local-status")) return ok({ available: true, symbol: "BTCUSDT" });
     if (url.includes("/binance/status")) {
       return ok({ source: "BINANCE_LIVE", available: true, ready: true, blockers: [],
                   gates: accountView().gates, config: {}, runtime_error: null, endpoints: [] });

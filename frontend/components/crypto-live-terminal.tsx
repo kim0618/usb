@@ -20,7 +20,7 @@ import {
   ACTIVATE_CONFIRM_NOTE, ARM_CONFIRMATION, ARM_NOTE, AccountSource, LIVE_AUTHORITY_NOTE,
   LIVE_LEVERAGE_CANDIDATES, LIVE_LOCK_NOTE, LIVE_PRESET_LABELS,
   LiveAccount, LiveArmState, LiveBlocker, LiveExitGuard, LivePerformance, LiveLeverageOptions, LivePositionCard as LivePositionCardData,
-  LivePreview, LiveSizing, LiveStatus, LiveTradeGate, MARGIN_MODE_LABELS,
+  LiveLocalStatus, LivePreview, LiveSizing, LiveStatus, LiveTradeGate, MARGIN_MODE_LABELS,
   MARGIN_MODE_READONLY_NOTE, leverageRestriction, liveApi, liveBlockerLabel, livePresetQty,
   liveSideAllowance, liveTradeGate,
   liveLeverageLabel, liveLeverageValidity,
@@ -1162,7 +1162,9 @@ export function LiveAutoExit({ guard, onSave, onDisable, busy, error }: {
  */
 export function useBinanceLive(enabled: boolean, symbol: string = DEFAULT_SYMBOL,
                                pollMs = LIVE_POLL_MS) {
-  const [status, setStatus] = useState<LiveStatus | null>(null);
+  /** The full status on LIVE; on PAPER only the local answer, which carries `available` and
+   *  the symbol list and nothing that needs the account. */
+  const [status, setStatus] = useState<(LiveLocalStatus & Partial<LiveStatus>) | null>(null);
   const [account, setAccount] = useState<LiveAccount | null>(null);
   const [preview, setPreview] = useState<LivePreview | null>(null);
   const [sizing, setSizing] = useState<LiveSizing | null>(null);
@@ -1220,11 +1222,17 @@ export function useBinanceLive(enabled: boolean, symbol: string = DEFAULT_SYMBOL
 
   useEffect(() => {
     let cancelled = false;
-    liveApi.status(symbol)
+    // PAPER reads one field of this, `available`, for the account switch. The full status
+    // reads the whole Binance account to answer (five signed requests) on every mount and tab
+    // change, so PAPER asks the local route, which answers the same `available` from the
+    // server's configuration. LIVE keeps the full status; switching re-runs this effect.
+    const read: Promise<LiveLocalStatus & Partial<LiveStatus>> =
+      enabled ? liveApi.status(symbol) : liveApi.localStatus(symbol);
+    read
       .then(next => { if (!cancelled && mine(next.symbol)) setStatus(next); })
       .catch((exc: CryptoApiError) => { if (!cancelled) setError(exc.message); });
     return () => { cancelled = true; };
-  }, [symbol, mine]);
+  }, [enabled, symbol, mine]);
 
   const refresh = useCallback(async () => {
     const asked = current.current;

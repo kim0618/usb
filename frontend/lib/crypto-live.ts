@@ -210,6 +210,10 @@ export type LiveStatus = {
   mirror?: Record<string, unknown> | null;
 };
 
+/** What the PAPER screen needs in order to offer LIVE: `available`, answered from the server's
+ *  local configuration with no Binance request. The full `LiveStatus` reads the whole account. */
+export type LiveLocalStatus = { available: boolean; symbol?: string; symbols?: string[] };
+
 export type LivePreviewSide = {
   side: OrderSide; feasible: boolean; qty?: string; notional?: string; leverage?: string | null;
   configured_leverage?: string | null; bracket_max_leverage?: string | null;
@@ -450,6 +454,8 @@ export type LivePositionsSummary = {
 export const liveApi = {
   status: (symbol: string = DEFAULT_SYMBOL, signal?: AbortSignal) =>
     request<LiveStatus>(withSymbol("/api/crypto/binance/status", symbol), { signal }),
+  localStatus: (symbol: string = DEFAULT_SYMBOL, signal?: AbortSignal) =>
+    request<LiveLocalStatus>(withSymbol("/api/crypto/binance/local-status", symbol), { signal }),
   account: (symbol: string, signal?: AbortSignal) =>
     request<LiveAccount>(withSymbol("/api/crypto/binance/account", symbol), { signal }),
   positions: (signal?: AbortSignal) =>

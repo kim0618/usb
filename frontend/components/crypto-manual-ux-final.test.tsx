@@ -319,6 +319,8 @@ function backends() {
       return ok({ ...hotState(), status: "HOT_REPLACED", changed: true, previous: null, paper_note: null, scan: null });
     }
     if (url.includes("/api/crypto/hot")) return ok(hotState());
+    // The PAPER screen asks the local route for `available`; the LIVE screen asks the full one.
+    if (url.includes("/binance/local-status")) return ok({ available: true, symbol: symbol });
     if (url.includes("/binance/status")) {
       return ok({ source: "BINANCE_LIVE", available: true, ready: true, blockers: [],
                   gates: liveAccount().gates, config: {}, runtime_error: null, endpoints: [] });

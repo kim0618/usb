@@ -631,6 +631,62 @@ async def binance_status(symbol: str | None = None) -> Any:
     return jsonable(body)
 
 
+def _live_available(requested: str, permitted: list[str]) -> bool:
+    """The `available` that `binance_status` reports, decided without building or reading.
+
+    `binance_status` says available exactly when `live_runtime.build` returns an adapter, and
+    that is settled before its account snapshot: the symbol is permitted, the configuration
+    loads, the key and secret are present and the configuration can be pointed at the symbol.
+    The same four facts are checked here from local state only. Nothing is constructed - no
+    client, no clock sync, no user data stream, no per-symbol runtime for a HOT tab - and no
+    request leaves the server.
+    """
+    if requested not in permitted:
+        return False
+    runtime = live_runtime
+    if runtime.adapter is not None and requested == runtime._default_symbol():
+        return True                                  # an adapter built elsewhere (`_adopt`)
+    if requested in runtime.symbols:
+        return True
+    config = runtime.config
+    if config is None:
+        try:
+            config = load_config()
+        except ValueError:
+            return False
+    if runtime.client is None or runtime.mirror is None:
+        # `_build_shared` has not run: the checks it would make before its first request.
+        if not config.credentials_present:
+            return False
+        try:
+            load_credentials()
+        except CredentialsMissing:
+            return False
+    try:
+        config.for_symbol(requested)
+    except SymbolNotSupported:
+        return False
+    return True
+
+
+@app.get("/api/crypto/binance/local-status")
+async def binance_local_status(symbol: str | None = None) -> Any:
+    """Whether LIVE can be offered, for the PAPER screen's account switch.
+
+    The PAPER screen reads one field of `/binance/status`, `available`, and that route reads
+    the whole Binance account to answer it (five signed requests, about 68 weight, and a line
+    in the audit mirror) on every mount and every tab change. This answers the same `available`
+    from local configuration alone. The LIVE screen keeps the full route.
+    """
+    try:
+        requested = resolve_symbol(symbol)
+    except SymbolNotSupported as exc:
+        return _symbol_error(exc)
+    permitted = _permitted(_config_view().get("symbols") or list(SUPPORTED_SYMBOLS))
+    return jsonable({"symbol": requested, "symbols": permitted,
+                     "available": _live_available(requested, permitted)})
+
+
 @app.get("/api/crypto/binance/account")
 async def binance_account(force: bool = False, symbol: str | None = None) -> Any:
     """Balance, position, leverage, margin mode and mark, as Binance reports them.
