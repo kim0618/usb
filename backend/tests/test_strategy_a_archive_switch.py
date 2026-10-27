@@ -23,6 +23,9 @@ def test_require_paper_runtime_refuses_only_when_archived() -> None:
 
 def _patched_owners(monkeypatch) -> list[str]:
     started: list[str] = []
+    # E-MAX switched on, so the lifespan reaches its runtime: the archive must leave E's start alone.
+    # Off, the runtime is not imported at all (tests/test_backend_startup_imports.py).
+    monkeypatch.setenv("STRATEGY_E_MAX_ENABLED", "true")
     monkeypatch.setattr(main, "activate_operator_simulation_runtime", lambda *a, **k: object())
     monkeypatch.setattr(main.mover_live_entry, "start", lambda *a, **k: started.append("entry"))
     monkeypatch.setattr(main, "start_position_management_runtime", lambda *a, **k: started.append("position"))

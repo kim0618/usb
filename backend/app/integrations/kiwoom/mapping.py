@@ -3,17 +3,16 @@
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal, InvalidOperation
 from typing import Any
-import exchange_calendars as xcals
-import pandas as pd
 from app.core.exceptions import MarketDataError
 from app.integrations.kiwoom.timestamps import ET, minute_timestamp
+from app.market.calendar import MarketCalendar
 from app.market.domain import DailyBar, MarketSession, MinuteBar
 from app.market.reference import SymbolMetadata
 from app.market.symbols import normalize_symbol
 
 EXCHANGES = {"ND": "NASDAQ", "NY": "NYSE", "NA": "AMEX"}
 EXCHANGE_CODES = {name: code for code, name in EXCHANGES.items()}
-US_CALENDAR = xcals.get_calendar("XNYS")
+US_CALENDAR = MarketCalendar(ET.key)
 
 
 def canonical_exchange(raw: object) -> str:
@@ -74,12 +73,11 @@ def map_minute_bar(symbol: str, row: dict[str, Any], received_at: datetime) -> M
     observed_at = timestamp + timedelta(minutes=1)
     if observed_at > received_at.astimezone(ET):
         raise MarketDataError("FUTURE_DATA", "Incomplete or future minute bar was excluded")
-    label = pd.Timestamp(timestamp.date())
+    window = US_CALENDAR.session(timestamp.date())
     local_time = timestamp.timetz().replace(tzinfo=None)
-    if not US_CALENDAR.is_session(label) or local_time < time(4) or local_time >= time(20):
+    if window is None or local_time < time(4) or local_time >= time(20):
         raise MarketDataError("OUTSIDE_SESSION", "Minute bar is outside supported US sessions")
-    market_open = US_CALENDAR.session_open(label).to_pydatetime().astimezone(ET)
-    market_close = US_CALENDAR.session_close(label).to_pydatetime().astimezone(ET)
+    market_open, market_close = window.market_open, window.market_close
     session = (MarketSession.PREMARKET if timestamp < market_open
                else MarketSession.REGULAR if timestamp < market_close
                else MarketSession.POSTMARKET)

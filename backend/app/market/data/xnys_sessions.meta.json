@@ -1,0 +1,12 @@
+{
+  "generator_version": "xnys-sessions-v1",
+  "calendar": "XNYS",
+  "exchange_calendars_version": "4.13.2",
+  "range_start": "2000-01-01",
+  "range_end": "2035-12-31",
+  "first_session": "2000-01-03",
+  "last_session": "2035-12-31",
+  "row_count": 9049,
+  "sha256": "6fcf23082b3bb24ab1432c63206aa646aa00e8643d62f0a04609d06778cebf21",
+  "generated_at": "2026-10-27T04:33:24+00:00"
+}

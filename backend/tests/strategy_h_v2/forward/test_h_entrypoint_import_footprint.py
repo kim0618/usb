@@ -28,6 +28,8 @@ _CALENDAR = """
 import hashlib, json, sys
 if sys.argv[1] == "blocked":
     sys.modules.setdefault("pyarrow", None)
+else:
+    import pyarrow  # the calendar no longer imports it; load it so both runs differ in exactly this
 from datetime import date, timedelta
 from app.market.calendar import MarketCalendar
 def call(f, *a):
@@ -66,10 +68,13 @@ def test_entrypoint_does_not_load_pyarrow():
 
 
 def test_library_import_is_untouched():
-    # the control: the same detection sees pyarrow when the module is imported, not run (backend, tests)
+    # Imported, not run, the module installs no pyarrow block; the calendar it imports no longer loads
+    # pyarrow at all (static session table), and the same detection still sees pyarrow once imported.
     state = _run("import json, sys, app.dev.run_h_v2_d7\n"
-                 "print(json.dumps({'pyarrow': sys.modules.get('pyarrow') is not None}))")
-    assert state["pyarrow"] is True
+                 "blocked = 'pyarrow' in sys.modules and sys.modules['pyarrow'] is None\n"
+                 "import pyarrow\n"
+                 "print(json.dumps({'blocked': blocked, 'pyarrow': sys.modules.get('pyarrow') is not None}))")
+    assert state["blocked"] is False and state["pyarrow"] is True
 
 
 def test_market_calendar_is_identical_without_pyarrow():

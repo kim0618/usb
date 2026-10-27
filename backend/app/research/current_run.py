@@ -55,13 +55,19 @@ from sqlalchemy.orm import Session
 from app.market.calendar import MarketCalendar
 from app.models.scanner import ScannerRun
 from app.strategy_a_mover_live import config as CFG
-from app.strategy_a_mover_live import contract as LC
+
+#: The live source's stamp on ``scanner_runs``, copied from ``strategy_a_mover_live.contract``
+#: (``RUN_SCORE_VERSION``, ``RUN_PROVIDER``) instead of imported: the contract pulls the whole
+#: mover research stack, numpy and pyarrow into every backend start for two strings.
+#: ``tests/test_backend_startup_imports.py`` pins both values to the contract.
+LIVE_RUN_SCORE_VERSION = "a_mover_live_v1"
+LIVE_RUN_PROVIDER = "KIWOOM_AE_SHARED_PREMARKET"
 
 #: The live source filter, stated once. Identical to ``paper_adapter.live_run_for``'s own two
 #: predicates; the date predicate is the caller's, because the UI resolves the newest live run
 #: while the runtime resolves the live run of the analysis session it is consuming.
-LIVE_RUN_CRITERIA = (ScannerRun.score_version == LC.RUN_SCORE_VERSION,
-                     ScannerRun.provider == LC.RUN_PROVIDER)
+LIVE_RUN_CRITERIA = (ScannerRun.score_version == LIVE_RUN_SCORE_VERSION,
+                     ScannerRun.provider == LIVE_RUN_PROVIDER)
 
 #: The complement, for the pre-live deployed source, and the exact SQL negation of
 #: :func:`is_live_run` so the row classifier and the query cannot disagree about one row.
@@ -69,8 +75,8 @@ LIVE_RUN_CRITERIA = (ScannerRun.score_version == LC.RUN_SCORE_VERSION,
 #: are NOT NULL, so this is the unfiltered query minus exactly the rows the deployed entry
 #: lifecycle cannot consume, and it reclassifies nothing. A research row keeps whatever name
 #: it was written with and stays resolvable.
-LEGACY_RUN_CRITERIA = (or_(ScannerRun.score_version != LC.RUN_SCORE_VERSION,
-                           ScannerRun.provider != LC.RUN_PROVIDER),)
+LEGACY_RUN_CRITERIA = (or_(ScannerRun.score_version != LIVE_RUN_SCORE_VERSION,
+                           ScannerRun.provider != LIVE_RUN_PROVIDER),)
 
 
 def live_source_active(environ: dict[str, str] | None = None) -> bool:
@@ -85,7 +91,7 @@ def source_criteria(environ: dict[str, str] | None = None) -> tuple:  # type: ig
 
 def is_live_run(run: ScannerRun) -> bool:
     """Whether this stored row is a live-source run. Read-only; never updates a row."""
-    return run.score_version == LC.RUN_SCORE_VERSION and run.provider == LC.RUN_PROVIDER
+    return run.score_version == LIVE_RUN_SCORE_VERSION and run.provider == LIVE_RUN_PROVIDER
 
 
 def run_is_authoritative(run: ScannerRun, environ: dict[str, str] | None = None) -> bool:

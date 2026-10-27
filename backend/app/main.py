@@ -1,8 +1,11 @@
 """Minimal FastAPI application entry point."""
 
 from contextlib import asynccontextmanager
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncIterator, Callable, Mapping
+import importlib
 import logging
+import os
+import sys
 
 from fastapi import FastAPI
 from fastapi import Request
@@ -29,13 +32,29 @@ from app.services.simulation_runtime import (
     activate_operator_simulation_runtime, clear_active_sim_broker,
 )
 from app.strategy_a_mover_live import config as mover_live_config
-from app.strategy_a_mover_live import paper_adapter as mover_live_entry
-from app.strategy_e_max_rt import runtime as strategy_e_max_runtime
 
 
 settings = get_settings()
 configure_logging(settings)
 logger = logging.getLogger(__name__)
+
+#: Owners imported only when they are switched on: A's paper adapter and the E-MAX runtime each
+#: bring the mover/E research stacks (numpy, pyarrow) into the process. They stay reachable as
+#: ``main.mover_live_entry`` and ``main.strategy_e_max_runtime`` (resolved on first access) so
+#: the lifespan and anything patching those names share one module object.
+_DEFERRED_OWNERS = {"mover_live_entry": "app.strategy_a_mover_live.paper_adapter",
+                    "strategy_e_max_runtime": "app.strategy_e_max_rt.runtime"}
+
+
+def __getattr__(name: str) -> object:
+    if name in _DEFERRED_OWNERS:
+        return importlib.import_module(_DEFERRED_OWNERS[name])
+    raise AttributeError("module %r has no attribute %r" % (__name__, name))
+
+
+def e_max_enabled(environ: Mapping[str, str] = os.environ) -> bool:
+    """The enabled rule of ``strategy_e_max_rt.config.from_env``, read without importing it."""
+    return environ.get("STRATEGY_E_MAX_ENABLED", "false").strip().lower() in {"1", "true", "yes"}
 
 
 @asynccontextmanager
@@ -87,21 +106,25 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
                            if mover_live_config.entry_authority()
                            else "PRE_LIVE_TRADE_VALUE (post-close ranking of D -> entry "
                                 "next_trading_day(D))")
-            mover_live_entry.start(runtime, provider_factory)
+            __getattr__("mover_live_entry").start(runtime, provider_factory)
             start_position_management_runtime(runtime, provider_factory)
             # The closing review is a second cadence over the same broker, not a
             # second control loop: it starts after the minute driver so a process
             # that cannot manage a stop never begins deciding overnight carries.
             start_end_of_day_runtime(runtime, provider_factory)
         # Strategy E-MAX V1: a separate virtual book, off unless STRATEGY_E_MAX_ENABLED is set.
-        # It shares only the market-data provider; it never raises into A's startup.
-        strategy_e_max_runtime.start_from_env(getattr(
-            _app.state, "position_market_data_provider_factory",
-            lambda: market_factory.build_kiwoom_provider(current)))
+        # It shares only the market-data provider; it never raises into A's startup. Off, its
+        # runtime is not even imported: ``start_from_env`` would only return False.
+        if e_max_enabled():
+            __getattr__("strategy_e_max_runtime").start_from_env(getattr(
+                _app.state, "position_market_data_provider_factory",
+                lambda: market_factory.build_kiwoom_provider(current)))
         yield
     finally:
         try:
-            await strategy_e_max_runtime.stop()
+            # Nothing can be running in a runtime this process never imported.
+            if (e_max_runtime := sys.modules.get(_DEFERRED_OWNERS["strategy_e_max_runtime"])) is not None:
+                await e_max_runtime.stop()
         except Exception:  # E's shutdown must not block A's owners from draining
             logger.exception("E-MAX runtime stop failed")
         # Ownership is released without saving; every durable figure was already

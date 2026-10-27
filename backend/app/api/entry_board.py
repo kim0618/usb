@@ -21,7 +21,6 @@ from app.models.strategy import PremarketDiagnosticRecord, StrategyStateRecord
 from app.research import current_run as CR
 from app.research.authority import CurrentAuthorityStatus, ResearchAuthorityService
 from app.services.entry_management_runtime import intended_entry_bar_at, load_approved_candidates
-from app.strategy_a_mover_live.paper_adapter import load_live_approved_candidates
 from app.strategy.config import StrategyConfig
 from app.strategy.lifecycle import StrategyPhase
 
@@ -108,7 +107,12 @@ def _approved(session: Session, run: ScannerRun):  # type: ignore[no-untyped-def
     # ``trading_date``; the entry session the board reports is ``CR.entry_session_for`` (the
     # same session for a live run, the next one for a legacy run). The only difference between
     # the two loaders is the source filter on the run.
-    loader = load_live_approved_candidates if CR.is_live_run(run) else load_approved_candidates
+    # The live loader lives in A's paper adapter, which brings the mover research stack with it;
+    # it is imported only for a live run, so an archived A adds nothing to a backend start.
+    if CR.is_live_run(run):
+        from app.strategy_a_mover_live.paper_adapter import load_live_approved_candidates as loader
+    else:
+        loader = load_approved_candidates
     return [candidate for candidate in loader(session, run.trading_date)
             if candidate.scanner_run_id == run.id]
 
