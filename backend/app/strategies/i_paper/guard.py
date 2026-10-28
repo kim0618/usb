@@ -1,4 +1,4 @@
-"""RAM/PSI start-time guard V3 (pre-start decision only; no swap credit, no strategy imports).
+"""RAM/PSI start-time guard V3.1 (pre-start decision only; no swap credit, no strategy imports).
 
 Evidence base (controlled one-shot runs 2026-10-28 on the 1 GB host): RUN#1 and RUN#2 both completed with
 MemAvailable min 260-263 MiB, so the old 450 MiB fixed gate is not supported; the clean pre-start
@@ -6,8 +6,10 @@ baseline was MemAvailable 353-389 MiB, memory PSI full 0, IO PSI full avg10 up t
 
 Start conditions (all must hold):
   * MemAvailable >= 350 MiB (RAM only, free swap is never added);
-  * memory PSI some >= 2 / full >= 1 (avg10 and avg60) blocks; IO PSI full >= 15 (avg10 and avg60) blocks;
-    IO PSI some is validated and logged only (it sat at 10+ on a clean host while I was not running);
+  * memory PSI full avg10 < 1 and IO PSI full avg10 < 15 (current pressure only);
+  * every other PSI value (memory/IO some, avg60, avg300) is validated and logged, never a gate. V3.1 dropped
+    memory some and the avg60 gates: the first timer firing (2026-10-28) showed a short dashboard/flush burst
+    lingering in avg60 for a minute after the host had recovered, which would cancel the whole day's run;
   * no heavy US-B unit and no E unit is active, and not inside the E window (03:30-16:30 ET weekdays);
   * SwapFree >= 512 MiB as a separate floor (idle daemon pages need somewhere to go).
 
@@ -56,7 +58,6 @@ class SourceError(RuntimeError):
 class Policy:
     min_available_mib: float = 350
     min_swap_free_mib: float = 512
-    memory_some: float = 2
     memory_full: float = 1
     io_full: float = 15
 
@@ -105,8 +106,7 @@ def decide(now: datetime, is_active: Callable[[str], bool] = _is_active,
     policy.validate()
     if now.tzinfo is None or now.utcoffset() is None:
         raise ValueError("timezone-aware now required")
-    limits = {("memory", "some"): policy.memory_some, ("memory", "full"): policy.memory_full,
-              ("io", "full"): policy.io_full}      # io some is validated and logged, never a limit
+    limits = {("memory", "full"): policy.memory_full, ("io", "full"): policy.io_full}   # avg10 only
     reasons = []
     busy = [u for u in HEAVY_UNITS if is_active(u)]
     if busy:
@@ -129,8 +129,8 @@ def decide(now: datetime, is_active: Callable[[str], bool] = _is_active,
                     value = p[resource][kind][avg]
                     if not math.isfinite(value) or not 0 <= value <= 100:
                         raise ValueError()
-                    # avg300 is logged; avg10 catches bursts, avg60 blocks early recovery.
-                    if limit is not None and avg != "avg300" and value >= limit:
+                    # only the current (avg10) value gates; avg60/avg300 are observation only.
+                    if limit is not None and avg == "avg10" and value >= limit:
                         reasons.append("%s_PSI_%s_%s:%.2f" % (resource.upper(), kind, avg, value))
     except (KeyError, TypeError, ValueError) as ex:
         raise SourceError("missing or invalid MemAvailable/swap/PSI data") from ex
@@ -141,8 +141,10 @@ def decide(now: datetime, is_active: Callable[[str], bool] = _is_active,
     code = NORMAL_RESOURCE_SKIP if reasons else RUN
     return {"at": now.astimezone(timezone.utc).isoformat(), "et": et.isoformat(),
             "decision": "SKIP" if reasons else "RUN", "exit_code": code, "reasons": reasons,
-            "pressure": p, "policy": asdict(policy), "mem_available_mib": available,
-            "swap_free_mib": swap_free, "swap_used_mib": swap_total - swap_free, "swap_credit_mib": 0, "guard": "V3"}
+            "pressure": p, "observed": {"memory_full_avg60": p["memory"]["full"]["avg60"],
+                                        "io_full_avg60": p["io"]["full"]["avg60"],
+                                        "memory_some_avg10": p["memory"]["some"]["avg10"]}, "policy": asdict(policy), "mem_available_mib": available,
+            "swap_free_mib": swap_free, "swap_used_mib": swap_total - swap_free, "swap_credit_mib": 0, "guard": "V3.1"}
 
 
 def condition_exit(code: int) -> int:

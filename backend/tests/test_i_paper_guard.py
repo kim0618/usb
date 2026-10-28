@@ -1,4 +1,4 @@
-"""Strategy I oneshot start-time guard V3 and the I-owned grouped history merge (no market data needed)."""
+"""Strategy I oneshot start-time guard V3.1 and the I-owned grouped history merge (no market data needed)."""
 from __future__ import annotations
 
 import gzip
@@ -27,7 +27,7 @@ def run_at(utc: str, active=(), mem=ROOMY, pressure=None):
 def test_v3_policy_defaults_follow_the_run_evidence():
     p = G.Policy()
     assert (p.min_available_mib, p.memory_full, p.io_full) == (350, 1, 15)
-    assert not hasattr(p, "io_some")
+    assert not hasattr(p, "io_some") and not hasattr(p, "memory_some")
 
 
 def test_runs_at_0215_et_in_both_dst_regimes():
@@ -66,24 +66,66 @@ def test_missing_swap_fields_fail_closed():
         run_at("2026-10-21T06:15:00", mem={"MemAvailable": 900, "SwapFree": 900})
 
 
-@pytest.mark.parametrize('resource,kind,limit', [('memory', 'some', 2), ('memory', 'full', 1), ('io', 'full', 15)])
-@pytest.mark.parametrize('avg', ['avg10', 'avg60'])
-def test_each_psi_metric_blocks_at_boundary(resource, kind, limit, avg):
+@pytest.mark.parametrize('resource,limit', [('memory', 1), ('io', 15)])
+def test_each_current_full_psi_blocks_at_boundary(resource, limit):
     p = quiet_pressure()
-    p[resource][kind][avg] = limit
+    p[resource]['full']['avg10'] = limit
     r = run_at('2026-10-21T06:15:00', pressure=p)
     assert r['decision'] == 'SKIP' and r['exit_code'] == 10
-    assert r['reasons'] == [f'{resource.upper()}_PSI_{kind}_{avg}:{limit:.2f}']
-    p[resource][kind][avg] = limit - 0.01
+    assert r['reasons'] == [f'{resource.upper()}_PSI_full_avg10:{limit:.2f}']
+    p[resource]['full']['avg10'] = limit - 0.01
     assert run_at('2026-10-21T06:15:00', pressure=p)['decision'] == 'RUN'
 
 
-def test_io_some_and_avg300_never_block():
+def test_some_avg60_and_avg300_never_block_but_are_logged():
     p = quiet_pressure()
-    p['io']['some'] = {'avg10': 60.0, 'avg60': 60.0, 'avg300': 60.0}
-    p['io']['full']['avg300'] = 99.0
-    p['memory']['full']['avg300'] = 99.0
-    assert run_at('2026-10-21T06:15:00', pressure=p)['decision'] == 'RUN'
+    for r in ('memory', 'io'):
+        p[r]['some'] = {'avg10': 60.0, 'avg60': 60.0, 'avg300': 60.0}
+        p[r]['full']['avg60'] = 99.0
+        p[r]['full']['avg300'] = 99.0
+    rec = run_at('2026-10-21T06:15:00', pressure=p)
+    assert rec['decision'] == 'RUN' and rec['reasons'] == [] and rec['guard'] == 'V3.1'
+    assert rec['observed'] == {'memory_full_avg60': 99.0, 'io_full_avg60': 99.0, 'memory_some_avg10': 60.0}
+    p['io']['some']['avg60'] = float('nan')      # observation-only values are still validated
+    with pytest.raises(G.SourceError):
+        run_at('2026-10-21T06:15:00', pressure=p)
+
+
+# ------------------------------------------------------------------ 2026-10-28 first timer firing (06:15:04 UTC)
+# Pressure exactly as logged by the V3 guard on the server (store guard.jsonl, MemAvailable 411.96, SwapFree 1813.54).
+FIRST_FIRING = {"io": {"full": {"avg10": 25.52, "avg60": 23.11, "avg300": 7.36},
+                       "some": {"avg10": 27.67, "avg60": 25.24, "avg300": 8.08}},
+                "memory": {"full": {"avg10": 6.92, "avg60": 7.5, "avg300": 2.25},
+                           "some": {"avg10": 7.16, "avg60": 7.94, "avg300": 2.39}}}
+FIRST_FIRING_V3_REASONS = ["MEMORY_PSI_some_avg10:7.16", "MEMORY_PSI_some_avg60:7.94", "MEMORY_PSI_full_avg10:6.92",
+                           "MEMORY_PSI_full_avg60:7.50", "IO_PSI_full_avg10:25.52", "IO_PSI_full_avg60:23.11"]
+FIRST_FIRING_MEM = {"MemAvailable": 411.96, "SwapTotal": 2048, "SwapFree": 1813.54}
+
+
+def _v3_rule(p):
+    """The retired V3 PSI gates (memory some >= 2, memory full >= 1, IO full >= 15 on avg10 and avg60)."""
+    limits = {("memory", "some"): 2, ("memory", "full"): 1, ("io", "full"): 15}
+    return ["%s_PSI_%s_%s:%.2f" % (r.upper(), k, a, p[r][k][a]) for r in ("memory", "io") for k in ("some", "full")
+            for a in ("avg10", "avg60") if (r, k) in limits and p[r][k][a] >= limits[(r, k)]]
+
+
+def test_first_firing_still_skips_on_its_current_pressure():
+    assert _v3_rule(FIRST_FIRING) == FIRST_FIRING_V3_REASONS        # reproduces what V3 logged in production
+    rec = run_at("2026-10-28T06:15:04", mem=FIRST_FIRING_MEM, pressure=FIRST_FIRING)
+    # avg10 itself was over both limits at decision time, so V3.1 skips too, only on the current values
+    assert rec["decision"] == "SKIP" and rec["reasons"] == ["MEMORY_PSI_full_avg10:6.92", "IO_PSI_full_avg10:25.52"]
+
+
+def test_first_firing_burst_after_recovery_runs_under_v31():
+    # Same burst a minute later (~15:16 KST: memory ~0, IO full ~2): avg10 recovered, avg60/some still carry the trace.
+    recovered = {"io": {"full": {"avg10": 2.0, "avg60": 16.0, "avg300": 7.0},
+                        "some": {"avg10": 3.0, "avg60": 18.0, "avg300": 8.0}},
+                 "memory": {"full": {"avg10": 0.0, "avg60": 4.5, "avg300": 2.0},
+                            "some": {"avg10": 2.5, "avg60": 5.0, "avg300": 2.1}}}
+    assert _v3_rule(recovered) == ["MEMORY_PSI_some_avg10:2.50", "MEMORY_PSI_some_avg60:5.00",
+                                   "MEMORY_PSI_full_avg60:4.50", "IO_PSI_full_avg60:16.00"]   # old V3 = SKIP
+    rec = run_at("2026-10-28T06:16:04", mem=FIRST_FIRING_MEM, pressure=recovered)
+    assert rec["decision"] == "RUN" and rec["exit_code"] == 0 and rec["observed"]["io_full_avg60"] == 16.0
 
 
 @pytest.mark.parametrize('bad', [{}, {'memory': {}}, {'memory': {'some': {'avg10': float('nan')}}}])
@@ -184,7 +226,21 @@ def test_v3_380_mib_and_quiet_psi_runs(tmp_path, monkeypatch, capsys):
     store = _world(tmp_path, monkeypatch)
     assert _main(store, capsys, systemd=True)[0] == 0
     code, rec, log = _main(store, capsys)
-    assert (code, rec["decision"], rec["guard"], rec["swap_credit_mib"]) == (0, "RUN", "V3", 0) and len(log) == 2
+    assert (code, rec["decision"], rec["guard"], rec["swap_credit_mib"]) == (0, "RUN", "V3.1", 0) and len(log) == 2
+
+
+def test_v31_stale_avg60_and_memory_some_do_not_block_current_quiet_host(tmp_path, monkeypatch, capsys):
+    store = _world(tmp_path, monkeypatch, avail_mib=380, mem_psi=_psi(some10=30, full10=0, some60=30, full60=20),
+                   io_psi=_psi(some10=6, full10=5, some60=50, full60=50))
+    code, rec, log = _main(store, capsys, systemd=True)
+    assert (code, rec["decision"], rec["reasons"]) == (0, "RUN", []) and len(log) == 1
+    assert rec["observed"] == {"memory_full_avg60": 20.0, "io_full_avg60": 50.0, "memory_some_avg10": 30.0}
+
+
+def test_v31_swap_free_below_floor_skips(tmp_path, monkeypatch, capsys):
+    store = _world(tmp_path, monkeypatch, avail_mib=380, swap_free_mib=511)
+    code, rec, _ = _main(store, capsys, systemd=True)
+    assert code == 75 and rec["reasons"] == ["SWAP_FREE_MIB:511.00"]
 
 
 def test_v3_349_mib_skips(tmp_path, monkeypatch, capsys):
