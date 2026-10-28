@@ -221,6 +221,9 @@ describe("dashboard route", () => {
         dashboard: { mode: "OFFICIAL PAPER", status: "ISSUE", status_reason: "데이터 오류", operating_since: "2026-09-28",
                      operating_day: 16, session_count: 10, session_kind: "공식", last_run_at: null, last_decision: null } },
     ],
+    "/api/v1/strategy-i/paper": { strategy_id: "STRATEGY_I_MOM12_2", display_name: "Strategy I · MOM12-2", orders: "NONE",
+      status: "LAUNCHED_NO_RUN", launched: true, launch_signal: "2026-10-30", initial_capital: "10000",
+      reason: "아직 완료된 실행이 없습니다." },
   };
 
   it("renders the operating strategy from the live API and no card for archived A", async () => {
@@ -234,7 +237,9 @@ describe("dashboard route", () => {
     // The registry payload still lists Strategy A as enabled; the dashboard leaves it out anyway.
     expect(await screen.findAllByText("Strategy E-MAX V1")).toHaveLength(1);
     expect(screen.queryByText("Strategy A")).not.toBeInTheDocument();
-    expect(document.querySelectorAll("[data-dashboard-card]")).toHaveLength(1);
+    // E from the registry, then Strategy I from its own paper API.
+    expect([...document.querySelectorAll("[data-dashboard-card]")].map(c => c.getAttribute("data-strategy")))
+      .toEqual([STRATEGY_E, "STRATEGY_I_MOM12_2"]);
     expect(document.querySelector(`[data-strategy="${STRATEGY_A}"]`)).toBeNull();
     // No page heading or subtitle: the cards start the page.
     expect(screen.queryByRole("heading", { level: 1 })).not.toBeInTheDocument();

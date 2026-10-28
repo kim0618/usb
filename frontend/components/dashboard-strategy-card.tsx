@@ -12,6 +12,7 @@ import { EmptyState } from "@/components/ui";
 import { formatKrw, usdToDisplayKrw } from "@/lib/format";
 import type { StrategyBundle } from "@/components/strategy-runtime";
 import type { DashboardBlock } from "@/lib/strategies";
+import { STATUS_LABEL, STRATEGY_I_TAB, type IGuardDecision, type IPaperView, type IStatus } from "@/lib/strategy-i";
 
 const STATE_DOT: Readonly<Record<DashboardBlock["status"], string>> = {
   RUNNING: "bg-primary", WAITING: "bg-foreground-muted", ISSUE: "bg-danger",
@@ -64,10 +65,55 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   </div>;
 }
 
+type CardFrameProps = {
+  strategyId: string; title: string; href?: string; mode: string; state: DashboardBlock["status"] | undefined;
+  period: string; reason: string | null; note?: string | null;
+  initial: string | null; equity: string | null; sessionPnl: string | null; net: string | null;
+  trades: string; decision: string; lastRunAt: string | null | undefined;
+};
+
+/** The card's one layout, shared by the registry strategies and Strategy I. */
+function CardFrame(p: CardFrameProps) {
+  const { state } = p;
+  return <article className="panel flex h-full flex-col p-5" data-strategy={p.strategyId}
+    data-state={state || "UNKNOWN"} data-dashboard-card="">
+    <header className="flex items-start justify-between gap-3">
+      <h3 className="min-w-0 text-lg font-semibold text-foreground">
+        {p.href ? <Link href={p.href} className="hover:text-primary">{p.title}</Link> : p.title}
+      </h3>
+      <span className="shrink-0 rounded-full border border-line px-2.5 py-1 text-[11px] font-bold tracking-wide text-foreground-secondary"
+        data-mode="">{p.mode}</span>
+    </header>
+
+    <div className="mt-4" data-status-block="">
+      <p className="flex items-center gap-2 text-sm font-semibold text-foreground" data-status={state || ""}>
+        <span aria-hidden className={`inline-block h-2.5 w-2.5 rounded-full ${state ? STATE_DOT[state] : "bg-foreground-muted"}`}/>
+        {state ?? "-"}
+      </p>
+      <p className="mt-1 text-xs text-muted" data-period="">{p.period}</p>
+      {/* Reserved on every card so a healthy card is exactly as tall as one with an issue. */}
+      <div className="mt-1 min-h-4 text-xs text-danger">
+        {state === "ISSUE" && p.reason && <p data-reason="">{p.reason}</p>}
+        {state !== "ISSUE" && p.note && <p className="text-muted" data-note="">{p.note}</p>}
+      </div>
+    </div>
+
+    <dl className="mt-5 grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-3">
+      <Field label="초기 자본"><Money value={p.initial}/></Field>
+      <Field label="현재 자산"><Money value={p.equity}/></Field>
+      <Field label="최근 세션 손익"><Money signed value={p.sessionPnl}/></Field>
+      <Field label="공식 누적 손익"><Money signed value={p.net}/></Field>
+      <Field label="공식 거래 수">{p.trades}</Field>
+      <Field label="최근 결정">{p.decision}</Field>
+    </dl>
+
+    <p className="mt-auto pt-5 text-xs text-muted" data-last-run="">마지막 실행 {kstStamp(p.lastRunAt)}</p>
+  </article>;
+}
+
 export function DashboardStrategyCard({ bundle, href }: { bundle: StrategyBundle; href?: string }) {
   const { row, account, card } = bundle;
   const block = card?.dashboard;
-  const state = block?.status;
   // H before its paper launch has no capital book: money and trade fields are "-", with the reason on
   // the API's `na`. Once launched, its card carries the H paper account like A's and E's.
   const noBook = card?.forward != null && card?.initial_equity == null;
@@ -80,44 +126,81 @@ export function DashboardStrategyCard({ bundle, href }: { bundle: StrategyBundle
   const officialTrades = official?.trades ?? card?.trades;
   const net = noBook ? null : (official?.net_pnl ?? card?.net_pnl ?? (officialTrades === 0 ? "0" : null));
 
-  return <article className="panel flex h-full flex-col p-5" data-strategy={row.strategy_id}
-    data-state={state || "UNKNOWN"} data-dashboard-card="">
-    <header className="flex items-start justify-between gap-3">
-      <h3 className="min-w-0 text-lg font-semibold text-foreground">
-        {href ? <Link href={href} className="hover:text-primary">{row.display_name}</Link> : row.display_name}
-      </h3>
-      <span className="shrink-0 rounded-full border border-line px-2.5 py-1 text-[11px] font-bold tracking-wide text-foreground-secondary"
-        data-mode="">{block?.mode ?? "-"}</span>
-    </header>
-
-    <div className="mt-4" data-status-block="">
-      <p className="flex items-center gap-2 text-sm font-semibold text-foreground" data-status={state || ""}>
-        <span aria-hidden className={`inline-block h-2.5 w-2.5 rounded-full ${state ? STATE_DOT[state] : "bg-foreground-muted"}`}/>
-        {state ?? "-"}
-      </p>
-      <p className="mt-1 text-xs text-muted" data-period="">{periodLine(block)}</p>
-      {/* Reserved on every card so a healthy card is exactly as tall as one with an issue. */}
-      <div className="mt-1 min-h-4 text-xs text-danger">
-        {state === "ISSUE" && block?.status_reason && <p data-reason="">{block.status_reason}</p>}
-      </div>
-    </div>
-
-    <dl className="mt-5 grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-3">
-      <Field label="초기 자본"><Money value={noBook ? null : account.initial_equity}/></Field>
-      <Field label="현재 자산"><Money value={noBook ? null : account.current_equity}/></Field>
-      <Field label="최근 세션 손익"><Money signed value={noBook || !settled ? null : account.today_pnl}/></Field>
-      <Field label="공식 누적 손익"><Money signed value={net}/></Field>
-      <Field label="공식 거래 수">{trades}</Field>
-      <Field label="최근 결정">{block?.last_decision || "-"}</Field>
-    </dl>
-
-    <p className="mt-auto pt-5 text-xs text-muted" data-last-run="">마지막 실행 {kstStamp(block?.last_run_at)}</p>
-  </article>;
+  return <CardFrame strategyId={row.strategy_id} title={row.display_name} href={href} mode={block?.mode ?? "-"}
+    state={block?.status} period={periodLine(block)} reason={block?.status_reason ?? null}
+    initial={noBook ? null : account.initial_equity} equity={noBook ? null : account.current_equity}
+    sessionPnl={noBook || !settled ? null : account.today_pnl} net={net} trades={trades}
+    decision={block?.last_decision || "-"} lastRunAt={block?.last_run_at}/>;
 }
 
-export function DashboardStrategyCards({ bundles, hrefs = {} }: { bundles: StrategyBundle[]; hrefs?: Record<string, string> }) {
-  if (!bundles.length) return <EmptyState title="운영 중인 전략이 없습니다." description="전략 레지스트리에 활성 전략이 없습니다."/>;
+/** Strategy I's card values, in the same fields and the same RUNNING / WAITING / ISSUE fold the
+ *  registry cards get from GET /strategies/cards. Every figure is the I API's own: before the first
+ *  rebalance there is no account, so equity and session PnL stay a dash. A book with no trade has a
+ *  cumulative PnL of zero, the same rule the registry cards follow. */
+export type IDashboardSummary = {
+  state: DashboardBlock["status"]; period: string; reason: string | null; note: string | null;
+  initial: string | null; equity: string | null; sessionPnl: string | null; net: string | null;
+  trades: string; decision: string; lastRunAt: string | null;
+};
+
+/** Pre-launch, no run yet and a late as-of are all waiting states; only a failed or refused run is an issue. */
+const I_STATE: Readonly<Record<IStatus, DashboardBlock["status"]>> = {
+  NOT_LAUNCHED: "WAITING", LAUNCHED_NO_RUN: "WAITING", RUNNING: "RUNNING", DATA_DELAYED: "WAITING",
+  INPUT_BLOCKED: "ISSUE", ERROR: "ISSUE",
+};
+
+/** A guard SKIP after the last completed run: the timer held the run back under host pressure (not an error). */
+export function heldGuardSkip(view: IPaperView): IGuardDecision | null {
+  const skip = view.guard?.last_skip;
+  if (!skip?.at) return null;
+  const done = view.last_run?.completed_at;
+  return !done || Date.parse(skip.at) > Date.parse(done) ? skip : null;
+}
+
+export function iDashboardSummary(view: IPaperView): IDashboardSummary {
+  const state = I_STATE[view.status] ?? "ISSUE";
+  const a = view.account ?? null;
+  const preLaunch = view.launch_signal != null && (!view.last_run || view.last_run.as_of < view.launch_signal);
+  // rebalances are returned whole (trades are capped at 200), so the trade count is summed from them
+  const tradeCount = view.rebalances ? view.rebalances.reduce((n, r) => n + r.trade_count, 0) : null;
+  const latest = view.rebalances?.[0];
+  const delay = view.flags?.data_delay;
+  return {
+    state,
+    period: a ? `운영 ${a.operating_sessions}세션` : preLaunch ? `시작 신호일 ${view.launch_signal} 전` : STATUS_LABEL[view.status] ?? "-",
+    reason: state === "ISSUE" ? view.reason || STATUS_LABEL[view.status] || view.status : null,
+    note: state === "ISSUE" ? null : heldGuardSkip(view) ? "호스트 부하 보호로 실행 보류"
+      : delay?.delayed ? `데이터 지연 · 마지막 평가 ${delay.as_of}` : null,
+    initial: view.initial_capital ?? null,
+    equity: a ? String(a.nav) : null,
+    sessionPnl: a ? String(a.day_pnl) : null,
+    net: a ? String(a.total_pnl) : tradeCount === 0 ? "0" : null,
+    trades: tradeCount == null ? "-" : String(tradeCount),
+    decision: latest ? `${latest.signal} 신호 · ${latest.holdings}종목` : "-",
+    lastRunAt: view.last_run?.completed_at ?? null,
+  };
+}
+
+/** Strategy I's card. I is not in the strategy registry, so it reads its own paper API
+ *  (/api/v1/strategy-i/paper) and is drawn in the same frame. A guard SKIP is a neutral note, never ISSUE. */
+export function DashboardStrategyICard({ view, error, href }: { view: IPaperView | null; error?: string | null; href?: string }) {
+  if (!view) {
+    return <CardFrame strategyId={STRATEGY_I_TAB.strategy_id} title="Strategy I · MOM12-2" href={href} mode="PAPER" state="ISSUE"
+      period="-" reason={error || "Strategy I 상태 조회 실패"} initial={null} equity={null} sessionPnl={null} net={null}
+      trades="-" decision="-" lastRunAt={null}/>;
+  }
+  const s = iDashboardSummary(view);
+  return <CardFrame strategyId={view.strategy_id} title={view.display_name} href={href} mode="PAPER" state={s.state}
+    period={s.period} reason={s.reason} note={s.note} initial={s.initial} equity={s.equity} sessionPnl={s.sessionPnl}
+    net={s.net} trades={s.trades} decision={s.decision} lastRunAt={s.lastRunAt}/>;
+}
+
+export function DashboardStrategyCards({ bundles, hrefs = {}, children }: {
+  bundles: StrategyBundle[]; hrefs?: Record<string, string>; children?: React.ReactNode;
+}) {
+  if (!bundles.length && !children) return <EmptyState title="운영 중인 전략이 없습니다." description="전략 레지스트리에 활성 전략이 없습니다."/>;
   return <section aria-label="전략 현황" className="grid gap-4 lg:grid-cols-2">
     {bundles.map(bundle => <DashboardStrategyCard key={bundle.row.strategy_id} bundle={bundle} href={hrefs[bundle.row.strategy_id]}/>)}
+    {children}
   </section>;
 }
