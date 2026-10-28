@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.api.entry_board import entry_board
 from app.api.strategies import router as strategies_router
+from app.api.strategy_i import router as strategy_i_router
 from app.api.strategy_history import evaluation_detail, evaluation_history
 from app.api.simulation import broker_projection, position_projection
 from app.services.simulation_runtime import get_active_runtime, get_active_sim_broker
@@ -51,6 +52,7 @@ from app.monitoring.config import OPERATIONS_VERSION
 
 router = APIRouter(prefix="/api/v1")
 router.include_router(strategies_router)     # read-only per-strategy views (A, E-MAX V1)
+router.include_router(strategy_i_router)     # read-only Strategy I paper store (not in the registry)
 DB = Annotated[Session, Depends(get_db)]
 
 

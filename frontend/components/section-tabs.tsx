@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useApi } from "@/hooks/use-api";
 import { operatingTabs, strategiesApi } from "@/lib/strategies";
+import { STRATEGY_I_TAB } from "@/lib/strategy-i";
 
 export type SectionTab = {
   href: string;
@@ -59,7 +60,9 @@ export function SectionTabs({ label, tabs }: { label: string; tabs: SectionTab[]
  *  own error state speaks. */
 export function TradingTabs() {
   const registry = useApi(strategiesApi.list, 300_000);
-  return <SectionTabs label="트레이딩 화면" tabs={registry.data ? operatingTabs(registry.data) : []} />;
+  // Strategy I is not a registry strategy (it must not enter the A/E cards or the gate); its order-less
+  // paper screen is appended once the registry has loaded, so no tab is invented while loading.
+  return <SectionTabs label="트레이딩 화면" tabs={registry.data ? [...operatingTabs(registry.data), STRATEGY_I_TAB] : []} />;
 }
 
 export function StrategyTabs() {
