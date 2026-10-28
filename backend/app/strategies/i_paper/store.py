@@ -172,11 +172,14 @@ def frozen_compute(stores: V.Stores, sic_store: Path | None = None, store: Path 
     def _c(launch_signal: date, as_of: date, work: Path) -> dict[str, Any]:
         cal = MarketCalendar()
         reg = register_snapshots(store, stores, today) if store is not None else None
-        view = V.build_view(stores, as_of, work / "view", cal)
+        view = V.build_view(stores, as_of, work / "view", cal, hash_grouped=not lean)
         (work / "scratch").mkdir()
+        rk = EN.read_snapshots(view.ranking_files, reg)        # before the panel: off the memory peak
+        ev = EN.read_snapshots(view.evidence_files, reg)
         m21 = (LN.load(view, LN.start_for(view, launch_signal.isoformat())) if lean else V.load_v21(view, work / "scratch"))
-        res = EN.compute(m21, cal, launch_signal, as_of, sic_store, registry=reg,
-                         ranking_files=view.ranking_files, evidence_files=view.evidence_files)
+        if lean:                                                # hashed by the panel from the bytes it parsed
+            view.manifest["grouped_hash"] = V.grouped_hash(view.grouped_hash_files, m21.m1.grouped_sha256)
+        res = EN.compute(m21, cal, launch_signal, as_of, sic_store, registry=reg, ranking_files=rk, evidence_files=ev)
         res["manifest"] = dict(view.manifest, reference_registry_sha256=hashlib.sha256(canon(reg or {}).encode()).hexdigest(),
                                loader=m21.__dict__.get("_lean_manifest", "FROZEN_IMPORT"))
         return res

@@ -114,9 +114,19 @@ class View:
     manifest: dict[str, Any] = field(default_factory=dict)
     ranking_files: list[Path] = field(default_factory=list)
     evidence_files: list[Path] = field(default_factory=list)
+    grouped_hash_files: list[str] = field(default_factory=list)
 
 
-def build_view(stores: Stores, as_of: date, root: Path, calendar: MarketCalendar | None = None) -> View:
+def grouped_hash(names: list[str], sha: dict[str, str]) -> str:
+    """Manifest ``grouped_hash``: sha256 over "<file sha256> <name>" lines of the hashed window."""
+    return hashlib.sha256("\n".join(sha[n] + " " + n for n in names).encode()).hexdigest()
+
+
+def build_view(stores: Stores, as_of: date, root: Path, calendar: MarketCalendar | None = None,
+               hash_grouped: bool = True) -> View:
+    """``hash_grouped=False`` leaves ``manifest["grouped_hash"]`` None for a caller that hashes the same
+    bytes when it reads them (the lean panel); reading each grouped file once keeps it out of the page
+    cache for the rest of the run."""
     cal = calendar or MarketCalendar()
     root = Path(root)
     if root.exists() and any(root.iterdir()):
@@ -165,8 +175,10 @@ def build_view(stores: Stores, as_of: date, root: Path, calendar: MarketCalendar
                 evidence.append(root / "evidence" / p.name)
     for p in sorted(stores.splits.glob("splits_*.json.gz")):
         os.symlink(p.resolve(), root / "strategy_c/raw/splits" / p.name); man["splits"][p.name] = sha_file(p)
-    man["grouped_hash"] = hashlib.sha256("\n".join(sha_file(p) + " " + p.name for p in vis[-LOOKBACK_SESSIONS - 30:]).encode()).hexdigest()
-    return View(as_of=as_of, root=root, sessions=have, manifest=man, ranking_files=ranking, evidence_files=evidence)
+    hashed = vis[-LOOKBACK_SESSIONS - 30:]
+    man["grouped_hash"] = grouped_hash([p.name for p in hashed], {p.name: sha_file(p) for p in hashed}) if hash_grouped else None
+    return View(as_of=as_of, root=root, sessions=have, manifest=man, ranking_files=ranking, evidence_files=evidence,
+                grouped_hash_files=[p.name for p in hashed])
 
 
 def load_v21(view: View, scratch: Path):

@@ -56,6 +56,18 @@ def schedule(cal: MarketCalendar, sessions: list[str], launch: date, as_of: date
     return sigs, exs, pending, refused
 
 
+def read_snapshots(files, registry: dict[str, dict[str, str]] | None) -> list:
+    """Continuity snapshots of ``files`` as ``compute`` reads them (availability from ``registry``). Items
+    that are already ``Snapshot`` objects pass through, so a caller can read them before the price panel
+    is built (parse transients then fall outside the run's memory peak)."""
+    from pathlib import Path
+    from . import continuity as CT
+    reg = registry or {}
+    def avail(p):
+        return reg.get(Path(p).name, {}).get("first_seen", "0000-00-00")
+    return [p if isinstance(p, CT.Snapshot) else CT.read_snapshot(Path(p), avail(p)) for p in (files or [])]
+
+
 def compute(m21: Any, cal: MarketCalendar, launch: date, as_of: date, sic_store=None,
             _research_keep_v2_continuity: bool = False, registry: dict[str, dict[str, str]] | None = None,
             ranking_files=None, evidence_files=None) -> dict[str, Any]:
@@ -71,13 +83,8 @@ def compute(m21: Any, cal: MarketCalendar, launch: date, as_of: date, sic_store=
     g = m21.__dict__
     if "_v2_trans_original" not in g:
         g["_v2_trans_original"] = dict(g["TRANS"])
-    reg = registry or {}
-    def avail(p):
-        return reg.get(Path(p).name, {}).get("first_seen", "0000-00-00")
-    rk_files = list(ranking_files) if ranking_files is not None else []
-    ev_files = list(evidence_files) if evidence_files is not None else []
-    rk = [CT.read_snapshot(Path(p), avail(p)) for p in rk_files]
-    ev = [CT.read_snapshot(Path(p), avail(p)) for p in ev_files]
+    rk = read_snapshots(ranking_files, registry)
+    ev = read_snapshots(evidence_files, registry)
     # V1 ranking restricted to snapshots available by the signal day (rule itself unchanged)
     full_dates = list(m1.snap_dates)
     ok_sigs, ok_exs = [], []
