@@ -11,8 +11,11 @@ User=root
 WorkingDirectory=/root/usb/backend
 Environment=PYTHONPATH=/root/usb/backend
 Environment=PYTHONUNBUFFERED=1
-# Overlap guard: exit 1 = skip this firing (heavy unit or E active, E window, memory pressure).
-ExecCondition=/root/usb/.venv/bin/python -m app.strategies.i_paper.guard --store /root/usb_runtime/strategy_i_paper/store
+# Start guard V3 (ExecCondition): 0 = RUN, 75 = normal skip (systemd skips the firing, unit not failed),
+# 255 = guard error (unit failed). The 75 skip comes from ExecCondition semantics (1..254), so no
+# SuccessExitStatus is set: it would only apply to ExecStart, which never exits 75.
+ExecCondition=/root/usb/.venv/bin/python -m app.strategies.i_paper.guard --store /root/usb_runtime/strategy_i_paper/store \
+  --min-available-mib 350 --systemd-condition
 ExecStart=/root/usb/.venv/bin/python -m app.strategies.i_paper.run \
   --store /root/usb_runtime/strategy_i_paper/store \
   --runtime /root/usb/data/runtime \
