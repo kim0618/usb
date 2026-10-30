@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
-from datetime import date, datetime, time as dtime
+from datetime import date, datetime, time as dtime, timedelta
 import json
 import os
 from pathlib import Path
@@ -20,9 +20,11 @@ import traceback
 from typing import Any
 
 from app.ae_common import e_shadow as ES
+from app.ae_common import provider_events as PEV
 from app.ae_common import snapshot as SS
 from app.ae_common import sweep as SW
 from app.ae_common.deadline import DeadlineRateLimiter, DeadlineReached
+from app.core import provider_errors as PE
 from app.strategy_e_max_rt import finalizer as FZ
 
 ROLLING_START = dtime(4, 0)
@@ -31,6 +33,11 @@ E_FINALIZE = dtime(9, 25)
 E_DEADLINE = dtime(9, 29, 45)
 OPEN = dtime(9, 30)
 E_CUTOFF_MINUTE = 9 * 60 + 24
+#: E finalization retries only Kiwoom's bare generic rejection (``PE.generic_rejection``): at most
+#: two more requests per symbol, each after the lane's first pass and no sooner than the spacing
+#: after the failure, each through the lane's deadline limiter. A symbol still rejected stays STALE.
+E_MAX_ATTEMPTS = 3
+E_RETRY_SPACING_S = 1.0
 
 
 @dataclass
@@ -123,6 +130,7 @@ def run_session(inputs: Inputs, *, lane_minute: FZ.Lane, lane_tick: FZ.Lane,
     session, at = inputs.session, clock.at
     morning = Morning()
     report = morning.report
+    events = PEV.ProviderEvents(clock.now)
     phase = on_phase or (lambda name: None)
 
     def begin(name: str, deadline: datetime) -> None:
@@ -169,9 +177,14 @@ def run_session(inputs: Inputs, *, lane_minute: FZ.Lane, lane_tick: FZ.Lane,
                 break
             except Exception as error:
                 errors += 1
+                requested = cache.exchange
                 cache.record_error(error)
+                events.record(cache.symbol, PEV.ROLLING, lane_minute, error, attempt=1, max_attempts=1,
+                              requested_exchange=requested, resolved_exchange=cache.exchange,
+                              retry_outcome=PEV.NEXT_CYCLE)
             else:
                 cache.record_error(None)
+                events.succeeded(cache.symbol, PEV.ROLLING)
         log(f"rolling cycle {cycles}: minute calls {lane_minute.calls - calls0} errors {errors}")
     report["rolling"] = {"cycles": cycles, "minute_calls": lane_minute.calls - calls0, "errors": errors,
                          "symbols_per_cycle": len(order), "ended_at": clock.now().isoformat(),
@@ -185,7 +198,8 @@ def run_session(inputs: Inputs, *, lane_minute: FZ.Lane, lane_tick: FZ.Lane,
         observed = clock.now()
         plan = SW.plan(a_mapped, e_mapped, e_shard_tick)
         calls_before = {lane_minute.name: lane_minute.calls, lane_tick.name: lane_tick.calls}
-        swept = SW.run(lane_minute, lane_tick, caches, plan, session=session, now=clock.now, deadline=at(E_FINALIZE))
+        swept = SW.run(lane_minute, lane_tick, caches, plan, session=session, now=clock.now, deadline=at(E_FINALIZE),
+                       events=events)
         report["a_sweep"] = swept.declaration() | {
             "calls": {name: lane.calls - calls_before[name] for name, lane in
                       ((lane_minute.name, lane_minute), (lane_tick.name, lane_tick))}}
@@ -218,10 +232,15 @@ def run_session(inputs: Inputs, *, lane_minute: FZ.Lane, lane_tick: FZ.Lane,
         clock.wait_until(at(E_FINALIZE))
         begin("e_finalization", at(E_DEADLINE))
         morning.e_shadow = _finalize_e(inputs, caches, spy, e_mapped, e_shard_minute, e_shard_tick,
-                                       lane_minute, lane_tick, clock, snapshot_dir, rvol_store, report, log)
+                                       lane_minute, lane_tick, clock, snapshot_dir, rvol_store, report, log,
+                                       events)
     else:
         morning.e_shadow = ES.no_decision("UNIVERSE_NOT_AVAILABLE", inputs.e_refusal or "no E universe")
     begin("closed", at(E_DEADLINE))
+    http = {lane.name: lane.client.stats() for lane in (lane_minute, lane_tick) if hasattr(lane.client, "stats")}
+    report["provider_telemetry"] = events.summary(http)
+    if e_mapped:
+        morning.e_shadow["provider_telemetry"] = events.summary(phases=[PEV.E_FINALIZATION])
 
     # -- E official paper: only a sealed, gated decision from snapshot_0924 reaches SimBroker -----
     decision, record = morning.e_shadow.pop("_decision", None), morning.e_shadow.pop("_record", None)
@@ -246,12 +265,23 @@ def run_session(inputs: Inputs, *, lane_minute: FZ.Lane, lane_tick: FZ.Lane,
 
 def _finalize_e(inputs: Inputs, caches: dict[str, FZ.SymbolCache], spy: FZ.SymbolCache, e_mapped: list[str],
                 shard_a: list[str], shard_b: list[str], lane_a: FZ.Lane, lane_b: FZ.Lane, clock: Clock,
-                snapshot_dir: Path, rvol_store: Path, report: dict[str, Any], log) -> dict[str, Any]:
-    """E-RUNTIME-R1's finalization loop verbatim, then snapshot_0924 and the shadow decision."""
+                snapshot_dir: Path, rvol_store: Path, report: dict[str, Any], log,
+                events: PEV.ProviderEvents | None = None) -> dict[str, Any]:
+    """E-RUNTIME-R1's finalization loop, then snapshot_0924 and the shadow decision.
+
+    The first pass is the loop verbatim. A symbol Kiwoom answered with its bare generic rejection
+    goes to the lane's retry queue, which the lane walks only after its first pass (so a retry never
+    delays a symbol not yet read), round by round, up to ``E_MAX_ATTEMPTS``. Every retry request
+    passes the lane's deadline limiter; nothing is sent at or after 09:29:45, and an unanswered
+    symbol stays STALE with its last provider error.
+    """
     session, at = inputs.session, clock.at
     deadline = at(E_DEADLINE)
     t0 = clock.now()
     taken, guard = set(), threading.Lock()
+    events = events or PEV.ProviderEvents(clock.now)
+    retry_counts = {"retry_requests": 0, "recovered": [], "exhausted": [], "deadline_before_retry": []}
+    OK, RETRY, FAILED, STOP = "OK", "RETRY", "FAILED", "STOP"
 
     def claim(symbol: str) -> bool:
         with guard:
@@ -260,38 +290,92 @@ def _finalize_e(inputs: Inputs, caches: dict[str, FZ.SymbolCache], spy: FZ.Symbo
             taken.add(symbol)
             return True
 
-    def worker_a() -> None:
-        for sym in ["SPY"] + shard_a + list(reversed(shard_b)):
+    def mark(cache: FZ.SymbolCache, attempt: int, outcome: str) -> None:
+        if cache.error_detail is not None:
+            cache.error_detail = {**cache.error_detail, "attempts": attempt, "max_attempts": E_MAX_ATTEMPTS,
+                                  "retry_outcome": outcome}
+
+    def answered(sym: str, n: int) -> None:
+        if n > 1:                                # the queued retry reached Kiwoom and was answered
+            events.retried(sym, PEV.E_FINALIZATION)
+            with guard:
+                retry_counts["retry_requests"] += 1
+
+    def attempt(lane: FZ.Lane, sym: str, cache: FZ.SymbolCache, step, n: int) -> str:
+        cache.final_attempted = True
+        requested = cache.exchange
+        try:
+            step(lane, cache, session, clock.now)
+        except DeadlineReached:
+            if n == 1:
+                cache.record_error(DeadlineReached())
+            return STOP                          # a refused retry keeps the provider error it retried
+        except Exception as error:
+            answered(sym, n)
+            generic = PE.generic_rejection(error)
+            outcome = (PEV.RETRY_QUEUED if generic and n < E_MAX_ATTEMPTS
+                       else PEV.EXHAUSTED if generic else PEV.NOT_RETRYABLE)
+            cache.record_error(error)
+            mark(cache, n, outcome)
+            events.record(sym, PEV.E_FINALIZATION, lane, error, attempt=n, max_attempts=E_MAX_ATTEMPTS,
+                          requested_exchange=requested, resolved_exchange=cache.exchange, retry_outcome=outcome)
+            if outcome == PEV.EXHAUSTED:
+                with guard:
+                    retry_counts["exhausted"].append(sym)
+            return RETRY if outcome == PEV.RETRY_QUEUED else FAILED
+        answered(sym, n)
+        cache.record_error(None)
+        if n > 1:
+            events.succeeded(sym, PEV.E_FINALIZATION, n)
+            with guard:
+                retry_counts["recovered"].append(sym)
+        return OK
+
+    def blocked(queue: list[tuple[str, FZ.SymbolCache, datetime]]) -> None:
+        for sym, cache, _ in queue:
+            mark(cache, (cache.error_detail or {}).get("attempts", 1), PEV.DEADLINE_BEFORE_RETRY)
+        events.blocked([sym for sym, _, _ in queue], PEV.E_FINALIZATION)
+        with guard:
+            retry_counts["deadline_before_retry"].extend(sym for sym, _, _ in queue)
+
+    def work(lane: FZ.Lane, first_pass: list[str], step) -> None:
+        queue: list[tuple[str, FZ.SymbolCache, datetime]] = []
+        for sym in first_pass:
             if clock.now() >= deadline:
-                return
+                break
             cache = spy if sym == "SPY" else caches[sym]
             if not claim(sym):
                 continue
-            cache.final_attempted = True
-            try:
-                FZ.finalize_minute(lane_a, cache, session, clock.now)
-                cache.record_error(None)
-            except DeadlineReached:
-                cache.record_error(DeadlineReached())
-                return
-            except Exception as error:
-                cache.record_error(error)
+            result = attempt(lane, sym, cache, step, 1)
+            if result == STOP:
+                break
+            if result == RETRY:
+                queue.append((sym, cache, clock.now()))
+        for n in range(2, E_MAX_ATTEMPTS + 1):
+            pending, queue = queue, []
+            for i, (sym, cache, failed_at) in enumerate(pending):
+                ready = failed_at + timedelta(seconds=E_RETRY_SPACING_S)
+                if clock.now() >= deadline or ready >= deadline:
+                    blocked(pending[i:])
+                    return
+                clock.wait_until(ready)
+                if clock.now() >= deadline:
+                    blocked(pending[i:])
+                    return
+                result = attempt(lane, sym, cache, step, n)
+                if result == STOP:
+                    blocked(pending[i:])
+                    return
+                if result == RETRY:
+                    queue.append((sym, cache, clock.now()))
+        if queue:                                # unreachable while E_MAX_ATTEMPTS bounds the rounds
+            blocked(queue)
+
+    def worker_a() -> None:
+        work(lane_a, ["SPY"] + shard_a + list(reversed(shard_b)), FZ.finalize_minute)
 
     def worker_b() -> None:
-        for sym in shard_b:
-            if clock.now() >= deadline:
-                return
-            if not claim(sym):
-                continue
-            caches[sym].final_attempted = True
-            try:
-                FZ.finalize_ticks(lane_b, caches[sym], session, clock.now)
-                caches[sym].record_error(None)
-            except DeadlineReached:
-                caches[sym].record_error(DeadlineReached())
-                return
-            except Exception as error:
-                caches[sym].record_error(error)
+        work(lane_b, list(shard_b), FZ.finalize_ticks)
 
     before = {lane_a.name: lane_a.calls, lane_b.name: lane_b.calls}
     threads = [threading.Thread(target=worker_a), threading.Thread(target=worker_b)]
@@ -315,7 +399,12 @@ def _finalize_e(inputs: Inputs, caches: dict[str, FZ.SymbolCache], spy: FZ.Symbo
                     "tick_pages": {"symbols": len(tick_pages), "total": sum(tick_pages),
                                    "avg": (sum(tick_pages) / len(tick_pages)) if tick_pages else None,
                                    "max": tick_pages[-1] if tick_pages else None},
-                    "future_cutoff_violation_count": violations}
+                    "future_cutoff_violation_count": violations,
+                    "provider_retry": {"max_attempts": E_MAX_ATTEMPTS, "spacing_s": E_RETRY_SPACING_S,
+                                       "retry_requests": retry_counts["retry_requests"],
+                                       "recovered": sorted(retry_counts["recovered"]),
+                                       "exhausted": sorted(retry_counts["exhausted"]),
+                                       "deadline_before_retry": sorted(retry_counts["deadline_before_retry"])}}
     report["e_finalization"] = finalization
     log(f"E finalization T0 {t0.time()} T1 {t1.time() if t1 else None} violations {violations}")
     art = inputs.e_art

@@ -32,6 +32,7 @@ from typing import Any
 
 from app.ae_common import snapshot as SS
 from app.ae_common.deadline import DeadlineReached
+from app.ae_common import provider_events as PEV
 from app.strategy_a_mover_live import acquisition as AQ
 from app.strategy_a_mover_live.schedule import A_CUTOFF_LAST_MINUTE
 from app.strategy_e_max_rt import finalizer as FZ
@@ -117,7 +118,8 @@ class SweepReport:
 
 def run(lane_minute: FZ.Lane, lane_tick: FZ.Lane, caches: Mapping[str, FZ.SymbolCache], sweep: SweepPlan, *,
         session: date, now: Callable[[], datetime], deadline: datetime,
-        cutoff: int = A_CUTOFF_LAST_MINUTE, join_step: float = 0.05) -> SweepReport:
+        cutoff: int = A_CUTOFF_LAST_MINUTE, join_step: float = 0.05,
+        events: "PEV.ProviderEvents | None" = None) -> SweepReport:
     t0 = now()
     report = AQ.APassReport(session=session, t0=t0, t1=None, order=sweep.symbols,
                             tick_shard=sweep.tick_shard, cutoff_minute=cutoff)
@@ -159,6 +161,10 @@ def run(lane_minute: FZ.Lane, lane_tick: FZ.Lane, caches: Mapping[str, FZ.Symbol
             except Exception as failure:
                 error = error_label(failure)
                 scratch.record_error(failure)
+                if events is not None:
+                    events.record(symbol, PEV.A_SWEEP, lane, failure, attempt=1, max_attempts=1,
+                                  requested_exchange=live.exchange, resolved_exchange=scratch.exchange,
+                                  retry_outcome=PEV.NOT_RETRIED)
             else:
                 scratch.record_error(None)
             with guard:

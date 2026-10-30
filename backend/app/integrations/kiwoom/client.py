@@ -135,6 +135,10 @@ class KiwoomMarketDataClient:
                 # symbol/exchange pair was not found; it does not prove source refusal.
                 subcode = re.search(r"\[(\d+):", message)
                 provider_code = subcode.group(1) if subcode else str(payload.get("return_code"))
+                answered = {"http_status": response.status_code, "provider_return_code": str(payload.get("return_code")),
+                            "provider_subcode": subcode.group(1) if subcode else None,
+                            "sanitized_return_msg": PE.sanitize_message(message),
+                            "requested_exchange": body.get("stex_tp")}
                 category = PE.MAPPING_ERROR if provider_code == "1903" or code == "INVALID_SYMBOL" else PE.TRANSIENT_PROVIDER_ERROR
                 explicit = payload.get("error_code")
                 if explicit in PE.SOURCE_REFUSAL_CODES and provider_code != "1903":
@@ -148,7 +152,8 @@ class KiwoomMarketDataClient:
                         page = self.request(api_id, path, {**body, "stex_tp": exchange})
                         return KiwoomPage(page.body, page.continuation, page.next_key, exchange)
                 raise MarketDataError(code, "Kiwoom market-data query was rejected",
-                                      provider="KIWOOM", error_category=category, provider_code=provider_code)
+                                      provider="KIWOOM", error_category=category, provider_code=provider_code,
+                                      **answered)
             return KiwoomPage(
                 payload,
                 response.headers.get("cont-yn", "N") == "Y",
@@ -208,7 +213,7 @@ class KiwoomMarketDataClient:
                 code = "RATE_LIMITED" if response.status_code == 429 else "MARKET_DATA_UNAVAILABLE"
                 raise MarketDataError(code, "Kiwoom market-data request failed", provider="KIWOOM",
                                       error_category=PE.TRANSIENT_PROVIDER_ERROR,
-                                      provider_code=str(response.status_code))
+                                      provider_code=str(response.status_code), http_status=response.status_code)
             return response
         raise AssertionError("bounded retry loop exhausted")
 
@@ -220,7 +225,8 @@ class KiwoomMarketDataClient:
         except (httpx.HTTPError, ValueError) as exc:
             if response.status_code in {401, 403}:
                 return {}
-            raise MarketDataError("MARKET_DATA_UNAVAILABLE", "Kiwoom returned an invalid response") from exc
+            raise MarketDataError("MARKET_DATA_UNAVAILABLE", "Kiwoom returned an invalid response",
+                                  http_status=response.status_code) from exc
         if not isinstance(payload, dict):
             raise MarketDataError("MARKET_DATA_UNAVAILABLE", "Kiwoom returned an invalid response")
         return payload
