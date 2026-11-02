@@ -9,6 +9,7 @@ process and is never awaited.
 
 from __future__ import annotations
 
+from collections import Counter
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import date, datetime, time as dtime, timedelta
@@ -371,11 +372,36 @@ def _finalize_e(inputs: Inputs, caches: dict[str, FZ.SymbolCache], spy: FZ.Symbo
         if queue:                                # unreachable while E_MAX_ATTEMPTS bounds the rounds
             blocked(queue)
 
+    # A tick walk that hits MAX_TICK_PAGES short of its minute gets one usa06011 page. It goes through
+    # lane A's client, so lane A's limiter (usa06011's own rate and the 09:29:45 deadline) paces it; the
+    # separate Lane only keeps its count apart. A fallback failure leaves the symbol STALE and is never
+    # retried: the tick step itself succeeded, so nothing reaches the generic-rejection retry queue.
+    fallback_lane = FZ.Lane(lane_a.name, lane_a.api_id, lane_a.client)
+    fallbacks: list[dict[str, Any]] = []
+
+    def tick_step(lane: FZ.Lane, cache: FZ.SymbolCache, day: date, now) -> None:
+        FZ.finalize_ticks(lane, cache, day, now)
+        if not FZ.needs_minute_fallback(cache):
+            return
+        record = {"symbol": cache.symbol, "tick_pages": cache.tick_pages, "tick_need_from": cache.tick_need_from,
+                  "tick_oldest_minute": cache.tick_oldest_minute}
+        try:
+            record.update(FZ.finalize_minute_fallback(fallback_lane, cache, day, now),
+                          outcome=FZ.SOURCE_MINUTE_FALLBACK)
+        except FZ.FallbackRejected as rejected:
+            record.update(outcome=FZ.SOURCE_STALE, reason=rejected.reason, **rejected.detail)
+        except DeadlineReached:
+            record.update(outcome=FZ.SOURCE_STALE, reason="DEADLINE_REACHED")
+        except Exception as error:
+            record.update(outcome=FZ.SOURCE_STALE, reason="PROVIDER_ERROR", provider=PE.classify(error).to_json())
+        with guard:
+            fallbacks.append(record)
+
     def worker_a() -> None:
         work(lane_a, ["SPY"] + shard_a + list(reversed(shard_b)), FZ.finalize_minute)
 
     def worker_b() -> None:
-        work(lane_b, list(shard_b), FZ.finalize_ticks)
+        work(lane_b, list(shard_b), tick_step)
 
     before = {lane_a.name: lane_a.calls, lane_b.name: lane_b.calls}
     threads = [threading.Thread(target=worker_a), threading.Thread(target=worker_b)]
@@ -405,6 +431,12 @@ def _finalize_e(inputs: Inputs, caches: dict[str, FZ.SymbolCache], spy: FZ.Symbo
                                        "recovered": sorted(retry_counts["recovered"]),
                                        "exhausted": sorted(retry_counts["exhausted"]),
                                        "deadline_before_retry": sorted(retry_counts["deadline_before_retry"])}}
+    if fallbacks:                                # absent on a morning where no tick walk hit the cap
+        sources = Counter(c.finalization_source or "NOT_FINALIZED" for c in e_caches.values()
+                          if c.data_source == "KIWOOM_" + FZ.TICK_API)
+        finalization["minute_fallback"] = {"api": FZ.MINUTE_API, "max_pages_per_symbol": 1,
+                                           "calls": fallback_lane.calls, "sources": dict(sorted(sources.items())),
+                                           "symbols": sorted(fallbacks, key=lambda r: r["symbol"])}
     report["e_finalization"] = finalization
     log(f"E finalization T0 {t0.time()} T1 {t1.time() if t1 else None} violations {violations}")
     art = inputs.e_art
