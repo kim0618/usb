@@ -5,8 +5,10 @@ Description=Strategy I paper after the previous session's grouped daily is store
 [Timer]
 # 02:15 ET: after usb-e-universe 00:20, usb-grouped-daily 00:40, usb-splits-refresh 00:55 and
 # usb-h-forward 01:10 ET, 90 minutes before the A/E common producer (03:45 ET). All of these are
-# America/New_York timers, so the gaps hold across DST. Tue..Sat = the day after each Mon..Fri session.
-OnCalendar=Tue..Sat 02:15 America/New_York
+# America/New_York timers, so the gaps hold across DST. Mon..Fri = grouped-daily's own days: on each
+# of them grouped-daily stores the previous XNYS session at 00:40 and I reads that same session as
+# as-of at 02:15. A Saturday run would ask for Friday, which grouped-daily only stores on Monday.
+OnCalendar=Mon..Fri 02:15 America/New_York
 Persistent=true
 AccuracySec=1m
 RandomizedDelaySec=0
