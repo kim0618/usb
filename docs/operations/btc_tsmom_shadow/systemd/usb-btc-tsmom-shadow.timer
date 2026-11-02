@@ -1,0 +1,15 @@
+# DRAFT - not installed.
+[Unit]
+Description=BTC TSMOM shadow at 01:07/05:07/09:07/13:07 KST (4h bar closes outside the E paper window 16:45-22:36)
+
+[Timer]
+# 4h bars close at 01/05/09/13/17/21 KST. 17 and 21 are inside the E paper window, so those two
+# bars are recorded by the 01:07 run (the runner is idempotent and fills missed bars in order).
+OnCalendar=*-*-* 01,05,09,13:07:00 Asia/Seoul
+Persistent=false
+AccuracySec=30s
+RandomizedDelaySec=0
+Unit=usb-btc-tsmom-shadow.service
+
+[Install]
+WantedBy=timers.target

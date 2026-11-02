@@ -1,0 +1,25 @@
+# DRAFT - not installed. BTC TSMOM V3 ensemble shadow: public REST only, no orders, no keys, one run per firing.
+[Unit]
+Description=USB BTC TSMOM ensemble shadow (public REST, no orders)
+After=network-online.target
+StartLimitIntervalSec=3600
+StartLimitBurst=2
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/root/usb/backend
+Environment=PYTHONPATH=/root/usb/backend
+Environment=PYTHONUNBUFFERED=1
+# Skip the firing (exit 75 = ExecCondition skip, unit not failed) when MemAvailable < 250 MiB.
+ExecCondition=/usr/bin/awk '/MemAvailable/ {exit ($$2 >= 256000) ? 0 : 75}' /proc/meminfo
+ExecStart=/root/usb/.venv/bin/python -m app.dev.run_btc_tsmom_shadow \
+  --store /root/usb_runtime/btc_tsmom_shadow/store \
+  --capital-krw 3000000
+# Measured locally: RSS 32 MiB, 0.4 s, 2 public requests per run.
+MemoryHigh=150M
+MemoryMax=200M
+Nice=19
+IOSchedulingClass=idle
+CPUWeight=20
+TimeoutStartSec=120

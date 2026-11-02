@@ -1,6 +1,6 @@
 """BTC TSMOM V3 앙상블 섀도우 실행기. 주문 없음, 인증키 없음(공개 REST만).
 
-    PYTHONPATH=backend .venv/bin/python -m app.dev.run_btc_tsmom_shadow [--capital-krw 100000] [--status]
+    PYTHONPATH=backend .venv/bin/python -m app.dev.run_btc_tsmom_shadow [--capital-krw 100000] [--status] [--store DIR]
 
 매 실행마다 바이낸스 USDⓈ-M BTCUSDT 4시간봉(최근 300개)과 펀딩비를 받아,
 마지막 기록 이후 마감된 봉들을 순서대로 반영한다(멱등: 같은 봉을 두 번 반영하지 않음).
@@ -22,6 +22,12 @@ BASE = "https://fapi.binance.com"
 FEE = 0.0005
 ROOT = Path(__file__).resolve().parents[3] / "data/runtime/crypto/tsmom_shadow"
 LEDGER = ROOT / "ledger.jsonl"
+
+
+def set_store(path: str) -> None:
+    global ROOT, LEDGER
+    ROOT = Path(path)
+    LEDGER = ROOT / "ledger.jsonl"
 
 
 def fetch(client: httpx.Client):
@@ -92,7 +98,10 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--capital-krw", type=float, default=100_000)
     ap.add_argument("--status", action="store_true")
+    ap.add_argument("--store", default=None, help="장부 디렉터리(기본 data/runtime/crypto/tsmom_shadow)")
     a = ap.parse_args(argv)
+    if a.store:
+        set_store(a.store)
     if a.status:
         led = load()
         print(json.dumps(led[-1] if led else {"ledger": "empty"}, ensure_ascii=False))
