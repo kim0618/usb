@@ -16,7 +16,7 @@ UNITS="docs/operations/btc_tsmom_shadow/systemd"
 # 1. 로컬: release tgz (커밋 기준, 작업트리 아님) + 매니페스트
 TMP="$(mktemp -d)"
 git archive "$COMMIT" $FILES | tar -x -C "$TMP"
-( cd "$TMP" && find . -type f | sort | xargs sha256sum > MANIFEST.sha256 && tar -czf "/tmp/$REL" . )
+( cd "$TMP" && find . -type f ! -name MANIFEST.sha256 | sort | xargs sha256sum > MANIFEST.sha256 && tar -czf "/tmp/$REL" . )
 REL_SHA="$(sha256sum "/tmp/$REL" | cut -c1-64)"
 echo "release $REL sha256 $REL_SHA"
 sed "s|^# DRAFT - not installed.|# Installed $TS from $COMMIT $UNITS.|" "$UNITS/usb-btc-tsmom-shadow.service" > "$TMP/usb-btc-tsmom-shadow.service"
