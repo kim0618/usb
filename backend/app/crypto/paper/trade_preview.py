@@ -97,6 +97,9 @@ def round_trip(engine: PaperEngine, side: str, qty: Decimal) -> dict[str, Any]:
     entry_fill = _first(entered.ledger.events, EventType.FILL)
     entry_fee = Decimal(str(_first(entered.ledger.events, EventType.FEE)["amount"]))
     required_margin = entered.account.used_margin
+    # The engine's own liquidation price for the position this entry leaves, on the same quote:
+    # the figure the position card will show the moment the order fills.
+    liquidation = entered.account.liquidation_price(entered.tiers, quote.mark_price)
 
     closed = _clone(entered)
     held = entered.account.position.abs_qty
@@ -152,6 +155,9 @@ def round_trip(engine: PaperEngine, side: str, qty: Decimal) -> dict[str, Any]:
         "breakeven_move_pct": move / mark,
         "breakeven_basis": BREAKEVEN_BASIS,
         "fee_rate": rate,
+        "liquidation_price": liquidation,
+        "liquidation_distance_pct": ((liquidation - mark) / mark
+                                     if liquidation is not None and mark else None),
     }
 
 

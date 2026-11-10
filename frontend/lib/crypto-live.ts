@@ -227,6 +227,12 @@ export type LivePreviewSide = {
   breakeven_mark_price?: string; breakeven_move?: string; breakeven_move_pct?: string;
   fee_rate?: string; fee_source?: string; fill_basis?: string;
   reject_stage?: string; reject_code?: string; reject_message?: string;
+  /** Pre-trade estimate from Binance's formula (`live/liquidation.py`); null with a reason code
+   *  in `liquidation_refused` when an input is missing. Binance's own figure replaces it after
+   *  the fill. */
+  liquidation_price?: string | null; liquidation_distance_pct?: string | null;
+  liquidation_refused?: string | null; liquidation_margin_type?: string | null;
+  liquidation_basis?: string;
 };
 
 export type LivePreview = {

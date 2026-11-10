@@ -178,6 +178,8 @@ export type OrderPreviewSide = {
   round_trip_cost?: string; immediate_round_trip_net?: string;
   breakeven_exit_fill_price?: string; breakeven_mark_price?: string;
   breakeven_move?: string; breakeven_move_pct?: string; breakeven_basis?: string;
+  /** The engine's liquidation price for the position this entry leaves, on the same clone. */
+  liquidation_price?: string | null; liquidation_distance_pct?: string | null;
   krw?: Partial<Record<string, string | null>>;
 };
 export type OrderPreview = {

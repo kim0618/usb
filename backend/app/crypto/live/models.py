@@ -112,6 +112,9 @@ class AccountBalance:
     account_margin_usd: Decimal
     account_unrealized_usd: Decimal
     update_time_ms: int | None
+    #: The USDT wallet that backs cross positions (isolated wallets excluded). Optional: only the
+    #: cross liquidation estimate reads it, and it refuses rather than substituting another figure.
+    cross_wallet_balance: Decimal | None = None
 
     ENDPOINT = "account"
 
@@ -149,10 +152,12 @@ class AccountBalance:
             account_available_usd=_required(payload, "availableBalance", endpoint=endpoint),
             account_margin_usd=_required(payload, "totalMarginBalance", endpoint=endpoint),
             account_unrealized_usd=_required(payload, "totalUnrealizedProfit", endpoint=endpoint),
-            update_time_ms=int(raw_update) if raw_update not in (None, "") else None)
+            update_time_ms=int(raw_update) if raw_update not in (None, "") else None,
+            cross_wallet_balance=_optional(row, "crossWalletBalance", endpoint=endpoint))
 
     def view(self) -> dict[str, Any]:
         return {"asset": self.asset, "wallet_balance": self.wallet_balance,
+                "cross_wallet_balance": self.cross_wallet_balance,
                 "available_balance": self.available_balance, "margin_balance": self.margin_balance,
                 "unrealized_pnl": self.unrealized_pnl, "max_withdraw": self.max_withdraw,
                 "initial_margin": self.initial_margin, "maint_margin": self.maint_margin,

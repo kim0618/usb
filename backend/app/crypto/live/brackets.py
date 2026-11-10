@@ -49,10 +49,15 @@ class Bracket:
     cap: Decimal
     max_leverage: Decimal
     maint_margin_ratio: Decimal
+    #: Binance's `cum`, the maintenance amount: maintenance margin = notional * ratio - cum.
+    #: Optional because only the liquidation estimate needs it; a table without it still
+    #: prices margin, and the estimate then refuses instead of assuming zero.
+    maint_amount: Decimal | None = None
 
     def view(self) -> dict[str, Any]:
         return {"bracket": self.bracket, "notional_floor": self.floor, "notional_cap": self.cap,
-                "max_leverage": self.max_leverage, "maint_margin_ratio": self.maint_margin_ratio}
+                "max_leverage": self.max_leverage, "maint_margin_ratio": self.maint_margin_ratio,
+                "maint_amount": self.maint_amount}
 
 
 def _dec(row: Mapping[str, Any], key: str) -> Decimal:
@@ -88,7 +93,9 @@ class LeverageBrackets:
                 raise BracketsMalformed(f"{symbol} leverageBracket entry is not an object")
             parsed.append(Bracket(bracket=int(_dec(item, "bracket")), floor=_dec(item, "notionalFloor"),
                                   cap=_dec(item, "notionalCap"), max_leverage=_dec(item, "initialLeverage"),
-                                  maint_margin_ratio=_dec(item, "maintMarginRatio")))
+                                  maint_margin_ratio=_dec(item, "maintMarginRatio"),
+                                  maint_amount=(_dec(item, "cum")
+                                                if item.get("cum") not in (None, "") else None)))
         parsed.sort(key=lambda b: b.floor)
         if parsed[0].floor != 0:
             raise BracketsMalformed(f"{symbol} first bracket does not start at notional 0")

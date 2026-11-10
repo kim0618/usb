@@ -14,7 +14,7 @@ import {
 import { visiblePoll } from "@/lib/visible-poll";
 import { executionsFor, qtyFromNotional } from "@/lib/crypto-executions";
 import type { Execution } from "@/lib/crypto-executions";
-import { OrderAmountSummary } from "@/components/crypto-order-amount";
+import { LiquidationEstimate, OrderAmountSummary } from "@/components/crypto-order-amount";
 
 /** PAPER leverage choices. The ceiling is the PAPER run's own (`paper_max_leverage`, at least
  *  100x), never the Binance account's: a 50x or 100x press here sets 50x or 100x in the engine. */
@@ -581,6 +581,18 @@ export function OrderTicket({ state, sizing, onAction, busy, error,
       <OrderAmountSummary qty={shownQty} price={state.quote?.mark_price} leverage={state.leverage}
         takerRate={state.fees?.taker_rate} krwPerUsdt={state.fx?.krw_per_usdt} unit={unit}
         testId="paper-order-amount" />
+      {/* The engine's own figure for the position each entry would leave, priced on a clone.
+          Flat only: the preview answers for a flat account, and a held position already shows
+          its liquidation price on its card. */}
+      {flat && (
+        <LiquidationEstimate testId="paper-liquidation-estimate" formatPrice={value => price(value)}
+          sides={Object.fromEntries((["LONG", "SHORT"] as OrderSide[]).map(side => {
+            const row = orderPreview?.sides?.[side];
+            return [side, row?.feasible ? { price: row.liquidation_price ?? null,
+                                            distancePct: row.liquidation_distance_pct ?? null } : {}];
+          }))}
+          footnote="체결 전 추정" />
+      )}
 
       {status !== "LIVE" && <p className="mb-3 rounded-lg bg-warning-soft px-3 py-2 text-[11px] text-warning"
         role="status" data-testid="stale-entry-block">

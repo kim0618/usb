@@ -30,7 +30,7 @@ import { visiblePoll } from "@/lib/visible-poll";
 import { executionsFor, halfCloseQty } from "@/lib/crypto-executions";
 import { PositionCloseButtons } from "@/components/crypto-position-close";
 import type { Execution } from "@/lib/crypto-executions";
-import { OrderAmountSummary } from "@/components/crypto-order-amount";
+import { LiquidationEstimate, OrderAmountSummary } from "@/components/crypto-order-amount";
 
 /** The unit a quantity on screen is in: Binance's own `baseAsset` when the filters were read,
  *  and the symbol minus "USDT" when they were not.
@@ -926,7 +926,17 @@ export function LiveOrderTicket({ account, onOrder, busy, error, preview, onPrev
   const heldQty = Number(position?.qty ?? 0);
   const reduceTooLarge = (side: OrderSide) => reducing(side) && !(Number(size) > 0 && Number(size) <= heldQty);
 
-  useEffect(() => { onPreview?.(size); }, [size, onPreview]);
+  // Re-priced on a leverage or position change as well as a size change: the liquidation
+  // estimate depends on both, and a stale one would sit next to the new leverage.
+  const leverageKey = account.symbol_config?.leverage != null ? String(account.symbol_config.leverage) : "";
+  const positionKey = `${position?.side ?? ""}|${position?.qty ?? ""}`;
+  useEffect(() => { onPreview?.(size); }, [size, onPreview, leverageKey, positionKey]);
+  const marginType = String(account.symbol_config?.margin_type ?? "").toUpperCase();
+  const liquidationSide = (side: OrderSide) => {
+    if (reducing(side)) return { note: "감소 주문" };
+    const row = preview?.sides?.[side];
+    return row?.feasible ? { price: row.liquidation_price ?? null, distancePct: row.liquidation_distance_pct ?? null } : {};
+  };
 
   const confirm = () => {
     if (!pending) return;
@@ -968,6 +978,10 @@ export function LiveOrderTicket({ account, onOrder, busy, error, preview, onPrev
           leverage={account.symbol_config?.leverage != null ? String(account.symbol_config.leverage) : null}
           takerRate={account.commission?.taker ?? null} krwPerUsdt={account.krw_per_usdt}
           unit={unit} testId="live-order-amount" />
+        <LiquidationEstimate testId="live-liquidation-estimate" formatPrice={value => price(value)}
+          sides={{ LONG: liquidationSide("LONG"), SHORT: liquidationSide("SHORT") }}
+          footnote={`체결 전 추정 · ${marginType === "CROSSED" ? "교차(지갑 전체 기준)"
+            : marginType === "ISOLATED" ? "격리" : "마진 모드 미확인"}`} />
       </div>
       <div className="grid grid-cols-2 gap-2">
         {(["LONG", "SHORT"] as OrderSide[]).map(side => {

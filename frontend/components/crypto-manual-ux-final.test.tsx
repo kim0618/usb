@@ -460,3 +460,51 @@ describe("PAPER <-> LIVE on one page", () => {
     }
   });
 });
+
+// ================================================================ pre-trade liquidation estimate
+
+describe("pre-trade liquidation estimate", () => {
+  const preview = (over: Record<string, Record<string, unknown>> = {}) => ({
+    source: "BINANCE_LIVE", symbol: "BTCUSDT", krw_per_usdt: "1420", mark_price: "100000", fetched_at_ms: 1,
+    sides: {
+      LONG: { side: "LONG", feasible: true, liquidation_price: "95421.3", liquidation_distance_pct: "-0.045787",
+              ...over.LONG },
+      SHORT: { side: "SHORT", feasible: true, liquidation_price: "104578.7", liquidation_distance_pct: "0.045787",
+               ...over.SHORT },
+    },
+  }) as never;
+
+  it("shows the server's figure and distance per side, formatting only", () => {
+    render(<LiveOrderTicket account={liveAccount()} onOrder={vi.fn()} sizing={liveSizing()} preview={preview()} />);
+    const box = screen.getByTestId("live-liquidation-estimate");
+    expect(box).toHaveTextContent("예상 강제청산가");
+    expect(screen.getByTestId("live-liquidation-estimate-LONG")).toHaveTextContent("95,421.3");
+    expect(screen.getByTestId("live-liquidation-estimate-LONG")).toHaveTextContent("-4.6%");
+    expect(screen.getByTestId("live-liquidation-estimate-SHORT")).toHaveTextContent("104,578.7");
+    expect(screen.getByTestId("live-liquidation-estimate-SHORT")).toHaveTextContent("+4.6%");
+    expect(box).toHaveTextContent("교차");
+  });
+
+  it("a missing figure is a dash, zero is 'no liquidation', and the reduce side says so", () => {
+    const view = render(<LiveOrderTicket account={liveAccount()} onOrder={vi.fn()} sizing={liveSizing()}
+      preview={preview({ LONG: { liquidation_price: null, liquidation_refused: "LIQ_WALLET_UNKNOWN" },
+                         SHORT: { liquidation_price: "0" } })} />);
+    expect(screen.getByTestId("live-liquidation-estimate-LONG")).toHaveTextContent("-");
+    expect(screen.getByTestId("live-liquidation-estimate-SHORT")).toHaveTextContent("청산 없음");
+    view.rerender(<LiveOrderTicket account={liveAccount({ held: { side: "LONG", qty: "0.01", entry: "100000" } })}
+      onOrder={vi.fn()} sizing={liveSizing()} preview={preview()} />);
+    expect(screen.getByTestId("live-liquidation-estimate-SHORT")).toHaveTextContent("감소 주문");
+    expect(screen.getByTestId("live-liquidation-estimate-LONG")).toHaveTextContent("95,421.3");
+  });
+
+  it("asks for a new preview when the leverage changes, not only the size", () => {
+    const onPreview = vi.fn();
+    const view = render(<LiveOrderTicket account={liveAccount()} onOrder={vi.fn()} sizing={liveSizing()}
+      onPreview={onPreview} />);
+    const before = onPreview.mock.calls.length;
+    const fifty = liveAccount();
+    (fifty.symbol_config as unknown as { leverage: string }).leverage = "50";
+    view.rerender(<LiveOrderTicket account={fifty} onOrder={vi.fn()} sizing={liveSizing()} onPreview={onPreview} />);
+    expect(onPreview.mock.calls.length).toBeGreaterThan(before);
+  });
+});

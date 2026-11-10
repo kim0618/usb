@@ -36,6 +36,7 @@ from .mirror import LiveEvent, LiveMirror
 from .models import BookTop, LONG, SHORT, LiveFieldMissing, LivePosition, MarkPrice
 from .orders import CLOSE, OPEN, LiveOrderRouter, OrderPlan, OrderRefused
 from .position_card import card as position_card
+from .liquidation import estimate as estimate_liquidation
 from .preview import round_trip
 from .rest import BinanceError, BinanceFuturesClient
 from .sizing import check as sizing_check, held_notional, presets as sizing_presets
@@ -292,10 +293,18 @@ class BinanceLiveAdapter:
             return {"side": side, "feasible": False, "reject_stage": "INPUT",
                     "reject_code": "INVALID_QTY", "reject_message": str(exc)}
         leverage = snapshot.symbol_config.leverage if snapshot.symbol_config else None
-        return round_trip(side=side, qty=size, depth=depth, mark=snapshot.mark,
-                          commission=snapshot.commission, filters=snapshot.filters,
-                          leverage=leverage, brackets=snapshot.brackets,
-                          held_notional=held_notional(snapshot.position, side, snapshot.mark))
+        result = round_trip(side=side, qty=size, depth=depth, mark=snapshot.mark,
+                            commission=snapshot.commission, filters=snapshot.filters,
+                            leverage=leverage, brackets=snapshot.brackets,
+                            held_notional=held_notional(snapshot.position, side, snapshot.mark))
+        if result.get("feasible"):
+            # Before the fill there is no Binance figure; this is the formula's, labelled so.
+            result.update(estimate_liquidation(
+                side=side, qty=size, fill_price=result["entry_fill_price"], leverage=leverage,
+                margin_type=snapshot.symbol_config.margin_type if snapshot.symbol_config else None,
+                brackets=snapshot.brackets, position=snapshot.position, balance=snapshot.balance,
+                mark_price=snapshot.mark.mark_price))
+        return result
 
     def get_sizing(self, depth_limit: int = 20, *, force: bool = True) -> dict[str, Any]:
         """Quick-size ladder for both sides, computed here rather than on the screen.
